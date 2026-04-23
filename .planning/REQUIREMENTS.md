@@ -81,32 +81,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | TBD | Pending |
-| CORE-02 | TBD | Pending |
-| CORE-03 | TBD | Pending |
-| CORE-04 | TBD | Pending |
-| INBX-01 | TBD | Pending |
-| INBX-02 | TBD | Pending |
-| INBX-03 | TBD | Pending |
-| DLVR-01 | TBD | Pending |
-| DLVR-02 | TBD | Pending |
-| DLVR-03 | TBD | Pending |
-| DLVR-04 | TBD | Pending |
-| POLC-01 | TBD | Pending |
-| POLC-02 | TBD | Pending |
-| POLC-03 | TBD | Pending |
-| INTG-01 | TBD | Pending |
-| INTG-02 | TBD | Pending |
-| INTG-03 | TBD | Pending |
-| OPS-01 | TBD | Pending |
-| OPS-02 | TBD | Pending |
-| OPS-03 | TBD | Pending |
+| CORE-01 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Pending |
+| CORE-03 | Phase 1 | Pending |
+| CORE-04 | Phase 1 | Pending |
+| INBX-01 | Phase 1 | Pending |
+| INBX-02 | Phase 1 | Pending |
+| INBX-03 | Phase 1 | Pending |
+| DLVR-01 | Phase 2 | Pending |
+| DLVR-02 | Phase 2 | Pending |
+| DLVR-03 | Phase 2 | Pending |
+| DLVR-04 | Phase 3 | Pending |
+| POLC-01 | Phase 3 | Pending |
+| POLC-02 | Phase 3 | Pending |
+| POLC-03 | Phase 3 | Pending |
+| INTG-01 | Phase 2 | Pending |
+| INTG-02 | Phase 2 | Pending |
+| INTG-03 | Phase 3 | Pending |
+| OPS-01 | Phase 4 | Pending |
+| OPS-02 | Phase 4 | Pending |
+| OPS-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠
+- Mapped to phases: 20
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-23*
-*Last updated: 2026-04-23 after initial definition*
+*Last updated: 2026-04-23 after roadmap creation*
