@@ -28,24 +28,24 @@ if Code.ensure_loaded?(Oban) do
 
     @behaviour Chimeway.Dispatch
 
-    alias Chimeway.{Deliveries, Dispatch.ObanWorker, Repo}
+    alias Chimeway.{DeliveryPlanning, Dispatch.ObanWorker, Repo}
     alias Chimeway.Telemetry
 
     @impl Chimeway.Dispatch
     def dispatch(notifications, opts) when is_list(notifications) do
       multi_opt = Keyword.get(opts, :multi)
 
-      deliveries =
-        Enum.flat_map(notifications, fn notification ->
-          case Deliveries.plan_delivery(notification.id, :in_app) do
-            {:ok, delivery} -> [delivery]
-            {:error, _} -> []
-          end
-        end)
+      case DeliveryPlanning.plan_notifications(notifications, opts) do
+        {:ok, deliveries} ->
+          pending_deliveries = Enum.filter(deliveries, fn delivery -> delivery.status == :pending end)
 
-      case enqueue_deliveries(deliveries, multi_opt) do
-        :ok -> {:ok, deliveries}
-        {:error, reason} -> {:error, reason}
+          case enqueue_deliveries(pending_deliveries, multi_opt) do
+            :ok -> {:ok, deliveries}
+            {:error, reason} -> {:error, reason}
+          end
+
+        {:error, reason} ->
+          {:error, {:planning_failed, reason}}
       end
     end
 
