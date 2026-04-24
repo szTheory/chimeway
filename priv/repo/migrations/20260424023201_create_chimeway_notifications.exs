@@ -18,9 +18,7 @@ defmodule Chimeway.Repo.Migrations.CreateChimewayNotifications do
       timestamps(type: :utc_datetime_usec)
     end
 
-    create unique_index(:chimeway_notifications, [:event_id, :recipient_identity],
-             name: :chimeway_notifications_event_recipient_index
-           )
+    create unique_index(:chimeway_notifications, [:event_id, :recipient_identity], name: :chimeway_notifications_event_recipient_index)
 
     create index(:chimeway_notifications, [:recipient_identity, :read_at, :inserted_at],
              name: :chimeway_notifications_inbox_read_inserted_index

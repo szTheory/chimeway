@@ -12,8 +12,6 @@ defmodule Chimeway.Repo.Migrations.CreateChimewayEvents do
       timestamps(type: :utc_datetime_usec)
     end
 
-    create unique_index(:chimeway_events, [:idempotency_key],
-             name: :chimeway_events_idempotency_key_index
-           )
+    create unique_index(:chimeway_events, [:idempotency_key], name: :chimeway_events_idempotency_key_index)
   end
 end
