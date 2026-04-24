@@ -4,6 +4,7 @@ defmodule Chimeway.Dispatch.Executor do
   """
 
   alias Chimeway.{Deliveries, Delivery}
+  alias Chimeway.Dispatch.ChannelAdapterConfig
 
   @spec run_delivery(Delivery.t()) ::
           {:ok, %{delivery: Delivery.t(), attempt: Chimeway.DeliveryAttempt.t()}}
@@ -12,8 +13,7 @@ defmodule Chimeway.Dispatch.Executor do
   def run_delivery(%Delivery{} = delivery) do
     with {:ok, dispatched} <- Deliveries.transition_status(delivery, :dispatched) do
       adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
-      channel_key = String.to_atom("adapter_#{delivery.channel}")
-      adapter_config = Application.get_env(:chimeway, channel_key, [])
+      adapter_config = ChannelAdapterConfig.resolve(delivery.channel, [])
 
       {attempt_outcome, provider_response} =
         dispatched
