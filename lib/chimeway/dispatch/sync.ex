@@ -44,7 +44,7 @@ defmodule Chimeway.Dispatch.Sync do
         {:ok, Enum.map(deliveries, &dispatch_planned_delivery/1)}
 
       {:error, reason} ->
-        {:error, {:planning_failed, reason}}
+        planning_failed(reason)
     end
   end
 
@@ -88,4 +88,6 @@ defmodule Chimeway.Dispatch.Sync do
         error
     end
   end
+
+  defp planning_failed(reason), do: {:error, {:planning_failed, reason}}
 end

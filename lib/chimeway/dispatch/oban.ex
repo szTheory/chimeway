@@ -37,7 +37,7 @@ if Code.ensure_loaded?(Oban) do
 
       case DeliveryPlanning.plan_notifications(notifications, opts) do
         {:ok, deliveries} ->
-          pending_deliveries = Enum.filter(deliveries, fn delivery -> delivery.status == :pending end)
+          pending_deliveries = pending_deliveries(deliveries)
 
           case enqueue_deliveries(pending_deliveries, multi_opt) do
             :ok -> {:ok, deliveries}
@@ -45,8 +45,12 @@ if Code.ensure_loaded?(Oban) do
           end
 
         {:error, reason} ->
-          {:error, {:planning_failed, reason}}
+          planning_failed(reason)
       end
+    end
+
+    defp pending_deliveries(deliveries) do
+      Enum.filter(deliveries, fn delivery -> delivery.status == :pending end)
     end
 
     defp enqueue_deliveries(deliveries, nil) do
@@ -81,5 +85,7 @@ if Code.ensure_loaded?(Oban) do
         end
       )
     end
+
+    defp planning_failed(reason), do: {:error, {:planning_failed, reason}}
   end
 end
