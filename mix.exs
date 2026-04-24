@@ -25,7 +25,8 @@ defmodule Chimeway.MixProject do
     [
       {:ecto_sql, "~> 3.11"},
       {:postgrex, ">= 0.0.0"},
-      {:nimble_options, "~> 1.1"}
+      {:nimble_options, "~> 1.1"},
+      {:jason, "~> 1.4"}
     ]
   end
 
