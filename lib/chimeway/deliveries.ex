@@ -39,14 +39,20 @@ defmodule Chimeway.Deliveries do
   def plan_delivery(notification_id, channel, opts) when is_list(opts) do
     channel_str = if is_atom(channel), do: Atom.to_string(channel), else: channel
 
-    with {:ok, delay_fallback} <- normalize_delay_fallback(Keyword.get(opts, :delay_fallback, false)),
+    with {:ok, delay_fallback} <-
+           normalize_delay_fallback(Keyword.get(opts, :delay_fallback, false)),
          {:ok, delayed_fallback_source} <-
-           normalize_delayed_fallback_source(Keyword.get(opts, :delayed_fallback_source, :default)) do
+           normalize_delayed_fallback_source(
+             Keyword.get(opts, :delayed_fallback_source, :default)
+           ) do
       metadata =
         opts
         |> Keyword.get(:metadata, %{})
         |> ensure_metadata_map()
         |> Map.put("delayed_fallback_source", delayed_fallback_source)
+        |> maybe_put("notification_key", opts[:notification_key])
+        |> maybe_put("event_id", opts[:event_id])
+        |> maybe_put("correlation_id", opts[:correlation_id])
 
       result =
         %Delivery{}
@@ -123,7 +129,8 @@ defmodule Chimeway.Deliveries do
   Transitions a delivery to :suppressed, persists suppression_reason, and records
   policy checkpoint metadata (`planning` or `perform`).
   """
-  @spec suppress_delivery(Delivery.t(), atom(), keyword()) :: {:ok, Delivery.t()} | {:error, term()}
+  @spec suppress_delivery(Delivery.t(), atom(), keyword()) ::
+          {:ok, Delivery.t()} | {:error, term()}
   def suppress_delivery(%Delivery{} = delivery, reason, opts)
       when is_atom(reason) and is_list(opts) do
     checkpoint =
@@ -213,6 +220,9 @@ defmodule Chimeway.Deliveries do
 
   defp ensure_metadata_map(map) when is_map(map), do: map
   defp ensure_metadata_map(_), do: %{}
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp normalize_checkpoint(:planning), do: "planning"
   defp normalize_checkpoint(:perform), do: "perform"
