@@ -15,6 +15,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 - [x] Developers can trigger one domain event that fans out to many recipients with durable event and notification records. *(Validated in Phase 01: durable-core-spine)*
 - [x] Chimeway enforces idempotency across event creation and notification planning to prevent duplicate records. *(Validated in Phase 01: durable-core-spine)*
 - [x] Users get durable in-app notification records with explicit `seen`, `read`, and archival semantics. *(Validated in Phase 01: durable-core-spine)*
+- [x] The project ships with strict OSS engineering discipline (`mix verify.*`, CI lane hygiene, docs contracts, release checks). *(Validated in Phase 05: oss-verification-and-release-hardening)*
 
 ### Active
 
@@ -25,7 +26,6 @@ Every notification decision is explainable, so teams can reliably answer why a n
 - [ ] v0.1 ships one vertical slice with durable spine plus at least one outbound adapter seam (initially log/test or Swoosh wrapper).
 - [ ] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs.
 - [ ] Chimeway remains composable and provider-agnostic through adapter behaviours.
-- [ ] The project ships with strict OSS engineering discipline (`mix verify.*`, CI lane hygiene, docs contracts, release checks).
 
 ### Out of Scope
 
@@ -67,6 +67,7 @@ Prior context includes:
 | Treat explainability as product surface | "Why wasn't this sent?" is the primary operator differentiator | — Pending |
 | Integrate channel/job primitives instead of replacing them | Swoosh/Oban already solve core delivery substrates well | — Pending |
 | Start with durable spine + one channel slice | Fastest path to validate end-to-end architecture and DX | Durable spine completed in Phase 01 |
+| Enforce OSS release hygiene as executable contracts | Maintainers need deterministic, repeatable release confidence | Implemented in Phase 05 docs/test/release hardening |
 
 ## Evolution
 
@@ -86,4 +87,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-24 after Phase 01 completion*
+*Last updated: 2026-04-24 after Phase 05 completion*

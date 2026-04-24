@@ -1,11 +1,21 @@
 defmodule Chimeway.Dispatch.SyncTest do
-  use Chimeway.DataCase, async: true
+  use Chimeway.DataCase, async: false
 
   alias Chimeway.DeliveryAttempt
   alias Chimeway.Dispatch.Sync
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
+
+  setup do
+    previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway, :adapter, previous_adapter)
+    end)
+
+    :ok
+  end
 
   # ---- Fixtures ----
 

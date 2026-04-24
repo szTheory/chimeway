@@ -99,7 +99,7 @@ Plans:
 
 Plans:
 - [x] 05-01: Implement CI/verify entrypoints and pipeline parity checks.
-- [ ] 05-02: Finalize release/checklist docs, doc-contract checks, and maintenance runbook baseline.
+- [x] 05-02: Finalize release/checklist docs, doc-contract checks, and maintenance runbook baseline.
 
 ## Progress
 

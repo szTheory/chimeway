@@ -12,6 +12,7 @@ defmodule Chimeway.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
+      description: "Explainable, durable notification library for Elixir.",
       package: package(),
       docs: docs()
     ]
