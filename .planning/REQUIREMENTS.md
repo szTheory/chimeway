@@ -31,7 +31,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **POLC-01**: Application can express recipient preferences that enable/disable notification channels by key/topic.
 - [x] **POLC-02**: Policy evaluation runs at planning/enqueue time and again at perform/send time for delayed deliveries.
-- [ ] **POLC-03**: Delayed fallback behavior can suppress outbound delivery when in-app state shows the notification was already read.
+- [x] **POLC-03**: Delayed fallback behavior can suppress outbound delivery when in-app state shows the notification was already read.
 
 ### Integrations and Composability
 
@@ -94,7 +94,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DLVR-04 | Phase 8 | Pending |
 | POLC-01 | Phase 6 | Complete |
 | POLC-02 | Phase 6 | Complete |
-| POLC-03 | Phase 7 | Pending |
+| POLC-03 | Phase 7 | Complete |
 | INTG-01 | Phase 2 | Complete |
 | INTG-02 | Phase 6 | Complete |
 | INTG-03 | Phase 3 | Complete |
@@ -105,10 +105,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 **Coverage:**
 - v1 requirements: 20 total
 - Mapped to phases: 20
-- Pending after milestone audit: 5
-- Complete after milestone audit: 15
+- Pending after milestone audit: 4
+- Complete after milestone audit: 16
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-23*
-*Last updated: 2026-04-24 after Phase 06-03 execution*
+*Last updated: 2026-04-24 after Phase 07-01 execution*
