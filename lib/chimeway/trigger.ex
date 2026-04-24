@@ -269,38 +269,53 @@ defmodule Chimeway.Trigger do
       |> Keyword.put_new(:event_id, event.id)
       |> Keyword.put_new(:correlation_id, event.correlation_id)
 
-    dispatch_mode =
-      case dispatcher do
-        Chimeway.Dispatch.Sync -> :sync
-        Chimeway.Dispatch.Oban -> :oban
-        _ -> :unknown
-      end
-
     case dispatcher.dispatch(notifications, dispatch_opts) do
       {:ok, deliveries} ->
-        delivery_ids =
-          deliveries
-          |> Enum.map(fn
-            %{id: id} -> id
-            {:ok, %{id: id}} -> id
-            _ -> nil
-          end)
-          |> Enum.reject(&is_nil/1)
-
-        trace =
-          trigger_result
-          |> Map.get(:trace, %{})
-          |> Map.put(:delivery_ids, delivery_ids)
-
-        {:ok,
-         %{trigger_result | dispatch_outcome: :ok, dispatch_mode: dispatch_mode, trace: trace}}
+        {:ok, merge_dispatch_outcome(trigger_result, :ok, dispatch_mode_for(dispatcher), deliveries)}
 
       {:error, reason} ->
         Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
 
-        {:ok, %{trigger_result | dispatch_outcome: {:error, reason}, dispatch_mode: dispatch_mode}}
+        {:ok,
+         merge_dispatch_outcome(
+           trigger_result,
+           {:error, reason},
+           dispatch_mode_for(dispatcher),
+           []
+         )}
     end
   end
 
   defp dispatch_after_trigger(result, _notifier, _params, _opts), do: result
+
+  defp dispatch_mode_for(Chimeway.Dispatch.Sync), do: :sync
+  defp dispatch_mode_for(Chimeway.Dispatch.Oban), do: :oban
+  defp dispatch_mode_for(_dispatcher), do: :unknown
+
+  defp trace_with_delivery_ids(trace, deliveries) when is_list(deliveries) do
+    delivery_ids =
+      deliveries
+      |> Enum.map(&delivery_id_from_dispatch_result/1)
+      |> Enum.reject(&is_nil/1)
+
+    Map.put(trace, :delivery_ids, delivery_ids)
+  end
+
+  defp merge_dispatch_outcome(trigger_result, dispatch_outcome, dispatch_mode, deliveries) do
+    trace =
+      trigger_result
+      |> Map.get(:trace, %{})
+      |> trace_with_delivery_ids(deliveries)
+
+    %{
+      trigger_result
+      | dispatch_outcome: dispatch_outcome,
+        dispatch_mode: dispatch_mode,
+        trace: trace
+    }
+  end
+
+  defp delivery_id_from_dispatch_result(%{id: id}), do: id
+  defp delivery_id_from_dispatch_result({:ok, %{id: id}}), do: id
+  defp delivery_id_from_dispatch_result(_), do: nil
 end
