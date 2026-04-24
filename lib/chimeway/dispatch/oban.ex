@@ -33,45 +33,37 @@ if Code.ensure_loaded?(Oban) do
 
     @impl Chimeway.Dispatch
     def dispatch(notifications, opts) when is_list(notifications) do
-      multi_opt = Keyword.get(opts, :multi)
+      base_multi = Keyword.get(opts, :multi, Ecto.Multi.new())
 
-      case DeliveryPlanning.plan_notifications(notifications, opts) do
-        {:ok, deliveries} ->
-          pending_deliveries = pending_deliveries(deliveries)
-
-          case enqueue_deliveries(pending_deliveries, multi_opt) do
-            :ok -> {:ok, deliveries}
+      multi =
+        base_multi
+        |> Ecto.Multi.run(:plan_notifications, fn _repo, _changes ->
+          DeliveryPlanning.plan_notifications(notifications, opts)
+        end)
+        |> Ecto.Multi.run(:enqueue_jobs, fn _repo, %{plan_notifications: deliveries} ->
+          deliveries
+          |> Enum.filter(fn delivery -> delivery.status == :pending end)
+          |> Enum.reduce_while({:ok, []}, fn delivery, {:ok, jobs} ->
+            case enqueue_one(delivery) do
+              {:ok, job} -> {:cont, {:ok, [job | jobs]}}
+              {:error, reason} -> {:halt, {:error, reason}}
+            end
+          end)
+          |> case do
+            {:ok, jobs} -> {:ok, Enum.reverse(jobs)}
             {:error, reason} -> {:error, reason}
           end
-
-        {:error, reason} ->
-          planning_failed(reason)
-      end
-    end
-
-    defp pending_deliveries(deliveries) do
-      Enum.filter(deliveries, fn delivery -> delivery.status == :pending end)
-    end
-
-    defp enqueue_deliveries(deliveries, nil) do
-      Enum.reduce_while(deliveries, :ok, fn delivery, :ok ->
-        case enqueue_one(delivery) do
-          {:ok, _job} -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, reason}}
-        end
-      end)
-    end
-
-    defp enqueue_deliveries(deliveries, multi) when is_struct(multi, Ecto.Multi) do
-      multi_with_jobs =
-        Enum.reduce(deliveries, multi, fn delivery, acc ->
-          job_name = String.to_atom("enqueue_delivery_#{delivery.id}")
-          Oban.insert(acc, job_name, ObanWorker.new(%{delivery_id: delivery.id}))
         end)
 
-      case Repo.transaction(multi_with_jobs) do
-        {:ok, _changes} -> :ok
-        {:error, _step, reason, _changes} -> {:error, reason}
+      case Repo.transaction(multi) do
+        {:ok, %{plan_notifications: deliveries}} ->
+          {:ok, deliveries}
+
+        {:error, :plan_notifications, reason, _changes} ->
+          {:error, {:planning_failed, reason}}
+
+        {:error, _step, reason, _changes} ->
+          {:error, reason}
       end
     end
 
@@ -85,7 +77,5 @@ if Code.ensure_loaded?(Oban) do
         end
       )
     end
-
-    defp planning_failed(reason), do: {:error, {:planning_failed, reason}}
   end
 end
