@@ -132,7 +132,7 @@ defmodule Chimeway.Traces do
           correlation_id: event.correlation_id,
           notification_key: event.notification_key,
           recipient_id: notification.recipient_identity,
-          channel: String.to_existing_atom(delivery.channel),
+          channel: delivery.channel,
           status: delivery.status,
           suppression_reason: delivery.suppression_reason,
           last_attempt: last_attempt,

@@ -13,7 +13,7 @@ defmodule Chimeway.Traces.Explanation do
   - `correlation_id` — host-app correlation string (request_id, trace_id), or nil
   - `notification_key` — stable notification type identifier
   - `recipient_id` — recipient identity string
-  - `channel` — delivery channel atom (e.g. :in_app)
+  - `channel` — delivery channel string (for example "in_app", "email", "webhook_partner")
   - `status` — final delivery status: :succeeded | :failed | :suppressed | :pending | :cancelled
   - `suppression_reason` — reason atom string when status is :suppressed, else nil
   - `last_attempt` — map with :outcome and :inserted_at for the most recent attempt, or nil
@@ -28,7 +28,7 @@ defmodule Chimeway.Traces.Explanation do
           correlation_id: String.t() | nil,
           notification_key: String.t(),
           recipient_id: String.t(),
-          channel: atom(),
+          channel: String.t(),
           status: :succeeded | :failed | :suppressed | :pending | :cancelled | :dispatched,
           suppression_reason: String.t() | nil,
           last_attempt: %{outcome: atom(), inserted_at: DateTime.t()} | nil,

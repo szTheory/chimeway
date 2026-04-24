@@ -164,7 +164,7 @@ defmodule Chimeway.TracesTest do
       assert exp.correlation_id == "req-success"
       assert exp.notification_key == "test_notifier"
       assert exp.recipient_id == "user:success"
-      assert exp.channel == :in_app
+      assert exp.channel == "in_app"
       assert exp.status == :succeeded
       assert exp.suppression_reason == nil
       assert %{outcome: :succeeded} = exp.last_attempt
