@@ -176,6 +176,26 @@ defmodule Chimeway.Dispatch.SyncTest do
     end
   end
 
+  describe "dispatch contract parity for trigger consumers" do
+    test "DLVR-04: sync dispatch preserves planning_failed error tagging" do
+      # DLVR-04: trigger outcome normalization depends on tagged planning failures.
+      %{notification: notification} = DispatchHelpers.create_notification()
+
+      defmodule SyncPlanningFailureNotifier do
+        def channels(_trigger_params, _recipient), do: {:error, :forced_planning_failure}
+      end
+
+      assert {:error, {:planning_failed, {:channels_resolution_failed, reason}}} =
+               Sync.dispatch(
+                 [notification],
+                 notifier: SyncPlanningFailureNotifier,
+                 trigger_params: %{}
+               )
+
+      assert reason == :forced_planning_failure
+    end
+  end
+
   describe "perform-time suppression parity" do
     # POLC-03: delayed fallback checks read state at perform checkpoint.
     test "POLC-03: already-read delayed fallback delivery is suppressed with no attempt" do

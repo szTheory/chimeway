@@ -88,6 +88,24 @@ defmodule Chimeway.Dispatch.ObanTest do
 
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
     end
+
+    test "DLVR-04: oban dispatch preserves planning_failed error tagging" do
+      # DLVR-04: trigger outcome normalization depends on tagged planning failures.
+      %{notification: notification} = DispatchHelpers.create_notification()
+
+      defmodule ObanPlanningFailureNotifier do
+        def channels(_trigger_params, _recipient), do: {:error, :forced_planning_failure}
+      end
+
+      assert {:error, {:planning_failed, {:channels_resolution_failed, reason}}} =
+               Oban.dispatch(
+                 [notification],
+                 notifier: ObanPlanningFailureNotifier,
+                 trigger_params: %{}
+               )
+
+      assert reason == :forced_planning_failure
+    end
   end
 
   describe "Chimeway.Dispatch.ObanWorker.perform/1" do
