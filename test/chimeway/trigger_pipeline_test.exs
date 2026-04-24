@@ -4,6 +4,7 @@ defmodule Chimeway.TriggerPipelineTest do
   import Ecto.Query
 
   alias Chimeway.{Delivery, Notifications.Notification, Repo, Trigger}
+  alias Chimeway.Events.Event
 
   defmodule FanoutNotifier do
     @behaviour Chimeway.Notifier
@@ -54,6 +55,26 @@ defmodule Chimeway.TriggerPipelineTest do
 
     @impl true
     def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+  end
+
+  defmodule FailingDispatcher do
+    @behaviour Chimeway.Dispatch
+
+    @impl true
+    def dispatch(_notifications, _opts), do: {:error, :forced_dispatch_failure}
+  end
+
+  defmodule SpyDispatcher do
+    @behaviour Chimeway.Dispatch
+
+    @impl true
+    def dispatch(notifications, opts) do
+      if is_pid(opts[:spy_pid]) do
+        send(opts[:spy_pid], {:dispatch_called, notifications})
+      end
+
+      {:ok, []}
+    end
   end
 
   test "returns error when idempotency key is missing" do
@@ -108,6 +129,14 @@ defmodule Chimeway.TriggerPipelineTest do
                {"z-user", "email"},
                {"z-user", "in_app"}
              ])
+
+    assert result.dispatch_outcome == :ok
+    assert result.dispatch_mode in [:sync, :oban, :unknown]
+    assert result.dispatch_mode == :sync
+    assert is_map(result.trace)
+    assert result.trace.event_id == result.event.id
+    assert Map.has_key?(result.trace, :correlation_id)
+    assert is_list(result.trace.delivery_ids)
   end
 
   test "falls back to a single in_app delivery when notifier has no channels/2 callback" do
@@ -132,5 +161,68 @@ defmodule Chimeway.TriggerPipelineTest do
       )
 
     assert MapSet.new(channels) == MapSet.new(["in_app"])
+  end
+
+  test "returns structured dispatch error outcome while preserving {:ok, result} shape" do
+    previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+    end)
+
+    Application.put_env(:chimeway, :dispatcher, FailingDispatcher)
+
+    assert {:ok, result} =
+             Trigger.trigger(
+               PipelineNotifier,
+               %{},
+               idempotency_key: "idem-125"
+             )
+
+    assert result.dispatch_outcome == {:error, :forced_dispatch_failure}
+    assert result.trace.event_id == result.event.id
+    assert Map.has_key?(result.trace, :correlation_id)
+  end
+
+  test "duplicate idempotency trigger bypasses dispatch invocation on second call" do
+    previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+    end)
+
+    Application.put_env(:chimeway, :dispatcher, SpyDispatcher)
+
+    assert {:ok, _result} =
+             Trigger.trigger(
+               PipelineNotifier,
+               %{},
+               idempotency_key: "idem-dup-001",
+               spy_pid: self()
+             )
+
+    assert_receive {:dispatch_called, _}
+
+    assert {:duplicate, _event} =
+             Trigger.trigger(
+               PipelineNotifier,
+               %{},
+               idempotency_key: "idem-dup-001",
+               spy_pid: self()
+             )
+
+    refute_receive {:dispatch_called, _}
+
+    event_count =
+      Repo.aggregate(from(e in Event, where: e.idempotency_key == "idem-dup-001"), :count, :id)
+
+    assert event_count == 1
+
+    [event] = Repo.all(from(e in Event, where: e.idempotency_key == "idem-dup-001"))
+
+    notification_count =
+      Repo.aggregate(from(n in Notification, where: n.event_id == ^event.id), :count, :id)
+
+    assert notification_count == 3
   end
 end
