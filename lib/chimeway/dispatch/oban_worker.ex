@@ -57,7 +57,7 @@ if Code.ensure_loaded?(Oban) do
     defp dispatch_delivery(%Delivery{} = delivery) do
       case Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
         {:suppress, reason} ->
-          case Deliveries.suppress_delivery(delivery, reason) do
+          case Deliveries.suppress_delivery(delivery, reason, checkpoint: :perform) do
             {:ok, _} -> :ok
             {:error, _} = err -> err
           end
