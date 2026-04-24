@@ -31,7 +31,7 @@ if Code.ensure_loaded?(Oban) do
       max_attempts: 5,
       unique: [fields: [:args], keys: [:delivery_id], period: 60]
 
-    alias Chimeway.{Deliveries, Delivery}
+    alias Chimeway.{Deliveries, Delivery, Policy}
 
     @terminal_states [:succeeded, :suppressed, :cancelled]
 
@@ -47,7 +47,7 @@ if Code.ensure_loaded?(Oban) do
     end
 
     defp dispatch_delivery(%Delivery{} = delivery) do
-      case Chimeway.Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
+      case Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
         {:suppress, reason} ->
           case Deliveries.suppress_delivery(delivery, reason) do
             {:ok, _} -> :ok

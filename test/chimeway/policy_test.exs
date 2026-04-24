@@ -22,7 +22,7 @@ defmodule Chimeway.PolicyTest do
     event
   end
 
-  defp insert_notification(event, recipient_identity \\ "user-policy-1") do
+  defp insert_notification(event, recipient_identity) do
     {:ok, notification} =
       %Notification{}
       |> Notification.changeset(%{
@@ -36,7 +36,7 @@ defmodule Chimeway.PolicyTest do
     notification
   end
 
-  defp insert_delivery(notification, channel \\ "in_app", opts \\ []) do
+  defp insert_delivery(notification, channel, opts \\ []) do
     delay_fallback = Keyword.get(opts, :delay_fallback, false)
 
     {:ok, delivery} =
