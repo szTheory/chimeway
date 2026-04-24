@@ -83,8 +83,32 @@ defmodule Chimeway.Deliveries do
   """
   @spec suppress_delivery(Delivery.t(), atom()) :: {:ok, Delivery.t()} | {:error, term()}
   def suppress_delivery(%Delivery{} = delivery, reason) when is_atom(reason) do
+    suppress_delivery(delivery, reason, [])
+  end
+
+  @doc """
+  Transitions a delivery to :suppressed, persists suppression_reason, and records
+  policy checkpoint metadata (`planning` or `perform`).
+  """
+  @spec suppress_delivery(Delivery.t(), atom(), keyword()) :: {:ok, Delivery.t()} | {:error, term()}
+  def suppress_delivery(%Delivery{} = delivery, reason, opts)
+      when is_atom(reason) and is_list(opts) do
+    checkpoint =
+      opts
+      |> Keyword.get(:checkpoint, :perform)
+      |> normalize_checkpoint()
+
+    metadata =
+      delivery.metadata
+      |> ensure_metadata_map()
+      |> Map.put("policy_checkpoint", checkpoint)
+
     delivery
-    |> change(status: :suppressed, suppression_reason: Atom.to_string(reason))
+    |> change(
+      status: :suppressed,
+      suppression_reason: Atom.to_string(reason),
+      metadata: metadata
+    )
     |> Repo.update()
   end
 
@@ -153,6 +177,15 @@ defmodule Chimeway.Deliveries do
   end
 
   defp sanitize_metadata(_), do: %{}
+
+  defp ensure_metadata_map(map) when is_map(map), do: map
+  defp ensure_metadata_map(_), do: %{}
+
+  defp normalize_checkpoint(:planning), do: "planning"
+  defp normalize_checkpoint(:perform), do: "perform"
+  defp normalize_checkpoint("planning"), do: "planning"
+  defp normalize_checkpoint("perform"), do: "perform"
+  defp normalize_checkpoint(_), do: "perform"
 
   defp sensitive_key?(key) when is_atom(key), do: sensitive_key?(Atom.to_string(key))
   defp sensitive_key?(key) when is_binary(key), do: String.downcase(key) in @sensitive_keys
