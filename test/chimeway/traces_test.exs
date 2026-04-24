@@ -247,6 +247,18 @@ defmodule Chimeway.TracesTest do
       assert {:ok, %Explanation{channel: "webhook_partner"}} =
                Traces.explain_delivery(delivery.id)
     end
+
+    test "OPS-01: timeline keeps :delivery_planned for custom string channel explanations" do
+      # OPS-01: timeline event coverage must include planning for custom channels.
+      event = insert_event()
+      notification = insert_notification(event, "user:webhook-timeline")
+      delivery = plan_delivery(notification, "webhook_partner")
+
+      assert {:ok, %Explanation{channel: "webhook_partner", timeline: timeline}} =
+               Traces.explain_delivery(delivery.id)
+
+      assert :delivery_planned in Enum.map(timeline, & &1.event)
+    end
   end
 
   describe "explain_delivery/1 — not found" do

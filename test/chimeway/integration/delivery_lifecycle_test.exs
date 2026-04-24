@@ -74,6 +74,18 @@ defmodule ChimewayTest.Notifiers.LifecycleNoDelayedFallback do
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
 end
 
+defmodule ChimewayTest.Notifiers.LifecycleCustomChannel do
+  @behaviour Chimeway.Notifier
+  def notification_key, do: "test.lifecycle_custom_channel"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Custom Channel"}}
+  def channels(_params, _recipient), do: {:ok, ["webhook_partner"]}
+end
+
 defmodule Chimeway.Integration.DeliveryLifecycleTest do
   use Chimeway.DataCase, async: false
 
@@ -82,7 +94,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
   import Ecto.Query
 
   alias Chimeway.Adapters.Test, as: TestAdapter
-  alias Chimeway.{Delivery, DeliveryAttempt, Repo}
+  alias Chimeway.{Delivery, DeliveryAttempt, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
@@ -458,6 +470,46 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert length(deliveries) == 2
       assert Enum.all?(deliveries, &(!&1.delay_fallback))
       assert Enum.all?(deliveries, &(&1.metadata["delayed_fallback_source"] == "default"))
+    end
+  end
+
+  # OPS-01: trigger-to-trace explainability must remain stable for custom channels.
+  describe "Scenario F: trigger-driven custom channel explainability (OPS-01)" do
+    test "trigger persists webhook_partner delivery and explain_delivery keeps channel string" do
+      assert {:ok, _result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleCustomChannel,
+                 %{user_id: 7},
+                 idempotency_key: "lifecycle_custom_channel_001"
+               )
+
+      [event] =
+        Repo.all(
+          from(e in Event,
+            where:
+              e.notification_key == "test.lifecycle_custom_channel" and
+                e.idempotency_key == "lifecycle_custom_channel_001"
+          )
+        )
+
+      [notification] =
+        Repo.all(
+          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:7")
+        )
+
+      [delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.notification_id == ^notification.id and d.channel == "webhook_partner"
+          )
+        )
+
+      assert delivery.status == :succeeded
+
+      assert {:ok, %Chimeway.Traces.Explanation{channel: "webhook_partner", timeline: timeline}} =
+               Traces.explain_delivery(delivery.id)
+
+      assert :delivery_planned in Enum.map(timeline, & &1.event)
     end
   end
 end
