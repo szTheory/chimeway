@@ -137,7 +137,7 @@ Plans:
 
 Plans:
 - [x] 07-01: Wire delayed fallback intent through notifier contract, planner resolution, and delivery persistence.
-- [ ] 07-02: Enforce sync/Oban runtime suppression parity and suppression provenance explainability.
+- [x] 07-02: Enforce sync/Oban runtime suppression parity and suppression provenance explainability.
 - [ ] 07-03: Add trigger-driven and parity-focused POLC-03 verification coverage.
 
 ### Phase 8: Trigger Dispatch Outcome Surfacing
@@ -189,7 +189,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 4. Explainability and Operator Surfaces | 2/2 | Complete    | 2026-04-24 |
 | 5. OSS Verification and Release Hardening | 1/2 | Complete    | 2026-04-24 |
 | 6. Delivery Planning and Policy Checkpoint Repair | 3/3 | Complete | 2026-04-24 |
-| 7. Delayed Fallback Runtime Wiring | 1/3 | In Progress | — |
+| 7. Delayed Fallback Runtime Wiring | 2/3 | In Progress | — |
 | 8. Trigger Dispatch Outcome Surfacing | 0/0 | Planned | — |
 | 9. OSS Verification Evidence Refresh | 0/0 | Planned | — |
 | 10. Telemetry Correlation Enrichment | 0/0 | Planned | — |

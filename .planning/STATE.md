@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-04-24T15:07:15.781Z"
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-04-24T15:13:27.000Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 19
-  completed_plans: 17
-  percent: 89
+  completed_plans: 18
+  percent: 95
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 07 (delayed-fallback-runtime-wiring) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-24
 
-Progress: [█████████░] 89%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 33
+- Total plans completed: 34
 - Average duration: 10 min
 - Total execution time: 0.7 hours
 
@@ -56,7 +56,7 @@ Progress: [█████████░] 89%
 
 **Recent Trend:**
 
-- Last 5 plans: 13 min, 9 min, 2 min, 7 min
+- Last 5 plans: 13 min, 9 min, 2 min, 7 min, 4 min
 - Trend: Stable (improving)
 
 *Updated after each plan completion*
@@ -87,6 +87,9 @@ Recent decisions affecting current work:
 - [06-02]: Expose suppression checkpoint provenance in trace timeline details for operator explainability.
 - [06-03]: Assert sync/Oban suppression parity with a shared delivery signature shape (status, reason, checkpoint, attempts).
 - [06-03]: Tag regression scenarios in tests with requirement IDs to keep audit verification grep-based and deterministic.
+- [07-02]: Persist perform-time suppressions in sync and Oban worker via `checkpoint: :perform` for policy parity.
+- [07-02]: Keep planner failures normalized as `{:planning_failed, reason}` across sync and Oban dispatchers.
+- [07-02]: Include `delayed_fallback_source` in suppression trace details alongside `policy_checkpoint`.
 
 ### Pending Todos
 
@@ -107,7 +110,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Completed 07-01-PLAN.md
+Stopped at: Completed 07-02-PLAN.md
 Resume file: --resume-file
 
 **Planned Phase:** 07 (Delayed Fallback Runtime Wiring) — 3 plans — 2026-04-24T14:57:47.663Z
