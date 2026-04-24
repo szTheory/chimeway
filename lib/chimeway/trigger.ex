@@ -253,7 +253,21 @@ defmodule Chimeway.Trigger do
       Telemetry.safe_meta(%{notification_key: notifier.notification_key()}),
       fn ->
         dispatched = dispatch_after_trigger(result, notifier, params, opts)
-        {dispatched, %{}}
+
+        extra =
+          case dispatched do
+            {:ok, %{event: event}} ->
+              Telemetry.safe_meta(%{
+                event_id: event.id,
+                correlation_id: event.correlation_id,
+                notification_key: event.notification_key
+              })
+
+            _ ->
+              %{}
+          end
+
+        {dispatched, extra}
       end
     )
   end
