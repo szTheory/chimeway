@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-04-24T15:13:27.000Z"
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-04-24T15:21:28.000Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 10
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 19
-  completed_plans: 18
-  percent: 95
+  completed_plans: 19
+  percent: 100
 ---
 
 # Project State
@@ -21,24 +21,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-23)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.  
-**Current focus:** Phase 07 — delayed-fallback-runtime-wiring
+**Current focus:** Phase 08 — trigger-dispatch-outcome-surfacing
 
 ## Current Position
 
-Phase: 07 (delayed-fallback-runtime-wiring) — EXECUTING
+Phase: 07 (delayed-fallback-runtime-wiring) — COMPLETE
 Plan: 3 of 3
-Status: Ready to execute
+Status: Completed
 Last activity: 2026-04-24
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 34
+- Total plans completed: 35
 - Average duration: 10 min
-- Total execution time: 0.7 hours
+- Total execution time: 0.8 hours
 
 **By Phase:**
 
@@ -56,8 +56,8 @@ Progress: [██████████] 95%
 
 **Recent Trend:**
 
-- Last 5 plans: 13 min, 9 min, 2 min, 7 min, 4 min
-- Trend: Stable (improving)
+- Last 5 plans: 9 min, 2 min, 7 min, 4 min, 6 min
+- Trend: Stable
 
 *Updated after each plan completion*
 
@@ -90,6 +90,9 @@ Recent decisions affecting current work:
 - [07-02]: Persist perform-time suppressions in sync and Oban worker via `checkpoint: :perform` for policy parity.
 - [07-02]: Keep planner failures normalized as `{:planning_failed, reason}` across sync and Oban dispatchers.
 - [07-02]: Include `delayed_fallback_source` in suppression trace details alongside `policy_checkpoint`.
+- [07-03]: Verify trigger-driven delayed-fallback persistence with planner-sourced `delay_fallback` and `delayed_fallback_source` assertions.
+- [07-03]: Reuse a shared already-read suppression signature helper across sync and Oban parity suites to prevent drift.
+- [07-03]: Enforce delayed-fallback guardrails with explicit `{:planning_failed, {:invalid_delayed_fallback_channels, ...}}` contract tests.
 
 ### Pending Todos
 
@@ -110,7 +113,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Completed 07-02-PLAN.md
+Stopped at: Completed 07-03-PLAN.md
 Resume file: --resume-file
 
-**Planned Phase:** 07 (Delayed Fallback Runtime Wiring) — 3 plans — 2026-04-24T14:57:47.663Z
+**Planned Phase:** 08 (Trigger Dispatch Outcome Surfacing) — 0 plans — pending plan authoring
