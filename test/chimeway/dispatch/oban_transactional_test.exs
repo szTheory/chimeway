@@ -7,7 +7,7 @@ defmodule Chimeway.Dispatch.ObanTransactionalTest do
 
   import Chimeway.Test.DispatchHelpers
 
-  alias Chimeway.{Delivery, Dispatch.Oban, Dispatch.ObanWorker, Dispatch.Sync, Repo}
+  alias Chimeway.{Delivery, DeliveryPlanning, Dispatch.Oban, Dispatch.ObanWorker, Dispatch.Sync, Repo}
 
   setup do
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
@@ -44,6 +44,55 @@ defmodule Chimeway.Dispatch.ObanTransactionalTest do
 
       assert {:error, :forced_failure} = Oban.dispatch([ctx.notification], multi: failing_multi)
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: ctx.delivery.id})
+    end
+
+    test "rolled-back multi with fresh notification leaves no planned deliveries" do
+      ctx = create_notification()
+
+      failing_multi =
+        Ecto.Multi.new()
+        |> Ecto.Multi.run(:fail, fn _repo, _changes -> {:error, :forced_failure} end)
+
+      assert {:error, :forced_failure} = Oban.dispatch([ctx.notification], multi: failing_multi)
+
+      delivery_count =
+        Repo.aggregate(
+          from(delivery in Delivery, where: delivery.notification_id == ^ctx.notification.id),
+          :count
+        )
+
+      assert delivery_count == 0
+      refute_enqueued(worker: ObanWorker)
+    end
+  end
+
+  describe "atomicity guarantee" do
+    # REQ: INTG-03 — planning rows roll back when enqueue path fails.
+    test "enqueue failure rolls back planning rows created in same transaction" do
+      ctx = create_notification()
+
+      multi =
+        Ecto.Multi.new()
+        |> Ecto.Multi.run(:plan_notifications, fn _repo, _changes ->
+          DeliveryPlanning.plan_notifications([ctx.notification], [])
+        end)
+        |> Ecto.Multi.run(:fail_enqueue, fn _repo, %{plan_notifications: deliveries} ->
+          case Enum.any?(deliveries, fn delivery -> delivery.status == :pending end) do
+            true -> {:error, :simulated_enqueue_failure}
+            false -> {:error, :expected_pending_delivery}
+          end
+        end)
+
+      assert {:error, :fail_enqueue, :simulated_enqueue_failure, _changes} = Repo.transaction(multi)
+
+      delivery_count =
+        Repo.aggregate(
+          from(delivery in Delivery, where: delivery.notification_id == ^ctx.notification.id),
+          :count
+        )
+
+      assert delivery_count == 0
+      refute_enqueued(worker: ObanWorker)
     end
   end
 
