@@ -1,3 +1,36 @@
+defmodule ChimewayTest.Notifiers.InvalidDelayedFallbackSubset do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.policy.invalid_delayed_fallback_subset"
+  def version, do: 1
+  def recipients(_params), do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+  def build(_params, _recipient), do: {:ok, %{title: "Invalid delayed fallback subset"}}
+  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+  def delayed_fallback_channels(_params, _recipient), do: {:ok, [:sms]}
+end
+
+defmodule ChimewayTest.Notifiers.InvalidDelayedFallbackInApp do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.policy.invalid_delayed_fallback_in_app"
+  def version, do: 1
+  def recipients(_params), do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+  def build(_params, _recipient), do: {:ok, %{title: "Invalid delayed fallback in_app"}}
+  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+  def delayed_fallback_channels(_params, _recipient), do: {:ok, [:in_app]}
+end
+
+defmodule ChimewayTest.Notifiers.ValidDelayedFallbackSubset do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.policy.valid_delayed_fallback_subset"
+  def version, do: 1
+  def recipients(_params), do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+  def build(_params, _recipient), do: {:ok, %{title: "Valid delayed fallback subset"}}
+  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+  def delayed_fallback_channels(_params, _recipient), do: {:ok, [:email]}
+end
+
 defmodule Chimeway.Policy.DelayedFallbackTest do
   use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
@@ -99,6 +132,52 @@ defmodule Chimeway.Policy.DelayedFallbackTest do
       assert updated.status == :suppressed
       assert updated.suppression_reason == "already_read"
       assert Chimeway.Adapters.Test.delivered_messages() == []
+    end
+  end
+
+  describe "planner guardrails for delayed_fallback_channels" do
+    test "rejects delayed_fallback channels outside notifier channels subset" do
+      fixture = create_notification(notification_key: "delay.guardrail.invalid_subset")
+
+      assert {:error, {:planning_failed, {:invalid_delayed_fallback_channels, invalid_channels}}} =
+               Sync.dispatch([fixture.notification],
+                 notifier: ChimewayTest.Notifiers.InvalidDelayedFallbackSubset,
+                 trigger_params: %{}
+               )
+
+      assert invalid_channels == ["sms"]
+      assert Chimeway.Adapters.Test.delivered_messages() == []
+    end
+
+    test "rejects delayed_fallback declaration for in_app channel" do
+      fixture = create_notification(notification_key: "delay.guardrail.invalid_in_app")
+
+      assert {:error, {:planning_failed, {:invalid_delayed_fallback_channels, invalid_channels}}} =
+               Sync.dispatch([fixture.notification],
+                 notifier: ChimewayTest.Notifiers.InvalidDelayedFallbackInApp,
+                 trigger_params: %{}
+               )
+
+      assert invalid_channels == ["in_app"]
+      assert Chimeway.Adapters.Test.delivered_messages() == []
+    end
+
+    test "accepts valid delayed_fallback subset declarations" do
+      fixture = create_notification(notification_key: "delay.guardrail.valid_subset")
+
+      assert {:ok, results} =
+               Sync.dispatch([fixture.notification],
+                 notifier: ChimewayTest.Notifiers.ValidDelayedFallbackSubset,
+                 trigger_params: %{}
+               )
+
+      deliveries =
+        results
+        |> Enum.map(fn {:ok, delivery} -> delivery end)
+        |> Map.new(fn delivery -> {delivery.channel, delivery} end)
+
+      assert Map.fetch!(deliveries, "email").delay_fallback
+      refute Map.fetch!(deliveries, "in_app").delay_fallback
     end
   end
 end
