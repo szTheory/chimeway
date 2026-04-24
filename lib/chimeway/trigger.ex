@@ -158,7 +158,14 @@ defmodule Chimeway.Trigger do
        notification_version: event.notification_version,
        idempotency_key: event.idempotency_key,
        recipients: recipients,
-       notifications_inserted: notifications_inserted
+       notifications_inserted: notifications_inserted,
+       dispatch_outcome: :pending,
+       dispatch_mode: :unknown,
+       trace: %{
+         event_id: event.id,
+         correlation_id: event.correlation_id,
+         delivery_ids: []
+       }
      }}
   end
 
