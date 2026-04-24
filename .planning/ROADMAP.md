@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Implement core notifier contract, key/version identity, and trigger pipeline.
+- [x] 01-01: Implement core notifier contract, key/version identity, and trigger pipeline.
 - [ ] 01-02: Add Ecto schemas/migrations for events and in-app notifications with idempotency constraints.
 - [ ] 01-03: Implement inbox query/state APIs and foundational tests.
 
@@ -108,7 +108,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Durable Core Spine | 0/3 | Not started | - |
+| 1. Durable Core Spine | 1/3 | In Progress | - |
 | 2. First Outbound Delivery Slice | 0/3 | Not started | - |
 | 3. Async Dispatch and Policy Hardening | 0/3 | Not started | - |
 | 4. Explainability and Operator Surfaces | 0/2 | Not started | - |

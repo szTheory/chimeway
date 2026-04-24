@@ -9,41 +9,41 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Core Event Model
 
-- [ ] **CORE-01**: Developer can define a notification type with a stable persisted `notification_key` and version.
-- [ ] **CORE-02**: Developer can trigger a notification event with an explicit idempotency key.
-- [ ] **CORE-03**: System persists each event as a durable row before external delivery is attempted.
-- [ ] **CORE-04**: System resolves one event to multiple recipients deterministically.
+- [x] **CORE-01**: Developer can define a notification type with a stable persisted `notification_key` and version.
+- [x] **CORE-02**: Developer can trigger a notification event with an explicit idempotency key.
+- [x] **CORE-03**: System persists each event as a durable row before external delivery is attempted.
+- [x] **CORE-04**: System resolves one event to multiple recipients deterministically.
 
 ### In-App Lifecycle
 
-- [ ] **INBX-01**: System creates per-recipient in-app notification rows for resolved recipients.
-- [ ] **INBX-02**: User can transition in-app notification state through explicit `seen`, `read`, and archive semantics.
-- [ ] **INBX-03**: Application can query recipient inbox records with unread filtering and newest-first ordering.
+- [x] **INBX-01**: System creates per-recipient in-app notification rows for resolved recipients.
+- [x] **INBX-02**: User can transition in-app notification state through explicit `seen`, `read`, and archive semantics.
+- [x] **INBX-03**: Application can query recipient inbox records with unread filtering and newest-first ordering.
 
 ### Delivery and Attempt Tracking
 
-- [ ] **DLVR-01**: System plans per-channel delivery rows from the event and recipient set.
-- [ ] **DLVR-02**: System records every provider/send attempt with outcome metadata and timestamps.
-- [ ] **DLVR-03**: System classifies delivery outcomes into explicit states including succeeded, failed, suppressed, cancelled, and expired where applicable.
-- [ ] **DLVR-04**: System supports sync dispatch for v1 and a documented seam for optional job-backed dispatch.
+- [x] **DLVR-01**: System plans per-channel delivery rows from the event and recipient set.
+- [x] **DLVR-02**: System records every provider/send attempt with outcome metadata and timestamps.
+- [x] **DLVR-03**: System classifies delivery outcomes into explicit states including succeeded, failed, suppressed, cancelled, and expired where applicable.
+- [x] **DLVR-04**: System supports sync dispatch for v1 and a documented seam for optional job-backed dispatch.
 
 ### Policy and Preferences
 
-- [ ] **POLC-01**: Application can express recipient preferences that enable/disable notification channels by key/topic.
-- [ ] **POLC-02**: Policy evaluation runs at planning/enqueue time and again at perform/send time for delayed deliveries.
-- [ ] **POLC-03**: Delayed fallback behavior can suppress outbound delivery when in-app state shows the notification was already read.
+- [x] **POLC-01**: Application can express recipient preferences that enable/disable notification channels by key/topic.
+- [x] **POLC-02**: Policy evaluation runs at planning/enqueue time and again at perform/send time for delayed deliveries.
+- [x] **POLC-03**: Delayed fallback behavior can suppress outbound delivery when in-app state shows the notification was already read.
 
 ### Integrations and Composability
 
-- [ ] **INTG-01**: Developers can implement outbound channel integrations via explicit adapter behaviours instead of core vendor lock-in.
-- [ ] **INTG-02**: v1 includes at least one outbound adapter seam (test/log adapter or email adapter wrapper) in addition to in-app delivery.
-- [ ] **INTG-03**: Optional Oban integration path is documented and compatible with transactional persistence.
+- [x] **INTG-01**: Developers can implement outbound channel integrations via explicit adapter behaviours instead of core vendor lock-in.
+- [x] **INTG-02**: v1 includes at least one outbound adapter seam (test/log adapter or email adapter wrapper) in addition to in-app delivery.
+- [x] **INTG-03**: Optional Oban integration path is documented and compatible with transactional persistence.
 
 ### Operability and OSS Quality
 
-- [ ] **OPS-01**: Operators can trace a notification from trigger through policy, delivery planning, and attempt outcomes using durable data.
-- [ ] **OPS-02**: System emits structured telemetry for core lifecycle events without leaking sensitive payload fields by default.
-- [ ] **OPS-03**: Repository provides stable `mix verify.*` / `mix ci.*` entrypoints covering lint, test, and documentation/release checks.
+- [x] **OPS-01**: Operators can trace a notification from trigger through policy, delivery planning, and attempt outcomes using durable data.
+- [x] **OPS-02**: System emits structured telemetry for core lifecycle events without leaking sensitive payload fields by default.
+- [x] **OPS-03**: Repository provides stable `mix verify.*` / `mix ci.*` entrypoints covering lint, test, and documentation/release checks.
 
 ## v2 Requirements
 
@@ -81,26 +81,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 1 | Pending |
-| CORE-02 | Phase 1 | Pending |
-| CORE-03 | Phase 1 | Pending |
-| CORE-04 | Phase 1 | Pending |
-| INBX-01 | Phase 1 | Pending |
-| INBX-02 | Phase 1 | Pending |
-| INBX-03 | Phase 1 | Pending |
-| DLVR-01 | Phase 2 | Pending |
-| DLVR-02 | Phase 2 | Pending |
-| DLVR-03 | Phase 2 | Pending |
-| DLVR-04 | Phase 3 | Pending |
-| POLC-01 | Phase 3 | Pending |
-| POLC-02 | Phase 3 | Pending |
-| POLC-03 | Phase 3 | Pending |
-| INTG-01 | Phase 2 | Pending |
-| INTG-02 | Phase 2 | Pending |
-| INTG-03 | Phase 3 | Pending |
-| OPS-01 | Phase 4 | Pending |
-| OPS-02 | Phase 4 | Pending |
-| OPS-03 | Phase 5 | Pending |
+| CORE-01 | Phase 1 | Complete |
+| CORE-02 | Phase 1 | Complete |
+| CORE-03 | Phase 1 | Complete |
+| CORE-04 | Phase 1 | Complete |
+| INBX-01 | Phase 1 | Complete |
+| INBX-02 | Phase 1 | Complete |
+| INBX-03 | Phase 1 | Complete |
+| DLVR-01 | Phase 2 | Complete |
+| DLVR-02 | Phase 2 | Complete |
+| DLVR-03 | Phase 2 | Complete |
+| DLVR-04 | Phase 3 | Complete |
+| POLC-01 | Phase 3 | Complete |
+| POLC-02 | Phase 3 | Complete |
+| POLC-03 | Phase 3 | Complete |
+| INTG-01 | Phase 2 | Complete |
+| INTG-02 | Phase 2 | Complete |
+| INTG-03 | Phase 3 | Complete |
+| OPS-01 | Phase 4 | Complete |
+| OPS-02 | Phase 4 | Complete |
+| OPS-03 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total
