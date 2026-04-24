@@ -21,6 +21,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 - [x] Chimeway enforces idempotency across event creation and delivery planning to prevent duplicate sends. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
 - [x] Operators can inspect an end-to-end trace and answer "why wasn't this sent?" from first-class data. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
 - [x] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
+- [x] Delayed fallback suppression can prevent outbound sends when in-app state shows the notification was already read, with parity across sync and Oban paths. *(Validated in Phase 07: delayed-fallback-runtime-wiring)*
 
 ### Active
 
@@ -29,7 +30,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Phase 06 is complete. Delivery planning now enforces policy and channel fanout before sync enqueue/dispatch, sync and Oban execution paths share the same adapter-attempt runner, and parity/integration tests lock in checkpoint provenance and traceability behavior.
+Phase 07 is complete. Delayed fallback runtime wiring now resolves and persists suppression intent during planning, enforces perform-time parity across sync and Oban execution, and ships trigger-driven verification coverage for suppression signatures, guardrails, and trace explainability provenance.
 
 ### Out of Scope
 
@@ -91,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-24 after Phase 06 completion*
+*Last updated: 2026-04-24 after Phase 07 completion*
