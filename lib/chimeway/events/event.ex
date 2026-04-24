@@ -20,7 +20,6 @@ defmodule Chimeway.Events.Event do
 
   @required_fields ~w(notification_key notification_version idempotency_key payload)a
 
-  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(event, attrs) do
     event
     |> cast(attrs, @required_fields)

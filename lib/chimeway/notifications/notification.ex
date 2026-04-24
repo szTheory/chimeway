@@ -26,7 +26,6 @@ defmodule Chimeway.Notifications.Notification do
   @required_fields ~w(event_id recipient_identity recipient_type metadata)a
   @optional_fields ~w(seen_at read_at archived_at)a
 
-  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(notification, attrs) do
     notification
     |> cast(attrs, @required_fields ++ @optional_fields)
