@@ -173,7 +173,10 @@ defmodule Chimeway.Traces do
           %{
             at: delivery.updated_at,
             event: :suppressed,
-            detail: %{reason: delivery.suppression_reason}
+            detail: %{
+              reason: delivery.suppression_reason,
+              policy_checkpoint: Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+            }
           }
         ]
       else
