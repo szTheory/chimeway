@@ -31,29 +31,62 @@ defmodule Chimeway.Deliveries do
   Idempotent: duplicate calls on the same (notification_id, channel) create exactly one row.
   """
   @spec plan_delivery(binary(), atom() | binary()) ::
-          {:ok, Delivery.t()} | {:error, Ecto.Changeset.t()}
-  def plan_delivery(notification_id, channel) do
+          {:ok, Delivery.t()} | {:error, Ecto.Changeset.t() | term()}
+  @spec plan_delivery(binary(), atom() | binary(), keyword()) ::
+          {:ok, Delivery.t()} | {:error, Ecto.Changeset.t() | term()}
+  def plan_delivery(notification_id, channel, opts \\ [])
+
+  def plan_delivery(notification_id, channel, opts) when is_list(opts) do
     channel_str = if is_atom(channel), do: Atom.to_string(channel), else: channel
 
-    result =
-      %Delivery{}
-      |> Delivery.changeset(%{
-        notification_id: notification_id,
-        channel: channel_str,
-        status: :pending
-      })
-      |> Repo.insert(on_conflict: :nothing, conflict_target: [:notification_id, :channel])
+    with {:ok, delay_fallback} <- normalize_delay_fallback(Keyword.get(opts, :delay_fallback, false)),
+         {:ok, delayed_fallback_source} <-
+           normalize_delayed_fallback_source(Keyword.get(opts, :delayed_fallback_source, :default)) do
+      metadata =
+        opts
+        |> Keyword.get(:metadata, %{})
+        |> ensure_metadata_map()
+        |> Map.put("delayed_fallback_source", delayed_fallback_source)
 
-    case result do
-      {:ok, _} ->
-        # Reload from DB: on_conflict: :nothing returns a phantom struct on conflict.
-        # Always return the authoritative row with current status.
-        {:ok, Repo.get_by!(Delivery, notification_id: notification_id, channel: channel_str)}
+      result =
+        %Delivery{}
+        |> Delivery.changeset(%{
+          notification_id: notification_id,
+          channel: channel_str,
+          status: :pending,
+          delay_fallback: delay_fallback,
+          metadata: metadata
+        })
+        |> Repo.insert(on_conflict: :nothing, conflict_target: [:notification_id, :channel])
 
-      error ->
-        error
+      case result do
+        {:ok, _} ->
+          # Reload from DB: on_conflict: :nothing returns a phantom struct on conflict.
+          # Always return the authoritative row with current status.
+          {:ok, Repo.get_by!(Delivery, notification_id: notification_id, channel: channel_str)}
+
+        error ->
+          error
+      end
     end
   end
+
+  def plan_delivery(_notification_id, _channel, opts) do
+    {:error, {:invalid_plan_delivery_opts, opts}}
+  end
+
+  defp normalize_delay_fallback(value) when is_boolean(value), do: {:ok, value}
+  defp normalize_delay_fallback(value), do: {:error, {:invalid_delay_fallback, value}}
+
+  defp normalize_delayed_fallback_source(:default), do: {:ok, "default"}
+  defp normalize_delayed_fallback_source(:notifier), do: {:ok, "notifier"}
+  defp normalize_delayed_fallback_source(:policy), do: {:ok, "policy"}
+  defp normalize_delayed_fallback_source("default"), do: {:ok, "default"}
+  defp normalize_delayed_fallback_source("notifier"), do: {:ok, "notifier"}
+  defp normalize_delayed_fallback_source("policy"), do: {:ok, "policy"}
+
+  defp normalize_delayed_fallback_source(value),
+    do: {:error, {:invalid_delayed_fallback_source, value}}
 
   @doc """
   Fetches a delivery by ID, raising if not found.
