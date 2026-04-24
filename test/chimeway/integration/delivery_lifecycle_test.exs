@@ -34,6 +34,19 @@ defmodule ChimewayTest.Notifiers.LifecycleC do
   def build(_params, _recipient), do: {:ok, %{title: "Test C"}}
 end
 
+defmodule ChimewayTest.Notifiers.LifecycleFanout do
+  @behaviour Chimeway.Notifier
+  def notification_key, do: "test.lifecycle_fanout"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Test Fanout"}}
+
+  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+end
+
 defmodule Chimeway.Integration.DeliveryLifecycleTest do
   use Chimeway.DataCase, async: false
 
@@ -246,6 +259,82 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
         )
 
       assert attempt_count == 1
+    end
+  end
+
+  describe "Scenario D: multi-channel fanout creates durable delivery and attempt records" do
+    setup do
+      original = Application.get_env(:chimeway, :adapter)
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      TestAdapter.clear()
+
+      on_exit(fn ->
+        case original do
+          nil -> Application.delete_env(:chimeway, :adapter)
+          mod -> Application.put_env(:chimeway, :adapter, mod)
+        end
+
+        TestAdapter.clear()
+      end)
+
+      :ok
+    end
+
+    test "one notification fans out to two channel deliveries and attempts for dispatchable channels" do
+      assert {:ok, _result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleFanout,
+                 %{user_id: 4},
+                 idempotency_key: "lifecycle_fanout_001"
+               )
+
+      [event] =
+        Repo.all(
+          from(e in Event,
+            where:
+              e.notification_key == "test.lifecycle_fanout" and
+                e.idempotency_key == "lifecycle_fanout_001"
+          )
+        )
+
+      notification_count =
+        Repo.aggregate(
+          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:4"),
+          :count,
+          :id
+        )
+
+      assert notification_count == 1
+
+      [notification] =
+        Repo.all(
+          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:4")
+        )
+
+      deliveries = Repo.all(from(d in Delivery, where: d.notification_id == ^notification.id))
+      assert length(deliveries) == 2
+      assert MapSet.new(Enum.map(deliveries, & &1.channel)) == MapSet.new(["email", "in_app"])
+
+      dispatchable_delivery_ids =
+        deliveries
+        |> Enum.reject(&(&1.status == :suppressed))
+        |> Enum.map(& &1.id)
+        |> MapSet.new()
+
+      attempts =
+        Repo.all(
+          from(a in DeliveryAttempt,
+            join: d in Delivery,
+            on: a.delivery_id == d.id,
+            where: d.notification_id == ^notification.id
+          )
+        )
+
+      assert length(attempts) == MapSet.size(dispatchable_delivery_ids)
+      assert MapSet.new(Enum.map(attempts, & &1.delivery_id)) == dispatchable_delivery_ids
+      assert Enum.all?(attempts, &(&1.outcome == :succeeded))
+
+      Enum.each(deliveries, &TestAdapter.assert_delivered/1)
     end
   end
 end
