@@ -258,20 +258,48 @@ defmodule Chimeway.Trigger do
     )
   end
 
-  defp dispatch_after_trigger({:ok, %{event: event}} = result, notifier, params, opts) do
+  defp dispatch_after_trigger({:ok, %{event: event} = trigger_result}, notifier, params, opts) do
     dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     notifications = Repo.all(from(n in Notification, where: n.event_id == ^event.id))
+
     dispatch_opts =
       opts
       |> Keyword.put_new(:notifier, notifier)
       |> Keyword.put_new(:trigger_params, params)
+      |> Keyword.put_new(:event_id, event.id)
+      |> Keyword.put_new(:correlation_id, event.correlation_id)
+
+    dispatch_mode =
+      case dispatcher do
+        Chimeway.Dispatch.Sync -> :sync
+        Chimeway.Dispatch.Oban -> :oban
+        _ -> :unknown
+      end
 
     case dispatcher.dispatch(notifications, dispatch_opts) do
-      {:ok, _deliveries} -> :ok
-      {:error, reason} -> Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
-    end
+      {:ok, deliveries} ->
+        delivery_ids =
+          deliveries
+          |> Enum.map(fn
+            %{id: id} -> id
+            {:ok, %{id: id}} -> id
+            _ -> nil
+          end)
+          |> Enum.reject(&is_nil/1)
 
-    result
+        trace =
+          trigger_result
+          |> Map.get(:trace, %{})
+          |> Map.put(:delivery_ids, delivery_ids)
+
+        {:ok,
+         %{trigger_result | dispatch_outcome: :ok, dispatch_mode: dispatch_mode, trace: trace}}
+
+      {:error, reason} ->
+        Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
+
+        {:ok, %{trigger_result | dispatch_outcome: {:error, reason}, dispatch_mode: dispatch_mode}}
+    end
   end
 
   defp dispatch_after_trigger(result, _notifier, _params, _opts), do: result
