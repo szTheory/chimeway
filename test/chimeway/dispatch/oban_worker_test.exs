@@ -5,6 +5,21 @@ defmodule Chimeway.Test.ObanWorkerFailingAdapter do
   def deliver(_delivery, _config), do: {:error, :temporary, %{reason: "test_failure"}}
 end
 
+defmodule Chimeway.Test.ObanWorkerCaptureConfigAdapter do
+  @behaviour Chimeway.Adapter
+
+  @impl Chimeway.Adapter
+  def deliver(_delivery, config) do
+    capture_pid = Application.get_env(:chimeway, :adapter_capture_pid)
+
+    if is_pid(capture_pid) do
+      send(capture_pid, {:adapter_config, config})
+    end
+
+    {:ok, %{adapter: "capture"}}
+  end
+end
+
 defmodule Chimeway.Dispatch.ObanWorkerTest do
   use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
@@ -160,4 +175,57 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       assert attempt_count == 0
     end
   end
+
+  describe "custom channel adapter config resolution" do
+    test "INTG-02: oban worker uses channel_adapter_configs for sms_custom" do
+      # INTG-02: shared executor resolves preferred string-keyed custom channel config.
+      previous_channel_configs = Application.get_env(:chimeway, :channel_adapter_configs)
+      previous_legacy_config = Application.get_env(:chimeway, :adapter_sms_custom)
+      previous_capture_pid = Application.get_env(:chimeway, :adapter_capture_pid)
+
+      on_exit(fn ->
+        restore_env(:channel_adapter_configs, previous_channel_configs)
+        restore_env(:adapter_sms_custom, previous_legacy_config)
+        restore_env(:adapter_capture_pid, previous_capture_pid)
+      end)
+
+      Application.put_env(:chimeway, :adapter, Chimeway.Test.ObanWorkerCaptureConfigAdapter)
+      Application.put_env(:chimeway, :adapter_capture_pid, self())
+
+      Application.put_env(:chimeway, :channel_adapter_configs, %{
+        "sms_custom" => [provider: "acme_sms", timeout_ms: 1500]
+      })
+
+      Application.delete_env(:chimeway, :adapter_sms_custom)
+
+      fixture = create_pending_delivery(channel: "sms_custom")
+      assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
+      assert_receive {:adapter_config, [provider: "acme_sms", timeout_ms: 1500]}
+    end
+
+    test "INTG-02: oban worker supports legacy adapter_sms_custom fallback" do
+      # INTG-02: legacy adapter_<channel> key lookup remains backward compatible.
+      previous_channel_configs = Application.get_env(:chimeway, :channel_adapter_configs)
+      previous_legacy_config = Application.get_env(:chimeway, :adapter_sms_custom)
+      previous_capture_pid = Application.get_env(:chimeway, :adapter_capture_pid)
+
+      on_exit(fn ->
+        restore_env(:channel_adapter_configs, previous_channel_configs)
+        restore_env(:adapter_sms_custom, previous_legacy_config)
+        restore_env(:adapter_capture_pid, previous_capture_pid)
+      end)
+
+      Application.put_env(:chimeway, :adapter, Chimeway.Test.ObanWorkerCaptureConfigAdapter)
+      Application.put_env(:chimeway, :adapter_capture_pid, self())
+      Application.delete_env(:chimeway, :channel_adapter_configs)
+      Application.put_env(:chimeway, :adapter_sms_custom, provider: "legacy_sms")
+
+      fixture = create_pending_delivery(channel: "sms_custom")
+      assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
+      assert_receive {:adapter_config, [provider: "legacy_sms"]}
+    end
+  end
+
+  defp restore_env(key, nil), do: Application.delete_env(:chimeway, key)
+  defp restore_env(key, value), do: Application.put_env(:chimeway, key, value)
 end

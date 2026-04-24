@@ -237,6 +237,18 @@ defmodule Chimeway.TracesTest do
     end
   end
 
+  describe "explain_delivery/1 — custom channel safety" do
+    test "OPS-01: returns explanation for custom string channel without raising" do
+      # OPS-01: operator explainability must remain available for valid custom channels.
+      event = insert_event(%{correlation_id: "req-custom-channel"})
+      notification = insert_notification(event, "user:webhook")
+      delivery = plan_delivery(notification, "webhook_partner")
+
+      assert {:ok, %Explanation{channel: "webhook_partner"}} =
+               Traces.explain_delivery(delivery.id)
+    end
+  end
+
   describe "explain_delivery/1 — not found" do
     test "returns {:error, :not_found} for unknown delivery_id" do
       assert {:error, :not_found} = Traces.explain_delivery(Ecto.UUID.generate())

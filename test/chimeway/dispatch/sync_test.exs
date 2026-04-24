@@ -1,3 +1,22 @@
+defmodule Chimeway.Test.SyncCustomChannelNotifier do
+  def channels(_trigger_params, _recipient), do: {:ok, ["sms_custom"]}
+end
+
+defmodule Chimeway.Test.SyncCaptureConfigAdapter do
+  @behaviour Chimeway.Adapter
+
+  @impl Chimeway.Adapter
+  def deliver(_delivery, config) do
+    capture_pid = Application.get_env(:chimeway, :adapter_capture_pid)
+
+    if is_pid(capture_pid) do
+      send(capture_pid, {:adapter_config, config})
+    end
+
+    {:ok, %{adapter: "capture"}}
+  end
+end
+
 defmodule Chimeway.Dispatch.SyncTest do
   use Chimeway.DataCase, async: false
 
@@ -178,4 +197,69 @@ defmodule Chimeway.Dispatch.SyncTest do
       assert Chimeway.Adapters.Test.delivered_messages() == []
     end
   end
+
+  describe "custom channel adapter config resolution" do
+    test "INTG-02: sync dispatch uses channel_adapter_configs for sms_custom" do
+      # INTG-02: custom channel adapter config remains deterministic in shared executor seam.
+      previous_channel_configs = Application.get_env(:chimeway, :channel_adapter_configs)
+      previous_legacy_config = Application.get_env(:chimeway, :adapter_sms_custom)
+      previous_capture_pid = Application.get_env(:chimeway, :adapter_capture_pid)
+
+      on_exit(fn ->
+        restore_env(:channel_adapter_configs, previous_channel_configs)
+        restore_env(:adapter_sms_custom, previous_legacy_config)
+        restore_env(:adapter_capture_pid, previous_capture_pid)
+      end)
+
+      Application.put_env(:chimeway, :adapter, Chimeway.Test.SyncCaptureConfigAdapter)
+      Application.put_env(:chimeway, :adapter_capture_pid, self())
+
+      Application.put_env(:chimeway, :channel_adapter_configs, %{
+        "sms_custom" => [provider: "acme_sms", timeout_ms: 1500]
+      })
+
+      Application.delete_env(:chimeway, :adapter_sms_custom)
+
+      fixture = DispatchHelpers.create_notification(notification_key: "sync.custom.sms")
+
+      assert {:ok, [{:ok, _delivery}]} =
+               Sync.dispatch(
+                 [fixture.notification],
+                 notifier: Chimeway.Test.SyncCustomChannelNotifier
+               )
+
+      assert_receive {:adapter_config, [provider: "acme_sms", timeout_ms: 1500]}
+    end
+
+    test "INTG-02: sync dispatch supports legacy adapter_sms_custom fallback" do
+      # INTG-02: legacy host-app adapter_<channel> env keys remain compatible.
+      previous_channel_configs = Application.get_env(:chimeway, :channel_adapter_configs)
+      previous_legacy_config = Application.get_env(:chimeway, :adapter_sms_custom)
+      previous_capture_pid = Application.get_env(:chimeway, :adapter_capture_pid)
+
+      on_exit(fn ->
+        restore_env(:channel_adapter_configs, previous_channel_configs)
+        restore_env(:adapter_sms_custom, previous_legacy_config)
+        restore_env(:adapter_capture_pid, previous_capture_pid)
+      end)
+
+      Application.put_env(:chimeway, :adapter, Chimeway.Test.SyncCaptureConfigAdapter)
+      Application.put_env(:chimeway, :adapter_capture_pid, self())
+      Application.delete_env(:chimeway, :channel_adapter_configs)
+      Application.put_env(:chimeway, :adapter_sms_custom, provider: "legacy_sms")
+
+      fixture = DispatchHelpers.create_notification(notification_key: "sync.legacy.sms")
+
+      assert {:ok, [{:ok, _delivery}]} =
+               Sync.dispatch(
+                 [fixture.notification],
+                 notifier: Chimeway.Test.SyncCustomChannelNotifier
+               )
+
+      assert_receive {:adapter_config, [provider: "legacy_sms"]}
+    end
+  end
+
+  defp restore_env(key, nil), do: Application.delete_env(:chimeway, key)
+  defp restore_env(key, value), do: Application.put_env(:chimeway, key, value)
 end
