@@ -33,7 +33,11 @@ if Code.ensure_loaded?(Oban) do
 
     @impl Chimeway.Dispatch
     def dispatch(notifications, opts) when is_list(notifications) do
-      base_multi = Keyword.get(opts, :multi, Ecto.Multi.new())
+      base_multi =
+        case Keyword.get(opts, :multi, Ecto.Multi.new()) do
+          %Ecto.Multi{} = multi -> multi
+          _ -> Ecto.Multi.new()
+        end
 
       multi =
         base_multi
