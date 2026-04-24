@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Delivery Planning and Policy Checkpoint Repair** - Restore per-channel planning fanout and planning-time policy enforcement. (completed 2026-04-24)
 - [x] **Phase 7: Delayed Fallback Runtime Wiring** - Wire delayed fallback semantics through runtime delivery planning and suppression. (completed 2026-04-24)
 - [x] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links. (completed 2026-04-24)
-- [ ] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status.
+- [x] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status. (completed 2026-04-24)
 - [ ] **Phase 10: Telemetry Correlation Enrichment** - Increase lifecycle telemetry consistency for deep operator tracing.
 - [x] **Phase 11: Channel Adapter Safety and Explainability Hardening** - Eliminate dynamic atom risks and stabilize custom-channel operator traces. (completed 2026-04-24)
 - [x] **Phase 12: Oban Transactional Dispatch Consistency** - Enforce transactional planning/enqueue consistency across async dispatch paths. (completed 2026-04-24)
@@ -172,7 +172,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 09-01-PLAN.md — Regenerate verification artifacts and clear OPS-03 blocker status.
+- [x] 09-01: Regenerate verification artifacts and clear OPS-03 blocker status.
 
 ### Phase 10: Telemetry Correlation Enrichment
 **Goal**: Improve telemetry metadata consistency to strengthen operator lifecycle correlation.  
@@ -184,7 +184,11 @@ Plans:
   1. Lifecycle spans emit consistent correlation metadata across event, delivery, and attempt transitions.
   2. Operators can reconstruct deep lifecycle paths from telemetry without payload leakage.
   3. Tests assert metadata presence and redaction behavior on enriched telemetry paths.
-**Plans**: 0 plans
+**Plans**: 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Thread and persist correlation metadata
+- [ ] 10-02-PLAN.md — Enrich dispatch/attempt spans + tests
 
 ### Phase 11: Channel Adapter Safety and Explainability Hardening
 **Goal**: Remove unsafe channel atom conversion paths and preserve explainability for valid custom channels.  
@@ -233,7 +237,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Delivery Planning and Policy Checkpoint Repair | 3/3 | Complete | 2026-04-24 |
 | 7. Delayed Fallback Runtime Wiring | 3/3 | Complete | 2026-04-24 |
 | 8. Trigger Dispatch Outcome Surfacing | 3/3 | Complete    | 2026-04-24 |
-| 9. OSS Verification Evidence Refresh | 0/1 | Planned    | — |
-| 10. Telemetry Correlation Enrichment | 0/0 | Planned | — |
+| 9. OSS Verification Evidence Refresh | 1/1 | Complete    | 2026-04-24 |
+| 10. Telemetry Correlation Enrichment | 0/2 | Planned | — |
 | 11. Channel Adapter Safety and Explainability Hardening | 2/2 | Complete | 2026-04-24 |
 | 12. Oban Transactional Dispatch Consistency | 2/2 | Complete    | 2026-04-24 |
