@@ -9,4 +9,9 @@ config :chimeway, Chimeway.Repo,
   database: "chimeway_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox
 
+config :chimeway, Oban,
+  repo: Chimeway.Repo,
+  testing: :manual,
+  queues: [chimeway_delivery: 10]
+
 config :logger, level: :warning

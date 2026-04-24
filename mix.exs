@@ -1,16 +1,24 @@
 defmodule Chimeway.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       app: :chimeway,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.17",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      package: package(),
+      docs: docs()
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -26,13 +34,72 @@ defmodule Chimeway.MixProject do
       {:ecto_sql, "~> 3.11"},
       {:postgrex, ">= 0.0.0"},
       {:nimble_options, "~> 1.1"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:oban, "~> 2.17", optional: true},
+      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 
   defp aliases do
     [
-      "verify.phase1": ["format --check-formatted", "compile --warnings-as-errors", "test"]
+      # Full local gate: run before pushing
+      ci: ["ci.lint", "ci.test"],
+
+      # Lint lane
+      "ci.lint": [
+        "format --check-formatted",
+        "compile --warnings-as-errors",
+        "credo --strict"
+      ],
+
+      # Test lane
+      "ci.test": ["test"],
+
+      # Docs gate: fails on undocumented public functions
+      "ci.docs": ["docs --warnings-as-errors"],
+
+      # Dependency audit
+      "ci.audit": ["hex.audit"],
+
+      # Post-publish verify trio (run locally by maintainer, not in pre-merge CI)
+      "verify.clean": ["cmd git diff --exit-code"],
+      "verify.parity": [
+        "cmd mix hex.build --unpack --output /tmp/chimeway_verify && ls /tmp/chimeway_verify"
+      ]
+      # verify.published: invoked as `mix verify.published <version>` (Mix task)
+    ]
+  end
+
+  defp package do
+    [
+      files: ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/jonlunsford/chimeway"}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "Chimeway",
+      source_ref: "v#{@version}",
+      source_url: "https://github.com/jonlunsford/chimeway",
+      extras: [
+        "guides/introduction/getting-started.md",
+        "guides/introduction/installation.md",
+        "guides/flows/trigger-to-delivery.md",
+        "guides/flows/policy-and-preferences.md",
+        "guides/flows/async-dispatch.md",
+        "guides/recipes/oban-integration.md",
+        "guides/recipes/custom-adapter.md",
+        "guides/recipes/tracing-a-notification.md",
+        "guides/cheatsheet.cheatmd"
+      ],
+      groups_extras: [
+        Introduction: ~r/guides\/introduction\//,
+        Flows: ~r/guides\/flows\//,
+        Recipes: ~r/guides\/recipes\//
+      ]
     ]
   end
 end

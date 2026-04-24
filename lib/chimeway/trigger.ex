@@ -3,39 +3,85 @@ defmodule Chimeway.Trigger do
   Orchestrates notifier triggering with deterministic recipient normalization.
   """
 
+  require Logger
+
+  import Ecto.Query, only: [from: 2]
+
   alias Chimeway.Events.Event
+  alias Chimeway.Notifications.Notification
   alias Chimeway.Notifier
   alias Chimeway.Repo
+  alias Chimeway.Telemetry
+  alias Ecto.Multi
+  alias Ecto.UUID
 
   @sensitive_keys ~w(password token secret)
 
-  @spec trigger(module(), map(), keyword()) :: {:ok, map()} | {:duplicate, struct()} | {:error, term()}
+  @spec trigger(module(), map(), keyword()) ::
+          {:ok, map()} | {:duplicate, struct()} | {:error, term()}
   def trigger(notifier, params, opts \\ []) do
+    correlation_id =
+      case Keyword.fetch(opts, :correlation_id) do
+        {:ok, cid} when is_binary(cid) -> cid
+        _ -> Logger.metadata()[:request_id]
+      end
+
     with {:ok, idempotency_key} <- Keyword.fetch(opts, :idempotency_key),
          :ok <- validate_idempotency_key(idempotency_key),
          :ok <- Notifier.validate_module!(notifier),
          {:ok, recipients} <- notifier.recipients(params) do
-      normalized_recipients = normalize_recipients(recipients)
-
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(
-        :event,
-        Event.changeset(%Event{}, %{
-          notification_key: notifier.notification_key(),
-          notification_version: notifier.version(),
-          idempotency_key: idempotency_key,
-          payload: sanitize_payload(params)
-        })
-      )
-      |> Ecto.Multi.run(:notifications, fn repo, %{event: event} ->
-        insert_notifications(repo, notifier, params, event, normalized_recipients)
-      end)
-      |> Repo.transaction()
-      |> normalize_trigger_result(idempotency_key, normalized_recipients)
+      do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients)
     else
       :error -> {:error, :missing_idempotency_key}
       {:error, _reason} = error -> error
     end
+  end
+
+  defp do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients) do
+    normalized_recipients = normalize_recipients(recipients)
+
+    Telemetry.span(
+      [:events, :create],
+      Telemetry.safe_meta(%{
+        notification_key: notifier.notification_key(),
+        correlation_id: correlation_id
+      }),
+      fn ->
+        result =
+          Multi.new()
+          |> Multi.insert(
+            :event,
+            Event.changeset(%Event{}, %{
+              notification_key: notifier.notification_key(),
+              notification_version: notifier.version(),
+              idempotency_key: idempotency_key,
+              payload: sanitize_payload(params),
+              correlation_id: correlation_id
+            })
+          )
+          |> Multi.run(:notifications, fn repo, %{event: event} ->
+            insert_notifications(repo, notifier, params, event, normalized_recipients)
+          end)
+          |> Repo.transaction()
+
+        extra =
+          case result do
+            {:ok, %{event: event}} ->
+              Telemetry.safe_meta(%{
+                event_id: event.id,
+                notification_key: event.notification_key,
+                correlation_id: event.correlation_id
+              })
+
+            _ ->
+              %{}
+          end
+
+        {result, extra}
+      end
+    )
+    |> normalize_trigger_result(idempotency_key, normalized_recipients)
+    |> then(&plan_deliveries_span(&1, notifier, opts))
   end
 
   @spec normalize_recipients([map()]) :: [map()]
@@ -82,8 +128,8 @@ defmodule Chimeway.Trigger do
     |> Enum.reduce_while({:ok, []}, fn recipient, {:ok, acc} ->
       with {:ok, metadata} <- notifier.build(params, recipient) do
         row = %{
-          id: Ecto.UUID.generate() |> Ecto.UUID.dump!(),
-          event_id: Ecto.UUID.dump!(event.id),
+          id: UUID.generate() |> UUID.dump!(),
+          event_id: UUID.dump!(event.id),
           recipient_identity: recipient_identity(recipient),
           recipient_type: recipient_type(recipient),
           metadata: sanitize_metadata(metadata),
@@ -131,7 +177,11 @@ defmodule Chimeway.Trigger do
     end
   end
 
-  defp normalize_trigger_result({:error, :notifications, reason, _changes}, _idempotency_key, _recipients) do
+  defp normalize_trigger_result(
+         {:error, :notifications, reason, _changes},
+         _idempotency_key,
+         _recipients
+       ) do
     {:error, {:notifications_insert_failed, reason}}
   end
 
@@ -173,13 +223,45 @@ defmodule Chimeway.Trigger do
   defp recipient_identity(%{"recipient_identity" => identity}), do: identity
   defp recipient_identity(_recipient), do: nil
 
-  defp recipient_type(%{recipient_type: recipient_type}), do: normalize_recipient_type(recipient_type)
-  defp recipient_type(%{"recipient_type" => recipient_type}), do: normalize_recipient_type(recipient_type)
+  defp recipient_type(%{recipient_type: recipient_type}),
+    do: normalize_recipient_type(recipient_type)
+
+  defp recipient_type(%{"recipient_type" => recipient_type}),
+    do: normalize_recipient_type(recipient_type)
+
   defp recipient_type(%{channel: recipient_type}), do: normalize_recipient_type(recipient_type)
-  defp recipient_type(%{"channel" => recipient_type}), do: normalize_recipient_type(recipient_type)
+
+  defp recipient_type(%{"channel" => recipient_type}),
+    do: normalize_recipient_type(recipient_type)
+
   defp recipient_type(_recipient), do: nil
 
   defp normalize_recipient_type(type) when is_binary(type), do: type
   defp normalize_recipient_type(type) when is_atom(type), do: Atom.to_string(type)
   defp normalize_recipient_type(_type), do: nil
+
+  defp plan_deliveries_span(result, notifier, opts) do
+    Telemetry.span(
+      [:deliveries, :plan],
+      Telemetry.safe_meta(%{notification_key: notifier.notification_key()}),
+      fn ->
+        dispatched = dispatch_after_trigger(result, opts)
+        {dispatched, %{}}
+      end
+    )
+  end
+
+  defp dispatch_after_trigger({:ok, %{event: event}} = result, opts) do
+    dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    notifications = Repo.all(from(n in Notification, where: n.event_id == ^event.id))
+
+    case dispatcher.dispatch(notifications, opts) do
+      {:ok, _deliveries} -> :ok
+      {:error, reason} -> Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
+    end
+
+    result
+  end
+
+  defp dispatch_after_trigger(result, _opts), do: result
 end

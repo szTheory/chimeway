@@ -55,7 +55,10 @@ defmodule Chimeway.Dispatch.ObanTransactionalTest do
       assert {:ok, _} = Oban.dispatch([ctx.notification], [])
 
       delivery_count =
-        Repo.aggregate(from(delivery in Delivery, where: delivery.notification_id == ^ctx.notification.id), :count)
+        Repo.aggregate(
+          from(delivery in Delivery, where: delivery.notification_id == ^ctx.notification.id),
+          :count
+        )
 
       assert delivery_count == 1
       assert length(all_enqueued(worker: ObanWorker, args: %{delivery_id: ctx.delivery.id})) == 1

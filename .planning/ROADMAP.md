@@ -15,8 +15,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Durable Core Spine** - Establish stable notifier identity, durable records, and in-app lifecycle.
 - [x] **Phase 2: First Outbound Delivery Slice** - Add one outbound adapter seam with full delivery/attempt tracking. (completed 2026-04-24)
 - [x] **Phase 3: Async Dispatch and Policy Hardening** - Introduce optional Oban path and enforce late policy checks. (completed 2026-04-24)
-- [ ] **Phase 4: Explainability and Operator Surfaces** - Make operational tracing practical for support and debugging.
-- [ ] **Phase 5: OSS Verification and Release Hardening** - Lock in quality gates, docs contracts, and release discipline.
+- [x] **Phase 4: Explainability and Operator Surfaces** - Make operational tracing practical for support and debugging. (completed 2026-04-24)
+- [x] **Phase 5: OSS Verification and Release Hardening** - Lock in quality gates, docs contracts, and release discipline. (completed 2026-04-24)
 
 ## Phase Details
 
@@ -83,8 +83,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Implement trace query surfaces and correlation helpers for operator debugging.
-- [ ] 04-02: Add structured telemetry instrumentation and redaction guarantees.
+- [x] 04-01: Implement trace query surfaces and correlation helpers for operator debugging.
+- [x] 04-02: Add structured telemetry instrumentation and redaction guarantees.
 
 ### Phase 5: OSS Verification and Release Hardening
 **Goal**: Ensure the project can ship and evolve safely with repeatable quality and release workflows.  
@@ -98,7 +98,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Implement CI/verify entrypoints and pipeline parity checks.
+- [x] 05-01: Implement CI/verify entrypoints and pipeline parity checks.
 - [ ] 05-02: Finalize release/checklist docs, doc-contract checks, and maintenance runbook baseline.
 
 ## Progress
@@ -111,5 +111,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 1. Durable Core Spine | 3/3 | Complete | 2026-04-24 |
 | 2. First Outbound Delivery Slice | 3/3 | Complete    | 2026-04-24 |
 | 3. Async Dispatch and Policy Hardening | 3/3 | Complete    | 2026-04-24 |
-| 4. Explainability and Operator Surfaces | 0/2 | Not started | - |
-| 5. OSS Verification and Release Hardening | 0/2 | Not started | - |
+| 4. Explainability and Operator Surfaces | 2/2 | Complete    | 2026-04-24 |
+| 5. OSS Verification and Release Hardening | 1/2 | Complete    | 2026-04-24 |

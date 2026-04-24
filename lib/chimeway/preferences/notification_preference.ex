@@ -4,14 +4,16 @@ defmodule Chimeway.Preferences.NotificationPreference do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{}
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
   schema "chimeway_notification_preferences" do
-    field :recipient_id, :string
-    field :notification_key, :string
-    field :channel, :string
-    field :enabled, :boolean, default: true
+    field(:recipient_id, :string)
+    field(:notification_key, :string)
+    field(:channel, :string)
+    field(:enabled, :boolean, default: true)
 
     timestamps(type: :utc_datetime_usec)
   end

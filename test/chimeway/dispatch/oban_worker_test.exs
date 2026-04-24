@@ -35,7 +35,9 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       updated = Deliveries.get_delivery!(delivery.id)
       assert updated.status == :succeeded
 
-      attempts = Repo.all(from attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id)
+      attempts =
+        Repo.all(from(attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id))
+
       assert length(attempts) == 1
       assert hd(attempts).outcome == :succeeded
     end
@@ -48,7 +50,9 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
       assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
 
-      attempts = Repo.all(from attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id)
+      attempts =
+        Repo.all(from(attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id))
+
       assert length(attempts) == 1
     end
   end
@@ -57,7 +61,10 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
     test "returns :ok for :succeeded delivery without adapter call" do
       %{delivery: delivery} = create_pending_delivery()
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
-      {:ok, _result} = Deliveries.record_attempt(dispatched, %{outcome: :succeeded, provider_response: %{}})
+
+      {:ok, _result} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded, provider_response: %{}})
+
       Chimeway.Adapters.Test.clear()
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
@@ -93,7 +100,9 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       updated = Deliveries.get_delivery!(delivery.id)
       assert updated.status == :failed
 
-      attempts = Repo.all(from attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id)
+      attempts =
+        Repo.all(from(attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id))
+
       assert length(attempts) == 1
       assert hd(attempts).outcome == :failed
     after

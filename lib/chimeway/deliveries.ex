@@ -9,6 +9,8 @@ defmodule Chimeway.Deliveries do
   import Ecto.Changeset, only: [change: 2]
 
   alias Chimeway.{Delivery, DeliveryAttempt, Repo}
+  alias Chimeway.Telemetry
+  alias Ecto.Multi
 
   @terminal_states [:succeeded, :suppressed, :cancelled]
 
@@ -28,7 +30,8 @@ defmodule Chimeway.Deliveries do
   Plans a delivery row for the given notification_id and channel.
   Idempotent: duplicate calls on the same (notification_id, channel) create exactly one row.
   """
-  @spec plan_delivery(binary(), atom() | binary()) :: {:ok, Delivery.t()} | {:error, Ecto.Changeset.t()}
+  @spec plan_delivery(binary(), atom() | binary()) ::
+          {:ok, Delivery.t()} | {:error, Ecto.Changeset.t()}
   def plan_delivery(notification_id, channel) do
     channel_str = if is_atom(channel), do: Atom.to_string(channel), else: channel
 
@@ -94,33 +97,51 @@ defmodule Chimeway.Deliveries do
           {:ok, %{delivery: Delivery.t(), attempt: DeliveryAttempt.t()}}
           | {:error, atom(), term(), map()}
   def record_attempt(%Delivery{} = delivery, attrs) do
-    outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
+    Telemetry.span(
+      [:attempts, :record],
+      Telemetry.safe_meta(%{delivery_id: delivery.id}),
+      fn ->
+        outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
 
-    delivery_status =
-      case outcome do
-        :succeeded -> :succeeded
-        "succeeded" -> :succeeded
-        _ -> :failed
+        delivery_status =
+          case outcome do
+            :succeeded -> :succeeded
+            "succeeded" -> :succeeded
+            _ -> :failed
+          end
+
+        safe_attrs =
+          attrs
+          |> Map.update(:provider_response, nil, &sanitize_metadata/1)
+          |> Map.put(:delivery_id, delivery.id)
+
+        result =
+          Multi.new()
+          |> Multi.insert(:attempt, DeliveryAttempt.changeset(%DeliveryAttempt{}, safe_attrs))
+          |> Multi.run(:delivery, fn _repo, _changes ->
+            transition_status(delivery, delivery_status)
+          end)
+          |> Repo.transaction()
+          |> case do
+            {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
+              {:ok, %{delivery: updated_delivery, attempt: attempt}}
+
+            {:error, step, reason, changes} ->
+              {:error, step, reason, changes}
+          end
+
+        extra =
+          case result do
+            {:ok, %{attempt: attempt}} ->
+              Telemetry.safe_meta(%{attempt_id: attempt.id, outcome: attempt.outcome})
+
+            _ ->
+              %{}
+          end
+
+        {result, extra}
       end
-
-    safe_attrs =
-      attrs
-      |> Map.update(:provider_response, nil, &sanitize_metadata/1)
-      |> Map.put(:delivery_id, delivery.id)
-
-    Ecto.Multi.new()
-    |> Ecto.Multi.insert(:attempt, DeliveryAttempt.changeset(%DeliveryAttempt{}, safe_attrs))
-    |> Ecto.Multi.run(:delivery, fn _repo, _changes ->
-      transition_status(delivery, delivery_status)
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
-        {:ok, %{delivery: updated_delivery, attempt: attempt}}
-
-      {:error, step, reason, changes} ->
-        {:error, step, reason, changes}
-    end
+    )
   end
 
   @sensitive_keys ~w(password token secret)

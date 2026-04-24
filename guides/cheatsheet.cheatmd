@@ -1,0 +1,59 @@
+# Chimeway Cheat Sheet
+
+## Trigger a Notification
+
+```elixir
+Chimeway.trigger(
+  MyApp.OrderShippedNotifier,
+  %{order_id: "ord-123", user_id: 42},
+  idempotency_key: "order-shipped-ord-123",
+  correlation_id: "req-abc"
+)
+# => {:ok, %{event: %Event{}, notifications: [...]}}
+```
+
+## Query Recipient Inbox
+
+```elixir
+# All unread notifications for a recipient
+Chimeway.Inbox.list_for("user:42", unread_only: true)
+
+# Mark a notification as read
+Chimeway.Inbox.mark_read(notification_id, "user:42")
+```
+
+## Explain a Delivery
+
+```elixir
+{:ok, explanation} = Chimeway.Traces.explain_delivery("delivery-uuid")
+
+explanation.status            #=> :suppressed
+explanation.suppression_reason #=> "channel_disabled"
+explanation.timeline          #=> [%{at: ~U[...], event: :event_created, detail: %{}}, ...]
+```
+
+## Delivery States
+
+| State | Meaning |
+|-------|---------|
+| `:pending` | Planned but not yet dispatched |
+| `:dispatched` | Send in progress |
+| `:succeeded` | Provider confirmed delivery |
+| `:failed` | Provider returned an error |
+| `:suppressed` | Delivery skipped by policy |
+
+## Trace a Notification
+
+```elixir
+# Full trace by event ID
+{:ok, event} = Chimeway.Traces.get_trace("event-uuid")
+
+# All traces for a recipient
+traces = Chimeway.Traces.find_traces_for_recipient("user:42",
+  notification_key: "order_shipped",
+  limit: 10
+)
+
+# By correlation ID (e.g., request ID)
+events = Chimeway.Traces.find_traces_by_correlation_id("req-abc")
+```

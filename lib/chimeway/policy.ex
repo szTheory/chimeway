@@ -24,7 +24,11 @@ defmodule Chimeway.Policy do
 
   require Logger
 
+  alias Chimeway.Delivery
+  alias Chimeway.Events.Event
+  alias Chimeway.Notifications.Notification
   alias Chimeway.{Preferences, Repo}
+  alias Chimeway.Telemetry
 
   @doc """
   Evaluates delivery policy and returns a proceed or suppress decision.
@@ -34,22 +38,43 @@ defmodule Chimeway.Policy do
     in-app notification has been read (read_at is not nil). Used for delayed fallback paths.
   """
   @spec evaluate(Chimeway.Delivery.t(), keyword()) :: {:ok, :proceed} | {:suppress, atom()}
-  def evaluate(%Chimeway.Delivery{} = delivery, opts \\ []) do
-    check_read_state = Keyword.get(opts, :check_read_state, false)
+  def evaluate(%Delivery{} = delivery, opts \\ []) do
+    Telemetry.span(
+      [:policy, :evaluate],
+      Telemetry.safe_meta(%{delivery_id: delivery.id, channel: delivery.channel}),
+      fn ->
+        check_read_state = Keyword.get(opts, :check_read_state, false)
 
-    with {:ok, :proceed} <- check_preferences(delivery),
-         {:ok, :proceed} <- maybe_check_read_state(delivery, check_read_state) do
-      {:ok, :proceed}
-    end
+        result =
+          with {:ok, :proceed} <- check_preferences(delivery) do
+            maybe_check_read_state(delivery, check_read_state)
+          end
+
+        extra =
+          case result do
+            {:suppress, reason} ->
+              Telemetry.safe_meta(%{suppression_reason: Atom.to_string(reason)})
+
+            _ ->
+              %{}
+          end
+
+        {result, extra}
+      end
+    )
   end
 
   # --- Private ---
 
-  defp check_preferences(%Chimeway.Delivery{} = delivery) do
-    notification = Repo.get!(Chimeway.Notifications.Notification, delivery.notification_id)
-    event = Repo.get!(Chimeway.Events.Event, notification.event_id)
+  defp check_preferences(%Delivery{} = delivery) do
+    notification = Repo.get!(Notification, delivery.notification_id)
+    event = Repo.get!(Event, notification.event_id)
 
-    if Preferences.channel_enabled?(notification.recipient_identity, event.notification_key, delivery.channel) do
+    if Preferences.channel_enabled?(
+         notification.recipient_identity,
+         event.notification_key,
+         delivery.channel
+       ) do
       {:ok, :proceed}
     else
       Logger.debug("[chimeway] suppressing delivery",
@@ -64,8 +89,8 @@ defmodule Chimeway.Policy do
 
   defp maybe_check_read_state(_delivery, false), do: {:ok, :proceed}
 
-  defp maybe_check_read_state(%Chimeway.Delivery{notification_id: notification_id} = delivery, true) do
-    case Repo.get(Chimeway.Notifications.Notification, notification_id) do
+  defp maybe_check_read_state(%Delivery{notification_id: notification_id} = delivery, true) do
+    case Repo.get(Notification, notification_id) do
       nil ->
         {:ok, :proceed}
 

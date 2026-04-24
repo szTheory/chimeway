@@ -34,7 +34,9 @@ defmodule Chimeway.Inbox do
     update_lifecycle_timestamp(notification_id, recipient_identity, :archived_at, at)
   end
 
-  defp maybe_filter_unread(query, true), do: where(query, [notification], is_nil(notification.read_at))
+  defp maybe_filter_unread(query, true),
+    do: where(query, [notification], is_nil(notification.read_at))
+
   defp maybe_filter_unread(query, _false), do: query
 
   defp update_lifecycle_timestamp(notification_id, recipient_identity, field, at) do

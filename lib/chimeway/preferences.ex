@@ -13,7 +13,8 @@ defmodule Chimeway.Preferences do
   @doc """
   Upserts a preference. On conflict, updates :enabled and :updated_at.
   """
-  @spec upsert_preference(map()) :: {:ok, NotificationPreference.t()} | {:error, Ecto.Changeset.t()}
+  @spec upsert_preference(map()) ::
+          {:ok, NotificationPreference.t()} | {:error, Ecto.Changeset.t()}
   def upsert_preference(attrs) do
     %NotificationPreference{}
     |> NotificationPreference.changeset(attrs)

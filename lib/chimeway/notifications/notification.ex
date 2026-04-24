@@ -8,17 +8,20 @@ defmodule Chimeway.Notifications.Notification do
 
   alias Chimeway.Events.Event
 
+  @type t :: %__MODULE__{}
+
   @primary_key {:id, Ecto.UUID, autogenerate: true}
   @foreign_key_type Ecto.UUID
 
   schema "chimeway_notifications" do
-    belongs_to :event, Event, type: Ecto.UUID
-    field :recipient_identity, :string
-    field :recipient_type, :string
-    field :seen_at, :utc_datetime_usec
-    field :read_at, :utc_datetime_usec
-    field :archived_at, :utc_datetime_usec
-    field :metadata, :map, default: %{}
+    belongs_to(:event, Event, type: Ecto.UUID)
+    has_many(:deliveries, Chimeway.Delivery, foreign_key: :notification_id)
+    field(:recipient_identity, :string)
+    field(:recipient_type, :string)
+    field(:seen_at, :utc_datetime_usec)
+    field(:read_at, :utc_datetime_usec)
+    field(:archived_at, :utc_datetime_usec)
+    field(:metadata, :map, default: %{})
 
     timestamps(type: :utc_datetime_usec)
   end

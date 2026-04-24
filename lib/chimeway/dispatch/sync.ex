@@ -18,32 +18,35 @@ defmodule Chimeway.Dispatch.Sync do
   @behaviour Chimeway.Dispatch
 
   alias Chimeway.Deliveries
+  alias Chimeway.Policy
+  alias Chimeway.Telemetry
 
   @terminal_states [:succeeded, :suppressed, :cancelled]
 
   @impl Chimeway.Dispatch
   def dispatch(notifications, _opts) when is_list(notifications) do
-    results =
-      Enum.flat_map(notifications, fn notification ->
-        case Deliveries.plan_delivery(notification.id, :in_app) do
-          {:ok, delivery} ->
-            case Chimeway.Policy.evaluate(delivery, []) do
-              {:ok, :proceed} ->
-                [dispatch_delivery(delivery)]
+    {:ok, Enum.flat_map(notifications, &dispatch_notification/1)}
+  end
 
-              {:suppress, reason} ->
-                case Deliveries.suppress_delivery(delivery, reason) do
-                  {:ok, suppressed} -> [{:ok, suppressed}]
-                  {:error, _} = err -> [err]
-                end
-            end
+  defp dispatch_notification(notification) do
+    case Deliveries.plan_delivery(notification.id, :in_app) do
+      {:ok, delivery} -> evaluate_and_dispatch(delivery)
+      {:error, _reason} -> []
+    end
+  end
 
-          {:error, _reason} ->
-            []
-        end
-      end)
+  defp evaluate_and_dispatch(delivery) do
+    case Policy.evaluate(delivery, []) do
+      {:ok, :proceed} -> [dispatch_delivery(delivery)]
+      {:suppress, reason} -> suppress_result(delivery, reason)
+    end
+  end
 
-    {:ok, results}
+  defp suppress_result(delivery, reason) do
+    case Deliveries.suppress_delivery(delivery, reason) do
+      {:ok, suppressed} -> [{:ok, suppressed}]
+      {:error, _} = err -> [err]
+    end
   end
 
   # --- Private ---
@@ -53,13 +56,22 @@ defmodule Chimeway.Dispatch.Sync do
   end
 
   defp dispatch_delivery(delivery) do
-    case Chimeway.Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
-      {:suppress, reason} ->
-        Deliveries.suppress_delivery(delivery, reason)
-
-      {:ok, :proceed} ->
-        do_dispatch(delivery)
+    case Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
+      {:suppress, reason} -> Deliveries.suppress_delivery(delivery, reason)
+      {:ok, :proceed} -> do_dispatch_with_telemetry(delivery)
     end
+  end
+
+  defp do_dispatch_with_telemetry(delivery) do
+    Telemetry.span(
+      [:dispatch, :sync],
+      Telemetry.safe_meta(%{delivery_id: delivery.id, channel: delivery.channel}),
+      fn ->
+        result = do_dispatch(delivery)
+        outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
+        {result, Telemetry.safe_meta(%{outcome: outcome})}
+      end
+    )
   end
 
   defp do_dispatch(delivery) do
