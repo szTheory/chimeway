@@ -1,7 +1,7 @@
 defmodule Chimeway.TracesTest do
   use Chimeway.DataCase, async: true
 
-  alias Chimeway.{Deliveries, Repo, Traces}
+  alias Chimeway.{Deliveries, Delivery, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Traces.Explanation
@@ -146,6 +146,52 @@ defmodule Chimeway.TracesTest do
 
     test "returns [] for unknown correlation_id" do
       assert [] = Traces.find_traces_by_correlation_id("nonexistent-correlation")
+    end
+
+    test "OPS-01: get_trace and correlation lookup recover the same event identity" do
+      # OPS-01: trigger-facing correlation pointers must map to the same durable event identity.
+      event = insert_event(%{correlation_id: "req-ops-01-link"})
+      _notification = insert_notification(event, "user:ops-01")
+
+      assert {:ok, loaded} = Traces.get_trace(event.id)
+
+      events = Traces.find_traces_by_correlation_id("req-ops-01-link")
+      assert Enum.any?(events, &(&1.id == loaded.id))
+    end
+  end
+
+  describe "trace delivery id contract for trigger outcomes" do
+    test "OPS-01: trace preloads expose delivery ids as UUID lists suitable for equality checks" do
+      # OPS-01: trace delivery ids should be directly comparable to trigger trace.delivery_ids.
+      event = insert_event(%{correlation_id: "req-delivery-id-contract"})
+      notification = insert_notification(event, "user:delivery-ids")
+      delivery_one = plan_delivery(notification, :in_app)
+      delivery_two = plan_delivery(notification, :email)
+
+      assert {:ok, loaded} = Traces.get_trace(event.id)
+
+      trace_delivery_ids =
+        loaded.notifications
+        |> Enum.flat_map(fn loaded_notification ->
+          Enum.map(loaded_notification.deliveries, & &1.id)
+        end)
+        |> Enum.sort()
+
+      durable_delivery_ids =
+        Repo.all(
+          from(d in Delivery,
+            join: n in Notification,
+            on: d.notification_id == n.id,
+            where: n.event_id == ^event.id,
+            select: d.id
+          )
+        )
+        |> Enum.sort()
+
+      assert MapSet.new(trace_delivery_ids) == MapSet.new([delivery_one.id, delivery_two.id])
+      assert MapSet.new(trace_delivery_ids) == MapSet.new(durable_delivery_ids)
+
+      assert Enum.all?(trace_delivery_ids, &is_binary/1)
     end
   end
 
