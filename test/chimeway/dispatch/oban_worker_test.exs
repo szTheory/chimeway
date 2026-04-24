@@ -201,6 +201,7 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       fixture = create_pending_delivery(channel: "sms_custom")
       assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
       assert_receive {:adapter_config, [provider: "acme_sms", timeout_ms: 1500]}
+      assert Deliveries.get_delivery!(fixture.delivery.id).status == :succeeded
     end
 
     test "INTG-02: oban worker supports legacy adapter_sms_custom fallback" do
@@ -223,6 +224,7 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       fixture = create_pending_delivery(channel: "sms_custom")
       assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
       assert_receive {:adapter_config, [provider: "legacy_sms"]}
+      assert Deliveries.get_delivery!(fixture.delivery.id).status == :succeeded
     end
   end
 
