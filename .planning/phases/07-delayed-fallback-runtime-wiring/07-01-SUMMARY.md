@@ -60,7 +60,7 @@ Each task was committed atomically:
 2. **Task 2: Add additive delivery planning API for delayed-fallback persistence** - `9043d5d` (feat)
 3. **Task 3: Wire delayed-fallback resolution and validation in shared planner** - `c9358c3` (feat)
 
-**Plan metadata:** `PENDING`
+**Plan metadata:** `ac17e72` (docs)
 
 ## Files Created/Modified
 - `lib/chimeway/notifier.ex` - Adds optional delayed-fallback callback and contract docs.
