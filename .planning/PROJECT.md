@@ -16,16 +16,20 @@ Every notification decision is explainable, so teams can reliably answer why a n
 - [x] Chimeway enforces idempotency across event creation and notification planning to prevent duplicate records. *(Validated in Phase 01: durable-core-spine)*
 - [x] Users get durable in-app notification records with explicit `seen`, `read`, and archival semantics. *(Validated in Phase 01: durable-core-spine)*
 - [x] The project ships with strict OSS engineering discipline (`mix verify.*`, CI lane hygiene, docs contracts, release checks). *(Validated in Phase 05: oss-verification-and-release-hardening)*
+- [x] Applications have explicit policy evaluation before enqueue and before perform for late suppression (preferences, quiet hours, caps, consent). *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
+- [x] Developers can trigger one domain event that fans out to many recipients and channels with durable event, notification, delivery, and attempt records. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
+- [x] Chimeway enforces idempotency across event creation and delivery planning to prevent duplicate sends. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
+- [x] Operators can inspect an end-to-end trace and answer "why wasn't this sent?" from first-class data. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
+- [x] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
 
 ### Active
 
-- [ ] Applications have explicit policy evaluation before enqueue and before perform for late suppression (preferences, quiet hours, caps, consent).
-- [ ] Developers can trigger one domain event that fans out to many recipients and channels with durable event, notification, delivery, and attempt records.
-- [ ] Chimeway enforces idempotency across event creation and delivery planning to prevent duplicate sends.
-- [ ] Operators can inspect an end-to-end trace and answer "why wasn't this sent?" from first-class data.
 - [ ] v0.1 ships one vertical slice with durable spine plus at least one outbound adapter seam (initially log/test or Swoosh wrapper).
-- [ ] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs.
 - [ ] Chimeway remains composable and provider-agnostic through adapter behaviours.
+
+## Current State
+
+Phase 06 is complete. Delivery planning now enforces policy and channel fanout before sync enqueue/dispatch, sync and Oban execution paths share the same adapter-attempt runner, and parity/integration tests lock in checkpoint provenance and traceability behavior.
 
 ### Out of Scope
 
@@ -87,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-24 after Phase 05 completion*
+*Last updated: 2026-04-24 after Phase 06 completion*
