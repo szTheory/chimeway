@@ -1,6 +1,12 @@
 defmodule Chimeway.Notifier do
   @moduledoc """
   Behaviour contract for notification definitions.
+
+  ## Delayed fallback channels
+
+  `delayed_fallback_channels/2` lets notifiers mark outbound channels as delayed
+  fallback candidates. Returned channels must be a subset of `channels/2` output
+  and must never include `:in_app`.
   """
 
   @callback notification_key() :: String.t()
@@ -8,8 +14,11 @@ defmodule Chimeway.Notifier do
   @callback recipients(map()) :: {:ok, [map()]} | {:error, term()}
   @callback build(map(), map()) :: {:ok, map()} | {:error, term()}
   @callback channels(map(), map()) :: {:ok, [atom() | String.t()]} | {:error, term()}
+  @callback delayed_fallback_channels(map(), map()) ::
+              {:ok, [atom() | String.t()]} | {:error, term()}
 
   @optional_callbacks channels: 2
+  @optional_callbacks delayed_fallback_channels: 2
 
   @spec validate_module!(module()) :: :ok | {:error, term()}
   def validate_module!(module) when is_atom(module) do
