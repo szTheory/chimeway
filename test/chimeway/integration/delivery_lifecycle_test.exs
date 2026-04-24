@@ -522,4 +522,46 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert :delivery_planned in Enum.map(timeline, & &1.event)
     end
   end
+
+  describe "Scenario G: trigger outcome trace pointers resolve through trace APIs" do
+    test "trigger response trace fields map to durable trace and delivery rows" do
+      assert {:ok, result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleA,
+                 %{user_id: 8},
+                 idempotency_key: "lifecycle_trace_contract_001",
+                 correlation_id: "phase8-trace-001"
+               )
+
+      assert result.dispatch_outcome == :ok or match?({:error, _}, result.dispatch_outcome)
+      assert is_map(result.trace)
+      assert result.trace.event_id == result.event.id
+      assert Map.has_key?(result.trace, :correlation_id)
+      assert is_list(result.trace.delivery_ids)
+
+      assert {:ok, trace_event} = Traces.get_trace(result.trace.event_id)
+      assert trace_event.id == result.event.id
+
+      events = Traces.find_traces_by_correlation_id(result.trace.correlation_id)
+      assert Enum.any?(events, &(&1.id == result.event.id))
+
+      notification_ids =
+        Repo.all(
+          from(n in Notification,
+            where: n.event_id == ^result.event.id,
+            select: n.id
+          )
+        )
+
+      durable_delivery_ids =
+        Repo.all(
+          from(d in Delivery,
+            where: d.notification_id in ^notification_ids,
+            select: d.id
+          )
+        )
+
+      assert MapSet.new(result.trace.delivery_ids) == MapSet.new(durable_delivery_ids)
+    end
+  end
 end
