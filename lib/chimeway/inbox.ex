@@ -8,7 +8,7 @@ defmodule Chimeway.Inbox do
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
 
-  @spec list_for_recipient(String.t(), keyword()) :: [Notification.t()]
+  @spec list_for_recipient(String.t(), keyword()) :: [map()]
   def list_for_recipient(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
     unread_only? = Keyword.get(opts, :unread_only, false)
 
