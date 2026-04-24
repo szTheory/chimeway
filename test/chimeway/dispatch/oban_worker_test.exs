@@ -133,4 +133,31 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     end
   end
+
+  describe "perform-time delayed fallback suppression" do
+    test "already-read delayed fallback delivery records no attempts (POLC-03)" do
+      fixture =
+        create_pending_delivery(
+          notification_key: "oban.worker.delayed.fallback",
+          delay_fallback: true
+        )
+
+      mark_notification_read(fixture)
+      Chimeway.Adapters.Test.clear()
+
+      assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
+
+      updated = Deliveries.get_delivery!(fixture.delivery.id)
+      assert delivery_signature(updated) == already_read_suppression_signature()
+      assert Chimeway.Adapters.Test.delivered_messages() == []
+
+      attempt_count =
+        Repo.aggregate(
+          from(attempt in DeliveryAttempt, where: attempt.delivery_id == ^fixture.delivery.id),
+          :count
+        )
+
+      assert attempt_count == 0
+    end
+  end
 end

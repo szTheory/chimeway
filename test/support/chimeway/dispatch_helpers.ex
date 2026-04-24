@@ -121,4 +121,16 @@ defmodule Chimeway.Test.DispatchHelpers do
       attempt_count: attempt_count
     }
   end
+
+  @doc """
+  Canonical suppression signature for delayed-fallback already-read outcomes.
+  """
+  def already_read_suppression_signature do
+    %{
+      status: :suppressed,
+      suppression_reason: "already_read",
+      policy_checkpoint: "perform",
+      attempt_count: 0
+    }
+  end
 end

@@ -158,8 +158,8 @@ defmodule Chimeway.Dispatch.SyncTest do
   end
 
   describe "perform-time suppression parity" do
-    # POLC-02: delayed fallback checks read state at perform checkpoint.
-    test "already-read delayed fallback delivery is suppressed with no attempt" do
+    # POLC-03: delayed fallback checks read state at perform checkpoint.
+    test "POLC-03: already-read delayed fallback delivery is suppressed with no attempt" do
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
       Chimeway.Adapters.Test.clear()
 
@@ -172,12 +172,8 @@ defmodule Chimeway.Dispatch.SyncTest do
       DispatchHelpers.mark_notification_read(fixture)
 
       assert {:ok, [{:ok, delivery}]} = Sync.dispatch([fixture.notification], [])
-      assert DispatchHelpers.delivery_signature(delivery) == %{
-               status: :suppressed,
-               suppression_reason: "already_read",
-               policy_checkpoint: "perform",
-               attempt_count: 0
-             }
+      assert DispatchHelpers.delivery_signature(delivery) ==
+               DispatchHelpers.already_read_suppression_signature()
 
       assert Chimeway.Adapters.Test.delivered_messages() == []
     end

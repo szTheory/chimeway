@@ -115,8 +115,8 @@ defmodule Chimeway.Dispatch.ObanTest do
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     end
 
-    test "suppresses delayed fallback deliveries as already_read at perform time" do
-      # POLC-02: worker perform checkpoint suppresses already-read fallback deliveries.
+    test "POLC-03: suppresses delayed fallback deliveries as already_read at perform time" do
+      # POLC-03: worker perform checkpoint suppresses already-read fallback deliveries.
       Chimeway.Adapters.Test.clear()
       fixture =
         DispatchHelpers.create_pending_delivery(
@@ -129,12 +129,8 @@ defmodule Chimeway.Dispatch.ObanTest do
       assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
 
       updated = Deliveries.get_delivery!(fixture.delivery.id)
-      assert DispatchHelpers.delivery_signature(updated) == %{
-               status: :suppressed,
-               suppression_reason: "already_read",
-               policy_checkpoint: "perform",
-               attempt_count: 0
-             }
+      assert DispatchHelpers.delivery_signature(updated) ==
+               DispatchHelpers.already_read_suppression_signature()
 
       assert Chimeway.Adapters.Test.delivered_messages() == []
     end
