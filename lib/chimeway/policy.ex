@@ -41,7 +41,11 @@ defmodule Chimeway.Policy do
   def evaluate(%Delivery{} = delivery, opts \\ []) do
     Telemetry.span(
       [:policy, :evaluate],
-      Telemetry.safe_meta(%{delivery_id: delivery.id, channel: delivery.channel}),
+      Telemetry.safe_meta(%{
+        delivery_id: delivery.id,
+        channel: delivery.channel,
+        notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+      }),
       fn ->
         check_read_state = Keyword.get(opts, :check_read_state, false)
 

@@ -18,6 +18,7 @@ defmodule Chimeway.Dispatch.Sync do
   @behaviour Chimeway.Dispatch
 
   alias Chimeway.{Deliveries, DeliveryPlanning}
+  alias Chimeway.Dispatch.Executor
   alias Chimeway.Policy
   alias Chimeway.Telemetry
 
@@ -67,7 +68,11 @@ defmodule Chimeway.Dispatch.Sync do
   defp do_dispatch_with_telemetry(delivery) do
     Telemetry.span(
       [:dispatch, :sync],
-      Telemetry.safe_meta(%{delivery_id: delivery.id, channel: delivery.channel}),
+      Telemetry.safe_meta(%{
+        delivery_id: delivery.id,
+        channel: delivery.channel,
+        notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+      }),
       fn ->
         result = do_dispatch(delivery)
         outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
@@ -77,7 +82,7 @@ defmodule Chimeway.Dispatch.Sync do
   end
 
   defp do_dispatch(delivery) do
-    case Chimeway.Dispatch.Executor.run_delivery(delivery) do
+    case Executor.run_delivery(delivery) do
       {:ok, %{delivery: updated_delivery}} ->
         {:ok, updated_delivery}
 
