@@ -18,10 +18,12 @@ defmodule Chimeway.Dispatch.ObanTest do
   setup do
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+    Chimeway.Adapters.Test.clear()
 
     on_exit(fn ->
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
       Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+      Chimeway.Adapters.Test.clear()
     end)
 
     :ok
@@ -55,13 +57,17 @@ defmodule Chimeway.Dispatch.ObanTest do
     end
 
     test "disabled channel preference suppresses at planning and does not enqueue a job" do
+      # POLC-01 / POLC-02: enqueue path must suppress and skip scheduling at planning checkpoint.
       fixture = DispatchHelpers.create_notification(notification_key: "oban.planning.suppression")
       DispatchHelpers.disable_channel_preference(fixture, :in_app)
 
       assert {:ok, [delivery]} = Oban.dispatch([fixture.notification], [])
-      assert delivery.status == :suppressed
-      assert delivery.suppression_reason == "channel_disabled"
-      assert get_in(delivery.metadata, ["policy_checkpoint"]) == "planning"
+      assert DispatchHelpers.delivery_signature(delivery) == %{
+               status: :suppressed,
+               suppression_reason: "channel_disabled",
+               policy_checkpoint: "planning",
+               attempt_count: 0
+             }
 
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
     end
@@ -110,6 +116,7 @@ defmodule Chimeway.Dispatch.ObanTest do
     end
 
     test "suppresses delayed fallback deliveries as already_read at perform time" do
+      # POLC-02: worker perform checkpoint suppresses already-read fallback deliveries.
       Chimeway.Adapters.Test.clear()
       fixture =
         DispatchHelpers.create_pending_delivery(
@@ -122,16 +129,13 @@ defmodule Chimeway.Dispatch.ObanTest do
       assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
 
       updated = Deliveries.get_delivery!(fixture.delivery.id)
-      assert updated.status == :suppressed
-      assert updated.suppression_reason == "already_read"
-      assert get_in(updated.metadata, ["policy_checkpoint"]) == "perform"
+      assert DispatchHelpers.delivery_signature(updated) == %{
+               status: :suppressed,
+               suppression_reason: "already_read",
+               policy_checkpoint: "perform",
+               attempt_count: 0
+             }
 
-      attempts =
-        Chimeway.Repo.all(
-          from(a in Chimeway.DeliveryAttempt, where: a.delivery_id == ^fixture.delivery.id)
-        )
-
-      assert attempts == []
       assert Chimeway.Adapters.Test.delivered_messages() == []
     end
   end

@@ -3,7 +3,10 @@ defmodule Chimeway.Test.DispatchHelpers do
   Factory helpers for async dispatch and delayed fallback tests.
   """
 
+  import Ecto.Query, only: [from: 2]
+
   alias Chimeway.Delivery
+  alias Chimeway.DeliveryAttempt
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Preferences
@@ -98,5 +101,24 @@ defmodule Chimeway.Test.DispatchHelpers do
       |> Repo.update()
 
     updated
+  end
+
+  @doc """
+  Normalized assertion shape used by sync/Oban parity tests.
+  """
+  def delivery_signature(%Delivery{} = delivery) do
+    attempt_count =
+      Repo.aggregate(
+        from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id),
+        :count,
+        :id
+      )
+
+    %{
+      status: delivery.status,
+      suppression_reason: delivery.suppression_reason,
+      policy_checkpoint: get_in(delivery.metadata || %{}, ["policy_checkpoint"]),
+      attempt_count: attempt_count
+    }
   end
 end

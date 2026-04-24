@@ -262,6 +262,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     end
   end
 
+  # DLVR-01 / INTG-02: outbound fanout remains durable across notification -> delivery -> attempt.
   describe "Scenario D: multi-channel fanout creates durable delivery and attempt records" do
     setup do
       original = Application.get_env(:chimeway, :adapter)

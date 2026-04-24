@@ -137,6 +137,7 @@ defmodule Chimeway.Dispatch.SyncTest do
   end
 
   describe "planning-time policy suppression parity" do
+    # POLC-01 / POLC-02: planning checkpoint suppression happens before adapter execution.
     test "disabled channel preference suppresses during planning before adapter execution" do
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
       Chimeway.Adapters.Test.clear()
@@ -145,11 +146,39 @@ defmodule Chimeway.Dispatch.SyncTest do
       DispatchHelpers.disable_channel_preference(fixture, :in_app)
 
       assert {:ok, [{:ok, delivery}]} = Sync.dispatch([fixture.notification], [])
-      assert delivery.status == :suppressed
-      assert delivery.suppression_reason == "channel_disabled"
-      assert get_in(delivery.metadata, ["policy_checkpoint"]) == "planning"
+      assert DispatchHelpers.delivery_signature(delivery) == %{
+               status: :suppressed,
+               suppression_reason: "channel_disabled",
+               policy_checkpoint: "planning",
+               attempt_count: 0
+             }
 
-      refute Repo.exists?(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
+      assert Chimeway.Adapters.Test.delivered_messages() == []
+    end
+  end
+
+  describe "perform-time suppression parity" do
+    # POLC-02: delayed fallback checks read state at perform checkpoint.
+    test "already-read delayed fallback delivery is suppressed with no attempt" do
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      Chimeway.Adapters.Test.clear()
+
+      fixture =
+        DispatchHelpers.create_pending_delivery(
+          notification_key: "sync.perform.suppression",
+          delay_fallback: true
+        )
+
+      DispatchHelpers.mark_notification_read(fixture)
+
+      assert {:ok, [{:ok, delivery}]} = Sync.dispatch([fixture.notification], [])
+      assert DispatchHelpers.delivery_signature(delivery) == %{
+               status: :suppressed,
+               suppression_reason: "already_read",
+               policy_checkpoint: "perform",
+               attempt_count: 0
+             }
+
       assert Chimeway.Adapters.Test.delivered_messages() == []
     end
   end
