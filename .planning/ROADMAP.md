@@ -116,7 +116,12 @@ Plans:
   1. Trigger planning creates per-recipient, per-channel delivery rows instead of hardcoding `:in_app`.
   2. Policy checks run during planning/enqueue in both sync and Oban paths, not only worker perform time.
   3. Automated tests cover standard outbound success flow with fanout and planning-time policy enforcement.
-**Plans**: 0 plans
+**Plans**: 3 plans
+
+Plans:
+- [x] 06-01: Introduce shared delivery planner and planning-time policy fanout contract.
+- [ ] 06-02: Unify sync/Oban execution semantics and suppression checkpoint metadata.
+- [ ] 06-03: Add parity and integration coverage for fanout and planning checkpoint enforcement.
 
 ### Phase 7: Delayed Fallback Runtime Wiring
 **Goal**: Make delayed fallback suppression a first-class runtime behavior in normal trigger planning.  
@@ -178,7 +183,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 3. Async Dispatch and Policy Hardening | 3/3 | Complete    | 2026-04-24 |
 | 4. Explainability and Operator Surfaces | 2/2 | Complete    | 2026-04-24 |
 | 5. OSS Verification and Release Hardening | 1/2 | Complete    | 2026-04-24 |
-| 6. Delivery Planning and Policy Checkpoint Repair | 0/0 | Planned | — |
+| 6. Delivery Planning and Policy Checkpoint Repair | 1/3 | In Progress | — |
 | 7. Delayed Fallback Runtime Wiring | 0/0 | Planned | — |
 | 8. Trigger Dispatch Outcome Surfacing | 0/0 | Planned | — |
 | 9. OSS Verification Evidence Refresh | 0/0 | Planned | — |

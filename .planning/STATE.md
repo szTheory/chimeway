@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 6 context gathered
-last_updated: "2026-04-24T13:02:49.485Z"
-last_activity: 2026-04-24
+status: executing
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-04-24T13:28:38.374Z"
+last_activity: 2026-04-24 -- Completed Phase 06 Plan 01
 progress:
   total_phases: 10
   completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_plans: 16
+  completed_plans: 14
+  percent: 88
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-23)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.  
-**Current focus:** Phase 05 — oss-verification-and-release-hardening
+**Current focus:** Phase 06 — delivery-planning-and-policy-checkpoint-repair
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-04-24
+Phase: 06 (delivery-planning-and-policy-checkpoint-repair) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-24 -- Completed 06-01 and advanced to Plan 2
 
-Progress: [██████████] 100%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -78,6 +78,9 @@ Recent decisions affecting current work:
 - [01-03]: Keep inbox reads side-effect free and expose explicit lifecycle mutations for `seen/read/archive`.
 - [01-03]: Scope inbox lifecycle updates by `notification_id` and `recipient_identity` to prevent cross-recipient mutation.
 - [01-03]: Treat phase verification docs as executable artifacts with command-backed requirement PASS evidence.
+- [06-01]: Extend notifier contract with optional `channels/2` callback while preserving fallback compatibility.
+- [06-01]: Centralize fanout + planning-time policy evaluation in `Chimeway.DeliveryPlanning`.
+- [06-01]: Require dispatchers to return tagged `{:planning_failed, reason}` when planner resolution fails.
 
 ### Pending Todos
 
@@ -98,7 +101,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 6 context gathered
+Stopped at: Completed 06-01-PLAN.md
 Resume file: --resume-file
 
-**Planned Phase:** 3 (Async Dispatch and Policy Hardening) — 3 plans
+**Planned Phase:** 6 (Delivery Planning and Policy Checkpoint Repair) — 3 plans — 2026-04-24T13:20:59.708Z

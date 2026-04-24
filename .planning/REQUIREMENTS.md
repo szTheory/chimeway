@@ -22,21 +22,21 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Delivery and Attempt Tracking
 
-- [ ] **DLVR-01**: System plans per-channel delivery rows from the event and recipient set.
+- [x] **DLVR-01**: System plans per-channel delivery rows from the event and recipient set.
 - [x] **DLVR-02**: System records every provider/send attempt with outcome metadata and timestamps.
 - [x] **DLVR-03**: System classifies delivery outcomes into explicit states including succeeded, failed, suppressed, cancelled, and expired where applicable.
 - [ ] **DLVR-04**: System supports sync dispatch for v1 and a documented seam for optional job-backed dispatch.
 
 ### Policy and Preferences
 
-- [ ] **POLC-01**: Application can express recipient preferences that enable/disable notification channels by key/topic.
-- [ ] **POLC-02**: Policy evaluation runs at planning/enqueue time and again at perform/send time for delayed deliveries.
+- [x] **POLC-01**: Application can express recipient preferences that enable/disable notification channels by key/topic.
+- [x] **POLC-02**: Policy evaluation runs at planning/enqueue time and again at perform/send time for delayed deliveries.
 - [ ] **POLC-03**: Delayed fallback behavior can suppress outbound delivery when in-app state shows the notification was already read.
 
 ### Integrations and Composability
 
 - [x] **INTG-01**: Developers can implement outbound channel integrations via explicit adapter behaviours instead of core vendor lock-in.
-- [ ] **INTG-02**: v1 includes at least one outbound adapter seam (test/log adapter or email adapter wrapper) in addition to in-app delivery.
+- [x] **INTG-02**: v1 includes at least one outbound adapter seam (test/log adapter or email adapter wrapper) in addition to in-app delivery.
 - [x] **INTG-03**: Optional Oban integration path is documented and compatible with transactional persistence.
 
 ### Operability and OSS Quality
@@ -88,15 +88,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INBX-01 | Phase 1 | Complete |
 | INBX-02 | Phase 1 | Complete |
 | INBX-03 | Phase 1 | Complete |
-| DLVR-01 | Phase 6 | Pending |
+| DLVR-01 | Phase 6 | Complete |
 | DLVR-02 | Phase 2 | Complete |
 | DLVR-03 | Phase 2 | Complete |
 | DLVR-04 | Phase 8 | Pending |
-| POLC-01 | Phase 6 | Pending |
-| POLC-02 | Phase 6 | Pending |
+| POLC-01 | Phase 6 | Complete |
+| POLC-02 | Phase 6 | Complete |
 | POLC-03 | Phase 7 | Pending |
 | INTG-01 | Phase 2 | Complete |
-| INTG-02 | Phase 6 | Pending |
+| INTG-02 | Phase 6 | Complete |
 | INTG-03 | Phase 3 | Complete |
 | OPS-01 | Phase 8 | Pending |
 | OPS-02 | Phase 10 | Pending |
@@ -105,10 +105,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 **Coverage:**
 - v1 requirements: 20 total
 - Mapped to phases: 20
-- Pending after milestone audit: 9
-- Complete after milestone audit: 11
+- Pending after milestone audit: 5
+- Complete after milestone audit: 15
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-23*
-*Last updated: 2026-04-24 after milestone gap-closure phase planning*
+*Last updated: 2026-04-24 after Phase 06-01 execution*
