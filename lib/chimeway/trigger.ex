@@ -81,7 +81,7 @@ defmodule Chimeway.Trigger do
       end
     )
     |> normalize_trigger_result(idempotency_key, normalized_recipients)
-    |> then(&plan_deliveries_span(&1, notifier, opts))
+    |> then(&plan_deliveries_span(&1, notifier, params, opts))
   end
 
   @spec normalize_recipients([map()]) :: [map()]
@@ -240,22 +240,26 @@ defmodule Chimeway.Trigger do
   defp normalize_recipient_type(type) when is_atom(type), do: Atom.to_string(type)
   defp normalize_recipient_type(_type), do: nil
 
-  defp plan_deliveries_span(result, notifier, opts) do
+  defp plan_deliveries_span(result, notifier, params, opts) do
     Telemetry.span(
       [:deliveries, :plan],
       Telemetry.safe_meta(%{notification_key: notifier.notification_key()}),
       fn ->
-        dispatched = dispatch_after_trigger(result, opts)
+        dispatched = dispatch_after_trigger(result, notifier, params, opts)
         {dispatched, %{}}
       end
     )
   end
 
-  defp dispatch_after_trigger({:ok, %{event: event}} = result, opts) do
+  defp dispatch_after_trigger({:ok, %{event: event}} = result, notifier, params, opts) do
     dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     notifications = Repo.all(from(n in Notification, where: n.event_id == ^event.id))
+    dispatch_opts =
+      opts
+      |> Keyword.put_new(:notifier, notifier)
+      |> Keyword.put_new(:trigger_params, params)
 
-    case dispatcher.dispatch(notifications, opts) do
+    case dispatcher.dispatch(notifications, dispatch_opts) do
       {:ok, _deliveries} -> :ok
       {:error, reason} -> Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
     end
@@ -263,5 +267,5 @@ defmodule Chimeway.Trigger do
     result
   end
 
-  defp dispatch_after_trigger(result, _opts), do: result
+  defp dispatch_after_trigger(result, _notifier, _params, _opts), do: result
 end

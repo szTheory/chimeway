@@ -7,6 +7,9 @@ defmodule Chimeway.Notifier do
   @callback version() :: pos_integer()
   @callback recipients(map()) :: {:ok, [map()]} | {:error, term()}
   @callback build(map(), map()) :: {:ok, map()} | {:error, term()}
+  @callback channels(map(), map()) :: {:ok, [atom() | String.t()]} | {:error, term()}
+
+  @optional_callbacks channels: 2
 
   @spec validate_module!(module()) :: :ok | {:error, term()}
   def validate_module!(module) when is_atom(module) do
