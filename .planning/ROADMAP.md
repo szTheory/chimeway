@@ -13,8 +13,8 @@ Chimeway will be delivered in five coarse phases that prioritize durable data se
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Durable Core Spine** - Establish stable notifier identity, durable records, and in-app lifecycle.
-- [ ] **Phase 2: First Outbound Delivery Slice** - Add one outbound adapter seam with full delivery/attempt tracking.
-- [ ] **Phase 3: Async Dispatch and Policy Hardening** - Introduce optional Oban path and enforce late policy checks.
+- [x] **Phase 2: First Outbound Delivery Slice** - Add one outbound adapter seam with full delivery/attempt tracking. (completed 2026-04-24)
+- [x] **Phase 3: Async Dispatch and Policy Hardening** - Introduce optional Oban path and enforce late policy checks. (completed 2026-04-24)
 - [ ] **Phase 4: Explainability and Operator Surfaces** - Make operational tracing practical for support and debugging.
 - [ ] **Phase 5: OSS Verification and Release Hardening** - Lock in quality gates, docs contracts, and release discipline.
 
@@ -50,9 +50,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Add delivery and attempt persistence model plus lifecycle transitions.
-- [ ] 02-02: Implement first outbound adapter seam and classification of success/failure/suppression.
-- [ ] 02-03: Add adapter contract tests and fake provider harness.
+- [x] 02-01: Add delivery and attempt persistence model plus lifecycle transitions.
+- [x] 02-02: Implement first outbound adapter seam and classification of success/failure/suppression.
+- [x] 02-03: Add adapter contract tests and fake provider harness.
 
 ### Phase 3: Async Dispatch and Policy Hardening
 **Goal**: Add optional Oban-backed async execution and enforce policy correctness across delayed paths.  
@@ -67,9 +67,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Build optional Oban worker path and transactional enqueue integration.
-- [ ] 03-02: Implement preference model and policy engine with dual evaluation checkpoints.
-- [ ] 03-03: Add delayed fallback behavior tests and async failure-mode verification.
+- [x] 03-01: Build optional Oban worker path and transactional enqueue integration.
+- [x] 03-02: Implement preference model and policy engine with dual evaluation checkpoints.
+- [x] 03-03: Add delayed fallback behavior tests and async failure-mode verification.
 
 ### Phase 4: Explainability and Operator Surfaces
 **Goal**: Deliver operator-grade observability and traceability over notification lifecycle data.  
@@ -109,7 +109,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Durable Core Spine | 3/3 | Complete | 2026-04-24 |
-| 2. First Outbound Delivery Slice | 0/3 | Not started | - |
-| 3. Async Dispatch and Policy Hardening | 0/3 | Not started | - |
+| 2. First Outbound Delivery Slice | 3/3 | Complete    | 2026-04-24 |
+| 3. Async Dispatch and Policy Hardening | 3/3 | Complete    | 2026-04-24 |
 | 4. Explainability and Operator Surfaces | 0/2 | Not started | - |
 | 5. OSS Verification and Release Hardening | 0/2 | Not started | - |
