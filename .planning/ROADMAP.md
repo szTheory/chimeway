@@ -17,6 +17,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Async Dispatch and Policy Hardening** - Introduce optional Oban path and enforce late policy checks. (completed 2026-04-24)
 - [x] **Phase 4: Explainability and Operator Surfaces** - Make operational tracing practical for support and debugging. (completed 2026-04-24)
 - [x] **Phase 5: OSS Verification and Release Hardening** - Lock in quality gates, docs contracts, and release discipline. (completed 2026-04-24)
+- [ ] **Phase 6: Delivery Planning and Policy Checkpoint Repair** - Restore per-channel planning fanout and planning-time policy enforcement.
+- [ ] **Phase 7: Delayed Fallback Runtime Wiring** - Wire delayed fallback semantics through runtime delivery planning and suppression.
+- [ ] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links.
+- [ ] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status.
+- [ ] **Phase 10: Telemetry Correlation Enrichment** - Increase lifecycle telemetry consistency for deep operator tracing.
 
 ## Phase Details
 
@@ -101,10 +106,70 @@ Plans:
 - [x] 05-01: Implement CI/verify entrypoints and pipeline parity checks.
 - [x] 05-02: Finalize release/checklist docs, doc-contract checks, and maintenance runbook baseline.
 
+### Phase 6: Delivery Planning and Policy Checkpoint Repair
+**Goal**: Repair delivery planning fanout and planning-time policy checkpoints so sync and Oban paths enforce the same contracts.  
+**Depends on**: Phase 5  
+**Requirements**: [DLVR-01, INTG-02, POLC-01, POLC-02]  
+**UI hint**: no  
+**Gap Closure**: Closes v1.0 audit integration/flow gaps for trigger fanout and Oban planning policy evaluation.  
+**Success Criteria** (what must be TRUE):
+  1. Trigger planning creates per-recipient, per-channel delivery rows instead of hardcoding `:in_app`.
+  2. Policy checks run during planning/enqueue in both sync and Oban paths, not only worker perform time.
+  3. Automated tests cover standard outbound success flow with fanout and planning-time policy enforcement.
+**Plans**: 0 plans
+
+### Phase 7: Delayed Fallback Runtime Wiring
+**Goal**: Make delayed fallback suppression a first-class runtime behavior in normal trigger planning.  
+**Depends on**: Phase 6  
+**Requirements**: [POLC-03]  
+**UI hint**: no  
+**Gap Closure**: Closes v1.0 blocker gap for delayed fallback suppression in runtime planning.  
+**Success Criteria** (what must be TRUE):
+  1. Runtime planning marks delayed fallback semantics (`delay_fallback`) where required by policy.
+  2. Dispatch suppresses outbound sends when in-app state indicates notification was already read.
+  3. End-to-end tests verify delayed fallback behavior beyond fixture-only setups.
+**Plans**: 0 plans
+
+### Phase 8: Trigger Dispatch Outcome Surfacing
+**Goal**: Ensure trigger callers receive explicit dispatch/enqueue outcomes with trace correlation context.  
+**Depends on**: Phase 6  
+**Requirements**: [DLVR-04, OPS-01]  
+**UI hint**: no  
+**Gap Closure**: Closes v1.0 gaps for trigger API error visibility and standard outbound flow robustness.  
+**Success Criteria** (what must be TRUE):
+  1. Trigger returns structured results for dispatch/enqueue failures instead of swallowing errors.
+  2. Sync and async paths expose caller-visible outcome metadata suitable for retries and support workflows.
+  3. Trace data links caller-visible outcomes to durable event/delivery identifiers.
+**Plans**: 0 plans
+
+### Phase 9: OSS Verification Evidence Refresh
+**Goal**: Regenerate verification artifacts so OSS release hardening reflects current repository state.  
+**Depends on**: Phase 5  
+**Requirements**: [OPS-03]  
+**UI hint**: no  
+**Gap Closure**: Closes v1.0 unsatisfied requirement gap caused by stale Phase 5 verification evidence.  
+**Success Criteria** (what must be TRUE):
+  1. Phase 5 verification is rerun and updated with current docs/contracts evidence.
+  2. Verification status for OPS-03 is `passed` with no stale blockers.
+  3. Audit traceability artifacts align with refreshed verification outputs.
+**Plans**: 0 plans
+
+### Phase 10: Telemetry Correlation Enrichment
+**Goal**: Improve telemetry metadata consistency to strengthen operator lifecycle correlation.  
+**Depends on**: Phase 8  
+**Requirements**: [OPS-02]  
+**UI hint**: no  
+**Gap Closure**: Closes optional low-severity v1.0 flow gap for operator traceability richness.  
+**Success Criteria** (what must be TRUE):
+  1. Lifecycle spans emit consistent correlation metadata across event, delivery, and attempt transitions.
+  2. Operators can reconstruct deep lifecycle paths from telemetry without payload leakage.
+  3. Tests assert metadata presence and redaction behavior on enriched telemetry paths.
+**Plans**: 0 plans
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -113,3 +178,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 3. Async Dispatch and Policy Hardening | 3/3 | Complete    | 2026-04-24 |
 | 4. Explainability and Operator Surfaces | 2/2 | Complete    | 2026-04-24 |
 | 5. OSS Verification and Release Hardening | 1/2 | Complete    | 2026-04-24 |
+| 6. Delivery Planning and Policy Checkpoint Repair | 0/0 | Planned | — |
+| 7. Delayed Fallback Runtime Wiring | 0/0 | Planned | — |
+| 8. Trigger Dispatch Outcome Surfacing | 0/0 | Planned | — |
+| 9. OSS Verification Evidence Refresh | 0/0 | Planned | — |
+| 10. Telemetry Correlation Enrichment | 0/0 | Planned | — |
