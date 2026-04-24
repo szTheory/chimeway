@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Async Dispatch and Policy Hardening** - Introduce optional Oban path and enforce late policy checks. (completed 2026-04-24)
 - [x] **Phase 4: Explainability and Operator Surfaces** - Make operational tracing practical for support and debugging. (completed 2026-04-24)
 - [x] **Phase 5: OSS Verification and Release Hardening** - Lock in quality gates, docs contracts, and release discipline. (completed 2026-04-24)
-- [ ] **Phase 6: Delivery Planning and Policy Checkpoint Repair** - Restore per-channel planning fanout and planning-time policy enforcement.
+- [x] **Phase 6: Delivery Planning and Policy Checkpoint Repair** - Restore per-channel planning fanout and planning-time policy enforcement. (completed 2026-04-24)
 - [ ] **Phase 7: Delayed Fallback Runtime Wiring** - Wire delayed fallback semantics through runtime delivery planning and suppression.
 - [ ] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links.
 - [ ] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status.
@@ -121,7 +121,7 @@ Plans:
 Plans:
 - [x] 06-01: Introduce shared delivery planner and planning-time policy fanout contract.
 - [x] 06-02: Unify sync/Oban execution semantics and suppression checkpoint metadata.
-- [ ] 06-03: Add parity and integration coverage for fanout and planning checkpoint enforcement.
+- [x] 06-03: Add parity and integration coverage for fanout and planning checkpoint enforcement.
 
 ### Phase 7: Delayed Fallback Runtime Wiring
 **Goal**: Make delayed fallback suppression a first-class runtime behavior in normal trigger planning.  
@@ -183,7 +183,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 3. Async Dispatch and Policy Hardening | 3/3 | Complete    | 2026-04-24 |
 | 4. Explainability and Operator Surfaces | 2/2 | Complete    | 2026-04-24 |
 | 5. OSS Verification and Release Hardening | 1/2 | Complete    | 2026-04-24 |
-| 6. Delivery Planning and Policy Checkpoint Repair | 2/3 | In Progress | — |
+| 6. Delivery Planning and Policy Checkpoint Repair | 3/3 | Complete | 2026-04-24 |
 | 7. Delayed Fallback Runtime Wiring | 0/0 | Planned | — |
 | 8. Trigger Dispatch Outcome Surfacing | 0/0 | Planned | — |
 | 9. OSS Verification Evidence Refresh | 0/0 | Planned | — |

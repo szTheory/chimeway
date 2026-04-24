@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-04-24T13:34:13Z"
-last_activity: 2026-04-24 -- Completed Phase 06 Plan 02
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-04-24T13:43:09Z"
+last_activity: 2026-04-24 -- Completed Phase 06 Plan 03
 progress:
   total_phases: 10
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 16
-  completed_plans: 15
-  percent: 94
+  completed_plans: 16
+  percent: 100
 ---
 
 # Project State
@@ -21,24 +21,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-23)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.  
-**Current focus:** Phase 06 — delivery-planning-and-policy-checkpoint-repair
+**Current focus:** Phase 07 — delayed-fallback-runtime-wiring
 
 ## Current Position
 
-Phase: 06 (delivery-planning-and-policy-checkpoint-repair) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-04-24 -- Completed 06-02 and advanced to Plan 3
+Phase: 07 (delayed-fallback-runtime-wiring) — READY FOR PLANNING
+Plan: 0 of 0
+Status: Phase 06 complete; next step is Phase 07 planning
+Last activity: 2026-04-24 -- Completed 06-03 and closed Phase 06
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 29
-- Average duration: 11 min
-- Total execution time: 0.6 hours
+- Total plans completed: 30
+- Average duration: 10 min
+- Total execution time: 0.7 hours
 
 **By Phase:**
 
@@ -55,7 +55,7 @@ Progress: [█████████░] 94%
 
 **Recent Trend:**
 
-- Last 5 plans: 11 min, 13 min, 9 min, 2 min
+- Last 5 plans: 13 min, 9 min, 2 min, 7 min
 - Trend: Stable (improving)
 
 *Updated after each plan completion*
@@ -84,6 +84,8 @@ Recent decisions affecting current work:
 - [06-02]: Keep `suppress_delivery/2` backward-compatible while persisting `policy_checkpoint` metadata.
 - [06-02]: Route sync and Oban worker adapter execution through `Chimeway.Dispatch.Executor.run_delivery/1`.
 - [06-02]: Expose suppression checkpoint provenance in trace timeline details for operator explainability.
+- [06-03]: Assert sync/Oban suppression parity with a shared delivery signature shape (status, reason, checkpoint, attempts).
+- [06-03]: Tag regression scenarios in tests with requirement IDs to keep audit verification grep-based and deterministic.
 
 ### Pending Todos
 
@@ -104,7 +106,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Completed 06-02-PLAN.md
+Stopped at: Completed 06-03-PLAN.md
 Resume file: --resume-file
 
-**Planned Phase:** 6 (Delivery Planning and Policy Checkpoint Repair) — 3 plans — 2026-04-24T13:20:59.708Z
+**Planned Phase:** 7 (Delayed Fallback Runtime Wiring) — planning required — 2026-04-24T13:43:09Z
