@@ -30,51 +30,60 @@ if Code.ensure_loaded?(Oban) do
 
     alias Chimeway.{DeliveryPlanning, Dispatch.ObanWorker, Repo}
     alias Chimeway.Telemetry
+    alias Ecto.Multi
 
     @impl Chimeway.Dispatch
     def dispatch(notifications, opts) when is_list(notifications) do
       base_multi =
-        case Keyword.get(opts, :multi, Ecto.Multi.new()) do
-          %Ecto.Multi{} = multi -> multi
-          _ -> Ecto.Multi.new()
+        case Keyword.get(opts, :multi, Multi.new()) do
+          %Multi{} = multi -> multi
+          _ -> Multi.new()
         end
 
       multi =
         base_multi
-        |> Ecto.Multi.run(:plan_notifications, fn _repo, _changes ->
-          DeliveryPlanning.plan_notifications(notifications, opts)
-        end)
-        |> Ecto.Multi.run(:enqueue_jobs, fn _repo, %{plan_notifications: deliveries} ->
-          deliveries
-          |> Enum.filter(fn delivery -> delivery.status == :pending end)
-          |> Enum.reduce_while({:ok, []}, fn delivery, {:ok, jobs} ->
-            case enqueue_one(delivery) do
-              {:ok, job} -> {:cont, {:ok, [job | jobs]}}
-              {:error, reason} -> {:halt, {:error, reason}}
-            end
-          end)
-          |> case do
-            {:ok, jobs} -> {:ok, Enum.reverse(jobs)}
-            {:error, reason} -> {:error, reason}
-          end
-        end)
+        |> Multi.run(:plan_notifications, &do_plan(notifications, opts, &1, &2))
+        |> Multi.run(:enqueue_jobs, &do_enqueue(&1, &2))
 
-      case Repo.transaction(multi) do
-        {:ok, %{plan_notifications: deliveries}} ->
-          {:ok, deliveries}
+      handle_transaction_result(Repo.transaction(multi))
+    end
 
-        {:error, :plan_notifications, reason, _changes} ->
-          {:error, {:planning_failed, reason}}
+    defp do_plan(notifications, opts, _repo, _changes) do
+      DeliveryPlanning.plan_notifications(notifications, opts)
+    end
 
-        {:error, _step, reason, _changes} ->
-          {:error, reason}
+    defp do_enqueue(_repo, %{plan_notifications: deliveries}) do
+      deliveries
+      |> Enum.filter(fn delivery -> delivery.status == :pending end)
+      |> Enum.reduce_while({:ok, []}, fn delivery, {:ok, jobs} ->
+        case enqueue_one(delivery) do
+          {:ok, job} -> {:cont, {:ok, [job | jobs]}}
+          {:error, reason} -> {:halt, {:error, reason}}
+        end
+      end)
+      |> case do
+        {:ok, jobs} -> {:ok, Enum.reverse(jobs)}
+        {:error, reason} -> {:error, reason}
       end
     end
+
+    defp handle_transaction_result({:ok, %{plan_notifications: deliveries}}),
+      do: {:ok, deliveries}
+
+    defp handle_transaction_result({:error, :plan_notifications, reason, _changes}) do
+      {:error, {:planning_failed, reason}}
+    end
+
+    defp handle_transaction_result({:error, _step, reason, _changes}), do: {:error, reason}
 
     defp enqueue_one(delivery) do
       Telemetry.span(
         [:dispatch, :enqueue],
-        Telemetry.safe_meta(%{delivery_id: delivery.id}),
+        Telemetry.safe_meta(%{
+          delivery_id: delivery.id,
+          channel: delivery.channel,
+          notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+        }),
         fn ->
           result = Oban.insert(ObanWorker.new(%{delivery_id: delivery.id}))
           {result, %{}}

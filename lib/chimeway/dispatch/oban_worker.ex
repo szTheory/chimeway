@@ -32,6 +32,7 @@ if Code.ensure_loaded?(Oban) do
       unique: [fields: [:args], keys: [:delivery_id], period: 60]
 
     alias Chimeway.{Deliveries, Delivery, Policy}
+    alias Chimeway.Dispatch.Executor
     alias Chimeway.Telemetry
 
     @terminal_states [:succeeded, :suppressed, :cancelled]
@@ -45,7 +46,11 @@ if Code.ensure_loaded?(Oban) do
       else
         Telemetry.span(
           [:dispatch, :perform],
-          Telemetry.safe_meta(%{delivery_id: delivery.id, channel: delivery.channel}),
+          Telemetry.safe_meta(%{
+            delivery_id: delivery.id,
+            channel: delivery.channel,
+            notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+          }),
           fn ->
             result = dispatch_delivery(delivery)
             {result, %{}}
@@ -68,7 +73,7 @@ if Code.ensure_loaded?(Oban) do
     end
 
     defp do_dispatch(%Delivery{} = delivery) do
-      case Chimeway.Dispatch.Executor.run_delivery(delivery) do
+      case Executor.run_delivery(delivery) do
         {:ok, _} ->
           :ok
 
