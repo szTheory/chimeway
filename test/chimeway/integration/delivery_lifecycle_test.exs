@@ -47,6 +47,33 @@ defmodule ChimewayTest.Notifiers.LifecycleFanout do
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
 end
 
+defmodule ChimewayTest.Notifiers.LifecycleDelayedFallback do
+  @behaviour Chimeway.Notifier
+  def notification_key, do: "test.lifecycle_delayed_fallback"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Test Delayed Fallback"}}
+
+  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+  def delayed_fallback_channels(_params, _recipient), do: {:ok, [:email]}
+end
+
+defmodule ChimewayTest.Notifiers.LifecycleNoDelayedFallback do
+  @behaviour Chimeway.Notifier
+  def notification_key, do: "test.lifecycle_no_delayed_fallback"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Test No Delayed Fallback"}}
+
+  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+end
+
 defmodule Chimeway.Integration.DeliveryLifecycleTest do
   use Chimeway.DataCase, async: false
 
@@ -336,6 +363,101 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert Enum.all?(attempts, &(&1.outcome == :succeeded))
 
       Enum.each(deliveries, &TestAdapter.assert_delivered/1)
+    end
+  end
+
+  # POLC-03: trigger-driven planner wiring persists delay_fallback semantics and provenance.
+  describe "Scenario E: trigger-driven delayed fallback persistence" do
+    setup do
+      original = Application.get_env(:chimeway, :adapter)
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      TestAdapter.clear()
+
+      on_exit(fn ->
+        case original do
+          nil -> Application.delete_env(:chimeway, :adapter)
+          mod -> Application.put_env(:chimeway, :adapter, mod)
+        end
+
+        TestAdapter.clear()
+      end)
+
+      :ok
+    end
+
+    test "planner persists delay_fallback and delayed_fallback_source from notifier callback" do
+      assert {:ok, _result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleDelayedFallback,
+                 %{user_id: 5},
+                 idempotency_key: "lifecycle_delayed_fallback_001"
+               )
+
+      [event] =
+        Repo.all(
+          from(e in Event,
+            where:
+              e.notification_key == "test.lifecycle_delayed_fallback" and
+                e.idempotency_key == "lifecycle_delayed_fallback_001"
+          )
+        )
+
+      [notification] =
+        Repo.all(
+          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:5")
+        )
+
+      deliveries =
+        Repo.all(
+          from(d in Delivery,
+            where: d.notification_id == ^notification.id,
+            order_by: [asc: d.channel]
+          )
+        )
+
+      assert length(deliveries) == 2
+      assert MapSet.new(Enum.map(deliveries, & &1.channel)) == MapSet.new(["email", "in_app"])
+
+      deliveries_by_channel =
+        deliveries
+        |> Map.new(fn delivery -> {delivery.channel, delivery} end)
+
+      email_delivery = Map.fetch!(deliveries_by_channel, "email")
+      in_app_delivery = Map.fetch!(deliveries_by_channel, "in_app")
+
+      assert email_delivery.delay_fallback
+      assert email_delivery.metadata["delayed_fallback_source"] == "notifier"
+      refute in_app_delivery.delay_fallback
+      assert in_app_delivery.metadata["delayed_fallback_source"] == "default"
+    end
+
+    test "notifier without delayed_fallback callback keeps planned rows at delay_fallback false" do
+      assert {:ok, _result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleNoDelayedFallback,
+                 %{user_id: 6},
+                 idempotency_key: "lifecycle_no_delayed_fallback_001"
+               )
+
+      [event] =
+        Repo.all(
+          from(e in Event,
+            where:
+              e.notification_key == "test.lifecycle_no_delayed_fallback" and
+                e.idempotency_key == "lifecycle_no_delayed_fallback_001"
+          )
+        )
+
+      [notification] =
+        Repo.all(
+          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:6")
+        )
+
+      deliveries = Repo.all(from(d in Delivery, where: d.notification_id == ^notification.id))
+
+      assert length(deliveries) == 2
+      assert Enum.all?(deliveries, &(!&1.delay_fallback))
+      assert Enum.all?(deliveries, &(&1.metadata["delayed_fallback_source"] == "default"))
     end
   end
 end
