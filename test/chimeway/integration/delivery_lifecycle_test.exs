@@ -339,7 +339,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       notification_count =
         Repo.aggregate(
-          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:4"),
+          from(n in Notification,
+            where: n.event_id == ^event.id and n.recipient_identity == "user:4"
+          ),
           :count,
           :id
         )
@@ -348,7 +350,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       [notification] =
         Repo.all(
-          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:4")
+          from(n in Notification,
+            where: n.event_id == ^event.id and n.recipient_identity == "user:4"
+          )
         )
 
       deliveries = Repo.all(from(d in Delivery, where: d.notification_id == ^notification.id))
@@ -416,7 +420,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       [notification] =
         Repo.all(
-          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:5")
+          from(n in Notification,
+            where: n.event_id == ^event.id and n.recipient_identity == "user:5"
+          )
         )
 
       deliveries =
@@ -462,7 +468,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       [notification] =
         Repo.all(
-          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:6")
+          from(n in Notification,
+            where: n.event_id == ^event.id and n.recipient_identity == "user:6"
+          )
         )
 
       deliveries = Repo.all(from(d in Delivery, where: d.notification_id == ^notification.id))
@@ -494,7 +502,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       [notification] =
         Repo.all(
-          from(n in Notification, where: n.event_id == ^event.id and n.recipient_identity == "user:7")
+          from(n in Notification,
+            where: n.event_id == ^event.id and n.recipient_identity == "user:7"
+          )
         )
 
       [delivery] =

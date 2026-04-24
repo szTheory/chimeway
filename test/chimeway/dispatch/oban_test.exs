@@ -78,6 +78,7 @@ defmodule Chimeway.Dispatch.ObanTest do
       DispatchHelpers.disable_channel_preference(fixture, :in_app)
 
       assert {:ok, [delivery]} = Oban.dispatch([fixture.notification], [])
+
       assert DispatchHelpers.delivery_signature(delivery) == %{
                status: :suppressed,
                suppression_reason: "channel_disabled",
@@ -134,6 +135,7 @@ defmodule Chimeway.Dispatch.ObanTest do
     test "POLC-03: suppresses delayed fallback deliveries as already_read at perform time" do
       # POLC-03: worker perform checkpoint suppresses already-read fallback deliveries.
       Chimeway.Adapters.Test.clear()
+
       fixture =
         DispatchHelpers.create_pending_delivery(
           notification_key: "oban.delayed.fallback.perform",
@@ -145,6 +147,7 @@ defmodule Chimeway.Dispatch.ObanTest do
       assert :ok = perform_job(ObanWorker, %{delivery_id: fixture.delivery.id})
 
       updated = Deliveries.get_delivery!(fixture.delivery.id)
+
       assert DispatchHelpers.delivery_signature(updated) ==
                DispatchHelpers.already_read_suppression_signature()
 

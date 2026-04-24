@@ -56,7 +56,7 @@ defmodule Chimeway.TracesTest do
     updated
   end
 
-  defp suppress_delivery(delivery, reason \\ :channel_disabled) do
+  defp suppress_delivery(delivery, reason) do
     {:ok, suppressed} = Deliveries.suppress_delivery(delivery, reason)
     suppressed
   end
