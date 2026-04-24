@@ -52,7 +52,8 @@ completed: 2026-04-24
 Each task was committed atomically:
 
 1. **Task 12-01-01/12-01-02: unify transaction flow and error mapping** - `9b93ae2` (feat)
-2. **Task 12-01-03: run focused Oban verification suite** - verification command only (no code diff)
+2. **Task 12-01-02 follow-up: base multi compatibility guard** - `5fb177a` (fix)
+3. **Task 12-01-03: run focused Oban verification suite** - verification command only (no code diff)
 
 **Plan metadata:** summary committed in docs metadata commit
 
@@ -73,7 +74,20 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None - plan executed as intended.
+### Auto-fixed Issues
+
+**1. [Rule 2 - Missing Critical] `multi: nil` compatibility regression after unifying dispatch path**
+- **Found during:** post-refactor review before phase completion.
+- **Issue:** `Keyword.get(opts, :multi, Ecto.Multi.new())` could still return `nil` or non-`Ecto.Multi` values when key is present, causing pipeline failure.
+- **Fix:** Coerced `:multi` option through a struct guard fallback to `Ecto.Multi.new()`.
+- **Files modified:** `lib/chimeway/dispatch/oban.ex`
+- **Verification:** `mix test test/chimeway/dispatch/oban_transactional_test.exs test/chimeway/dispatch/oban_test.exs`
+- **Committed in:** `5fb177a`
+
+---
+
+**Total deviations:** 1 auto-fixed (1 missing critical)
+**Impact on plan:** Improves backward compatibility without changing the intended transactional contract.
 
 ## Issues Encountered
 
