@@ -12,7 +12,7 @@ Chimeway will be delivered in five coarse phases that prioritize durable data se
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Durable Core Spine** - Establish stable notifier identity, durable records, and in-app lifecycle.
+- [x] **Phase 1: Durable Core Spine** - Establish stable notifier identity, durable records, and in-app lifecycle.
 - [ ] **Phase 2: First Outbound Delivery Slice** - Add one outbound adapter seam with full delivery/attempt tracking.
 - [ ] **Phase 3: Async Dispatch and Policy Hardening** - Introduce optional Oban path and enforce late policy checks.
 - [ ] **Phase 4: Explainability and Operator Surfaces** - Make operational tracing practical for support and debugging.
@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01: Implement core notifier contract, key/version identity, and trigger pipeline.
 - [x] 01-02: Add Ecto schemas/migrations for events and in-app notifications with idempotency constraints.
-- [ ] 01-03: Implement inbox query/state APIs and foundational tests.
+- [x] 01-03: Implement inbox query/state APIs and foundational tests.
 
 ### Phase 2: First Outbound Delivery Slice
 **Goal**: Prove end-to-end outbound delivery from planned rows through attempt outcomes using one adapter seam.  
@@ -108,7 +108,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Durable Core Spine | 2/3 | In Progress | - |
+| 1. Durable Core Spine | 3/3 | Complete | 2026-04-24 |
 | 2. First Outbound Delivery Slice | 0/3 | Not started | - |
 | 3. Async Dispatch and Policy Hardening | 0/3 | Not started | - |
 | 4. Explainability and Operator Surfaces | 0/2 | Not started | - |

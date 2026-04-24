@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-04-24T02:46:01.361Z"
+status: verifying
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-04-24T02:57:24.133Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 # Project State
@@ -27,24 +27,24 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 
 Phase: 01 (Durable Core Spine) — EXECUTING
 Plan: 3 of 3
-Status: Ready for next plan
+Status: Phase complete — ready for verification
 Last activity: 2026-04-24
 
-Progress: [███████░░░] 67%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2
-- Average duration: 12 min
-- Total execution time: 0.4 hours
+- Total plans completed: 3
+- Average duration: 11 min
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 2 | 24 min | 12 min |
+| 1 | 3 | 33 min | 11 min |
 | 2 | 0 | - | - |
 | 3 | 0 | - | - |
 | 4 | 0 | - | - |
@@ -52,8 +52,8 @@ Progress: [███████░░░] 67%
 
 **Recent Trend:**
 
-- Last 5 plans: 11 min, 13 min
-- Trend: Stable (slightly higher)
+- Last 5 plans: 11 min, 13 min, 9 min
+- Trend: Stable (improving)
 
 *Updated after each plan completion*
 
@@ -72,6 +72,9 @@ Recent decisions affecting current work:
 - [01-02]: Persist event plus notification fanout in one Ecto.Multi transaction for atomic durability.
 - [01-02]: Normalize idempotency collisions to `{:duplicate, existing_event}` via `idempotency_key` lookup.
 - [01-02]: Drop `password`/`token`/`secret` keys before persisting payload and notification metadata.
+- [01-03]: Keep inbox reads side-effect free and expose explicit lifecycle mutations for `seen/read/archive`.
+- [01-03]: Scope inbox lifecycle updates by `notification_id` and `recipient_identity` to prevent cross-recipient mutation.
+- [01-03]: Treat phase verification docs as executable artifacts with command-backed requirement PASS evidence.
 
 ### Pending Todos
 
@@ -91,8 +94,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-04-24T02:46:01Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-04-24T02:57:24Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
 
 **Planned Phase:** 1 (Durable Core Spine) — 3 plans — 2026-04-24T02:03:46.897Z
