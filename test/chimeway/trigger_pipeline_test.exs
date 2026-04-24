@@ -1,5 +1,5 @@
 defmodule Chimeway.TriggerPipelineTest do
-  use ExUnit.Case, async: true
+  use Chimeway.DataCase, async: false
 
   alias Chimeway.Trigger
 
