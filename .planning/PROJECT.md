@@ -12,14 +12,15 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Developers can trigger one domain event that fans out to many recipients with durable event and notification records. *(Validated in Phase 01: durable-core-spine)*
+- [x] Chimeway enforces idempotency across event creation and notification planning to prevent duplicate records. *(Validated in Phase 01: durable-core-spine)*
+- [x] Users get durable in-app notification records with explicit `seen`, `read`, and archival semantics. *(Validated in Phase 01: durable-core-spine)*
 
 ### Active
 
+- [ ] Applications have explicit policy evaluation before enqueue and before perform for late suppression (preferences, quiet hours, caps, consent).
 - [ ] Developers can trigger one domain event that fans out to many recipients and channels with durable event, notification, delivery, and attempt records.
 - [ ] Chimeway enforces idempotency across event creation and delivery planning to prevent duplicate sends.
-- [ ] Applications have explicit policy evaluation before enqueue and before perform for late suppression (preferences, quiet hours, caps, consent).
-- [ ] Users get durable in-app notification records with explicit `seen`, `read`, and archival semantics.
 - [ ] Operators can inspect an end-to-end trace and answer "why wasn't this sent?" from first-class data.
 - [ ] v0.1 ships one vertical slice with durable spine plus at least one outbound adapter seam (initially log/test or Swoosh wrapper).
 - [ ] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs.
@@ -60,12 +61,12 @@ Prior context includes:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Persist stable notification keys as data identity | Survives module renames and preserves historical traceability | — Pending |
+| Persist stable notification keys as data identity | Survives module renames and preserves historical traceability | Implemented in Phase 01 notifier contract + persistence flow |
 | Local-first embedded architecture | Host apps need ownership, auditability, and composability without SaaS dependency | — Pending |
-| Keep core explicit and inspectable | Elixir users expect clear behaviours and low magic | — Pending |
+| Keep core explicit and inspectable | Elixir users expect clear behaviours and low magic | Implemented in Phase 01 trigger and inbox APIs |
 | Treat explainability as product surface | "Why wasn't this sent?" is the primary operator differentiator | — Pending |
 | Integrate channel/job primitives instead of replacing them | Swoosh/Oban already solve core delivery substrates well | — Pending |
-| Start with durable spine + one channel slice | Fastest path to validate end-to-end architecture and DX | — Pending |
+| Start with durable spine + one channel slice | Fastest path to validate end-to-end architecture and DX | Durable spine completed in Phase 01 |
 
 ## Evolution
 
@@ -85,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-23 after initialization*
+*Last updated: 2026-04-24 after Phase 01 completion*
