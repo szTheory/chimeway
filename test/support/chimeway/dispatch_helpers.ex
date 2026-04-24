@@ -6,7 +6,49 @@ defmodule Chimeway.Test.DispatchHelpers do
   alias Chimeway.Delivery
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+  alias Chimeway.Preferences
   alias Chimeway.Repo
+
+  @doc """
+  Creates a persisted event + notification pair for dispatcher tests.
+  """
+  def create_notification(opts \\ []) do
+    notification_key = Keyword.get(opts, :notification_key, "test_notifier")
+    recipient_identity = Keyword.get(opts, :recipient_identity, "user:#{System.unique_integer()}")
+    recipient_type = Keyword.get(opts, :recipient_type, "user")
+    payload = Keyword.get(opts, :payload, %{})
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    {:ok, event} =
+      Repo.insert(%Event{
+        notification_key: notification_key,
+        notification_version: 1,
+        idempotency_key: "test-#{System.unique_integer()}",
+        payload: payload
+      })
+
+    {:ok, notification} =
+      Repo.insert(%Notification{
+        event_id: event.id,
+        recipient_identity: recipient_identity,
+        recipient_type: recipient_type,
+        metadata: metadata
+      })
+
+    %{event: event, notification: notification}
+  end
+
+  @doc """
+  Disables a recipient channel preference for the fixture's event notification_key.
+  """
+  def disable_channel_preference(%{event: event, notification: notification}, channel \\ :in_app) do
+    Preferences.upsert_preference(%{
+      recipient_id: notification.recipient_identity,
+      notification_key: event.notification_key,
+      channel: to_string(channel),
+      enabled: false
+    })
+  end
 
   @doc """
   Creates event + notification + delivery in a ready-to-dispatch state.

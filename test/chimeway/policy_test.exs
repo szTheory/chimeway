@@ -1,7 +1,7 @@
 defmodule Chimeway.PolicyTest do
   use Chimeway.DataCase, async: true
 
-  alias Chimeway.{Deliveries, Policy, Preferences, Repo}
+  alias Chimeway.{Deliveries, DeliveryPlanning, Policy, Preferences, Repo}
   alias Chimeway.Delivery
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -76,6 +76,38 @@ defmodule Chimeway.PolicyTest do
       delivery = insert_delivery(notification, "in_app")
 
       assert Policy.evaluate(delivery, []) == {:ok, :proceed}
+    end
+  end
+
+  describe "planning checkpoint policy path" do
+    test "planner path calls policy with [] and does not suppress read-state-only notifications" do
+      event = insert_event("planner.read-state")
+      notification = insert_notification(event, "user-planner-read")
+
+      notification
+      |> Notification.changeset(%{read_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)})
+      |> Repo.update!()
+
+      assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification, [])
+      assert delivery.status == :pending
+      assert delivery.suppression_reason == nil
+    end
+
+    test "planning suppression persists policy checkpoint metadata as planning" do
+      event = insert_event("planner.preference-disabled")
+      notification = insert_notification(event, "user-planner-suppressed")
+
+      Preferences.upsert_preference(%{
+        recipient_id: "user-planner-suppressed",
+        notification_key: "planner.preference-disabled",
+        channel: "in_app",
+        enabled: false
+      })
+
+      assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification, [])
+      assert delivery.status == :suppressed
+      assert delivery.suppression_reason == "channel_disabled"
+      assert get_in(delivery.metadata, ["policy_checkpoint"]) == "planning"
     end
   end
 

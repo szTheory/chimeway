@@ -3,9 +3,8 @@ defmodule Chimeway.Dispatch.SyncTest do
 
   alias Chimeway.DeliveryAttempt
   alias Chimeway.Dispatch.Sync
-  alias Chimeway.Events.Event
-  alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
+  alias Chimeway.Test.DispatchHelpers
 
   setup do
     previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
@@ -17,37 +16,11 @@ defmodule Chimeway.Dispatch.SyncTest do
     :ok
   end
 
-  # ---- Fixtures ----
-
-  defp insert_notification(_ctx \\ %{}) do
-    {:ok, event} =
-      %Event{}
-      |> Event.changeset(%{
-        notification_key: "test.notification",
-        notification_version: 1,
-        idempotency_key: "sync-test-#{System.unique_integer()}",
-        payload: %{}
-      })
-      |> Repo.insert()
-
-    {:ok, notification} =
-      %Notification{}
-      |> Notification.changeset(%{
-        event_id: event.id,
-        recipient_identity: "user-sync-1",
-        recipient_type: "user",
-        metadata: %{}
-      })
-      |> Repo.insert()
-
-    %{notification: notification}
-  end
-
   # ---- dispatch/2 ----
 
   describe "dispatch/2 with {:ok, meta} adapter response" do
     test "creates attempt with outcome :succeeded and transitions delivery to :succeeded" do
-      %{notification: notification} = insert_notification()
+      %{notification: notification} = DispatchHelpers.create_notification()
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
       Chimeway.Adapters.Test.clear()
 
@@ -67,7 +40,7 @@ defmodule Chimeway.Dispatch.SyncTest do
     end
 
     test "stores delivery in test adapter" do
-      %{notification: notification} = insert_notification()
+      %{notification: notification} = DispatchHelpers.create_notification()
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
       Chimeway.Adapters.Test.clear()
 
@@ -79,7 +52,7 @@ defmodule Chimeway.Dispatch.SyncTest do
 
   describe "dispatch/2 with {:error, :temporary, detail} adapter response" do
     test "creates attempt with outcome :failed and transitions delivery to :failed" do
-      %{notification: notification} = insert_notification()
+      %{notification: notification} = DispatchHelpers.create_notification()
 
       defmodule TemporaryErrorAdapter do
         @behaviour Chimeway.Adapter
@@ -100,7 +73,7 @@ defmodule Chimeway.Dispatch.SyncTest do
 
   describe "dispatch/2 with {:error, :permanent, detail} adapter response" do
     test "creates attempt with outcome :rejected and transitions delivery to :failed" do
-      %{notification: notification} = insert_notification()
+      %{notification: notification} = DispatchHelpers.create_notification()
 
       defmodule PermanentErrorAdapter do
         @behaviour Chimeway.Adapter
@@ -121,7 +94,7 @@ defmodule Chimeway.Dispatch.SyncTest do
 
   describe "dispatch/2 with {:error, :bounced, detail} adapter response" do
     test "creates attempt with outcome :bounced and transitions delivery to :failed" do
-      %{notification: notification} = insert_notification()
+      %{notification: notification} = DispatchHelpers.create_notification()
 
       defmodule BouncedErrorAdapter do
         @behaviour Chimeway.Adapter
@@ -142,7 +115,7 @@ defmodule Chimeway.Dispatch.SyncTest do
 
   describe "terminal state guard" do
     test "dispatch on :succeeded delivery returns {:ok, delivery} without creating a new attempt" do
-      %{notification: notification} = insert_notification()
+      %{notification: notification} = DispatchHelpers.create_notification()
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
       Chimeway.Adapters.Test.clear()
 
@@ -160,6 +133,24 @@ defmodule Chimeway.Dispatch.SyncTest do
 
       # No new attempt row was created
       assert attempt_count_before == attempt_count_after
+    end
+  end
+
+  describe "planning-time policy suppression parity" do
+    test "disabled channel preference suppresses during planning before adapter execution" do
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      Chimeway.Adapters.Test.clear()
+
+      fixture = DispatchHelpers.create_notification(notification_key: "sync.planning.suppression")
+      DispatchHelpers.disable_channel_preference(fixture, :in_app)
+
+      assert {:ok, [{:ok, delivery}]} = Sync.dispatch([fixture.notification], [])
+      assert delivery.status == :suppressed
+      assert delivery.suppression_reason == "channel_disabled"
+      assert get_in(delivery.metadata, ["policy_checkpoint"]) == "planning"
+
+      refute Repo.exists?(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
+      assert Chimeway.Adapters.Test.delivered_messages() == []
     end
   end
 end
