@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-04-24T13:28:38.374Z"
-last_activity: 2026-04-24 -- Completed Phase 06 Plan 01
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-04-24T13:34:13Z"
+last_activity: 2026-04-24 -- Completed Phase 06 Plan 02
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 16
-  completed_plans: 14
-  percent: 88
+  completed_plans: 15
+  percent: 94
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 06 (delivery-planning-and-policy-checkpoint-repair) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-04-24 -- Completed 06-01 and advanced to Plan 2
+Last activity: 2026-04-24 -- Completed 06-02 and advanced to Plan 3
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 28
+- Total plans completed: 29
 - Average duration: 11 min
 - Total execution time: 0.6 hours
 
@@ -55,7 +55,7 @@ Progress: [█████████░] 88%
 
 **Recent Trend:**
 
-- Last 5 plans: 11 min, 13 min, 9 min
+- Last 5 plans: 11 min, 13 min, 9 min, 2 min
 - Trend: Stable (improving)
 
 *Updated after each plan completion*
@@ -81,6 +81,9 @@ Recent decisions affecting current work:
 - [06-01]: Extend notifier contract with optional `channels/2` callback while preserving fallback compatibility.
 - [06-01]: Centralize fanout + planning-time policy evaluation in `Chimeway.DeliveryPlanning`.
 - [06-01]: Require dispatchers to return tagged `{:planning_failed, reason}` when planner resolution fails.
+- [06-02]: Keep `suppress_delivery/2` backward-compatible while persisting `policy_checkpoint` metadata.
+- [06-02]: Route sync and Oban worker adapter execution through `Chimeway.Dispatch.Executor.run_delivery/1`.
+- [06-02]: Expose suppression checkpoint provenance in trace timeline details for operator explainability.
 
 ### Pending Todos
 
@@ -101,7 +104,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Completed 06-01-PLAN.md
+Stopped at: Completed 06-02-PLAN.md
 Resume file: --resume-file
 
 **Planned Phase:** 6 (Delivery Planning and Policy Checkpoint Repair) — 3 plans — 2026-04-24T13:20:59.708Z
