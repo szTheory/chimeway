@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links.
 - [ ] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status.
 - [ ] **Phase 10: Telemetry Correlation Enrichment** - Increase lifecycle telemetry consistency for deep operator tracing.
-- [ ] **Phase 11: Channel Adapter Safety and Explainability Hardening** - Eliminate dynamic atom risks and stabilize custom-channel operator traces.
+- [x] **Phase 11: Channel Adapter Safety and Explainability Hardening** - Eliminate dynamic atom risks and stabilize custom-channel operator traces. (completed 2026-04-24)
 - [ ] **Phase 12: Oban Transactional Dispatch Consistency** - Enforce transactional planning/enqueue consistency across async dispatch paths.
 
 ## Phase Details
@@ -188,7 +188,11 @@ Plans:
   1. Executor channel adapter resolution no longer creates atoms from runtime channel strings.
   2. Operator explainability surfaces handle valid custom channels without raising conversion errors.
   3. Regression tests cover adapter lookup and explainability behavior for custom channel inputs.
-**Plans**: 0 plans
+**Plans**: 2 plans
+
+Plans:
+- [x] 11-01: Harden channel adapter lookup and explain_delivery channel contract.
+- [x] 11-02: Add Oban and trigger-to-trace regression matrix for custom channel safety.
 
 ### Phase 12: Oban Transactional Dispatch Consistency
 **Goal**: Guarantee planning and enqueue paths stay transactionally consistent in optional Oban dispatch mode.  
@@ -219,5 +223,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. Trigger Dispatch Outcome Surfacing | 0/0 | Planned | — |
 | 9. OSS Verification Evidence Refresh | 0/0 | Planned | — |
 | 10. Telemetry Correlation Enrichment | 0/0 | Planned | — |
-| 11. Channel Adapter Safety and Explainability Hardening | 0/0 | Planned | — |
+| 11. Channel Adapter Safety and Explainability Hardening | 2/2 | Complete | 2026-04-24 |
 | 12. Oban Transactional Dispatch Consistency | 0/0 | Planned | — |

@@ -41,7 +41,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Operability and OSS Quality
 
-- [ ] **OPS-01**: Operators can trace a notification from trigger through policy, delivery planning, and attempt outcomes using durable data.
+- [x] **OPS-01**: Operators can trace a notification from trigger through policy, delivery planning, and attempt outcomes using durable data.
 - [ ] **OPS-02**: System emits structured telemetry for core lifecycle events without leaking sensitive payload fields by default.
 - [ ] **OPS-03**: Repository provides stable `mix verify.*` / `mix ci.*` entrypoints covering lint, test, and documentation/release checks.
 
@@ -96,19 +96,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | POLC-02 | Phase 6 | Complete |
 | POLC-03 | Phase 7 | Complete |
 | INTG-01 | Phase 2 | Complete |
-| INTG-02 | Phase 11 | Pending |
+| INTG-02 | Phase 11 | Complete |
 | INTG-03 | Phase 12 | Pending |
-| OPS-01 | Phase 11 | Pending |
+| OPS-01 | Phase 11 | Complete |
 | OPS-02 | Phase 10 | Pending |
 | OPS-03 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
 - Mapped to phases: 20
-- Pending after milestone audit: 6
-- Complete after milestone audit: 14
+- Pending after milestone audit: 4
+- Complete after milestone audit: 16
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-23*
-*Last updated: 2026-04-24 after gap closure phase planning*
+*Last updated: 2026-04-24 after Phase 11 completion*
