@@ -68,26 +68,15 @@ if Code.ensure_loaded?(Oban) do
     end
 
     defp do_dispatch(%Delivery{} = delivery) do
-      with {:ok, dispatched} <- Deliveries.transition_status(delivery, :dispatched) do
-        adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
-        channel_key = String.to_atom("adapter_#{delivery.channel}")
-        adapter_config = Application.get_env(:chimeway, channel_key, [])
+      case Chimeway.Dispatch.Executor.run_delivery(delivery) do
+        {:ok, _} ->
+          :ok
 
-        {attempt_outcome, provider_response} =
-          case adapter.deliver(dispatched, adapter_config) do
-            {:ok, meta} -> {:succeeded, meta}
-            {:error, :temporary, detail} -> {:failed, detail}
-            {:error, :permanent, detail} -> {:rejected, detail}
-            {:error, :bounced, detail} -> {:bounced, detail}
-          end
+        {:error, step, reason, _changes} ->
+          {:error, {step, reason}}
 
-        case Deliveries.record_attempt(dispatched, %{
-               outcome: attempt_outcome,
-               provider_response: provider_response
-             }) do
-          {:ok, _} -> :ok
-          {:error, step, reason, _changes} -> {:error, {step, reason}}
-        end
+        {:error, _reason} = error ->
+          error
       end
     end
   end
