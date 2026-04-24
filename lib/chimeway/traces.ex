@@ -175,7 +175,9 @@ defmodule Chimeway.Traces do
             event: :suppressed,
             detail: %{
               reason: delivery.suppression_reason,
-              policy_checkpoint: Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+              policy_checkpoint: Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown"),
+              delayed_fallback_source:
+                Map.get(delivery.metadata || %{}, "delayed_fallback_source", "unknown")
             }
           }
         ]
