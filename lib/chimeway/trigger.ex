@@ -266,12 +266,14 @@ defmodule Chimeway.Trigger do
       opts
       |> Keyword.put_new(:notifier, notifier)
       |> Keyword.put_new(:trigger_params, params)
+      |> Keyword.put_new(:notification_key, event.notification_key)
       |> Keyword.put_new(:event_id, event.id)
       |> Keyword.put_new(:correlation_id, event.correlation_id)
 
     case dispatcher.dispatch(notifications, dispatch_opts) do
       {:ok, deliveries} ->
-        {:ok, merge_dispatch_outcome(trigger_result, :ok, dispatch_mode_for(dispatcher), deliveries)}
+        {:ok,
+         merge_dispatch_outcome(trigger_result, :ok, dispatch_mode_for(dispatcher), deliveries)}
 
       {:error, reason} ->
         Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
