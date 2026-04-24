@@ -19,11 +19,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: OSS Verification and Release Hardening** - Lock in quality gates, docs contracts, and release discipline. (completed 2026-04-24)
 - [x] **Phase 6: Delivery Planning and Policy Checkpoint Repair** - Restore per-channel planning fanout and planning-time policy enforcement. (completed 2026-04-24)
 - [x] **Phase 7: Delayed Fallback Runtime Wiring** - Wire delayed fallback semantics through runtime delivery planning and suppression. (completed 2026-04-24)
-- [ ] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links.
+- [x] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links. (completed 2026-04-24)
 - [ ] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status.
 - [ ] **Phase 10: Telemetry Correlation Enrichment** - Increase lifecycle telemetry consistency for deep operator tracing.
 - [x] **Phase 11: Channel Adapter Safety and Explainability Hardening** - Eliminate dynamic atom risks and stabilize custom-channel operator traces. (completed 2026-04-24)
-- [ ] **Phase 12: Oban Transactional Dispatch Consistency** - Enforce transactional planning/enqueue consistency across async dispatch paths.
+- [x] **Phase 12: Oban Transactional Dispatch Consistency** - Enforce transactional planning/enqueue consistency across async dispatch paths. (completed 2026-04-24)
 
 ## Phase Details
 
@@ -152,7 +152,12 @@ Plans:
   1. Trigger returns structured results for dispatch/enqueue failures instead of swallowing errors.
   2. Sync and async paths expose caller-visible outcome metadata suitable for retries and support workflows.
   3. Trace data links caller-visible outcomes to durable event/delivery identifiers.
-**Plans**: 0 plans
+**Plans**: 3 plans
+
+Plans:
+- [x] 08-01: Enrich trigger outcome envelope with dispatch results and trace correlation pointers.
+- [x] 08-02: Lock trigger/dispatch contract parity coverage for caller-visible outcome semantics.
+- [x] 08-03: Add integration evidence linking trigger outcomes to durable trace lookups.
 
 ### Phase 9: OSS Verification Evidence Refresh
 **Goal**: Regenerate verification artifacts so OSS release hardening reflects current repository state.  
@@ -164,7 +169,10 @@ Plans:
   1. Phase 5 verification is rerun and updated with current docs/contracts evidence.
   2. Verification status for OPS-03 is `passed` with no stale blockers.
   3. Audit traceability artifacts align with refreshed verification outputs.
-**Plans**: 0 plans
+**Plans**: 1 plan
+
+Plans:
+- [ ] 09-01-PLAN.md — Regenerate verification artifacts and clear OPS-03 blocker status.
 
 ### Phase 10: Telemetry Correlation Enrichment
 **Goal**: Improve telemetry metadata consistency to strengthen operator lifecycle correlation.  
@@ -204,7 +212,11 @@ Plans:
   1. Oban dispatch path plans and enqueues within a single transactional contract that avoids orphaned pending rows.
   2. Transaction failures surface explicit caller-visible outcome state suitable for retries and support handling.
   3. Verification coverage includes failure-path and rollback-path assertions for async dispatch consistency.
-**Plans**: 0 plans
+**Plans**: 2 plans
+
+Plans:
+- [x] 12-01: Build transactional dispatch Multi and parity-aware error handling.
+- [x] 12-02: add rollback + atomicity regression tests
 
 ## Progress
 
@@ -220,8 +232,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 5. OSS Verification and Release Hardening | 1/2 | Complete    | 2026-04-24 |
 | 6. Delivery Planning and Policy Checkpoint Repair | 3/3 | Complete | 2026-04-24 |
 | 7. Delayed Fallback Runtime Wiring | 3/3 | Complete | 2026-04-24 |
-| 8. Trigger Dispatch Outcome Surfacing | 0/0 | Planned | — |
-| 9. OSS Verification Evidence Refresh | 0/0 | Planned | — |
+| 8. Trigger Dispatch Outcome Surfacing | 3/3 | Complete    | 2026-04-24 |
+| 9. OSS Verification Evidence Refresh | 0/1 | Planned    | — |
 | 10. Telemetry Correlation Enrichment | 0/0 | Planned | — |
 | 11. Channel Adapter Safety and Explainability Hardening | 2/2 | Complete | 2026-04-24 |
-| 12. Oban Transactional Dispatch Consistency | 0/0 | Planned | — |
+| 12. Oban Transactional Dispatch Consistency | 2/2 | Complete    | 2026-04-24 |
