@@ -22,6 +22,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links.
 - [ ] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status.
 - [ ] **Phase 10: Telemetry Correlation Enrichment** - Increase lifecycle telemetry consistency for deep operator tracing.
+- [ ] **Phase 11: Channel Adapter Safety and Explainability Hardening** - Eliminate dynamic atom risks and stabilize custom-channel operator traces.
+- [ ] **Phase 12: Oban Transactional Dispatch Consistency** - Enforce transactional planning/enqueue consistency across async dispatch paths.
 
 ## Phase Details
 
@@ -176,10 +178,34 @@ Plans:
   3. Tests assert metadata presence and redaction behavior on enriched telemetry paths.
 **Plans**: 0 plans
 
+### Phase 11: Channel Adapter Safety and Explainability Hardening
+**Goal**: Remove unsafe channel atom conversion paths and preserve explainability for valid custom channels.  
+**Depends on**: Phase 7  
+**Requirements**: [INTG-02, OPS-01]  
+**UI hint**: no  
+**Gap Closure**: Closes v1.0 integration/flow gaps for planner-to-executor channel safety and custom-channel operator trace reliability.  
+**Success Criteria** (what must be TRUE):
+  1. Executor channel adapter resolution no longer creates atoms from runtime channel strings.
+  2. Operator explainability surfaces handle valid custom channels without raising conversion errors.
+  3. Regression tests cover adapter lookup and explainability behavior for custom channel inputs.
+**Plans**: 0 plans
+
+### Phase 12: Oban Transactional Dispatch Consistency
+**Goal**: Guarantee planning and enqueue paths stay transactionally consistent in optional Oban dispatch mode.  
+**Depends on**: Phase 11  
+**Requirements**: [INTG-03, DLVR-04]  
+**UI hint**: no  
+**Gap Closure**: Closes v1.0 high-severity integration/flow gaps for Oban planning-enqueue atomicity and caller-visible async outcome consistency.  
+**Success Criteria** (what must be TRUE):
+  1. Oban dispatch path plans and enqueues within a single transactional contract that avoids orphaned pending rows.
+  2. Transaction failures surface explicit caller-visible outcome state suitable for retries and support handling.
+  3. Verification coverage includes failure-path and rollback-path assertions for async dispatch consistency.
+**Plans**: 0 plans
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -193,3 +219,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. Trigger Dispatch Outcome Surfacing | 0/0 | Planned | — |
 | 9. OSS Verification Evidence Refresh | 0/0 | Planned | — |
 | 10. Telemetry Correlation Enrichment | 0/0 | Planned | — |
+| 11. Channel Adapter Safety and Explainability Hardening | 0/0 | Planned | — |
+| 12. Oban Transactional Dispatch Consistency | 0/0 | Planned | — |

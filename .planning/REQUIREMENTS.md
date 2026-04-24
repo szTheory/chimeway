@@ -91,24 +91,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DLVR-01 | Phase 6 | Complete |
 | DLVR-02 | Phase 2 | Complete |
 | DLVR-03 | Phase 2 | Complete |
-| DLVR-04 | Phase 8 | Pending |
+| DLVR-04 | Phase 12 | Pending |
 | POLC-01 | Phase 6 | Complete |
 | POLC-02 | Phase 6 | Complete |
 | POLC-03 | Phase 7 | Complete |
 | INTG-01 | Phase 2 | Complete |
-| INTG-02 | Phase 6 | Complete |
-| INTG-03 | Phase 3 | Complete |
-| OPS-01 | Phase 8 | Pending |
+| INTG-02 | Phase 11 | Pending |
+| INTG-03 | Phase 12 | Pending |
+| OPS-01 | Phase 11 | Pending |
 | OPS-02 | Phase 10 | Pending |
 | OPS-03 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
 - Mapped to phases: 20
-- Pending after milestone audit: 4
-- Complete after milestone audit: 16
+- Pending after milestone audit: 6
+- Complete after milestone audit: 14
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-23*
-*Last updated: 2026-04-24 after Phase 07-02 execution*
+*Last updated: 2026-04-24 after gap closure phase planning*
