@@ -4,6 +4,10 @@
 
 Chimeway will be delivered in five coarse phases that prioritize durable data semantics and explainability before channel breadth. The roadmap starts with a stable key-based core and in-app lifecycle, then adds first outbound delivery, optional async execution with policy hardening, operator trace surfaces, and finally OSS release/verification hardening.
 
+## Milestones
+
+- ✅ **v1.0** — Phases 1-12 (shipped 2026-04-25)
+
 ## Phases
 
 **Phase Numbering:**
@@ -21,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Delayed Fallback Runtime Wiring** - Wire delayed fallback semantics through runtime delivery planning and suppression. (completed 2026-04-24)
 - [x] **Phase 8: Trigger Dispatch Outcome Surfacing** - Surface dispatch/enqueue outcomes to trigger callers with durable trace links. (completed 2026-04-24)
 - [x] **Phase 9: OSS Verification Evidence Refresh** - Regenerate stale verification artifacts and clear OPS-03 blocker status. (completed 2026-04-24)
-- [ ] **Phase 10: Telemetry Correlation Enrichment** - Increase lifecycle telemetry consistency for deep operator tracing.
+- [x] **Phase 10: Telemetry Correlation Enrichment** - Increase lifecycle telemetry consistency for deep operator tracing. (completed 2026-04-24)
 - [x] **Phase 11: Channel Adapter Safety and Explainability Hardening** - Eliminate dynamic atom risks and stabilize custom-channel operator traces. (completed 2026-04-24)
 - [x] **Phase 12: Oban Transactional Dispatch Consistency** - Enforce transactional planning/enqueue consistency across async dispatch paths. (completed 2026-04-24)
 
@@ -187,8 +191,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — Thread and persist correlation metadata
-- [ ] 10-02-PLAN.md — Enrich dispatch/attempt spans + tests
+- [x] 10-01: Thread and persist correlation metadata
+- [x] 10-02: Enrich dispatch/attempt spans + tests
 
 ### Phase 11: Channel Adapter Safety and Explainability Hardening
 **Goal**: Remove unsafe channel atom conversion paths and preserve explainability for valid custom channels.  
@@ -238,6 +242,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. Delayed Fallback Runtime Wiring | 3/3 | Complete | 2026-04-24 |
 | 8. Trigger Dispatch Outcome Surfacing | 3/3 | Complete    | 2026-04-24 |
 | 9. OSS Verification Evidence Refresh | 1/1 | Complete    | 2026-04-24 |
-| 10. Telemetry Correlation Enrichment | 0/2 | Planned | — |
+| 10. Telemetry Correlation Enrichment | 2/2 | Complete | 2026-04-24 |
 | 11. Channel Adapter Safety and Explainability Hardening | 2/2 | Complete | 2026-04-24 |
 | 12. Oban Transactional Dispatch Consistency | 2/2 | Complete    | 2026-04-24 |

@@ -2,33 +2,33 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 8 context gathered (assumptions mode)
-last_updated: "2026-04-24T17:27:03.937Z"
-last_activity: 2026-04-24
+status: complete
+stopped_at: Completed Phase 12
+last_updated: "2026-04-25T00:00:00.000Z"
+last_activity: 2026-04-25
 progress:
   total_phases: 12
-  completed_phases: 8
-  total_plans: 22
-  completed_plans: 21
-  percent: 95
+  completed_phases: 12
+  total_plans: 29
+  completed_plans: 29
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-23)
+See: .planning/PROJECT.md (updated 2026-04-25)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.  
-**Current focus:** Phase 08 — trigger-dispatch-outcome-surfacing
+**Current focus:** Milestone Complete
 
 ## Current Position
 
-Phase: 09
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-24
+Phase: 12 (oban-transactional-dispatch-consistency)
+Plan: 02
+Status: Complete
+Last activity: 2026-04-25
 
 Progress: [██████████] 100%
 
@@ -36,9 +36,9 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 38
+- Total plans completed: 45
 - Average duration: 10 min
-- Total execution time: 0.8 hours
+- Total execution time: 0.9 hours
 
 **By Phase:**
 
@@ -54,14 +54,19 @@ Progress: [██████████] 100%
 | 05 | 2 | - | - |
 | 06 | 3 | - | - |
 | 07 | 3 | - | - |
-| 8 | 0 | - | - |
+| 08 | 3 | - | - |
+| 09 | 1 | - | - |
+| 10 | 2 | 25 min | 12 min |
+| 12 | 2 | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans: 9 min, 2 min, 7 min, 4 min, 6 min
+- Last 5 plans: 15 min, 10 min, 9 min, 2 min, 7 min
 - Trend: Stable
 
 *Updated after each plan completion*
+| Phase 10 P01 | 15m | 4 tasks | 4 files |
+| Phase 10 P02 | 10m | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -73,36 +78,22 @@ Recent decisions affecting current work:
 - [Init]: Persist stable `notification_key` + version for durable identity.
 - [Init]: Treat explainability ("why wasn't this sent?") as core value.
 - [Init]: Start with durable spine and one-channel slice before channel expansion.
-- [01-01]: Validate notifier modules through explicit callback checks before trigger execution.
-- [01-01]: Normalize recipients by identity using dedupe + lexical sort for deterministic fanout inputs.
-- [01-02]: Persist event plus notification fanout in one Ecto.Multi transaction for atomic durability.
-- [01-02]: Normalize idempotency collisions to `{:duplicate, existing_event}` via `idempotency_key` lookup.
-- [01-02]: Drop `password`/`token`/`secret` keys before persisting payload and notification metadata.
-- [01-03]: Keep inbox reads side-effect free and expose explicit lifecycle mutations for `seen/read/archive`.
-- [01-03]: Scope inbox lifecycle updates by `notification_id` and `recipient_identity` to prevent cross-recipient mutation.
-- [01-03]: Treat phase verification docs as executable artifacts with command-backed requirement PASS evidence.
-- [06-01]: Extend notifier contract with optional `channels/2` callback while preserving fallback compatibility.
-- [06-01]: Centralize fanout + planning-time policy evaluation in `Chimeway.DeliveryPlanning`.
-- [06-01]: Require dispatchers to return tagged `{:planning_failed, reason}` when planner resolution fails.
-- [06-02]: Keep `suppress_delivery/2` backward-compatible while persisting `policy_checkpoint` metadata.
-- [06-02]: Route sync and Oban worker adapter execution through `Chimeway.Dispatch.Executor.run_delivery/1`.
-- [06-02]: Expose suppression checkpoint provenance in trace timeline details for operator explainability.
-- [06-03]: Assert sync/Oban suppression parity with a shared delivery signature shape (status, reason, checkpoint, attempts).
-- [06-03]: Tag regression scenarios in tests with requirement IDs to keep audit verification grep-based and deterministic.
-- [07-02]: Persist perform-time suppressions in sync and Oban worker via `checkpoint: :perform` for policy parity.
-- [07-02]: Keep planner failures normalized as `{:planning_failed, reason}` across sync and Oban dispatchers.
-- [07-02]: Include `delayed_fallback_source` in suppression trace details alongside `policy_checkpoint`.
-- [07-03]: Verify trigger-driven delayed-fallback persistence with planner-sourced `delay_fallback` and `delayed_fallback_source` assertions.
-- [07-03]: Reuse a shared already-read suppression signature helper across sync and Oban parity suites to prevent drift.
-- [07-03]: Enforce delayed-fallback guardrails with explicit `{:planning_failed, {:invalid_delayed_fallback_channels, ...}}` contract tests.
+- [10-01]: Thread notification_key, event_id, and correlation_id through the dispatch chain.
+- [10-01]: Persist correlation identifiers in Delivery.metadata using string keys.
+- [10-01]: Enrich the [:deliveries, :plan] telemetry span with correlation identifiers.
+- [10-02]: Enrich all lifecycle telemetry spans (policy, sync, oban, attempts) with correlation metadata from delivery records.
+- [10-02]: Improve `Chimeway.Telemetry.span/3` to automatically merge start metadata into stop metadata.
+- [11-01]: Resolve channel adapter configs without creating atoms from runtime channel strings.
+- [11-01]: Keep explainability surfaces string-safe for valid custom channels.
+- [12-01]: Make Oban planning and enqueueing transactionally consistent.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Deferred Items
 
@@ -114,8 +105,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 8 context gathered (assumptions mode)
-Resume file: --resume-file
+Last session: 2026-04-25T00:00:00.000Z
+Stopped at: Completed Phase 12
+Resume file: None
 
-**Planned Phase:** 11 (Channel Adapter Safety and Explainability Hardening) — 2 plans — 2026-04-24T16:38:04.937Z
+**Planned Phase:** None
