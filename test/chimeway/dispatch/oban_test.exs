@@ -89,6 +89,31 @@ defmodule Chimeway.Dispatch.ObanTest do
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
     end
 
+    test "disabled category preference suppresses at planning and does not enqueue a job" do
+      fixture =
+        DispatchHelpers.create_notification(
+          notification_key: "oban.category.suppression",
+          payload: %{"category" => "marketing"}
+        )
+
+      Chimeway.Preferences.upsert_category_preference(%{
+        recipient_id: fixture.notification.recipient_identity,
+        notification_category: "marketing",
+        enabled: false
+      })
+
+      assert {:ok, [delivery]} = Oban.dispatch([fixture.notification], [])
+
+      assert DispatchHelpers.delivery_signature(delivery) == %{
+               status: :suppressed,
+               suppression_reason: "category_disabled",
+               policy_checkpoint: "planning",
+               attempt_count: 0
+             }
+
+      refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
+    end
+
     test "DLVR-04: oban dispatch preserves planning_failed error tagging" do
       # DLVR-04: trigger outcome normalization depends on tagged planning failures.
       %{notification: notification} = DispatchHelpers.create_notification()

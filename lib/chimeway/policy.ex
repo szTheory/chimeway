@@ -28,6 +28,7 @@ defmodule Chimeway.Policy do
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.{Preferences, Repo}
+  alias Chimeway.Policy.Settings
   alias Chimeway.Telemetry
 
   @doc """
@@ -44,15 +45,13 @@ defmodule Chimeway.Policy do
       Telemetry.safe_meta(%{
         delivery_id: delivery.id,
         channel: delivery.channel,
-        notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+        notification_key: Map.get(delivery.metadata || %{}, "notification_key"),
+        category: delivery_category(delivery)
       }),
       fn ->
         check_read_state = Keyword.get(opts, :check_read_state, false)
 
-        result =
-          with {:ok, :proceed} <- check_preferences(delivery) do
-            maybe_check_read_state(delivery, check_read_state)
-          end
+        result = evaluate_delivery_policy(delivery, check_read_state)
 
         extra =
           case result do
@@ -70,16 +69,31 @@ defmodule Chimeway.Policy do
 
   # --- Private ---
 
-  defp check_preferences(%Delivery{} = delivery) do
+  defp evaluate_delivery_policy(%Delivery{} = delivery, check_read_state) do
+    context = load_policy_context(delivery)
+
+    with :ok <- check_channel_preferences(delivery, context),
+         :ok <- check_category_preferences(delivery, context),
+         :ok <- check_policy_settings(delivery) do
+      maybe_check_read_state(delivery, check_read_state)
+    end
+  end
+
+  defp load_policy_context(%Delivery{} = delivery) do
     notification = Repo.get!(Notification, delivery.notification_id)
     event = Repo.get!(Event, notification.event_id)
 
-    if Preferences.channel_enabled?(
-         notification.recipient_identity,
-         event.notification_key,
-         delivery.channel
-       ) do
-      {:ok, :proceed}
+    %{
+      notification: notification,
+      event: event,
+      recipient_id: notification.recipient_identity,
+      category: delivery_category_from_event(event)
+    }
+  end
+
+  defp check_channel_preferences(%Delivery{} = delivery, %{event: event, recipient_id: recipient_id}) do
+    if Preferences.channel_enabled?(recipient_id, event.notification_key, delivery.channel) do
+      :ok
     else
       Logger.debug("[chimeway] suppressing delivery",
         delivery_id: delivery.id,
@@ -88,6 +102,37 @@ defmodule Chimeway.Policy do
       )
 
       {:suppress, :channel_disabled}
+    end
+  end
+
+  defp check_category_preferences(_delivery, %{category: nil}), do: :ok
+
+  defp check_category_preferences(%Delivery{} = delivery, %{recipient_id: recipient_id, category: category}) do
+    if Preferences.category_enabled?(recipient_id, category) do
+      :ok
+    else
+      Logger.debug("[chimeway] suppressing delivery",
+        delivery_id: delivery.id,
+        reason: :category_disabled,
+        category: category
+      )
+
+      {:suppress, :category_disabled}
+    end
+  end
+
+  defp check_policy_settings(%Delivery{} = delivery) do
+    case Settings.evaluate(delivery) do
+      {:ok, :proceed} ->
+        :ok
+
+      {:suppress, reason} ->
+        Logger.debug("[chimeway] suppressing delivery (policy settings)",
+          delivery_id: delivery.id,
+          reason: reason
+        )
+
+        {:suppress, reason}
     end
   end
 
@@ -109,5 +154,20 @@ defmodule Chimeway.Policy do
 
         {:suppress, :already_read}
     end
+  end
+
+  defp delivery_category_from_event(%Event{payload: payload}) when is_map(payload) do
+    case Map.get(payload, "category") do
+      category when is_binary(category) and category != "" -> category
+      _ -> nil
+    end
+  end
+
+  defp delivery_category_from_event(_event), do: nil
+
+  defp delivery_category(%Delivery{} = delivery) do
+    notification = Repo.get!(Notification, delivery.notification_id)
+    event = Repo.get!(Event, notification.event_id)
+    delivery_category_from_event(event)
   end
 end

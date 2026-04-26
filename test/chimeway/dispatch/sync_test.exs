@@ -175,6 +175,34 @@ defmodule Chimeway.Dispatch.SyncTest do
 
       assert Chimeway.Adapters.Test.delivered_messages() == []
     end
+
+    test "disabled category preference suppresses during planning before adapter execution" do
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      Chimeway.Adapters.Test.clear()
+
+      fixture =
+        DispatchHelpers.create_notification(
+          notification_key: "sync.category.suppression",
+          payload: %{"category" => "marketing"}
+        )
+
+      Chimeway.Preferences.upsert_category_preference(%{
+        recipient_id: fixture.notification.recipient_identity,
+        notification_category: "marketing",
+        enabled: false
+      })
+
+      assert {:ok, [{:ok, delivery}]} = Sync.dispatch([fixture.notification], [])
+
+      assert DispatchHelpers.delivery_signature(delivery) == %{
+               status: :suppressed,
+               suppression_reason: "category_disabled",
+               policy_checkpoint: "planning",
+               attempt_count: 0
+             }
+
+      assert Chimeway.Adapters.Test.delivered_messages() == []
+    end
   end
 
   describe "dispatch contract parity for trigger consumers" do

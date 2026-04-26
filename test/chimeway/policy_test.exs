@@ -8,14 +8,16 @@ defmodule Chimeway.PolicyTest do
 
   # ---- Fixtures ----
 
-  defp insert_event(notification_key \\ "order.shipped") do
+  defp insert_event(notification_key \\ "order.shipped", opts \\ []) do
+    payload = Keyword.get(opts, :payload, %{})
+
     {:ok, event} =
       %Event{}
       |> Event.changeset(%{
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "test-#{System.unique_integer()}",
-        payload: %{}
+        payload: payload
       })
       |> Repo.insert()
 
@@ -109,6 +111,22 @@ defmodule Chimeway.PolicyTest do
       assert delivery.suppression_reason == "channel_disabled"
       assert get_in(delivery.metadata, ["policy_checkpoint"]) == "planning"
     end
+
+    test "category preference suppression uses persisted category metadata" do
+      event = insert_event("planner.category-disabled", payload: %{"category" => "marketing"})
+      notification = insert_notification(event, "user-planner-category")
+
+      Preferences.upsert_category_preference(%{
+        recipient_id: "user-planner-category",
+        notification_category: "marketing",
+        enabled: false
+      })
+
+      assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification, [])
+      assert delivery.status == :suppressed
+      assert delivery.suppression_reason == "category_disabled"
+      assert get_in(delivery.metadata, ["policy_checkpoint"]) == "planning"
+    end
   end
 
   # ---- Perform-time read-state suppression ----
@@ -147,6 +165,45 @@ defmodule Chimeway.PolicyTest do
       |> Repo.update!()
 
       assert Policy.evaluate(delivery, check_read_state: false) == {:ok, :proceed}
+    end
+  end
+
+  describe "policy settings evaluation" do
+    test "quiet-hours settings suppress the delivery" do
+      event = insert_event("policy.quiet_hours")
+      notification = insert_notification(event, "user-policy-quiet-hours")
+      delivery = insert_delivery(notification, "in_app")
+
+      now = DateTime.utc_now()
+      minute = now.hour * 60 + now.minute
+
+      assert {:ok, _} =
+               Chimeway.Policy.Settings.upsert_settings(%{
+                 recipient_id: "user-policy-quiet-hours",
+                 quiet_hours_start_minute: rem(minute + 1439, 1440),
+                 quiet_hours_end_minute: rem(minute + 1, 1440)
+               })
+
+      assert Chimeway.Policy.Settings.evaluate(delivery) == {:suppress, :quiet_hours}
+    end
+
+    test "delivery-cap settings suppress the delivery after one prior send" do
+      event = insert_event("policy.delivery_cap")
+      notification = insert_notification(event, "user-policy-cap")
+      first_delivery = insert_delivery(notification, "in_app")
+
+      assert {:ok, _} =
+               Chimeway.Policy.Settings.upsert_settings(%{
+                 recipient_id: "user-policy-cap",
+                 delivery_cap_count: 1,
+                 delivery_cap_window_minutes: 60
+               })
+
+      assert Chimeway.Policy.Settings.evaluate(first_delivery) == {:ok, :proceed}
+
+      second_delivery = insert_delivery(notification, "email")
+
+      assert Chimeway.Policy.Settings.evaluate(second_delivery) == {:suppress, :delivery_cap_reached}
     end
   end
 
