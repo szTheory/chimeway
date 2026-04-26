@@ -99,7 +99,10 @@ defmodule Chimeway.Telemetry do
   @spec span(list(), map(), (-> {term(), map()})) :: term()
   def span(event_suffix, meta, func)
       when is_list(event_suffix) and is_map(meta) and is_function(func, 0) do
-    :telemetry.span([:chimeway | event_suffix], meta, func)
+    :telemetry.span([:chimeway | event_suffix], meta, fn ->
+      {result, extra} = func.()
+      {result, Map.merge(meta, extra)}
+    end)
   end
 
   @doc """
@@ -120,9 +123,14 @@ defmodule Chimeway.Telemetry do
   """
   @spec safe_meta(map()) :: map()
   def safe_meta(meta) when is_map(meta) do
-    meta
-    |> normalize_keys()
-    |> Map.take(@allowed_meta_keys)
+    result =
+      meta
+      |> normalize_keys()
+      |> Map.take(@allowed_meta_keys)
+
+    # IO.inspect(meta, label: "SAFE_META INPUT")
+    # IO.inspect(result, label: "SAFE_META OUTPUT")
+    result
   end
 
   @doc """
