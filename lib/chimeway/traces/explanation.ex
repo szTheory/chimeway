@@ -15,7 +15,12 @@ defmodule Chimeway.Traces.Explanation do
   - `recipient_id` — recipient identity string
   - `channel` — delivery channel string (for example "in_app", "email", "webhook_partner")
   - `status` — final delivery status: :succeeded | :failed | :suppressed | :pending | :cancelled
-  - `suppression_reason` — reason atom string when status is :suppressed, else nil
+  - `suppression_reason` — reason atom string when status is `:suppressed` OR `:cancelled`,
+    else nil. The four documented reason strings are:
+      * `"channel_disabled"` — set when status is `:suppressed` (policy preference blocked the channel)
+      * `"retries_exhausted"` — set when status is `:cancelled` (Oban exhausted max_attempts on transient failures, REL-03 D-10/D-11)
+      * `"permanent_failure"` — set when status is `:cancelled` (adapter returned a permanent error)
+      * `"bounced"` — set when status is `:cancelled` (adapter returned a bounce)
   - `last_attempt` — map with :outcome, :inserted_at, :attempt_number, :error_class for the most recent attempt, or nil
   - `timeline` — chronological list of lifecycle events, each a map with :at, :event, :detail
   """

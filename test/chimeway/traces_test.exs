@@ -400,6 +400,157 @@ defmodule Chimeway.TracesTest do
     end
   end
 
+  describe "explain_delivery/1 — Phase 14 trace surface drift fixes (WR-05, WR-06)" do
+    test "WR-05 regression: last_attempt_summary selects by attempt_number when inserted_at ties" do
+      ctx = create_pending_delivery_for_traces()
+      {:ok, dispatched} = Chimeway.Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      # B1 fix: insert two attempts with the SAME inserted_at value. The schema field
+      # type is :utc_datetime_usec (lib/chimeway/delivery_attempt.ex:43), which requires
+      # microsecond precision ({microseconds, scale} where scale == 6). We truncate to
+      # second then set microsecond: {0, 6} — both rows store the same bytewise-identical
+      # timestamp with zero microseconds at usec scale. There is NO :updated_at field on
+      # DeliveryAttempt (moduledoc line 4: "No updated_at — attempts are never mutated.")
+      # — do NOT try to put_change/3 it.
+      #
+      # The changeset's put_inserted_at/1 helper (lib/chimeway/delivery_attempt.ex:71-77)
+      # preserves an explicitly-set :inserted_at via get_field check, so
+      # `|> Ecto.Changeset.put_change(:inserted_at, shared_at)` is the right wedge.
+      shared_at =
+        DateTime.utc_now()
+        |> DateTime.truncate(:second)
+        |> then(fn dt -> %{dt | microsecond: {0, 6}} end)
+
+      {:ok, %Chimeway.DeliveryAttempt{} = first} =
+        %Chimeway.DeliveryAttempt{}
+        |> Chimeway.DeliveryAttempt.changeset(%{
+          delivery_id: dispatched.id,
+          outcome: :failed,
+          error_class: "temporary",
+          attempt_number: 1,
+          provider_response: %{seq: 1}
+        })
+        |> Ecto.Changeset.put_change(:inserted_at, shared_at)
+        |> Chimeway.Repo.insert()
+
+      {:ok, %Chimeway.DeliveryAttempt{} = second} =
+        %Chimeway.DeliveryAttempt{}
+        |> Chimeway.DeliveryAttempt.changeset(%{
+          delivery_id: dispatched.id,
+          outcome: :succeeded,
+          error_class: nil,
+          attempt_number: 2,
+          provider_response: %{seq: 2}
+        })
+        |> Ecto.Changeset.put_change(:inserted_at, shared_at)
+        |> Chimeway.Repo.insert()
+
+      # Sanity: tied inserted_at would make Enum.max_by(_, & &1.inserted_at) non-deterministic.
+      # Both rows store the same %DateTime{} value (microseconds {0, 6} on both).
+      assert first.inserted_at == second.inserted_at,
+             "test setup invariant: both attempts must share inserted_at to exercise the tie-break. " <>
+               "first=#{inspect(first.inserted_at)} second=#{inspect(second.inserted_at)}"
+
+      assert {:ok, %Chimeway.Traces.Explanation{last_attempt: last_attempt}} =
+               Chimeway.Traces.explain_delivery(dispatched.id)
+
+      # Post-fix: max_by attempt_number wins. attempt 2 (succeeded) is "last".
+      # Pre-fix: max_by inserted_at ties; result depends on list ordering.
+      assert last_attempt.attempt_number == 2
+      assert last_attempt.outcome == :succeeded
+    end
+
+    test "WR-06 regression: :cancelled with retries_exhausted emits a :cancelled timeline entry" do
+      ctx = create_pending_delivery_for_traces()
+      {:ok, dispatched} = Chimeway.Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: failed}} =
+        Chimeway.Deliveries.record_attempt(dispatched, %{
+          outcome: :failed,
+          error_class: "temporary",
+          provider_response: %{}
+        })
+
+      {:ok, exhausted} = Chimeway.Deliveries.exhaust_delivery(failed)
+      assert exhausted.status == :cancelled
+      assert exhausted.suppression_reason == "retries_exhausted"
+
+      assert {:ok, %Chimeway.Traces.Explanation{timeline: timeline}} =
+               Chimeway.Traces.explain_delivery(exhausted.id)
+
+      cancelled_entries = Enum.filter(timeline, fn entry -> entry.event == :cancelled end)
+      assert length(cancelled_entries) == 1
+      [%{at: at, detail: detail}] = cancelled_entries
+      assert detail.reason == "retries_exhausted"
+      assert at == exhausted.updated_at
+    end
+
+    test "WR-06 regression: :cancelled with permanent_failure emits a :cancelled timeline entry" do
+      ctx = create_pending_delivery_for_traces()
+      {:ok, dispatched} = Chimeway.Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: cancelled}} =
+        Chimeway.Deliveries.record_attempt(dispatched, %{
+          outcome: :rejected,
+          error_class: "permanent",
+          provider_response: %{}
+        })
+
+      assert cancelled.status == :cancelled
+      assert cancelled.suppression_reason == "permanent_failure"
+
+      assert {:ok, %Chimeway.Traces.Explanation{timeline: timeline}} =
+               Chimeway.Traces.explain_delivery(cancelled.id)
+
+      cancelled_entries = Enum.filter(timeline, fn entry -> entry.event == :cancelled end)
+      assert length(cancelled_entries) == 1
+      [%{detail: detail}] = cancelled_entries
+      assert detail.reason == "permanent_failure"
+    end
+
+    test "WR-06 regression: :cancelled with bounced emits a :cancelled timeline entry" do
+      ctx = create_pending_delivery_for_traces()
+      {:ok, dispatched} = Chimeway.Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: cancelled}} =
+        Chimeway.Deliveries.record_attempt(dispatched, %{
+          outcome: :bounced,
+          error_class: "bounced",
+          provider_response: %{}
+        })
+
+      assert cancelled.status == :cancelled
+      assert cancelled.suppression_reason == "bounced"
+
+      assert {:ok, %Chimeway.Traces.Explanation{timeline: timeline}} =
+               Chimeway.Traces.explain_delivery(cancelled.id)
+
+      cancelled_entries = Enum.filter(timeline, fn entry -> entry.event == :cancelled end)
+      assert length(cancelled_entries) == 1
+      [%{detail: detail}] = cancelled_entries
+      assert detail.reason == "bounced"
+    end
+
+    test "WR-06 regression: :suppressed deliveries do NOT emit a :cancelled timeline entry (no double-counting)" do
+      ctx = create_pending_delivery_for_traces()
+
+      {:ok, suppressed} =
+        Chimeway.Deliveries.suppress_delivery(ctx.delivery, :channel_disabled, checkpoint: :perform)
+
+      assert suppressed.status == :suppressed
+
+      assert {:ok, %Chimeway.Traces.Explanation{timeline: timeline}} =
+               Chimeway.Traces.explain_delivery(suppressed.id)
+
+      cancelled_entries = Enum.filter(timeline, fn entry -> entry.event == :cancelled end)
+      assert cancelled_entries == [],
+             "expected no :cancelled entries for a :suppressed delivery; got #{inspect(cancelled_entries)}"
+
+      suppressed_entries = Enum.filter(timeline, fn entry -> entry.event == :suppressed end)
+      assert length(suppressed_entries) == 1
+    end
+  end
+
   defp create_pending_delivery_for_traces do
     {:ok, event} =
       Chimeway.Repo.insert(%Chimeway.Events.Event{
