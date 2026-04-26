@@ -16,7 +16,7 @@ defmodule Chimeway.Traces.Explanation do
   - `channel` — delivery channel string (for example "in_app", "email", "webhook_partner")
   - `status` — final delivery status: :succeeded | :failed | :suppressed | :pending | :cancelled
   - `suppression_reason` — reason atom string when status is :suppressed, else nil
-  - `last_attempt` — map with :outcome and :inserted_at for the most recent attempt, or nil
+  - `last_attempt` — map with :outcome, :inserted_at, :attempt_number, :error_class for the most recent attempt, or nil
   - `timeline` — chronological list of lifecycle events, each a map with :at, :event, :detail
   """
 
@@ -31,7 +31,14 @@ defmodule Chimeway.Traces.Explanation do
           channel: String.t(),
           status: :succeeded | :failed | :suppressed | :pending | :cancelled | :dispatched,
           suppression_reason: String.t() | nil,
-          last_attempt: %{outcome: atom(), inserted_at: DateTime.t()} | nil,
+          last_attempt:
+            %{
+              outcome: atom(),
+              inserted_at: DateTime.t(),
+              attempt_number: pos_integer() | nil,
+              error_class: String.t() | nil
+            }
+            | nil,
           timeline: [timeline_entry()]
         }
 
