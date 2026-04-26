@@ -177,7 +177,7 @@ defmodule Chimeway.DeliveryAttemptTest do
 
   describe "error_classes/0 helper" do
     test "returns the canonical whitelist as strings" do
-      assert DeliveryAttempt.error_classes() == ["temporary", "permanent", "bounced"]
+      assert DeliveryAttempt.error_classes() == ["temporary", "permanent", "bounced", "unknown_classification"]
     end
   end
 end
