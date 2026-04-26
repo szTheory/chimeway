@@ -149,7 +149,13 @@ defmodule Chimeway.Traces do
 
   defp last_attempt_summary(attempts) do
     last = Enum.max_by(attempts, & &1.inserted_at, DateTime)
-    %{outcome: last.outcome, inserted_at: last.inserted_at}
+
+    %{
+      outcome: last.outcome,
+      inserted_at: last.inserted_at,
+      attempt_number: last.attempt_number,
+      error_class: last.error_class
+    }
   end
 
   defp build_timeline(event, notification, delivery, attempts) do
@@ -188,7 +194,15 @@ defmodule Chimeway.Traces do
 
     attempt_entries =
       Enum.map(attempts, fn attempt ->
-        %{at: attempt.inserted_at, event: :attempt_recorded, detail: %{outcome: attempt.outcome}}
+        %{
+          at: attempt.inserted_at,
+          event: :attempt_recorded,
+          detail: %{
+            outcome: attempt.outcome,
+            attempt_number: attempt.attempt_number,
+            error_class: attempt.error_class
+          }
+        }
       end)
 
     (base ++ suppression_entries ++ attempt_entries)
