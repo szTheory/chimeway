@@ -1,4 +1,45 @@
 if Code.ensure_loaded?(Oban) do
+  defmodule Chimeway.Dispatch.UnhandledOutcomeError do
+    @moduledoc """
+    Raised by `Chimeway.Dispatch.ObanWorker` when `map_outcome_to_oban_return/4`
+    encounters a (outcome, error_class, status) shape that none of the documented
+    clauses match AND the in-band convergence guard cannot legally fire (delivery
+    is not in :failed status, or this is not the final attempt). This is the
+    loud-failure branch of the BL-02 fix — see Plan 14-10.
+
+    The exception carries enough metadata for an operator to reproduce the
+    scenario and extend either `Executor.classify/1` or the documented worker
+    clauses.
+    """
+    defexception [:message, :delivery_id, :outcome, :error_class, :status, :attempt, :max_attempts]
+
+    @impl true
+    def exception(opts) do
+      delivery_id = Keyword.fetch!(opts, :delivery_id)
+      outcome = Keyword.fetch!(opts, :outcome)
+      error_class = Keyword.fetch!(opts, :error_class)
+      status = Keyword.fetch!(opts, :status)
+      attempt = Keyword.fetch!(opts, :attempt)
+      max_attempts = Keyword.fetch!(opts, :max_attempts)
+
+      message =
+        "unhandled delivery outcome shape (BL-02): " <>
+          "delivery_id=#{inspect(delivery_id)} outcome=#{inspect(outcome)} " <>
+          "error_class=#{inspect(error_class)} status=#{inspect(status)} " <>
+          "attempt=#{attempt}/#{max_attempts}"
+
+      %__MODULE__{
+        message: message,
+        delivery_id: delivery_id,
+        outcome: outcome,
+        error_class: error_class,
+        status: status,
+        attempt: attempt,
+        max_attempts: max_attempts
+      }
+    end
+  end
+
   defmodule Chimeway.Dispatch.ObanWorker do
     @moduledoc """
     Oban worker that performs a single Chimeway delivery by delivery_id.
@@ -57,6 +98,8 @@ if Code.ensure_loaded?(Oban) do
     alias Chimeway.{Deliveries, Delivery, DeliveryAttempt, Policy}
     alias Chimeway.Dispatch.Executor
     alias Chimeway.Telemetry
+
+    require Logger
 
     @impl Oban.Worker
     def perform(%Oban.Job{
@@ -155,10 +198,48 @@ if Code.ensure_loaded?(Oban) do
       end
     end
 
-    # Catch-all defensive clause: an outcome shape we did not anticipate. Surface
-    # the data to the caller so it shows up in Oban error telemetry.
-    defp map_outcome_to_oban_return(%DeliveryAttempt{} = attempt, %Delivery{} = delivery, _attempt_n, _max) do
-      {:error, {:unhandled_outcome, attempt.outcome, attempt.error_class, delivery.status}}
+    # Catch-all defensive clause (BL-02 fix). Two branches:
+    #   Branch A (convergence): if this is the final attempt AND the delivery is in
+    #     :failed, call exhaust_delivery/1 to land the durable :cancelled
+    #     retries_exhausted state. Returns :ok so Oban marks the job :completed.
+    #   Branch B (loud failure): otherwise, log + raise. The unexpected shape is
+    #     a real bug (either Executor.classify/1 grew a new return shape that the
+    #     documented map_outcome_to_oban_return clauses do not cover, or some
+    #     adapter return path bypassed classification). Surface it loudly so the
+    #     operator notices instead of silently leaking a non-terminal delivery row.
+    defp map_outcome_to_oban_return(%DeliveryAttempt{} = recorded, %Delivery{} = delivery, attempt_n, max) do
+      cond do
+        attempt_n >= max and delivery.status == :failed ->
+          # Branch A: convergence — mirror the temporary/exhaustion path.
+          case Deliveries.exhaust_delivery(delivery) do
+            {:ok, _exhausted} ->
+              :ok
+
+            {:error, exhaust_reason} ->
+              {:error,
+               {:exhaust_failed, exhaust_reason,
+                {:unhandled_outcome, recorded.outcome, recorded.error_class, delivery.status}}}
+          end
+
+        true ->
+          # Branch B: loud failure — the convergence helper cannot legally write
+          # from this state, OR we still have retries to burn but the shape is wrong.
+          # Either way the catch-all itself is the bug; raise so the contract violation
+          # is impossible to miss.
+          Logger.error(
+            "unhandled delivery outcome (BL-02): delivery_id=#{inspect(delivery.id)} " <>
+              "outcome=#{inspect(recorded.outcome)} error_class=#{inspect(recorded.error_class)} " <>
+              "status=#{inspect(delivery.status)} attempt=#{attempt_n}/#{max}"
+          )
+
+          raise Chimeway.Dispatch.UnhandledOutcomeError,
+            delivery_id: delivery.id,
+            outcome: recorded.outcome,
+            error_class: recorded.error_class,
+            status: delivery.status,
+            attempt: attempt_n,
+            max_attempts: max
+      end
     end
 
     defp error_reason_from_attempt(%DeliveryAttempt{provider_response: provider_response}) do
