@@ -10,7 +10,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | ✅ 13 | Policy & Preference Maturity | Make suppression and user-controlled delivery rules explicit and explainable. | POL-01, POL-02, POL-03 | 3 |
-| 14 | Delivery Reliability Hardening | Make retries, duplicates, and terminal outcomes durable and safe. | REL-01, REL-02, REL-03 | 3 |
+| 14 | Delivery Reliability Hardening | 11/11 | Complete    | 2026-04-26 |
 | 15 | Observability & Supportability | Make lifecycle tracing and operator surfaces safe, correlated, and searchable. | OBS-01, OBS-02, OBS-03 | 3 |
 | 16 | Integration Hardening | Make host-app setup and adapter seams documented, stable, and contract-tested. | INT-01, INT-02 | 2 |
 
