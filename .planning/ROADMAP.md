@@ -47,7 +47,7 @@ Plan list:
 - [x] 14-02-PLAN.md — Migration + DeliveryAttempt schema (attempt_number, error_class)
 - [x] 14-03-PLAN.md — Promote terminal_states/0 + add Deliveries.exhaust_delivery/1
 - [x] 14-04-PLAN.md — Executor.classify/1 3-tuple + record_attempt/2 sync convergence
-- [ ] 14-05-PLAN.md — ObanWorker retry contract + Traces field surfacing
+- [x] 14-05-PLAN.md — ObanWorker retry contract + Traces field surfacing
 - [ ] 14-06-PLAN.md — REL-01 duplicate protection tests (D-02 + D-14)
 - [ ] 14-07-PLAN.md — REL-02/REL-03 attempt history, retry exhaustion, terminal convergence tests
 - [ ] 14-08-PLAN.md — D-13 oban_worker_test rewrite, sync parity, traces tests, mix ci D-15 regression
