@@ -22,8 +22,6 @@ defmodule Chimeway.Dispatch.Sync do
   alias Chimeway.Policy
   alias Chimeway.Telemetry
 
-  @terminal_states [:succeeded, :suppressed, :cancelled]
-
   @impl Chimeway.Dispatch
   def dispatch(notifications, opts) when is_list(notifications) do
     notifications
@@ -54,14 +52,14 @@ defmodule Chimeway.Dispatch.Sync do
   defp dispatch_planned_delivery(%{status: :suppressed} = delivery), do: {:ok, delivery}
   defp dispatch_planned_delivery(delivery), do: dispatch_delivery(delivery)
 
-  defp dispatch_delivery(%{status: status} = delivery) when status in @terminal_states do
-    {:ok, delivery}
-  end
-
-  defp dispatch_delivery(delivery) do
-    case Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
-      {:suppress, reason} -> Deliveries.suppress_delivery(delivery, reason, checkpoint: :perform)
-      {:ok, :proceed} -> do_dispatch_with_telemetry(delivery)
+  defp dispatch_delivery(%{status: status} = delivery) do
+    if status in Deliveries.terminal_states() do
+      {:ok, delivery}
+    else
+      case Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
+        {:suppress, reason} -> Deliveries.suppress_delivery(delivery, reason, checkpoint: :perform)
+        {:ok, :proceed} -> do_dispatch_with_telemetry(delivery)
+      end
     end
   end
 

@@ -20,6 +20,11 @@ defmodule Chimeway.Deliveries do
   """
   def terminal_states, do: @terminal_states
 
+  # General-path transitions. Note: `failed -> :cancelled` is INTENTIONALLY OMITTED here
+  # even though :cancelled is a valid status — that transition is reserved for
+  # Deliveries.exhaust_delivery/1 (D-10), which performs an out-of-band update
+  # bypassing this table. The general transition_status/2 path must NOT permit
+  # arbitrary callers to drive failed -> cancelled.
   @allowed_transitions %{
     pending: [:dispatched, :suppressed, :cancelled],
     dispatched: [:succeeded, :failed, :suppressed],
@@ -151,6 +156,40 @@ defmodule Chimeway.Deliveries do
     )
     |> Repo.update()
   end
+
+  @doc """
+  Transitions a `:failed` delivery to `:cancelled` with `suppression_reason: "retries_exhausted"`.
+
+  This is the ONLY entry point for the `failed -> :cancelled` transition. The general
+  `transition_status/2` path intentionally rejects `failed -> :cancelled` (the
+  `@allowed_transitions` table has `failed: [:dispatched]` only). `exhaust_delivery/1`
+  performs a direct `change/2 |> Repo.update()` that bypasses the transition table —
+  exactly mirroring how `suppress_delivery/3` writes the `:suppressed` terminal state
+  from any non-terminal status.
+
+  Called from `Chimeway.Dispatch.ObanWorker.perform/1` when
+  `job.attempt == job.max_attempts` and the adapter classification was `:temporary`
+  (REL-03 D-10/D-11). Records `policy_checkpoint: "perform"` in metadata so traces
+  preserve the explanation that exhaustion happened at perform time.
+  """
+  @spec exhaust_delivery(Delivery.t()) :: {:ok, Delivery.t()} | {:error, term()}
+  def exhaust_delivery(%Delivery{status: :failed} = delivery) do
+    metadata =
+      delivery.metadata
+      |> ensure_metadata_map()
+      |> Map.put("policy_checkpoint", "perform")
+
+    delivery
+    |> change(
+      status: :cancelled,
+      suppression_reason: "retries_exhausted",
+      metadata: metadata
+    )
+    |> Repo.update()
+  end
+
+  def exhaust_delivery(%Delivery{status: status}),
+    do: {:error, {:invalid_exhaust_from, status}}
 
   @doc """
   Atomically inserts an attempt row and transitions the delivery status.

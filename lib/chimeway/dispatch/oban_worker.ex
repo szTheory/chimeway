@@ -35,13 +35,11 @@ if Code.ensure_loaded?(Oban) do
     alias Chimeway.Dispatch.Executor
     alias Chimeway.Telemetry
 
-    @terminal_states [:succeeded, :suppressed, :cancelled]
-
     @impl Oban.Worker
     def perform(%Oban.Job{args: %{"delivery_id" => delivery_id}}) do
       delivery = Deliveries.get_delivery!(delivery_id)
 
-      if delivery.status in @terminal_states do
+      if delivery.status in Deliveries.terminal_states() do
         :ok
       else
         Telemetry.span(
