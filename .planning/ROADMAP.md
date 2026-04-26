@@ -50,7 +50,7 @@ Plan list:
 - [x] 14-05-PLAN.md — ObanWorker retry contract + Traces field surfacing
 - [x] 14-06-PLAN.md — REL-01 duplicate protection tests (D-02 + D-14)
 - [x] 14-07-PLAN.md — REL-02/REL-03 attempt history, retry exhaustion, terminal convergence tests
-- [ ] 14-08-PLAN.md — D-13 oban_worker_test rewrite, sync parity, traces tests, mix ci D-15 regression
+- [x] 14-08-PLAN.md — D-13 oban_worker_test rewrite, sync parity, traces tests, mix ci D-15 regression
 
 Success criteria:
 1. Retry paths do not create duplicate events, notifications, or deliveries.
