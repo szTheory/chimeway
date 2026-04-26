@@ -140,7 +140,12 @@ defmodule Chimeway.Reliability.AttemptHistoryTest do
     end
 
     test "DeliveryAttempt.error_classes/0 returns the canonical whitelist" do
-      assert DeliveryAttempt.error_classes() == ["temporary", "permanent", "bounced"]
+      assert DeliveryAttempt.error_classes() == [
+               "temporary",
+               "permanent",
+               "bounced",
+               "unknown_classification"
+             ]
     end
   end
 
