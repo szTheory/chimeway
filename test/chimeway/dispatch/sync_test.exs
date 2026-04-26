@@ -70,7 +70,7 @@ defmodule Chimeway.Dispatch.SyncTest do
   end
 
   describe "dispatch/2 with {:error, :temporary, detail} adapter response" do
-    test "creates attempt with outcome :failed and transitions delivery to :failed" do
+    test "creates attempt with outcome :failed and leaves delivery at :failed (sync has no Oban retry)" do
       %{notification: notification} = DispatchHelpers.create_notification()
 
       defmodule TemporaryErrorAdapter do
@@ -84,14 +84,18 @@ defmodule Chimeway.Dispatch.SyncTest do
       assert [{:ok, delivery}] = results
 
       assert delivery.status == :failed
+      assert delivery.suppression_reason == nil
+      refute delivery.status in Chimeway.Deliveries.terminal_states()
 
       attempt = Repo.one!(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
       assert attempt.outcome == :failed
+      assert attempt.error_class == "temporary"
+      assert attempt.attempt_number == 1
     end
   end
 
   describe "dispatch/2 with {:error, :permanent, detail} adapter response" do
-    test "creates attempt with outcome :rejected and transitions delivery to :failed" do
+    test "creates attempt with outcome :rejected and converges delivery to :cancelled / permanent_failure" do
       %{notification: notification} = DispatchHelpers.create_notification()
 
       defmodule PermanentErrorAdapter do
@@ -104,15 +108,19 @@ defmodule Chimeway.Dispatch.SyncTest do
       assert {:ok, results} = Sync.dispatch([notification], [])
       assert [{:ok, delivery}] = results
 
-      assert delivery.status == :failed
+      assert delivery.status == :cancelled
+      assert delivery.suppression_reason == "permanent_failure"
+      assert delivery.status in Chimeway.Deliveries.terminal_states()
 
       attempt = Repo.one!(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
       assert attempt.outcome == :rejected
+      assert attempt.error_class == "permanent"
+      assert attempt.attempt_number == 1
     end
   end
 
   describe "dispatch/2 with {:error, :bounced, detail} adapter response" do
-    test "creates attempt with outcome :bounced and transitions delivery to :failed" do
+    test "creates attempt with outcome :bounced and converges delivery to :cancelled / bounced" do
       %{notification: notification} = DispatchHelpers.create_notification()
 
       defmodule BouncedErrorAdapter do
@@ -125,10 +133,14 @@ defmodule Chimeway.Dispatch.SyncTest do
       assert {:ok, results} = Sync.dispatch([notification], [])
       assert [{:ok, delivery}] = results
 
-      assert delivery.status == :failed
+      assert delivery.status == :cancelled
+      assert delivery.suppression_reason == "bounced"
+      assert delivery.status in Chimeway.Deliveries.terminal_states()
 
       attempt = Repo.one!(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
       assert attempt.outcome == :bounced
+      assert attempt.error_class == "bounced"
+      assert attempt.attempt_number == 1
     end
   end
 
