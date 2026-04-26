@@ -40,7 +40,7 @@ Goal: Make delivery retries and duplicate protection safe under real-world concu
 
 Requirements: REL-01, REL-02, REL-03
 
-Plans: 8
+Plans: 11
 
 Plan list:
 - [x] 14-01-PLAN.md — Wave 0: Scaffold reliability test files (skipped placeholders)
@@ -51,6 +51,9 @@ Plan list:
 - [x] 14-06-PLAN.md — REL-01 duplicate protection tests (D-02 + D-14)
 - [x] 14-07-PLAN.md — REL-02/REL-03 attempt history, retry exhaustion, terminal convergence tests
 - [x] 14-08-PLAN.md — D-13 oban_worker_test rewrite, sync parity, traces tests, mix ci D-15 regression
+- [x] 14-09-PLAN.md — Gap closure: BL-01 stale-struct lock fix + WR-01 genuine concurrency test
+- [x] 14-10-PLAN.md — Gap closure: BL-02 catch-all convergence hardening (exhaust on final attempt)
+- [x] 14-11-PLAN.md — Gap closure: WR-05/06/07 trace surface drift (ordering, cancelled entries, moduledoc)
 
 Success criteria:
 1. Retry paths do not create duplicate events, notifications, or deliveries.
