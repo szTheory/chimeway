@@ -312,4 +312,120 @@ defmodule Chimeway.TracesTest do
       assert {:error, :not_found} = Traces.explain_delivery(Ecto.UUID.generate())
     end
   end
+
+  describe "explain_delivery/1 — REL-02 D-07 attempt_number and error_class fields" do
+    test "last_attempt surfaces attempt_number and error_class on a temporary failure" do
+      ctx = create_pending_delivery_for_traces()
+
+      {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: failed}} =
+        Deliveries.record_attempt(dispatched, %{
+          outcome: :failed,
+          error_class: "temporary",
+          provider_response: %{reason: "x"}
+        })
+
+      assert {:ok, %Chimeway.Traces.Explanation{last_attempt: last_attempt, timeline: timeline}} =
+               Chimeway.Traces.explain_delivery(failed.id)
+
+      assert last_attempt.outcome == :failed
+      assert last_attempt.attempt_number == 1
+      assert last_attempt.error_class == "temporary"
+
+      attempt_entries = Enum.filter(timeline, fn entry -> entry.event == :attempt_recorded end)
+      assert length(attempt_entries) == 1
+      [%{detail: detail}] = attempt_entries
+      assert detail.outcome == :failed
+      assert detail.attempt_number == 1
+      assert detail.error_class == "temporary"
+    end
+
+    test "last_attempt has nil error_class on a succeeded delivery" do
+      ctx = create_pending_delivery_for_traces()
+      {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: succeeded}} =
+        Deliveries.record_attempt(dispatched, %{
+          outcome: :succeeded,
+          error_class: nil,
+          provider_response: %{}
+        })
+
+      assert {:ok, %Chimeway.Traces.Explanation{last_attempt: last_attempt}} =
+               Chimeway.Traces.explain_delivery(succeeded.id)
+
+      assert last_attempt.outcome == :succeeded
+      assert last_attempt.error_class == nil
+      assert last_attempt.attempt_number == 1
+    end
+
+    test "last_attempt reflects the most recent attempt across multiple records" do
+      ctx = create_pending_delivery_for_traces()
+
+      # Record three attempts: failed temporary, failed temporary, succeeded.
+      {:ok, dispatched_a} = Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: failed_a}} =
+        Deliveries.record_attempt(dispatched_a, %{
+          outcome: :failed,
+          error_class: "temporary",
+          provider_response: %{seq: 1}
+        })
+
+      {:ok, dispatched_b} = Deliveries.transition_status(failed_a, :dispatched)
+
+      {:ok, %{delivery: failed_b}} =
+        Deliveries.record_attempt(dispatched_b, %{
+          outcome: :failed,
+          error_class: "temporary",
+          provider_response: %{seq: 2}
+        })
+
+      {:ok, dispatched_c} = Deliveries.transition_status(failed_b, :dispatched)
+
+      {:ok, %{delivery: succeeded}} =
+        Deliveries.record_attempt(dispatched_c, %{
+          outcome: :succeeded,
+          error_class: nil,
+          provider_response: %{seq: 3}
+        })
+
+      assert {:ok, %Chimeway.Traces.Explanation{last_attempt: last_attempt}} =
+               Chimeway.Traces.explain_delivery(succeeded.id)
+
+      assert last_attempt.outcome == :succeeded
+      assert last_attempt.attempt_number == 3
+      assert last_attempt.error_class == nil
+    end
+  end
+
+  defp create_pending_delivery_for_traces do
+    {:ok, event} =
+      Chimeway.Repo.insert(%Chimeway.Events.Event{
+        notification_key: "traces.attempt.fields.test",
+        notification_version: 1,
+        idempotency_key: "traces-#{System.unique_integer()}",
+        payload: %{}
+      })
+
+    {:ok, notification} =
+      Chimeway.Repo.insert(%Chimeway.Notifications.Notification{
+        event_id: event.id,
+        recipient_identity: "user:#{System.unique_integer()}",
+        recipient_type: "user",
+        metadata: %{}
+      })
+
+    {:ok, delivery} =
+      %Chimeway.Delivery{}
+      |> Chimeway.Delivery.changeset(%{
+        notification_id: notification.id,
+        channel: "in_app",
+        status: :pending
+      })
+      |> Chimeway.Repo.insert()
+
+    %{event: event, notification: notification, delivery: delivery}
+  end
 end
