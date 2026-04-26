@@ -45,11 +45,11 @@ defmodule Chimeway.DeliveryAttempt do
     belongs_to(:delivery, Chimeway.Delivery)
   end
 
-  # Plan 14-02 leaves :attempt_number optional. Plan 14-04 Task 3 promotes it to
-  # @required_fields after record_attempt/2 wiring lands. Until then, existing
-  # callers that omit :attempt_number remain valid.
-  @required_fields ~w(delivery_id outcome)a
-  @optional_fields ~w(attempt_number error_class provider_response)a
+  # Plan 14-04 Task 3 promoted :attempt_number to @required_fields after
+  # Deliveries.record_attempt/2 was wired to inject the value via the
+  # :next_attempt_number Multi step (Plan 14-04 Task 2).
+  @required_fields ~w(delivery_id outcome attempt_number)a
+  @optional_fields ~w(error_class provider_response)a
 
   def changeset(attempt, attrs) do
     attempt

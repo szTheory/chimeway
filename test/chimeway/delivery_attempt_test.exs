@@ -3,9 +3,10 @@ defmodule Chimeway.DeliveryAttemptTest do
   REL-02 (Phase 14 Plan 14-02): unit tests for the DeliveryAttempt changeset extensions
   — attempt_number positive-integer validation and error_class whitelist validation.
 
-  Plan 14-02 leaves attempt_number in @optional_fields; Plan 14-04 Task 3 promotes it
-  to @required_fields after record_attempt/2 wiring lands. Until then, the changeset
-  must remain valid when attempt_number is omitted (existing callers).
+  Plan 14-04 Task 3 promoted `:attempt_number` to `@required_fields` once
+  `Deliveries.record_attempt/2` was wired to inject the value via the
+  `:next_attempt_number` Multi step. Direct-construction call sites (these unit
+  tests) now must include `attempt_number` in the base attrs.
   """
 
   use ExUnit.Case, async: true
@@ -19,13 +20,14 @@ defmodule Chimeway.DeliveryAttemptTest do
   defp valid_attrs(overrides \\ %{}) do
     %{
       delivery_id: "00000000-0000-0000-0000-000000000001",
-      outcome: :succeeded
+      outcome: :succeeded,
+      attempt_number: 1
     }
     |> Map.merge(overrides)
   end
 
   describe "changeset/2 — base contract (additive change)" do
-    test "is valid with delivery_id and outcome only (Plan 14-02 leaves attempt_number optional)" do
+    test "is valid with delivery_id, outcome, and attempt_number (Plan 14-04 Task 3 promotes attempt_number to required)" do
       changeset = DeliveryAttempt.changeset(%DeliveryAttempt{}, valid_attrs())
 
       assert changeset.valid?,
@@ -33,7 +35,9 @@ defmodule Chimeway.DeliveryAttemptTest do
     end
 
     test "requires delivery_id" do
-      changeset = DeliveryAttempt.changeset(%DeliveryAttempt{}, %{outcome: :succeeded})
+      changeset =
+        DeliveryAttempt.changeset(%DeliveryAttempt{}, %{outcome: :succeeded, attempt_number: 1})
+
       refute changeset.valid?
       assert {"can't be blank", _} = changeset.errors[:delivery_id]
     end
@@ -41,11 +45,23 @@ defmodule Chimeway.DeliveryAttemptTest do
     test "requires outcome" do
       changeset =
         DeliveryAttempt.changeset(%DeliveryAttempt{}, %{
-          delivery_id: "00000000-0000-0000-0000-000000000001"
+          delivery_id: "00000000-0000-0000-0000-000000000001",
+          attempt_number: 1
         })
 
       refute changeset.valid?
       assert {"can't be blank", _} = changeset.errors[:outcome]
+    end
+
+    test "requires attempt_number (Plan 14-04 Task 3)" do
+      changeset =
+        DeliveryAttempt.changeset(%DeliveryAttempt{}, %{
+          delivery_id: "00000000-0000-0000-0000-000000000001",
+          outcome: :succeeded
+        })
+
+      refute changeset.valid?
+      assert {"can't be blank", _} = changeset.errors[:attempt_number]
     end
 
     test "casts provider_response when present" do
@@ -147,10 +163,15 @@ defmodule Chimeway.DeliveryAttemptTest do
       assert {"must be a positive integer", _} = changeset.errors[:attempt_number]
     end
 
-    test "allows attempt_number to be omitted (Plan 14-02 leaves it optional)" do
-      changeset = DeliveryAttempt.changeset(%DeliveryAttempt{}, valid_attrs())
-      assert changeset.valid?
-      refute Ecto.Changeset.get_change(changeset, :attempt_number)
+    test "rejects omitted attempt_number with \"can't be blank\" message (Plan 14-04 Task 3)" do
+      changeset =
+        DeliveryAttempt.changeset(%DeliveryAttempt{}, %{
+          delivery_id: "00000000-0000-0000-0000-000000000001",
+          outcome: :succeeded
+        })
+
+      refute changeset.valid?
+      assert {"can't be blank", _} = changeset.errors[:attempt_number]
     end
   end
 
