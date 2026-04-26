@@ -27,7 +27,9 @@ defmodule Chimeway.DeliveryAttemptTest do
   describe "changeset/2 — base contract (additive change)" do
     test "is valid with delivery_id and outcome only (Plan 14-02 leaves attempt_number optional)" do
       changeset = DeliveryAttempt.changeset(%DeliveryAttempt{}, valid_attrs())
-      assert changeset.valid?, "expected base attrs to remain valid; errors=#{inspect(changeset.errors)}"
+
+      assert changeset.valid?,
+             "expected base attrs to remain valid; errors=#{inspect(changeset.errors)}"
     end
 
     test "requires delivery_id" do
