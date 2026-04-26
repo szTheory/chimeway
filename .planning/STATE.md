@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: complete
-stopped_at: Completed Phase 12
-last_updated: "2026-04-25T00:00:00.000Z"
-last_activity: 2026-04-25
+milestone: v1.1
+milestone_name: production-trust
+status: planning
+stopped_at: Phase 13 complete; ready for Phase 14
+last_updated: "2026-04-26T01:13:03.689Z"
+last_activity: 2026-04-26
 progress:
-  total_phases: 12
-  completed_phases: 12
-  total_plans: 29
-  completed_plans: 29
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
   percent: 100
 ---
 
@@ -20,59 +20,21 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-04-25)
 
-**Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.  
-**Current focus:** Next milestone planning
+**Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.
+**Current focus:** v1.1 planning
 
 ## Current Position
 
-Phase: 12 (oban-transactional-dispatch-consistency)
-Plan: 02
-Status: Complete
-Last activity: 2026-04-25
-
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 45
-- Average duration: 10 min
-- Total execution time: 0.9 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1 | 3 | 33 min | 11 min |
-| 2 | 3 | - | - |
-| 3 | 3 | - | - |
-| 4 | 2 | - | - |
-| 5 | 1 | - | - |
-| 01 | 3 | - | - |
-| 03 | 3 | - | - |
-| 05 | 2 | - | - |
-| 06 | 3 | - | - |
-| 07 | 3 | - | - |
-| 08 | 3 | - | - |
-| 09 | 1 | - | - |
-| 10 | 2 | 25 min | 12 min |
-| 12 | 2 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: 15 min, 10 min, 9 min, 2 min, 7 min
-- Trend: Stable
-
-*Updated after each plan completion*
-| Phase 10 P01 | 15m | 4 tasks | 4 files |
-| Phase 10 P02 | 10m | 3 tasks | 7 files |
+Phase: 13 complete
+Plan: 03 complete
+Status: Ready for next phase
+Last activity: 2026-04-26 — Phase 13 completed
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.  
+Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [Init]: Persist stable `notification_key` + version for durable identity.
@@ -86,6 +48,10 @@ Recent decisions affecting current work:
 - [11-01]: Resolve channel adapter configs without creating atoms from runtime channel strings.
 - [11-01]: Keep explainability surfaces string-safe for valid custom channels.
 - [12-01]: Make Oban planning and enqueueing transactionally consistent.
+- Store category preferences in a separate durable table keyed by recipient and notification_category.
+- Use one policy-settings row per recipient for quiet hours and delivery caps.
+- Evaluate category rules first, then quiet-hours/delivery-cap settings, then existing read-state suppression.
+- Count prior deliveries in the configured cap window to enforce delivery caps without runtime atoms or caller input.
 
 ### Pending Todos
 
@@ -95,18 +61,14 @@ None.
 
 None.
 
-## Deferred Items
+### Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+None.
 
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| *(none)* | | | |
+### Session Continuity
 
-## Session Continuity
-
-Last session: 2026-04-25T00:00:00.000Z
-Stopped at: Completed Phase 12
+Last session: 2026-04-26T01:13:03.673Z
+Stopped at: Completed 13-policy-preference-maturity plan set
 Resume file: None
 
-**Planned Phase:** None
+**Planned Phase:** 14
