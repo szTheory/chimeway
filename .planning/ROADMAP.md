@@ -44,7 +44,7 @@ Plans: 8
 
 Plan list:
 - [x] 14-01-PLAN.md — Wave 0: Scaffold reliability test files (skipped placeholders)
-- [ ] 14-02-PLAN.md — Migration + DeliveryAttempt schema (attempt_number, error_class)
+- [x] 14-02-PLAN.md — Migration + DeliveryAttempt schema (attempt_number, error_class)
 - [ ] 14-03-PLAN.md — Promote terminal_states/0 + add Deliveries.exhaust_delivery/1
 - [ ] 14-04-PLAN.md — Executor.classify/1 3-tuple + record_attempt/2 sync convergence
 - [ ] 14-05-PLAN.md — ObanWorker retry contract + Traces field surfacing
