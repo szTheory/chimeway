@@ -7,6 +7,7 @@ defmodule Chimeway.Deliveries do
   """
 
   import Ecto.Changeset, only: [change: 2]
+  import Ecto.Query, only: [from: 2]
 
   alias Chimeway.{Delivery, DeliveryAttempt, Repo}
   alias Chimeway.Telemetry
@@ -193,8 +194,27 @@ defmodule Chimeway.Deliveries do
 
   @doc """
   Atomically inserts an attempt row and transitions the delivery status.
-  Returns {:ok, %{delivery: updated_delivery, attempt: attempt}} on success.
-  Returns {:error, step, reason, changes} if any step fails (both operations roll back).
+
+  Returns `{:ok, %{delivery: updated_delivery, attempt: attempt}}` on success, or
+  `{:error, step, reason, changes}` if any step fails (both operations roll back).
+
+  ## Phase 14 contract additions
+
+  - Acquires a `SELECT ... FOR UPDATE` row lock on the delivery via the
+    `:lock_delivery` Multi step BEFORE computing `attempt_number` (W8 preemptive
+    fix). This serializes concurrent `record_attempt/2` callers for the same
+    delivery and makes `attempt_number` contiguity invariant under concurrent
+    execution. The `pending -> dispatched` transition that
+    `Executor.run_delivery/1` performs BEFORE calling this function is a secondary
+    serialization layer.
+  - Computes `attempt_number` inside the Multi via the `:next_attempt_number` step
+    (RESEARCH Pattern 4).
+  - Routes `error_class` permanent/bounced outcomes to `:cancelled` with the
+    appropriate `suppression_reason` inside the same transaction (RESEARCH
+    Pitfall 2). This makes sync and Oban paths converge on a terminal state
+    without forking — sync gains REL-03 convergence automatically.
+  - Telemetry stop metadata now includes `attempt_number` and `error_class`,
+    preserving the Phase 10 correlation_id/notification_key keys.
   """
   @spec record_attempt(Delivery.t(), map()) ::
           {:ok, %{delivery: Delivery.t(), attempt: DeliveryAttempt.t()}}
@@ -209,13 +229,7 @@ defmodule Chimeway.Deliveries do
       }),
       fn ->
         outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
-
-        delivery_status =
-          case outcome do
-            :succeeded -> :succeeded
-            "succeeded" -> :succeeded
-            _ -> :failed
-          end
+        error_class = Map.get(attrs, :error_class) || Map.get(attrs, "error_class")
 
         safe_attrs =
           attrs
@@ -224,9 +238,31 @@ defmodule Chimeway.Deliveries do
 
         result =
           Multi.new()
-          |> Multi.insert(:attempt, DeliveryAttempt.changeset(%DeliveryAttempt{}, safe_attrs))
+          |> Multi.run(:lock_delivery, fn repo, _changes ->
+            # W8 preemptive fix: SELECT FOR UPDATE serializes concurrent
+            # record_attempt/2 callers for the same delivery_id. With this lock,
+            # attempt_number contiguity is invariant under concurrent execution.
+            case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
+              nil -> {:error, :delivery_not_found}
+              locked -> {:ok, locked}
+            end
+          end)
+          |> Multi.run(:next_attempt_number, fn repo, _changes ->
+            next_n =
+              from(a in DeliveryAttempt,
+                where: a.delivery_id == ^delivery.id,
+                select: count(a.id)
+              )
+              |> repo.one()
+              |> Kernel.+(1)
+
+            {:ok, next_n}
+          end)
+          |> Multi.insert(:attempt, fn %{next_attempt_number: n} ->
+            DeliveryAttempt.changeset(%DeliveryAttempt{}, Map.put(safe_attrs, :attempt_number, n))
+          end)
           |> Multi.run(:delivery, fn _repo, _changes ->
-            transition_status(delivery, delivery_status)
+            terminal_or_failed_transition(delivery, outcome, error_class)
           end)
           |> Repo.transaction()
           |> case do
@@ -240,7 +276,12 @@ defmodule Chimeway.Deliveries do
         extra =
           case result do
             {:ok, %{attempt: attempt}} ->
-              Telemetry.safe_meta(%{attempt_id: attempt.id, outcome: attempt.outcome})
+              Telemetry.safe_meta(%{
+                attempt_id: attempt.id,
+                outcome: attempt.outcome,
+                attempt_number: attempt.attempt_number,
+                error_class: attempt.error_class
+              })
 
             _ ->
               %{}
@@ -249,6 +290,44 @@ defmodule Chimeway.Deliveries do
         {result, extra}
       end
     )
+  end
+
+  # Maps outcome + error_class to the next delivery status. Permanent/bounced go
+  # straight to :cancelled (sync and Oban both converge here). Temporary stays at
+  # :failed so Oban can retry. Succeeded transitions normally.
+  defp terminal_or_failed_transition(delivery, :succeeded, _error_class),
+    do: transition_status(delivery, :succeeded)
+
+  defp terminal_or_failed_transition(delivery, "succeeded", _error_class),
+    do: transition_status(delivery, :succeeded)
+
+  defp terminal_or_failed_transition(delivery, _outcome, "permanent"),
+    do: cancel_with_reason(delivery, "permanent_failure")
+
+  defp terminal_or_failed_transition(delivery, _outcome, "bounced"),
+    do: cancel_with_reason(delivery, "bounced")
+
+  defp terminal_or_failed_transition(delivery, _outcome, _error_class),
+    do: transition_status(delivery, :failed)
+
+  # Direct cancel write for permanent/bounced terminal convergence.
+  # Bypasses @allowed_transitions because dispatched -> :cancelled is not in the
+  # table; mirrors the suppress_delivery/3 + exhaust_delivery/1 named-helper idiom.
+  # The explicit suppression_reason ("permanent_failure" or "bounced") is the
+  # durable explanation operators see in traces.
+  defp cancel_with_reason(%Delivery{} = delivery, reason) when is_binary(reason) do
+    metadata =
+      delivery.metadata
+      |> ensure_metadata_map()
+      |> Map.put("policy_checkpoint", "perform")
+
+    delivery
+    |> change(
+      status: :cancelled,
+      suppression_reason: reason,
+      metadata: metadata
+    )
+    |> Repo.update()
   end
 
   @sensitive_keys ~w(password token secret)
