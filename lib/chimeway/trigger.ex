@@ -1,6 +1,23 @@
 defmodule Chimeway.Trigger do
   @moduledoc """
   Orchestrates notifier triggering with deterministic recipient normalization.
+
+  ## Duplicate-trigger contract (Phase 14 / D-03)
+
+  When `trigger/3` returns `{:duplicate, event}`, `dispatch_after_trigger/4` is INERT
+  — it does NOT re-drive dispatch for the existing event. This means:
+
+  - No new Oban jobs are enqueued.
+  - No additional `Chimeway.Delivery` rows are planned.
+  - The pre-existing pending deliveries from the first trigger remain in their
+    current state (whether already-dispatched, retrying, or terminal).
+
+  If a host application crashes between event-insert commit and the dispatcher being
+  called, deliveries from that aborted trigger ARE NOT recovered by a subsequent
+  re-fire. Recovery for that scenario is explicitly deferred to a future operability
+  phase. Operators investigating "why wasn't this delivered after a duplicate
+  trigger?" should look at the original event's deliveries via
+  `Chimeway.Traces.get_trace/1`, not at the duplicate.
   """
 
   require Logger
@@ -272,6 +289,14 @@ defmodule Chimeway.Trigger do
     )
   end
 
+  # Dispatch after the trigger transaction commits.
+  #
+  # D-03 contract: this function returns its input unchanged on `{:duplicate, event}`
+  # via the catch-all clause below. The duplicate path is INTENTIONALLY inert — do
+  # NOT add a "resume dispatch on duplicate" path here. That scenario (host crashed
+  # between event-insert commit and dispatcher invocation) is deferred to a future
+  # operability/recovery phase. See @moduledoc § "Duplicate-trigger contract" for
+  # the rationale.
   defp dispatch_after_trigger({:ok, %{event: event} = trigger_result}, notifier, params, opts) do
     dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     notifications = Repo.all(from(n in Notification, where: n.event_id == ^event.id))
@@ -302,6 +327,7 @@ defmodule Chimeway.Trigger do
     end
   end
 
+  # D-03 catch-all: returns {:duplicate, event} | {:error, _} unchanged. Inert by design.
   defp dispatch_after_trigger(result, _notifier, _params, _opts), do: result
 
   defp dispatch_mode_for(Chimeway.Dispatch.Sync), do: :sync
