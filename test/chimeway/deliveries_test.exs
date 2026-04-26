@@ -151,6 +151,96 @@ defmodule Chimeway.DeliveriesTest do
       assert {:error, {:invalid_transition, from: :succeeded, to: :dispatched}} =
                Deliveries.transition_status(succeeded, :dispatched)
     end
+
+    test "rejects general-path failed → cancelled (reserved for exhaust_delivery/1)", %{
+      notification: notification
+    } do
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+      {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
+
+      assert {:error, {:invalid_transition, from: :failed, to: :cancelled}} =
+               Deliveries.transition_status(failed, :cancelled)
+    end
+  end
+
+  # ---- terminal_states/0 ----
+
+  describe "terminal_states/0" do
+    test "returns the canonical terminal-state list" do
+      assert Deliveries.terminal_states() == [:succeeded, :suppressed, :cancelled]
+    end
+  end
+
+  # ---- exhaust_delivery/1 ----
+
+  describe "exhaust_delivery/1" do
+    setup :insert_notification
+
+    test "transitions :failed → :cancelled with retries_exhausted suppression_reason", %{
+      notification: notification
+    } do
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+      {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
+
+      assert {:ok, exhausted} = Deliveries.exhaust_delivery(failed)
+      assert exhausted.status == :cancelled
+      assert exhausted.suppression_reason == "retries_exhausted"
+    end
+
+    test "records policy_checkpoint=\"perform\" in metadata", %{notification: notification} do
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+      {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
+
+      {:ok, exhausted} = Deliveries.exhaust_delivery(failed)
+      assert exhausted.metadata["policy_checkpoint"] == "perform"
+    end
+
+    test "rejects exhaust from :pending", %{notification: notification} do
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+
+      assert {:error, {:invalid_exhaust_from, :pending}} =
+               Deliveries.exhaust_delivery(delivery)
+    end
+
+    test "rejects exhaust from :succeeded", %{notification: notification} do
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+      {:ok, succeeded} = Deliveries.transition_status(dispatched, :succeeded)
+
+      assert {:error, {:invalid_exhaust_from, :succeeded}} =
+               Deliveries.exhaust_delivery(succeeded)
+    end
+
+    test "rejects exhaust from :dispatched", %{notification: notification} do
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+
+      assert {:error, {:invalid_exhaust_from, :dispatched}} =
+               Deliveries.exhaust_delivery(dispatched)
+    end
+
+    test "preserves prior metadata keys (Phase 10 correlation_id/event_id)", %{
+      notification: notification
+    } do
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :in_app,
+          correlation_id: "corr-123",
+          event_id: "evt-456",
+          notification_key: "test.notification"
+        )
+
+      {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+      {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
+
+      {:ok, exhausted} = Deliveries.exhaust_delivery(failed)
+      assert exhausted.metadata["correlation_id"] == "corr-123"
+      assert exhausted.metadata["event_id"] == "evt-456"
+      assert exhausted.metadata["notification_key"] == "test.notification"
+      assert exhausted.metadata["policy_checkpoint"] == "perform"
+    end
   end
 
   # ---- record_attempt/2 ----
