@@ -8,6 +8,16 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.
 
+## Current Milestone: v1.1 Production Trust
+
+**Goal:** Make Chimeway trustworthy enough for real production use by tightening policy behavior, delivery reliability, observability, and integration seams.
+
+**Target features:**
+- Explicit policy and preference controls that suppress before enqueue and before perform.
+- Durable reliability and final-state tracking across retries, duplicates, and failures.
+- End-to-end observability and support surfaces with safe redaction.
+- Documented, contract-tested integration seams for host apps and adapters.
+
 ## Requirements
 
 ### Validated
@@ -27,15 +37,17 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ### Active
 
-All v1.0 requirements are validated. Milestone completion is next.
+- [ ] Policy and preference controls are explicit and explainable.
+- [x] Delivery retries, duplicates, and failures resolve to durable final states. *(Validated in Phase 14: delivery-reliability-hardening)*
+- [ ] Operators can trace and inspect lifecycle outcomes without leaking sensitive payloads.
+- [ ] Host apps get a documented, contract-tested integration path.
 
 ## Current State
 
-Phase 12 is complete. v1.0 is shipped and archived. All v1.0 requirements are validated. Oban dispatch is transactionally consistent, channel adapter resolution is hardened, telemetry correlation is enriched, and the repository is ready for next milestone planning.
+Phase 14 complete. Delivery reliability hardening done — retries converge, duplicates are inert, every delivery reaches a durable terminal state with full attempt history. Phase 15 (Observability & Supportability) is next.
 
-## Next Milestone Goals
+## Milestone Notes
 
-- Define fresh v1.1 scope with `/gsd-new-milestone`.
 - Keep durable identity, explainability, and adapter seams as non-negotiable baseline constraints.
 - Triage the orphaned helper and incomplete Nyquist validation coverage as carry-forward tech debt.
 
@@ -57,6 +69,7 @@ Prior context includes:
 - Engineering DNA from sibling OSS libraries: strict CI, verification entrypoints, contract tests, and release hygiene.
 - Operator IA intent centered on timeline tracing, redaction, and support-friendly debugging.
 - Host-app integration seam guidance for auth, tenancy, URL generation, and correlation IDs.
+- The shipped v1.0 milestone established the durable spine, policy checkpoints, telemetry correlation, safe adapter resolution, and transactional Oban dispatch as the baseline to build from.
 
 ## Constraints
 
@@ -66,7 +79,7 @@ Prior context includes:
 - **Composability**: Channel/provider integrations must use replaceable adapter behaviours — avoid hard vendor lock-in.
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
-- **Scope**: v0.1 should prove the durable spine and one vertical channel slice before broad channel matrix expansion.
+- **Scope**: v1.1 should prove production trust and one mature vertical slice before broad channel matrix expansion.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -101,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-25 after v1.0 milestone archive*
+*Last updated: 2026-04-25 after v1.1 milestone start*
