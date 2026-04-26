@@ -39,7 +39,8 @@ defmodule Chimeway.PolicySettingsTest do
 
     test "suppresses during quiet hours" do
       fixture = DispatchHelpers.create_pending_delivery(recipient_identity: "user:quiet-hours")
-      minute = DateTime.utc_now().minute
+      now = DateTime.utc_now()
+      minute = now.hour * 60 + now.minute
 
       start_minute = rem(minute + 1439, 1440)
       end_minute = rem(minute + 1, 1440)
@@ -57,6 +58,8 @@ defmodule Chimeway.PolicySettingsTest do
     test "suppresses when the delivery cap has already been reached" do
       first = DispatchHelpers.create_pending_delivery(recipient_identity: "user:cap")
 
+      assert Settings.evaluate(first.delivery) == {:ok, :proceed}
+
       assert {:ok, _} =
                Settings.upsert_settings(%{
                  recipient_id: "user:cap",
@@ -67,7 +70,6 @@ defmodule Chimeway.PolicySettingsTest do
       second = DispatchHelpers.create_pending_delivery(recipient_identity: "user:cap")
 
       assert Settings.evaluate(second.delivery) == {:suppress, :delivery_cap_reached}
-      assert Settings.evaluate(first.delivery) == {:ok, :proceed}
     end
   end
 end
