@@ -148,7 +148,10 @@ defmodule Chimeway.Traces do
   defp last_attempt_summary([]), do: nil
 
   defp last_attempt_summary(attempts) do
-    last = Enum.max_by(attempts, & &1.inserted_at, DateTime)
+    # Order by canonical attempt_number ordinal (REL-02 D-07). inserted_at can
+    # truncate to second precision in some Postgres configs, making max_by/3 by
+    # inserted_at non-deterministic for adjacent attempts.
+    last = Enum.max_by(attempts, & &1.attempt_number)
 
     %{
       outcome: last.outcome,
@@ -192,6 +195,23 @@ defmodule Chimeway.Traces do
         []
       end
 
+    cancellation_entries =
+      if delivery.status == :cancelled and delivery.suppression_reason do
+        [
+          %{
+            at: delivery.updated_at,
+            event: :cancelled,
+            detail: %{
+              reason: delivery.suppression_reason,
+              policy_checkpoint:
+                Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+            }
+          }
+        ]
+      else
+        []
+      end
+
     attempt_entries =
       Enum.map(attempts, fn attempt ->
         %{
@@ -205,7 +225,7 @@ defmodule Chimeway.Traces do
         }
       end)
 
-    (base ++ suppression_entries ++ attempt_entries)
+    (base ++ suppression_entries ++ cancellation_entries ++ attempt_entries)
     |> Enum.sort_by(& &1.at, DateTime)
   end
 end
