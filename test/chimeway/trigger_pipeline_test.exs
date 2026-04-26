@@ -148,7 +148,11 @@ defmodule Chimeway.TriggerPipelineTest do
     notifications =
       Repo.all(from(n in Notification, where: n.event_id == ^result.event.id, select: n.id))
 
-    assert Repo.aggregate(from(d in Delivery, where: d.notification_id in ^notifications), :count, :id) ==
+    assert Repo.aggregate(
+             from(d in Delivery, where: d.notification_id in ^notifications),
+             :count,
+             :id
+           ) ==
              3
 
     channels =

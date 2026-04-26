@@ -7,7 +7,14 @@ defmodule Chimeway.Dispatch.ObanTransactionalTest do
 
   import Chimeway.Test.DispatchHelpers
 
-  alias Chimeway.{Delivery, DeliveryPlanning, Dispatch.Oban, Dispatch.ObanWorker, Dispatch.Sync, Repo}
+  alias Chimeway.{
+    Delivery,
+    DeliveryPlanning,
+    Dispatch.Oban,
+    Dispatch.ObanWorker,
+    Dispatch.Sync,
+    Repo
+  }
 
   setup do
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
@@ -83,7 +90,8 @@ defmodule Chimeway.Dispatch.ObanTransactionalTest do
           end
         end)
 
-      assert {:error, :fail_enqueue, :simulated_enqueue_failure, _changes} = Repo.transaction(multi)
+      assert {:error, :fail_enqueue, :simulated_enqueue_failure, _changes} =
+               Repo.transaction(multi)
 
       delivery_count =
         Repo.aggregate(

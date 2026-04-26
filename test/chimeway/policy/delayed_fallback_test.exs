@@ -3,7 +3,10 @@ defmodule ChimewayTest.Notifiers.InvalidDelayedFallbackSubset do
 
   def notification_key, do: "test.policy.invalid_delayed_fallback_subset"
   def version, do: 1
-  def recipients(_params), do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+
+  def recipients(_params),
+    do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+
   def build(_params, _recipient), do: {:ok, %{title: "Invalid delayed fallback subset"}}
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
   def delayed_fallback_channels(_params, _recipient), do: {:ok, [:sms]}
@@ -14,7 +17,10 @@ defmodule ChimewayTest.Notifiers.InvalidDelayedFallbackInApp do
 
   def notification_key, do: "test.policy.invalid_delayed_fallback_in_app"
   def version, do: 1
-  def recipients(_params), do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+
+  def recipients(_params),
+    do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+
   def build(_params, _recipient), do: {:ok, %{title: "Invalid delayed fallback in_app"}}
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
   def delayed_fallback_channels(_params, _recipient), do: {:ok, [:in_app]}
@@ -25,7 +31,10 @@ defmodule ChimewayTest.Notifiers.ValidDelayedFallbackSubset do
 
   def notification_key, do: "test.policy.valid_delayed_fallback_subset"
   def version, do: 1
-  def recipients(_params), do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+
+  def recipients(_params),
+    do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
+
   def build(_params, _recipient), do: {:ok, %{title: "Valid delayed fallback subset"}}
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
   def delayed_fallback_channels(_params, _recipient), do: {:ok, [:email]}

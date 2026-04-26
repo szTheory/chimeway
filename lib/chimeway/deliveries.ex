@@ -163,7 +163,11 @@ defmodule Chimeway.Deliveries do
   def record_attempt(%Delivery{} = delivery, attrs) do
     Telemetry.span(
       [:attempts, :record],
-      Telemetry.safe_meta(%{delivery_id: delivery.id}),
+      Telemetry.safe_meta(%{
+        delivery_id: delivery.id,
+        channel: delivery.channel,
+        notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+      }),
       fn ->
         outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
 

@@ -34,16 +34,34 @@ defmodule Chimeway.DeliveryPlanning do
     with {:ok, channels} <- resolve_channels(notification, opts),
          {:ok, delayed_fallback_channels, delayed_fallback_source} <-
            resolve_delayed_fallback_channels(notification, channels, opts) do
-      plan_channels(notification, channels, delayed_fallback_channels, delayed_fallback_source, opts)
+      plan_channels(
+        notification,
+        channels,
+        delayed_fallback_channels,
+        delayed_fallback_source,
+        opts
+      )
     end
   end
 
-  defp plan_channels(notification, channels, delayed_fallback_channels, delayed_fallback_source, opts) do
+  defp plan_channels(
+         notification,
+         channels,
+         delayed_fallback_channels,
+         delayed_fallback_source,
+         opts
+       ) do
     delayed_fallback_set = MapSet.new(delayed_fallback_channels)
 
     channels
     |> Enum.reduce_while({:ok, []}, fn channel, {:ok, acc} ->
-      case plan_one_channel(notification, channel, delayed_fallback_set, delayed_fallback_source, opts) do
+      case plan_one_channel(
+             notification,
+             channel,
+             delayed_fallback_set,
+             delayed_fallback_source,
+             opts
+           ) do
         {:ok, planned_delivery} -> {:cont, {:ok, [planned_delivery | acc]}}
         {:error, _reason} = error -> {:halt, error}
       end
@@ -54,7 +72,13 @@ defmodule Chimeway.DeliveryPlanning do
     end
   end
 
-  defp plan_one_channel(notification, channel, delayed_fallback_set, delayed_fallback_source, opts) do
+  defp plan_one_channel(
+         notification,
+         channel,
+         delayed_fallback_set,
+         delayed_fallback_source,
+         opts
+       ) do
     delay_fallback = MapSet.member?(delayed_fallback_set, channel)
     source = delayed_fallback_source_for(channel, delayed_fallback_set, delayed_fallback_source)
 

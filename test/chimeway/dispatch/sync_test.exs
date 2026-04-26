@@ -165,6 +165,7 @@ defmodule Chimeway.Dispatch.SyncTest do
       DispatchHelpers.disable_channel_preference(fixture, :in_app)
 
       assert {:ok, [{:ok, delivery}]} = Sync.dispatch([fixture.notification], [])
+
       assert DispatchHelpers.delivery_signature(delivery) == %{
                status: :suppressed,
                suppression_reason: "channel_disabled",
@@ -211,6 +212,7 @@ defmodule Chimeway.Dispatch.SyncTest do
       DispatchHelpers.mark_notification_read(fixture)
 
       assert {:ok, [{:ok, delivery}]} = Sync.dispatch([fixture.notification], [])
+
       assert DispatchHelpers.delivery_signature(delivery) ==
                DispatchHelpers.already_read_suppression_signature()
 
