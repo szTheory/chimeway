@@ -105,45 +105,73 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
     end
   end
 
-  describe "adapter error path and retry" do
-    test "transitions delivery to :failed when adapter returns temporary error" do
+  describe "adapter error path and retry (REL-02 D-04 / D-13 rewrite)" do
+    test "transient failure on attempt 1 returns {:error, _} so Oban schedules retry" do
       Application.put_env(:chimeway, :adapter, Chimeway.Test.ObanWorkerFailingAdapter)
       %{delivery: delivery} = create_pending_delivery()
 
-      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
+      assert {:error, _reason} =
+               perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 1)
 
       updated = Deliveries.get_delivery!(delivery.id)
       assert updated.status == :failed
+      assert updated.suppression_reason == nil
+      refute updated.status in Deliveries.terminal_states()
 
-      attempts =
-        Repo.all(from(attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id))
-
-      assert length(attempts) == 1
-      assert hd(attempts).outcome == :failed
+      [attempt] = Repo.all(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
+      assert attempt.outcome == :failed
+      assert attempt.error_class == "temporary"
+      assert attempt.attempt_number == 1
     after
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     end
 
-    test "retries failed delivery and succeeds with two attempts" do
+    test "succeeded retry: subsequent attempt with healthy adapter completes the delivery" do
       Application.put_env(:chimeway, :adapter, Chimeway.Test.ObanWorkerFailingAdapter)
       %{delivery: delivery} = create_pending_delivery()
 
-      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
+      # Attempt 1 fails with temporary, returns {:error, _}.
+      assert {:error, _} = perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 1)
       assert Deliveries.get_delivery!(delivery.id).status == :failed
 
+      # Adapter recovers; attempt 2 succeeds.
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
-      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
+      Chimeway.Adapters.Test.clear()
+      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 2)
 
       updated = Deliveries.get_delivery!(delivery.id)
       assert updated.status == :succeeded
+      assert updated.status in Deliveries.terminal_states()
 
       attempt_count =
         Repo.aggregate(
-          from(attempt in DeliveryAttempt, where: attempt.delivery_id == ^delivery.id),
-          :count
+          from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id),
+          :count,
+          :id
         )
 
       assert attempt_count == 2
+    after
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+    end
+
+    test "exhaustion on final attempt writes :cancelled retries_exhausted and returns :ok (Pitfall 1)" do
+      Application.put_env(:chimeway, :adapter, Chimeway.Test.ObanWorkerFailingAdapter)
+      %{delivery: delivery} = create_pending_delivery()
+
+      # Attempts 1..4 fail and return {:error, _}.
+      for n <- 1..4 do
+        assert {:error, _} = perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: n)
+      end
+
+      # Attempt 5 == max_attempts: in-band exhaustion guard writes :cancelled retries_exhausted
+      # then returns :ok so Oban marks the job :completed (not :discarded).
+      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 5)
+
+      updated = Deliveries.get_delivery!(delivery.id)
+      assert updated.status == :cancelled
+      assert updated.suppression_reason == "retries_exhausted"
+      assert updated.status in Deliveries.terminal_states()
     after
       Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     end
