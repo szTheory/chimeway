@@ -247,10 +247,10 @@ defmodule Chimeway.Deliveries do
               locked -> {:ok, locked}
             end
           end)
-          |> Multi.run(:next_attempt_number, fn repo, _changes ->
+          |> Multi.run(:next_attempt_number, fn repo, %{lock_delivery: locked} ->
             next_n =
               from(a in DeliveryAttempt,
-                where: a.delivery_id == ^delivery.id,
+                where: a.delivery_id == ^locked.id,
                 select: count(a.id)
               )
               |> repo.one()
@@ -258,11 +258,16 @@ defmodule Chimeway.Deliveries do
 
             {:ok, next_n}
           end)
-          |> Multi.insert(:attempt, fn %{next_attempt_number: n} ->
-            DeliveryAttempt.changeset(%DeliveryAttempt{}, Map.put(safe_attrs, :attempt_number, n))
+          |> Multi.insert(:attempt, fn %{next_attempt_number: n, lock_delivery: locked} ->
+            attempt_attrs =
+              safe_attrs
+              |> Map.put(:delivery_id, locked.id)
+              |> Map.put(:attempt_number, n)
+
+            DeliveryAttempt.changeset(%DeliveryAttempt{}, attempt_attrs)
           end)
-          |> Multi.run(:delivery, fn _repo, _changes ->
-            terminal_or_failed_transition(delivery, outcome, error_class)
+          |> Multi.run(:delivery, fn _repo, %{lock_delivery: locked} ->
+            terminal_or_failed_transition(locked, outcome, error_class)
           end)
           |> Repo.transaction()
           |> case do

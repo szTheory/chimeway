@@ -258,4 +258,75 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
 
   defp restore_env(key, nil), do: Application.delete_env(:chimeway, key)
   defp restore_env(key, value), do: Application.put_env(:chimeway, key, value)
+
+  describe "map_outcome_to_oban_return/4 catch-all (BL-02 regression)" do
+    defmodule UnexpectedAdapter do
+      @moduledoc false
+      @behaviour Chimeway.Adapter
+
+      @impl true
+      def deliver(_delivery, _config), do: {:error, :throttled, %{reason: "rate limit hit"}}
+    end
+
+    setup do
+      prior = Application.get_env(:chimeway, :adapter)
+      Application.put_env(:chimeway, :adapter, UnexpectedAdapter)
+      on_exit(fn -> Application.put_env(:chimeway, :adapter, prior) end)
+      :ok
+    end
+
+    test "branch A: converges via exhaust_delivery/1 on final attempt with :failed delivery" do
+      %{delivery: delivery} = create_pending_delivery()
+
+      assert :ok =
+               perform_job(ObanWorker, %{"delivery_id" => delivery.id},
+                 attempt: 5,
+                 max_attempts: 5
+               )
+
+      reloaded = Deliveries.get_delivery!(delivery.id)
+      assert reloaded.status == :cancelled
+      assert reloaded.suppression_reason == "retries_exhausted"
+      assert reloaded.status in Deliveries.terminal_states()
+
+      # An attempt row was recorded with the unknown-classification shape
+      attempts = Repo.all(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
+      assert length(attempts) == 1
+      [%DeliveryAttempt{outcome: outcome, error_class: error_class}] = attempts
+      assert outcome == :rejected
+      assert error_class == "unknown_classification"
+    end
+
+    test "branch B: raises UnhandledOutcomeError on non-final attempt with unexpected outcome shape" do
+      %{delivery: delivery} = create_pending_delivery()
+
+      assert_raise Chimeway.Dispatch.UnhandledOutcomeError, fn ->
+        perform_job(ObanWorker, %{"delivery_id" => delivery.id},
+          attempt: 1,
+          max_attempts: 5
+        )
+      end
+
+      # W6 fix: assert the DeliveryAttempt row was persisted BEFORE the raise.
+      # Without this, the test would also pass if the worker raised before
+      # record_attempt ran — silently masking a regression that breaks the
+      # invariant "every adapter call produces an attempt row regardless of
+      # downstream worker behavior". The `from` macro is in scope via
+      # `import Ecto.Query` at the top of the test file (verify if missing).
+      attempts =
+        Repo.all(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
+
+      assert length(attempts) == 1
+      assert hd(attempts).outcome == :rejected
+      assert hd(attempts).error_class == "unknown_classification"
+
+      # The attempt row exists; delivery is :failed (terminal_or_failed_transition's
+      # catch-all clause writes :failed for unknown error_class). NOT terminal — the raise
+      # signals the contract violation; convergence happens on a future final attempt or
+      # via operator action.
+      reloaded = Deliveries.get_delivery!(delivery.id)
+      assert reloaded.status == :failed
+      refute reloaded.status in Deliveries.terminal_states()
+    end
+  end
 end

@@ -25,12 +25,13 @@ defmodule Chimeway.DeliveryAttempt do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
-  @error_classes ~w(temporary permanent bounced)
+  @error_classes ~w(temporary permanent bounced unknown_classification)
 
   @doc """
   Returns the canonical list of allowed error_class string values.
   Used by `Chimeway.Dispatch.Executor.classify/1` to validate that the dispatcher
-  only emits whitelisted classifications.
+  only emits whitelisted classifications. `"unknown_classification"` is the BL-02
+  fallback value emitted by `classify/1` for unexpected adapter return shapes.
   """
   @spec error_classes() :: [String.t()]
   def error_classes, do: @error_classes

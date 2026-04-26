@@ -50,4 +50,13 @@ defmodule Chimeway.Dispatch.Executor do
   defp classify({:error, :temporary, detail}), do: {:failed, "temporary", detail}
   defp classify({:error, :permanent, detail}), do: {:rejected, "permanent", detail}
   defp classify({:error, :bounced, detail}), do: {:bounced, "bounced", detail}
+
+  # Fallback for unexpected adapter return shapes (BL-02 fix). Routes the unknown
+  # tuple through the executor write path so it lands a DeliveryAttempt row and
+  # transitions the delivery to :failed (terminal_or_failed_transition's catch-all
+  # clause). The Oban worker's map_outcome_to_oban_return/4 catch-all then converges
+  # or raises depending on attempt budget and status (oban_worker.ex).
+  defp classify(other) do
+    {:rejected, "unknown_classification", {:unknown_adapter_return, other}}
+  end
 end
