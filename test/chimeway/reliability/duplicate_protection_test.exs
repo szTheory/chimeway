@@ -243,4 +243,106 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
       refute_enqueued(worker: ObanWorker)
     end
   end
+
+  # ----- D-14a: concurrent re-fires of same trigger -----
+
+  describe "concurrent re-fires of same trigger (D-14a)" do
+    test "10 concurrent triggers with same idempotency_key produce one canonical event row" do
+      parent = self()
+
+      results =
+        1..10
+        |> Task.async_stream(
+          fn _attempt ->
+            Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
+
+            Trigger.trigger(
+              IdempotentNotifier,
+              %{"body" => "hello"},
+              idempotency_key: "rel01-d14a-concurrent"
+            )
+          end,
+          ordered: false,
+          max_concurrency: 10,
+          timeout: 15_000
+        )
+        |> Enum.map(fn {:ok, result} -> result end)
+
+      assert Enum.count(results, &match?({:ok, _payload}, &1)) == 1
+      assert Enum.count(results, &match?({:duplicate, %Event{}}, &1)) == 9
+      assert Repo.aggregate(Event, :count, :id) == 1
+      assert Repo.aggregate(Notification, :count, :id) == 1
+    end
+  end
+
+  # ----- D-14b: concurrent plan_notifications/2 for same event -----
+
+  describe "concurrent plan_notifications/2 (D-14b)" do
+    test "concurrent planning for the same event produces no duplicate deliveries" do
+      ctx = create_notification()
+      parent = self()
+
+      results =
+        1..10
+        |> Task.async_stream(
+          fn _attempt ->
+            Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
+            DeliveryPlanning.plan_notifications([ctx.notification], [])
+          end,
+          ordered: false,
+          max_concurrency: 10,
+          timeout: 15_000
+        )
+        |> Enum.map(fn {:ok, result} -> result end)
+
+      assert Enum.all?(results, &match?({:ok, [%Delivery{}]}, &1))
+
+      delivery_count =
+        Repo.aggregate(
+          from(d in Delivery, where: d.notification_id == ^ctx.notification.id),
+          :count,
+          :id
+        )
+
+      assert delivery_count == 1
+    end
+  end
+
+  # ----- D-14c: concurrent dispatch re-entry against terminal delivery -----
+
+  describe "concurrent dispatch re-entry against terminal delivery (D-14c)" do
+    test "10 concurrent perform_job calls on a :cancelled delivery record no extra attempts" do
+      %{delivery: delivery} = create_pending_delivery()
+      {:ok, _cancelled} = Deliveries.transition_status(delivery, :cancelled)
+      assert Deliveries.get_delivery!(delivery.id).status in Deliveries.terminal_states()
+
+      Chimeway.Adapters.Test.clear()
+      parent = self()
+
+      results =
+        1..10
+        |> Task.async_stream(
+          fn _attempt ->
+            Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
+            perform_job(ObanWorker, %{delivery_id: delivery.id})
+          end,
+          ordered: false,
+          max_concurrency: 10,
+          timeout: 15_000
+        )
+        |> Enum.map(fn {:ok, result} -> result end)
+
+      assert Enum.all?(results, &(&1 == :ok))
+      assert Chimeway.Adapters.Test.delivered_messages() == []
+
+      attempt_count =
+        Repo.aggregate(
+          from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id),
+          :count,
+          :id
+        )
+
+      assert attempt_count == 0
+    end
+  end
 end
