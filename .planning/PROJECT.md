@@ -19,18 +19,25 @@ Every notification decision is explainable, so teams can reliably answer why a n
 - [x] Applications have explicit policy evaluation before enqueue and before perform for late suppression (preferences, quiet hours, caps, consent). *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
 - [x] Developers can trigger one domain event that fans out to many recipients and channels with durable event, notification, delivery, and attempt records. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
 - [x] Chimeway enforces idempotency across event creation and delivery planning to prevent duplicate sends. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
-- [x] Operators can inspect an end-to-end trace and answer "why wasn't this sent?" from first-class data. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
-- [x] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
+- [x] Operators can inspect an end-to-end trace and answer "why wasn't this sent?" from first-class data. *(Validated in Phase 08: trigger-dispatch-outcome-surfacing)*
+- [x] System emits structured telemetry for core lifecycle events without leaking sensitive payload fields by default. *(Validated in Phase 10: telemetry-correlation-enrichment)*
+- [x] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs. *(Validated in Phase 12: oban-transactional-dispatch-consistency)*
 - [x] Delayed fallback suppression can prevent outbound sends when in-app state shows the notification was already read, with parity across sync and Oban paths. *(Validated in Phase 07: delayed-fallback-runtime-wiring)*
+- [x] Channel adapter resolution is hardened against atom table exhaustion from runtime channel strings. *(Validated in Phase 11: channel-adapter-safety-and-explainability-hardening)*
 
 ### Active
 
-- [ ] v0.1 ships one vertical slice with durable spine plus at least one outbound adapter seam (initially log/test or Swoosh wrapper).
-- [ ] Chimeway remains composable and provider-agnostic through adapter behaviours.
+All v1.0 requirements are validated. Milestone completion is next.
 
 ## Current State
 
-Phase 07 is complete. Delayed fallback runtime wiring now resolves and persists suppression intent during planning, enforces perform-time parity across sync and Oban execution, and ships trigger-driven verification coverage for suppression signatures, guardrails, and trace explainability provenance.
+Phase 12 is complete. v1.0 is shipped and archived. All v1.0 requirements are validated. Oban dispatch is transactionally consistent, channel adapter resolution is hardened, telemetry correlation is enriched, and the repository is ready for next milestone planning.
+
+## Next Milestone Goals
+
+- Define fresh v1.1 scope with `/gsd-new-milestone`.
+- Keep durable identity, explainability, and adapter seams as non-negotiable baseline constraints.
+- Triage the orphaned helper and incomplete Nyquist validation coverage as carry-forward tech debt.
 
 ### Out of Scope
 
@@ -67,12 +74,14 @@ Prior context includes:
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Persist stable notification keys as data identity | Survives module renames and preserves historical traceability | Implemented in Phase 01 notifier contract + persistence flow |
-| Local-first embedded architecture | Host apps need ownership, auditability, and composability without SaaS dependency | — Pending |
+| Local-first embedded architecture | Host apps need ownership, auditability, and composability without SaaS dependency | Implemented (Phases 01-03) |
 | Keep core explicit and inspectable | Elixir users expect clear behaviours and low magic | Implemented in Phase 01 trigger and inbox APIs |
-| Treat explainability as product surface | "Why wasn't this sent?" is the primary operator differentiator | — Pending |
-| Integrate channel/job primitives instead of replacing them | Swoosh/Oban already solve core delivery substrates well | — Pending |
+| Treat explainability as product surface | "Why wasn't this sent?" is the primary operator differentiator | Implemented via durable traces and Phase 08 outcome surfacing |
+| Integrate channel/job primitives instead of replacing them | Swoosh/Oban already solve core delivery substrates well | Implemented in Phase 02 (Swoosh/Adapter) and Phase 03/12 (Oban) |
 | Start with durable spine + one channel slice | Fastest path to validate end-to-end architecture and DX | Durable spine completed in Phase 01 |
 | Enforce OSS release hygiene as executable contracts | Maintainers need deterministic, repeatable release confidence | Implemented in Phase 05 docs/test/release hardening |
+| Transactional Oban Dispatch | Prevent orphaned pending deliveries on transaction failure | Implemented in Phase 12 |
+| String-safe adapter lookup | Prevent atom table exhaustion from runtime channel strings | Implemented in Phase 11 |
 
 ## Evolution
 
@@ -92,4 +101,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-24 after Phase 07 completion*
+*Last updated: 2026-04-25 after v1.0 milestone archive*

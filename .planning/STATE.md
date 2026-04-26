@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-25)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.  
-**Current focus:** Milestone Complete
+**Current focus:** Next milestone planning
 
 ## Current Position
 
