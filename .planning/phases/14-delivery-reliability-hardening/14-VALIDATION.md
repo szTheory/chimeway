@@ -2,8 +2,8 @@
 phase: 14
 slug: delivery-reliability-hardening
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-26
 ---
 
@@ -55,6 +55,7 @@ created: 2026-04-26
 | REL-02 | `attempt_number` is 1-indexed and contiguous per delivery | unit | `mix test test/chimeway/reliability/attempt_history_test.exs` | ❌ Wave 0 |
 | REL-02 | `error_class` persists `"temporary"\|"permanent"\|"bounced"`; nil on success | unit | `mix test test/chimeway/reliability/attempt_history_test.exs` | ❌ Wave 0 |
 | REL-02 | Concurrent `record_attempt` calls do not duplicate `attempt_number` | concurrency | `mix test test/chimeway/reliability/attempt_history_test.exs` | ❌ Wave 0 |
+| REL-02 | Telemetry [:attempts, :record, :stop] meta carries attempt_number + error_class | unit | `mix test test/chimeway/reliability/attempt_history_test.exs` | ❌ Wave 0 |
 | REL-02 | `Traces.last_attempt_summary` exposes `attempt_number` and `error_class` | unit | `mix test test/chimeway/traces_test.exs` | ✅ extend |
 | REL-02 | Final attempt (`job.attempt == max_attempts`) writes `:cancelled` retries_exhausted | unit | `mix test test/chimeway/dispatch/oban_worker_test.exs` | ❌ Wave 0 |
 | REL-02 | drain_queue end-to-end: 5 retries then terminal | integration | `mix test test/chimeway/reliability/retry_exhaustion_test.exs` | ❌ Wave 0 |
@@ -76,19 +77,21 @@ created: 2026-04-26
 
 ## Wave 0 Requirements
 
-New test files to scaffold before implementation tasks run:
+Wave 0 = Plan 14-01 (the four scaffolded test files with `:skip` moduletags). Plan 14-01 satisfies the Wave 0 gate.
 
-- [ ] `test/chimeway/reliability/duplicate_protection_test.exs` — REL-01 D-02/D-14: concurrent re-fire, concurrent plan re-entry, concurrent terminal re-entry
-- [ ] `test/chimeway/reliability/attempt_history_test.exs` — REL-02: `attempt_number` ordinality, `error_class` taxonomy, concurrent `attempt_number` race
-- [ ] `test/chimeway/reliability/retry_exhaustion_test.exs` — REL-02 end-to-end via `Oban.drain_queue/2` + always-failing adapter
-- [ ] `test/chimeway/reliability/terminal_convergence_test.exs` — REL-03 D-12: every terminal path asserts membership in `Deliveries.terminal_states/0`
+New test files scaffolded by Plan 14-01:
 
-Existing files to extend (no new file creation, but the planner MUST list them in the task that owns the new behavior):
+- [x] `test/chimeway/reliability/duplicate_protection_test.exs` — REL-01 D-02/D-14: concurrent re-fire, concurrent plan re-entry, concurrent terminal re-entry
+- [x] `test/chimeway/reliability/attempt_history_test.exs` — REL-02: `attempt_number` ordinality, `error_class` taxonomy, concurrent `attempt_number` race, telemetry stop assertion (W3 addition)
+- [x] `test/chimeway/reliability/retry_exhaustion_test.exs` — REL-02 end-to-end via `Oban.drain_queue/2` + always-failing adapter
+- [x] `test/chimeway/reliability/terminal_convergence_test.exs` — REL-03 D-12: every terminal path asserts membership in `Deliveries.terminal_states/0`
 
-- [ ] `test/chimeway/dispatch/oban_worker_test.exs` — D-13 rewrite using `Oban.Testing.perform_job/3` with `attempt:`
-- [ ] `test/chimeway/dispatch/sync_test.exs` — REL-03 sync-path permanent/bounced convergence (create file if missing)
-- [ ] `test/chimeway/deliveries_test.exs` — `exhaust_delivery/1` happy path + invalid-transition path (create file if missing)
-- [ ] `test/chimeway/traces_test.exs` — `last_attempt_summary` exposes new fields (create file if missing)
+Existing files extended by later plans (Plan 14-04, 14-05, 14-07, 14-08):
+
+- [x] `test/chimeway/dispatch/oban_worker_test.exs` — D-13 rewrite using `Oban.Testing.perform_job/3` with `attempt:` (executed in Plan 14-05 Task 2 per B4)
+- [x] `test/chimeway/dispatch/sync_test.exs` — REL-03 sync-path permanent/bounced convergence (executed in Plan 14-04 Task 3 per B4)
+- [x] `test/chimeway/deliveries_test.exs` — `exhaust_delivery/1` happy path + invalid-transition path (Plan 14-07)
+- [x] `test/chimeway/traces_test.exs` — `last_attempt_summary` exposes new fields (Plan 14-08)
 
 Framework install: not required (ExUnit is stdlib; `Oban.Testing` already available via mix.lock).
 
@@ -113,17 +116,17 @@ Framework install: not required (ExUnit is stdlib; `Oban.Testing` already availa
 | Terminal-state divergence between sync and Oban | Sync `:permanent` outcome leaves delivery `:failed`; Oban path correctly converges to `:cancelled` | `Deliveries.get_delivery!(id).status in Deliveries.terminal_states()` for BOTH paths |
 | `:snooze` budget runaway (anti-pattern) | Worker returns `{:snooze, n}` and `attempt` keeps climbing past `max_attempts: 5` | `assert job.attempt <= max_attempts` after `drain_queue` |
 | Final-attempt write missed | `job.attempt == job.max_attempts` guard misfires (off-by-one) and exhaustion path never runs | After `drain_queue` with always-failing adapter: `delivery.status == :cancelled and suppression_reason == "retries_exhausted"` |
-| `attempt_number` duplicate under concurrency | Two concurrent `record_attempt` calls both compute `count(*) + 1` and tie | Concurrent test asserts `Repo.aggregate(DeliveryAttempt, :count, distinct: :attempt_number) == count(:id)` |
+| `attempt_number` duplicate under concurrency | Two concurrent `record_attempt` calls both compute `count(*) + 1` and tie | Concurrent test asserts `Repo.aggregate(DeliveryAttempt, :count, distinct: :attempt_number) == count(:id)` (mitigated preemptively by `SELECT ... FOR UPDATE` lock in Plan 14-04 W8 fix) |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all `❌` references in the Per-Task Verification Map
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all `❌` references in the Per-Task Verification Map
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** 2026-04-26 (planner-verified during plan-phase)
