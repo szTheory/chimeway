@@ -31,7 +31,10 @@ defmodule Chimeway.Reliability.AttemptHistoryTest do
     test "first attempt for a delivery has attempt_number == 1" do
       # Filled in by Plan 14-07.
       # Anchor: keep aliases + helper imports referenced so --warnings-as-errors passes while skipped.
-      _ = {Deliveries.terminal_states(), DeliveryAttempt, ObanWorker, Repo, &create_pending_delivery/0}
+      _ =
+        {Deliveries.terminal_states(), DeliveryAttempt, ObanWorker, Repo,
+         &create_pending_delivery/0}
+
       assert true
     end
 

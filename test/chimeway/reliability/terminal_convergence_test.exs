@@ -54,5 +54,4 @@ defmodule Chimeway.Reliability.TerminalConvergenceTest do
       assert true
     end
   end
-
 end

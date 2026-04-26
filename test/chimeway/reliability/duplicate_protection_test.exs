@@ -66,5 +66,4 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
       assert true
     end
   end
-
 end

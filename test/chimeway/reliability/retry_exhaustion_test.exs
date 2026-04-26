@@ -42,7 +42,10 @@ defmodule Chimeway.Reliability.RetryExhaustionTest do
     test "perform_job/3 with attempt: 1 returns {:error, _} when adapter is :temporary" do
       # Filled in by Plan 14-07.
       # Anchor: keep aliases + helper imports referenced so --warnings-as-errors passes while skipped.
-      _ = {Deliveries.terminal_states(), DeliveryAttempt, ObanWorker, Repo, &create_pending_delivery/0}
+      _ =
+        {Deliveries.terminal_states(), DeliveryAttempt, ObanWorker, Repo,
+         &create_pending_delivery/0}
+
       assert true
     end
 
