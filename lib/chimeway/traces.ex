@@ -208,13 +208,14 @@ defmodule Chimeway.Traces do
       end
 
     cancellation_entries =
-      if delivery.status == :cancelled and delivery.suppression_reason do
+      if delivery.status == :cancelled do
+        reason = delivery.suppression_reason || "manual"
         [
           %{
             at: delivery.updated_at,
             event: :cancelled,
             detail: %{
-              reason: delivery.suppression_reason,
+              reason: reason,
               policy_checkpoint:
                 Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
             }
