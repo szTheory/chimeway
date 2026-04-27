@@ -233,6 +233,7 @@ defmodule Chimeway.Deliveries do
 
         safe_attrs =
           attrs
+          |> coerce_provider_response_to_atom_key()
           |> Map.update(:provider_response, nil, &sanitize_metadata/1)
           |> Map.put(:delivery_id, delivery.id)
 
@@ -295,6 +296,13 @@ defmodule Chimeway.Deliveries do
         {result, extra}
       end
     )
+  end
+
+  defp coerce_provider_response_to_atom_key(attrs) do
+    case Map.pop(attrs, "provider_response") do
+      {nil, attrs} -> attrs
+      {val, attrs} -> Map.put_new(attrs, :provider_response, val)
+    end
   end
 
   # Maps outcome + error_class to the next delivery status. Permanent/bounced go
