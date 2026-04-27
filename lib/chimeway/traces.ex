@@ -148,16 +148,28 @@ defmodule Chimeway.Traces do
   defp last_attempt_summary([]), do: nil
 
   defp last_attempt_summary(attempts) do
-    # Order by canonical attempt_number ordinal (REL-02 D-07). inserted_at can
-    # truncate to second precision in some Postgres configs, making max_by/3 by
-    # inserted_at non-deterministic for adjacent attempts.
-    last = Enum.max_by(attempts, & &1.attempt_number)
+    # nil > integer is true in Elixir's term ordering (atoms > numbers),
+    # so Enum.max_by on attempt_number would erroneously pick a nil row
+    # over attempt_number=5. Partition numbered rows first.
+    case Enum.filter(attempts, &is_integer(&1.attempt_number)) do
+      [] ->
+        # All rows are pre-migration with nil attempt_number; fall back to
+        # inserted_at ordering (best available approximation).
+        last = Enum.max_by(attempts, & &1.inserted_at, DateTime)
+        build_last_attempt_map(last)
 
+      numbered ->
+        last = Enum.max_by(numbered, & &1.attempt_number)
+        build_last_attempt_map(last)
+    end
+  end
+
+  defp build_last_attempt_map(attempt) do
     %{
-      outcome: last.outcome,
-      inserted_at: last.inserted_at,
-      attempt_number: last.attempt_number,
-      error_class: last.error_class
+      outcome: attempt.outcome,
+      inserted_at: attempt.inserted_at,
+      attempt_number: attempt.attempt_number,
+      error_class: attempt.error_class
     }
   end
 
