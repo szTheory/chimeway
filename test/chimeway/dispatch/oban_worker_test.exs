@@ -311,8 +311,8 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
       # Without this, the test would also pass if the worker raised before
       # record_attempt ran — silently masking a regression that breaks the
       # invariant "every adapter call produces an attempt row regardless of
-      # downstream worker behavior". The `from` macro is in scope via
-      # `import Ecto.Query` at the top of the test file (verify if missing).
+      # downstream worker behavior". `from/2` is available via `Chimeway.DataCase`,
+      # which imports `Ecto.Query`.
       attempts =
         Repo.all(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id))
 
