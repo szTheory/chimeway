@@ -7,3 +7,11 @@
 - Phases: 1-12
 - Requirements: 20/20 satisfied
 - Notes: milestone audit passed with non-blocking tech debt only
+
+## v1.1 Production Trust
+
+- Status: shipped
+- Date: 2026-04-27
+- Phases: 06-16
+- Requirements: 4/4 satisfied
+- Notes: Completed reliability hardening, explicit policy controls, observability surfaces, and integration paths.

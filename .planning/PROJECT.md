@@ -34,17 +34,18 @@ Every notification decision is explainable, so teams can reliably answer why a n
 - [x] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs. *(Validated in Phase 12: oban-transactional-dispatch-consistency)*
 - [x] Delayed fallback suppression can prevent outbound sends when in-app state shows the notification was already read, with parity across sync and Oban paths. *(Validated in Phase 07: delayed-fallback-runtime-wiring)*
 - [x] Channel adapter resolution is hardened against atom table exhaustion from runtime channel strings. *(Validated in Phase 11: channel-adapter-safety-and-explainability-hardening)*
+- [x] Policy and preference controls are explicit and explainable. *(Validated in Phase 13: policy-preference-maturity)*
+- [x] Delivery retries, duplicates, and failures resolve to durable final states. *(Validated in Phase 14: delivery-reliability-hardening)*
+- [x] Operators can trace and inspect lifecycle outcomes without leaking sensitive payloads. *(Validated in Phase 15: observability-and-supportability)*
+- [x] Host apps get a documented, contract-tested integration path. *(Validated in Phase 16: integration-hardening)*
 
 ### Active
 
-- [ ] Policy and preference controls are explicit and explainable.
-- [x] Delivery retries, duplicates, and failures resolve to durable final states. *(Validated in Phase 14: delivery-reliability-hardening)*
-- [ ] Operators can trace and inspect lifecycle outcomes without leaking sensitive payloads.
-- [ ] Host apps get a documented, contract-tested integration path.
+*(None)*
 
 ## Current State
 
-Phase 14 complete. Delivery reliability hardening done — retries converge, duplicates are inert, every delivery reaches a durable terminal state with full attempt history. Phase 15 (Observability & Supportability) is next.
+Milestone v1.1 Production Trust complete. All phases (06-16) finished. Delivery reliability, explicit policies, observability surfaces, and host app integration paths are hardened for production use.
 
 ## Milestone Notes
 
