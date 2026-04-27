@@ -535,7 +535,9 @@ defmodule Chimeway.TracesTest do
       ctx = create_pending_delivery_for_traces()
 
       {:ok, suppressed} =
-        Chimeway.Deliveries.suppress_delivery(ctx.delivery, :channel_disabled, checkpoint: :perform)
+        Chimeway.Deliveries.suppress_delivery(ctx.delivery, :channel_disabled,
+          checkpoint: :perform
+        )
 
       assert suppressed.status == :suppressed
 
@@ -543,11 +545,46 @@ defmodule Chimeway.TracesTest do
                Chimeway.Traces.explain_delivery(suppressed.id)
 
       cancelled_entries = Enum.filter(timeline, fn entry -> entry.event == :cancelled end)
+
       assert cancelled_entries == [],
              "expected no :cancelled entries for a :suppressed delivery; got #{inspect(cancelled_entries)}"
 
       suppressed_entries = Enum.filter(timeline, fn entry -> entry.event == :suppressed end)
       assert length(suppressed_entries) == 1
+    end
+  end
+
+  describe "opts propagation" do
+    test "get_trace/2 passes opts to Repo" do
+      assert_raise Postgrex.Error,
+                   ~r/relation "nonexistent_schema.chimeway_events" does not exist/,
+                   fn ->
+                     Traces.get_trace(Ecto.UUID.generate(), prefix: "nonexistent_schema")
+                   end
+    end
+
+    test "find_traces_for_recipient/2 passes opts to Repo" do
+      assert_raise Postgrex.Error,
+                   ~r/relation "nonexistent_schema.chimeway_notifications" does not exist/,
+                   fn ->
+                     Traces.find_traces_for_recipient("user:123", prefix: "nonexistent_schema")
+                   end
+    end
+
+    test "find_traces_by_correlation_id/2 passes opts to Repo" do
+      assert_raise Postgrex.Error,
+                   ~r/relation "nonexistent_schema.chimeway_events" does not exist/,
+                   fn ->
+                     Traces.find_traces_by_correlation_id("req-xyz", prefix: "nonexistent_schema")
+                   end
+    end
+
+    test "explain_delivery/2 passes opts to Repo" do
+      assert_raise Postgrex.Error,
+                   ~r/relation "nonexistent_schema.chimeway_deliveries" does not exist/,
+                   fn ->
+                     Traces.explain_delivery(Ecto.UUID.generate(), prefix: "nonexistent_schema")
+                   end
     end
   end
 

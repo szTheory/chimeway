@@ -39,7 +39,12 @@ defmodule Chimeway.TelemetryIntegrationTest do
   defp run_trigger do
     notifier = Chimeway.Test.SupportNotifier
     params = %{user_id: "#{System.unique_integer()}"}
-    opts = [idempotency_key: "telem-key-#{System.unique_integer()}"]
+
+    opts = [
+      idempotency_key: "telem-key-#{System.unique_integer()}",
+      correlation_id: "test-corr-#{System.unique_integer()}"
+    ]
+
     Chimeway.Trigger.trigger(notifier, params, opts)
   end
 
@@ -151,6 +156,46 @@ defmodule Chimeway.TelemetryIntegrationTest do
     test "is idempotent — calling twice does not raise" do
       assert :ok = Telemetry.attach_default_handlers()
       assert :ok = Telemetry.attach_default_handlers()
+    end
+  end
+
+  describe "correlation metadata enrichment" do
+    test "all enriched spans include notification_key and appropriate IDs" do
+      {:ok, _result} = run_trigger()
+
+      # 1. events:create
+      assert_receive {:telemetry_event, [:chimeway, :events, :create, :stop], meta}, 500
+      assert meta.notification_key == "test_support_notifier"
+      assert meta.event_id != nil
+
+      # 2. deliveries:plan
+      assert_receive {:telemetry_event, [:chimeway, :deliveries, :plan, :stop], meta}, 500
+      assert meta.notification_key == "test_support_notifier"
+      assert meta.event_id != nil
+      assert String.starts_with?(meta.correlation_id, "test-corr-")
+
+      # 3. policy:evaluate
+      assert_receive {:telemetry_event, [:chimeway, :policy, :evaluate, :stop], meta}, 500
+      assert meta.notification_key == "test_support_notifier"
+      assert meta.delivery_id != nil
+      assert meta.channel == "in_app"
+
+      # 4. dispatch:sync
+      assert_receive {:telemetry_event, [:chimeway, :dispatch, :sync, :stop], meta}, 500
+      assert meta.notification_key == "test_support_notifier"
+      assert meta.delivery_id != nil
+      assert meta.channel == "in_app"
+
+      # 5. attempts:record
+      assert_receive {:telemetry_event, [:chimeway, :attempts, :record, :stop], meta}, 500
+      assert meta.notification_key == "test_support_notifier"
+      assert meta.delivery_id != nil
+      assert meta.channel == "in_app"
+      assert meta.attempt_id != nil
+      assert meta.outcome == :succeeded
+
+      # Redaction check: correlation_id should NOT appear in attempts:record
+      refute Map.has_key?(meta, :correlation_id)
     end
   end
 end

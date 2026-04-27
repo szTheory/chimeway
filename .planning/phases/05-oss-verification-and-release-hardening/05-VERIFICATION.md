@@ -16,7 +16,7 @@ Ensure the project can ship and evolve safely with repeatable quality and releas
 
 | Requirement | Evidence | Status |
 |-------------|----------|--------|
-| OPS-03 | `mix test --seed 0` (127 tests), `mix ci.docs`, `mix hex.build`, `gsd-sdk query verify.phase-completeness 05`, `gsd-sdk query verify.artifacts .planning/phases/05-oss-verification-and-release-hardening/05-02-PLAN.md` | PASS |
+| OPS-03 | Refreshed and owned by Phase 09 (see `.planning/phases/09-oss-verification-evidence-refresh/09-VERIFICATION.md`) | PASS |
 
 ## Automated Checks
 

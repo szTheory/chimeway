@@ -39,14 +39,14 @@ defmodule Chimeway.Traces do
 
   Returns `{:ok, event}` or `{:error, :not_found}`.
   """
-  @spec get_trace(String.t()) :: {:ok, Event.t()} | {:error, :not_found}
-  def get_trace(event_id) do
-    case Repo.get(Event, event_id) do
+  @spec get_trace(String.t(), keyword()) :: {:ok, Event.t()} | {:error, :not_found}
+  def get_trace(event_id, opts \\ []) do
+    case Repo.get(Event, event_id, opts) do
       nil ->
         {:error, :not_found}
 
       event ->
-        loaded = Repo.preload(event, notifications: [deliveries: :attempts])
+        loaded = Repo.preload(event, [notifications: [deliveries: :attempts]], opts)
         {:ok, loaded}
     end
   end
@@ -64,6 +64,7 @@ defmodule Chimeway.Traces do
   def find_traces_for_recipient(recipient_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
     notification_key = Keyword.get(opts, :notification_key)
+    repo_opts = Keyword.drop(opts, [:limit, :notification_key])
 
     query =
       from(n in Notification,
@@ -82,7 +83,7 @@ defmodule Chimeway.Traces do
         query
       end
 
-    Repo.all(query)
+    Repo.all(query, repo_opts)
   end
 
   @doc """
@@ -91,12 +92,12 @@ defmodule Chimeway.Traces do
   Returns `[]` when no events match — never returns an error tuple since
   correlation IDs are user-supplied and may not be unique or present.
   """
-  @spec find_traces_by_correlation_id(String.t()) :: [Event.t()]
-  def find_traces_by_correlation_id(correlation_id) do
+  @spec find_traces_by_correlation_id(String.t(), keyword()) :: [Event.t()]
+  def find_traces_by_correlation_id(correlation_id, opts \\ []) do
     events =
-      Repo.all(from(e in Event, where: e.correlation_id == ^correlation_id))
+      Repo.all(from(e in Event, where: e.correlation_id == ^correlation_id), opts)
 
-    Repo.preload(events, notifications: [deliveries: :attempts])
+    Repo.preload(events, [notifications: [deliveries: :attempts]], opts)
   end
 
   @doc """
@@ -107,14 +108,15 @@ defmodule Chimeway.Traces do
 
   Returns `{:ok, %Chimeway.Traces.Explanation{}}` or `{:error, :not_found}`.
   """
-  @spec explain_delivery(String.t()) :: {:ok, Explanation.t()} | {:error, :not_found}
-  def explain_delivery(delivery_id) do
+  @spec explain_delivery(String.t(), keyword()) :: {:ok, Explanation.t()} | {:error, :not_found}
+  def explain_delivery(delivery_id, opts \\ []) do
     delivery =
       Repo.one(
         from(d in Delivery,
           where: d.id == ^delivery_id,
           preload: [notification: :event, attempts: []]
-        )
+        ),
+        opts
       )
 
     case delivery do
@@ -210,14 +212,14 @@ defmodule Chimeway.Traces do
     cancellation_entries =
       if delivery.status == :cancelled do
         reason = delivery.suppression_reason || "manual"
+
         [
           %{
             at: delivery.updated_at,
             event: :cancelled,
             detail: %{
               reason: reason,
-              policy_checkpoint:
-                Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+              policy_checkpoint: Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
             }
           }
         ]
