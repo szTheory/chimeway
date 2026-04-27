@@ -9,6 +9,12 @@ defmodule Chimeway.Notifier do
   and must never include `:in_app`.
   """
 
+  defmacro __using__(_opts) do
+    quote do
+      @behaviour Chimeway.Notifier
+    end
+  end
+
   @callback notification_key() :: String.t()
   @callback version() :: pos_integer()
   @callback recipients(map()) :: {:ok, [map()]} | {:error, term()}
