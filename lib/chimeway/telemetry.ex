@@ -128,8 +128,6 @@ defmodule Chimeway.Telemetry do
       |> normalize_keys()
       |> Map.take(@allowed_meta_keys)
 
-    # IO.inspect(meta, label: "SAFE_META INPUT")
-    # IO.inspect(result, label: "SAFE_META OUTPUT")
     result
   end
 
