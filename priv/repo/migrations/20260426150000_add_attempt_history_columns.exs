@@ -24,7 +24,7 @@ defmodule Chimeway.Repo.Migrations.AddAttemptHistoryColumns do
       UPDATE chimeway_delivery_attempts AS a
       SET attempt_number = sub.rn
       FROM (
-        SELECT id, ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY inserted_at) AS rn
+        SELECT id, ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY inserted_at, id) AS rn
         FROM chimeway_delivery_attempts
       ) AS sub
       WHERE a.id = sub.id;
