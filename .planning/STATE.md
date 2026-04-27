@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 14 context gathered (assumptions mode)
-last_updated: "2026-04-26T21:53:05.297Z"
-last_activity: 2026-04-26 -- Phase --phase execution started
+status: planning
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-04-27T21:30:03.113Z"
+last_activity: 2026-04-26
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 14
-  completed_plans: 12
-  percent: 50
+  completed_phases: 3
+  total_plans: 18
+  completed_plans: 17
+  percent: 94
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-25)
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-26
+Phase: 16
+Plan: 01
+Status: in_progress
+Last activity: 2026-04-27
 
 ## Accumulated Context
 
@@ -52,6 +52,9 @@ Recent decisions affecting current work:
 - Use one policy-settings row per recipient for quiet hours and delivery caps.
 - Evaluate category rules first, then quiet-hours/delivery-cap settings, then existing read-state suppression.
 - Count prior deliveries in the configured cap window to enforce delivery caps without runtime atoms or caller input.
+- Updated installation instructions to include mix dependencies, Ecto migrations, basic configuration, and supervision tree integration.
+- Updated getting started instructions to define a simple notifier, trigger a notification, and read from the inbox.
+- Added `__using__` macro to `Chimeway.Notifier` to support the idiomatic `use Chimeway.Notifier` API expected by developers, providing a better Time to First Run experience.
 
 ### Pending Todos
 
@@ -67,8 +70,8 @@ None.
 
 ### Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 14 context gathered (assumptions mode)
-Resume file: --resume-file
+Last session: 2026-04-27T21:30:03.107Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: None
 
 **Planned Phase:** 14 (delivery-reliability-hardening) — 11 plans — 2026-04-26T21:51:02.132Z

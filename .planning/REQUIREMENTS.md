@@ -30,7 +30,8 @@ Requirements for the next production-trust milestone. Each maps to one roadmap p
 
 ### Integration Hardening
 
-- [ ] **INT-01**: Host apps can install and configure Chimeway through a documented integration path.
+- [x] **INT-01
+**: Host apps can install and configure Chimeway through a documented integration path.
 - [ ] **INT-02**: Adapter and job-dispatch seams remain contract-tested and safe for runtime configuration.
 
 ## v2 Requirements

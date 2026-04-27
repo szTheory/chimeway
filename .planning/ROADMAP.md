@@ -77,6 +77,13 @@ Goal: Make host-app adoption easier and safer through clear setup and stable sea
 
 Requirements: INT-01, INT-02
 
+Plans: 3
+
+Plan list:
+- [ ] 16-01-PLAN.md — Expand introductory stubs (installation & getting-started)
+- [ ] 16-02-PLAN.md — Expand integration recipes for Oban async dispatch and Telemetry tracing
+- [ ] 16-03-PLAN.md — Expand custom adapter recipe for runtime safety
+
 Success criteria:
 1. Host apps have a documented integration path.
 2. Adapter and job-dispatch seams are covered by contract tests.
