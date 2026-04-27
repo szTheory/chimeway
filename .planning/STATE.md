@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 16-integration-hardening-02-PLAN.md
-last_updated: "2026-04-27T21:33:03.197Z"
+stopped_at: Completed 16-03-PLAN.md
+last_updated: "2026-04-27T21:34:51.851Z"
 last_activity: 2026-04-27
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 18
-  completed_plans: 18
+  completed_plans: 19
   percent: 100
 ---
 
@@ -57,6 +57,7 @@ Recent decisions affecting current work:
 - Added `__using__` macro to `Chimeway.Notifier` to support the idiomatic `use Chimeway.Notifier` API expected by developers, providing a better Time to First Run experience.
 - Document Oban Ecto.Multi transactional dispatch to ensure developers use reliable enqueueing by default.
 - Explicitly document telemetry metadata safety considerations to prevent developer leakage of sensitive notification payload data.
+- Emphasize runtime config and contract test usage to prevent credential leaks and ensure environment safety.
 
 ### Pending Todos
 
@@ -72,8 +73,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-27T21:33:03.005Z
-Stopped at: Completed 16-integration-hardening-02-PLAN.md
+Last session: 2026-04-27T21:34:51.845Z
+Stopped at: Completed 16-03-PLAN.md
 Resume file: None
 
 **Planned Phase:** 14 (delivery-reliability-hardening) — 11 plans — 2026-04-26T21:51:02.132Z
