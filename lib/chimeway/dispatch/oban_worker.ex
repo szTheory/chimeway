@@ -142,16 +142,22 @@ if Code.ensure_loaded?(Oban) do
       end
     end
 
-    defp do_dispatch(%Delivery{} = delivery, attempt, max_attempts) do
-      case Executor.run_delivery(delivery) do
-        {:ok, %{attempt: %DeliveryAttempt{} = recorded, delivery: %Delivery{} = updated}} ->
-          map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
+    defp do_dispatch(%Delivery{id: id}, attempt, max_attempts) do
+      fresh = Deliveries.get_delivery!(id)
 
-        {:error, step, reason, _changes} ->
-          {:error, {step, reason}}
+      if fresh.status in Deliveries.terminal_states() do
+        :ok
+      else
+        case Executor.run_delivery(fresh) do
+          {:ok, %{attempt: %DeliveryAttempt{} = recorded, delivery: %Delivery{} = updated}} ->
+            map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
 
-        {:error, _reason} = error ->
-          error
+          {:error, step, reason, _changes} ->
+            {:error, {step, reason}}
+
+          {:error, _reason} = error ->
+            error
+        end
       end
     end
 
