@@ -238,9 +238,12 @@ defmodule Chimeway.DeliveryPlanning do
   end
 
   defp evaluate_planning_policy(delivery, opts) do
-    case Policy.evaluate(delivery, opts) do
+    case Policy.evaluate(delivery, Keyword.put(opts, :checkpoint, :planning)) do
       {:ok, :proceed} ->
         {:ok, delivery}
+
+      {:defer, decision} ->
+        Deliveries.apply_planning_decision(delivery, decision)
 
       {:suppress, reason} ->
         suppress_delivery_at_planning_checkpoint(delivery, reason)

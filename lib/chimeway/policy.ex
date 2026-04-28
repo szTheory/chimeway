@@ -38,7 +38,8 @@ defmodule Chimeway.Policy do
   - `check_read_state:` (boolean, default false) — when true, checks if the associated
     in-app notification has been read (read_at is not nil). Used for delayed fallback paths.
   """
-  @spec evaluate(Chimeway.Delivery.t(), keyword()) :: {:ok, :proceed} | {:suppress, atom()}
+  @spec evaluate(Chimeway.Delivery.t(), keyword()) ::
+          {:ok, :proceed} | {:suppress, atom()} | {:defer, map()}
   def evaluate(%Delivery{} = delivery, opts \\ []) do
     Telemetry.span(
       [:policy, :evaluate],
@@ -51,12 +52,15 @@ defmodule Chimeway.Policy do
       fn ->
         check_read_state = Keyword.get(opts, :check_read_state, false)
 
-        result = evaluate_delivery_policy(delivery, check_read_state)
+        result = evaluate_delivery_policy(delivery, check_read_state, opts)
 
         extra =
           case result do
             {:suppress, reason} ->
               Telemetry.safe_meta(%{suppression_reason: Atom.to_string(reason)})
+
+            {:defer, decision} ->
+              Telemetry.safe_meta(%{planning_reason: Map.get(decision, :planning_reason)})
 
             _ ->
               %{}
@@ -69,13 +73,16 @@ defmodule Chimeway.Policy do
 
   # --- Private ---
 
-  defp evaluate_delivery_policy(%Delivery{} = delivery, check_read_state) do
+  defp evaluate_delivery_policy(%Delivery{} = delivery, check_read_state, opts) do
     context = load_policy_context(delivery)
 
     with :ok <- check_channel_preferences(delivery, context),
-         :ok <- check_category_preferences(delivery, context),
-         :ok <- check_policy_settings(delivery) do
-      maybe_check_read_state(delivery, check_read_state)
+         :ok <- check_category_preferences(delivery, context) do
+      case check_policy_settings(delivery, opts_with_checkpoint(check_read_state, opts)) do
+        :ok -> maybe_check_read_state(delivery, check_read_state)
+        {:defer, _decision} = deferred -> deferred
+        {:suppress, _reason} = suppressed -> suppressed
+      end
     end
   end
 
@@ -126,10 +133,13 @@ defmodule Chimeway.Policy do
     end
   end
 
-  defp check_policy_settings(%Delivery{} = delivery) do
-    case Settings.evaluate(delivery) do
+  defp check_policy_settings(%Delivery{} = delivery, opts) do
+    case Settings.evaluate(delivery, opts) do
       {:ok, :proceed} ->
         :ok
+
+      {:defer, decision} ->
+        {:defer, decision}
 
       {:suppress, reason} ->
         Logger.debug("[chimeway] suppressing delivery (policy settings)",
@@ -174,5 +184,16 @@ defmodule Chimeway.Policy do
     notification = Repo.get!(Notification, delivery.notification_id)
     event = Repo.get!(Event, notification.event_id)
     delivery_category_from_event(event)
+  end
+
+  defp opts_with_checkpoint(check_read_state, opts) do
+    checkpoint =
+      if Keyword.has_key?(opts, :checkpoint) do
+        Keyword.fetch!(opts, :checkpoint)
+      else
+        if check_read_state, do: :perform, else: :planning
+      end
+
+    Keyword.put(opts, :checkpoint, checkpoint)
   end
 end

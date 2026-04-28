@@ -69,7 +69,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
 
     assert delivery.orchestration_state == :deferred
     assert delivery.planning_reason == "quiet_hours"
-    assert delivery.next_eligible_at == ~U[2026-01-15 13:00:00Z]
+    assert DateTime.compare(delivery.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
 
     assert {:ok, [replanned]} =
              DeliveryPlanning.plan_notification(notification,

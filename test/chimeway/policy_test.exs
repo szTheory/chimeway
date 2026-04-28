@@ -149,7 +149,7 @@ defmodule Chimeway.PolicyTest do
       assert delivery.suppression_reason == nil
       assert delivery.orchestration_state == :deferred
       assert delivery.planning_reason == "quiet_hours"
-      assert delivery.next_eligible_at == ~U[2026-01-15 13:00:00Z]
+      assert DateTime.compare(delivery.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
       assert delivery.planning_context["rule"] == "quiet_hours"
       assert delivery.planning_context["time_zone"] == "America/New_York"
     end
@@ -215,7 +215,7 @@ defmodule Chimeway.PolicyTest do
 
       assert decision.orchestration_state == :deferred
       assert decision.planning_reason == "quiet_hours"
-      assert decision.next_eligible_at == ~U[2026-01-15 13:00:00Z]
+      assert DateTime.compare(decision.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
     end
 
     test "delivery-cap settings suppress the delivery after one prior send" do

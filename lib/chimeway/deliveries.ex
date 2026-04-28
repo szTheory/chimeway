@@ -105,8 +105,13 @@ defmodule Chimeway.Deliveries do
   defp normalize_optional_map(value), do: {:error, {:invalid_planning_context, value}}
 
   defp normalize_optional_datetime(nil), do: {:ok, nil}
-  defp normalize_optional_datetime(%DateTime{} = value), do: {:ok, value}
+  defp normalize_optional_datetime(%DateTime{} = value) do
+    {:ok, %{value | microsecond: normalize_microsecond(value.microsecond)}}
+  end
+
   defp normalize_optional_datetime(value), do: {:error, {:invalid_next_eligible_at, value}}
+
+  defp normalize_microsecond({microsecond, _precision}), do: {microsecond, 6}
 
   defp normalize_delayed_fallback_source(:default), do: {:ok, "default"}
   defp normalize_delayed_fallback_source(:notifier), do: {:ok, "notifier"}

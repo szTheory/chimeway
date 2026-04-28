@@ -107,7 +107,7 @@ defmodule Chimeway.PolicySettingsTest do
 
       assert decision.orchestration_state == :deferred
       assert decision.planning_reason == "quiet_hours"
-      assert decision.next_eligible_at == ~U[2026-01-15 13:00:00Z]
+      assert DateTime.compare(decision.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
       assert decision.planning_context["rule"] == "quiet_hours"
       assert decision.planning_context["time_zone"] == "America/New_York"
       assert decision.planning_context["quiet_hours_start_minute"] == 22 * 60
