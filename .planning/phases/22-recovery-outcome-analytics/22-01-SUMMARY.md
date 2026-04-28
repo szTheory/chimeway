@@ -73,7 +73,7 @@ None - plan executed exactly as written.
 
 ## Issues Encountered
 
-None.
+- `gsd-sdk query state.advance-plan` could not parse the pre-existing placeholder-formatted `STATE.md`, and `roadmap.update-plan-progress` found no matching Phase 22 checkbox row. I updated `.planning/STATE.md` and `.planning/ROADMAP.md` manually with the completed `22-01` status instead.
 
 ## User Setup Required
 
