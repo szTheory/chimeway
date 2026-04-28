@@ -51,6 +51,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
       assert resumed_delivery.metadata["resume_source"] == "scheduled_resume"
       assert resumed_delivery.metadata["resume_scheduled_at"] == "2026-01-15T13:00:00.000000Z"
       assert resumed_delivery.metadata["resumed_at"] == "2026-01-15T13:05:00.000000Z"
+      assert DateTime.compare(resumed_delivery.updated_at, ~U[2026-01-15 13:05:00Z]) == :eq
 
       assert {:noop, already_resumed} =
                Deliveries.resume_deferred_delivery(
@@ -161,6 +162,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
       assert cancelled_delivery.status == :cancelled
       assert cancelled_delivery.orchestration_state == :deferred
       assert cancelled_delivery.suppression_reason == "resume_cancelled"
+      assert DateTime.compare(cancelled_delivery.updated_at, ~U[2026-01-15 12:59:00Z]) == :eq
 
       assert {:ok, superseded_delivery} =
                Deliveries.cancel_deferred_delivery(
@@ -171,6 +173,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
 
       assert superseded_delivery.status == :cancelled
       assert superseded_delivery.suppression_reason == "superseded"
+      assert DateTime.compare(superseded_delivery.updated_at, ~U[2026-01-15 12:59:00Z]) == :eq
 
       assert {:noop, cancelled_delivery} =
                Deliveries.resume_deferred_delivery(
@@ -243,6 +246,9 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                :deferred,
                :cancelled
              ]
+
+      [%{at: cancelled_at}] = Enum.filter(explanation.timeline, &(&1.event == :cancelled))
+      assert DateTime.compare(cancelled_at, ~U[2026-01-15 12:59:00Z]) == :eq
     end
   end
 

@@ -266,7 +266,7 @@ defmodule Chimeway.Deliveries do
             d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred and
               not is_nil(d.next_eligible_at) and d.next_eligible_at <= ^now
         ),
-        set: [orchestration_state: :ready, metadata: metadata]
+        set: [orchestration_state: :ready, metadata: metadata, updated_at: now]
       )
 
     updated_delivery = get_delivery!(delivery_id)
@@ -312,7 +312,7 @@ defmodule Chimeway.Deliveries do
           where:
             d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred
         ),
-        set: [status: :cancelled, suppression_reason: reason, metadata: metadata]
+        set: [status: :cancelled, suppression_reason: reason, metadata: metadata, updated_at: now]
       )
 
     updated_delivery = get_delivery!(delivery_id)
