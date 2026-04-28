@@ -86,6 +86,19 @@ defmodule ChimewayTest.Notifiers.LifecycleCustomChannel do
   def channels(_params, _recipient), do: {:ok, ["webhook_partner"]}
 end
 
+defmodule ChimewayTest.Notifiers.LifecycleDigestHeld do
+  @behaviour Chimeway.Notifier
+  def notification_key, do: "test.lifecycle_digest_held"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Digest Held"}}
+  def channels(_params, _recipient), do: {:ok, [:email]}
+  def orchestration(_params, _recipient), do: {:ok, :digest_held}
+end
+
 defmodule Chimeway.Integration.DeliveryLifecycleTest do
   use Chimeway.DataCase, async: false
 
@@ -97,6 +110,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
   alias Chimeway.{Delivery, DeliveryAttempt, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+  alias Chimeway.Policy.Settings
 
   # ---- Scenario A — in-app delivery via default (Logger) adapter ----
 
@@ -563,5 +577,78 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       assert MapSet.new(result.trace.delivery_ids) == MapSet.new(durable_delivery_ids)
     end
+  end
+
+  describe "Scenario H: held deliveries remain planned-but-not-dispatched in Phase 17" do
+    test "quiet-hours deferral stays pending with zero attempts and explainable planning facts" do
+      assert {:ok, _settings} =
+               Settings.upsert_settings(%{
+                 recipient_id: "user:9",
+                 quiet_hours_start_minute: 22 * 60,
+                 quiet_hours_end_minute: 8 * 60,
+                 time_zone: "America/New_York"
+               })
+
+      assert {:ok, result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleA,
+                 %{user_id: 9},
+                 idempotency_key: "lifecycle_deferred_001",
+                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+               )
+
+      assert result.dispatch_outcome == :ok
+      assert length(result.trace.delivery_ids) == 1
+
+      [delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.id in ^result.trace.delivery_ids
+          )
+        )
+
+      assert delivery.status == :pending
+      assert delivery.orchestration_state == :deferred
+      assert delivery.planning_reason == "quiet_hours"
+      assert DateTime.compare(delivery.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
+      assert attempt_count(delivery.id) == 0
+
+      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert explanation.status == :pending
+      assert explanation.last_attempt == nil
+    end
+
+    test "digest-held planning stays pending with zero attempts" do
+      assert {:ok, result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleDigestHeld,
+                 %{user_id: 10},
+                 idempotency_key: "lifecycle_digest_held_001"
+               )
+
+      assert result.dispatch_outcome == :ok
+      assert length(result.trace.delivery_ids) == 1
+
+      [delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.id in ^result.trace.delivery_ids
+          )
+        )
+
+      assert delivery.status == :pending
+      assert delivery.orchestration_state == :digest_held
+      assert delivery.planning_reason == "digest_rule"
+      assert delivery.next_eligible_at == nil
+      assert attempt_count(delivery.id) == 0
+
+      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert explanation.status == :pending
+      assert explanation.last_attempt == nil
+    end
+  end
+
+  defp attempt_count(delivery_id) do
+    Repo.aggregate(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery_id), :count, :id)
   end
 end
