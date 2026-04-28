@@ -45,6 +45,18 @@ defmodule Chimeway.DeliveriesTest do
       assert delivery.notification_id == notification.id
     end
 
+    test "creates a ready orchestration row with explicit planning fields" do
+      %{notification: notification} = insert_notification()
+
+      assert {:ok, %Delivery{} = delivery} =
+               Deliveries.plan_delivery(notification.id, :in_app)
+
+      assert delivery.orchestration_state == :ready
+      assert delivery.planning_reason == nil
+      assert delivery.planning_context == nil
+      assert delivery.next_eligible_at == nil
+    end
+
     test "is idempotent: duplicate calls create exactly one row" do
       %{notification: notification} = insert_notification()
 
