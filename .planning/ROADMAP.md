@@ -80,11 +80,11 @@ Success criteria:
 **Goal**: Make notification content versioned, channel-aware, and previewable without coupling durable history to notifier module changes.
 **Depends on**: Phase 20
 **Requirements**: TMPL-01, TMPL-02, TMPL-03
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 
 Plans:
 - [x] 21-01-PLAN.md — Add durable rendering fields and the normalized notifier rendering declaration seam.
-- [ ] 21-02-PLAN.md — Persist render assigns once and stamp canonical delivery rows with render identity during planning.
+- [x] 21-02-PLAN.md — Persist render assigns once and stamp canonical delivery rows with render identity during planning.
 - [ ] 21-03-PLAN.md — Build explicit validated in-app and email renderer contracts.
 - [ ] 21-04-PLAN.md — Materialize validated render output on delivery rows and keep traces payload-safe.
 - [ ] 21-05-PLAN.md — Expose the pure preview API and the thin Mix wrapper over the production render pipeline.
@@ -112,7 +112,7 @@ Success criteria:
 | 18 | Scheduled Resume & Deferred Dispatch | 3/3 | Complete    | 2026-04-28 |
 | 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
 | 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
-| 21 | Template Versioning & Rendering Contracts | 1/5 | In Progress|  |
+| 21 | Template Versioning & Rendering Contracts | 2/5 | In Progress|  |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up

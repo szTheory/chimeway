@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
 status: executing
-stopped_at: Completed 19-03-PLAN.md
-last_updated: "2026-04-28T19:07:24.342Z"
+stopped_at: Completed 21-02-PLAN.md
+last_updated: "2026-04-28T19:14:04.603Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 17
-  completed_plans: 13
-  percent: 76
+  completed_plans: 14
+  percent: 82
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 ## Current Position
 
 Phase: 21 (template-versioning-rendering-contracts) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-04-28
 
@@ -79,6 +79,9 @@ Recent decisions affecting current work:
 - Source deliveries now converge through explicit digest outcomes on the canonical row instead of remaining pending after flush.
 - Emitted digests now hand off through dispatch_delivery by delivery_id, reusing the normal sync and Oban lifecycle seams.
 - Chimeway.Traces now exposes digest reasoning for both source rows and emitted digest rows without leaking raw payload or provider response data.
+- Trigger persistence now stores sanitized render_assigns once and projects the same durable data into metadata for compatibility.
+- Canonical delivery inserts receive render_key and render_version before policy evaluation, with reused rows resynchronized through a dedicated helper.
+- Planning prefers persisted notification.render_assigns over caller-supplied params when re-resolving per-channel render identity.
 
 ### Pending Todos
 
@@ -95,8 +98,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T14:45:21.059Z
-Stopped at: Completed 19-03-PLAN.md
+Last session: 2026-04-28T19:14:04.599Z
+Stopped at: Completed 21-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** 20 (Digest Emission & Explainability) — 3 plans — 2026-04-28T17:18:14Z
