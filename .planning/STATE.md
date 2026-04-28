@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: Phase 21 complete — ready for Phase 22 planning
+status: Phase 21.1 inserted — ready for planning
 stopped_at: Completed 21-05-PLAN.md
-last_updated: "2026-04-28T19:42:59.079Z"
+last_updated: "2026-04-28T19:47:44Z"
 last_activity: 2026-04-28
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 5
   total_plans: 17
   completed_plans: 17
-  percent: 100
+  percent: 83
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 22 — Recovery & Outcome Analytics
+**Current focus:** Phase 21.1 — Rendering durability and preview hardening
 
 ## Current Position
 
-Phase: 22 — READY
+Phase: 21.1 — READY
 Plan: Not started
-Status: Phase 21 complete — ready for Phase 22 planning
+Status: Phase 21.1 inserted — ready for planning
 Last activity: 2026-04-28
 
 ## Accumulated Context
@@ -99,6 +99,10 @@ None.
 
 None.
 
+### Roadmap Evolution
+
+- Phase 21.1 inserted after Phase 21: Rendering durability and preview hardening (URGENT)
+
 ### Deferred Items
 
 - Workflow journeys and escalation trees beyond digest/window orchestration.
@@ -110,4 +114,4 @@ Last session: 2026-04-28T19:36:11.274Z
 Stopped at: Completed 21-05-PLAN.md
 Resume file: None
 
-**Planned Phase:** 21 (Template Versioning & Rendering Contracts) — 5 plans — 2026-04-28T19:18:51Z
+**Planned Phase:** 21.1 (Rendering durability and preview hardening) — 0 plans — 2026-04-28T19:47:44Z

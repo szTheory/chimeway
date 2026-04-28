@@ -94,9 +94,19 @@ Success criteria:
 2. Channel-specific rendering inputs and outputs are explicit, validated, and covered by contract tests.
 3. Developers can preview or verify rendered notification content locally before provider delivery.
 
+### Phase 21.1: Rendering durability and preview hardening (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 21
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 21.1 to break down)
+
 ### Phase 22: Recovery & Outcome Analytics
 **Goal**: Close the remaining operational trust gaps with reconciliation paths and aggregate outcome queries.
-**Depends on**: Phase 21
+**Depends on**: Phase 21.1
 **Requirements**: OPS-01, OPS-02
 
 Success criteria:
@@ -113,8 +123,9 @@ Success criteria:
 | 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
 | 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
+| 21.1 | Rendering durability and preview hardening | Urgent review follow-up | TBD | 0 |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up
 
-**Phase 22: Recovery & Outcome Analytics** — Close the remaining operational trust gaps with reconciliation paths and aggregate outcome queries.
+**Phase 21.1: Rendering durability and preview hardening** — Urgent review follow-up before Recovery & Outcome Analytics.
