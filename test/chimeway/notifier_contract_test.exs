@@ -19,6 +19,28 @@ defmodule Chimeway.NotifierContractTest do
     def build(_params, recipient), do: {:ok, %{recipient: recipient}}
   end
 
+  defmodule DigestNotifier do
+    @behaviour Notifier
+
+    @impl true
+    def notification_key, do: "comment.digest"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(_params), do: {:ok, [%{recipient_identity: "user-1"}]}
+
+    @impl true
+    def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+
+    @impl true
+    def channels(_params, _recipient), do: {:ok, [:email]}
+
+    @impl true
+    def orchestration(_params, _recipient), do: {:ok, [email: :digest]}
+  end
+
   defmodule MissingNotificationKey do
     def version, do: 1
     def recipients(_params), do: {:ok, [%{recipient_identity: "user-1"}]}
@@ -33,6 +55,16 @@ defmodule Chimeway.NotifierContractTest do
 
   test "accepts a valid notifier module" do
     assert :ok = Notifier.validate_module!(ValidNotifier)
+  end
+
+  test "keeps existing notifiers valid when orchestration callback is absent" do
+    assert {:ok, %{default: :immediate, channels: %{}}} =
+             Notifier.resolve_orchestration(ValidNotifier, %{}, %{})
+  end
+
+  test "normalizes optional orchestration declarations for digest participation" do
+    assert {:ok, %{default: :immediate, channels: %{"email" => :digest_held}}} =
+             Notifier.resolve_orchestration(DigestNotifier, %{}, %{})
   end
 
   test "returns tagged error for missing notification_key callback" do
