@@ -66,17 +66,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| POL-01 | Phase 13 | Pending |
-| POL-02 | Phase 13 | Pending |
-| POL-03 | Phase 13 | Pending |
-| REL-01 | Phase 14 | Pending |
-| REL-02 | Phase 14 | Pending |
-| REL-03 | Phase 14 | Pending |
-| OBS-01 | Phase 15 | Pending |
-| OBS-02 | Phase 15 | Pending |
-| OBS-03 | Phase 15 | Pending |
-| INT-01 | Phase 16 | Pending |
-| INT-02 | Phase 16 | Pending |
+| POL-01 | Phase 13 | Satisfied |
+| POL-02 | Phase 13 | Satisfied |
+| POL-03 | Phase 13 | Satisfied |
+| REL-01 | Phase 14 | Satisfied |
+| REL-02 | Phase 14 | Satisfied |
+| REL-03 | Phase 14 | Satisfied |
+| OBS-01 | Phase 15 | Satisfied |
+| OBS-02 | Phase 15 | Satisfied |
+| OBS-03 | Phase 15 | Satisfied |
+| INT-01 | Phase 16 | Satisfied |
+| INT-02 | Phase 16 | Satisfied |
 
 **Coverage:**
 - v1 requirements: 11 total

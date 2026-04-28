@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0** — [Archived roadmap](.planning/milestones/v1.0-ROADMAP.md) (shipped 2026-04-25)
-- 🟦 **v1.1** — Production Trust (current)
+- ✅ **v1.1** — Production Trust (shipped 2026-04-27)
 
 ## Phases
 
@@ -80,9 +80,9 @@ Requirements: INT-01, INT-02
 Plans: 3
 
 Plan list:
-- [ ] 16-01-PLAN.md — Expand introductory stubs (installation & getting-started)
-- [ ] 16-02-PLAN.md — Expand integration recipes for Oban async dispatch and Telemetry tracing
-- [ ] 16-03-PLAN.md — Expand custom adapter recipe for runtime safety
+- [x] 16-01-PLAN.md — Expand introductory stubs (installation & getting-started)
+- [x] 16-02-PLAN.md — Expand integration recipes for Oban async dispatch and Telemetry tracing
+- [x] 16-03-PLAN.md — Expand custom adapter recipe for runtime safety
 
 Success criteria:
 1. Host apps have a documented integration path.
