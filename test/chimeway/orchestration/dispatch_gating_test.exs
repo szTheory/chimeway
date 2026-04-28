@@ -2,7 +2,15 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
   use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
 
-  alias Chimeway.{Deliveries, DeliveryAttempt, Dispatch.Oban, Dispatch.ObanWorker, Dispatch.Sync, Repo}
+  alias Chimeway.{
+    Deliveries,
+    DeliveryAttempt,
+    Dispatch.DeferredResumeWorker,
+    Dispatch.Oban,
+    Dispatch.ObanWorker,
+    Dispatch.Sync,
+    Repo
+  }
   alias Chimeway.Policy.Settings
   alias Chimeway.Test.DispatchHelpers
 
@@ -123,8 +131,15 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
                trigger_params: %{}
              )
 
+    assert_enqueued(
+      worker: DeferredResumeWorker,
+      args: %{delivery_id: deferred_delivery.id},
+      scheduled_at: deferred_delivery.next_eligible_at
+    )
+
     refute_enqueued(worker: ObanWorker, args: %{delivery_id: deferred_delivery.id})
     refute_enqueued(worker: ObanWorker, args: %{delivery_id: digest_delivery.id})
+    refute_enqueued(worker: DeferredResumeWorker, args: %{delivery_id: digest_delivery.id})
 
     assert :ok = perform_job(ObanWorker, %{delivery_id: deferred_delivery.id})
     assert :ok = perform_job(ObanWorker, %{delivery_id: digest_delivery.id})

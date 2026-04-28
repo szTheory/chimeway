@@ -1,10 +1,28 @@
 defmodule Chimeway.Orchestration.DeferredResumeTest do
   use Chimeway.DataCase, async: false
+  use Oban.Testing, repo: Chimeway.Repo
 
   import Ecto.Query
 
-  alias Chimeway.{Deliveries, Delivery, Repo}
+  alias Chimeway.{Deliveries, Delivery, Dispatch.DeferredResumeWorker, Dispatch.ObanWorker, Repo}
   alias Chimeway.Test.DispatchHelpers
+
+  setup do
+    previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+    previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+
+    Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+    Chimeway.Adapters.Test.clear()
+
+    on_exit(fn ->
+      Application.put_env(:chimeway, :adapter, previous_adapter)
+      Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+      Chimeway.Adapters.Test.clear()
+    end)
+
+    :ok
+  end
 
   describe "list_due_deferred_deliveries/1 and resume_deferred_delivery/2" do
     test "only one caller can promote a due deferred delivery and later calls no-op" do
@@ -182,6 +200,66 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
       assert superseded_delivery.status == :cancelled
       assert superseded_delivery.suppression_reason == "superseded"
       assert suppressed_delivery.suppression_reason != "superseded"
+    end
+  end
+
+  describe "DeferredResumeWorker" do
+    test "promotes a deferred row and enqueues exactly one canonical dispatch worker" do
+      delivery =
+        deferred_delivery_fixture(
+          notification_key: "deferred-resume.worker.promotes-once",
+          recipient_identity: "user:deferred-resume-worker-promotes-once",
+          next_eligible_at: ~U[2026-01-15 13:00:00Z]
+        )
+
+      refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
+
+      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: delivery.id})
+
+      resumed = Deliveries.get_delivery!(delivery.id)
+      assert resumed.orchestration_state == :ready
+      assert resumed.status == :pending
+      assert resumed.metadata["resume_source"] == "oban_scheduler"
+
+      assert_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
+      assert length(all_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})) == 1
+
+      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: delivery.id})
+
+      assert length(all_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})) == 1
+      refute_enqueued(worker: ObanWorker, args: %{delivery_id: "#{delivery.id}-other"})
+    end
+
+    test "duplicate scheduled resume jobs and terminal rows no-op safely" do
+      ready_delivery =
+        deferred_delivery_fixture(
+          notification_key: "deferred-resume.worker.already-ready",
+          recipient_identity: "user:deferred-resume-worker-already-ready",
+          next_eligible_at: ~U[2026-01-15 13:00:00Z]
+        )
+        |> then(fn delivery ->
+          delivery
+          |> Ecto.Changeset.change(orchestration_state: :ready)
+          |> Repo.update!()
+        end)
+
+      cancelled_delivery =
+        deferred_delivery_fixture(
+          notification_key: "deferred-resume.worker.cancelled",
+          recipient_identity: "user:deferred-resume-worker-cancelled",
+          next_eligible_at: ~U[2026-01-15 13:00:00Z]
+        )
+        |> then(fn delivery ->
+          delivery
+          |> Ecto.Changeset.change(status: :cancelled, suppression_reason: "superseded")
+          |> Repo.update!()
+        end)
+
+      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: ready_delivery.id})
+      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: cancelled_delivery.id})
+
+      refute_enqueued(worker: ObanWorker, args: %{delivery_id: ready_delivery.id})
+      refute_enqueued(worker: ObanWorker, args: %{delivery_id: cancelled_delivery.id})
     end
   end
 
