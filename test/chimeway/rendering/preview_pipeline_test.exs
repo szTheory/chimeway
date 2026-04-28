@@ -1,6 +1,8 @@
 defmodule Chimeway.Rendering.PreviewPipelineTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   alias Chimeway.Rendering
 
   defmodule PreviewNotifier do
@@ -171,6 +173,59 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
                  recipient: recipient,
                  channel: :email
                )
+    end
+  end
+
+  describe "mix preview.rendering" do
+    setup do
+      Mix.Task.clear()
+      :ok
+    end
+
+    test "prints the same stable identity and payload fields returned by the preview api" do
+      recipient = %{id: "recipient-1", email: "ada@example.com"}
+
+      assert {:ok, preview} =
+               Chimeway.preview_rendering(
+                 PreviewNotifier,
+                 %{actor_name: "Ada", comment_body: "New comment"},
+                 recipient: recipient,
+                 channel: :email
+               )
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Preview.Rendering.run([
+            "--notifier",
+            "Elixir.Chimeway.Rendering.PreviewPipelineTest.PreviewNotifier",
+            "--params",
+            "%{actor_name: \"Ada\", comment_body: \"New comment\"}",
+            "--recipient",
+            "%{id: \"recipient-1\", email: \"ada@example.com\"}",
+            "--channel",
+            "email"
+          ])
+        end)
+
+      assert output =~ "render_key: #{preview.render_key}"
+      assert output =~ "render_version: #{preview.render_version}"
+      assert output =~ "channel: #{preview.channel}"
+      assert output =~ "\"subject\" => \"Ada commented on your post\""
+      assert output =~ "\"html_body\" => \"<p>New comment</p>\""
+    end
+
+    test "exits non-zero with usage guidance when required flags are missing" do
+      error =
+        capture_io(:stderr, fn ->
+          assert catch_exit(Mix.Tasks.Preview.Rendering.run(["--channel", "email"])) ==
+                   {:shutdown, 1}
+        end)
+
+      assert error =~ "Usage: mix preview.rendering"
+      assert error =~ "--notifier"
+      assert error =~ "--params"
+      assert error =~ "--recipient"
+      assert error =~ "--channel"
     end
   end
 end
