@@ -114,6 +114,12 @@ Success criteria:
 **Goal**: Close the remaining operational trust gaps with reconciliation paths and aggregate outcome queries.
 **Depends on**: Phase 21.1
 **Requirements**: OPS-01, OPS-02
+**Plans:** 3 plans
+
+Plans:
+- [ ] 22-01-PLAN.md — Define durable stuck-row detection and recoverability guards from canonical delivery state only.
+- [ ] 22-02-PLAN.md — Re-drive recoverable deliveries through the existing dispatcher while preserving one canonical row history.
+- [ ] 22-03-PLAN.md — Add grouped outcome summary queries under `Chimeway.Traces`.
 
 Success criteria:
 1. Operators can detect events or deliveries that persisted but were not fully dispatched and re-drive them safely.
@@ -134,4 +140,4 @@ Success criteria:
 
 ## Next Up
 
-**Phase 21.1: Rendering durability and preview hardening** — Urgent review follow-up before Recovery & Outcome Analytics.
+**Phase 22: Recovery & Outcome Analytics** — Close operational trust gaps with reconciliation and grouped outcome analytics.
