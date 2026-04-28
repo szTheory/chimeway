@@ -20,6 +20,7 @@ defmodule Chimeway.Notifier do
   @callback recipients(map()) :: {:ok, [map()]} | {:error, term()}
   @callback build(map(), map()) :: {:ok, map()} | {:error, term()}
   @callback channels(map(), map()) :: {:ok, [atom() | String.t()]} | {:error, term()}
+  @callback rendering(map(), map()) :: {:ok, map()} | {:error, term()}
   @callback delayed_fallback_channels(map(), map()) ::
               {:ok, [atom() | String.t()]} | {:error, term()}
   @callback orchestration(map(), map()) ::
@@ -27,6 +28,7 @@ defmodule Chimeway.Notifier do
               | {:error, term()}
 
   @optional_callbacks channels: 2
+  @optional_callbacks rendering: 2
   @optional_callbacks delayed_fallback_channels: 2
   @optional_callbacks orchestration: 2
 
@@ -236,4 +238,10 @@ defmodule Chimeway.Notifier do
   end
 
   defp normalize_digest_key(digest_key), do: {:error, {:invalid_digest_key, digest_key}}
+
+  @spec resolve_rendering(module(), map(), map()) ::
+          {:ok, Chimeway.Rendering.rendering_declaration()} | {:error, term()}
+  def resolve_rendering(notifier, trigger_params, recipient) when is_atom(notifier) do
+    Chimeway.Rendering.resolve_declaration(notifier, trigger_params, recipient)
+  end
 end
