@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: Ready for 19-02 execution after completing 19-01
-stopped_at: Completed 19-01-PLAN.md
-last_updated: "2026-04-28T14:25:49.086Z"
-last_activity: 2026-04-28 — Completed 19-01 durable digest rule and bucket storage
+status: Ready for 19-03 execution after completing 19-02
+stopped_at: Completed 19-02-PLAN.md
+last_updated: "2026-04-28T14:36:42.395Z"
+last_activity: 2026-04-28
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
-  percent: 78
+  completed_plans: 8
+  percent: 89
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 ## Current Position
 
 Phase: 19 — EXECUTING
-Plan: 2 of 3
-Status: Ready for 19-02 execution after completing 19-01
-Last activity: 2026-04-28 — Completed 19-01 durable digest rule and bucket storage
+Plan: 3 of 3
+Status: Ready for 19-03 execution after completing 19-02
+Last activity: 2026-04-28 — Completed 19-02 durable digest accumulation transaction
 
 ## Accumulated Context
 
@@ -68,6 +68,9 @@ Recent decisions affecting current work:
 - Resume promotion and performer enqueue now share one transaction so `:ready` cannot persist without a canonical dispatch job.
 - Digest rules persist stable identity with rule_key plus rule_version and never notifier module names.
 - Digest buckets snapshot grouping facts and explicit window boundaries independently from deliveries.next_eligible_at.
+- Digest accumulation stays anchored on the canonical delivery row and inserts one membership row per delivery_id instead of using queue-level uniqueness.
+- Bucket counters advance only after a membership insert succeeds, using database uniqueness plus atomic updates to avoid retry drift.
+- Boundary windows reuse the project’s DST-safe local-time conversion pattern and persist explicit UTC window boundaries independent from deliveries.next_eligible_at.
 
 ### Pending Todos
 
@@ -84,8 +87,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T14:24:48.118Z
-Stopped at: Completed 19-01-PLAN.md
+Last session: 2026-04-28T14:36:42.374Z
+Stopped at: Completed 19-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** 19 (Digest Data Model & Accumulation) — 3 plans — 2026-04-28T14:05:16.728Z
