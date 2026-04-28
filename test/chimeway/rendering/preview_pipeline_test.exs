@@ -97,6 +97,27 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
     end
   end
 
+  defmodule BuggyNotifier do
+    use Chimeway.Notifier
+
+    @impl true
+    def notification_key, do: "buggy.notifier"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(_params), do: {:ok, [%{id: "recipient-1"}]}
+
+    @impl true
+    def build(_params, _recipient), do: {:ok, %{}}
+
+    @impl true
+    def rendering(_params, _recipient) do
+      raise "bug in rendering"
+    end
+  end
+
   describe "preview_rendering/3" do
     test "returns stable preview identity and validated render data" do
       recipient = %{id: "recipient-1", email: "ada@example.com"}
@@ -173,6 +194,31 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
                  recipient: recipient,
                  channel: :email
                )
+    end
+
+    test "returns notifier_not_loaded for unloaded notifier modules" do
+      recipient = %{id: "recipient-1", email: "ada@example.com"}
+
+      assert {:error, :notifier_not_loaded} =
+               Chimeway.preview_rendering(
+                 SomeUnloadedNotifier,
+                 %{},
+                 recipient: recipient,
+                 channel: :email
+               )
+    end
+
+    test "preview still surfaces renderer errors without blanket rescue" do
+      recipient = %{id: "recipient-1", email: "ada@example.com"}
+
+      assert_raise RuntimeError, "bug in rendering", fn ->
+        Chimeway.preview_rendering(
+          BuggyNotifier,
+          %{},
+          recipient: recipient,
+          channel: :email
+        )
+      end
     end
   end
 
