@@ -3,6 +3,10 @@ defmodule Chimeway.Orchestration.WindowMathTest do
 
   alias Chimeway.Orchestration.WindowMath
 
+  test "the runtime is configured with a non-UTC time zone database" do
+    assert Calendar.get_time_zone_database() == Tzdata.TimeZoneDatabase
+  end
+
   describe "next_eligible_at/2" do
     test "computes the next eligible UTC time from recipient-local quiet hours" do
       evaluation_time = ~U[2026-01-15 03:30:00Z]
@@ -25,7 +29,7 @@ defmodule Chimeway.Orchestration.WindowMathTest do
                WindowMath.next_eligible_at(evaluation_time,
                  time_zone: "America/New_York",
                  quiet_hours_start_minute: 60,
-                 quiet_hours_end_minute: 3 * 60 + 30
+                 quiet_hours_end_minute: 2 * 60 + 30
                )
 
       assert next_eligible_at == ~U[2026-03-08 07:00:00Z]
