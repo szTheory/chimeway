@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
 status: executing
-stopped_at: Completed 21-03-PLAN.md
-last_updated: "2026-04-28T19:18:51.441Z"
+stopped_at: Completed 21-04-PLAN.md
+last_updated: "2026-04-28T19:28:34.631Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 17
-  completed_plans: 15
-  percent: 88
+  completed_plans: 16
+  percent: 94
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 ## Current Position
 
 Phase: 21 (template-versioning-rendering-contracts) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-04-28
 
@@ -84,6 +84,9 @@ Recent decisions affecting current work:
 - Planning prefers persisted notification.render_assigns over caller-supplied params when re-resolving per-channel render identity.
 - Channel render contracts stay pure maps validated by Ecto changesets so the core library remains independent from Phoenix and Swoosh.
 - Shared render dispatch wraps validation failures with channel-tagged errors to match existing planner normalization and test posture.
+- Canonical delivery rows now persist validated render_data during planning so adapters and workers consume one durable render artifact.
+- Trace explanations project render_key and render_version only; rendered bodies and raw render_data remain excluded from operator surfaces.
+- Unsupported custom channels keep durable render identity and empty render_data rather than re-entering rendering inside adapters.
 
 ### Pending Todos
 
@@ -100,8 +103,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T19:18:51.435Z
-Stopped at: Completed 21-03-PLAN.md
+Last session: 2026-04-28T19:28:34.617Z
+Stopped at: Completed 21-04-PLAN.md
 Resume file: None
 
 **Planned Phase:** 21 (Template Versioning & Rendering Contracts) — 5 plans — 2026-04-28T19:18:51Z
