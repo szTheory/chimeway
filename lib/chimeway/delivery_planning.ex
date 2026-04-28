@@ -83,17 +83,21 @@ defmodule Chimeway.DeliveryPlanning do
        ) do
     delay_fallback = MapSet.member?(delayed_fallback_set, channel)
     source = delayed_fallback_source_for(channel, delayed_fallback_set, delayed_fallback_source)
-    trigger_params = normalize_trigger_params(Keyword.get(opts, :trigger_params, %{}))
+    trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
 
-    with {:ok, delivery} <-
+    with {:ok, render_identity} <- resolve_render_identity(notification, channel, trigger_params, opts),
+         {:ok, delivery} <-
            Deliveries.plan_delivery(notification.id, channel,
              delay_fallback: delay_fallback,
              delayed_fallback_source: source,
              notification_key: Keyword.get(opts, :notification_key),
              event_id: Keyword.get(opts, :event_id),
-             correlation_id: Keyword.get(opts, :correlation_id)
+             correlation_id: Keyword.get(opts, :correlation_id),
+             render_key: render_identity[:render_key],
+             render_version: render_identity[:render_version]
            ),
+         {:ok, delivery} <- maybe_apply_render_identity(delivery, render_identity),
          {:ok, orchestration} <-
            resolve_orchestration(opts, trigger_params, recipient),
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
@@ -262,6 +266,12 @@ defmodule Chimeway.DeliveryPlanning do
   defp normalize_trigger_params(params) when is_map(params), do: params
   defp normalize_trigger_params(_params), do: %{}
 
+  defp render_trigger_params(%Notification{render_assigns: render_assigns}, _trigger_params)
+       when is_map(render_assigns) and map_size(render_assigns) > 0,
+       do: render_assigns
+
+  defp render_trigger_params(_notification, trigger_params), do: normalize_trigger_params(trigger_params)
+
   defp notification_recipient(%Notification{} = notification) do
     %{
       recipient_identity: notification.recipient_identity,
@@ -309,6 +319,40 @@ defmodule Chimeway.DeliveryPlanning do
       end
 
     Deliveries.apply_planning_decision(delivery, decision)
+  end
+
+  defp resolve_render_identity(notification, channel, trigger_params, opts) do
+    case Keyword.get(opts, :notifier) do
+      notifier when is_atom(notifier) and not is_nil(notifier) ->
+        recipient = notification_recipient(notification)
+
+        with {:ok, rendering} <- Notifier.resolve_rendering(notifier, trigger_params, recipient),
+             {:ok, identity} <- fetch_channel_render_identity(rendering, channel) do
+          {:ok, identity}
+        end
+
+      _notifier ->
+        {:ok, %{}}
+    end
+  end
+
+  defp fetch_channel_render_identity(%{channels: channels}, channel) when is_map(channels) do
+    case Map.fetch(channels, channel) do
+      {:ok, identity} -> {:ok, identity}
+      :error -> {:error, {:missing_render_identity, channel}}
+    end
+  end
+
+  defp maybe_apply_render_identity(%Delivery{} = delivery, render_identity) when map_size(render_identity) == 0,
+    do: {:ok, delivery}
+
+  defp maybe_apply_render_identity(%Delivery{} = delivery, render_identity) do
+    if delivery.render_key == render_identity.render_key &&
+         delivery.render_version == render_identity.render_version do
+      {:ok, delivery}
+    else
+      Deliveries.apply_render_identity(delivery, render_identity)
+    end
   end
 
   defp digest_planning_context(channel, orchestration, digest_key) do

@@ -50,7 +50,10 @@ defmodule Chimeway.Deliveries do
          {:ok, delayed_fallback_source} <-
            normalize_delayed_fallback_source(
              Keyword.get(opts, :delayed_fallback_source, :default)
-           ) do
+           ),
+         {:ok, render_key} <- normalize_optional_render_key(Keyword.get(opts, :render_key)),
+         {:ok, render_version} <-
+           normalize_optional_render_version(Keyword.get(opts, :render_version)) do
       metadata =
         opts
         |> Keyword.get(:metadata, %{})
@@ -67,7 +70,9 @@ defmodule Chimeway.Deliveries do
           channel: channel_str,
           status: :pending,
           delay_fallback: delay_fallback,
-          metadata: metadata
+          metadata: metadata,
+          render_key: render_key,
+          render_version: render_version
         })
         |> Repo.insert(on_conflict: :nothing, conflict_target: [:notification_id, :channel])
 
@@ -106,6 +111,20 @@ defmodule Chimeway.Deliveries do
   defp normalize_optional_map(nil), do: {:ok, nil}
   defp normalize_optional_map(value) when is_map(value), do: {:ok, value}
   defp normalize_optional_map(value), do: {:error, {:invalid_planning_context, value}}
+
+  defp normalize_optional_render_key(nil), do: {:ok, nil}
+
+  defp normalize_optional_render_key(value) when is_binary(value) and byte_size(value) > 0,
+    do: {:ok, value}
+
+  defp normalize_optional_render_key(value), do: {:error, {:invalid_render_key, value}}
+
+  defp normalize_optional_render_version(nil), do: {:ok, nil}
+
+  defp normalize_optional_render_version(value) when is_integer(value) and value > 0,
+    do: {:ok, value}
+
+  defp normalize_optional_render_version(value), do: {:error, {:invalid_render_version, value}}
 
   defp normalize_optional_datetime(nil), do: {:ok, nil}
 
@@ -209,6 +228,23 @@ defmodule Chimeway.Deliveries do
 
   def apply_planning_decision(%Delivery{} = _delivery, decision),
     do: {:error, {:invalid_planning_decision, decision}}
+
+  @doc """
+  Persists render identity on the canonical delivery row for reused planning paths.
+  """
+  @spec apply_render_identity(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
+  def apply_render_identity(%Delivery{} = delivery, identity) when is_map(identity) do
+    with {:ok, render_key} <- normalize_optional_render_key(Map.get(identity, :render_key)),
+         {:ok, render_version} <-
+           normalize_optional_render_version(Map.get(identity, :render_version)) do
+      delivery
+      |> change(%{render_key: render_key, render_version: render_version})
+      |> Repo.update()
+    end
+  end
+
+  def apply_render_identity(%Delivery{} = _delivery, identity),
+    do: {:error, {:invalid_render_identity, identity}}
 
   @doc """
   Marks a digest-held source row as included in an emitted digest.

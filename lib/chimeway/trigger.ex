@@ -143,13 +143,16 @@ defmodule Chimeway.Trigger do
 
     recipients
     |> Enum.reduce_while({:ok, []}, fn recipient, {:ok, acc} ->
-      with {:ok, metadata} <- notifier.build(params, recipient) do
+      with {:ok, rendering} <- Notifier.resolve_rendering(notifier, params, recipient) do
+        render_assigns = sanitize_render_assigns(rendering.assigns)
+
         row = %{
           id: UUID.generate() |> UUID.dump!(),
           event_id: UUID.dump!(event.id),
           recipient_identity: recipient_identity(recipient),
           recipient_type: recipient_type(recipient),
-          metadata: sanitize_metadata(metadata),
+          metadata: render_assigns,
+          render_assigns: render_assigns,
           inserted_at: timestamp,
           updated_at: timestamp
         }
@@ -225,7 +228,7 @@ defmodule Chimeway.Trigger do
 
   defp sanitize_payload(payload), do: sanitize_map(payload)
 
-  defp sanitize_metadata(metadata), do: sanitize_map(metadata)
+  defp sanitize_render_assigns(assigns), do: sanitize_map(assigns)
 
   defp sanitize_map(map) when is_map(map) do
     Enum.reduce(map, %{}, fn {key, value}, acc ->
