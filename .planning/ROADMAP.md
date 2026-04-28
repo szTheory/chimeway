@@ -48,10 +48,10 @@ Success criteria:
 **Goal**: Introduce first-class digest rules and durable accumulation records for repeated notification streams.
 **Depends on**: Phase 18
 **Requirements**: DIGEST-01
-**Plans:** 3 plans
+**Plans:** 1/3 plans complete
 
 Plans:
-- [ ] 19-01-PLAN.md — Define durable digest rule and bucket storage contracts plus the public rule API.
+- [x] 19-01-PLAN.md — Define durable digest rule and bucket storage contracts plus the public rule API.
 - [ ] 19-02-PLAN.md — Add explicit membership storage and transactional accumulation with DB-level idempotency.
 - [ ] 19-03-PLAN.md — Wire digest accumulation into the planning pipeline after policy-safe held outcomes.
 

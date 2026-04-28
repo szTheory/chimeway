@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: ready_to_plan
-stopped_at: Phase 18 completed; ready to plan Phase 19
-last_updated: "2026-04-28T12:29:34Z"
-last_activity: 2026-04-28
+status: Ready for 19-02 execution after completing 19-01
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-04-28T14:25:49.086Z"
+last_activity: 2026-04-28 — Completed 19-01 durable digest rule and bucket storage
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
-  percent: 33
+  total_plans: 9
+  completed_plans: 7
+  percent: 78
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 19 — digest-data-model-&-accumulation
+**Current focus:** Phase 19 — Digest Data Model & Accumulation
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-28
+Phase: 19 — EXECUTING
+Plan: 2 of 3
+Status: Ready for 19-02 execution after completing 19-01
+Last activity: 2026-04-28 — Completed 19-01 durable digest rule and bucket storage
 
 ## Accumulated Context
 
@@ -66,6 +66,8 @@ Recent decisions affecting current work:
 - Deferred rows now schedule a dedicated Oban resume worker at `next_eligible_at` instead of enqueueing the performer directly.
 - Resume-worker job args remain limited to `delivery_id`, with all planning facts read from the canonical delivery row.
 - Resume promotion and performer enqueue now share one transaction so `:ready` cannot persist without a canonical dispatch job.
+- Digest rules persist stable identity with rule_key plus rule_version and never notifier module names.
+- Digest buckets snapshot grouping facts and explicit window boundaries independently from deliveries.next_eligible_at.
 
 ### Pending Todos
 
@@ -82,8 +84,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T12:29:34Z
-Stopped at: Phase 18 completed; ready to plan Phase 19
+Last session: 2026-04-28T14:24:48.118Z
+Stopped at: Completed 19-01-PLAN.md
 Resume file: None
 
-**Planned Phase:** 19
+**Planned Phase:** 19 (Digest Data Model & Accumulation) — 3 plans — 2026-04-28T14:05:16.728Z
