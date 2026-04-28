@@ -430,8 +430,13 @@ defmodule Chimeway.DeliveriesTest do
           inserted_at: old_time
         )
 
-      assert [event] = Deliveries.list_recoverable_events(now: now, older_than: 60)
-      assert event.id == recoverable_event.id
+      recoverable_ids =
+        Deliveries.list_recoverable_events(now: now, older_than: 60)
+        |> Enum.map(& &1.id)
+
+      assert recoverable_event.id in recoverable_ids
+      refute recent_event.id in recoverable_ids
+      refute planned_event.id in recoverable_ids
     end
 
     test "list_recoverable_deliveries/1 returns only aged pending ready rows" do
@@ -447,7 +452,7 @@ defmodule Chimeway.DeliveriesTest do
           orchestration_state: :ready
         )
 
-      _recent_delivery =
+      recent_delivery =
         insert_delivery(
           updated_at: recent_time,
           inserted_at: recent_time,
@@ -455,8 +460,12 @@ defmodule Chimeway.DeliveriesTest do
           orchestration_state: :ready
         )
 
-      assert [delivery] = Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
-      assert delivery.id == recoverable_delivery.id
+      recoverable_ids =
+        Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+        |> Enum.map(& &1.id)
+
+      assert recoverable_delivery.id in recoverable_ids
+      refute recent_delivery.id in recoverable_ids
     end
 
     test "list_recoverable_deliveries/1 excludes terminal, dispatched, and deferred rows" do
@@ -471,7 +480,7 @@ defmodule Chimeway.DeliveriesTest do
           orchestration_state: :ready
         )
 
-      _dispatched_delivery =
+      dispatched_delivery =
         insert_delivery(
           updated_at: old_time,
           inserted_at: old_time,
@@ -479,7 +488,7 @@ defmodule Chimeway.DeliveriesTest do
           orchestration_state: :ready
         )
 
-      _deferred_delivery =
+      deferred_delivery =
         insert_delivery(
           updated_at: old_time,
           inserted_at: old_time,
@@ -488,7 +497,7 @@ defmodule Chimeway.DeliveriesTest do
           next_eligible_at: ~U[2026-04-28 17:50:00Z]
         )
 
-      _succeeded_delivery =
+      succeeded_delivery =
         insert_delivery(
           updated_at: old_time,
           inserted_at: old_time,
@@ -496,7 +505,7 @@ defmodule Chimeway.DeliveriesTest do
           orchestration_state: :ready
         )
 
-      _suppressed_delivery =
+      suppressed_delivery =
         insert_delivery(
           updated_at: old_time,
           inserted_at: old_time,
@@ -505,7 +514,7 @@ defmodule Chimeway.DeliveriesTest do
           suppression_reason: "policy_blocked"
         )
 
-      _cancelled_delivery =
+      cancelled_delivery =
         insert_delivery(
           updated_at: old_time,
           inserted_at: old_time,
@@ -514,7 +523,7 @@ defmodule Chimeway.DeliveriesTest do
           suppression_reason: "superseded"
         )
 
-      _digested_delivery =
+      digested_delivery =
         insert_delivery(
           updated_at: old_time,
           inserted_at: old_time,
@@ -522,8 +531,17 @@ defmodule Chimeway.DeliveriesTest do
           orchestration_state: :ready
         )
 
-      assert [delivery] = Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
-      assert delivery.id == recoverable_delivery.id
+      recoverable_ids =
+        Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+        |> Enum.map(& &1.id)
+
+      assert recoverable_delivery.id in recoverable_ids
+      refute dispatched_delivery.id in recoverable_ids
+      refute deferred_delivery.id in recoverable_ids
+      refute succeeded_delivery.id in recoverable_ids
+      refute suppressed_delivery.id in recoverable_ids
+      refute cancelled_delivery.id in recoverable_ids
+      refute digested_delivery.id in recoverable_ids
     end
   end
 

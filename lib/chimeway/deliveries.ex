@@ -10,10 +10,128 @@ defmodule Chimeway.Deliveries do
   import Ecto.Query, only: [from: 2]
 
   alias Chimeway.{Delivery, DeliveryAttempt, Repo}
+  alias Chimeway.Events.Event
+  alias Chimeway.Notifications.Notification
   alias Chimeway.Telemetry
   alias Ecto.Multi
 
   @terminal_states [:succeeded, :suppressed, :cancelled, :digested]
+
+  @doc """
+  Lists persisted events that are older than the supplied threshold, have at
+  least one notification, and still have zero delivery rows planned.
+  """
+  @spec list_recoverable_events(keyword()) :: [Event.t()]
+  def list_recoverable_events(opts \\ []) when is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
+
+    Repo.all(
+      from(e in Event,
+        join: n in Notification,
+        on: n.event_id == e.id,
+        left_join: d in Delivery,
+        on: d.notification_id == n.id,
+        where: e.updated_at <= ^cutoff,
+        group_by: e.id,
+        having: count(d.id) == 0,
+        order_by: [asc: e.updated_at, asc: e.inserted_at]
+      )
+    )
+  end
+
+  @doc """
+  Lists delivery rows that are still pending, ready, older than the supplied
+  threshold, and not already claimed for recovery.
+  """
+  @spec list_recoverable_deliveries(keyword()) :: [Delivery.t()]
+  def list_recoverable_deliveries(opts \\ []) when is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
+
+    Repo.all(
+      from(d in Delivery,
+        where:
+          d.status == :pending and d.orchestration_state == :ready and d.updated_at <= ^cutoff and
+            fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+        order_by: [asc: d.updated_at, asc: d.inserted_at]
+      )
+    )
+  end
+
+  @doc """
+  Claims a recoverable delivery row by stamping durable recovery metadata on the
+  canonical row. Returns `{:noop, delivery}` if the row is no longer eligible.
+  """
+  @spec begin_recovery(binary() | Delivery.t(), keyword()) ::
+          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+  def begin_recovery(delivery_or_id, opts \\ [])
+
+  def begin_recovery(%Delivery{id: delivery_id}, opts) when is_list(opts) do
+    begin_recovery(delivery_id, opts)
+  end
+
+  def begin_recovery(delivery_id, opts) when is_binary(delivery_id) and is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
+    source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
+    reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
+    recovered_at = iso8601_utc_usec(now)
+
+    recovery_query =
+      from(d in Delivery,
+        where:
+          d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :ready and
+            d.updated_at <= ^cutoff and fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+        update: [
+          set: [
+            metadata:
+              fragment(
+                """
+                jsonb_set(
+                  jsonb_set(
+                    jsonb_set(COALESCE(?, '{}'::jsonb), '{recovery_source}', to_jsonb(?::text), true),
+                    '{recovery_reason}',
+                    to_jsonb(?::text),
+                    true
+                  ),
+                  '{recovered_at}',
+                  to_jsonb(?::text),
+                  true
+                )
+                """,
+                d.metadata,
+                ^source,
+                ^reason,
+                ^recovered_at
+              ),
+            updated_at: ^now
+          ]
+        ]
+      )
+
+    {updated_count, _rows} = Repo.update_all(recovery_query, [])
+
+    updated_delivery = get_delivery!(delivery_id)
+
+    if updated_count == 1 do
+      {:ok, updated_delivery}
+    else
+      {:noop, updated_delivery}
+    end
+  end
 
   @doc """
   Returns the list of terminal delivery states — used by the dispatcher (Plan 02-02)
@@ -481,6 +599,15 @@ defmodule Chimeway.Deliveries do
   defp normalize_datetime!(value),
     do: raise(ArgumentError, "expected DateTime, got: #{inspect(value)}")
 
+  defp recoverable_cutoff!(%DateTime{} = now, older_than) when is_integer(older_than) and older_than >= 0 do
+    now
+    |> DateTime.add(-older_than, :second)
+    |> normalize_datetime!()
+  end
+
+  defp recoverable_cutoff!(_now, older_than),
+    do: raise(ArgumentError, "expected non-negative integer older_than, got: #{inspect(older_than)}")
+
   defp normalize_resume_source!(value) when is_atom(value), do: Atom.to_string(value)
   defp normalize_resume_source!(value) when is_binary(value) and byte_size(value) > 0, do: value
 
@@ -492,6 +619,17 @@ defmodule Chimeway.Deliveries do
 
   defp normalize_suppression_reason!(value),
     do: raise(ArgumentError, "expected non-empty suppression reason, got: #{inspect(value)}")
+
+  defp normalize_recovery_value!(_label, value)
+       when is_binary(value) and byte_size(value) > 0,
+       do: value
+
+  defp normalize_recovery_value!(label, value)
+       when is_atom(value),
+       do: normalize_recovery_value!(label, Atom.to_string(value))
+
+  defp normalize_recovery_value!(label, value),
+    do: raise(ArgumentError, "expected non-empty #{label}, got: #{inspect(value)}")
 
   defp iso8601_utc_usec(nil), do: nil
 
