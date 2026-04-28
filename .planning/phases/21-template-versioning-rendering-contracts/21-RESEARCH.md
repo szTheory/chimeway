@@ -354,17 +354,13 @@ new()
 | A1 | Contract tests will become too generic if output validation stops at presence-only map keys. | Common Pitfalls | Low; it affects test sharpness more than architecture. |
 | A2 | Phoenix template helpers are the most likely host-side implementation detail for email rendering. | State of the Art | Low; the core contract still stays behaviour-based either way. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `render_assigns` be a dedicated notification column or remain inside a validated map field name chosen for Phase 21?**
-   What we know: The context allows either dedicated columns or a validated map on the notification row as long as the contract is explicit and durable. [VERIFIED: 21-CONTEXT.md]
-   What's unclear: Whether the planner prefers a minimal migration (`render_assigns` map only) or additional normalized columns beyond identity fields. [VERIFIED: 21-CONTEXT.md]
-   Recommendation: Plan the minimal durable shape now: add one dedicated `render_assigns` map field on notifications and keep richer normalization for a later phase if query pressure appears. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
+   Resolution: Phase 21 will add one dedicated `render_assigns` map column on `chimeway_notifications` and treat it as the explicit durable render-input contract. Do not add extra normalized notification content columns in this phase; keep additional normalization for a later phase only if query pressure emerges. This is the least surprising fit for D-05, D-09, and the current notification schema shape. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
 
 2. **Should `:email` render output live entirely inside `render_data`, or split key fields into first-class columns later?**
-   What we know: The context allows either a validated `render_data` map or a hybrid, but adapters must still receive explicit pre-rendered content. [VERIFIED: 21-CONTEXT.md]
-   What's unclear: Whether future analytics or operator UIs will need direct SQL filtering on subject/body-derived facts. [ASSUMED]
-   Recommendation: Use validated `render_data` in Phase 21 and defer extra columns until a real query need emerges, because this phase is about contracts and previewability rather than analytics. [VERIFIED: 21-CONTEXT.md]
+   Resolution: Phase 21 will keep `:email` output inside validated delivery-level `render_data`, with semantic keys such as `subject`, `html_body`, and `text_body`, and will not add dedicated delivery body columns now. If a later analytics or operator phase needs direct SQL filtering on rendered output facts, that phase can add derived columns without changing the Phase 21 contract. This aligns with D-08, D-09, D-12, and the milestone focus on durable contracts plus preview parity rather than analytics. [VERIFIED: 21-CONTEXT.md]
 
 ## Environment Availability
 

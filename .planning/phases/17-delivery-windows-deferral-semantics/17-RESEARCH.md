@@ -30,7 +30,7 @@ The current pipeline has a strong durable spine for `event -> notification -> de
 
 Phase 17 should keep `Delivery` as the canonical durable row and add explicit planning facts to it instead of inventing a parallel "delivery plan" table. That preserves the existing idempotency contract, avoids split-brain between delivery and scheduling state, and fits the current trace API, which already explains a delivery by loading one delivery row plus its event/notification/attempt associations. [VERIFIED: lib/chimeway/deliveries.ex, lib/chimeway/trigger.ex, lib/chimeway/traces.ex, test/chimeway/reliability/duplicate_protection_test.exs, test/chimeway/traces_test.exs]
 
-The minimum implementation-ready boundary for this phase is: persist the planning disposition on each delivery, persist enough decision detail to explain deferral, change planning-time policy evaluation so quiet hours and delivery windows defer instead of suppress, and teach Sync/Oban dispatchers to execute only deliveries whose planning disposition is ready for immediate send. Phase 17 should not create resume jobs, mutate Oban `scheduled_at`, or implement digest accumulation. [VERIFIED: .planning/ROADMAP.md, lib/chimeway/dispatch/sync.ex, lib/chimeway/dispatch/oban.ex][CITED: https://hexdocs.pm/oban/Oban.Job.html]
+The minimum implementation-ready boundary for this phase is: persist the planning disposition on each delivery, persist enough decision detail to explain deferral, change planning-time policy evaluation so quiet hours defer instead of suppress, and teach Sync/Oban dispatchers to execute only deliveries whose planning disposition is ready for immediate send. Phase 17 may establish a durable rule abstraction that can represent future delivery-window rules, but the user-facing scope stays limited to recipient-timezone-aware quiet-hours deferral plus durable `:digest_held` planning state. Phase 17 must not create resume jobs, mutate Oban `scheduled_at`, introduce a broader allowed-window configuration surface, or implement digest accumulation. [VERIFIED: .planning/ROADMAP.md, lib/chimeway/dispatch/sync.ex, lib/chimeway/dispatch/oban.ex][CITED: https://hexdocs.pm/oban/Oban.Job.html]
 
 **Primary recommendation:** Extend `chimeway_deliveries` with explicit orchestration fields, move quiet-hours/window logic out of pure suppression, and make deferred/digest-held deliveries durable-but-non-dispatchable in Phase 17. [VERIFIED: lib/chimeway/delivery.ex, lib/chimeway/policy/settings.ex, lib/chimeway/dispatch/oban.ex]
 
@@ -273,17 +273,21 @@ DateTime.shift_zone(utc_datetime, "America/Los_Angeles", Calendar.get_time_zone_
 **Deprecated/outdated:**
 - Treating `quiet_hours` as a terminal suppression reason is outdated for Phase 17’s requirements, even though it matches current tests. [VERIFIED: test/chimeway/policy_settings_test.exs, .planning/REQUIREMENTS.md]
 
-## Open Questions
+## Scope Resolution
 
-1. **Where should recipient timezone live by default?**
-   - What we know: current `chimeway_policy_settings` rows have quiet-hours and delivery-cap fields but no timezone field. [VERIFIED: lib/chimeway/policy/settings/setting.ex, priv/repo/migrations/20260425000200_create_chimeway_policy_settings.exs]
-   - What's unclear: whether host apps need only per-recipient timezone persistence, or also per-delivery override inputs during trigger/planning. [VERIFIED: user prompt][ASSUMED]
-   - Recommendation: add `time_zone` to policy settings now and allow a higher-precedence trigger/notifier override later only if Phase 18 or Phase 19 proves it necessary. [VERIFIED: lib/chimeway/policy/settings/setting.ex][ASSUMED]
+**Resolved on 2026-04-28 for revision iteration 1.**
 
-2. **How broad should Phase 17’s delivery-window config be?**
-   - What we know: current persisted settings model only supports quiet-hours minute ranges and delivery caps. [VERIFIED: lib/chimeway/policy/settings/setting.ex]
-   - What's unclear: whether "delivery windows" in this milestone means only quiet-hours deferral or a more general allowed-window abstraction. [VERIFIED: .planning/ROADMAP.md][ASSUMED]
-   - Recommendation: implement a normalized rule identity that can represent both `quiet_hours` and future allowed-window rules, but keep the actual user-facing config surface minimal in Phase 17. [VERIFIED: .planning/ROADMAP.md][ASSUMED]
+1. **Recipient timezone ownership**
+   - Decision: Phase 17 persists recipient timezone on `chimeway_policy_settings.time_zone` and treats `Policy.Settings.upsert_settings/1` as the durable write path for both inserts and updates. [VERIFIED: lib/chimeway/policy/settings.ex, lib/chimeway/policy/settings/setting.ex]
+   - Boundary: no per-delivery or trigger-time timezone override is added in Phase 17. If later phases need override precedence, that becomes new roadmap scope instead of implicit Phase 17 work. [VERIFIED: .planning/ROADMAP.md]
+
+2. **Delivery-window breadth**
+   - Decision: Phase 17 implements recipient-timezone-aware quiet-hours deferral only, while persisting a normalized planning reason/context shape that can also represent future broader delivery-window rules. [VERIFIED: .planning/ROADMAP.md, .planning/REQUIREMENTS.md]
+   - Boundary: no new general allowed-window configuration schema, no cross-day scheduling surface beyond quiet-hours minute ranges, and no Phase 18 resume scheduling behavior. [VERIFIED: .planning/ROADMAP.md]
+
+3. **Digest boundary**
+   - Decision: `:digest_held` exists only as durable planning state in Phase 17 so ORCH-01 can distinguish immediate, deferred, and digest-held outcomes on the canonical delivery row. [VERIFIED: .planning/REQUIREMENTS.md]
+   - Boundary: no digest bucket creation, accumulation, or emission work lands in this phase. Those remain scoped to Phases 19-20. [VERIFIED: .planning/ROADMAP.md]
 
 ## Environment Availability
 
@@ -315,7 +319,7 @@ DateTime.shift_zone(utc_datetime, "America/Los_Angeles", Calendar.get_time_zone_
 |--------|----------|-----------|-------------------|-------------|
 | ORCH-01 | Planner persists `ready`, `deferred`, or `digest_held` without duplicate delivery rows | integration | `mix test test/chimeway/orchestration/delivery_planning_test.exs -x` | ❌ Wave 0 [VERIFIED: current test tree grep] |
 | ORCH-01 | Oban/Sync skip deferred and digest-held rows during Phase 17 | integration | `mix test test/chimeway/orchestration/dispatch_gating_test.exs -x` | ❌ Wave 0 [VERIFIED: current test tree grep] |
-| ORCH-02 | Deferral explanation persists rule, timezone, and `next_eligible_at` in traces | integration | `mix test test/chimeway/orchestration/traces_deferral_test.exs -x` | ❌ Wave 0 [VERIFIED: current test tree grep] |
+| ORCH-02 | Deferral explanation persists rule, timezone, and `next_eligible_at` in traces | integration | `mix test test/chimeway/orchestration/traces_deferral_test.exs test/chimeway/policy_test.exs -x` | ❌ Wave 0 [VERIFIED: current test tree grep] |
 | ORCH-02 | DST edge cases compute the correct next eligible time | unit/integration | `mix test test/chimeway/orchestration/window_math_test.exs -x` | ❌ Wave 0 [VERIFIED: current test tree grep] |
 
 ### Sampling Rate

@@ -303,17 +303,13 @@ end
 | A2 | The cleanest module layout is a dedicated `lib/chimeway/digests/` namespace rather than extending `Deliveries` directly. [ASSUMED] | Recommended Project Structure | Low; naming/layout can change without altering the core persistence design. |
 | A3 | A fixed set of bucket counters such as `member_count`, `first_accumulated_at`, and `last_accumulated_at` is sufficient for Phase 19 even before flush logic exists. [ASSUMED] | Architecture Patterns | Medium; planner may need to adjust bucket fields once Phase 20 emission tasks are decomposed. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should rule identity be split into `digest_key` plus `version`, or should one stable `rule_key` column carry the durable identity?**
-   - What we know: The phase must avoid notifier module names and stay consistent with `notification_key` + version posture. [VERIFIED: .planning/phases/19-digest-data-model-accumulation/19-CONTEXT.md] [VERIFIED: AGENTS.md]
-   - What's unclear: The exact column naming is explicitly left to agent discretion. [VERIFIED: .planning/phases/19-digest-data-model-accumulation/19-CONTEXT.md]
-   - Recommendation: Prefer `rule_key` plus integer `rule_version` because it mirrors current notification identity and makes bucket identity and future trace displays simpler. [ASSUMED]
+1. **Rule identity uses `rule_key` plus `rule_version`.**
+   - Resolution: Use one stable string `rule_key` column plus integer `rule_version` instead of a separate durable `digest_key` identity column. This mirrors Chimeway's existing `notification_key` + version posture, avoids notifier module names, and gives buckets a simple durable rule snapshot surface. [VERIFIED: .planning/phases/19-digest-data-model-accumulation/19-CONTEXT.md] [VERIFIED: AGENTS.md]
 
-2. **Should category grouping snapshot live only on the bucket, or also on each membership?**
-   - What we know: Category currently resolves from event payload at runtime, and the chosen category value must be snapshotted durably. [VERIFIED: lib/chimeway/policy.ex] [VERIFIED: .planning/phases/19-digest-data-model-accumulation/19-CONTEXT.md]
-   - What's unclear: Phase 19 scope does not force duplication vs normalization. [VERIFIED: .planning/phases/19-digest-data-model-accumulation/19-CONTEXT.md]
-   - Recommendation: Snapshot grouping value on the bucket as the primary identity field, and copy it to membership only if planner wants future single-row explanation queries without joining buckets. [ASSUMED]
+2. **Category grouping snapshots primarily on the bucket in Phase 19.**
+   - Resolution: Persist the resolved category string as the bucket's durable `grouping_value` and keep memberships normalized to delivery linkage plus core foreign keys. Do not duplicate category onto every membership in Phase 19 unless execution proves a concrete Phase 20 explainability need; current scope only requires durable grouping/window facts and auditable membership linkage. [VERIFIED: lib/chimeway/policy.ex] [VERIFIED: .planning/phases/19-digest-data-model-accumulation/19-CONTEXT.md]
 
 ## Environment Availability
 
