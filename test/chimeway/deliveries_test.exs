@@ -32,6 +32,110 @@ defmodule Chimeway.DeliveriesTest do
     %{notification: notification}
   end
 
+  defp insert_event(attrs \\ %{})
+
+  defp insert_event(attrs) when is_list(attrs) do
+    attrs
+    |> Enum.into(%{})
+    |> insert_event()
+  end
+
+  defp insert_event(attrs) when is_map(attrs) do
+    timestamp = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    inserted_at = attrs |> Map.get(:inserted_at, timestamp) |> normalize_datetime()
+    updated_at = attrs |> Map.get(:updated_at, inserted_at) |> normalize_datetime()
+
+    {:ok, event} =
+      %Event{}
+      |> Event.changeset(%{
+        notification_key: Map.get(attrs, :notification_key, "test.notification"),
+        notification_version: Map.get(attrs, :notification_version, 1),
+        idempotency_key: Map.get(attrs, :idempotency_key, "event-#{System.unique_integer()}"),
+        payload: Map.get(attrs, :payload, %{}),
+        correlation_id: Map.get(attrs, :correlation_id)
+      })
+      |> Repo.insert()
+
+    event
+    |> Ecto.Changeset.change(%{
+      inserted_at: inserted_at,
+      updated_at: updated_at
+    })
+    |> Repo.update!()
+  end
+
+  defp insert_notification_for_event(event, attrs \\ %{})
+
+  defp insert_notification_for_event(event, attrs) when is_list(attrs) do
+    insert_notification_for_event(event, Enum.into(attrs, %{}))
+  end
+
+  defp insert_notification_for_event(event, attrs) when is_map(attrs) do
+    timestamp = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    inserted_at = attrs |> Map.get(:inserted_at, timestamp) |> normalize_datetime()
+    updated_at = attrs |> Map.get(:updated_at, inserted_at) |> normalize_datetime()
+
+    {:ok, notification} =
+      %Notification{}
+      |> Notification.changeset(%{
+        event_id: event.id,
+        recipient_identity:
+          Map.get(attrs, :recipient_identity, "user-#{System.unique_integer([:positive])}"),
+        recipient_type: Map.get(attrs, :recipient_type, "user"),
+        metadata: Map.get(attrs, :metadata, %{}),
+        render_assigns: Map.get(attrs, :render_assigns, %{}),
+        render_channels: Map.get(attrs, :render_channels, %{})
+      })
+      |> Repo.insert()
+
+    notification
+    |> Ecto.Changeset.change(%{
+      inserted_at: inserted_at,
+      updated_at: updated_at
+    })
+    |> Repo.update!()
+  end
+
+  defp insert_delivery(attrs) when is_list(attrs) do
+    attrs
+    |> Enum.into(%{})
+    |> insert_delivery()
+  end
+
+  defp insert_delivery(attrs) when is_map(attrs) do
+    notification =
+      Map.get_lazy(attrs, :notification, fn ->
+        insert_event()
+        |> insert_notification_for_event()
+      end)
+
+    metadata = Map.get(attrs, :metadata, %{})
+    inserted_at = attrs |> Map.get(:inserted_at) |> normalize_datetime()
+    updated_at = attrs |> Map.get(:updated_at) |> normalize_datetime()
+    next_eligible_at = attrs |> Map.get(:next_eligible_at) |> normalize_datetime()
+
+    {:ok, delivery} =
+      Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, :in_app), metadata: metadata)
+
+    delivery
+    |> Ecto.Changeset.change(%{
+      status: Map.get(attrs, :status, delivery.status),
+      orchestration_state: Map.get(attrs, :orchestration_state, delivery.orchestration_state),
+      next_eligible_at: next_eligible_at || delivery.next_eligible_at,
+      suppression_reason: Map.get(attrs, :suppression_reason, delivery.suppression_reason),
+      metadata: metadata,
+      inserted_at: inserted_at || delivery.inserted_at,
+      updated_at: updated_at || delivery.updated_at
+    })
+    |> Repo.update!()
+  end
+
+  defp normalize_datetime(nil), do: nil
+
+  defp normalize_datetime(%DateTime{} = value) do
+    %{DateTime.truncate(value, :microsecond) | microsecond: {elem(value.microsecond, 0), 6}}
+  end
+
   # ---- plan_delivery/2 ----
 
   describe "plan_delivery/2" do
@@ -265,6 +369,224 @@ defmodule Chimeway.DeliveriesTest do
       assert exhausted.metadata["event_id"] == "evt-456"
       assert exhausted.metadata["notification_key"] == "test.notification"
       assert exhausted.metadata["policy_checkpoint"] == "perform"
+    end
+  end
+
+  describe "Phase 22 recovery queries" do
+    test "list_recoverable_events/1 returns only aged events with notifications and zero deliveries" do
+      now = ~U[2026-04-28 18:00:00Z]
+      old_time = ~U[2026-04-28 17:45:00Z]
+      recent_time = ~U[2026-04-28 17:59:30Z]
+
+      recoverable_event =
+        insert_event(
+          notification_key: "ops.recoverable.event",
+          idempotency_key: "event-gap-#{System.unique_integer()}",
+          inserted_at: old_time,
+          updated_at: old_time
+        )
+
+      _recoverable_notification =
+        insert_notification_for_event(recoverable_event,
+          recipient_identity: "user:event-gap",
+          inserted_at: old_time,
+          updated_at: old_time
+        )
+
+      recent_event =
+        insert_event(
+          notification_key: "ops.recent.event",
+          idempotency_key: "recent-gap-#{System.unique_integer()}",
+          inserted_at: recent_time,
+          updated_at: recent_time
+        )
+
+      _recent_notification =
+        insert_notification_for_event(recent_event,
+          recipient_identity: "user:event-gap-recent",
+          inserted_at: recent_time,
+          updated_at: recent_time
+        )
+
+      planned_event =
+        insert_event(
+          notification_key: "ops.planned.event",
+          idempotency_key: "planned-gap-#{System.unique_integer()}",
+          inserted_at: old_time,
+          updated_at: old_time
+        )
+
+      planned_notification =
+        insert_notification_for_event(planned_event,
+          recipient_identity: "user:event-has-delivery",
+          inserted_at: old_time,
+          updated_at: old_time
+        )
+
+      _planned_delivery =
+        insert_delivery(
+          notification: planned_notification,
+          updated_at: old_time,
+          inserted_at: old_time
+        )
+
+      assert [event] = Deliveries.list_recoverable_events(now: now, older_than: 60)
+      assert event.id == recoverable_event.id
+    end
+
+    test "list_recoverable_deliveries/1 returns only aged pending ready rows" do
+      now = ~U[2026-04-28 18:00:00Z]
+      old_time = ~U[2026-04-28 17:45:00Z]
+      recent_time = ~U[2026-04-28 17:59:30Z]
+
+      recoverable_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :pending,
+          orchestration_state: :ready
+        )
+
+      _recent_delivery =
+        insert_delivery(
+          updated_at: recent_time,
+          inserted_at: recent_time,
+          status: :pending,
+          orchestration_state: :ready
+        )
+
+      assert [delivery] = Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+      assert delivery.id == recoverable_delivery.id
+    end
+
+    test "list_recoverable_deliveries/1 excludes terminal, dispatched, and deferred rows" do
+      now = ~U[2026-04-28 18:00:00Z]
+      old_time = ~U[2026-04-28 17:45:00Z]
+
+      recoverable_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :pending,
+          orchestration_state: :ready
+        )
+
+      _dispatched_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :dispatched,
+          orchestration_state: :ready
+        )
+
+      _deferred_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :pending,
+          orchestration_state: :deferred,
+          next_eligible_at: ~U[2026-04-28 17:50:00Z]
+        )
+
+      _succeeded_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :succeeded,
+          orchestration_state: :ready
+        )
+
+      _suppressed_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :suppressed,
+          orchestration_state: :ready,
+          suppression_reason: "policy_blocked"
+        )
+
+      _cancelled_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :cancelled,
+          orchestration_state: :ready,
+          suppression_reason: "superseded"
+        )
+
+      _digested_delivery =
+        insert_delivery(
+          updated_at: old_time,
+          inserted_at: old_time,
+          status: :digested,
+          orchestration_state: :ready
+        )
+
+      assert [delivery] = Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+      assert delivery.id == recoverable_delivery.id
+    end
+  end
+
+  describe "Phase 22 recovery guards" do
+    test "begin_recovery/2 stamps recovery metadata on the canonical row" do
+      recovered_at = ~U[2026-04-28 18:00:00Z]
+
+      delivery =
+        insert_delivery(
+          updated_at: ~U[2026-04-28 17:45:00Z],
+          inserted_at: ~U[2026-04-28 17:45:00Z],
+          status: :pending,
+          orchestration_state: :ready,
+          metadata: %{"notification_key" => "ops.recovery.delivery"}
+        )
+
+      assert {:ok, recovered_delivery} =
+               Deliveries.begin_recovery(delivery,
+                 now: recovered_at,
+                 older_than: 60,
+                 source: "operator_console",
+                 reason: "dispatch_stuck"
+               )
+
+      assert recovered_delivery.id == delivery.id
+      assert recovered_delivery.metadata["notification_key"] == "ops.recovery.delivery"
+      assert recovered_delivery.metadata["recovery_source"] == "operator_console"
+      assert recovered_delivery.metadata["recovery_reason"] == "dispatch_stuck"
+      assert recovered_delivery.metadata["recovered_at"] == "2026-04-28T18:00:00.000000Z"
+    end
+
+    test "begin_recovery/2 returns {:noop, delivery} after recovery metadata already exists" do
+      recovered_at = ~U[2026-04-28 18:00:00Z]
+
+      delivery =
+        insert_delivery(
+          updated_at: ~U[2026-04-28 17:45:00Z],
+          inserted_at: ~U[2026-04-28 17:45:00Z],
+          status: :pending,
+          orchestration_state: :ready
+        )
+
+      assert {:ok, recovered_delivery} =
+               Deliveries.begin_recovery(delivery,
+                 now: recovered_at,
+                 older_than: 60,
+                 source: "operator_console",
+                 reason: "dispatch_stuck"
+               )
+
+      assert {:noop, noop_delivery} =
+               Deliveries.begin_recovery(delivery.id,
+                 now: ~U[2026-04-28 18:01:00Z],
+                 older_than: 60,
+                 source: "operator_console",
+                 reason: "dispatch_stuck"
+               )
+
+      assert noop_delivery.id == delivery.id
+      assert noop_delivery.metadata["recovery_source"] == "operator_console"
+      assert noop_delivery.metadata["recovery_reason"] == "dispatch_stuck"
+      assert noop_delivery.metadata["recovered_at"] == "2026-04-28T18:00:00.000000Z"
+      assert recovered_delivery.metadata == noop_delivery.metadata
     end
   end
 
