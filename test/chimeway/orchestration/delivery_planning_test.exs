@@ -4,6 +4,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
   alias Chimeway.{Delivery, DeliveryPlanning, Repo}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+  alias Chimeway.Policy.Settings
 
   defmodule DigestEmailNotifier do
     use Chimeway.Notifier
@@ -47,6 +48,36 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
 
     assert replanned.id == delivery.id
     assert replanned.orchestration_state == :digest_held
+    assert Repo.aggregate(Delivery, :count, :id) == 1
+  end
+
+  test "planner persists deferred planning facts during quiet hours without duplicate rows" do
+    notification = insert_notification("user-deferred")
+
+    assert {:ok, _} =
+             Settings.upsert_settings(%{
+               recipient_id: "user-deferred",
+               quiet_hours_start_minute: 22 * 60,
+               quiet_hours_end_minute: 8 * 60,
+               time_zone: "America/New_York"
+             })
+
+    assert {:ok, [delivery]} =
+             DeliveryPlanning.plan_notification(notification,
+               evaluation_time: ~U[2026-01-15 03:30:00Z]
+             )
+
+    assert delivery.orchestration_state == :deferred
+    assert delivery.planning_reason == "quiet_hours"
+    assert delivery.next_eligible_at == ~U[2026-01-15 13:00:00Z]
+
+    assert {:ok, [replanned]} =
+             DeliveryPlanning.plan_notification(notification,
+               evaluation_time: ~U[2026-01-15 03:30:00Z]
+             )
+
+    assert replanned.id == delivery.id
+    assert replanned.orchestration_state == :deferred
     assert Repo.aggregate(Delivery, :count, :id) == 1
   end
 

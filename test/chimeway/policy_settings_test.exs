@@ -90,22 +90,28 @@ defmodule Chimeway.PolicySettingsTest do
       assert Settings.evaluate(fixture.delivery) == {:ok, :proceed}
     end
 
-    test "suppresses during quiet hours" do
+    test "defers during quiet hours with persisted planning facts" do
       fixture = DispatchHelpers.create_pending_delivery(recipient_identity: "user:quiet-hours")
-      now = DateTime.utc_now()
-      minute = now.hour * 60 + now.minute
-
-      start_minute = rem(minute + 1439, 1440)
-      end_minute = rem(minute + 1, 1440)
+      evaluation_time = ~U[2026-01-15 03:30:00Z]
 
       assert {:ok, _} =
                Settings.upsert_settings(%{
                  recipient_id: "user:quiet-hours",
-                 quiet_hours_start_minute: start_minute,
-                 quiet_hours_end_minute: end_minute
+                 quiet_hours_start_minute: 22 * 60,
+                 quiet_hours_end_minute: 8 * 60,
+                 time_zone: "America/New_York"
                })
 
-      assert Settings.evaluate(fixture.delivery) == {:suppress, :quiet_hours}
+      assert {:defer, decision} =
+               Settings.evaluate(fixture.delivery, evaluation_time: evaluation_time)
+
+      assert decision.orchestration_state == :deferred
+      assert decision.planning_reason == "quiet_hours"
+      assert decision.next_eligible_at == ~U[2026-01-15 13:00:00Z]
+      assert decision.planning_context["rule"] == "quiet_hours"
+      assert decision.planning_context["time_zone"] == "America/New_York"
+      assert decision.planning_context["quiet_hours_start_minute"] == 22 * 60
+      assert decision.planning_context["quiet_hours_end_minute"] == 8 * 60
     end
 
     test "suppresses when the delivery cap has already been reached" do

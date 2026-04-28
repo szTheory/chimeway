@@ -127,6 +127,32 @@ defmodule Chimeway.PolicyTest do
       assert delivery.suppression_reason == "category_disabled"
       assert get_in(delivery.metadata, ["policy_checkpoint"]) == "planning"
     end
+
+    test "planning quiet hours persist a deferred delivery instead of suppressing it" do
+      event = insert_event("planner.quiet-hours")
+      notification = insert_notification(event, "user-planner-deferred")
+
+      assert {:ok, _} =
+               Chimeway.Policy.Settings.upsert_settings(%{
+                 recipient_id: "user-planner-deferred",
+                 quiet_hours_start_minute: 22 * 60,
+                 quiet_hours_end_minute: 8 * 60,
+                 time_zone: "America/New_York"
+               })
+
+      assert {:ok, [delivery]} =
+               DeliveryPlanning.plan_notification(notification,
+                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+               )
+
+      assert delivery.status == :pending
+      assert delivery.suppression_reason == nil
+      assert delivery.orchestration_state == :deferred
+      assert delivery.planning_reason == "quiet_hours"
+      assert delivery.next_eligible_at == ~U[2026-01-15 13:00:00Z]
+      assert delivery.planning_context["rule"] == "quiet_hours"
+      assert delivery.planning_context["time_zone"] == "America/New_York"
+    end
   end
 
   # ---- Perform-time read-state suppression ----
@@ -169,22 +195,27 @@ defmodule Chimeway.PolicyTest do
   end
 
   describe "policy settings evaluation" do
-    test "quiet-hours settings suppress the delivery" do
+    test "quiet-hours settings defer the delivery" do
       event = insert_event("policy.quiet_hours")
       notification = insert_notification(event, "user-policy-quiet-hours")
       delivery = insert_delivery(notification, "in_app")
 
-      now = DateTime.utc_now()
-      minute = now.hour * 60 + now.minute
-
       assert {:ok, _} =
                Chimeway.Policy.Settings.upsert_settings(%{
                  recipient_id: "user-policy-quiet-hours",
-                 quiet_hours_start_minute: rem(minute + 1439, 1440),
-                 quiet_hours_end_minute: rem(minute + 1, 1440)
+                 quiet_hours_start_minute: 22 * 60,
+                 quiet_hours_end_minute: 8 * 60,
+                 time_zone: "America/New_York"
                })
 
-      assert Chimeway.Policy.Settings.evaluate(delivery) == {:suppress, :quiet_hours}
+      assert {:defer, decision} =
+               Chimeway.Policy.Settings.evaluate(delivery,
+                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+               )
+
+      assert decision.orchestration_state == :deferred
+      assert decision.planning_reason == "quiet_hours"
+      assert decision.next_eligible_at == ~U[2026-01-15 13:00:00Z]
     end
 
     test "delivery-cap settings suppress the delivery after one prior send" do
