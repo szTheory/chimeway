@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: ready_for_planning
-stopped_at: Milestone v1.2 initialized and roadmap created
-last_updated: "2026-04-28T00:00:00.000Z"
+status: executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-04-28T09:22:21.715Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 
 ## Current Position
 
-Phase: 17
-Plan: —
-Status: roadmap_defined
-Last activity: 2026-04-28 — Milestone v1.2 started and roadmap created
+Phase: 17 — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-28
 
 ## Accumulated Context
 
@@ -51,6 +51,9 @@ Recent decisions affecting current work:
 - [15-01]: Keep trace queries tenancy-aware while preserving safe telemetry redaction.
 - [16-01]: Treat installation and integration docs as first-class product surface.
 - [v1.2]: Prioritize orchestration behavior before channel breadth to create the next large product-value jump.
+- Persist deferred planning facts directly on chimeway_deliveries instead of metadata-only storage.
+- Validate recipient time zones against the configured Calendar time zone database at changeset time.
+- Handle DST ambiguity by choosing the later occurrence and DST gaps by choosing the first valid instant after the gap.
 
 ### Pending Todos
 
@@ -67,8 +70,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T00:00:00.000Z
-Stopped at: Milestone v1.2 initialized
+Last session: 2026-04-28T09:22:21.708Z
+Stopped at: Completed 17-01-PLAN.md
 Resume file: None
 
 **Planned Phase:** 17

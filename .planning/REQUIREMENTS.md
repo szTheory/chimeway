@@ -8,8 +8,8 @@
 
 ### Orchestration
 
-- [ ] **ORCH-01**: Product teams can declare whether a notification delivery sends immediately, defers to the next allowed window, or participates in digesting.
-- [ ] **ORCH-02**: Delivery-window decisions respect recipient timezone and persist the reason, window rule, and next eligible send time.
+- [x] **ORCH-01**: Product teams can declare whether a notification delivery sends immediately, defers to the next allowed window, or participates in digesting.
+- [x] **ORCH-02**: Delivery-window decisions respect recipient timezone and persist the reason, window rule, and next eligible send time.
 - [ ] **ORCH-03**: Deferred deliveries resume automatically through durable async scheduling without losing lifecycle traceability.
 
 ### Digests
@@ -54,8 +54,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ORCH-01 | Phase 17 | Pending |
-| ORCH-02 | Phase 17 | Pending |
+| ORCH-01 | Phase 17 | Complete |
+| ORCH-02 | Phase 17 | Complete |
 | ORCH-03 | Phase 18 | Pending |
 | DIGEST-01 | Phase 19 | Pending |
 | DIGEST-02 | Phase 20 | Pending |
