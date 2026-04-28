@@ -25,7 +25,7 @@ defmodule Chimeway.Digests.AccumulationTest do
           channel: "email"
         })
 
-      accumulated_at = ~U[2026-01-15 10:05:00Z]
+      accumulated_at = ~U[2026-01-15 10:05:00.000000Z]
 
       assert {:ok, %DigestBucket{} = bucket} =
                Accumulation.accumulate_delivery(delivery, accumulated_at: accumulated_at)
@@ -38,8 +38,8 @@ defmodule Chimeway.Digests.AccumulationTest do
       assert bucket.grouping_value == "comment.created"
       assert bucket.member_count == 1
       assert bucket.window_kind == :fixed
-      assert bucket.window_starts_at == ~U[2026-01-15 10:00:00Z]
-      assert bucket.window_ends_at == ~U[2026-01-15 10:30:00Z]
+      assert bucket.window_starts_at == ~U[2026-01-15 10:00:00.000000Z]
+      assert bucket.window_ends_at == ~U[2026-01-15 10:30:00.000000Z]
 
       assert Repo.aggregate(DigestBucket, :count, :id) == 1
       assert Repo.aggregate(DigestMembership, :count, :id) == 1
@@ -66,7 +66,7 @@ defmodule Chimeway.Digests.AccumulationTest do
         window_minutes: 30
       })
 
-      accumulated_at = ~U[2026-01-15 10:05:00Z]
+      accumulated_at = ~U[2026-01-15 10:05:00.000000Z]
 
       assert {:ok, %DigestBucket{} = first_bucket} =
                Accumulation.accumulate_delivery(delivery, accumulated_at: accumulated_at)
@@ -123,7 +123,7 @@ defmodule Chimeway.Digests.AccumulationTest do
       for delivery <- [suppressed_delivery, cancelled_delivery, ready_delivery] do
         assert {:ok, :noop} =
                  Accumulation.accumulate_delivery(delivery,
-                   accumulated_at: ~U[2026-01-15 10:05:00Z]
+                   accumulated_at: ~U[2026-01-15 10:05:00.000000Z]
                  )
       end
 
@@ -150,7 +150,9 @@ defmodule Chimeway.Digests.AccumulationTest do
       })
 
       assert {:ok, %DigestBucket{} = bucket} =
-               Accumulation.accumulate_delivery(delivery, accumulated_at: ~U[2026-01-15 11:05:00Z])
+               Accumulation.accumulate_delivery(delivery,
+                 accumulated_at: ~U[2026-01-15 11:05:00.000000Z]
+               )
 
       event
       |> Ecto.Changeset.change(payload: %{"category" => "billing"})
@@ -176,7 +178,7 @@ defmodule Chimeway.Digests.AccumulationTest do
           notification_key: "fixed.window",
           recipient_id: "user-fixed",
           channel: "email",
-          next_eligible_at: ~U[2026-01-15 07:00:00Z]
+          next_eligible_at: ~U[2026-01-15 07:00:00.000000Z]
         })
 
       second_delivery =
@@ -184,7 +186,7 @@ defmodule Chimeway.Digests.AccumulationTest do
           notification_key: "fixed.window",
           recipient_id: "user-fixed",
           channel: "email",
-          next_eligible_at: ~U[2026-01-15 23:59:00Z]
+          next_eligible_at: ~U[2026-01-15 23:59:00.000000Z]
         })
 
       third_delivery =
@@ -192,32 +194,32 @@ defmodule Chimeway.Digests.AccumulationTest do
           notification_key: "fixed.window",
           recipient_id: "user-fixed",
           channel: "email",
-          next_eligible_at: ~U[2026-01-15 08:00:00Z]
+          next_eligible_at: ~U[2026-01-15 08:00:00.000000Z]
         })
 
       assert {:ok, %DigestBucket{} = first_bucket} =
                Accumulation.accumulate_delivery(first_delivery,
-                 accumulated_at: ~U[2026-01-15 10:05:00Z]
+                 accumulated_at: ~U[2026-01-15 10:05:00.000000Z]
                )
 
       assert {:ok, %DigestBucket{} = second_bucket} =
                Accumulation.accumulate_delivery(second_delivery,
-                 accumulated_at: ~U[2026-01-15 10:29:59Z]
+                 accumulated_at: ~U[2026-01-15 10:29:59.000000Z]
                )
 
       assert {:ok, %DigestBucket{} = third_bucket} =
                Accumulation.accumulate_delivery(third_delivery,
-                 accumulated_at: ~U[2026-01-15 10:30:00Z]
+                 accumulated_at: ~U[2026-01-15 10:30:00.000000Z]
                )
 
       assert first_bucket.id == second_bucket.id
       assert third_bucket.id != first_bucket.id
 
       assert first_bucket.window_kind == :fixed
-      assert first_bucket.window_starts_at == ~U[2026-01-15 10:00:00Z]
-      assert first_bucket.window_ends_at == ~U[2026-01-15 10:30:00Z]
-      assert third_bucket.window_starts_at == ~U[2026-01-15 10:30:00Z]
-      assert third_bucket.window_ends_at == ~U[2026-01-15 11:00:00Z]
+      assert first_bucket.window_starts_at == ~U[2026-01-15 10:00:00.000000Z]
+      assert first_bucket.window_ends_at == ~U[2026-01-15 10:30:00.000000Z]
+      assert third_bucket.window_starts_at == ~U[2026-01-15 10:30:00.000000Z]
+      assert third_bucket.window_ends_at == ~U[2026-01-15 11:00:00.000000Z]
 
       refute first_bucket.window_starts_at == first_delivery.next_eligible_at
       refute third_bucket.window_ends_at == third_delivery.next_eligible_at
@@ -240,7 +242,7 @@ defmodule Chimeway.Digests.AccumulationTest do
           notification_key: "boundary.window",
           recipient_id: "user-boundary",
           channel: "email",
-          next_eligible_at: ~U[2026-01-20 02:00:00Z]
+          next_eligible_at: ~U[2026-01-20 02:00:00.000000Z]
         })
 
       after_boundary =
@@ -248,26 +250,26 @@ defmodule Chimeway.Digests.AccumulationTest do
           notification_key: "boundary.window",
           recipient_id: "user-boundary",
           channel: "email",
-          next_eligible_at: ~U[2026-01-20 03:00:00Z]
+          next_eligible_at: ~U[2026-01-20 03:00:00.000000Z]
         })
 
       assert {:ok, %DigestBucket{} = first_bucket} =
                Accumulation.accumulate_delivery(before_boundary,
-                 accumulated_at: ~U[2026-01-15 14:29:00Z]
+                 accumulated_at: ~U[2026-01-15 14:29:00.000000Z]
                )
 
       assert {:ok, %DigestBucket{} = second_bucket} =
                Accumulation.accumulate_delivery(after_boundary,
-                 accumulated_at: ~U[2026-01-15 14:31:00Z]
+                 accumulated_at: ~U[2026-01-15 14:31:00.000000Z]
                )
 
       assert first_bucket.id != second_bucket.id
 
       assert first_bucket.window_kind == :boundary
-      assert first_bucket.window_starts_at == ~U[2026-01-14 14:30:00Z]
-      assert first_bucket.window_ends_at == ~U[2026-01-15 14:30:00Z]
-      assert second_bucket.window_starts_at == ~U[2026-01-15 14:30:00Z]
-      assert second_bucket.window_ends_at == ~U[2026-01-16 14:30:00Z]
+      assert first_bucket.window_starts_at == ~U[2026-01-14 14:30:00.000000Z]
+      assert first_bucket.window_ends_at == ~U[2026-01-15 14:30:00.000000Z]
+      assert second_bucket.window_starts_at == ~U[2026-01-15 14:30:00.000000Z]
+      assert second_bucket.window_ends_at == ~U[2026-01-16 14:30:00.000000Z]
 
       refute first_bucket.window_starts_at == before_boundary.next_eligible_at
       refute second_bucket.window_ends_at == after_boundary.next_eligible_at
@@ -328,7 +330,8 @@ defmodule Chimeway.Digests.AccumulationTest do
     assert {:ok, planned_delivery} =
              Deliveries.apply_planning_decision(delivery, %{
                orchestration_state: orchestration_state,
-               planning_reason: if(orchestration_state == :digest_held, do: "digest_rule", else: nil),
+               planning_reason:
+                 if(orchestration_state == :digest_held, do: "digest_rule", else: nil),
                planning_context:
                  digest_planning_context(channel, digest_key, orchestration_state, attrs),
                next_eligible_at: next_eligible_at

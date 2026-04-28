@@ -4,7 +4,7 @@ defmodule Chimeway.Digests.DigestBucket do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Chimeway.Digests.DigestRule
+  alias Chimeway.Digests.{DigestMembership, DigestRule}
 
   @type t :: %__MODULE__{}
 
@@ -29,6 +29,7 @@ defmodule Chimeway.Digests.DigestBucket do
     field(:last_accumulated_at, :utc_datetime_usec)
 
     belongs_to(:digest_rule, DigestRule)
+    has_many(:memberships, DigestMembership)
 
     timestamps(type: :utc_datetime_usec)
   end
