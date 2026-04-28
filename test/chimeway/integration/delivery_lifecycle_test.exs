@@ -256,7 +256,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
   import Ecto.Query
 
   alias Chimeway.Adapters.Test, as: TestAdapter
-  alias Chimeway.{Delivery, DeliveryAttempt, Dispatch.ObanWorker, Repo, Traces}
+  alias Chimeway.{Deliveries, Delivery, DeliveryAttempt, Dispatch.ObanWorker, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Policy.Settings
@@ -1013,6 +1013,83 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       refute Map.has_key?(Map.from_struct(explanation), :render_data)
       refute Map.has_key?(Map.from_struct(explanation), :html_body)
       refute Map.has_key?(Map.from_struct(explanation), :text_body)
+    end
+  end
+
+  describe "Scenario K: recoverable ready rows re-drive through the canonical delivery identity" do
+    setup do
+      previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+      previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+      TestAdapter.clear()
+
+      on_exit(fn ->
+        Application.put_env(:chimeway, :adapter, previous_adapter)
+        Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+        TestAdapter.clear()
+      end)
+
+      :ok
+    end
+
+    test "recover_delivery reuses the same row, stamps recovery_source, and dispatches once" do
+      fixture =
+        Chimeway.Test.DispatchHelpers.create_notification(
+          notification_key: "test.lifecycle_recovery",
+          recipient_identity: "user:15"
+        )
+
+      {:ok, delivery} = Deliveries.plan_delivery(fixture.notification.id, :email)
+
+      delivery =
+        delivery
+        |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+        |> Repo.update!()
+
+      assert attempt_count(delivery.id) == 0
+
+      assert {:ok, recovery} =
+               Chimeway.recover_delivery(delivery.id,
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "stuck_after_trigger"
+               )
+
+      assert recovery.delivery.id == delivery.id
+      assert recovery.delivery.status == :pending
+      assert recovery.recovery.source == "ops_console"
+      assert recovery.recovery.reason == "stuck_after_trigger"
+      assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00Z]
+
+      assert_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
+      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
+      assert attempt_count(delivery.id) == 1
+
+      recovered = Repo.get!(Delivery, delivery.id)
+      assert recovered.status == :succeeded
+      assert recovered.metadata["recovery_source"] == "ops_console"
+      assert recovered.metadata["recovery_reason"] == "stuck_after_trigger"
+      assert recovered.metadata["recovered_at"] == "2026-01-15T12:30:00.000000Z"
+
+      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert explanation.status == :succeeded
+      assert Enum.any?(explanation.timeline, &(&1.event == :delivery_planned))
+
+      TestAdapter.assert_delivered(recovered)
+
+      assert {:noop, duplicate} =
+               Chimeway.recover_delivery(delivery.id,
+                 now: ~U[2026-01-15 12:31:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "duplicate_attempt"
+               )
+
+      assert duplicate.delivery.id == delivery.id
+      assert attempt_count(delivery.id) == 1
     end
   end
 
