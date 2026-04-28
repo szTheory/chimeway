@@ -103,7 +103,7 @@ Success criteria:
 
 Plans:
 - [x] 21.1-01-PLAN.md — Persist notification-level render declarations and remove planner-time rendering re-entry.
-- [ ] 21.1-02-PLAN.md — Harden preview boundary errors and replace executable Mix-task inputs with safe JSON parsing.
+- [x] 21.1-02-PLAN.md — Harden preview boundary errors and replace executable Mix-task inputs with safe JSON parsing.
 
 Success criteria:
 1. Notification rows persist channel-scoped render identity at trigger time and delivery planning renders from that durable snapshot only.
