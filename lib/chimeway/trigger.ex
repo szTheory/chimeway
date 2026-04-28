@@ -145,6 +145,7 @@ defmodule Chimeway.Trigger do
     |> Enum.reduce_while({:ok, []}, fn recipient, {:ok, acc} ->
       with {:ok, rendering} <- Notifier.resolve_rendering(notifier, params, recipient) do
         render_assigns = sanitize_render_assigns(rendering.assigns)
+        render_channels = sanitize_render_channels(Map.get(rendering, :channels, %{}))
 
         row = %{
           id: UUID.generate() |> UUID.dump!(),
@@ -153,6 +154,7 @@ defmodule Chimeway.Trigger do
           recipient_type: recipient_type(recipient),
           metadata: render_assigns,
           render_assigns: render_assigns,
+          render_channels: render_channels,
           inserted_at: timestamp,
           updated_at: timestamp
         }
@@ -229,6 +231,40 @@ defmodule Chimeway.Trigger do
   defp sanitize_payload(payload), do: sanitize_map(payload)
 
   defp sanitize_render_assigns(assigns), do: sanitize_map(assigns)
+
+  defp sanitize_render_channels(channels) when is_map(channels) do
+    Enum.reduce(channels, %{}, fn {channel, info}, acc ->
+      if is_map(info) do
+        sanitized = %{}
+        
+        sanitized =
+          case Map.fetch(info, :render_key) do
+            {:ok, val} -> Map.put(sanitized, :render_key, val)
+            :error ->
+              case Map.fetch(info, "render_key") do
+                {:ok, val} -> Map.put(sanitized, :render_key, val)
+                :error -> sanitized
+              end
+          end
+
+        sanitized =
+          case Map.fetch(info, :render_version) do
+            {:ok, val} -> Map.put(sanitized, :render_version, val)
+            :error ->
+              case Map.fetch(info, "render_version") do
+                {:ok, val} -> Map.put(sanitized, :render_version, val)
+                :error -> sanitized
+              end
+          end
+
+        Map.put(acc, channel, sanitized)
+      else
+        acc
+      end
+    end)
+  end
+
+  defp sanitize_render_channels(_not_map), do: %{}
 
   defp sanitize_map(map) when is_map(map) do
     Enum.reduce(map, %{}, fn {key, value}, acc ->

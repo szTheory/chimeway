@@ -23,11 +23,12 @@ defmodule Chimeway.Notifications.Notification do
     field(:archived_at, :utc_datetime_usec)
     field(:metadata, :map, default: %{})
     field(:render_assigns, :map, default: %{})
+    field(:render_channels, :map, default: %{})
 
     timestamps(type: :utc_datetime_usec)
   end
 
-  @required_fields ~w(event_id recipient_identity recipient_type metadata render_assigns)a
+  @required_fields ~w(event_id recipient_identity recipient_type metadata render_assigns render_channels)a
   @optional_fields ~w(seen_at read_at archived_at)a
 
   def changeset(notification, attrs) do

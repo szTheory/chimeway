@@ -46,8 +46,16 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
            "token" => "render-secret"
          },
          channels: %{
-           email: %{render_key: "comment.created.email", render_version: 4},
-           in_app: %{render_key: "comment.created.in_app", render_version: 2}
+           email: %{
+             render_key: "comment.created.email",
+             render_version: 4,
+             render_data: %{"subject" => headline, "html_body" => "<p>#{body}</p>"}
+           },
+           in_app: %{
+             render_key: "comment.created.in_app",
+             render_version: 2,
+             body: body
+           }
          }
        }}
     end
@@ -164,6 +172,45 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
       refute Map.has_key?(notification.render_assigns, "token")
       refute Map.has_key?(notification.metadata, "token")
       refute notification.metadata["legacy_subject"] == "stale compatibility data"
+    end
+
+    test "trigger persists render_channels snapshot on notifications" do
+      params = %{"headline" => "Welcome", "body" => "Ada commented"}
+
+      assert {:ok, result} =
+               Trigger.trigger(RenderIdentityNotifier, params,
+                 idempotency_key: "render-trigger-002"
+               )
+
+      notification =
+        Notification
+        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "user:render")
+
+      assert notification.render_channels == %{
+               "email" => %{"render_key" => "comment.created.email", "render_version" => 4},
+               "in_app" => %{"render_key" => "comment.created.in_app", "render_version" => 2}
+             }
+    end
+
+    test "notification render_channels exclude rendered payload bodies" do
+      params = %{"headline" => "Welcome", "body" => "Ada commented"}
+
+      assert {:ok, result} =
+               Trigger.trigger(RenderIdentityNotifier, params,
+                 idempotency_key: "render-trigger-003"
+               )
+
+      notification =
+        Notification
+        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "user:render")
+
+      email_channel = notification.render_channels["email"]
+      in_app_channel = notification.render_channels["in_app"]
+
+      refute Map.has_key?(email_channel, "render_data")
+      refute Map.has_key?(email_channel, :render_data)
+      refute Map.has_key?(in_app_channel, "body")
+      refute Map.has_key?(in_app_channel, :body)
     end
 
     test "planning stamps new canonical delivery rows with per-channel render identity" do
