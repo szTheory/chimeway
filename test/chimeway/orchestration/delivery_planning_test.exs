@@ -34,6 +34,21 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     def channels(_params, _recipient), do: {:ok, [:email]}
 
     @impl true
+    def rendering(_params, _recipient) do
+      {:ok,
+       %{
+         assigns: %{
+           "subject" => "Digest delivery",
+           "html_body" => "<p>Digest delivery</p>",
+           "text_body" => "Digest delivery"
+         },
+         channels: %{
+           email: %{render_key: "delivery-planning.digest.email", render_version: 1}
+         }
+       }}
+    end
+
+    @impl true
     def orchestration(_params, _recipient),
       do: {:ok, [email: {:digest, [digest_key: "thread:123"]}]}
   end
@@ -55,6 +70,21 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
 
     @impl true
     def channels(_params, _recipient), do: {:ok, [:email]}
+
+    @impl true
+    def rendering(_params, _recipient) do
+      {:ok,
+       %{
+         assigns: %{
+           "subject" => "Immediate delivery",
+           "html_body" => "<p>Immediate delivery</p>",
+           "text_body" => "Immediate delivery"
+         },
+         channels: %{
+           email: %{render_key: "delivery-planning.immediate.email", render_version: 1}
+         }
+       }}
+    end
 
     @impl true
     def orchestration(_params, _recipient), do: {:ok, [email: :immediate]}

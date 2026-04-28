@@ -362,5 +362,6 @@ defmodule Chimeway.Trigger do
 
   defp delivery_id_from_dispatch_result(%{id: id}), do: id
   defp delivery_id_from_dispatch_result({:ok, %{id: id}}), do: id
+  defp delivery_id_from_dispatch_result({:skip, %{id: id}}), do: id
   defp delivery_id_from_dispatch_result(_), do: nil
 end

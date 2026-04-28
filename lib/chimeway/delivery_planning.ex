@@ -6,7 +6,7 @@ defmodule Chimeway.DeliveryPlanning do
   `Chimeway.Deliveries.plan_delivery/3` directly.
   """
 
-  alias Chimeway.{Deliveries, Delivery, Notifier, Policy, Repo}
+  alias Chimeway.{Deliveries, Delivery, Notifier, Policy, Rendering, Repo}
   alias Chimeway.Digests.Accumulation
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -86,7 +86,7 @@ defmodule Chimeway.DeliveryPlanning do
     trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
 
-    with {:ok, render_identity} <- resolve_render_identity(notification, channel, trigger_params, opts),
+    with {:ok, render_result} <- resolve_render_result(notification, channel, trigger_params, opts),
          {:ok, delivery} <-
            Deliveries.plan_delivery(notification.id, channel,
              delay_fallback: delay_fallback,
@@ -94,10 +94,11 @@ defmodule Chimeway.DeliveryPlanning do
              notification_key: Keyword.get(opts, :notification_key),
              event_id: Keyword.get(opts, :event_id),
              correlation_id: Keyword.get(opts, :correlation_id),
-             render_key: render_identity[:render_key],
-             render_version: render_identity[:render_version]
+             render_key: render_result[:render_key],
+             render_version: render_result[:render_version],
+             render_data: render_result[:render_data]
            ),
-         {:ok, delivery} <- maybe_apply_render_identity(delivery, render_identity),
+         {:ok, delivery} <- maybe_apply_render_result(delivery, render_result),
          {:ok, orchestration} <-
            resolve_orchestration(opts, trigger_params, recipient),
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
@@ -321,14 +322,15 @@ defmodule Chimeway.DeliveryPlanning do
     Deliveries.apply_planning_decision(delivery, decision)
   end
 
-  defp resolve_render_identity(notification, channel, trigger_params, opts) do
+  defp resolve_render_result(notification, channel, trigger_params, opts) do
     case Keyword.get(opts, :notifier) do
       notifier when is_atom(notifier) and not is_nil(notifier) ->
         recipient = notification_recipient(notification)
 
         with {:ok, rendering} <- Notifier.resolve_rendering(notifier, trigger_params, recipient),
-             {:ok, identity} <- fetch_channel_render_identity(rendering, channel) do
-          {:ok, identity}
+             {:ok, channel_rendering} <- fetch_channel_rendering(rendering, channel),
+             {:ok, rendered_delivery} <- render_channel_result(channel, channel_rendering, rendering.assigns) do
+          {:ok, rendered_delivery}
         end
 
       _notifier ->
@@ -336,22 +338,47 @@ defmodule Chimeway.DeliveryPlanning do
     end
   end
 
-  defp fetch_channel_render_identity(%{channels: channels}, channel) when is_map(channels) do
+  defp fetch_channel_rendering(%{channels: channels}, channel) when is_map(channels) do
     case Map.fetch(channels, channel) do
-      {:ok, identity} -> {:ok, identity}
+      {:ok, channel_rendering} -> {:ok, channel_rendering}
       :error -> {:error, {:missing_render_identity, channel}}
     end
   end
 
-  defp maybe_apply_render_identity(%Delivery{} = delivery, render_identity) when map_size(render_identity) == 0,
+  defp render_channel_result(channel, channel_rendering, assigns) do
+    case Rendering.render_delivery(
+           channel,
+           channel_rendering.render_key,
+           channel_rendering.render_version,
+           assigns
+         ) do
+      {:ok, rendered_delivery} ->
+        {:ok, rendered_delivery}
+
+      {:error, {:rendering_failed, unsupported_channel, {:unsupported_render_channel, unsupported_channel}}} ->
+        {:ok,
+         %{
+           channel: unsupported_channel,
+           render_key: channel_rendering.render_key,
+           render_version: channel_rendering.render_version,
+           render_data: %{}
+         }}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp maybe_apply_render_result(%Delivery{} = delivery, render_result) when map_size(render_result) == 0,
     do: {:ok, delivery}
 
-  defp maybe_apply_render_identity(%Delivery{} = delivery, render_identity) do
-    if delivery.render_key == render_identity.render_key &&
-         delivery.render_version == render_identity.render_version do
+  defp maybe_apply_render_result(%Delivery{} = delivery, render_result) do
+    if delivery.render_key == render_result.render_key &&
+         delivery.render_version == render_result.render_version &&
+         delivery.render_data == render_result.render_data do
       {:ok, delivery}
     else
-      Deliveries.apply_render_identity(delivery, render_identity)
+      Deliveries.apply_render_result(delivery, render_result)
     end
   end
 

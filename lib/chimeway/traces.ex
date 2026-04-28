@@ -138,6 +138,8 @@ defmodule Chimeway.Traces do
           notification_key: event.notification_key,
           recipient_id: notification.recipient_identity,
           channel: delivery.channel,
+          render_key: delivery.render_key,
+          render_version: delivery.render_version,
           status: delivery.status,
           planning_reason: delivery.planning_reason,
           planning_context: explanation_planning_context(delivery),

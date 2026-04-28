@@ -14,6 +14,8 @@ defmodule Chimeway.Traces.Explanation do
   - `notification_key` — stable notification type identifier
   - `recipient_id` — recipient identity string
   - `channel` — delivery channel string (for example "in_app", "email", "webhook_partner")
+  - `render_key` — stable per-channel render identity persisted on the delivery row, or nil
+  - `render_version` — stable per-channel render version persisted on the delivery row, or nil
   - `status` — final delivery status: :succeeded | :failed | :suppressed | :pending | :cancelled
   - `planning_reason` — orchestration/planning reason when the delivery is intentionally held, else nil
   - `planning_context` — sanitized persisted planning facts for explainability, else nil
@@ -41,6 +43,8 @@ defmodule Chimeway.Traces.Explanation do
           notification_key: String.t(),
           recipient_id: String.t(),
           channel: String.t(),
+          render_key: String.t() | nil,
+          render_version: pos_integer() | nil,
           status: :succeeded | :failed | :suppressed | :pending | :cancelled | :dispatched,
           planning_reason: String.t() | nil,
           planning_context: map() | nil,
@@ -68,6 +72,8 @@ defmodule Chimeway.Traces.Explanation do
     :notification_key,
     :recipient_id,
     :channel,
+    :render_key,
+    :render_version,
     :status,
     :planning_reason,
     :planning_context,

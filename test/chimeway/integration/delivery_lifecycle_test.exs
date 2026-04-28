@@ -10,6 +10,20 @@ defmodule ChimewayTest.Notifiers.LifecycleA do
     do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test A"}}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Test A",
+         "body" => "Test A body",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/a"}
+       },
+       channels: %{
+         in_app: %{render_key: "test.lifecycle_a.in_app", render_version: 1}
+       }
+     }}
+  end
 end
 
 defmodule ChimewayTest.Notifiers.LifecycleB do
@@ -21,6 +35,20 @@ defmodule ChimewayTest.Notifiers.LifecycleB do
     do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test B"}}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Test B",
+         "body" => "Test B body",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/b"}
+       },
+       channels: %{
+         in_app: %{render_key: "test.lifecycle_b.in_app", render_version: 1}
+       }
+     }}
+  end
 end
 
 defmodule ChimewayTest.Notifiers.LifecycleC do
@@ -32,6 +60,20 @@ defmodule ChimewayTest.Notifiers.LifecycleC do
     do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test C"}}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Test C",
+         "body" => "Test C body",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/c"}
+       },
+       channels: %{
+         in_app: %{render_key: "test.lifecycle_c.in_app", render_version: 1}
+       }
+     }}
+  end
 end
 
 defmodule ChimewayTest.Notifiers.LifecycleFanout do
@@ -45,6 +87,24 @@ defmodule ChimewayTest.Notifiers.LifecycleFanout do
   def build(_params, _recipient), do: {:ok, %{title: "Test Fanout"}}
 
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Test Fanout",
+         "body" => "Fanout body",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/fanout"},
+         "subject" => "Test Fanout",
+         "html_body" => "<p>Fanout body</p>",
+         "text_body" => "Fanout body"
+       },
+       channels: %{
+         in_app: %{render_key: "test.lifecycle_fanout.in_app", render_version: 1},
+         email: %{render_key: "test.lifecycle_fanout.email", render_version: 1}
+       }
+     }}
+  end
 end
 
 defmodule ChimewayTest.Notifiers.LifecycleDelayedFallback do
@@ -59,6 +119,24 @@ defmodule ChimewayTest.Notifiers.LifecycleDelayedFallback do
 
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
   def delayed_fallback_channels(_params, _recipient), do: {:ok, [:email]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Test Delayed Fallback",
+         "body" => "Delayed fallback body",
+         "primary_action" => %{"label" => "Review", "url" => "https://example.test/fallback"},
+         "subject" => "Test Delayed Fallback",
+         "html_body" => "<p>Delayed fallback body</p>",
+         "text_body" => "Delayed fallback body"
+       },
+       channels: %{
+         in_app: %{render_key: "test.lifecycle_delayed_fallback.in_app", render_version: 1},
+         email: %{render_key: "test.lifecycle_delayed_fallback.email", render_version: 1}
+       }
+     }}
+  end
 end
 
 defmodule ChimewayTest.Notifiers.LifecycleNoDelayedFallback do
@@ -72,6 +150,24 @@ defmodule ChimewayTest.Notifiers.LifecycleNoDelayedFallback do
   def build(_params, _recipient), do: {:ok, %{title: "Test No Delayed Fallback"}}
 
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Test No Delayed Fallback",
+         "body" => "No delayed fallback body",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/no-fallback"},
+         "subject" => "Test No Delayed Fallback",
+         "html_body" => "<p>No delayed fallback body</p>",
+         "text_body" => "No delayed fallback body"
+       },
+       channels: %{
+         in_app: %{render_key: "test.lifecycle_no_delayed_fallback.in_app", render_version: 1},
+         email: %{render_key: "test.lifecycle_no_delayed_fallback.email", render_version: 1}
+       }
+     }}
+  end
 end
 
 defmodule ChimewayTest.Notifiers.LifecycleCustomChannel do
@@ -97,6 +193,20 @@ defmodule ChimewayTest.Notifiers.LifecycleDigestHeld do
   def build(_params, _recipient), do: {:ok, %{title: "Digest Held"}}
   def channels(_params, _recipient), do: {:ok, [:email]}
   def orchestration(_params, _recipient), do: {:ok, :digest_held}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "subject" => "Digest Held",
+         "html_body" => "<p>Digest Held</p>",
+         "text_body" => "Digest Held"
+       },
+       channels: %{
+         email: %{render_key: "test.lifecycle_digest_held.email", render_version: 1}
+       }
+     }}
+  end
 end
 
 defmodule ChimewayTest.Notifiers.LifecycleRenderedEmail do
@@ -126,7 +236,7 @@ defmodule ChimewayTest.Notifiers.LifecycleRenderedEmail do
        },
        channels: %{
          email: %{render_key: "test.lifecycle_rendered_email.email", render_version: 3}
-         }
+       }
        }}
   end
 

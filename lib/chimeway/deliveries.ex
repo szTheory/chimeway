@@ -53,7 +53,8 @@ defmodule Chimeway.Deliveries do
            ),
          {:ok, render_key} <- normalize_optional_render_key(Keyword.get(opts, :render_key)),
          {:ok, render_version} <-
-           normalize_optional_render_version(Keyword.get(opts, :render_version)) do
+           normalize_optional_render_version(Keyword.get(opts, :render_version)),
+         {:ok, render_data} <- normalize_optional_render_data(Keyword.get(opts, :render_data, %{})) do
       metadata =
         opts
         |> Keyword.get(:metadata, %{})
@@ -72,7 +73,8 @@ defmodule Chimeway.Deliveries do
           delay_fallback: delay_fallback,
           metadata: metadata,
           render_key: render_key,
-          render_version: render_version
+          render_version: render_version,
+          render_data: render_data
         })
         |> Repo.insert(on_conflict: :nothing, conflict_target: [:notification_id, :channel])
 
@@ -125,6 +127,10 @@ defmodule Chimeway.Deliveries do
     do: {:ok, value}
 
   defp normalize_optional_render_version(value), do: {:error, {:invalid_render_version, value}}
+
+  defp normalize_optional_render_data(nil), do: {:ok, %{}}
+  defp normalize_optional_render_data(value) when is_map(value), do: {:ok, value}
+  defp normalize_optional_render_data(value), do: {:error, {:invalid_render_data, value}}
 
   defp normalize_optional_datetime(nil), do: {:ok, nil}
 
@@ -245,6 +251,29 @@ defmodule Chimeway.Deliveries do
 
   def apply_render_identity(%Delivery{} = _delivery, identity),
     do: {:error, {:invalid_render_identity, identity}}
+
+  @doc """
+  Persists the validated render result on the canonical delivery row.
+  """
+  @spec apply_render_result(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
+  def apply_render_result(%Delivery{} = delivery, render_result) when is_map(render_result) do
+    with {:ok, render_key} <- normalize_optional_render_key(Map.get(render_result, :render_key)),
+         {:ok, render_version} <-
+           normalize_optional_render_version(Map.get(render_result, :render_version)),
+         {:ok, render_data} <-
+           normalize_optional_render_data(Map.get(render_result, :render_data, %{})) do
+      delivery
+      |> change(%{
+        render_key: render_key,
+        render_version: render_version,
+        render_data: render_data
+      })
+      |> Repo.update()
+    end
+  end
+
+  def apply_render_result(%Delivery{} = _delivery, render_result),
+    do: {:error, {:invalid_render_result, render_result}}
 
   @doc """
   Marks a digest-held source row as included in an emitted digest.
