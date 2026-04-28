@@ -15,6 +15,9 @@ defmodule Chimeway.Traces.Explanation do
   - `recipient_id` — recipient identity string
   - `channel` — delivery channel string (for example "in_app", "email", "webhook_partner")
   - `status` — final delivery status: :succeeded | :failed | :suppressed | :pending | :cancelled
+  - `planning_reason` — orchestration/planning reason when the delivery is intentionally held, else nil
+  - `planning_context` — sanitized persisted planning facts for explainability, else nil
+  - `next_eligible_at` — UTC timestamp for the next dispatchable moment when deferred, else nil
   - `suppression_reason` — reason atom string when status is `:suppressed` OR `:cancelled`,
     else nil. The four documented reason strings are:
       * `"channel_disabled"` — set when status is `:suppressed` (policy preference blocked the channel)
@@ -35,6 +38,9 @@ defmodule Chimeway.Traces.Explanation do
           recipient_id: String.t(),
           channel: String.t(),
           status: :succeeded | :failed | :suppressed | :pending | :cancelled | :dispatched,
+          planning_reason: String.t() | nil,
+          planning_context: map() | nil,
+          next_eligible_at: DateTime.t() | nil,
           suppression_reason: String.t() | nil,
           last_attempt:
             %{
@@ -55,6 +61,9 @@ defmodule Chimeway.Traces.Explanation do
     :recipient_id,
     :channel,
     :status,
+    :planning_reason,
+    :planning_context,
+    :next_eligible_at,
     :suppression_reason,
     :last_attempt,
     :timeline

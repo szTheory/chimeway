@@ -136,6 +136,9 @@ defmodule Chimeway.Traces do
           recipient_id: notification.recipient_identity,
           channel: delivery.channel,
           status: delivery.status,
+          planning_reason: delivery.planning_reason,
+          planning_context: explanation_planning_context(delivery),
+          next_eligible_at: delivery.next_eligible_at,
           suppression_reason: delivery.suppression_reason,
           last_attempt: last_attempt,
           timeline: timeline
@@ -176,6 +179,8 @@ defmodule Chimeway.Traces do
   end
 
   defp build_timeline(event, notification, delivery, attempts) do
+    planning_context = explanation_planning_context(delivery)
+
     base = [
       %{
         at: event.inserted_at,
@@ -189,6 +194,25 @@ defmodule Chimeway.Traces do
       },
       %{at: delivery.inserted_at, event: :delivery_planned, detail: %{channel: delivery.channel}}
     ]
+
+    deferred_entries =
+      if delivery.orchestration_state == :deferred and delivery.planning_reason do
+        [
+          %{
+            at: delivery.updated_at,
+            event: :deferred,
+            detail: %{
+              reason: delivery.planning_reason,
+              time_zone: planning_context && planning_context["time_zone"],
+              rule_identity: planning_context && planning_context["rule_identity"],
+              next_eligible_at: delivery.next_eligible_at,
+              planning_context: planning_context
+            }
+          }
+        ]
+      else
+        []
+      end
 
     suppression_entries =
       if delivery.status == :suppressed and delivery.suppression_reason do
@@ -240,7 +264,61 @@ defmodule Chimeway.Traces do
         }
       end)
 
-    (base ++ suppression_entries ++ cancellation_entries ++ attempt_entries)
+    (base ++ deferred_entries ++ suppression_entries ++ cancellation_entries ++ attempt_entries)
     |> Enum.sort_by(& &1.at, DateTime)
+  end
+
+  defp explanation_planning_context(%Delivery{} = delivery) do
+    delivery
+    |> safe_planning_context()
+    |> maybe_put_rule_identity(delivery)
+  end
+
+  defp safe_planning_context(%Delivery{planning_context: nil}), do: nil
+
+  defp safe_planning_context(%Delivery{planning_context: planning_context}) when is_map(planning_context) do
+    planning_context
+    |> Map.take([
+      "rule",
+      "rule_identity",
+      "time_zone",
+      "quiet_hours_start_minute",
+      "quiet_hours_end_minute",
+      "channel",
+      "source"
+    ])
+    |> case do
+      map when map_size(map) == 0 -> nil
+      map -> map
+    end
+  end
+
+  defp safe_planning_context(_delivery), do: nil
+
+  defp maybe_put_rule_identity(nil, %Delivery{} = delivery) do
+    case normalized_rule_identity(delivery) do
+      nil -> nil
+      rule_identity -> %{"rule_identity" => rule_identity}
+    end
+  end
+
+  defp maybe_put_rule_identity(planning_context, %Delivery{} = delivery) do
+    Map.put_new(planning_context, "rule_identity", normalized_rule_identity(delivery))
+  end
+
+  defp normalized_rule_identity(%Delivery{planning_context: planning_context, planning_reason: planning_reason}) do
+    cond do
+      is_map(planning_context) and is_binary(planning_context["rule_identity"]) ->
+        planning_context["rule_identity"]
+
+      is_map(planning_context) and is_binary(planning_context["rule"]) ->
+        planning_context["rule"]
+
+      is_binary(planning_reason) ->
+        planning_reason
+
+      true ->
+        nil
+    end
   end
 end
