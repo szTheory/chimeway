@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: Phase 20 complete — ready for Phase 21 planning
-stopped_at: Completed 20-03-PLAN.md
-last_updated: "2026-04-28T17:18:14.000Z"
+status: executing
+stopped_at: Completed 19-03-PLAN.md
+last_updated: "2026-04-28T19:07:24.342Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
+  total_plans: 17
+  completed_plans: 13
+  percent: 76
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 21 — Template Versioning & Rendering Contracts
+**Current focus:** Phase 21 — template-versioning-rendering-contracts
 
 ## Current Position
 
-Phase: 20 — COMPLETE
-Plan: 3 of 3
-Status: Phase 20 complete — ready for Phase 21 planning
-Last activity: 2026-04-28 — Completed 20-03 digest explainability and trace integration
+Phase: 21 (template-versioning-rendering-contracts) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-04-28
 
 ## Accumulated Context
 
