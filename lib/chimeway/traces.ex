@@ -11,6 +11,7 @@ defmodule Chimeway.Traces do
   - `find_traces_for_recipient/2` — load recent traces for a recipient
   - `find_traces_by_correlation_id/1` — load events by correlation_id string
   - `explain_delivery/1` — structured explanation for a single delivery
+  - `aggregate_outcomes/1` — grouped lifecycle counts by notification key, channel, and outcome
 
   ## Usage in IEx
 
@@ -157,6 +158,99 @@ defmodule Chimeway.Traces do
     end
   end
 
+  @doc """
+  Returns grouped lifecycle outcome counts from durable delivery state only.
+
+  Supported filters:
+  - `:notification_key` — restricts results to one stable notification key
+  - `:channel` — restricts results to one delivery channel
+  - `:outcomes` — list of explicit lifecycle buckets to keep
+  - `:inserted_after` / `:inserted_before` — filter by delivery insert timestamps
+  - `:updated_after` / `:updated_before` — filter by delivery update timestamps
+
+  Result rows contain safe identifiers and counts only:
+
+      %{notification_key: "comment.created", channel: "email", outcome: "sent", count: 42}
+  """
+  @spec aggregate_outcomes(keyword()) :: [map()]
+  def aggregate_outcomes(opts \\ []) do
+    repo_opts =
+      Keyword.drop(opts, [
+        :notification_key,
+        :channel,
+        :outcomes,
+        :inserted_after,
+        :inserted_before,
+        :updated_after,
+        :updated_before
+      ])
+
+    base_query =
+      from(d in Delivery,
+        join: n in Notification,
+        on: n.id == d.notification_id,
+        join: e in Event,
+        on: e.id == n.event_id,
+        select: %{
+          notification_key: e.notification_key,
+          channel: d.channel,
+          outcome:
+            fragment(
+              """
+              CASE
+                WHEN ? = 'succeeded' THEN 'sent'
+                WHEN ? = 'suppressed' THEN 'suppressed'
+                WHEN ? = 'pending' AND ? = 'deferred' THEN 'delayed'
+                WHEN ? = 'digested' THEN 'digested'
+                WHEN ? = 'failed' THEN 'failed'
+                WHEN ? = 'cancelled' AND ? = 'retries_exhausted' THEN 'exhausted'
+                ELSE NULL
+              END
+              """,
+              d.status,
+              d.status,
+              d.status,
+              d.orchestration_state,
+              d.status,
+              d.status,
+              d.status,
+              d.suppression_reason
+            )
+        }
+      )
+      |> maybe_filter_notification_key(Keyword.get(opts, :notification_key))
+      |> maybe_filter_channel(Keyword.get(opts, :channel))
+      |> maybe_filter_delivery_inserted_after(Keyword.get(opts, :inserted_after))
+      |> maybe_filter_delivery_inserted_before(Keyword.get(opts, :inserted_before))
+      |> maybe_filter_delivery_updated_after(Keyword.get(opts, :updated_after))
+      |> maybe_filter_delivery_updated_before(Keyword.get(opts, :updated_before))
+
+    aggregate_query =
+      from(row in subquery(base_query),
+        where: not is_nil(row.outcome),
+        group_by: [row.notification_key, row.channel, row.outcome],
+        order_by: [asc: row.notification_key, asc: row.channel, asc: row.outcome],
+        select: %{
+          notification_key: row.notification_key,
+          channel: row.channel,
+          outcome: row.outcome,
+          count: count(row.outcome)
+        }
+      )
+      |> maybe_filter_aggregate_outcomes(Keyword.get(opts, :outcomes))
+
+    Repo.all(aggregate_query, repo_opts)
+  end
+
+  @doc """
+  Convenience wrapper for grouped lifecycle outcome counts for one notification key.
+  """
+  @spec aggregate_outcomes_for_notification(String.t(), keyword()) :: [map()]
+  def aggregate_outcomes_for_notification(notification_key, opts \\ [])
+      when is_binary(notification_key) and is_list(opts) do
+    aggregate_outcomes(Keyword.put(opts, :notification_key, notification_key))
+  end
+
   # --- Private helpers ---
 
   defp last_attempt_summary([]), do: nil
@@ -190,6 +284,7 @@ defmodule Chimeway.Traces do
   defp build_timeline(event, notification, delivery, attempts, digest_context) do
     planning_context = explanation_planning_context(delivery)
     resume_fields = explanation_resume_fields(delivery)
+    recovery_fields = explanation_recovery_fields(delivery)
 
     base = [
       %{
@@ -233,6 +328,23 @@ defmodule Chimeway.Traces do
             detail: %{
               resume_source: resume_fields.resume_source,
               resume_scheduled_at: resume_fields.resume_scheduled_at
+            }
+          }
+        ]
+      else
+        []
+      end
+
+    recovery_entries =
+      if recovery_fields.recovered_at do
+        [
+          %{
+            at: recovery_fields.recovered_at,
+            event: :recovered,
+            detail: %{
+              recovery_source: recovery_fields.recovery_source,
+              recovery_reason: recovery_fields.recovery_reason,
+              recovered_at: recovery_fields.recovered_at
             }
           }
         ]
@@ -295,6 +407,7 @@ defmodule Chimeway.Traces do
     (base ++
        deferred_entries ++
        resumed_entries ++
+       recovery_entries ++
        suppression_entries ++
        cancellation_entries ++
        digest_entries ++ attempt_entries)
@@ -308,6 +421,16 @@ defmodule Chimeway.Traces do
       resume_source: metadata_string(metadata, "resume_source"),
       resume_scheduled_at: metadata_datetime(metadata, "resume_scheduled_at"),
       resumed_at: metadata_datetime(metadata, "resumed_at")
+    }
+  end
+
+  defp explanation_recovery_fields(%Delivery{} = delivery) do
+    metadata = delivery.metadata || %{}
+
+    %{
+      recovery_source: metadata_string(metadata, "recovery_source"),
+      recovery_reason: metadata_string(metadata, "recovery_reason"),
+      recovered_at: metadata_datetime(metadata, "recovered_at")
     }
   end
 
@@ -360,14 +483,58 @@ defmodule Chimeway.Traces do
   defp timeline_rank(:delivery_planned), do: 2
   defp timeline_rank(:deferred), do: 3
   defp timeline_rank(:resumed), do: 4
-  defp timeline_rank(:suppressed), do: 5
-  defp timeline_rank(:cancelled), do: 6
-  defp timeline_rank(:digested), do: 7
-  defp timeline_rank(:digest_skipped), do: 8
-  defp timeline_rank(:emitted_immediately), do: 9
-  defp timeline_rank(:digest_emitted), do: 10
-  defp timeline_rank(:attempt_recorded), do: 11
+  defp timeline_rank(:recovered), do: 5
+  defp timeline_rank(:suppressed), do: 6
+  defp timeline_rank(:cancelled), do: 7
+  defp timeline_rank(:digested), do: 8
+  defp timeline_rank(:digest_skipped), do: 9
+  defp timeline_rank(:emitted_immediately), do: 10
+  defp timeline_rank(:digest_emitted), do: 11
+  defp timeline_rank(:attempt_recorded), do: 12
   defp timeline_rank(_event), do: 99
+
+  defp maybe_filter_notification_key(query, nil), do: query
+
+  defp maybe_filter_notification_key(query, notification_key) when is_binary(notification_key) do
+    from([d, n, e] in query, where: e.notification_key == ^notification_key)
+  end
+
+  defp maybe_filter_channel(query, nil), do: query
+
+  defp maybe_filter_channel(query, channel) when is_binary(channel) do
+    from([d, n, e] in query, where: d.channel == ^channel)
+  end
+
+  defp maybe_filter_aggregate_outcomes(query, nil), do: query
+  defp maybe_filter_aggregate_outcomes(query, []), do: query
+
+  defp maybe_filter_aggregate_outcomes(query, outcomes) when is_list(outcomes) do
+    from(row in query, where: row.outcome in ^outcomes)
+  end
+
+  defp maybe_filter_delivery_inserted_after(query, nil), do: query
+
+  defp maybe_filter_delivery_inserted_after(query, %DateTime{} = inserted_after) do
+    from([d, n, e] in query, where: d.inserted_at >= ^inserted_after)
+  end
+
+  defp maybe_filter_delivery_inserted_before(query, nil), do: query
+
+  defp maybe_filter_delivery_inserted_before(query, %DateTime{} = inserted_before) do
+    from([d, n, e] in query, where: d.inserted_at <= ^inserted_before)
+  end
+
+  defp maybe_filter_delivery_updated_after(query, nil), do: query
+
+  defp maybe_filter_delivery_updated_after(query, %DateTime{} = updated_after) do
+    from([d, n, e] in query, where: d.updated_at >= ^updated_after)
+  end
+
+  defp maybe_filter_delivery_updated_before(query, nil), do: query
+
+  defp maybe_filter_delivery_updated_before(query, %DateTime{} = updated_before) do
+    from([d, n, e] in query, where: d.updated_at <= ^updated_before)
+  end
 
   defp explanation_planning_context(%Delivery{} = delivery) do
     delivery

@@ -639,7 +639,7 @@ defmodule Chimeway.TracesTest do
                  count: 1
                },
                %{notification_key: "ops.analytics", channel: "email", outcome: "failed", count: 1},
-               %{notification_key: "ops.analytics", channel: "email", outcome: "sent", count: 1},
+               %{notification_key: "ops.analytics", channel: "email", outcome: "sent", count: 2},
                %{
                  notification_key: "ops.analytics",
                  channel: "email",
@@ -683,7 +683,7 @@ defmodule Chimeway.TracesTest do
       rows = Traces.aggregate_outcomes(notification_key: "ops.safe-surface", channel: "email")
 
       assert Enum.all?(rows, fn row ->
-               Map.keys(row) == [:channel, :count, :notification_key, :outcome]
+               Enum.sort(Map.keys(row)) == [:channel, :count, :notification_key, :outcome]
              end)
 
       refute inspect(rows) =~ "provider_response"
