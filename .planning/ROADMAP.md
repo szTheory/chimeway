@@ -102,7 +102,7 @@ Success criteria:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 21.1-01-PLAN.md — Persist notification-level render declarations and remove planner-time rendering re-entry.
+- [x] 21.1-01-PLAN.md — Persist notification-level render declarations and remove planner-time rendering re-entry.
 - [ ] 21.1-02-PLAN.md — Harden preview boundary errors and replace executable Mix-task inputs with safe JSON parsing.
 
 Success criteria:
