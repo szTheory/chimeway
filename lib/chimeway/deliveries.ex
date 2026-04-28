@@ -90,6 +90,24 @@ defmodule Chimeway.Deliveries do
   defp normalize_delay_fallback(value) when is_boolean(value), do: {:ok, value}
   defp normalize_delay_fallback(value), do: {:error, {:invalid_delay_fallback, value}}
 
+  defp normalize_orchestration_state(state)
+       when state in [:ready, :deferred, :digest_held],
+       do: {:ok, state}
+
+  defp normalize_orchestration_state(state), do: {:error, {:invalid_orchestration_state, state}}
+
+  defp normalize_optional_string(nil), do: {:ok, nil}
+  defp normalize_optional_string(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
+  defp normalize_optional_string(value), do: {:error, {:invalid_planning_reason, value}}
+
+  defp normalize_optional_map(nil), do: {:ok, nil}
+  defp normalize_optional_map(value) when is_map(value), do: {:ok, value}
+  defp normalize_optional_map(value), do: {:error, {:invalid_planning_context, value}}
+
+  defp normalize_optional_datetime(nil), do: {:ok, nil}
+  defp normalize_optional_datetime(%DateTime{} = value), do: {:ok, value}
+  defp normalize_optional_datetime(value), do: {:error, {:invalid_next_eligible_at, value}}
+
   defp normalize_delayed_fallback_source(:default), do: {:ok, "default"}
   defp normalize_delayed_fallback_source(:notifier), do: {:ok, "notifier"}
   defp normalize_delayed_fallback_source(:policy), do: {:ok, "policy"}
@@ -157,6 +175,29 @@ defmodule Chimeway.Deliveries do
     )
     |> Repo.update()
   end
+
+  @doc """
+  Persists planning-time orchestration facts on the canonical delivery row.
+  """
+  @spec apply_planning_decision(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
+  def apply_planning_decision(%Delivery{} = delivery, decision) when is_map(decision) do
+    with {:ok, state} <- normalize_orchestration_state(Map.get(decision, :orchestration_state, :ready)),
+         {:ok, planning_reason} <- normalize_optional_string(Map.get(decision, :planning_reason)),
+         {:ok, planning_context} <- normalize_optional_map(Map.get(decision, :planning_context)),
+         {:ok, next_eligible_at} <- normalize_optional_datetime(Map.get(decision, :next_eligible_at)) do
+      delivery
+      |> change(%{
+        orchestration_state: state,
+        planning_reason: planning_reason,
+        planning_context: planning_context,
+        next_eligible_at: next_eligible_at
+      })
+      |> Repo.update()
+    end
+  end
+
+  def apply_planning_decision(%Delivery{} = _delivery, decision),
+    do: {:error, {:invalid_planning_decision, decision}}
 
   @doc """
   Transitions a `:failed` delivery to `:cancelled` with `suppression_reason: "retries_exhausted"`.

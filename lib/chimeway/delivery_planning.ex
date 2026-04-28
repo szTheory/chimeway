@@ -6,7 +6,7 @@ defmodule Chimeway.DeliveryPlanning do
   `Chimeway.Deliveries.plan_delivery/3` directly.
   """
 
-  alias Chimeway.{Deliveries, Delivery, Policy}
+  alias Chimeway.{Deliveries, Delivery, Notifier, Policy}
   alias Chimeway.Notifications.Notification
 
   @spec plan_notifications([Notification.t()], keyword()) ::
@@ -78,9 +78,11 @@ defmodule Chimeway.DeliveryPlanning do
          delayed_fallback_set,
          delayed_fallback_source,
          opts
-       ) do
+  ) do
     delay_fallback = MapSet.member?(delayed_fallback_set, channel)
     source = delayed_fallback_source_for(channel, delayed_fallback_set, delayed_fallback_source)
+    trigger_params = normalize_trigger_params(Keyword.get(opts, :trigger_params, %{}))
+    recipient = notification_recipient(notification)
 
     with {:ok, delivery} <-
            Deliveries.plan_delivery(notification.id, channel,
@@ -89,8 +91,11 @@ defmodule Chimeway.DeliveryPlanning do
              notification_key: Keyword.get(opts, :notification_key),
              event_id: Keyword.get(opts, :event_id),
              correlation_id: Keyword.get(opts, :correlation_id)
-           ) do
-      evaluate_planning_policy(delivery)
+           ),
+         {:ok, orchestration} <-
+           resolve_orchestration(opts, trigger_params, recipient),
+         {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
+      evaluate_planning_policy(delivery, opts)
     end
   end
 
@@ -232,8 +237,8 @@ defmodule Chimeway.DeliveryPlanning do
     {:halt, {:error, {:invalid_channel, channel}}}
   end
 
-  defp evaluate_planning_policy(delivery) do
-    case Policy.evaluate(delivery, []) do
+  defp evaluate_planning_policy(delivery, opts) do
+    case Policy.evaluate(delivery, opts) do
       {:ok, :proceed} ->
         {:ok, delivery}
 
@@ -255,5 +260,39 @@ defmodule Chimeway.DeliveryPlanning do
       recipient_type: notification.recipient_type,
       metadata: notification.metadata || %{}
     }
+  end
+
+  defp resolve_orchestration(opts, trigger_params, recipient) do
+    Notifier.resolve_orchestration(
+      Keyword.get(opts, :notifier),
+      trigger_params,
+      recipient,
+      Keyword.get(opts, :orchestration, :unset)
+    )
+  end
+
+  defp apply_declared_orchestration(delivery, channel, orchestration) do
+    mode = Map.get(orchestration.channels, channel, orchestration.default)
+
+    decision =
+      case mode do
+        :digest_held ->
+          %{
+            orchestration_state: :digest_held,
+            planning_reason: "digest_rule",
+            planning_context: %{"channel" => channel, "source" => "notifier"},
+            next_eligible_at: nil
+          }
+
+        :immediate ->
+          %{
+            orchestration_state: :ready,
+            planning_reason: nil,
+            planning_context: nil,
+            next_eligible_at: nil
+          }
+      end
+
+    Deliveries.apply_planning_decision(delivery, decision)
   end
 end
