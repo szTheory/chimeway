@@ -4,6 +4,7 @@ defmodule Chimeway.DeliveriesTest do
   alias Chimeway.{Deliveries, Delivery, DeliveryAttempt, Repo}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+  import Ecto.Query, only: [from: 2]
 
   # ---- Fixtures ----
 
@@ -63,7 +64,13 @@ defmodule Chimeway.DeliveriesTest do
       assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app)
       assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app)
 
-      count = Repo.aggregate(Delivery, :count, :id)
+      count =
+        Repo.aggregate(
+          from(d in Delivery, where: d.notification_id == ^notification.id),
+          :count,
+          :id
+        )
+
       assert count == 1
     end
 
@@ -80,7 +87,13 @@ defmodule Chimeway.DeliveriesTest do
       assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app)
       assert {:ok, _} = Deliveries.plan_delivery(notification.id, :email)
 
-      count = Repo.aggregate(Delivery, :count, :id)
+      count =
+        Repo.aggregate(
+          from(d in Delivery, where: d.notification_id == ^notification.id),
+          :count,
+          :id
+        )
+
       assert count == 2
     end
   end

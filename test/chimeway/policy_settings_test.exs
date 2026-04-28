@@ -51,6 +51,24 @@ defmodule Chimeway.PolicySettingsTest do
                end)
     end
 
+    test "requires quiet-hours bounds to be provided together" do
+      changeset =
+        Setting.changeset(%Setting{}, %{
+          recipient_id: "user:partial-quiet-hours",
+          quiet_hours_start_minute: 60
+        })
+
+      refute changeset.valid?
+
+      assert %{
+               quiet_hours_start_minute: ["must be set together with quiet_hours_end_minute"],
+               quiet_hours_end_minute: ["must be set together with quiet_hours_start_minute"]
+             } =
+               Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} ->
+                 message
+               end)
+    end
+
     test "updates time_zone through the upsert conflict path" do
       recipient_id = "user:settings-upsert-time-zone"
 
@@ -112,6 +130,30 @@ defmodule Chimeway.PolicySettingsTest do
       assert decision.planning_context["time_zone"] == "America/New_York"
       assert decision.planning_context["quiet_hours_start_minute"] == 22 * 60
       assert decision.planning_context["quiet_hours_end_minute"] == 8 * 60
+    end
+
+    test "ignores legacy partial quiet-hours rows instead of crashing planning" do
+      fixture =
+        DispatchHelpers.create_pending_delivery(
+          recipient_identity: "user:legacy-partial-quiet-hours"
+        )
+
+      {:ok, settings} =
+        %Setting{}
+        |> Setting.changeset(%{
+          recipient_id: "user:legacy-partial-quiet-hours",
+          quiet_hours_start_minute: 23 * 60,
+          quiet_hours_end_minute: 6 * 60,
+          time_zone: "America/New_York"
+        })
+        |> Chimeway.Repo.insert()
+
+      settings
+      |> Ecto.Changeset.change(quiet_hours_end_minute: nil)
+      |> Chimeway.Repo.update!()
+
+      assert Settings.evaluate(fixture.delivery, evaluation_time: ~U[2026-01-15 03:30:00Z]) ==
+               {:ok, :proceed}
     end
 
     test "suppresses when the delivery cap has already been reached" do

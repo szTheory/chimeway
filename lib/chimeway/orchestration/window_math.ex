@@ -91,5 +91,7 @@ defmodule Chimeway.Orchestration.WindowMath do
     DateTime.shift_zone(datetime, "Etc/UTC", time_zone_database())
   end
 
-  defp time_zone_database, do: Calendar.get_time_zone_database()
+  defp time_zone_database do
+    Application.get_env(:chimeway, :time_zone_database, Calendar.get_time_zone_database())
+  end
 end

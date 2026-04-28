@@ -1,6 +1,8 @@
 defmodule Chimeway.IdempotencyConstraintTest do
   use Chimeway.DataCase, async: false
 
+  import Ecto.Query, only: [from: 2]
+
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
@@ -42,8 +44,18 @@ defmodule Chimeway.IdempotencyConstraintTest do
              )
 
     assert existing_event.id == first.event.id
-    assert Repo.aggregate(Event, :count, :id) == 1
-    assert Repo.aggregate(Notification, :count, :id) == 1
+
+    assert Repo.aggregate(
+             from(e in Event, where: e.idempotency_key == "serial-dup-key"),
+             :count,
+             :id
+           ) == 1
+
+    assert Repo.aggregate(
+             from(n in Notification, where: n.event_id == ^first.event.id),
+             :count,
+             :id
+           ) == 1
   end
 
   test "concurrent duplicate triggers still produce one canonical event row" do
@@ -69,7 +81,20 @@ defmodule Chimeway.IdempotencyConstraintTest do
 
     assert Enum.count(results, &match?({:ok, _payload}, &1)) == 1
     assert Enum.count(results, &match?({:duplicate, %Event{}}, &1)) == 9
-    assert Repo.aggregate(Event, :count, :id) == 1
-    assert Repo.aggregate(Notification, :count, :id) == 1
+
+    assert Repo.aggregate(
+             from(e in Event, where: e.idempotency_key == "concurrent-dup-key"),
+             :count,
+             :id
+           ) == 1
+
+    event =
+      Repo.one!(from(e in Event, where: e.idempotency_key == "concurrent-dup-key", limit: 1))
+
+    assert Repo.aggregate(
+             from(n in Notification, where: n.event_id == ^event.id),
+             :count,
+             :id
+           ) == 1
   end
 end

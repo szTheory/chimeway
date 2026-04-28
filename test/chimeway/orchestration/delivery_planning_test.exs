@@ -5,6 +5,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Policy.Settings
+  import Ecto.Query, only: [from: 2]
 
   defmodule DigestEmailNotifier do
     use Chimeway.Notifier
@@ -48,7 +49,21 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
 
     assert replanned.id == delivery.id
     assert replanned.orchestration_state == :digest_held
-    assert Repo.aggregate(Delivery, :count, :id) == 1
+    assert delivery_count_for(notification.id) == 1
+  end
+
+  test "planner override records planner_override as the orchestration source" do
+    notification = insert_notification("user-override")
+
+    assert {:ok, [delivery]} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: DigestEmailNotifier,
+               trigger_params: %{},
+               orchestration: [email: :digest]
+             )
+
+    assert delivery.orchestration_state == :digest_held
+    assert delivery.planning_context["source"] == "planner_override"
   end
 
   test "planner persists deferred planning facts during quiet hours without duplicate rows" do
@@ -78,7 +93,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
 
     assert replanned.id == delivery.id
     assert replanned.orchestration_state == :deferred
-    assert Repo.aggregate(Delivery, :count, :id) == 1
+    assert delivery_count_for(notification.id) == 1
   end
 
   defp insert_notification(recipient_identity) do
@@ -103,5 +118,9 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
       |> Repo.insert()
 
     notification
+  end
+
+  defp delivery_count_for(notification_id) do
+    Repo.aggregate(from(d in Delivery, where: d.notification_id == ^notification_id), :count, :id)
   end
 end

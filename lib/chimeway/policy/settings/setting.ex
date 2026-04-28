@@ -37,8 +37,22 @@ defmodule Chimeway.Policy.Settings.Setting do
     |> validate_number(:quiet_hours_end_minute, greater_than_or_equal_to: 0, less_than: 1440)
     |> validate_number(:delivery_cap_count, greater_than: 0)
     |> validate_number(:delivery_cap_window_minutes, greater_than: 0)
+    |> validate_quiet_hours_pair()
     |> validate_time_zone()
     |> unique_constraint(:recipient_id, name: :chimeway_policy_settings_recipient_index)
+  end
+
+  defp validate_quiet_hours_pair(changeset) do
+    start_minute = get_field(changeset, :quiet_hours_start_minute)
+    end_minute = get_field(changeset, :quiet_hours_end_minute)
+
+    if is_nil(start_minute) == is_nil(end_minute) do
+      changeset
+    else
+      changeset
+      |> add_error(:quiet_hours_start_minute, "must be set together with quiet_hours_end_minute")
+      |> add_error(:quiet_hours_end_minute, "must be set together with quiet_hours_start_minute")
+    end
   end
 
   defp validate_time_zone(changeset) do
@@ -52,8 +66,12 @@ defmodule Chimeway.Policy.Settings.Setting do
   end
 
   defp valid_time_zone?(time_zone) when is_binary(time_zone) and byte_size(time_zone) > 0 do
-    match?({:ok, _}, DateTime.now(time_zone, Calendar.get_time_zone_database()))
+    match?({:ok, _}, DateTime.now(time_zone, time_zone_database()))
   end
 
   defp valid_time_zone?(_time_zone), do: false
+
+  defp time_zone_database do
+    Application.get_env(:chimeway, :time_zone_database, Calendar.get_time_zone_database())
+  end
 end

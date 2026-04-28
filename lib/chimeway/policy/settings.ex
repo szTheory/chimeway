@@ -41,7 +41,8 @@ defmodule Chimeway.Policy.Settings do
   Evaluates quiet-hours and delivery-cap suppression for a delivery.
   """
   @spec evaluate(Delivery.t()) :: {:ok, :proceed} | {:suppress, atom()} | {:defer, map()}
-  @spec evaluate(Delivery.t(), keyword()) :: {:ok, :proceed} | {:suppress, atom()} | {:defer, map()}
+  @spec evaluate(Delivery.t(), keyword()) ::
+          {:ok, :proceed} | {:suppress, atom()} | {:defer, map()}
   def evaluate(%Delivery{} = delivery, opts \\ []) do
     with recipient_id when not is_nil(recipient_id) <- recipient_identity_for(delivery),
          %Setting{} = settings <- get_settings(recipient_id),
@@ -55,7 +56,12 @@ defmodule Chimeway.Policy.Settings do
     end
   end
 
-  defp maybe_suppress_delivery_cap(%Delivery{} = delivery, %Setting{} = settings, recipient_id, opts) do
+  defp maybe_suppress_delivery_cap(
+         %Delivery{} = delivery,
+         %Setting{} = settings,
+         recipient_id,
+         opts
+       ) do
     case {settings.delivery_cap_count, settings.delivery_cap_window_minutes} do
       {nil, nil} ->
         :ok
@@ -82,7 +88,8 @@ defmodule Chimeway.Policy.Settings do
     end
   end
 
-  defp maybe_defer_quiet_hours(%Delivery{orchestration_state: :digest_held}, _settings, _opts), do: :ok
+  defp maybe_defer_quiet_hours(%Delivery{orchestration_state: :digest_held}, _settings, _opts),
+    do: :ok
 
   defp maybe_defer_quiet_hours(%Delivery{} = delivery, %Setting{} = settings, opts) do
     if checkpoint(opts) == :perform do
@@ -92,13 +99,22 @@ defmodule Chimeway.Policy.Settings do
         {nil, nil} ->
           :ok
 
-        {start_minute, end_minute} ->
+        {start_minute, end_minute} when is_integer(start_minute) and is_integer(end_minute) ->
           build_quiet_hours_decision(delivery, settings, start_minute, end_minute, opts)
+
+        _partial_window ->
+          :ok
       end
     end
   end
 
-  defp build_quiet_hours_decision(_delivery, %Setting{} = settings, start_minute, end_minute, opts) do
+  defp build_quiet_hours_decision(
+         _delivery,
+         %Setting{} = settings,
+         start_minute,
+         end_minute,
+         opts
+       ) do
     current_time = evaluation_time(opts)
     time_zone = settings.time_zone || "Etc/UTC"
 

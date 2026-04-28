@@ -78,7 +78,7 @@ defmodule Chimeway.DeliveryPlanning do
          delayed_fallback_set,
          delayed_fallback_source,
          opts
-  ) do
+       ) do
     delay_fallback = MapSet.member?(delayed_fallback_set, channel)
     source = delayed_fallback_source_for(channel, delayed_fallback_set, delayed_fallback_source)
     trigger_params = normalize_trigger_params(Keyword.get(opts, :trigger_params, %{}))
@@ -283,7 +283,10 @@ defmodule Chimeway.DeliveryPlanning do
           %{
             orchestration_state: :digest_held,
             planning_reason: "digest_rule",
-            planning_context: %{"channel" => channel, "source" => "notifier"},
+            planning_context: %{
+              "channel" => channel,
+              "source" => Atom.to_string(Map.get(orchestration, :source, :default))
+            },
             next_eligible_at: nil
           }
 

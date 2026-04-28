@@ -76,8 +76,18 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
                )
 
       assert existing_event.id == first.event.id
-      assert Repo.aggregate(Event, :count, :id) == 1
-      assert Repo.aggregate(Notification, :count, :id) == 1
+
+      assert Repo.aggregate(
+               from(e in Event, where: e.idempotency_key == "rel01-d02a-serial"),
+               :count,
+               :id
+             ) == 1
+
+      assert Repo.aggregate(
+               from(n in Notification, where: n.event_id == ^first.event.id),
+               :count,
+               :id
+             ) == 1
     end
   end
 
@@ -282,8 +292,21 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
 
       assert Enum.count(results, &match?({:ok, _payload}, &1)) == 1
       assert Enum.count(results, &match?({:duplicate, %Event{}}, &1)) == 9
-      assert Repo.aggregate(Event, :count, :id) == 1
-      assert Repo.aggregate(Notification, :count, :id) == 1
+
+      assert Repo.aggregate(
+               from(e in Event, where: e.idempotency_key == "rel01-d14a-concurrent"),
+               :count,
+               :id
+             ) == 1
+
+      event =
+        Repo.one!(from(e in Event, where: e.idempotency_key == "rel01-d14a-concurrent", limit: 1))
+
+      assert Repo.aggregate(
+               from(n in Notification, where: n.event_id == ^event.id),
+               :count,
+               :id
+             ) == 1
     end
   end
 

@@ -23,7 +23,8 @@ defmodule Chimeway.Notifier do
   @callback delayed_fallback_channels(map(), map()) ::
               {:ok, [atom() | String.t()]} | {:error, term()}
   @callback orchestration(map(), map()) ::
-              {:ok, :immediate | :digest | :digest_held | keyword(atom()) | map()} | {:error, term()}
+              {:ok, :immediate | :digest | :digest_held | keyword(atom()) | map()}
+              | {:error, term()}
 
   @optional_callbacks channels: 2
   @optional_callbacks delayed_fallback_channels: 2
@@ -57,48 +58,59 @@ defmodule Chimeway.Notifier do
   @type orchestration_mode :: :immediate | :digest_held
   @type orchestration_resolution :: %{
           default: orchestration_mode(),
-          channels: %{String.t() => orchestration_mode()}
+          channels: %{String.t() => orchestration_mode()},
+          source: :default | :notifier | :planner_override
         }
 
   @spec resolve_orchestration(module() | nil, map(), map(), term()) ::
           {:ok, orchestration_resolution()} | {:error, term()}
   def resolve_orchestration(notifier, trigger_params, recipient, override \\ :unset)
 
-  def resolve_orchestration(_notifier, _trigger_params, _recipient, override) when override != :unset do
-    normalize_orchestration(override)
+  def resolve_orchestration(_notifier, _trigger_params, _recipient, override)
+      when override != :unset do
+    normalize_orchestration(override, :planner_override)
   end
 
   def resolve_orchestration(nil, _trigger_params, _recipient, _override) do
-    {:ok, %{default: :immediate, channels: %{}}}
+    {:ok, %{default: :immediate, channels: %{}, source: :default}}
   end
 
-  def resolve_orchestration(notifier, trigger_params, recipient, _override) when is_atom(notifier) do
+  def resolve_orchestration(notifier, trigger_params, recipient, _override)
+      when is_atom(notifier) do
     if function_exported?(notifier, :orchestration, 2) do
       notifier
       |> apply(:orchestration, [trigger_params, recipient])
-      |> handle_orchestration_result()
+      |> handle_orchestration_result(:notifier)
     else
-      {:ok, %{default: :immediate, channels: %{}}}
+      {:ok, %{default: :immediate, channels: %{}, source: :default}}
     end
   end
 
-  defp handle_orchestration_result({:ok, declaration}), do: normalize_orchestration(declaration)
-  defp handle_orchestration_result({:error, reason}), do: {:error, {:orchestration_resolution_failed, reason}}
+  defp handle_orchestration_result({:ok, declaration}, source),
+    do: normalize_orchestration(declaration, source)
 
-  defp handle_orchestration_result(unexpected),
+  defp handle_orchestration_result({:error, reason}, _source),
+    do: {:error, {:orchestration_resolution_failed, reason}}
+
+  defp handle_orchestration_result(unexpected, _source),
     do: {:error, {:orchestration_resolution_failed, {:unexpected_result, unexpected}}}
 
-  defp normalize_orchestration(:immediate), do: {:ok, %{default: :immediate, channels: %{}}}
-  defp normalize_orchestration(:digest), do: {:ok, %{default: :digest_held, channels: %{}}}
-  defp normalize_orchestration(:digest_held), do: {:ok, %{default: :digest_held, channels: %{}}}
+  defp normalize_orchestration(:immediate, source),
+    do: {:ok, %{default: :immediate, channels: %{}, source: source}}
 
-  defp normalize_orchestration(declaration) when is_list(declaration) do
+  defp normalize_orchestration(:digest, source),
+    do: {:ok, %{default: :digest_held, channels: %{}, source: source}}
+
+  defp normalize_orchestration(:digest_held, source),
+    do: {:ok, %{default: :digest_held, channels: %{}, source: source}}
+
+  defp normalize_orchestration(declaration, source) when is_list(declaration) do
     declaration
     |> Enum.into(%{})
-    |> normalize_orchestration()
+    |> normalize_orchestration(source)
   end
 
-  defp normalize_orchestration(%{} = declaration) do
+  defp normalize_orchestration(%{} = declaration, source) do
     {default, channel_entries} =
       case Map.pop(declaration, :default) do
         {nil, rest} -> Map.pop(rest, "default", :immediate)
@@ -107,11 +119,12 @@ defmodule Chimeway.Notifier do
 
     with {:ok, normalized_default} <- normalize_mode(default),
          {:ok, normalized_channels} <- normalize_channel_modes(channel_entries) do
-      {:ok, %{default: normalized_default, channels: normalized_channels}}
+      {:ok, %{default: normalized_default, channels: normalized_channels, source: source}}
     end
   end
 
-  defp normalize_orchestration(other), do: {:error, {:invalid_orchestration_declaration, other}}
+  defp normalize_orchestration(other, _source),
+    do: {:error, {:invalid_orchestration_declaration, other}}
 
   defp normalize_channel_modes(entries) do
     Enum.reduce_while(entries, {:ok, %{}}, fn {channel, mode}, {:ok, acc} ->

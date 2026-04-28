@@ -1,6 +1,8 @@
 defmodule Chimeway.PersistenceTransactionTest do
   use Chimeway.DataCase, async: false
 
+  import Ecto.Query, only: [from: 2]
+
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
@@ -35,7 +37,21 @@ defmodule Chimeway.PersistenceTransactionTest do
                idempotency_key: "rollback-case-1"
              )
 
-    assert Repo.aggregate(Event, :count, :id) == 0
-    assert Repo.aggregate(Notification, :count, :id) == 0
+    assert Repo.aggregate(
+             from(e in Event, where: e.idempotency_key == "rollback-case-1"),
+             :count,
+             :id
+           ) ==
+             0
+
+    assert Repo.aggregate(
+             from(n in Notification,
+               join: e in Event,
+               on: n.event_id == e.id,
+               where: e.idempotency_key == "rollback-case-1"
+             ),
+             :count,
+             :id
+           ) == 0
   end
 end

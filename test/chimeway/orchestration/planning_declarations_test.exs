@@ -4,6 +4,7 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
   alias Chimeway.{Delivery, DeliveryPlanning, Repo}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+  import Ecto.Query, only: [from: 2]
 
   defmodule DigestEmailNotifier do
     use Chimeway.Notifier
@@ -58,7 +59,7 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
     assert delivery.planning_reason == "digest_rule"
     assert delivery.next_eligible_at == nil
     assert delivery.planning_context == %{"channel" => "email", "source" => "notifier"}
-    assert Repo.aggregate(Delivery, :count, :id) == 1
+    assert delivery_count_for(notification.id) == 1
   end
 
   test "repeated planning preserves one row per notification/channel and keeps digest state" do
@@ -79,7 +80,7 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
     assert first.id == second.id
     assert second.orchestration_state == :digest_held
     assert second.planning_reason == "digest_rule"
-    assert Repo.aggregate(Delivery, :count, :id) == 1
+    assert delivery_count_for(notification.id) == 1
   end
 
   test "notifiers without orchestration declarations default to ready planning" do
@@ -119,5 +120,9 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
       |> Repo.insert()
 
     notification
+  end
+
+  defp delivery_count_for(notification_id) do
+    Repo.aggregate(from(d in Delivery, where: d.notification_id == ^notification_id), :count, :id)
   end
 end

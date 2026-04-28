@@ -3,8 +3,8 @@ defmodule Chimeway.Orchestration.WindowMathTest do
 
   alias Chimeway.Orchestration.WindowMath
 
-  test "the runtime is configured with a non-UTC time zone database" do
-    assert Calendar.get_time_zone_database() == Tzdata.TimeZoneDatabase
+  test "chimeway is configured with a non-UTC time zone database" do
+    assert Application.fetch_env!(:chimeway, :time_zone_database) == Tzdata.TimeZoneDatabase
   end
 
   describe "next_eligible_at/2" do
