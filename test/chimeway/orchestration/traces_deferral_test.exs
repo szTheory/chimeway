@@ -63,8 +63,10 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
     assert explanation.planning_context["time_zone"] == "America/New_York"
     assert DateTime.compare(explanation.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
     assert Map.get(explanation, :resume_source) == "scheduled_resume"
-    assert Map.get(explanation, :resume_scheduled_at) == ~U[2026-01-15 13:00:00Z]
-    assert Map.get(explanation, :resumed_at) == ~U[2026-01-15 13:05:00Z]
+    assert DateTime.compare(Map.get(explanation, :resume_scheduled_at), ~U[2026-01-15 13:00:00Z]) ==
+             :eq
+
+    assert DateTime.compare(Map.get(explanation, :resumed_at), ~U[2026-01-15 13:05:00Z]) == :eq
 
     assert Enum.map(explanation.timeline, & &1.event) == [
              :event_created,
@@ -79,9 +81,9 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
 
     [%{at: resumed_at, detail: resumed_detail}] = resumed_entries
 
-    assert resumed_at == ~U[2026-01-15 13:05:00Z]
+    assert DateTime.compare(resumed_at, ~U[2026-01-15 13:05:00Z]) == :eq
     assert resumed_detail.resume_source == "scheduled_resume"
-    assert resumed_detail.resume_scheduled_at == ~U[2026-01-15 13:00:00Z]
+    assert DateTime.compare(resumed_detail.resume_scheduled_at, ~U[2026-01-15 13:00:00Z]) == :eq
   end
 
   defp insert_deferred_delivery do

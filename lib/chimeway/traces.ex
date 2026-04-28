@@ -126,6 +126,7 @@ defmodule Chimeway.Traces do
       %Delivery{notification: notification, attempts: attempts} ->
         event = notification.event
         last_attempt = last_attempt_summary(attempts)
+        resume_fields = explanation_resume_fields(delivery)
         timeline = build_timeline(event, notification, delivery, attempts)
 
         explanation = %Explanation{
@@ -139,6 +140,9 @@ defmodule Chimeway.Traces do
           planning_reason: delivery.planning_reason,
           planning_context: explanation_planning_context(delivery),
           next_eligible_at: delivery.next_eligible_at,
+          resume_source: resume_fields.resume_source,
+          resume_scheduled_at: resume_fields.resume_scheduled_at,
+          resumed_at: resume_fields.resumed_at,
           suppression_reason: delivery.suppression_reason,
           last_attempt: last_attempt,
           timeline: timeline
@@ -180,6 +184,7 @@ defmodule Chimeway.Traces do
 
   defp build_timeline(event, notification, delivery, attempts) do
     planning_context = explanation_planning_context(delivery)
+    resume_fields = explanation_resume_fields(delivery)
 
     base = [
       %{
@@ -196,10 +201,10 @@ defmodule Chimeway.Traces do
     ]
 
     deferred_entries =
-      if delivery.orchestration_state == :deferred and delivery.planning_reason do
+      if deferred_timeline?(delivery) do
         [
           %{
-            at: delivery.updated_at,
+            at: deferred_at(delivery),
             event: :deferred,
             detail: %{
               reason: delivery.planning_reason,
@@ -207,6 +212,22 @@ defmodule Chimeway.Traces do
               rule_identity: planning_context && planning_context["rule_identity"],
               next_eligible_at: delivery.next_eligible_at,
               planning_context: planning_context
+            }
+          }
+        ]
+      else
+        []
+      end
+
+    resumed_entries =
+      if resume_fields.resumed_at do
+        [
+          %{
+            at: resume_fields.resumed_at,
+            event: :resumed,
+            detail: %{
+              resume_source: resume_fields.resume_source,
+              resume_scheduled_at: resume_fields.resume_scheduled_at
             }
           }
         ]
@@ -264,9 +285,71 @@ defmodule Chimeway.Traces do
         }
       end)
 
-    (base ++ deferred_entries ++ suppression_entries ++ cancellation_entries ++ attempt_entries)
-    |> Enum.sort_by(& &1.at, DateTime)
+    (base ++ deferred_entries ++ resumed_entries ++ suppression_entries ++ cancellation_entries ++
+       attempt_entries)
+    |> Enum.sort_by(&timeline_sort_key/1)
   end
+
+  defp explanation_resume_fields(%Delivery{} = delivery) do
+    metadata = delivery.metadata || %{}
+
+    %{
+      resume_source: metadata_string(metadata, "resume_source"),
+      resume_scheduled_at: metadata_datetime(metadata, "resume_scheduled_at"),
+      resumed_at: metadata_datetime(metadata, "resumed_at")
+    }
+  end
+
+  defp deferred_timeline?(%Delivery{planning_reason: planning_reason, next_eligible_at: next_eligible_at})
+       when is_binary(planning_reason) and not is_nil(next_eligible_at),
+       do: true
+
+  defp deferred_timeline?(_delivery), do: false
+
+  defp deferred_at(%Delivery{} = delivery) do
+    metadata_datetime(delivery.metadata || %{}, "resume_cancelled_at") || delivery.updated_at
+  end
+
+  defp metadata_string(metadata, key) when is_map(metadata) do
+    case Map.get(metadata, key) do
+      value when is_binary(value) and byte_size(value) > 0 -> value
+      _ -> nil
+    end
+  end
+
+  defp metadata_datetime(metadata, key) when is_map(metadata) do
+    case Map.get(metadata, key) do
+      value when is_binary(value) ->
+        parse_metadata_datetime(value)
+
+      %DateTime{} = value ->
+        value
+
+      _ ->
+        nil
+    end
+  end
+
+  defp parse_metadata_datetime(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, datetime, 0} -> datetime
+      _ -> nil
+    end
+  end
+
+  defp timeline_sort_key(%{event: event, at: at}) do
+    {timeline_rank(event), at}
+  end
+
+  defp timeline_rank(:event_created), do: 0
+  defp timeline_rank(:notification_created), do: 1
+  defp timeline_rank(:delivery_planned), do: 2
+  defp timeline_rank(:deferred), do: 3
+  defp timeline_rank(:resumed), do: 4
+  defp timeline_rank(:suppressed), do: 5
+  defp timeline_rank(:cancelled), do: 6
+  defp timeline_rank(:attempt_recorded), do: 7
+  defp timeline_rank(_event), do: 99
 
   defp explanation_planning_context(%Delivery{} = delivery) do
     delivery

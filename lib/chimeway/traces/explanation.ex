@@ -18,6 +18,9 @@ defmodule Chimeway.Traces.Explanation do
   - `planning_reason` — orchestration/planning reason when the delivery is intentionally held, else nil
   - `planning_context` — sanitized persisted planning facts for explainability, else nil
   - `next_eligible_at` — UTC timestamp for the next dispatchable moment when deferred, else nil
+  - `resume_source` — sanitized scheduler/source label when a deferred row later resumes, else nil
+  - `resume_scheduled_at` — original UTC time the deferred row was scheduled to resume, else nil
+  - `resumed_at` — UTC timestamp when the canonical delivery row left deferred state, else nil
   - `suppression_reason` — reason atom string when status is `:suppressed` OR `:cancelled`,
     else nil. The four documented reason strings are:
       * `"channel_disabled"` — set when status is `:suppressed` (policy preference blocked the channel)
@@ -41,6 +44,9 @@ defmodule Chimeway.Traces.Explanation do
           planning_reason: String.t() | nil,
           planning_context: map() | nil,
           next_eligible_at: DateTime.t() | nil,
+          resume_source: String.t() | nil,
+          resume_scheduled_at: DateTime.t() | nil,
+          resumed_at: DateTime.t() | nil,
           suppression_reason: String.t() | nil,
           last_attempt:
             %{
@@ -64,6 +70,9 @@ defmodule Chimeway.Traces.Explanation do
     :planning_reason,
     :planning_context,
     :next_eligible_at,
+    :resume_source,
+    :resume_scheduled_at,
+    :resumed_at,
     :suppression_reason,
     :last_attempt,
     :timeline
