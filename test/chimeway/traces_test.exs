@@ -588,6 +588,110 @@ defmodule Chimeway.TracesTest do
     end
   end
 
+  describe "Phase 22 recovery explainability and outcome analytics" do
+    test "explain_delivery surfaces durable recovery facts after a delivery is claimed for recovery" do
+      ctx = create_pending_delivery_for_traces()
+      recovered_at = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+      assert {:ok, recovered} =
+               Deliveries.begin_recovery(ctx.delivery,
+                 now: recovered_at,
+                 older_than: 0,
+                 source: "ops_console",
+                 reason: "worker_missed"
+               )
+
+      assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(recovered.id)
+
+      recovered_entries = Enum.filter(explanation.timeline, &(&1.event == :recovered))
+      assert length(recovered_entries) == 1
+
+      [%{at: timeline_recovered_at, detail: recovery_detail}] = recovered_entries
+
+      assert DateTime.compare(timeline_recovered_at, recovered_at) == :eq
+      assert recovery_detail.recovery_source == "ops_console"
+      assert recovery_detail.recovery_reason == "worker_missed"
+      assert DateTime.compare(recovery_detail.recovered_at, recovered_at) == :eq
+      refute Map.has_key?(recovery_detail, :payload)
+      refute Map.has_key?(recovery_detail, :provider_response)
+    end
+
+    test "aggregate_outcomes groups counts by notification_key, channel, and lifecycle bucket" do
+      _base = create_outcome_fixture("ops.analytics", "email")
+
+      assert outcome_rows(notification_key: "ops.analytics", channel: "email") == [
+               %{
+                 notification_key: "ops.analytics",
+                 channel: "email",
+                 outcome: "delayed",
+                 count: 1
+               },
+               %{
+                 notification_key: "ops.analytics",
+                 channel: "email",
+                 outcome: "digested",
+                 count: 1
+               },
+               %{
+                 notification_key: "ops.analytics",
+                 channel: "email",
+                 outcome: "exhausted",
+                 count: 1
+               },
+               %{notification_key: "ops.analytics", channel: "email", outcome: "failed", count: 1},
+               %{notification_key: "ops.analytics", channel: "email", outcome: "sent", count: 1},
+               %{
+                 notification_key: "ops.analytics",
+                 channel: "email",
+                 outcome: "suppressed",
+                 count: 1
+               }
+             ]
+    end
+
+    test "aggregate_outcomes keeps exhausted distinct from other cancelled outcomes" do
+      _base = create_outcome_fixture("ops.cancelled", "email")
+
+      exhausted =
+        Traces.aggregate_outcomes(notification_key: "ops.cancelled", channel: "email")
+        |> Enum.find(&(&1.outcome == "exhausted"))
+
+      assert exhausted.count == 1
+
+      refute Enum.any?(
+               Traces.aggregate_outcomes(notification_key: "ops.cancelled", channel: "email"),
+               &(&1.outcome == "cancelled")
+             )
+    end
+
+    test "aggregate_outcomes counts delayed only while rows remain pending and deferred" do
+      _base = create_outcome_fixture("ops.delayed", "email")
+
+      assert [
+               %{notification_key: "ops.delayed", channel: "email", outcome: "delayed", count: 1}
+             ] =
+               Traces.aggregate_outcomes(
+                 notification_key: "ops.delayed",
+                 channel: "email",
+                 outcomes: ["delayed"]
+               )
+    end
+
+    test "aggregate_outcomes returns payload-safe identifiers and counts only" do
+      _base = create_outcome_fixture("ops.safe-surface", "email")
+
+      rows = Traces.aggregate_outcomes(notification_key: "ops.safe-surface", channel: "email")
+
+      assert Enum.all?(rows, fn row ->
+               Map.keys(row) == [:channel, :count, :notification_key, :outcome]
+             end)
+
+      refute inspect(rows) =~ "provider_response"
+      refute inspect(rows) =~ "secret"
+      refute inspect(rows) =~ "payload"
+    end
+  end
+
   defp create_pending_delivery_for_traces do
     {:ok, event} =
       Chimeway.Repo.insert(%Chimeway.Events.Event{
@@ -615,5 +719,149 @@ defmodule Chimeway.TracesTest do
       |> Chimeway.Repo.insert()
 
     %{event: event, notification: notification, delivery: delivery}
+  end
+
+  defp create_outcome_fixture(notification_key, channel) do
+    sent = insert_notification(insert_event(%{notification_key: notification_key}), "user:sent")
+
+    suppressed =
+      insert_notification(insert_event(%{notification_key: notification_key}), "user:suppressed")
+
+    delayed = insert_notification(insert_event(%{notification_key: notification_key}), "user:delayed")
+    resumed = insert_notification(insert_event(%{notification_key: notification_key}), "user:resumed")
+
+    digested =
+      insert_notification(insert_event(%{notification_key: notification_key}), "user:digested")
+
+    failed = insert_notification(insert_event(%{notification_key: notification_key}), "user:failed")
+
+    exhausted =
+      insert_notification(insert_event(%{notification_key: notification_key}), "user:exhausted")
+
+    cancelled =
+      insert_notification(insert_event(%{notification_key: notification_key}), "user:cancelled")
+
+    sent_delivery =
+      sent
+      |> plan_delivery(channel)
+      |> succeed_delivery()
+
+    _suppressed_delivery =
+      suppressed
+      |> plan_delivery(channel)
+      |> suppress_delivery(:channel_disabled)
+
+    delayed_delivery =
+      delayed
+      |> plan_delivery(channel)
+      |> defer_delivery()
+
+    resumed
+    |> plan_delivery(channel)
+    |> defer_delivery()
+    |> resume_delivery()
+    |> succeed_delivery()
+
+    digested_delivery =
+      digested
+      |> plan_delivery(channel)
+      |> digest_delivery()
+
+    failed_delivery =
+      failed
+      |> plan_delivery(channel)
+      |> fail_delivery()
+
+    exhausted_delivery =
+      exhausted
+      |> plan_delivery(channel)
+      |> fail_delivery()
+      |> exhaust_delivery()
+
+    _other_cancelled_delivery =
+      cancelled
+      |> plan_delivery(channel)
+      |> cancel_delivery("manual")
+
+    %{
+      notification_key: notification_key,
+      channel: channel,
+      sent_delivery: sent_delivery,
+      delayed_delivery: delayed_delivery,
+      digested_delivery: digested_delivery,
+      failed_delivery: failed_delivery,
+      exhausted_delivery: exhausted_delivery
+    }
+  end
+
+  defp defer_delivery(delivery) do
+    {:ok, updated} =
+      Deliveries.apply_planning_decision(delivery, %{
+        orchestration_state: :deferred,
+        planning_reason: "quiet_hours",
+        planning_context: %{
+          "rule_identity" => "quiet_hours",
+          "time_zone" => "America/New_York",
+          "payload" => %{"secret" => "ignored"}
+        },
+        next_eligible_at: ~U[2026-01-15 13:00:00.000000Z]
+      })
+
+    updated
+  end
+
+  defp resume_delivery(delivery) do
+    {:ok, resumed} =
+      Deliveries.resume_deferred_delivery(delivery.id,
+        now: ~U[2026-01-15 13:05:00.000000Z],
+        source: "scheduled_resume"
+      )
+
+    resumed
+  end
+
+  defp digest_delivery(delivery) do
+    {:ok, held} =
+      Deliveries.apply_planning_decision(delivery, %{
+        orchestration_state: :digest_held,
+        planning_reason: "digest_rule",
+        planning_context: %{"rule_identity" => "digest_rule", "channel" => delivery.channel}
+      })
+
+    digest_delivery_id =
+      held.channel
+      |> insert_digest_delivery()
+      |> Map.fetch!(:id)
+
+    {:ok, digested} =
+      Deliveries.mark_digested(held, digest_delivery_id, "digest_window_closed")
+
+    digested
+  end
+
+  defp exhaust_delivery(delivery) do
+    {:ok, exhausted} = Deliveries.exhaust_delivery(delivery)
+    exhausted
+  end
+
+  defp cancel_delivery(delivery, reason) do
+    {:ok, cancelled} =
+      delivery
+      |> Ecto.Changeset.change(%{status: :cancelled, suppression_reason: reason})
+      |> Repo.update()
+
+    cancelled
+  end
+
+  defp insert_digest_delivery(channel) do
+    digest_event = insert_event(%{notification_key: "ops.digest.summary"})
+    digest_notification = insert_notification(digest_event, "user:digest-summary")
+    plan_delivery(digest_notification, channel)
+  end
+
+  defp outcome_rows(opts) do
+    opts
+    |> Traces.aggregate_outcomes()
+    |> Enum.sort_by(&{&1.notification_key, &1.channel, &1.outcome})
   end
 end
