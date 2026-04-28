@@ -8,49 +8,15 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.
 
-## Current Milestone: v1.1 Production Trust
-
-**Goal:** Make Chimeway trustworthy enough for real production use by tightening policy behavior, delivery reliability, observability, and integration seams.
-
-**Target features:**
-- Explicit policy and preference controls that suppress before enqueue and before perform.
-- Durable reliability and final-state tracking across retries, duplicates, and failures.
-- End-to-end observability and support surfaces with safe redaction.
-- Documented, contract-tested integration seams for host apps and adapters.
-
-## Requirements
-
-### Validated
-
-- [x] Developers can trigger one domain event that fans out to many recipients with durable event and notification records. *(Validated in Phase 01: durable-core-spine)*
-- [x] Chimeway enforces idempotency across event creation and notification planning to prevent duplicate records. *(Validated in Phase 01: durable-core-spine)*
-- [x] Users get durable in-app notification records with explicit `seen`, `read`, and archival semantics. *(Validated in Phase 01: durable-core-spine)*
-- [x] The project ships with strict OSS engineering discipline (`mix verify.*`, CI lane hygiene, docs contracts, release checks). *(Validated in Phase 05: oss-verification-and-release-hardening)*
-- [x] Applications have explicit policy evaluation before enqueue and before perform for late suppression (preferences, quiet hours, caps, consent). *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
-- [x] Developers can trigger one domain event that fans out to many recipients and channels with durable event, notification, delivery, and attempt records. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
-- [x] Chimeway enforces idempotency across event creation and delivery planning to prevent duplicate sends. *(Validated in Phase 06: delivery-planning-and-policy-checkpoint-repair)*
-- [x] Operators can inspect an end-to-end trace and answer "why wasn't this sent?" from first-class data. *(Validated in Phase 08: trigger-dispatch-outcome-surfacing)*
-- [x] System emits structured telemetry for core lifecycle events without leaking sensitive payload fields by default. *(Validated in Phase 10: telemetry-correlation-enrichment)*
-- [x] Dispatch supports a sync-first path and a documented upgrade seam to optional Oban-backed background jobs. *(Validated in Phase 12: oban-transactional-dispatch-consistency)*
-- [x] Delayed fallback suppression can prevent outbound sends when in-app state shows the notification was already read, with parity across sync and Oban paths. *(Validated in Phase 07: delayed-fallback-runtime-wiring)*
-- [x] Channel adapter resolution is hardened against atom table exhaustion from runtime channel strings. *(Validated in Phase 11: channel-adapter-safety-and-explainability-hardening)*
-- [x] Policy and preference controls are explicit and explainable. *(Validated in Phase 13: policy-preference-maturity)*
-- [x] Delivery retries, duplicates, and failures resolve to durable final states. *(Validated in Phase 14: delivery-reliability-hardening)*
-- [x] Operators can trace and inspect lifecycle outcomes without leaking sensitive payloads. *(Validated in Phase 15: observability-and-supportability)*
-- [x] Host apps get a documented, contract-tested integration path. *(Validated in Phase 16: integration-hardening)*
-
-### Active
-
-*(None)*
-
 ## Current State
 
-Milestone v1.1 Production Trust complete. All phases (06-16) finished. Delivery reliability, explicit policies, observability surfaces, and host app integration paths are hardened for production use.
+Chimeway has shipped `v1.1 Production Trust` as of 2026-04-27. The project now has explicit policy controls, durable delivery final-state handling, safe correlated observability, and documented integration seams that are strong enough for production adoption.
 
-## Milestone Notes
+## Next Milestone Goals
 
+- Define the next milestone before opening new phase work.
+- Re-prioritize deferred v2 themes: digests, delivery windows, analytics, workflow journeys, and richer content templating.
 - Keep durable identity, explainability, and adapter seams as non-negotiable baseline constraints.
-- Triage the orphaned helper and incomplete Nyquist validation coverage as carry-forward tech debt.
 
 ### Out of Scope
 
@@ -71,6 +37,7 @@ Prior context includes:
 - Operator IA intent centered on timeline tracing, redaction, and support-friendly debugging.
 - Host-app integration seam guidance for auth, tenancy, URL generation, and correlation IDs.
 - The shipped v1.0 milestone established the durable spine, policy checkpoints, telemetry correlation, safe adapter resolution, and transactional Oban dispatch as the baseline to build from.
+- The shipped v1.1 milestone established production-trust behavior across preferences, reliability, observability, and integration documentation.
 
 ## Constraints
 
@@ -96,6 +63,36 @@ Prior context includes:
 | Enforce OSS release hygiene as executable contracts | Maintainers need deterministic, repeatable release confidence | Implemented in Phase 05 docs/test/release hardening |
 | Transactional Oban Dispatch | Prevent orphaned pending deliveries on transaction failure | Implemented in Phase 12 |
 | String-safe adapter lookup | Prevent atom table exhaustion from runtime channel strings | Implemented in Phase 11 |
+| Persisted policy controls | Keep suppression explicit, explainable, and durable across planning and perform gates | Implemented in Phase 13 |
+| Durable attempt history and convergence | Make retries and final outcomes inspectable under concurrency and failure | Implemented in Phase 14 |
+| Tenancy-aware trace queries | Preserve host ownership boundaries in observability surfaces | Implemented in Phase 15 |
+| Integration docs as product surface | Lower host-app adoption risk with explicit setup and adapter guidance | Implemented in Phase 16 |
+
+## Archived Milestone Context
+
+<details>
+<summary>v1.1 Production Trust planning context</summary>
+
+### Milestone Scope
+
+Make Chimeway trustworthy enough for real production use by tightening policy behavior, delivery reliability, observability, and integration seams.
+
+### Delivered Features
+
+- Explicit policy and preference controls that suppress before enqueue and before perform.
+- Durable reliability and final-state tracking across retries, duplicates, and failures.
+- End-to-end observability and support surfaces with safe redaction.
+- Documented, contract-tested integration seams for host apps and adapters.
+
+### Validated Requirements Snapshot
+
+- Durable event, notification, delivery, and attempt records exist across trigger fanout flows.
+- Idempotency is enforced across event creation and delivery planning.
+- Operators can inspect lifecycle traces and answer "why wasn't this sent?" safely.
+- Sync-first dispatch and Oban upgrade seams are both supported.
+- Policy, preference, reliability, observability, and integration goals were validated in phases 13-16.
+
+</details>
 
 ## Evolution
 
@@ -115,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-25 after v1.1 milestone start*
+*Last updated: 2026-04-28 after v1.1 milestone completion*

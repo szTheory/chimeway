@@ -14,4 +14,5 @@
 - Date: 2026-04-27
 - Phases: 13-16
 - Requirements: 11/11 satisfied
+- Git range: `v1.0..v1.1`
 - Notes: Completed reliability hardening, explicit policy controls, observability surfaces, and integration paths.
