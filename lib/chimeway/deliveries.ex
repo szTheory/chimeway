@@ -97,7 +97,10 @@ defmodule Chimeway.Deliveries do
   defp normalize_orchestration_state(state), do: {:error, {:invalid_orchestration_state, state}}
 
   defp normalize_optional_string(nil), do: {:ok, nil}
-  defp normalize_optional_string(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
+
+  defp normalize_optional_string(value) when is_binary(value) and byte_size(value) > 0,
+    do: {:ok, value}
+
   defp normalize_optional_string(value), do: {:error, {:invalid_planning_reason, value}}
 
   defp normalize_optional_map(nil), do: {:ok, nil}
@@ -105,6 +108,7 @@ defmodule Chimeway.Deliveries do
   defp normalize_optional_map(value), do: {:error, {:invalid_planning_context, value}}
 
   defp normalize_optional_datetime(nil), do: {:ok, nil}
+
   defp normalize_optional_datetime(%DateTime{} = value) do
     {:ok, %{value | microsecond: normalize_microsecond(value.microsecond)}}
   end
@@ -186,10 +190,12 @@ defmodule Chimeway.Deliveries do
   """
   @spec apply_planning_decision(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
   def apply_planning_decision(%Delivery{} = delivery, decision) when is_map(decision) do
-    with {:ok, state} <- normalize_orchestration_state(Map.get(decision, :orchestration_state, :ready)),
+    with {:ok, state} <-
+           normalize_orchestration_state(Map.get(decision, :orchestration_state, :ready)),
          {:ok, planning_reason} <- normalize_optional_string(Map.get(decision, :planning_reason)),
          {:ok, planning_context} <- normalize_optional_map(Map.get(decision, :planning_context)),
-         {:ok, next_eligible_at} <- normalize_optional_datetime(Map.get(decision, :next_eligible_at)) do
+         {:ok, next_eligible_at} <-
+           normalize_optional_datetime(Map.get(decision, :next_eligible_at)) do
       delivery
       |> change(%{
         orchestration_state: state,
@@ -203,6 +209,120 @@ defmodule Chimeway.Deliveries do
 
   def apply_planning_decision(%Delivery{} = _delivery, decision),
     do: {:error, {:invalid_planning_decision, decision}}
+
+  @doc """
+  Lists deferred delivery rows that are still pending and due for resume.
+  """
+  @spec list_due_deferred_deliveries(keyword()) :: [Delivery.t()]
+  def list_due_deferred_deliveries(opts \\ []) when is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    Repo.all(
+      from(d in Delivery,
+        where:
+          d.status == :pending and d.orchestration_state == :deferred and
+            not is_nil(d.next_eligible_at) and d.next_eligible_at <= ^now,
+        order_by: [asc: d.next_eligible_at, asc: d.inserted_at]
+      )
+    )
+  end
+
+  @doc """
+  Promotes a due deferred delivery row back to `:ready` without changing delivery identity.
+  Returns `{:noop, delivery}` when the row is no longer pending, deferred, and due.
+  """
+  @spec resume_deferred_delivery(binary() | Delivery.t(), keyword()) ::
+          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+  def resume_deferred_delivery(delivery_or_id, opts \\ [])
+
+  def resume_deferred_delivery(%Delivery{id: delivery_id}, opts) when is_list(opts) do
+    resume_deferred_delivery(delivery_id, opts)
+  end
+
+  def resume_deferred_delivery(delivery_id, opts) when is_binary(delivery_id) and is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    source = normalize_resume_source!(Keyword.get(opts, :source, "scheduled_resume"))
+
+    delivery = get_delivery!(delivery_id)
+
+    metadata =
+      delivery.metadata
+      |> ensure_metadata_map()
+      |> Map.put("resume_source", source)
+      |> Map.put("resume_scheduled_at", iso8601_utc_usec(delivery.next_eligible_at))
+      |> Map.put("resumed_at", iso8601_utc_usec(now))
+
+    {updated_count, _rows} =
+      Repo.update_all(
+        from(d in Delivery,
+          where:
+            d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred and
+              not is_nil(d.next_eligible_at) and d.next_eligible_at <= ^now
+        ),
+        set: [orchestration_state: :ready, metadata: metadata]
+      )
+
+    updated_delivery = get_delivery!(delivery_id)
+
+    if updated_count == 1 do
+      {:ok, updated_delivery}
+    else
+      {:noop, updated_delivery}
+    end
+  end
+
+  @doc """
+  Cancels a deferred delivery row in place, preserving the same delivery identity.
+  Returns `{:noop, delivery}` when the row is no longer a pending deferred delivery.
+  """
+  @spec cancel_deferred_delivery(binary() | Delivery.t(), String.t(), keyword()) ::
+          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+  def cancel_deferred_delivery(delivery_or_id, reason, opts \\ [])
+
+  def cancel_deferred_delivery(%Delivery{id: delivery_id}, reason, opts)
+      when is_binary(reason) and is_list(opts) do
+    cancel_deferred_delivery(delivery_id, reason, opts)
+  end
+
+  def cancel_deferred_delivery(delivery_id, reason, opts)
+      when is_binary(delivery_id) and is_binary(reason) and is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    reason = normalize_suppression_reason!(reason)
+    delivery = get_delivery!(delivery_id)
+
+    metadata =
+      delivery.metadata
+      |> ensure_metadata_map()
+      |> Map.put("resume_cancelled_at", iso8601_utc_usec(now))
+
+    {updated_count, _rows} =
+      Repo.update_all(
+        from(d in Delivery,
+          where:
+            d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred
+        ),
+        set: [status: :cancelled, suppression_reason: reason, metadata: metadata]
+      )
+
+    updated_delivery = get_delivery!(delivery_id)
+
+    if updated_count == 1 do
+      {:ok, updated_delivery}
+    else
+      {:noop, updated_delivery}
+    end
+  end
 
   @doc """
   Transitions a `:failed` delivery to `:cancelled` with `suppression_reason: "retries_exhausted"`.
@@ -237,6 +357,35 @@ defmodule Chimeway.Deliveries do
 
   def exhaust_delivery(%Delivery{status: status}),
     do: {:error, {:invalid_exhaust_from, status}}
+
+  defp normalize_datetime!(%DateTime{} = value) do
+    %{value | microsecond: normalize_microsecond(value.microsecond)}
+  end
+
+  defp normalize_datetime!(value),
+    do: raise(ArgumentError, "expected DateTime, got: #{inspect(value)}")
+
+  defp normalize_resume_source!(value) when is_atom(value), do: Atom.to_string(value)
+  defp normalize_resume_source!(value) when is_binary(value) and byte_size(value) > 0, do: value
+
+  defp normalize_resume_source!(value),
+    do: raise(ArgumentError, "expected non-empty resume source, got: #{inspect(value)}")
+
+  defp normalize_suppression_reason!(value) when is_binary(value) and byte_size(value) > 0,
+    do: value
+
+  defp normalize_suppression_reason!(value),
+    do: raise(ArgumentError, "expected non-empty suppression reason, got: #{inspect(value)}")
+
+  defp iso8601_utc_usec(nil), do: nil
+
+  defp iso8601_utc_usec(%DateTime{} = value) do
+    value
+    |> DateTime.truncate(:microsecond)
+    |> DateTime.to_naive()
+    |> NaiveDateTime.to_iso8601()
+    |> Kernel.<>("Z")
+  end
 
   @doc """
   Atomically inserts an attempt row and transitions the delivery status.

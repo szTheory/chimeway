@@ -1,6 +1,8 @@
 defmodule Chimeway.Orchestration.DeferredResumeTest do
   use Chimeway.DataCase, async: false
 
+  import Ecto.Query
+
   alias Chimeway.{Deliveries, Delivery, Repo}
   alias Chimeway.Test.DispatchHelpers
 
@@ -42,7 +44,11 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
       assert already_resumed.id == delivery.id
       assert already_resumed.orchestration_state == :ready
 
-      assert Repo.aggregate(Delivery, :count, :id) == 1
+      assert Repo.aggregate(
+               from(d in Delivery, where: d.notification_id == ^delivery.notification_id),
+               :count,
+               :id
+             ) == 1
     end
 
     test "only due pending deferred rows are listed and resumable" do
