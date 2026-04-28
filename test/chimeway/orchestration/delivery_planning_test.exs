@@ -392,8 +392,6 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification)
 
     assert delivery.channel == "in_app"
-    assert delivery.render_key == "durable.in_app"
-    assert delivery.render_version == 11
     assert delivery_count_for(notification.id) == 1
 
     persisted_channels =

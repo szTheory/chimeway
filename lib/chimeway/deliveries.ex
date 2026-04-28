@@ -160,6 +160,7 @@ defmodule Chimeway.Deliveries do
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
     dispatcher = configured_dispatcher()
+    older_than = Keyword.get(opts, :older_than, 60)
 
     case begin_recovery(delivery_id, Keyword.put(opts, :now, now)) do
       {:ok, _claimed_delivery} ->
@@ -171,6 +172,7 @@ defmodule Chimeway.Deliveries do
             {:noop, recovery_delivery_result(skipped_delivery, source, reason, now, :skipped)}
 
           {:error, reason_term} ->
+            compensate_failed_recovery_claim(delivery_id, now, older_than)
             {:error, reason_term}
         end
 
@@ -216,7 +218,8 @@ defmodule Chimeway.Deliveries do
         event_id: event.id,
         notification_key: event.notification_key,
         correlation_id: event.correlation_id,
-        post_commit: true
+        post_commit: true,
+        use_persisted_channels: true
       ]
 
       case dispatcher.dispatch(notifications, dispatch_opts) do
@@ -756,6 +759,31 @@ defmodule Chimeway.Deliveries do
       reason: reason,
       recovered_at: recovered_at
     }
+  end
+
+  defp compensate_failed_recovery_claim(delivery_id, now, older_than) do
+    recoverable_updated_at = recoverable_cutoff!(now, older_than)
+
+    Repo.update_all(
+      from(d in Delivery,
+        where:
+          d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :ready and
+            not fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+        update: [
+          set: [
+            metadata:
+              fragment(
+                "(COALESCE(?, '{}'::jsonb) - 'recovery_source' - 'recovery_reason' - 'recovered_at')",
+                d.metadata
+              ),
+            updated_at: ^recoverable_updated_at
+          ]
+        ]
+      ),
+      []
+    )
+
+    get_delivery!(delivery_id)
   end
 
   defp dispatched_deliveries(deliveries_or_results) do

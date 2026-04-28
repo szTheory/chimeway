@@ -117,7 +117,15 @@ defmodule Chimeway.DeliveryPlanning do
     if notifier && function_exported?(notifier, :channels, 2) do
       handle_notifier_channels(notifier.channels(trigger_params, recipient))
     else
+      resolve_fallback_channels(notification, opts)
+    end
+  end
+
+  defp resolve_fallback_channels(notification, opts) do
+    if Keyword.get(opts, :use_persisted_channels, false) == true do
       resolve_persisted_channels(notification)
+    else
+      {:ok, ["in_app"]}
     end
   end
 
@@ -340,6 +348,18 @@ defmodule Chimeway.DeliveryPlanning do
   end
 
   defp resolve_render_result(notification, channel, _trigger_params, opts) do
+    if use_persisted_rendering?(opts) do
+      resolve_persisted_render_result(notification, channel, opts)
+    else
+      {:ok, %{}}
+    end
+  end
+
+  defp use_persisted_rendering?(opts) do
+    Keyword.has_key?(opts, :notifier) or Keyword.get(opts, :use_persisted_channels, false) == true
+  end
+
+  defp resolve_persisted_render_result(notification, channel, opts) do
     render_channels = notification.render_channels || %{}
 
     case Map.fetch(render_channels, channel) do
