@@ -261,17 +261,15 @@ end
 | A2 | `delivery.updated_at` should not be the only durable resume timestamp because later lifecycle updates will overwrite it. | Architecture Patterns / Common Pitfalls | Traces could lose resume-time evidence if the planner treats `updated_at` as sufficient. |
 | A3 | The phase will likely need new targeted orchestration/reliability test files rather than only modifying existing tests. | Recommended Project Structure | Plan boundaries may be too wide or too narrow. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should resumed deliveries keep `next_eligible_at` populated as historical evidence, or should that field be cleared after promotion?**
-   - What we know: current traces read `planning_reason`, `planning_context`, and `next_eligible_at` directly from the delivery row. [VERIFIED: `lib/chimeway/traces.ex`] [VERIFIED: `lib/chimeway/traces/explanation.ex`]
-   - What's unclear: whether the project wants `next_eligible_at` to mean “current future gate” only or “historical deferred-until timestamp.” [ASSUMED]
-   - Recommendation: keep the original value unless the implementation also adds a separate durable historical field and updates the explanation contract accordingly. [ASSUMED]
+1. **`next_eligible_at` remains populated after resume as durable historical evidence.**
+   - Resolution: Phase 18 should preserve the original deferred-until timestamp on the canonical delivery row because current explanation surfaces already depend on `planning_reason`, `planning_context`, and `next_eligible_at`. [VERIFIED: `lib/chimeway/traces.ex`] [VERIFIED: `lib/chimeway/traces/explanation.ex`]
+   - Implementation consequence: resume logic must add separate durable audit fields such as `resume_scheduled_at` and `resumed_at` rather than clearing `next_eligible_at` and losing the original deferral fact. [VERIFIED: codebase grep] [ASSUMED]
 
-2. **Should digest-held rows remain entirely untouched in this phase?**
-   - What we know: ORCH-03 is about deferred resume, and Phase 19 owns digest accumulation. [VERIFIED: `.planning/REQUIREMENTS.md`] [VERIFIED: `.planning/ROADMAP.md`]
-   - What's unclear: whether the planner wants shared helper names that include digest-held checks or strictly deferred-only helpers. [ASSUMED]
-   - Recommendation: keep phase scope deferred-only and ensure digest-held rows continue to short-circuit exactly as they do today. [VERIFIED: `test/chimeway/orchestration/dispatch_gating_test.exs`] [ASSUMED]
+2. **Digest-held rows remain untouched in Phase 18.**
+   - Resolution: Phase 18 stays strictly deferred-only; digest-held rows continue to short-circuit exactly as they do today, and Phase 19 remains the first phase allowed to change digest accumulation or digest execution behavior. [VERIFIED: `.planning/REQUIREMENTS.md`] [VERIFIED: `.planning/ROADMAP.md`] [VERIFIED: `test/chimeway/orchestration/dispatch_gating_test.exs`]
+   - Implementation consequence: helper names and tests may defensively reject `:digest_held`, but no Phase 18 task should schedule, resume, or mutate digest-held rows beyond preserving their existing no-op execution behavior. [ASSUMED]
 
 ## Environment Availability
 
