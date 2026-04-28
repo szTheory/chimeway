@@ -59,6 +59,8 @@ defmodule Chimeway.Notifier do
   @type orchestration_resolution :: %{
           default: orchestration_mode(),
           channels: %{String.t() => orchestration_mode()},
+          default_digest_key: String.t() | nil,
+          digest_keys: %{String.t() => String.t()},
           source: :default | :notifier | :planner_override
         }
 
@@ -72,7 +74,14 @@ defmodule Chimeway.Notifier do
   end
 
   def resolve_orchestration(nil, _trigger_params, _recipient, _override) do
-    {:ok, %{default: :immediate, channels: %{}, source: :default}}
+    {:ok,
+     %{
+       default: :immediate,
+       channels: %{},
+       default_digest_key: nil,
+       digest_keys: %{},
+       source: :default
+     }}
   end
 
   def resolve_orchestration(notifier, trigger_params, recipient, _override)
@@ -82,7 +91,14 @@ defmodule Chimeway.Notifier do
       |> apply(:orchestration, [trigger_params, recipient])
       |> handle_orchestration_result(:notifier)
     else
-      {:ok, %{default: :immediate, channels: %{}, source: :default}}
+      {:ok,
+       %{
+         default: :immediate,
+         channels: %{},
+         default_digest_key: nil,
+         digest_keys: %{},
+         source: :default
+       }}
     end
   end
 
@@ -96,13 +112,37 @@ defmodule Chimeway.Notifier do
     do: {:error, {:orchestration_resolution_failed, {:unexpected_result, unexpected}}}
 
   defp normalize_orchestration(:immediate, source),
-    do: {:ok, %{default: :immediate, channels: %{}, source: source}}
+    do:
+      {:ok,
+       %{
+         default: :immediate,
+         channels: %{},
+         default_digest_key: nil,
+         digest_keys: %{},
+         source: source
+       }}
 
   defp normalize_orchestration(:digest, source),
-    do: {:ok, %{default: :digest_held, channels: %{}, source: source}}
+    do:
+      {:ok,
+       %{
+         default: :digest_held,
+         channels: %{},
+         default_digest_key: nil,
+         digest_keys: %{},
+         source: source
+       }}
 
   defp normalize_orchestration(:digest_held, source),
-    do: {:ok, %{default: :digest_held, channels: %{}, source: source}}
+    do:
+      {:ok,
+       %{
+         default: :digest_held,
+         channels: %{},
+         default_digest_key: nil,
+         digest_keys: %{},
+         source: source
+       }}
 
   defp normalize_orchestration(declaration, source) when is_list(declaration) do
     declaration
@@ -117,9 +157,16 @@ defmodule Chimeway.Notifier do
         result -> result
       end
 
-    with {:ok, normalized_default} <- normalize_mode(default),
-         {:ok, normalized_channels} <- normalize_channel_modes(channel_entries) do
-      {:ok, %{default: normalized_default, channels: normalized_channels, source: source}}
+    with {:ok, {normalized_default, default_digest_key}} <- normalize_mode(default),
+         {:ok, {normalized_channels, digest_keys}} <- normalize_channel_modes(channel_entries) do
+      {:ok,
+       %{
+         default: normalized_default,
+         channels: normalized_channels,
+         default_digest_key: default_digest_key,
+         digest_keys: digest_keys,
+         source: source
+       }}
     end
   end
 
@@ -127,14 +174,25 @@ defmodule Chimeway.Notifier do
     do: {:error, {:invalid_orchestration_declaration, other}}
 
   defp normalize_channel_modes(entries) do
-    Enum.reduce_while(entries, {:ok, %{}}, fn {channel, mode}, {:ok, acc} ->
+    Enum.reduce_while(entries, {:ok, {%{}, %{}}}, fn {channel, mode}, {:ok, acc} ->
       with {:ok, normalized_channel} <- normalize_channel(channel),
-           {:ok, normalized_mode} <- normalize_mode(mode) do
-        {:cont, {:ok, Map.put(acc, normalized_channel, normalized_mode)}}
+           {:ok, {normalized_mode, digest_key}} <- normalize_mode(mode) do
+        {channels, digest_keys} = acc
+
+        {:cont,
+         {:ok,
+          {Map.put(channels, normalized_channel, normalized_mode), digest_keys}
+          |> maybe_put_digest_key(normalized_channel, digest_key)}}
       else
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
+  end
+
+  defp maybe_put_digest_key({channels, digest_keys}, _channel, nil), do: {channels, digest_keys}
+
+  defp maybe_put_digest_key({channels, digest_keys}, channel, digest_key) do
+    {channels, Map.put(digest_keys, channel, digest_key)}
   end
 
   defp normalize_channel(channel) when is_atom(channel), do: {:ok, Atom.to_string(channel)}
@@ -151,11 +209,31 @@ defmodule Chimeway.Notifier do
 
   defp normalize_channel(channel), do: {:error, {:invalid_orchestration_channel, channel}}
 
-  defp normalize_mode(:immediate), do: {:ok, :immediate}
-  defp normalize_mode(:digest), do: {:ok, :digest_held}
-  defp normalize_mode(:digest_held), do: {:ok, :digest_held}
-  defp normalize_mode("immediate"), do: {:ok, :immediate}
-  defp normalize_mode("digest"), do: {:ok, :digest_held}
-  defp normalize_mode("digest_held"), do: {:ok, :digest_held}
+  defp normalize_mode({mode, opts}) when mode in [:digest, :digest_held] and is_list(opts) do
+    with {:ok, digest_key} <- normalize_digest_key(Keyword.get(opts, :digest_key)) do
+      {:ok, {:digest_held, digest_key}}
+    end
+  end
+
+  defp normalize_mode(:immediate), do: {:ok, {:immediate, nil}}
+  defp normalize_mode(:digest), do: {:ok, {:digest_held, nil}}
+  defp normalize_mode(:digest_held), do: {:ok, {:digest_held, nil}}
+  defp normalize_mode("immediate"), do: {:ok, {:immediate, nil}}
+  defp normalize_mode("digest"), do: {:ok, {:digest_held, nil}}
+  defp normalize_mode("digest_held"), do: {:ok, {:digest_held, nil}}
   defp normalize_mode(mode), do: {:error, {:invalid_orchestration_mode, mode}}
+
+  defp normalize_digest_key(nil), do: {:ok, nil}
+
+  defp normalize_digest_key(digest_key) when is_binary(digest_key) do
+    normalized_digest_key = String.trim(digest_key)
+
+    if normalized_digest_key == "" do
+      {:error, {:invalid_digest_key, digest_key}}
+    else
+      {:ok, normalized_digest_key}
+    end
+  end
+
+  defp normalize_digest_key(digest_key), do: {:error, {:invalid_digest_key, digest_key}}
 end

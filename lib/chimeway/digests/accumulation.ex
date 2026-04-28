@@ -9,6 +9,15 @@ defmodule Chimeway.Digests.Accumulation do
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
+  @type lookup_attrs :: %{
+          optional(:recipient_id) => String.t() | nil,
+          optional(:channel) => String.t() | nil,
+          optional(:notification_key) => String.t() | nil,
+          optional(:notification_version) => pos_integer() | nil,
+          optional(:category) => String.t() | nil,
+          optional(:digest_key) => String.t() | nil
+        }
+
   @bucket_conflict_target [
     :digest_rule_id,
     :recipient_id,
@@ -33,7 +42,12 @@ defmodule Chimeway.Digests.Accumulation do
            locked_delivery = lock_delivery!(delivery.id)
 
            if accumulatable?(locked_delivery) do
-             {:ok, do_accumulate(locked_delivery, accumulated_at)}
+             {:ok,
+              do_accumulate(
+                locked_delivery,
+                accumulated_at,
+                Keyword.get(opts, :lookup_attrs, %{})
+              )}
            else
              {:ok, :noop}
            end
@@ -43,14 +57,15 @@ defmodule Chimeway.Digests.Accumulation do
     end
   end
 
-  defp do_accumulate(%Delivery{} = delivery, accumulated_at) do
+  defp do_accumulate(%Delivery{} = delivery, accumulated_at, lookup_attrs) do
     %{notification: notification, event: event} = load_context!(delivery)
-    category = event_category(event)
-    digest_key = digest_key(delivery)
+    lookup = build_lookup_attrs(delivery, notification, event, lookup_attrs)
+    category = Map.get(lookup, :category)
+    digest_key = Map.get(lookup, :digest_key)
 
     case Digests.find_matching_rule(%{
-           channel: delivery.channel,
-           notification_key: event.notification_key,
+           channel: Map.get(lookup, :channel),
+           notification_key: Map.get(lookup, :notification_key),
            category: category,
            digest_key: digest_key
          }) do
@@ -64,8 +79,8 @@ defmodule Chimeway.Digests.Accumulation do
         bucket =
           upsert_bucket!(
             rule,
-            notification.recipient_identity,
-            delivery.channel,
+            Map.get(lookup, :recipient_id),
+            Map.get(lookup, :channel),
             grouping_value,
             window_starts_at,
             window_ends_at
@@ -101,6 +116,18 @@ defmodule Chimeway.Digests.Accumulation do
   end
 
   defp event_category(_event), do: nil
+
+  defp build_lookup_attrs(delivery, notification, event, lookup_attrs) do
+    %{
+      recipient_id: notification.recipient_identity,
+      channel: delivery.channel,
+      notification_key: event.notification_key,
+      notification_version: event.notification_version,
+      category: event_category(event),
+      digest_key: digest_key(delivery)
+    }
+    |> Map.merge(lookup_attrs)
+  end
 
   defp digest_key(%Delivery{planning_context: planning_context}) when is_map(planning_context) do
     case Map.get(planning_context, "digest_key") do

@@ -71,6 +71,13 @@ defmodule Chimeway.Policy do
     )
   end
 
+  @spec delivery_category(Delivery.t()) :: String.t() | nil
+  def delivery_category(%Delivery{} = delivery) do
+    notification = Repo.get!(Notification, delivery.notification_id)
+    event = Repo.get!(Event, notification.event_id)
+    delivery_category_from_event(event)
+  end
+
   # --- Private ---
 
   defp evaluate_delivery_policy(%Delivery{} = delivery, check_read_state, opts) do
@@ -179,12 +186,6 @@ defmodule Chimeway.Policy do
   end
 
   defp delivery_category_from_event(_event), do: nil
-
-  defp delivery_category(%Delivery{} = delivery) do
-    notification = Repo.get!(Notification, delivery.notification_id)
-    event = Repo.get!(Event, notification.event_id)
-    delivery_category_from_event(event)
-  end
 
   defp opts_with_checkpoint(check_read_state, opts) do
     checkpoint =

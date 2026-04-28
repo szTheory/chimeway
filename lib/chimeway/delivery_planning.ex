@@ -6,7 +6,9 @@ defmodule Chimeway.DeliveryPlanning do
   `Chimeway.Deliveries.plan_delivery/3` directly.
   """
 
-  alias Chimeway.{Deliveries, Delivery, Notifier, Policy}
+  alias Chimeway.{Deliveries, Delivery, Notifier, Policy, Repo}
+  alias Chimeway.Digests.Accumulation
+  alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
   @spec plan_notifications([Notification.t()], keyword()) ::
@@ -95,7 +97,10 @@ defmodule Chimeway.DeliveryPlanning do
          {:ok, orchestration} <-
            resolve_orchestration(opts, trigger_params, recipient),
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
-      evaluate_planning_policy(delivery, opts)
+      with {:ok, delivery} <- evaluate_planning_policy(delivery, opts),
+           {:ok, delivery} <- maybe_accumulate_digest_delivery(delivery) do
+        {:ok, delivery}
+      end
     end
   end
 
@@ -277,16 +282,20 @@ defmodule Chimeway.DeliveryPlanning do
   defp apply_declared_orchestration(delivery, channel, orchestration) do
     mode = Map.get(orchestration.channels, channel, orchestration.default)
 
+    digest_key =
+      Map.get(
+        orchestration.digest_keys,
+        channel,
+        Map.get(orchestration, :default_digest_key)
+      )
+
     decision =
       case mode do
         :digest_held ->
           %{
             orchestration_state: :digest_held,
             planning_reason: "digest_rule",
-            planning_context: %{
-              "channel" => channel,
-              "source" => Atom.to_string(Map.get(orchestration, :source, :default))
-            },
+            planning_context: digest_planning_context(channel, orchestration, digest_key),
             next_eligible_at: nil
           }
 
@@ -301,4 +310,69 @@ defmodule Chimeway.DeliveryPlanning do
 
     Deliveries.apply_planning_decision(delivery, decision)
   end
+
+  defp digest_planning_context(channel, orchestration, digest_key) do
+    %{
+      "channel" => channel,
+      "source" => Atom.to_string(Map.get(orchestration, :source, :default))
+    }
+    |> maybe_put_digest_key(digest_key)
+  end
+
+  defp maybe_put_digest_key(planning_context, nil), do: planning_context
+
+  defp maybe_put_digest_key(planning_context, digest_key),
+    do: Map.put(planning_context, "digest_key", digest_key)
+
+  defp maybe_accumulate_digest_delivery(%Delivery{} = delivery) do
+    if delivery.status == :pending and delivery.orchestration_state == :digest_held do
+      lookup_attrs = %{
+        recipient_id: notification_recipient_id(delivery),
+        channel: delivery.channel,
+        notification_key: delivery_notification_key(delivery),
+        notification_version: delivery_notification_version(delivery),
+        category: Policy.delivery_category(delivery),
+        digest_key: delivery_digest_key(delivery)
+      }
+
+      case Accumulation.accumulate_delivery(delivery, lookup_attrs: lookup_attrs) do
+        {:ok, _bucket_or_noop} -> {:ok, delivery}
+        {:error, reason} -> {:error, reason}
+      end
+    else
+      {:ok, delivery}
+    end
+  end
+
+  defp notification_recipient_id(%Delivery{} = delivery) do
+    Notification
+    |> Repo.get!(delivery.notification_id)
+    |> Map.fetch!(:recipient_identity)
+  end
+
+  defp delivery_notification_key(%Delivery{} = delivery) do
+    Notification
+    |> Repo.get!(delivery.notification_id)
+    |> Map.fetch!(:event_id)
+    |> then(&Repo.get!(Event, &1))
+    |> Map.fetch!(:notification_key)
+  end
+
+  defp delivery_notification_version(%Delivery{} = delivery) do
+    Notification
+    |> Repo.get!(delivery.notification_id)
+    |> Map.fetch!(:event_id)
+    |> then(&Repo.get!(Event, &1))
+    |> Map.fetch!(:notification_version)
+  end
+
+  defp delivery_digest_key(%Delivery{planning_context: planning_context})
+       when is_map(planning_context) do
+    case Map.get(planning_context, "digest_key") do
+      digest_key when is_binary(digest_key) and digest_key != "" -> digest_key
+      _ -> nil
+    end
+  end
+
+  defp delivery_digest_key(_delivery), do: nil
 end

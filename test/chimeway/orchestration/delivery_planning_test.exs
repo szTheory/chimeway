@@ -27,7 +27,8 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     def channels(_params, _recipient), do: {:ok, [:email]}
 
     @impl true
-    def orchestration(_params, _recipient), do: {:ok, [email: {:digest, [digest_key: "thread:123"]}]}
+    def orchestration(_params, _recipient),
+      do: {:ok, [email: {:digest, [digest_key: "thread:123"]}]}
   end
 
   defmodule ImmediateEmailNotifier do
