@@ -64,8 +64,8 @@ defmodule Chimeway.Rendering.ChannelContractTest do
       assert %Ecto.Changeset{} = changeset
 
       assert %{
-               html_body: [{"can't be blank", _}],
-               text_body: [{"can't be blank", _}]
+               html_body: ["can't be blank"],
+               text_body: ["can't be blank"]
              } = errors_on(changeset)
     end
   end

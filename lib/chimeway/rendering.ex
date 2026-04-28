@@ -3,6 +3,8 @@ defmodule Chimeway.Rendering do
   Normalizes notifier rendering declarations into one durable contract.
   """
 
+  alias Chimeway.Rendering.Channels.{Email, InApp}
+
   @type channel_rendering :: %{
           render_key: String.t(),
           render_version: pos_integer()
@@ -12,6 +14,13 @@ defmodule Chimeway.Rendering do
           assigns: map(),
           channels: %{String.t() => channel_rendering()},
           source: :notifier | :build_fallback
+        }
+
+  @type rendered_delivery :: %{
+          channel: String.t(),
+          render_key: String.t(),
+          render_version: pos_integer(),
+          render_data: map()
         }
 
   @spec resolve_declaration(module(), map(), map()) ::
@@ -40,6 +49,36 @@ defmodule Chimeway.Rendering do
 
   def normalize_declaration(other),
     do: {:error, {:rendering_resolution_failed, {:invalid_rendering_declaration, other}}}
+
+  @spec render_delivery(atom() | binary(), String.t(), pos_integer(), map()) ::
+          {:ok, rendered_delivery()} | {:error, term()}
+  def render_delivery(channel, render_key, render_version, attrs) do
+    with {:ok, normalized_channel} <- normalize_channel(channel),
+         {:ok, normalized_render_key} <- normalize_render_key(normalized_channel, render_key),
+         {:ok, normalized_render_version} <-
+           normalize_render_version(normalized_channel, render_version),
+         {:ok, validated_render_data} <-
+           normalized_channel
+           |> channel_module()
+           |> validate_channel_payload(normalized_channel, attrs) do
+      {:ok,
+       %{
+         channel: normalized_channel,
+         render_key: normalized_render_key,
+         render_version: normalized_render_version,
+         render_data: validated_render_data
+       }}
+    else
+      {:error, {:invalid_channel_payload, _channel, _changeset} = reason} ->
+        {:error, {:rendering_failed, normalize_channel_error(channel), reason}}
+
+      {:error, {:unsupported_render_channel, unsupported_channel}} ->
+        {:error, {:rendering_failed, unsupported_channel, {:unsupported_render_channel, unsupported_channel}}}
+
+      {:error, reason} ->
+        {:error, {:rendering_failed, normalize_channel_error(channel), reason}}
+    end
+  end
 
   defp resolve_build_fallback(notifier, trigger_params, recipient) do
     with {:ok, assigns} <- notifier.build(trigger_params, recipient),
@@ -182,4 +221,21 @@ defmodule Chimeway.Rendering do
        }}
     end)
   end
+
+  defp channel_module("in_app"), do: {:ok, InApp}
+  defp channel_module("email"), do: {:ok, Email}
+  defp channel_module(channel), do: {:error, {:unsupported_render_channel, channel}}
+
+  defp validate_channel_payload({:ok, module}, channel, attrs) do
+    case module.validate(attrs) do
+      {:ok, validated_attrs} -> {:ok, validated_attrs}
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, {:invalid_channel_payload, channel, changeset}}
+    end
+  end
+
+  defp validate_channel_payload({:error, reason}, _channel, _attrs), do: {:error, reason}
+
+  defp normalize_channel_error(channel) when is_atom(channel), do: Atom.to_string(channel)
+  defp normalize_channel_error(channel) when is_binary(channel), do: String.trim(channel)
+  defp normalize_channel_error(channel), do: inspect(channel)
 end
