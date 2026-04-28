@@ -80,6 +80,12 @@ Success criteria:
 **Goal**: Make notification content versioned, channel-aware, and previewable without coupling durable history to notifier module changes.
 **Depends on**: Phase 20
 **Requirements**: TMPL-01, TMPL-02, TMPL-03
+**Plans:** 3 plans
+
+Plans:
+- [ ] 21-01-PLAN.md — Add durable render identity fields plus the normalized notifier rendering declaration seam.
+- [ ] 21-02-PLAN.md — Materialize validated in-app and email render outputs onto delivery rows and keep traces payload-safe.
+- [ ] 21-03-PLAN.md — Expose the pure preview API and the thin Mix wrapper over the production render pipeline.
 
 Success criteria:
 1. Notification content versions are persisted as durable rendering identity separate from notifier module names.
