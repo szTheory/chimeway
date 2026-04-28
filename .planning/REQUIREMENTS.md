@@ -26,7 +26,7 @@
 
 ### Recovery & Analytics
 
-- [ ] **OPS-01**: Operators can detect and reconcile persisted events or deliveries that were never fully dispatched after trigger-time failures.
+- [x] **OPS-01**: Operators can detect and reconcile persisted events or deliveries that were never fully dispatched after trigger-time failures.
 - [ ] **OPS-02**: Operators can query aggregate outcomes by notification key, channel, and lifecycle result, including sent, suppressed, delayed, digested, failed, and exhausted flows.
 
 ## Future Requirements

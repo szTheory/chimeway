@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: executing
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-04-28T21:58:58.154Z"
-last_activity: 2026-04-28 -- Plan 22-01 completed
+status: completed
+stopped_at: Completed 22-04-PLAN.md
+last_updated: "2026-04-28T22:46:56.032Z"
+last_activity: 2026-04-28 -- Completed 22-04-PLAN.md
 progress:
   total_phases: 7
-  completed_phases: 6
-  total_plans: 22
-  completed_plans: 20
-  percent: 91
+  completed_phases: 7
+  total_plans: 23
+  completed_plans: 23
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 22 — Recovery & Outcome Analytics
+**Current focus:** Phase 22 complete — recovery-outcome-analytics
 
 ## Current Position
 
-Phase: 22 — EXECUTING
-Plan: 2 of 3
-Status: Plan 22-01 completed; Phase 22 execution continues
-Last activity: 2026-04-28 -- Plan 22-01 completed
+Phase: 22 (recovery-outcome-analytics) — COMPLETED
+Plan: 4 of 4
+Status: Phase 22 execution complete
+Last activity: 2026-04-28 -- Completed 22-04-PLAN.md
 
 ## Accumulated Context
 
@@ -94,6 +94,8 @@ Recent decisions affecting current work:
 - The Mix task remains a convenience shell that parses local inputs, delegates to Chimeway.preview_rendering/3, and prints stable render identity plus validated payload data.
 - Recovery detection for Phase 22 now relies on canonical event/notification/delivery tables only and never inspects Oban job state.
 - Recovery claims stamp recovery_source, recovery_reason, and recovered_at on the canonical delivery row exactly once, with duplicate attempts converging to {:noop, delivery}.
+- Persisted render_channels remain recovery-only behind use_persisted_channels: true so ordinary notifier-less planning keeps the default in_app path.
+- Failed recovery dispatch handoffs clear recovery metadata and restore recoverable age so operators can retry the same canonical row immediately.
 
 ### Pending Todos
 
@@ -114,8 +116,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T21:57:58Z
-Stopped at: Completed 22-01-PLAN.md
-Resume file: .planning/phases/22-recovery-outcome-analytics/22-01-SUMMARY.md
+Last session: 2026-04-28T22:46:55.801Z
+Stopped at: Completed 22-04-PLAN.md
+Resume file: None
 
-**Planned Phase:** 22 (recovery-outcome-analytics) — 3 plans — 2026-04-28T21:57:58Z
+**Planned Phase:** 22 (recovery-outcome-analytics) — 4 plans — 2026-04-28T22:32:51.439Z
