@@ -245,6 +245,10 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
             "html_body" => "<p>Ada commented</p>",
             "text_body" => "Ada commented",
             "primary_action" => %{"label" => "Open", "url" => "https://example.test/render"}
+          },
+          render_channels: %{
+            "email" => %{"render_key" => "comment.created.email", "render_version" => 4},
+            "in_app" => %{"render_key" => "comment.created.in_app", "render_version" => 2}
           }
         })
         |> Repo.insert!()

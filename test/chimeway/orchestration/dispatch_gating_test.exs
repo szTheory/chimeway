@@ -27,7 +27,7 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
     def recipients(_params), do: {:ok, [%{recipient_identity: "user:digest-held"}]}
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+    def build(_params, recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, "subject" => "test", "html_body" => "test", "text_body" => "test", recipient: recipient}}
 
     @impl true
     def channels(_params, _recipient), do: {:ok, [:email]}
@@ -75,13 +75,13 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
 
     assert {:ok, [{:ok, ready_delivery}]} = Sync.dispatch([ready_fixture.notification], [])
 
-    assert {:ok, [{:ok, deferred_delivery}]} =
+    assert {:ok, [{:skip, deferred_delivery}]} =
              Sync.dispatch(
                [deferred_fixture.notification],
                evaluation_time: ~U[2026-01-15 03:30:00Z]
              )
 
-    assert {:ok, [{:ok, digest_delivery}]} =
+    assert {:ok, [{:skip, digest_delivery}]} =
              Sync.dispatch(
                [digest_fixture.notification],
                notifier: DigestHeldNotifier,

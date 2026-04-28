@@ -122,7 +122,19 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
         event_id: event.id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
-        metadata: %{}
+        metadata: %{},
+        render_assigns: %{
+          "headline" => "test headline",
+          "body" => "test body",
+          "primary_action" => %{"label" => "test", "url" => "http://test.com"},
+          "subject" => "test subject",
+          "html_body" => "<p>test</p>",
+          "text_body" => "test"
+        },
+        render_channels: %{
+          "email" => %{"render_key" => "test", "render_version" => 1},
+          "in_app" => %{"render_key" => "test", "render_version" => 1}
+        }
       })
       |> Repo.insert()
 

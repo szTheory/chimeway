@@ -193,7 +193,7 @@ defmodule Chimeway.DeliveriesTest do
 
   describe "terminal_states/0" do
     test "returns the canonical terminal-state list" do
-      assert Deliveries.terminal_states() == [:succeeded, :suppressed, :cancelled]
+      assert Deliveries.terminal_states() == [:succeeded, :suppressed, :cancelled, :digested]
     end
   end
 

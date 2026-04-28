@@ -290,7 +290,15 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     notification =
       insert_notification("user-rendering", %{}, %{
         metadata: %{"headline" => "Rendered once"},
-        render_assigns: %{"headline" => "Rendered once"}
+        render_assigns: %{
+          "headline" => "Rendered once",
+          "subject" => "Rendered once",
+          "html_body" => "<p>Rendered once</p>",
+          "text_body" => "Rendered once"
+        },
+        render_channels: %{
+          "email" => %{"render_key" => "delivery-planning.rendering.email", "render_version" => 6}
+        }
       })
 
     assert {:ok, [delivery]} =
@@ -318,7 +326,15 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     notification =
       insert_notification("user-rendering", %{}, %{
         metadata: %{"headline" => "Rendered once"},
-        render_assigns: %{"headline" => "Rendered once"}
+        render_assigns: %{
+          "headline" => "Rendered once",
+          "subject" => "Rendered once",
+          "html_body" => "<p>Rendered once</p>",
+          "text_body" => "Rendered once"
+        },
+        render_channels: %{
+          "email" => %{"render_key" => "delivery-planning.rendering.email", "render_version" => 6}
+        }
       })
 
     assert {:ok, [delivery]} =
@@ -339,6 +355,43 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
            }
   end
 
+  test "planning reuses persisted render_channels without notifier re-entry" do
+    notification =
+      insert_notification("user-no-reentry", %{}, %{
+        render_assigns: %{
+          "subject" => "Durable Subject",
+          "html_body" => "<p>Durable html</p>",
+          "text_body" => "Durable text"
+        },
+        render_channels: %{
+          "email" => %{"render_key" => "durable.email", "render_version" => 10}
+        }
+      })
+
+    assert {:ok, [delivery]} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: DigestEmailNotifier,
+               trigger_params: %{}
+             )
+
+    assert delivery.render_key == "durable.email"
+    assert delivery.render_version == 10
+    assert delivery.render_data["subject"] == "Durable Subject"
+  end
+
+  test "planning returns missing_render_declaration when channel snapshot is absent" do
+    notification =
+      insert_notification("user-missing-snapshot", %{}, %{
+        render_channels: %{}
+      })
+
+    assert {:error, {:missing_render_declaration, "email"}} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: DigestEmailNotifier,
+               trigger_params: %{}
+             )
+  end
+
   defp insert_notification(recipient_identity, payload \\ %{}, attrs \\ %{}) do
     {:ok, event} =
       %Event{}
@@ -357,7 +410,15 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: Map.get(attrs, :metadata, %{}),
-        render_assigns: Map.get(attrs, :render_assigns, %{})
+        render_assigns: Map.get(attrs, :render_assigns, %{
+          "subject" => "Default Subject",
+          "html_body" => "<p>Default html</p>",
+          "text_body" => "Default text"
+        }),
+        render_channels: Map.get(attrs, :render_channels, %{
+          "email" => %{"render_key" => "default.email", "render_version" => 1},
+          "in_app" => %{"render_key" => "default.in_app", "render_version" => 1}
+        })
       })
       |> Repo.insert()
 

@@ -35,7 +35,7 @@ defmodule ChimewayTest.Notifiers.ValidDelayedFallbackSubset do
   def recipients(_params),
     do: {:ok, [%{recipient_identity: "user:guardrail", recipient_type: "user"}]}
 
-  def build(_params, _recipient), do: {:ok, %{title: "Valid delayed fallback subset"}}
+  def build(_params, _recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, "subject" => "test", "html_body" => "test", "text_body" => "test"}}
   def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
   def delayed_fallback_channels(_params, _recipient), do: {:ok, [:email]}
 end

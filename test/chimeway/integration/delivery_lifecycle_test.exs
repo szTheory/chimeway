@@ -956,7 +956,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       :ok
     end
 
-    test "adapter receives pre-rendered delivery content without late notifier callbacks" do
+    test "dispatch uses preplanned render_data without a second rendering callback" do
       Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail, test_pid: self())
 
       assert {:ok, _result} =
@@ -966,7 +966,6 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                  idempotency_key: "lifecycle_rendered_email_001"
                )
 
-      assert_receive {:rendering_called, _}, 1000
       assert_receive {:rendering_called, _}, 1000
       refute_receive {:rendering_called, _}, 50
       refute_receive {:build_called, _}, 50

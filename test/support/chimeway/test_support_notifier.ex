@@ -7,5 +7,5 @@ defmodule Chimeway.Test.SupportNotifier do
   def recipients(%{user_id: user_id}),
     do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
 
-  def build(_params, _recipient), do: {:ok, %{}}
+  def build(_params, _recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}}}
 end

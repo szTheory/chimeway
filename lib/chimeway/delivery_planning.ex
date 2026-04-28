@@ -322,26 +322,29 @@ defmodule Chimeway.DeliveryPlanning do
     Deliveries.apply_planning_decision(delivery, decision)
   end
 
-  defp resolve_render_result(notification, channel, trigger_params, opts) do
+  defp resolve_render_result(notification, channel, _trigger_params, opts) do
     case Keyword.get(opts, :notifier) do
       notifier when is_atom(notifier) and not is_nil(notifier) ->
-        recipient = notification_recipient(notification)
+        render_channels = notification.render_channels || %{}
 
-        with {:ok, rendering} <- Notifier.resolve_rendering(notifier, trigger_params, recipient),
-             {:ok, channel_rendering} <- fetch_channel_rendering(rendering, channel),
-             {:ok, rendered_delivery} <- render_channel_result(channel, channel_rendering, rendering.assigns) do
-          {:ok, rendered_delivery}
+        case Map.fetch(render_channels, channel) do
+          {:ok, channel_rendering} ->
+            render_key = Map.get(channel_rendering, "render_key") || Map.get(channel_rendering, :render_key)
+            render_version = Map.get(channel_rendering, "render_version") || Map.get(channel_rendering, :render_version)
+
+            normalized_rendering = %{
+              render_key: render_key,
+              render_version: render_version
+            }
+
+            render_channel_result(channel, normalized_rendering, notification.render_assigns || %{})
+
+          :error ->
+            {:error, {:missing_render_declaration, channel}}
         end
 
       _notifier ->
         {:ok, %{}}
-    end
-  end
-
-  defp fetch_channel_rendering(%{channels: channels}, channel) when is_map(channels) do
-    case Map.fetch(channels, channel) do
-      {:ok, channel_rendering} -> {:ok, channel_rendering}
-      :error -> {:error, {:missing_render_identity, channel}}
     end
   end
 

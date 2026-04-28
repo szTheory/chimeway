@@ -18,7 +18,7 @@ defmodule Chimeway.TelemetryCorrelationTest do
     end
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+    def build(_params, recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, recipient: recipient}}
   end
 
   test "delivery records persist correlation identifiers in metadata" do
