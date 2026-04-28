@@ -10,7 +10,7 @@
 
 **Version:** v1.2  
 **Name:** Delivery Orchestration  
-**Status:** Planned  
+**Status:** Active  
 **Goal:** Turn Chimeway from a durable notification engine into a product-grade notification layer that can decide not just whether to send, but when, how, and in what grouped form.
 
 **Requirement coverage:** 11/11 mapped
@@ -32,12 +32,12 @@ Success criteria:
 **Goal**: Resume deferred deliveries automatically through durable scheduling and lifecycle-safe async execution.
 **Depends on**: Phase 17
 **Requirements**: ORCH-03
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 18-01-PLAN.md — Lock the deferred-resume contract with targeted scheduling, promotion, and rollback tests.
 - [x] 18-02-PLAN.md — Implement canonical deferred-to-ready promotion plus scheduled resume worker reuse of the normal Oban dispatch path.
-- [ ] 18-03-PLAN.md — Preserve resume trace continuity and prove race-safe lifecycle convergence.
+- [x] 18-03-PLAN.md — Preserve resume trace continuity and prove race-safe lifecycle convergence.
 
 Success criteria:
 1. Deferred deliveries are resumed through Oban-backed scheduling without creating duplicate sends.
@@ -89,7 +89,7 @@ Success criteria:
 | Phase | Name | Goal | Requirements | Success Criteria |
 |-------|------|------|--------------|------------------|
 | 17 | Delivery Windows & Deferral Semantics | 3/3 | Complete    | 2026-04-28 |
-| 18 | Scheduled Resume & Deferred Dispatch | Resume deferred work safely | ORCH-03 | 3 |
+| 18 | Scheduled Resume & Deferred Dispatch | 3/3 | Complete    | 2026-04-28 |
 | 19 | Digest Data Model & Accumulation | Persist digest rules and accumulation | DIGEST-01 | 3 |
 | 20 | Digest Emission & Explainability | Dispatch digests and explain membership | DIGEST-02, DIGEST-03 | 3 |
 | 21 | Template Versioning & Rendering Contracts | Version and preview content safely | TMPL-01, TMPL-02, TMPL-03 | 3 |
@@ -97,4 +97,4 @@ Success criteria:
 
 ## Next Up
 
-**Phase 18: Scheduled Resume & Deferred Dispatch** — Preserve resume trace continuity and prove race-safe lifecycle convergence.
+**Phase 19: Digest Data Model & Accumulation** — Introduce first-class digest rules and durable accumulation records for repeated notification streams.

@@ -56,7 +56,7 @@
 |-------------|-------|--------|
 | ORCH-01 | Phase 17 | Complete |
 | ORCH-02 | Phase 17 | Complete |
-| ORCH-03 | Phase 18 | Pending |
+| ORCH-03 | Phase 18 | Complete |
 | DIGEST-01 | Phase 19 | Pending |
 | DIGEST-02 | Phase 20 | Pending |
 | DIGEST-03 | Phase 20 | Pending |
