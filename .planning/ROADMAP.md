@@ -99,7 +99,7 @@ Success criteria:
 **Goal:** Harden render declaration durability and preview safety so persisted render identity never depends on planner-time notifier re-entry or executable preview inputs.
 **Requirements**: TMPL-01, TMPL-02, TMPL-03
 **Depends on:** Phase 21
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 21.1-01-PLAN.md — Persist notification-level render declarations and remove planner-time rendering re-entry.
@@ -129,7 +129,7 @@ Success criteria:
 | 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
 | 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
-| 21.1 | Rendering durability and preview hardening | Harden render durability and preview safety | TMPL-01, TMPL-02, TMPL-03 | 2 |
+| 21.1 | Rendering durability and preview hardening | 2/2 | Complete    | 2026-04-28 |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up
