@@ -25,7 +25,7 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
     def channels(_params, _recipient), do: {:ok, [:email]}
 
     @impl true
-    def orchestration(_params, _recipient), do: {:ok, [email: :digest]}
+    def orchestration(_params, _recipient), do: {:ok, [email: {:digest, [digest_key: "thread:123"]}]}
   end
 
   defmodule ImmediateNotifier do
@@ -58,7 +58,11 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
     assert delivery.orchestration_state == :digest_held
     assert delivery.planning_reason == "digest_rule"
     assert delivery.next_eligible_at == nil
-    assert delivery.planning_context == %{"channel" => "email", "source" => "notifier"}
+    assert delivery.planning_context == %{
+             "channel" => "email",
+             "digest_key" => "thread:123",
+             "source" => "notifier"
+           }
     assert delivery_count_for(notification.id) == 1
   end
 
