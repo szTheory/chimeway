@@ -31,11 +31,18 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
     @impl true
     def rendering(params, _recipient) do
+      headline = Map.fetch!(params, "headline")
+      body = Map.fetch!(params, "body")
+
       {:ok,
        %{
          assigns: %{
-           "headline" => Map.fetch!(params, "headline"),
-           "body" => Map.fetch!(params, "body"),
+           "headline" => headline,
+           "body" => body,
+           "subject" => headline,
+           "html_body" => "<p>#{body}</p>",
+           "text_body" => body,
+           "primary_action" => %{"label" => "Open", "url" => "https://example.test/render"},
            "token" => "render-secret"
          },
          channels: %{
@@ -143,7 +150,14 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
         Notification
         |> Repo.get_by!(event_id: result.event.id, recipient_identity: "user:render")
 
-      expected_assigns = %{"headline" => "Welcome", "body" => "Ada commented"}
+      expected_assigns = %{
+        "headline" => "Welcome",
+        "body" => "Ada commented",
+        "subject" => "Welcome",
+        "html_body" => "<p>Ada commented</p>",
+        "text_body" => "Ada commented",
+        "primary_action" => %{"label" => "Open", "url" => "https://example.test/render"}
+      }
 
       assert notification.render_assigns == expected_assigns
       assert notification.metadata == expected_assigns
@@ -169,8 +183,22 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
           event_id: event.id,
           recipient_identity: "user:render",
           recipient_type: "user",
-          metadata: %{"headline" => "Welcome", "body" => "Ada commented"},
-          render_assigns: %{"headline" => "Welcome", "body" => "Ada commented"}
+          metadata: %{
+            "headline" => "Welcome",
+            "body" => "Ada commented",
+            "subject" => "Welcome",
+            "html_body" => "<p>Ada commented</p>",
+            "text_body" => "Ada commented",
+            "primary_action" => %{"label" => "Open", "url" => "https://example.test/render"}
+          },
+          render_assigns: %{
+            "headline" => "Welcome",
+            "body" => "Ada commented",
+            "subject" => "Welcome",
+            "html_body" => "<p>Ada commented</p>",
+            "text_body" => "Ada commented",
+            "primary_action" => %{"label" => "Open", "url" => "https://example.test/render"}
+          }
         })
         |> Repo.insert!()
 
