@@ -28,7 +28,7 @@ if Code.ensure_loaded?(Oban) do
 
     @behaviour Chimeway.Dispatch
 
-    alias Chimeway.{DeliveryPlanning, Dispatch.ObanWorker, Repo}
+    alias Chimeway.{DeliveryPlanning, Dispatch.DeferredResumeWorker, Dispatch.ObanWorker, Repo}
     alias Chimeway.Telemetry
     alias Ecto.Multi
 
@@ -54,11 +54,9 @@ if Code.ensure_loaded?(Oban) do
 
     defp do_enqueue(_repo, %{plan_notifications: deliveries}) do
       deliveries
-      |> Enum.filter(fn delivery ->
-        delivery.status == :pending and delivery.orchestration_state == :ready
-      end)
       |> Enum.reduce_while({:ok, []}, fn delivery, {:ok, jobs} ->
-        case enqueue_one(delivery) do
+        case enqueue_delivery(delivery) do
+          {:skip, _delivery} -> {:cont, {:ok, jobs}}
           {:ok, job} -> {:cont, {:ok, [job | jobs]}}
           {:error, reason} -> {:halt, {:error, reason}}
         end
@@ -78,7 +76,27 @@ if Code.ensure_loaded?(Oban) do
 
     defp handle_transaction_result({:error, _step, reason, _changes}), do: {:error, reason}
 
-    defp enqueue_one(delivery) do
+    defp enqueue_delivery(%{status: :pending, orchestration_state: :ready} = delivery) do
+      enqueue_job(delivery, ObanWorker.new(%{delivery_id: delivery.id}))
+    end
+
+    defp enqueue_delivery(%{
+           status: :pending,
+           orchestration_state: :deferred,
+           next_eligible_at: %DateTime{}
+         } = delivery) do
+      job =
+        DeferredResumeWorker.new(
+          %{delivery_id: delivery.id},
+          scheduled_at: delivery.next_eligible_at
+        )
+
+      enqueue_job(delivery, job)
+    end
+
+    defp enqueue_delivery(delivery), do: {:skip, delivery}
+
+    defp enqueue_job(delivery, job) do
       Telemetry.span(
         [:dispatch, :enqueue],
         Telemetry.safe_meta(%{
@@ -87,7 +105,7 @@ if Code.ensure_loaded?(Oban) do
           notification_key: Map.get(delivery.metadata || %{}, "notification_key")
         }),
         fn ->
-          result = Oban.insert(ObanWorker.new(%{delivery_id: delivery.id}))
+          result = Oban.insert(job)
           {result, %{}}
         end
       )
