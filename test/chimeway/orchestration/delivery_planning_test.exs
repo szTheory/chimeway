@@ -60,6 +60,39 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     def orchestration(_params, _recipient), do: {:ok, [email: :immediate]}
   end
 
+  defmodule RenderIdentityNotifier do
+    use Chimeway.Notifier
+
+    @impl true
+    def notification_key, do: "delivery-planning.rendering"
+
+    @impl true
+    def version, do: 2
+
+    @impl true
+    def recipients(_params), do: {:ok, [%{recipient_identity: "user-rendering"}]}
+
+    @impl true
+    def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+
+    @impl true
+    def channels(_params, _recipient), do: {:ok, [:email]}
+
+    @impl true
+    def rendering(_params, _recipient) do
+      {:ok,
+       %{
+         assigns: %{"headline" => "Rendered once"},
+         channels: %{
+           email: %{render_key: "delivery-planning.rendering.email", render_version: 6}
+         }
+       }}
+    end
+
+    @impl true
+    def orchestration(_params, _recipient), do: {:ok, [email: :immediate]}
+  end
+
   test "planner keeps one canonical row when a channel is declared as digest-held" do
     notification = insert_notification("user-planning")
 
@@ -218,7 +251,35 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert delivery_count_for(notification.id) == 1
   end
 
-  defp insert_notification(recipient_identity, payload \\ %{}) do
+  test "repeated planning preserves render identity for the same notification and channel" do
+    notification =
+      insert_notification("user-rendering", %{}, %{
+        metadata: %{"headline" => "Rendered once"},
+        render_assigns: %{"headline" => "Rendered once"}
+      })
+
+    assert {:ok, [delivery]} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: RenderIdentityNotifier,
+               trigger_params: %{}
+             )
+
+    assert delivery.render_key == "delivery-planning.rendering.email"
+    assert delivery.render_version == 6
+
+    assert {:ok, [replanned]} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: RenderIdentityNotifier,
+               trigger_params: %{}
+             )
+
+    assert replanned.id == delivery.id
+    assert replanned.render_key == "delivery-planning.rendering.email"
+    assert replanned.render_version == 6
+    assert delivery_count_for(notification.id) == 1
+  end
+
+  defp insert_notification(recipient_identity, payload \\ %{}, attrs \\ %{}) do
     {:ok, event} =
       %Event{}
       |> Event.changeset(%{
@@ -235,7 +296,8 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
         event_id: event.id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
-        metadata: %{}
+        metadata: Map.get(attrs, :metadata, %{}),
+        render_assigns: Map.get(attrs, :render_assigns, %{})
       })
       |> Repo.insert()
 
