@@ -150,7 +150,7 @@ defmodule Chimeway.Digests.DigestRuleTest do
     end
   end
 
-  defp valid_rule_attrs(overrides \\ %{}) do
+  defp valid_rule_attrs(overrides) do
     %{
       rule_key: "comment.digest",
       rule_version: 1,
@@ -165,5 +165,13 @@ defmodule Chimeway.Digests.DigestRuleTest do
       boundary_time_zone: nil
     }
     |> Map.merge(overrides)
+  end
+
+  defp errors_on(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
+      Regex.replace(~r"%{(\w+)}", message, fn _, key ->
+        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      end)
+    end)
   end
 end
