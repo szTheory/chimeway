@@ -4,7 +4,7 @@ milestone: v1.2
 milestone_name: Delivery Orchestration
 status: completed
 stopped_at: Completed 22-04-PLAN.md
-last_updated: "2026-04-28T22:46:56.032Z"
+last_updated: "2026-04-28T22:48:38.369Z"
 last_activity: 2026-04-28 -- Completed 22-04-PLAN.md
 progress:
   total_phases: 7
@@ -103,7 +103,7 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Advisory: `recover_event/2` still cannot replay notifier-defined orchestration snapshots such as `:digest_held`; recovered events currently restore persisted channels but may not preserve digest/deferred semantics until that durability gap is addressed.
 
 ### Roadmap Evolution
 

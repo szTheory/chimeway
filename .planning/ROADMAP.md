@@ -114,13 +114,13 @@ Success criteria:
 **Goal**: Close the remaining operational trust gaps with reconciliation paths and aggregate outcome queries.
 **Depends on**: Phase 21.1
 **Requirements**: OPS-01, OPS-02
-**Plans:** 1/4 plans complete
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 22-01-PLAN.md — Define durable stuck-row detection and recoverability guards from canonical delivery state only.
-- [ ] 22-02-PLAN.md — Re-drive recoverable deliveries through the existing dispatcher while preserving one canonical row history.
-- [ ] 22-03-PLAN.md — Add grouped outcome summary queries under `Chimeway.Traces`.
-- [ ] 22-04-PLAN.md — Restrict persisted-channel fallback to explicit recovery, keep failed recovery handoffs retryable, and clear the full-suite verification gate.
+- [x] 22-02-PLAN.md — Re-drive recoverable deliveries through the existing dispatcher while preserving one canonical row history.
+- [x] 22-03-PLAN.md — Add grouped outcome summary queries under `Chimeway.Traces`.
+- [x] 22-04-PLAN.md — Restrict persisted-channel fallback to explicit recovery, keep failed recovery handoffs retryable, and clear the full-suite verification gate.
 
 Success criteria:
 1. Operators can detect events or deliveries that persisted but were not fully dispatched and re-drive them safely.
@@ -137,8 +137,8 @@ Success criteria:
 | 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
 | 21.1 | Rendering durability and preview hardening | 2/2 | Complete    | 2026-04-28 |
-| 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
+| 22 | Recovery & Outcome Analytics | 4/4 | Complete | 2026-04-28 |
 
 ## Next Up
 
-**Phase 22: Recovery & Outcome Analytics** — Close operational trust gaps with reconciliation and grouped outcome analytics.
+**Milestone closeout** — Phase execution is complete; run the security pass and milestone completion workflow before archiving `v1.2`.
