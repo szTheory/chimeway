@@ -18,4 +18,7 @@ defmodule Chimeway.Dispatch do
 
   @callback dispatch(notifications :: [Notification.t()], opts :: keyword()) ::
               {:ok, [Delivery.t()]} | {:error, term()}
+
+  @callback dispatch_delivery(delivery_or_id :: Delivery.t() | binary(), opts :: keyword()) ::
+              {:ok, Delivery.t()} | {:skip, Delivery.t()} | {:error, term()}
 end

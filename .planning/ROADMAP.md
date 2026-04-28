@@ -64,6 +64,12 @@ Success criteria:
 **Goal**: Generate, dispatch, and explain digest deliveries from accumulated source notifications.
 **Depends on**: Phase 19
 **Requirements**: DIGEST-02, DIGEST-03
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 20-01-PLAN.md — Define the durable data contract for digest emission before runtime dispatch or operator explainability work builds on it.
+- [x] 20-02-PLAN.md — Make digest emission actually runnable by reusing Chimeway's existing delivery execution path.
+- [x] 20-03-PLAN.md — Finish Phase 20 by turning the new durable digest facts into an operator-visible reasoning surface.
 
 Success criteria:
 1. Digest dispatch records exactly which source events and notifications were included in the emitted digest.
@@ -97,10 +103,10 @@ Success criteria:
 | 17 | Delivery Windows & Deferral Semantics | 3/3 | Complete    | 2026-04-28 |
 | 18 | Scheduled Resume & Deferred Dispatch | 3/3 | Complete    | 2026-04-28 |
 | 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
-| 20 | Digest Emission & Explainability | Dispatch digests and explain membership | DIGEST-02, DIGEST-03 | 3 |
+| 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
 | 21 | Template Versioning & Rendering Contracts | Version and preview content safely | TMPL-01, TMPL-02, TMPL-03 | 3 |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up
 
-**Phase 20: Digest Emission & Explainability** — Generate, dispatch, and explain digest deliveries from accumulated source notifications.
+**Phase 21: Template Versioning & Rendering Contracts** — Make notification content versioned, channel-aware, and previewable without coupling durable history to notifier module changes.

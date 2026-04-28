@@ -4,7 +4,7 @@ defmodule Chimeway.Digests do
   import Ecto.Query, only: [from: 2]
 
   alias Chimeway.Repo
-  alias Chimeway.Digests.DigestRule
+  alias Chimeway.Digests.{DigestRule, Emission}
 
   @type rule_lookup :: %{
           required(:channel) => String.t(),
@@ -114,4 +114,8 @@ defmodule Chimeway.Digests do
       :updated_at
     ]
   end
+
+  @doc "Emits a due digest bucket and returns the canonical emitted delivery identity."
+  @spec emit_bucket(binary() | map(), keyword()) :: {:ok, map()} | {:error, term()}
+  def emit_bucket(bucket_or_id, opts \\ []), do: Emission.emit_bucket(bucket_or_id, opts)
 end

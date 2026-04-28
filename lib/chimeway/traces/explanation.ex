@@ -28,6 +28,7 @@ defmodule Chimeway.Traces.Explanation do
       * `"permanent_failure"` — set when status is `:cancelled` (adapter returned a permanent error)
       * `"bounced"` — set when status is `:cancelled` (adapter returned a bounce)
   - `last_attempt` — map with :outcome, :inserted_at, :attempt_number, :error_class for the most recent attempt, or nil
+  - `digest` — digest-specific reasoning for source or emitted digest rows, else nil
   - `timeline` — chronological list of lifecycle events, each a map with :at, :event, :detail
   """
 
@@ -48,6 +49,7 @@ defmodule Chimeway.Traces.Explanation do
           resume_scheduled_at: DateTime.t() | nil,
           resumed_at: DateTime.t() | nil,
           suppression_reason: String.t() | nil,
+          digest: map() | nil,
           last_attempt:
             %{
               outcome: atom(),
@@ -74,6 +76,7 @@ defmodule Chimeway.Traces.Explanation do
     :resume_scheduled_at,
     :resumed_at,
     :suppression_reason,
+    :digest,
     :last_attempt,
     :timeline
   ]

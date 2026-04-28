@@ -30,6 +30,7 @@ defmodule Chimeway.Traces do
   import Ecto.Query
 
   alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Repo}
+  alias Chimeway.Digests.DigestMembership
   alias Chimeway.Traces.Explanation
 
   @doc """
@@ -127,7 +128,8 @@ defmodule Chimeway.Traces do
         event = notification.event
         last_attempt = last_attempt_summary(attempts)
         resume_fields = explanation_resume_fields(delivery)
-        timeline = build_timeline(event, notification, delivery, attempts)
+        digest_context = digest_context(delivery)
+        timeline = build_timeline(event, notification, delivery, attempts, digest_context)
 
         explanation = %Explanation{
           delivery_id: delivery.id,
@@ -144,6 +146,7 @@ defmodule Chimeway.Traces do
           resume_scheduled_at: resume_fields.resume_scheduled_at,
           resumed_at: resume_fields.resumed_at,
           suppression_reason: delivery.suppression_reason,
+          digest: digest_context,
           last_attempt: last_attempt,
           timeline: timeline
         }
@@ -182,7 +185,7 @@ defmodule Chimeway.Traces do
     }
   end
 
-  defp build_timeline(event, notification, delivery, attempts) do
+  defp build_timeline(event, notification, delivery, attempts, digest_context) do
     planning_context = explanation_planning_context(delivery)
     resume_fields = explanation_resume_fields(delivery)
 
@@ -285,8 +288,14 @@ defmodule Chimeway.Traces do
         }
       end)
 
-    (base ++ deferred_entries ++ resumed_entries ++ suppression_entries ++ cancellation_entries ++
-       attempt_entries)
+    digest_entries = digest_timeline_entries(delivery, digest_context)
+
+    (base ++
+       deferred_entries ++
+       resumed_entries ++
+       suppression_entries ++
+       cancellation_entries ++
+       digest_entries ++ attempt_entries)
     |> Enum.sort_by(&timeline_sort_key/1)
   end
 
@@ -300,7 +309,10 @@ defmodule Chimeway.Traces do
     }
   end
 
-  defp deferred_timeline?(%Delivery{planning_reason: planning_reason, next_eligible_at: next_eligible_at})
+  defp deferred_timeline?(%Delivery{
+         planning_reason: planning_reason,
+         next_eligible_at: next_eligible_at
+       })
        when is_binary(planning_reason) and not is_nil(next_eligible_at),
        do: true
 
@@ -348,7 +360,11 @@ defmodule Chimeway.Traces do
   defp timeline_rank(:resumed), do: 4
   defp timeline_rank(:suppressed), do: 5
   defp timeline_rank(:cancelled), do: 6
-  defp timeline_rank(:attempt_recorded), do: 7
+  defp timeline_rank(:digested), do: 7
+  defp timeline_rank(:digest_skipped), do: 8
+  defp timeline_rank(:emitted_immediately), do: 9
+  defp timeline_rank(:digest_emitted), do: 10
+  defp timeline_rank(:attempt_recorded), do: 11
   defp timeline_rank(_event), do: 99
 
   defp explanation_planning_context(%Delivery{} = delivery) do
@@ -359,7 +375,8 @@ defmodule Chimeway.Traces do
 
   defp safe_planning_context(%Delivery{planning_context: nil}), do: nil
 
-  defp safe_planning_context(%Delivery{planning_context: planning_context}) when is_map(planning_context) do
+  defp safe_planning_context(%Delivery{planning_context: planning_context})
+       when is_map(planning_context) do
     planning_context
     |> Map.take([
       "rule",
@@ -389,7 +406,10 @@ defmodule Chimeway.Traces do
     Map.put_new(planning_context, "rule_identity", normalized_rule_identity(delivery))
   end
 
-  defp normalized_rule_identity(%Delivery{planning_context: planning_context, planning_reason: planning_reason}) do
+  defp normalized_rule_identity(%Delivery{
+         planning_context: planning_context,
+         planning_reason: planning_reason
+       }) do
     cond do
       is_map(planning_context) and is_binary(planning_context["rule_identity"]) ->
         planning_context["rule_identity"]
@@ -404,4 +424,184 @@ defmodule Chimeway.Traces do
         nil
     end
   end
+
+  defp digest_context(%Delivery{} = delivery) do
+    cond do
+      source_digest_delivery?(delivery) ->
+        source_digest_context(delivery)
+
+      emitted_digest_delivery?(delivery) ->
+        emitted_digest_context(delivery)
+
+      delivery.planning_reason == "digest_rule" ->
+        %{
+          "outcome" => "deferred",
+          "rule_identity" => normalized_rule_identity(delivery)
+        }
+
+      true ->
+        nil
+    end
+  end
+
+  defp source_digest_delivery?(%Delivery{digest_flush_outcome: outcome}) when not is_nil(outcome),
+    do: true
+
+  defp source_digest_delivery?(_delivery), do: false
+
+  defp emitted_digest_delivery?(%Delivery{metadata: metadata}) when is_map(metadata) do
+    is_map(Map.get(metadata, "digest"))
+  end
+
+  defp emitted_digest_delivery?(_delivery), do: false
+
+  defp source_digest_context(%Delivery{} = delivery) do
+    membership =
+      Repo.one(
+        from(m in DigestMembership,
+          where: m.delivery_id == ^delivery.id,
+          limit: 1
+        )
+      )
+
+    base =
+      %{
+        "outcome" => delivery.digest_flush_outcome |> to_string(),
+        "digest_delivery_id" => delivery.digest_delivery_id,
+        "resolution_reason" => delivery.digest_flush_reason
+      }
+      |> maybe_put_digest_value("rule_identity", membership_rule_identity(membership, delivery))
+      |> maybe_put_digest_value(
+        "window_starts_at",
+        membership && membership.resolved_window_starts_at
+      )
+      |> maybe_put_digest_value(
+        "window_ends_at",
+        membership && membership.resolved_window_ends_at
+      )
+
+    case delivery.digest_flush_outcome do
+      :digested -> Map.put(base, "included", true)
+      :skipped_by_policy -> Map.put(base, "excluded", true)
+      :emitted_immediately -> Map.put(base, "emitted_immediately", true)
+      _ -> base
+    end
+  end
+
+  defp emitted_digest_context(%Delivery{} = delivery) do
+    memberships =
+      Repo.all(
+        from(m in DigestMembership,
+          where: m.digest_delivery_id == ^delivery.id,
+          preload: [delivery: [notification: :event]]
+        )
+      )
+
+    digest_metadata = Map.get(delivery.metadata || %{}, "digest", %{})
+
+    %{
+      "kind" => "emitted_digest",
+      "rule_identity" =>
+        digest_metadata["rule_key"] &&
+          "#{digest_metadata["rule_key"]}:v#{digest_metadata["rule_version"]}",
+      "included" => resolution_entries(memberships, :included),
+      "excluded" => resolution_entries(memberships, :skipped_by_policy),
+      "deferred" => [],
+      "emitted_immediately" => resolution_entries(memberships, :emitted_immediately)
+    }
+  end
+
+  defp resolution_entries(memberships, resolution) do
+    memberships
+    |> Enum.filter(&(&1.resolution == resolution))
+    |> Enum.map(fn membership ->
+      %{
+        "delivery_id" => membership.delivery_id,
+        "notification_id" => membership.notification_id,
+        "notification_key" => membership.delivery.notification.event.notification_key,
+        "reason" => membership.resolution_reason
+      }
+    end)
+  end
+
+  defp digest_timeline_entries(%Delivery{} = delivery, digest_context)
+       when is_map(digest_context) do
+    case delivery.digest_flush_outcome do
+      :digested ->
+        [
+          %{
+            at: delivery.digest_flush_resolved_at || delivery.updated_at,
+            event: :digested,
+            detail: %{
+              digest_delivery_id: delivery.digest_delivery_id,
+              resolution_reason: delivery.digest_flush_reason,
+              rule_identity: digest_context["rule_identity"]
+            }
+          }
+        ]
+
+      :skipped_by_policy ->
+        [
+          %{
+            at: delivery.digest_flush_resolved_at || delivery.updated_at,
+            event: :digest_skipped,
+            detail: %{
+              digest_delivery_id: delivery.digest_delivery_id,
+              resolution_reason: delivery.digest_flush_reason,
+              rule_identity: digest_context["rule_identity"]
+            }
+          }
+        ]
+
+      :emitted_immediately ->
+        [
+          %{
+            at: delivery.digest_flush_resolved_at || delivery.updated_at,
+            event: :emitted_immediately,
+            detail: %{
+              digest_delivery_id: delivery.digest_delivery_id,
+              resolution_reason: delivery.digest_flush_reason,
+              rule_identity: digest_context["rule_identity"]
+            }
+          }
+        ]
+
+      _ ->
+        if emitted_digest_delivery?(delivery) do
+          [
+            %{
+              at: delivery.updated_at,
+              event: :digest_emitted,
+              detail: %{
+                rule_identity: digest_context["rule_identity"],
+                included: length(digest_context["included"] || []),
+                excluded: length(digest_context["excluded"] || []),
+                deferred: length(digest_context["deferred"] || [])
+              }
+            }
+          ]
+        else
+          []
+        end
+    end
+  end
+
+  defp digest_timeline_entries(_delivery, _digest_context), do: []
+
+  defp membership_rule_identity(nil, %Delivery{} = delivery),
+    do: normalized_rule_identity(delivery)
+
+  defp membership_rule_identity(membership, _delivery) do
+    cond do
+      is_binary(membership.resolved_rule_key) and is_integer(membership.resolved_rule_version) ->
+        "#{membership.resolved_rule_key}:v#{membership.resolved_rule_version}"
+
+      true ->
+        nil
+    end
+  end
+
+  defp maybe_put_digest_value(map, _key, nil), do: map
+  defp maybe_put_digest_value(map, key, %DateTime{} = value), do: Map.put(map, key, value)
+  defp maybe_put_digest_value(map, key, value), do: Map.put(map, key, value)
 end

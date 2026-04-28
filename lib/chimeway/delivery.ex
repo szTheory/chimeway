@@ -17,7 +17,7 @@ defmodule Chimeway.Delivery do
     field(:channel, :string)
 
     field(:status, Ecto.Enum,
-      values: [:pending, :dispatched, :succeeded, :failed, :suppressed, :cancelled],
+      values: [:pending, :dispatched, :succeeded, :failed, :suppressed, :cancelled, :digested],
       default: :pending
     )
 
@@ -30,10 +30,18 @@ defmodule Chimeway.Delivery do
     field(:planning_reason, :string)
     field(:planning_context, :map)
     field(:suppression_reason, :string)
+
+    field(:digest_flush_outcome, Ecto.Enum,
+      values: [:digested, :skipped_by_policy, :emitted_immediately]
+    )
+
+    field(:digest_flush_reason, :string)
+    field(:digest_flush_resolved_at, :utc_datetime_usec)
     field(:delay_fallback, :boolean, default: false)
     field(:metadata, :map)
 
     belongs_to(:notification, Notification)
+    belongs_to(:digest_delivery, Chimeway.Delivery)
     has_many(:attempts, Chimeway.DeliveryAttempt)
 
     timestamps(type: :utc_datetime_usec)
@@ -46,6 +54,10 @@ defmodule Chimeway.Delivery do
     planning_reason
     planning_context
     suppression_reason
+    digest_flush_outcome
+    digest_flush_reason
+    digest_flush_resolved_at
+    digest_delivery_id
     delay_fallback
     metadata
   )a

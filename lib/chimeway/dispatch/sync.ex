@@ -37,6 +37,17 @@ defmodule Chimeway.Dispatch.Sync do
     end
   end
 
+  @impl Chimeway.Dispatch
+  def dispatch_delivery(%{id: _id} = delivery, _opts) do
+    dispatch_planned_delivery(delivery)
+  end
+
+  def dispatch_delivery(delivery_id, _opts) when is_binary(delivery_id) do
+    delivery_id
+    |> Deliveries.get_delivery!()
+    |> dispatch_planned_delivery()
+  end
+
   defp dispatch_notification(notification, opts) do
     case DeliveryPlanning.plan_notification(notification, opts) do
       {:ok, deliveries} ->
@@ -50,8 +61,10 @@ defmodule Chimeway.Dispatch.Sync do
   # --- Private ---
 
   defp dispatch_planned_delivery(%{status: :suppressed} = delivery), do: {:ok, delivery}
+  defp dispatch_planned_delivery(%{status: :digested} = delivery), do: {:skip, delivery}
+
   defp dispatch_planned_delivery(%{orchestration_state: state} = delivery) when state != :ready,
-    do: {:ok, delivery}
+    do: {:skip, delivery}
 
   defp dispatch_planned_delivery(delivery), do: dispatch_delivery(delivery)
 

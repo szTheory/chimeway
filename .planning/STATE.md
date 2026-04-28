@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: Phase 19 complete — ready for Phase 20 planning
-stopped_at: Completed 19-03-PLAN.md
-last_updated: "2026-04-28T14:46:30.000Z"
+status: Phase 20 complete — ready for Phase 21 planning
+stopped_at: Completed 20-03-PLAN.md
+last_updated: "2026-04-28T17:18:14.000Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  completed_phases: 4
+  total_plans: 12
+  completed_plans: 12
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 20 — Digest Emission & Explainability
+**Current focus:** Phase 21 — Template Versioning & Rendering Contracts
 
 ## Current Position
 
-Phase: 19 — COMPLETE
+Phase: 20 — COMPLETE
 Plan: 3 of 3
-Status: Phase 19 complete — ready for Phase 20 planning
-Last activity: 2026-04-28 — Completed 19-03 planner-side digest accumulation wiring
+Status: Phase 20 complete — ready for Phase 21 planning
+Last activity: 2026-04-28 — Completed 20-03 digest explainability and trace integration
 
 ## Accumulated Context
 
@@ -74,6 +74,11 @@ Recent decisions affecting current work:
 - Explicit digest declarations keep the persisted orchestration mode normalized to :digest_held and carry digest_key as separate planning metadata.
 - DeliveryPlanning invokes digest accumulation only after policy evaluation returns the canonical delivery still pending and digest-held.
 - Planner-side digest lookup snapshots category through Policy.delivery_category/1 so accumulation uses the same category resolution path as suppression checks.
+- Digest buckets now persist flush claim state plus one emitted digest delivery identity to collapse duplicate executions on the database boundary.
+- Digest memberships now persist immutable included/skipped/immediate resolution facts with emitted digest linkage and rule/window snapshots.
+- Source deliveries now converge through explicit digest outcomes on the canonical row instead of remaining pending after flush.
+- Emitted digests now hand off through dispatch_delivery by delivery_id, reusing the normal sync and Oban lifecycle seams.
+- Chimeway.Traces now exposes digest reasoning for both source rows and emitted digest rows without leaking raw payload or provider response data.
 
 ### Pending Todos
 
@@ -94,4 +99,4 @@ Last session: 2026-04-28T14:45:21.059Z
 Stopped at: Completed 19-03-PLAN.md
 Resume file: None
 
-**Planned Phase:** 19 (Digest Data Model & Accumulation) — 3 plans — 2026-04-28T14:05:16.728Z
+**Planned Phase:** 20 (Digest Emission & Explainability) — 3 plans — 2026-04-28T17:18:14Z

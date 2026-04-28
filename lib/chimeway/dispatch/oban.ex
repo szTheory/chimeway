@@ -48,6 +48,17 @@ if Code.ensure_loaded?(Oban) do
       handle_transaction_result(Repo.transaction(multi))
     end
 
+    @impl Chimeway.Dispatch
+    def dispatch_delivery(%{id: _id} = delivery, _opts) do
+      enqueue_delivery(delivery)
+      |> normalize_dispatch_delivery_result(delivery)
+    end
+
+    def dispatch_delivery(delivery_id, _opts) when is_binary(delivery_id) do
+      delivery = Chimeway.Deliveries.get_delivery!(delivery_id)
+      dispatch_delivery(delivery, [])
+    end
+
     defp do_plan(notifications, opts, _repo, _changes) do
       DeliveryPlanning.plan_notifications(notifications, opts)
     end
@@ -80,11 +91,13 @@ if Code.ensure_loaded?(Oban) do
       enqueue_job(delivery, ObanWorker.new(%{delivery_id: delivery.id}))
     end
 
-    defp enqueue_delivery(%{
-           status: :pending,
-           orchestration_state: :deferred,
-           next_eligible_at: %DateTime{}
-         } = delivery) do
+    defp enqueue_delivery(
+           %{
+             status: :pending,
+             orchestration_state: :deferred,
+             next_eligible_at: %DateTime{}
+           } = delivery
+         ) do
       job =
         DeferredResumeWorker.new(
           %{delivery_id: delivery.id},
@@ -95,6 +108,10 @@ if Code.ensure_loaded?(Oban) do
     end
 
     defp enqueue_delivery(delivery), do: {:skip, delivery}
+
+    defp normalize_dispatch_delivery_result({:ok, _job}, delivery), do: {:ok, delivery}
+    defp normalize_dispatch_delivery_result({:skip, delivery}, _original), do: {:skip, delivery}
+    defp normalize_dispatch_delivery_result({:error, reason}, _delivery), do: {:error, reason}
 
     defp enqueue_job(delivery, job) do
       Telemetry.span(

@@ -13,7 +13,7 @@ defmodule Chimeway.Deliveries do
   alias Chimeway.Telemetry
   alias Ecto.Multi
 
-  @terminal_states [:succeeded, :suppressed, :cancelled]
+  @terminal_states [:succeeded, :suppressed, :cancelled, :digested]
 
   @doc """
   Returns the list of terminal delivery states — used by the dispatcher (Plan 02-02)
@@ -209,6 +209,57 @@ defmodule Chimeway.Deliveries do
 
   def apply_planning_decision(%Delivery{} = _delivery, decision),
     do: {:error, {:invalid_planning_decision, decision}}
+
+  @doc """
+  Marks a digest-held source row as included in an emitted digest.
+  """
+  @spec mark_digested(Delivery.t(), binary(), String.t(), keyword()) ::
+          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+  def mark_digested(%Delivery{id: delivery_id}, digest_delivery_id, reason, opts \\ [])
+      when is_binary(digest_delivery_id) and is_binary(reason) and is_list(opts) do
+    resolve_digest_outcome(
+      delivery_id,
+      :digested,
+      :digested,
+      digest_delivery_id,
+      reason,
+      opts
+    )
+  end
+
+  @doc """
+  Marks a digest-held source row as skipped at flush with an explicit reason.
+  """
+  @spec mark_digest_skipped(Delivery.t(), binary(), String.t(), keyword()) ::
+          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+  def mark_digest_skipped(%Delivery{id: delivery_id}, digest_delivery_id, reason, opts \\ [])
+      when is_binary(digest_delivery_id) and is_binary(reason) and is_list(opts) do
+    resolve_digest_outcome(
+      delivery_id,
+      :suppressed,
+      :skipped_by_policy,
+      digest_delivery_id,
+      reason,
+      opts
+    )
+  end
+
+  @doc """
+  Releases a digest-held source row back to the normal ready lifecycle.
+  """
+  @spec mark_digest_immediate(Delivery.t(), binary(), String.t(), keyword()) ::
+          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+  def mark_digest_immediate(%Delivery{id: delivery_id}, digest_delivery_id, reason, opts \\ [])
+      when is_binary(digest_delivery_id) and is_binary(reason) and is_list(opts) do
+    resolve_digest_outcome(
+      delivery_id,
+      :pending,
+      :emitted_immediately,
+      digest_delivery_id,
+      reason,
+      opts
+    )
+  end
 
   @doc """
   Lists deferred delivery rows that are still pending and due for resume.
@@ -539,6 +590,46 @@ defmodule Chimeway.Deliveries do
       metadata: metadata
     )
     |> Repo.update()
+  end
+
+  defp resolve_digest_outcome(
+         delivery_id,
+         status,
+         digest_flush_outcome,
+         digest_delivery_id,
+         reason,
+         opts
+       ) do
+    resolved_at =
+      opts
+      |> Keyword.get(:resolved_at, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    {updated_count, _rows} =
+      Repo.update_all(
+        from(d in Delivery,
+          where:
+            d.id == ^delivery_id and d.status == :pending and
+              d.orchestration_state == :digest_held
+        ),
+        set: [
+          status: status,
+          orchestration_state: :ready,
+          digest_flush_outcome: digest_flush_outcome,
+          digest_flush_reason: reason,
+          digest_flush_resolved_at: resolved_at,
+          digest_delivery_id: digest_delivery_id,
+          updated_at: resolved_at
+        ]
+      )
+
+    updated_delivery = get_delivery!(delivery_id)
+
+    if updated_count == 1 do
+      {:ok, updated_delivery}
+    else
+      {:noop, updated_delivery}
+    end
   end
 
   @sensitive_keys ~w(password token secret)

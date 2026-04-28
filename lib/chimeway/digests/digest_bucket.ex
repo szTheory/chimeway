@@ -27,8 +27,12 @@ defmodule Chimeway.Digests.DigestBucket do
     field(:member_count, :integer, default: 0)
     field(:first_accumulated_at, :utc_datetime_usec)
     field(:last_accumulated_at, :utc_datetime_usec)
+    field(:flush_state, Ecto.Enum, values: [:pending, :claimed, :emitted], default: :pending)
+    field(:claimed_at, :utc_datetime_usec)
+    field(:emitted_at, :utc_datetime_usec)
 
     belongs_to(:digest_rule, DigestRule)
+    belongs_to(:digest_delivery, Chimeway.Delivery)
     has_many(:memberships, DigestMembership)
 
     timestamps(type: :utc_datetime_usec)
@@ -47,7 +51,15 @@ defmodule Chimeway.Digests.DigestBucket do
     window_ends_at
   )a
 
-  @optional_fields ~w(member_count first_accumulated_at last_accumulated_at)a
+  @optional_fields ~w(
+    member_count
+    first_accumulated_at
+    last_accumulated_at
+    flush_state
+    claimed_at
+    emitted_at
+    digest_delivery_id
+  )a
 
   def changeset(bucket, attrs) do
     bucket
@@ -57,6 +69,7 @@ defmodule Chimeway.Digests.DigestBucket do
     |> validate_inclusion(:grouping_mode, @grouping_mode_values)
     |> validate_inclusion(:window_kind, @window_kind_values)
     |> validate_number(:member_count, greater_than_or_equal_to: 0)
+    |> validate_inclusion(:flush_state, [:pending, :claimed, :emitted])
     |> unique_constraint(:grouping_value, name: :chimeway_digest_buckets_identity_index)
   end
 end
