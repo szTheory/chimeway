@@ -112,7 +112,7 @@ Success criteria:
 | 18 | Scheduled Resume & Deferred Dispatch | 3/3 | Complete    | 2026-04-28 |
 | 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
 | 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
-| 21 | Template Versioning & Rendering Contracts | 5/5 | Complete | 2026-04-28 |
+| 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up
