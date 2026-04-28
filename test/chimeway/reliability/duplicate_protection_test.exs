@@ -189,13 +189,21 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
       assert delivery.status in Deliveries.terminal_states()
 
       attempt_count_before =
-        Repo.aggregate(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id), :count, :id)
+        Repo.aggregate(
+          from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id),
+          :count,
+          :id
+        )
 
       assert {:ok, [{:ok, returned}]} = Sync.dispatch([ctx.notification], [])
       assert returned.status == delivery.status
 
       attempt_count_after =
-        Repo.aggregate(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id), :count, :id)
+        Repo.aggregate(
+          from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id),
+          :count,
+          :id
+        )
 
       assert attempt_count_after == attempt_count_before
     end
@@ -211,7 +219,11 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
       assert Chimeway.Adapters.Test.delivered_messages() == []
 
       attempt_count =
-        Repo.aggregate(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id), :count, :id)
+        Repo.aggregate(
+          from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id),
+          :count,
+          :id
+        )
 
       assert attempt_count == 0
     end

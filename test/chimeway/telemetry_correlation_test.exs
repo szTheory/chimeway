@@ -38,7 +38,7 @@ defmodule Chimeway.TelemetryCorrelationTest do
 
     # Check delivery records
     deliveries = Repo.all(Delivery)
-    assert length(deliveries) > 0
+    assert deliveries != []
 
     # Find deliveries for this event
     event_deliveries =

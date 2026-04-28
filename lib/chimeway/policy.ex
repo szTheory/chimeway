@@ -27,8 +27,8 @@ defmodule Chimeway.Policy do
   alias Chimeway.Delivery
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
-  alias Chimeway.{Preferences, Repo}
   alias Chimeway.Policy.Settings
+  alias Chimeway.{Preferences, Repo}
   alias Chimeway.Telemetry
 
   @doc """
@@ -91,7 +91,10 @@ defmodule Chimeway.Policy do
     }
   end
 
-  defp check_channel_preferences(%Delivery{} = delivery, %{event: event, recipient_id: recipient_id}) do
+  defp check_channel_preferences(%Delivery{} = delivery, %{
+         event: event,
+         recipient_id: recipient_id
+       }) do
     if Preferences.channel_enabled?(recipient_id, event.notification_key, delivery.channel) do
       :ok
     else
@@ -107,14 +110,16 @@ defmodule Chimeway.Policy do
 
   defp check_category_preferences(_delivery, %{category: nil}), do: :ok
 
-  defp check_category_preferences(%Delivery{} = delivery, %{recipient_id: recipient_id, category: category}) do
+  defp check_category_preferences(%Delivery{} = delivery, %{
+         recipient_id: recipient_id,
+         category: category
+       }) do
     if Preferences.category_enabled?(recipient_id, category) do
       :ok
     else
-      Logger.debug("[chimeway] suppressing delivery",
+      Logger.debug("[chimeway] suppressing delivery category=#{category}",
         delivery_id: delivery.id,
-        reason: :category_disabled,
-        category: category
+        reason: :category_disabled
       )
 
       {:suppress, :category_disabled}

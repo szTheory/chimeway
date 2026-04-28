@@ -45,6 +45,7 @@ defmodule Chimeway.Reliability.TerminalConvergenceTest do
 
   alias Chimeway.Deliveries
   alias Chimeway.Dispatch.ObanWorker
+
   alias Chimeway.Reliability.TerminalConvergenceTest.{
     BouncedAdapter,
     PermanentAdapter,
@@ -81,7 +82,8 @@ defmodule Chimeway.Reliability.TerminalConvergenceTest do
       %{delivery: delivery} = create_pending_delivery()
 
       for n <- 1..4,
-          do: assert({:error, _} = perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: n))
+          do:
+            assert({:error, _} = perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: n))
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 5)
 
@@ -125,7 +127,9 @@ defmodule Chimeway.Reliability.TerminalConvergenceTest do
   describe "suppressed path (D-12)" do
     test "policy-suppressed delivery converges to :suppressed and lands in terminal_states/0" do
       %{delivery: delivery} = create_pending_delivery()
-      {:ok, suppressed} = Deliveries.suppress_delivery(delivery, :channel_disabled, checkpoint: :perform)
+
+      {:ok, suppressed} =
+        Deliveries.suppress_delivery(delivery, :channel_disabled, checkpoint: :perform)
 
       assert suppressed.status == :suppressed
       assert suppressed.suppression_reason == "channel_disabled"

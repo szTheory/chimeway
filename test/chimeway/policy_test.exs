@@ -203,7 +203,8 @@ defmodule Chimeway.PolicyTest do
 
       second_delivery = insert_delivery(notification, "email")
 
-      assert Chimeway.Policy.Settings.evaluate(second_delivery) == {:suppress, :delivery_cap_reached}
+      assert Chimeway.Policy.Settings.evaluate(second_delivery) ==
+               {:suppress, :delivery_cap_reached}
     end
   end
 

@@ -228,56 +228,7 @@ defmodule Chimeway.Deliveries do
         notification_key: Map.get(delivery.metadata || %{}, "notification_key")
       }),
       fn ->
-        outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
-        error_class = Map.get(attrs, :error_class) || Map.get(attrs, "error_class")
-
-        safe_attrs =
-          attrs
-          |> coerce_provider_response_to_atom_key()
-          |> Map.update(:provider_response, nil, &sanitize_metadata/1)
-          |> Map.put(:delivery_id, delivery.id)
-
-        result =
-          Multi.new()
-          |> Multi.run(:lock_delivery, fn repo, _changes ->
-            # W8 preemptive fix: SELECT FOR UPDATE serializes concurrent
-            # record_attempt/2 callers for the same delivery_id. With this lock,
-            # attempt_number contiguity is invariant under concurrent execution.
-            case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
-              nil -> {:error, :delivery_not_found}
-              locked -> {:ok, locked}
-            end
-          end)
-          |> Multi.run(:next_attempt_number, fn repo, %{lock_delivery: locked} ->
-            next_n =
-              from(a in DeliveryAttempt,
-                where: a.delivery_id == ^locked.id,
-                select: count(a.id)
-              )
-              |> repo.one()
-              |> Kernel.+(1)
-
-            {:ok, next_n}
-          end)
-          |> Multi.insert(:attempt, fn %{next_attempt_number: n, lock_delivery: locked} ->
-            attempt_attrs =
-              safe_attrs
-              |> Map.put(:delivery_id, locked.id)
-              |> Map.put(:attempt_number, n)
-
-            DeliveryAttempt.changeset(%DeliveryAttempt{}, attempt_attrs)
-          end)
-          |> Multi.run(:delivery, fn _repo, %{lock_delivery: locked} ->
-            terminal_or_failed_transition(locked, outcome, error_class)
-          end)
-          |> Repo.transaction()
-          |> case do
-            {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
-              {:ok, %{delivery: updated_delivery, attempt: attempt}}
-
-            {:error, step, reason, changes} ->
-              {:error, step, reason, changes}
-          end
+        result = do_record_attempt(delivery, attrs)
 
         extra =
           case result do
@@ -296,6 +247,58 @@ defmodule Chimeway.Deliveries do
         {result, extra}
       end
     )
+  end
+
+  defp do_record_attempt(%Delivery{} = delivery, attrs) do
+    outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
+    error_class = Map.get(attrs, :error_class) || Map.get(attrs, "error_class")
+
+    safe_attrs =
+      attrs
+      |> coerce_provider_response_to_atom_key()
+      |> Map.update(:provider_response, nil, &sanitize_metadata/1)
+      |> Map.put(:delivery_id, delivery.id)
+
+    Multi.new()
+    |> Multi.run(:lock_delivery, fn repo, _changes ->
+      # W8 preemptive fix: SELECT FOR UPDATE serializes concurrent
+      # record_attempt/2 callers for the same delivery_id. With this lock,
+      # attempt_number contiguity is invariant under concurrent execution.
+      case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
+        nil -> {:error, :delivery_not_found}
+        locked -> {:ok, locked}
+      end
+    end)
+    |> Multi.run(:next_attempt_number, fn repo, %{lock_delivery: locked} ->
+      next_n =
+        from(a in DeliveryAttempt,
+          where: a.delivery_id == ^locked.id,
+          select: count(a.id)
+        )
+        |> repo.one()
+        |> Kernel.+(1)
+
+      {:ok, next_n}
+    end)
+    |> Multi.insert(:attempt, fn %{next_attempt_number: n, lock_delivery: locked} ->
+      attempt_attrs =
+        safe_attrs
+        |> Map.put(:delivery_id, locked.id)
+        |> Map.put(:attempt_number, n)
+
+      DeliveryAttempt.changeset(%DeliveryAttempt{}, attempt_attrs)
+    end)
+    |> Multi.run(:delivery, fn _repo, %{lock_delivery: locked} ->
+      terminal_or_failed_transition(locked, outcome, error_class)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
+        {:ok, %{delivery: updated_delivery, attempt: attempt}}
+
+      {:error, step, reason, changes} ->
+        {:error, step, reason, changes}
+    end
   end
 
   defp coerce_provider_response_to_atom_key(attrs) do

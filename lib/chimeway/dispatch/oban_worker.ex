@@ -11,7 +11,15 @@ if Code.ensure_loaded?(Oban) do
     scenario and extend either `Executor.classify/1` or the documented worker
     clauses.
     """
-    defexception [:message, :delivery_id, :outcome, :error_class, :status, :attempt, :max_attempts]
+    defexception [
+      :message,
+      :delivery_id,
+      :outcome,
+      :error_class,
+      :status,
+      :attempt,
+      :max_attempts
+    ]
 
     @impl true
     def exception(opts) do
@@ -167,8 +175,13 @@ if Code.ensure_loaded?(Oban) do
     # - permanent/bounced (delivery already :cancelled) -> :ok (record_attempt converged)
     # - temporary AND attempt == max_attempts           -> exhaust_delivery + :ok
     # - temporary AND attempt < max_attempts            -> {:error, reason}
-    defp map_outcome_to_oban_return(%DeliveryAttempt{outcome: :succeeded}, _delivery, _attempt, _max),
-      do: :ok
+    defp map_outcome_to_oban_return(
+           %DeliveryAttempt{outcome: :succeeded},
+           _delivery,
+           _attempt,
+           _max
+         ),
+         do: :ok
 
     defp map_outcome_to_oban_return(
            %DeliveryAttempt{error_class: error_class},
@@ -213,38 +226,41 @@ if Code.ensure_loaded?(Oban) do
     #     documented map_outcome_to_oban_return clauses do not cover, or some
     #     adapter return path bypassed classification). Surface it loudly so the
     #     operator notices instead of silently leaking a non-terminal delivery row.
-    defp map_outcome_to_oban_return(%DeliveryAttempt{} = recorded, %Delivery{} = delivery, attempt_n, max) do
-      cond do
-        attempt_n >= max and delivery.status == :failed ->
-          # Branch A: convergence — mirror the temporary/exhaustion path.
-          case Deliveries.exhaust_delivery(delivery) do
-            {:ok, _exhausted} ->
-              :ok
+    defp map_outcome_to_oban_return(
+           %DeliveryAttempt{} = recorded,
+           %Delivery{} = delivery,
+           attempt_n,
+           max
+         ) do
+      if attempt_n >= max and delivery.status == :failed do
+        # Branch A: convergence — mirror the temporary/exhaustion path.
+        case Deliveries.exhaust_delivery(delivery) do
+          {:ok, _exhausted} ->
+            :ok
 
-            {:error, exhaust_reason} ->
-              {:error,
-               {:exhaust_failed, exhaust_reason,
-                {:unhandled_outcome, recorded.outcome, recorded.error_class, delivery.status}}}
-          end
+          {:error, exhaust_reason} ->
+            {:error,
+             {:exhaust_failed, exhaust_reason,
+              {:unhandled_outcome, recorded.outcome, recorded.error_class, delivery.status}}}
+        end
+      else
+        # Branch B: loud failure — the convergence helper cannot legally write
+        # from this state, OR we still have retries to burn but the shape is wrong.
+        # Either way the catch-all itself is the bug; raise so the contract violation
+        # is impossible to miss.
+        Logger.error(
+          "unhandled delivery outcome (BL-02): delivery_id=#{inspect(delivery.id)} " <>
+            "outcome=#{inspect(recorded.outcome)} error_class=#{inspect(recorded.error_class)} " <>
+            "status=#{inspect(delivery.status)} attempt=#{attempt_n}/#{max}"
+        )
 
-        true ->
-          # Branch B: loud failure — the convergence helper cannot legally write
-          # from this state, OR we still have retries to burn but the shape is wrong.
-          # Either way the catch-all itself is the bug; raise so the contract violation
-          # is impossible to miss.
-          Logger.error(
-            "unhandled delivery outcome (BL-02): delivery_id=#{inspect(delivery.id)} " <>
-              "outcome=#{inspect(recorded.outcome)} error_class=#{inspect(recorded.error_class)} " <>
-              "status=#{inspect(delivery.status)} attempt=#{attempt_n}/#{max}"
-          )
-
-          raise Chimeway.Dispatch.UnhandledOutcomeError,
-            delivery_id: delivery.id,
-            outcome: recorded.outcome,
-            error_class: recorded.error_class,
-            status: delivery.status,
-            attempt: attempt_n,
-            max_attempts: max
+        raise Chimeway.Dispatch.UnhandledOutcomeError,
+          delivery_id: delivery.id,
+          outcome: recorded.outcome,
+          error_class: recorded.error_class,
+          status: delivery.status,
+          attempt: attempt_n,
+          max_attempts: max
       end
     end
 

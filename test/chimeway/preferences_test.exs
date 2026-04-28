@@ -2,8 +2,8 @@ defmodule Chimeway.PreferencesTest do
   use Chimeway.DataCase, async: true
 
   alias Chimeway.Preferences
-  alias Chimeway.Preferences.NotificationPreference
   alias Chimeway.Preferences.CategoryPreference
+  alias Chimeway.Preferences.NotificationPreference
   alias Chimeway.Repo
 
   describe "upsert_preference/1 and channel_enabled?/3" do

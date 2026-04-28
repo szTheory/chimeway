@@ -14,7 +14,15 @@ defmodule Chimeway.Policy.Settings do
     %Setting{}
     |> Setting.changeset(attrs)
     |> Repo.insert(
-      on_conflict: {:replace, [:quiet_hours_start_minute, :quiet_hours_end_minute, :delivery_cap_count, :delivery_cap_window_minutes, :updated_at]},
+      on_conflict:
+        {:replace,
+         [
+           :quiet_hours_start_minute,
+           :quiet_hours_end_minute,
+           :delivery_cap_count,
+           :delivery_cap_window_minutes,
+           :updated_at
+         ]},
       conflict_target: [:recipient_id]
     )
   end
@@ -32,21 +40,14 @@ defmodule Chimeway.Policy.Settings do
   """
   @spec evaluate(Delivery.t()) :: {:ok, :proceed} | {:suppress, atom()}
   def evaluate(%Delivery{} = delivery) do
-    case recipient_identity_for(delivery) do
-      nil ->
-        {:ok, :proceed}
-
-      recipient_id ->
-        case get_settings(recipient_id) do
-          nil ->
-            {:ok, :proceed}
-
-          %Setting{} = settings ->
-            with :ok <- maybe_suppress_quiet_hours(settings),
-                 :ok <- maybe_suppress_delivery_cap(delivery, settings, recipient_id) do
-              {:ok, :proceed}
-            end
-        end
+    with recipient_id when not is_nil(recipient_id) <- recipient_identity_for(delivery),
+         %Setting{} = settings <- get_settings(recipient_id),
+         :ok <- maybe_suppress_quiet_hours(settings),
+         :ok <- maybe_suppress_delivery_cap(delivery, settings, recipient_id) do
+      {:ok, :proceed}
+    else
+      nil -> {:ok, :proceed}
+      {:suppress, reason} -> {:suppress, reason}
     end
   end
 

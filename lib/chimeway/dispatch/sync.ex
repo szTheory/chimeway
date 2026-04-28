@@ -57,8 +57,11 @@ defmodule Chimeway.Dispatch.Sync do
       {:ok, delivery}
     else
       case Policy.evaluate(delivery, check_read_state: delivery.delay_fallback) do
-        {:suppress, reason} -> Deliveries.suppress_delivery(delivery, reason, checkpoint: :perform)
-        {:ok, :proceed} -> do_dispatch_with_telemetry(delivery)
+        {:suppress, reason} ->
+          Deliveries.suppress_delivery(delivery, reason, checkpoint: :perform)
+
+        {:ok, :proceed} ->
+          do_dispatch_with_telemetry(delivery)
       end
     end
   end
