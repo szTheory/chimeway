@@ -21,6 +21,7 @@ defmodule Chimeway.Policy.Settings do
            :quiet_hours_end_minute,
            :delivery_cap_count,
            :delivery_cap_window_minutes,
+           :time_zone,
            :updated_at
          ]},
       conflict_target: [:recipient_id]

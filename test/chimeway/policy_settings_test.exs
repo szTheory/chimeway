@@ -45,8 +45,10 @@ defmodule Chimeway.PolicySettingsTest do
 
       refute invalid_changeset.valid?
 
-      assert %{time_zone: [{"is invalid", _validation}]} =
-               Ecto.Changeset.traverse_errors(invalid_changeset, fn {message, _opts} -> message end)
+      assert %{time_zone: ["is invalid"]} =
+               Ecto.Changeset.traverse_errors(invalid_changeset, fn {message, _opts} ->
+                 message
+               end)
     end
 
     test "updates time_zone through the upsert conflict path" do

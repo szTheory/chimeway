@@ -21,6 +21,14 @@ defmodule Chimeway.Delivery do
       default: :pending
     )
 
+    field(:orchestration_state, Ecto.Enum,
+      values: [:ready, :deferred, :digest_held],
+      default: :ready
+    )
+
+    field(:next_eligible_at, :utc_datetime_usec)
+    field(:planning_reason, :string)
+    field(:planning_context, :map)
     field(:suppression_reason, :string)
     field(:delay_fallback, :boolean, default: false)
     field(:metadata, :map)
@@ -32,7 +40,15 @@ defmodule Chimeway.Delivery do
   end
 
   @required_fields ~w(notification_id channel status)a
-  @optional_fields ~w(suppression_reason delay_fallback metadata)a
+  @optional_fields ~w(
+    orchestration_state
+    next_eligible_at
+    planning_reason
+    planning_context
+    suppression_reason
+    delay_fallback
+    metadata
+  )a
 
   def changeset(delivery, attrs) do
     delivery
