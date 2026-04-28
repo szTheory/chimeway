@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: planning
-stopped_at: Phase 22 context gathered (assumptions mode)
-last_updated: "2026-04-28T21:16:45.103Z"
-last_activity: 2026-04-28
+status: executing
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-04-28T21:58:58.154Z"
+last_activity: 2026-04-28 -- Plan 22-01 completed
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 19
-  completed_plans: 19
-  percent: 100
+  total_plans: 22
+  completed_plans: 20
+  percent: 91
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 21.1 — Rendering durability and preview hardening
+**Current focus:** Phase 22 — Recovery & Outcome Analytics
 
 ## Current Position
 
-Phase: 22
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-28
+Phase: 22 — EXECUTING
+Plan: 2 of 3
+Status: Plan 22-01 completed; Phase 22 execution continues
+Last activity: 2026-04-28 -- Plan 22-01 completed
 
 ## Accumulated Context
 
@@ -92,6 +92,8 @@ Recent decisions affecting current work:
 - Phase 21 local preview uses the same production rendering declaration and channel validation path as dispatch planning.
 - Phase 21 local preview uses the same production rendering declaration and channel validation path as dispatch planning.
 - The Mix task remains a convenience shell that parses local inputs, delegates to Chimeway.preview_rendering/3, and prints stable render identity plus validated payload data.
+- Recovery detection for Phase 22 now relies on canonical event/notification/delivery tables only and never inspects Oban job state.
+- Recovery claims stamp recovery_source, recovery_reason, and recovered_at on the canonical delivery row exactly once, with duplicate attempts converging to {:noop, delivery}.
 
 ### Pending Todos
 
@@ -112,8 +114,8 @@ None.
 
 ### Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 22 context gathered (assumptions mode)
-Resume file: --resume-file
+Last session: 2026-04-28T21:57:58Z
+Stopped at: Completed 22-01-PLAN.md
+Resume file: .planning/phases/22-recovery-outcome-analytics/22-01-SUMMARY.md
 
-**Planned Phase:** 21.1 (rendering-durability-and-preview-hardening) — 2 plans — 2026-04-28T20:41:36.483Z
+**Planned Phase:** 22 (recovery-outcome-analytics) — 3 plans — 2026-04-28T21:57:58Z
