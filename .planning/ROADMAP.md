@@ -82,7 +82,7 @@ Success criteria:
 
 | Phase | Name | Goal | Requirements | Success Criteria |
 |-------|------|------|--------------|------------------|
-| 17 | Delivery Windows & Deferral Semantics | Model immediate vs deferred behavior durably | ORCH-01, ORCH-02 | 3 |
+| 17 | Delivery Windows & Deferral Semantics | 3/3 | Complete    | 2026-04-28 |
 | 18 | Scheduled Resume & Deferred Dispatch | Resume deferred work safely | ORCH-03 | 3 |
 | 19 | Digest Data Model & Accumulation | Persist digest rules and accumulation | DIGEST-01 | 3 |
 | 20 | Digest Emission & Explainability | Dispatch digests and explain membership | DIGEST-02, DIGEST-03 | 3 |
