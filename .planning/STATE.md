@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: executing
-stopped_at: Completed 21-04-PLAN.md
-last_updated: "2026-04-28T19:28:34.631Z"
+status: verifying
+stopped_at: Completed 21-05-PLAN.md
+last_updated: "2026-04-28T19:36:11.283Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 17
-  completed_plans: 16
-  percent: 94
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 
 Phase: 21 (template-versioning-rendering-contracts) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-28
 
 ## Accumulated Context
@@ -87,6 +87,9 @@ Recent decisions affecting current work:
 - Canonical delivery rows now persist validated render_data during planning so adapters and workers consume one durable render artifact.
 - Trace explanations project render_key and render_version only; rendered bodies and raw render_data remain excluded from operator surfaces.
 - Unsupported custom channels keep durable render identity and empty render_data rather than re-entering rendering inside adapters.
+- Preview stays pure and non-persistent by routing through Notifier.resolve_rendering/3 and Rendering.render_delivery/4 without delivery-row writes.
+- The Mix task remains a convenience shell that parses local inputs, delegates to Chimeway.preview_rendering/3, and prints stable render identity plus validated payload data.
+- Phase 21 local preview uses the same production rendering declaration and channel validation path as dispatch planning.
 
 ### Pending Todos
 
@@ -103,8 +106,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T19:28:34.617Z
-Stopped at: Completed 21-04-PLAN.md
+Last session: 2026-04-28T19:36:11.274Z
+Stopped at: Completed 21-05-PLAN.md
 Resume file: None
 
 **Planned Phase:** 21 (Template Versioning & Rendering Contracts) — 5 plans — 2026-04-28T19:18:51Z

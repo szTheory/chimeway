@@ -22,7 +22,7 @@
 
 - [x] **TMPL-01**: Notification content can be versioned independently from notifier module names so rendering changes remain durable and traceable.
 - [x] **TMPL-02**: Channel-specific rendering contracts are explicit and testable, including structured assigns for in-app and outbound channels.
-- [ ] **TMPL-03**: Developers can preview or verify rendered notification content before provider delivery.
+- [x] **TMPL-03**: Developers can preview or verify rendered notification content before provider delivery.
 
 ### Recovery & Analytics
 
@@ -62,7 +62,7 @@
 | DIGEST-03 | Phase 20 | Pending |
 | TMPL-01 | Phase 21 | Complete |
 | TMPL-02 | Phase 21 | Complete |
-| TMPL-03 | Phase 21 | Pending |
+| TMPL-03 | Phase 21 | Complete |
 | OPS-01 | Phase 22 | Pending |
 | OPS-02 | Phase 22 | Pending |
 

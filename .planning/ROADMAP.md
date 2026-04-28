@@ -80,14 +80,14 @@ Success criteria:
 **Goal**: Make notification content versioned, channel-aware, and previewable without coupling durable history to notifier module changes.
 **Depends on**: Phase 20
 **Requirements**: TMPL-01, TMPL-02, TMPL-03
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [x] 21-01-PLAN.md — Add durable rendering fields and the normalized notifier rendering declaration seam.
 - [x] 21-02-PLAN.md — Persist render assigns once and stamp canonical delivery rows with render identity during planning.
 - [x] 21-03-PLAN.md — Build explicit validated in-app and email renderer contracts.
 - [x] 21-04-PLAN.md — Materialize validated render output on delivery rows and keep traces payload-safe.
-- [ ] 21-05-PLAN.md — Expose the pure preview API and the thin Mix wrapper over the production render pipeline.
+- [x] 21-05-PLAN.md — Expose the pure preview API and the thin Mix wrapper over the production render pipeline.
 
 Success criteria:
 1. Notification content versions are persisted as durable rendering identity separate from notifier module names.
@@ -112,9 +112,9 @@ Success criteria:
 | 18 | Scheduled Resume & Deferred Dispatch | 3/3 | Complete    | 2026-04-28 |
 | 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
 | 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
-| 21 | Template Versioning & Rendering Contracts | 4/5 | In Progress|  |
+| 21 | Template Versioning & Rendering Contracts | 5/5 | Complete | 2026-04-28 |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up
 
-**Phase 21: Template Versioning & Rendering Contracts** — Make notification content versioned, channel-aware, and previewable without coupling durable history to notifier module changes.
+**Phase 22: Recovery & Outcome Analytics** — Close the remaining operational trust gaps with reconciliation paths and aggregate outcome queries.
