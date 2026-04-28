@@ -179,8 +179,11 @@ defmodule Chimeway.Digests.Accumulation do
          },
          accumulated_at
        ) do
-    {:ok, local_accumulated_at} =
-      DateTime.shift_zone(accumulated_at, boundary_time_zone, time_zone_database())
+    local_accumulated_at =
+      case DateTime.shift_zone(accumulated_at, boundary_time_zone, time_zone_database()) do
+        {:ok, datetime} -> datetime
+        {:error, reason} -> Repo.rollback({:invalid_boundary_time_zone, reason})
+      end
 
     boundary_date = DateTime.to_date(local_accumulated_at)
 
@@ -272,8 +275,9 @@ defmodule Chimeway.Digests.Accumulation do
         inc: [member_count: 1],
         set: [
           first_accumulated_at:
-            fragment("COALESCE(?, ?)", b.first_accumulated_at, ^accumulated_at),
-          last_accumulated_at: ^accumulated_at,
+            fragment("COALESCE(LEAST(?, ?), ?)", b.first_accumulated_at, ^accumulated_at, ^accumulated_at),
+          last_accumulated_at:
+            fragment("COALESCE(GREATEST(?, ?), ?)", b.last_accumulated_at, ^accumulated_at, ^accumulated_at),
           updated_at: ^accumulated_at
         ]
       ]

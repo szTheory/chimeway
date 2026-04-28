@@ -46,6 +46,7 @@ defmodule Chimeway.Digests.DigestRule do
     |> validate_inclusion(:group_by, @group_by_values)
     |> validate_inclusion(:window_kind, @window_kind_values)
     |> validate_window_requirements()
+    |> validate_boundary_time_zone()
     |> unique_constraint([:rule_key, :rule_version],
       name: :chimeway_digest_rules_rule_key_rule_version_index
     )
@@ -67,5 +68,25 @@ defmodule Chimeway.Digests.DigestRule do
       _ ->
         changeset
     end
+  end
+
+  defp validate_boundary_time_zone(changeset) do
+    validate_change(changeset, :boundary_time_zone, fn :boundary_time_zone, time_zone ->
+      if valid_time_zone?(time_zone) do
+        []
+      else
+        [boundary_time_zone: "is invalid"]
+      end
+    end)
+  end
+
+  defp valid_time_zone?(time_zone) when is_binary(time_zone) and byte_size(time_zone) > 0 do
+    match?({:ok, _}, DateTime.now(time_zone, time_zone_database()))
+  end
+
+  defp valid_time_zone?(_time_zone), do: false
+
+  defp time_zone_database do
+    Application.get_env(:chimeway, :time_zone_database, Calendar.get_time_zone_database())
   end
 end

@@ -60,9 +60,9 @@ defmodule Chimeway.Digests do
     digest_key = Map.get(attrs, :digest_key)
 
     [
+      digest_key_query(channel, notification_key, digest_key),
       notification_key_query(channel, notification_key),
-      category_query(channel, category),
-      digest_key_query(channel, notification_key, digest_key)
+      category_query(channel, category)
     ]
     |> Enum.reject(&is_nil/1)
   end

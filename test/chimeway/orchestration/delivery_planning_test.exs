@@ -1,5 +1,5 @@
 defmodule Chimeway.Orchestration.DeliveryPlanningTest do
-  use Chimeway.DataCase, async: true
+  use Chimeway.DataCase, async: false
 
   alias Chimeway.{Delivery, DeliveryPlanning, Digests, Preferences, Repo}
   alias Chimeway.Digests.{DigestBucket, DigestMembership}
@@ -7,6 +7,13 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
   alias Chimeway.Notifications.Notification
   alias Chimeway.Policy.Settings
   import Ecto.Query, only: [from: 2]
+
+  setup do
+    Repo.delete_all(DigestMembership)
+    Repo.delete_all(DigestBucket)
+    Repo.delete_all(Chimeway.Digests.DigestRule)
+    :ok
+  end
 
   defmodule DigestEmailNotifier do
     use Chimeway.Notifier

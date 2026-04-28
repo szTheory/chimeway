@@ -1,8 +1,13 @@
 defmodule Chimeway.Digests.DigestRuleTest do
-  use Chimeway.DataCase, async: true
+  use Chimeway.DataCase, async: false
 
   alias Chimeway.{Digests, Repo}
   alias Chimeway.Digests.DigestRule
+
+  setup do
+    Repo.delete_all(DigestRule)
+    :ok
+  end
 
   describe "changeset/2" do
     test "requires durable identity, channel, grouping, and window kind" do
@@ -70,6 +75,23 @@ defmodule Chimeway.Digests.DigestRuleTest do
       assert errors_on(changeset).boundary_hour == ["can't be blank"]
       assert errors_on(changeset).boundary_minute == ["can't be blank"]
       assert errors_on(changeset).boundary_time_zone == ["can't be blank"]
+    end
+
+    test "boundary windows reject invalid boundary_time_zone values" do
+      changeset =
+        DigestRule.changeset(
+          %DigestRule{},
+          valid_rule_attrs(%{
+            window_kind: :boundary,
+            window_minutes: nil,
+            boundary_hour: 9,
+            boundary_minute: 30,
+            boundary_time_zone: "Mars/Olympus"
+          })
+        )
+
+      refute changeset.valid?
+      assert "is invalid" in errors_on(changeset).boundary_time_zone
     end
   end
 
@@ -147,6 +169,39 @@ defmodule Chimeway.Digests.DigestRuleTest do
                  category: nil,
                  digest_key: "weekly:account:1"
                }).id
+    end
+
+    test "prefers digest_key rules over generic notification_key rules when digest_key is present" do
+      assert {:ok, generic_rule} =
+               Digests.upsert_rule(
+                 valid_rule_attrs(%{
+                   rule_key: "digest.generic",
+                   rule_version: 1,
+                   match_notification_key: "comment.created",
+                   group_by: :notification_key
+                 })
+               )
+
+      assert {:ok, digest_key_rule} =
+               Digests.upsert_rule(
+                 valid_rule_attrs(%{
+                   rule_key: "digest.explicit",
+                   rule_version: 1,
+                   match_notification_key: "comment.created",
+                   group_by: :digest_key
+                 })
+               )
+
+      matched_rule =
+        Digests.find_matching_rule(%{
+          channel: "email",
+          notification_key: "comment.created",
+          category: nil,
+          digest_key: "thread:123"
+        })
+
+      assert matched_rule.id == digest_key_rule.id
+      refute matched_rule.id == generic_rule.id
     end
   end
 

@@ -1,11 +1,18 @@
 defmodule Chimeway.Digests.AccumulationTest do
-  use Chimeway.DataCase, async: true
+  use Chimeway.DataCase, async: false
 
   alias Chimeway.{Deliveries, Repo}
   alias Chimeway.Digests
   alias Chimeway.Digests.{Accumulation, DigestBucket, DigestMembership}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+
+  setup do
+    Repo.delete_all(DigestMembership)
+    Repo.delete_all(DigestBucket)
+    Repo.delete_all(Chimeway.Digests.DigestRule)
+    :ok
+  end
 
   describe "accumulate_delivery/2" do
     test "inserts one membership for a pending digest-held delivery and creates one bucket" do
@@ -82,6 +89,47 @@ defmodule Chimeway.Digests.AccumulationTest do
       assert bucket.member_count == 1
       assert bucket.first_accumulated_at == accumulated_at
       assert bucket.last_accumulated_at == accumulated_at
+    end
+
+    test "keeps first and last accumulated timestamps ordered when deliveries arrive out of chronological order" do
+      insert_rule(%{
+        rule_key: "digest.comment.fixed",
+        match_notification_key: "comment.created",
+        group_by: :notification_key,
+        window_kind: :fixed,
+        window_minutes: 30
+      })
+
+      later_delivery =
+        insert_digest_held_delivery(%{
+          notification_key: "comment.created",
+          recipient_id: "user-ordered",
+          channel: "email"
+        })
+
+      earlier_delivery =
+        insert_digest_held_delivery(%{
+          notification_key: "comment.created",
+          recipient_id: "user-ordered",
+          channel: "email"
+        })
+
+      later_at = ~U[2026-01-15 10:20:00.000000Z]
+      earlier_at = ~U[2026-01-15 10:05:00.000000Z]
+
+      assert {:ok, %DigestBucket{} = bucket} =
+               Accumulation.accumulate_delivery(later_delivery, accumulated_at: later_at)
+
+      assert {:ok, %DigestBucket{} = second_bucket} =
+               Accumulation.accumulate_delivery(earlier_delivery, accumulated_at: earlier_at)
+
+      assert second_bucket.id == bucket.id
+
+      reloaded_bucket = Repo.get!(DigestBucket, bucket.id)
+
+      assert reloaded_bucket.member_count == 2
+      assert reloaded_bucket.first_accumulated_at == earlier_at
+      assert reloaded_bucket.last_accumulated_at == later_at
     end
 
     test "returns noop for suppressed, cancelled, or ready deliveries and creates no bucket or membership" do
