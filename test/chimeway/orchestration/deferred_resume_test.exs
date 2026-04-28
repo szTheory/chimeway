@@ -4,7 +4,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
 
   import Ecto.Query
 
-  alias Chimeway.{Deliveries, Delivery, Dispatch.DeferredResumeWorker, Dispatch.ObanWorker, Repo}
+  alias Chimeway.{Deliveries, Delivery, Dispatch.DeferredResumeWorker, Dispatch.ObanWorker, Repo, Traces}
   alias Chimeway.Test.DispatchHelpers
 
   setup do
@@ -200,6 +200,49 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
       assert superseded_delivery.status == :cancelled
       assert superseded_delivery.suppression_reason == "superseded"
       assert suppressed_delivery.suppression_reason != "superseded"
+    end
+
+    test "superseded deferred rows stay explainable as one converged history with zero attempts" do
+      delivery =
+        deferred_delivery_fixture(
+          notification_key: "deferred-resume.superseded-trace",
+          recipient_identity: "user:deferred-resume-superseded-trace",
+          next_eligible_at: ~U[2026-01-15 13:00:00Z]
+        )
+
+      assert {:ok, cancelled_delivery} =
+               Deliveries.cancel_deferred_delivery(
+                 delivery,
+                 "superseded",
+                 now: ~U[2026-01-15 12:59:00Z]
+               )
+
+      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: cancelled_delivery.id})
+
+      assert {:ok, explanation} = Traces.explain_delivery(cancelled_delivery.id)
+      assert explanation.status == :cancelled
+      assert explanation.suppression_reason == "superseded"
+      assert explanation.last_attempt == nil
+
+      assert Repo.aggregate(
+               from(d in Delivery, where: d.notification_id == ^cancelled_delivery.notification_id),
+               :count,
+               :id
+             ) == 1
+
+      assert Repo.aggregate(
+               from(a in assoc(cancelled_delivery, :attempts)),
+               :count,
+               :id
+             ) == 0
+
+      assert Enum.map(explanation.timeline, & &1.event) == [
+               :event_created,
+               :notification_created,
+               :delivery_planned,
+               :deferred,
+               :cancelled
+             ]
     end
   end
 

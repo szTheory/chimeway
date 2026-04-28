@@ -51,6 +51,39 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
     assert deferred_entries == []
   end
 
+  test "explain_delivery preserves deferral facts and surfaces durable resume audit fields" do
+    delivery =
+      insert_deferred_delivery()
+      |> resume_delivery(~U[2026-01-15 13:05:00Z], "scheduled_resume")
+
+    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(delivery.id)
+
+    assert explanation.status == :pending
+    assert explanation.planning_reason == "quiet_hours"
+    assert explanation.planning_context["time_zone"] == "America/New_York"
+    assert DateTime.compare(explanation.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
+    assert Map.get(explanation, :resume_source) == "scheduled_resume"
+    assert Map.get(explanation, :resume_scheduled_at) == ~U[2026-01-15 13:00:00Z]
+    assert Map.get(explanation, :resumed_at) == ~U[2026-01-15 13:05:00Z]
+
+    assert Enum.map(explanation.timeline, & &1.event) == [
+             :event_created,
+             :notification_created,
+             :delivery_planned,
+             :deferred,
+             :resumed
+           ]
+
+    resumed_entries = Enum.filter(explanation.timeline, &(&1.event == :resumed))
+    assert length(resumed_entries) == 1
+
+    [%{at: resumed_at, detail: resumed_detail}] = resumed_entries
+
+    assert resumed_at == ~U[2026-01-15 13:05:00Z]
+    assert resumed_detail.resume_source == "scheduled_resume"
+    assert resumed_detail.resume_scheduled_at == ~U[2026-01-15 13:00:00Z]
+  end
+
   defp insert_deferred_delivery do
     notification = insert_notification("user:trace-deferred")
     {:ok, delivery} = Deliveries.plan_delivery(notification.id, :email)
@@ -109,5 +142,16 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
       })
 
     notification
+  end
+
+  defp resume_delivery(delivery, now, source) do
+    {:ok, resumed_delivery} =
+      Deliveries.resume_deferred_delivery(
+        delivery.id,
+        now: now,
+        source: source
+      )
+
+    resumed_delivery
   end
 end

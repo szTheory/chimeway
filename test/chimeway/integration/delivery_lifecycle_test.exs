@@ -101,13 +101,14 @@ end
 
 defmodule Chimeway.Integration.DeliveryLifecycleTest do
   use Chimeway.DataCase, async: false
+  use Oban.Testing, repo: Chimeway.Repo
 
   @moduletag :integration
 
   import Ecto.Query
 
   alias Chimeway.Adapters.Test, as: TestAdapter
-  alias Chimeway.{Delivery, DeliveryAttempt, Repo, Traces}
+  alias Chimeway.{Delivery, DeliveryAttempt, Dispatch.ObanWorker, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Policy.Settings
@@ -649,6 +650,19 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
   end
 
   describe "Scenario I: deferred rows resume and cancel on the same delivery identity" do
+    setup do
+      previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      TestAdapter.clear()
+
+      on_exit(fn ->
+        Application.put_env(:chimeway, :adapter, previous_adapter)
+        TestAdapter.clear()
+      end)
+
+      :ok
+    end
+
     test "resume_deferred_delivery promotes the existing row to orchestration_state == :ready" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
@@ -688,8 +702,31 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert resumed_delivery.status == :pending
       assert resumed_delivery.orchestration_state == :ready
       assert resumed_delivery.metadata["resume_source"] == "scheduled_resume"
+      assert resumed_delivery.metadata["resume_scheduled_at"] == "2026-01-15T13:00:00.000000Z"
       assert resumed_delivery.metadata["resumed_at"] == "2026-01-15T13:00:00.000000Z"
       assert attempt_count(resumed_delivery.id) == 0
+
+      assert :ok = perform_job(ObanWorker, %{delivery_id: resumed_delivery.id})
+
+      assert {:ok, explanation} = Traces.explain_delivery(resumed_delivery.id)
+      assert explanation.status == :succeeded
+      assert explanation.planning_reason == "quiet_hours"
+      assert explanation.planning_context["time_zone"] == "America/New_York"
+      assert DateTime.compare(explanation.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
+      assert Map.get(explanation, :resume_source) == "scheduled_resume"
+      assert Map.get(explanation, :resume_scheduled_at) == ~U[2026-01-15 13:00:00Z]
+      assert Map.get(explanation, :resumed_at) == ~U[2026-01-15 13:00:00Z]
+      assert attempt_count(resumed_delivery.id) == 1
+
+      assert explanation.timeline
+             |> Enum.map(& &1.event)
+             |> Enum.take(5) == [
+               :event_created,
+               :notification_created,
+               :delivery_planned,
+               :deferred,
+               :resumed
+             ]
     end
 
     test "cancel_deferred_delivery keeps the same row and marks supersession on suppression_reason == \"superseded\"" do
@@ -730,6 +767,22 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert cancelled_delivery.orchestration_state == :deferred
       assert cancelled_delivery.suppression_reason == "superseded"
       assert attempt_count(cancelled_delivery.id) == 0
+
+      assert :ok = perform_job(ObanWorker, %{delivery_id: cancelled_delivery.id})
+
+      assert {:ok, explanation} = Traces.explain_delivery(cancelled_delivery.id)
+      assert explanation.status == :cancelled
+      assert explanation.suppression_reason == "superseded"
+      assert explanation.last_attempt == nil
+      assert attempt_count(cancelled_delivery.id) == 0
+
+      assert Enum.map(explanation.timeline, & &1.event) == [
+               :event_created,
+               :notification_created,
+               :delivery_planned,
+               :deferred,
+               :cancelled
+             ]
     end
   end
 
