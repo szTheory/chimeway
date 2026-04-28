@@ -146,7 +146,7 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
                  channel: "email"
                )
 
-      assert preview == production_render
+      assert Map.from_struct(preview) == production_render
     end
 
     test "returns tagged production-style errors for invalid channels and malformed assigns" do

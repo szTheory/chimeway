@@ -4,6 +4,7 @@ defmodule Chimeway do
   """
 
   alias Chimeway.Inbox
+  alias Chimeway.Rendering.Preview
   alias Chimeway.Trigger
 
   @doc """
@@ -11,6 +12,13 @@ defmodule Chimeway do
   """
   def trigger(notifier, params, opts \\ []) do
     Trigger.trigger(notifier, params, opts)
+  end
+
+  @doc """
+  Previews a single channel rendering without persisting rows or dispatching traffic.
+  """
+  def preview_rendering(notifier, params, opts \\ []) do
+    Preview.preview(notifier, params, opts)
   end
 
   @doc """
