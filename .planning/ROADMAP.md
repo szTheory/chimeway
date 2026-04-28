@@ -96,13 +96,19 @@ Success criteria:
 
 ### Phase 21.1: Rendering durability and preview hardening (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Harden render declaration durability and preview safety so persisted render identity never depends on planner-time notifier re-entry or executable preview inputs.
+**Requirements**: TMPL-01, TMPL-02, TMPL-03
 **Depends on:** Phase 21
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 21.1 to break down)
+- [ ] 21.1-01-PLAN.md — Persist notification-level render declarations and remove planner-time rendering re-entry.
+- [ ] 21.1-02-PLAN.md — Harden preview boundary errors and replace executable Mix-task inputs with safe JSON parsing.
+
+Success criteria:
+1. Notification rows persist channel-scoped render identity at trigger time and delivery planning renders from that durable snapshot only.
+2. Planner and dispatch flows never re-enter notifier rendering callbacks after trigger time, and missing declaration data fails explicitly.
+3. Preview APIs and the Mix wrapper return tagged boundary failures and accept data-only JSON inputs without evaluating developer-provided Elixir.
 
 ### Phase 22: Recovery & Outcome Analytics
 **Goal**: Close the remaining operational trust gaps with reconciliation paths and aggregate outcome queries.
@@ -123,7 +129,7 @@ Success criteria:
 | 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
 | 20 | Digest Emission & Explainability | 3/3 | Complete | 2026-04-28 |
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
-| 21.1 | Rendering durability and preview hardening | Urgent review follow-up | TBD | 0 |
+| 21.1 | Rendering durability and preview hardening | Harden render durability and preview safety | TMPL-01, TMPL-02, TMPL-03 | 2 |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up
