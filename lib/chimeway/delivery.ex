@@ -39,6 +39,9 @@ defmodule Chimeway.Delivery do
     field(:digest_flush_resolved_at, :utc_datetime_usec)
     field(:delay_fallback, :boolean, default: false)
     field(:metadata, :map)
+    field(:render_key, :string)
+    field(:render_version, :integer)
+    field(:render_data, :map, default: %{})
 
     belongs_to(:notification, Notification)
     belongs_to(:digest_delivery, Chimeway.Delivery)
@@ -60,6 +63,9 @@ defmodule Chimeway.Delivery do
     digest_delivery_id
     delay_fallback
     metadata
+    render_key
+    render_version
+    render_data
   )a
 
   def changeset(delivery, attrs) do
