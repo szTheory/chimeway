@@ -82,7 +82,12 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     def rendering(_params, _recipient) do
       {:ok,
        %{
-         assigns: %{"headline" => "Rendered once"},
+         assigns: %{
+           "headline" => "Rendered once",
+           "subject" => "Rendered once",
+           "html_body" => "<p>Rendered once</p>",
+           "text_body" => "Rendered once"
+         },
          channels: %{
            email: %{render_key: "delivery-planning.rendering.email", render_version: 6}
          }
@@ -277,6 +282,31 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert replanned.render_key == "delivery-planning.rendering.email"
     assert replanned.render_version == 6
     assert delivery_count_for(notification.id) == 1
+  end
+
+  test "planning materializes validated render_data on the delivery row before dispatchable state" do
+    notification =
+      insert_notification("user-rendering", %{}, %{
+        metadata: %{"headline" => "Rendered once"},
+        render_assigns: %{"headline" => "Rendered once"}
+      })
+
+    assert {:ok, [delivery]} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: RenderIdentityNotifier,
+               trigger_params: %{}
+             )
+
+    assert delivery.status == :pending
+    assert delivery.orchestration_state == :ready
+    assert delivery.render_key == "delivery-planning.rendering.email"
+    assert delivery.render_version == 6
+
+    assert delivery.render_data == %{
+             "subject" => "Rendered once",
+             "html_body" => "<p>Rendered once</p>",
+             "text_body" => "Rendered once"
+           }
   end
 
   defp insert_notification(recipient_identity, payload \\ %{}, attrs \\ %{}) do

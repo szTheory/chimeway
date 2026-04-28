@@ -99,6 +99,44 @@ defmodule ChimewayTest.Notifiers.LifecycleDigestHeld do
   def orchestration(_params, _recipient), do: {:ok, :digest_held}
 end
 
+defmodule ChimewayTest.Notifiers.LifecycleRenderedEmail do
+  @behaviour Chimeway.Notifier
+  def notification_key, do: "test.lifecycle_rendered_email"
+  def version, do: 3
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient) do
+    if test_pid = test_pid(), do: send(test_pid, {:build_called, self()})
+    {:ok, %{legacy: true}}
+  end
+
+  def channels(_params, _recipient), do: {:ok, [:email]}
+
+  def rendering(_params, _recipient) do
+    if test_pid = test_pid(), do: send(test_pid, {:rendering_called, self()})
+
+    {:ok,
+     %{
+       assigns: %{
+         "subject" => "Render subject",
+         "html_body" => "<p>Render body</p>",
+         "text_body" => "Render body"
+       },
+       channels: %{
+         email: %{render_key: "test.lifecycle_rendered_email.email", render_version: 3}
+         }
+       }}
+  end
+
+  defp test_pid do
+    :chimeway
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(:test_pid)
+  end
+end
+
 defmodule Chimeway.Integration.DeliveryLifecycleTest do
   use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
@@ -657,6 +695,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       on_exit(fn ->
         Application.put_env(:chimeway, :adapter, previous_adapter)
+        Application.delete_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail)
         TestAdapter.clear()
       end)
 
@@ -790,6 +829,81 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       [%{at: cancelled_at}] = Enum.filter(explanation.timeline, &(&1.event == :cancelled))
       assert DateTime.compare(cancelled_at, ~U[2026-01-15 12:55:00Z]) == :eq
+    end
+  end
+
+  describe "Scenario J: rendered deliveries stay precomputed through dispatch and traces" do
+    setup do
+      previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      TestAdapter.clear()
+
+      on_exit(fn ->
+        Application.put_env(:chimeway, :adapter, previous_adapter)
+        TestAdapter.clear()
+      end)
+
+      :ok
+    end
+
+    test "adapter receives pre-rendered delivery content without late notifier callbacks" do
+      Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail, test_pid: self())
+
+      assert {:ok, _result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleRenderedEmail,
+                 %{user_id: 13},
+                 idempotency_key: "lifecycle_rendered_email_001"
+               )
+
+      assert_receive {:rendering_called, _}, 1000
+      assert_receive {:rendering_called, _}, 1000
+      refute_receive {:rendering_called, _}, 50
+      refute_receive {:build_called, _}, 50
+
+      [delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.render_key == "test.lifecycle_rendered_email.email"
+          )
+        )
+
+      assert delivery.render_data == %{
+               "subject" => "Render subject",
+               "html_body" => "<p>Render body</p>",
+               "text_body" => "Render body"
+             }
+
+      assert [delivered] = TestAdapter.delivered_messages()
+      assert delivered.id == delivery.id
+      assert delivered.render_data == delivery.render_data
+    end
+
+    test "explanations expose render identity without render bodies or raw render_data" do
+      Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail, test_pid: self())
+
+      assert {:ok, _result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleRenderedEmail,
+                 %{user_id: 14},
+                 idempotency_key: "lifecycle_rendered_email_002"
+               )
+
+      [delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.render_key == "test.lifecycle_rendered_email.email",
+            order_by: [desc: d.inserted_at],
+            limit: 1
+          )
+        )
+
+      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert explanation.render_key == "test.lifecycle_rendered_email.email"
+      assert explanation.render_version == 3
+      refute Map.has_key?(Map.from_struct(explanation), :render_data)
+      refute Map.has_key?(Map.from_struct(explanation), :html_body)
+      refute Map.has_key?(Map.from_struct(explanation), :text_body)
     end
   end
 
