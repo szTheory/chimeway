@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: Ready for 19-03 execution after completing 19-02
-stopped_at: Completed 19-02-PLAN.md
-last_updated: "2026-04-28T14:36:42.395Z"
+status: Phase 19 complete — ready for Phase 20 planning
+stopped_at: Completed 19-03-PLAN.md
+last_updated: "2026-04-28T14:46:30.000Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
-  percent: 89
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 19 — Digest Data Model & Accumulation
+**Current focus:** Phase 20 — Digest Emission & Explainability
 
 ## Current Position
 
-Phase: 19 — EXECUTING
+Phase: 19 — COMPLETE
 Plan: 3 of 3
-Status: Ready for 19-03 execution after completing 19-02
-Last activity: 2026-04-28 — Completed 19-02 durable digest accumulation transaction
+Status: Phase 19 complete — ready for Phase 20 planning
+Last activity: 2026-04-28 — Completed 19-03 planner-side digest accumulation wiring
 
 ## Accumulated Context
 
@@ -71,6 +71,9 @@ Recent decisions affecting current work:
 - Digest accumulation stays anchored on the canonical delivery row and inserts one membership row per delivery_id instead of using queue-level uniqueness.
 - Bucket counters advance only after a membership insert succeeds, using database uniqueness plus atomic updates to avoid retry drift.
 - Boundary windows reuse the project’s DST-safe local-time conversion pattern and persist explicit UTC window boundaries independent from deliveries.next_eligible_at.
+- Explicit digest declarations keep the persisted orchestration mode normalized to :digest_held and carry digest_key as separate planning metadata.
+- DeliveryPlanning invokes digest accumulation only after policy evaluation returns the canonical delivery still pending and digest-held.
+- Planner-side digest lookup snapshots category through Policy.delivery_category/1 so accumulation uses the same category resolution path as suppression checks.
 
 ### Pending Todos
 
@@ -87,8 +90,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T14:36:42.374Z
-Stopped at: Completed 19-02-PLAN.md
+Last session: 2026-04-28T14:45:21.059Z
+Stopped at: Completed 19-03-PLAN.md
 Resume file: None
 
 **Planned Phase:** 19 (Digest Data Model & Accumulation) — 3 plans — 2026-04-28T14:05:16.728Z

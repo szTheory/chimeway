@@ -48,12 +48,12 @@ Success criteria:
 **Goal**: Introduce first-class digest rules and durable accumulation records for repeated notification streams.
 **Depends on**: Phase 18
 **Requirements**: DIGEST-01
-**Plans:** 2/3 plans complete
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 19-01-PLAN.md — Define durable digest rule and bucket storage contracts plus the public rule API.
 - [x] 19-02-PLAN.md — Add explicit membership storage and transactional accumulation with DB-level idempotency.
-- [ ] 19-03-PLAN.md — Wire digest accumulation into the planning pipeline after policy-safe held outcomes.
+- [x] 19-03-PLAN.md — Wire digest accumulation into the planning pipeline after policy-safe held outcomes.
 
 Success criteria:
 1. Teams can declare digest grouping rules by recipient and notification grouping key.
@@ -96,11 +96,11 @@ Success criteria:
 |-------|------|------|--------------|------------------|
 | 17 | Delivery Windows & Deferral Semantics | 3/3 | Complete    | 2026-04-28 |
 | 18 | Scheduled Resume & Deferred Dispatch | 3/3 | Complete    | 2026-04-28 |
-| 19 | Digest Data Model & Accumulation | Persist digest rules and accumulation | DIGEST-01 | 3 |
+| 19 | Digest Data Model & Accumulation | 3/3 | Complete | 2026-04-28 |
 | 20 | Digest Emission & Explainability | Dispatch digests and explain membership | DIGEST-02, DIGEST-03 | 3 |
 | 21 | Template Versioning & Rendering Contracts | Version and preview content safely | TMPL-01, TMPL-02, TMPL-03 | 3 |
 | 22 | Recovery & Outcome Analytics | Reconcile failures and expose aggregates | OPS-01, OPS-02 | 3 |
 
 ## Next Up
 
-**Phase 19: Digest Data Model & Accumulation** — Introduce first-class digest rules and durable accumulation records for repeated notification streams.
+**Phase 20: Digest Emission & Explainability** — Generate, dispatch, and explain digest deliveries from accumulated source notifications.
