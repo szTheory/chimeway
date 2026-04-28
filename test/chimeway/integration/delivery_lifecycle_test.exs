@@ -1062,7 +1062,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert recovery.delivery.status == :pending
       assert recovery.recovery.source == "ops_console"
       assert recovery.recovery.reason == "stuck_after_trigger"
-      assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00Z]
+      assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00.000000Z]
 
       assert_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
       assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})

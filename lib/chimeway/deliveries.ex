@@ -139,6 +139,113 @@ defmodule Chimeway.Deliveries do
   """
   def terminal_states, do: @terminal_states
 
+  @doc """
+  Re-drives a recoverable delivery row through the configured dispatcher while
+  preserving canonical delivery identity and durable recovery metadata.
+  """
+  @spec recover_delivery(binary() | Delivery.t(), keyword()) ::
+          {:ok, map()} | {:noop, map()} | {:error, term()}
+  def recover_delivery(delivery_or_id, opts \\ [])
+
+  def recover_delivery(%Delivery{id: delivery_id}, opts) when is_list(opts) do
+    recover_delivery(delivery_id, opts)
+  end
+
+  def recover_delivery(delivery_id, opts) when is_binary(delivery_id) and is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
+    reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
+    dispatcher = configured_dispatcher()
+
+    case begin_recovery(delivery_id, Keyword.put(opts, :now, now)) do
+      {:ok, _claimed_delivery} ->
+        case dispatcher.dispatch_delivery(delivery_id, pre_planned: true, post_commit: true) do
+          {:ok, dispatched_delivery} ->
+            {:ok, recovery_delivery_result(dispatched_delivery, source, reason, now, :dispatched)}
+
+          {:skip, skipped_delivery} ->
+            {:noop, recovery_delivery_result(skipped_delivery, source, reason, now, :skipped)}
+
+          {:error, reason_term} ->
+            {:error, reason_term}
+        end
+
+      {:noop, existing_delivery} ->
+        {:noop, recovery_delivery_result(existing_delivery, source, reason, now, :noop)}
+    end
+  end
+
+  @doc """
+  Re-drives a persisted event whose notifications exist but deliveries were never
+  planned, using persisted render declarations instead of notifier callbacks.
+  """
+  @spec recover_event(binary() | Event.t(), keyword()) ::
+          {:ok, map()} | {:noop, map()} | {:error, term()}
+  def recover_event(event_or_id, opts \\ [])
+
+  def recover_event(%Event{id: event_id}, opts) when is_list(opts) do
+    recover_event(event_id, opts)
+  end
+
+  def recover_event(event_id, opts) when is_binary(event_id) and is_list(opts) do
+    now =
+      opts
+      |> Keyword.get(:now, DateTime.utc_now())
+      |> normalize_datetime!()
+
+    source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
+    reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
+    event = Repo.get!(Event, event_id)
+    dispatcher = configured_dispatcher()
+    recoverable_event_ids = opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
+
+    if event_id in recoverable_event_ids do
+      notifications =
+        Repo.all(
+          from(n in Notification,
+            where: n.event_id == ^event_id,
+            order_by: [asc: n.inserted_at, asc: n.id]
+          )
+        )
+
+      dispatch_opts = [
+        event_id: event.id,
+        notification_key: event.notification_key,
+        correlation_id: event.correlation_id,
+        post_commit: true
+      ]
+
+      case dispatcher.dispatch(notifications, dispatch_opts) do
+        {:ok, deliveries_or_results} ->
+          deliveries =
+            deliveries_or_results
+            |> dispatched_deliveries()
+            |> stamp_recovery_metadata(source, reason, now)
+
+          {:ok,
+           %{
+             event: event,
+             deliveries: deliveries,
+             recovery: recovery_metadata(source, reason, now)
+           }}
+
+        {:error, reason_term} ->
+          {:error, reason_term}
+      end
+    else
+      {:noop,
+       %{
+         event: event,
+         deliveries: [],
+         recovery: recovery_metadata(source, reason, now)
+       }}
+    end
+  end
+
   # General-path transitions. Note: `failed -> :cancelled` is INTENTIONALLY OMITTED here
   # even though :cancelled is a valid status — that transition is reserved for
   # Deliveries.exhaust_delivery/1 (D-10), which performs an out-of-band update
@@ -630,6 +737,75 @@ defmodule Chimeway.Deliveries do
 
   defp normalize_recovery_value!(label, value),
     do: raise(ArgumentError, "expected non-empty #{label}, got: #{inspect(value)}")
+
+  defp configured_dispatcher do
+    Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+  end
+
+  defp recovery_delivery_result(%Delivery{} = delivery, source, reason, now, dispatch_state) do
+    %{
+      delivery: delivery,
+      dispatch: dispatch_state,
+      recovery: recovery_metadata(source, reason, now)
+    }
+  end
+
+  defp recovery_metadata(source, reason, recovered_at) do
+    %{
+      source: source,
+      reason: reason,
+      recovered_at: recovered_at
+    }
+  end
+
+  defp dispatched_deliveries(deliveries_or_results) do
+    Enum.map(deliveries_or_results, fn
+      %Delivery{} = delivery -> delivery
+      {:ok, %Delivery{} = delivery} -> delivery
+      {:skip, %Delivery{} = delivery} -> delivery
+    end)
+  end
+
+  defp stamp_recovery_metadata(deliveries, source, reason, now) do
+    delivery_ids = Enum.map(deliveries, & &1.id)
+    recovered_at = iso8601_utc_usec(now)
+
+    if delivery_ids != [] do
+      Repo.update_all(
+        from(d in Delivery,
+          where: d.id in ^delivery_ids and fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+          update: [
+            set: [
+              metadata:
+                fragment(
+                  """
+                  jsonb_set(
+                    jsonb_set(
+                      jsonb_set(COALESCE(?, '{}'::jsonb), '{recovery_source}', to_jsonb(?::text), true),
+                      '{recovery_reason}',
+                      to_jsonb(?::text),
+                      true
+                    ),
+                    '{recovered_at}',
+                    to_jsonb(?::text),
+                    true
+                  )
+                  """,
+                  d.metadata,
+                  ^source,
+                  ^reason,
+                  ^recovered_at
+                ),
+              updated_at: ^now
+            ]
+          ]
+        ),
+        []
+      )
+    end
+
+    Repo.all(from(d in Delivery, where: d.id in ^delivery_ids, order_by: [asc: d.channel, asc: d.id]))
+  end
 
   defp iso8601_utc_usec(nil), do: nil
 

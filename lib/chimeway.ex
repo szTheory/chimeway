@@ -4,6 +4,7 @@ defmodule Chimeway do
   """
 
   alias Chimeway.Inbox
+  alias Chimeway.Deliveries
   alias Chimeway.Rendering.Preview
   alias Chimeway.Trigger
 
@@ -19,6 +20,20 @@ defmodule Chimeway do
   """
   def preview_rendering(notifier, params, opts \\ []) do
     Preview.preview(notifier, params, opts)
+  end
+
+  @doc """
+  Recovers a persisted event whose notifications exist but dispatch never planned deliveries.
+  """
+  def recover_event(event_id, opts \\ []) do
+    Deliveries.recover_event(event_id, opts)
+  end
+
+  @doc """
+  Recovers a persisted delivery by re-driving the canonical row through the configured dispatcher.
+  """
+  def recover_delivery(delivery_id, opts \\ []) do
+    Deliveries.recover_delivery(delivery_id, opts)
   end
 
   @doc """

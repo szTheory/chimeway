@@ -117,9 +117,26 @@ defmodule Chimeway.DeliveryPlanning do
     if notifier && function_exported?(notifier, :channels, 2) do
       handle_notifier_channels(notifier.channels(trigger_params, recipient))
     else
-      normalize_channels([:in_app])
+      resolve_persisted_channels(notification)
     end
   end
+
+  defp resolve_persisted_channels(%Notification{render_channels: render_channels}) do
+    render_channels
+    |> normalize_render_channels()
+    |> case do
+      [] -> normalize_channels([:in_app])
+      channels -> normalize_channels(channels)
+    end
+  end
+
+  defp normalize_render_channels(render_channels) when is_map(render_channels) do
+    render_channels
+    |> Map.keys()
+    |> Enum.sort()
+  end
+
+  defp normalize_render_channels(_render_channels), do: []
 
   defp handle_notifier_channels({:ok, channels}),
     do: wrap_normalized_channels(normalize_channels(channels))
@@ -323,28 +340,26 @@ defmodule Chimeway.DeliveryPlanning do
   end
 
   defp resolve_render_result(notification, channel, _trigger_params, opts) do
-    case Keyword.get(opts, :notifier) do
-      notifier when is_atom(notifier) and not is_nil(notifier) ->
-        render_channels = notification.render_channels || %{}
+    render_channels = notification.render_channels || %{}
 
-        case Map.fetch(render_channels, channel) do
-          {:ok, channel_rendering} ->
-            render_key = Map.get(channel_rendering, "render_key") || Map.get(channel_rendering, :render_key)
-            render_version = Map.get(channel_rendering, "render_version") || Map.get(channel_rendering, :render_version)
+    case Map.fetch(render_channels, channel) do
+      {:ok, channel_rendering} ->
+        render_key = Map.get(channel_rendering, "render_key") || Map.get(channel_rendering, :render_key)
+        render_version = Map.get(channel_rendering, "render_version") || Map.get(channel_rendering, :render_version)
 
-            normalized_rendering = %{
-              render_key: render_key,
-              render_version: render_version
-            }
+        normalized_rendering = %{
+          render_key: render_key,
+          render_version: render_version
+        }
 
-            render_channel_result(channel, normalized_rendering, notification.render_assigns || %{})
+        render_channel_result(channel, normalized_rendering, notification.render_assigns || %{})
 
-          :error ->
-            {:error, {:missing_render_declaration, channel}}
+      :error ->
+        if Keyword.get(opts, :notifier) do
+          {:error, {:missing_render_declaration, channel}}
+        else
+          {:ok, %{}}
         end
-
-      _notifier ->
-        {:ok, %{}}
     end
   end
 

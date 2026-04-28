@@ -156,8 +156,12 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       assert recovery.event.id == event.id
       assert recovery.recovery.source == "ops_console"
       assert recovery.recovery.reason == "trigger_commit_gap"
-      assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00Z]
-      assert Enum.sort(Enum.map(recovery.deliveries, & &1.channel)) == ["email", "in_app"]
+      assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00.000000Z]
+      assert Enum.sort(Enum.map(recovery.deliveries, & &1.channel)) == [
+               "email",
+               "in_app",
+               "sms_custom"
+             ]
       assert Enum.all?(recovery.deliveries, &(&1.status == :dispatched))
 
       notification_id = notification.id
@@ -230,7 +234,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       assert recovery.delivery.status == :dispatched
       assert recovery.recovery.source == "ops_console"
       assert recovery.recovery.reason == "worker_missed"
-      assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00Z]
+      assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00.000000Z]
       delivery_id = delivery.id
       assert_receive {:dispatch_delivery, ^delivery_id, dispatch_opts}
       assert dispatch_opts[:pre_planned] == true
