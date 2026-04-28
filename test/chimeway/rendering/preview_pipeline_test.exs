@@ -18,22 +18,26 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
     def recipients(_params), do: {:ok, [%{id: "recipient-1", email: "ada@example.com"}]}
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{legacy_recipient: recipient.id}}
+    def build(_params, recipient), do: {:ok, %{legacy_recipient: recipient[:id] || recipient["id"]}}
 
     @impl true
     def rendering(params, recipient) do
+      actor_name = params[:actor_name] || params["actor_name"]
+      comment_body = params[:comment_body] || params["comment_body"]
+      email = recipient[:email] || recipient["email"]
+
       {:ok,
        %{
          assigns: %{
-           "headline" => "#{Map.fetch!(params, :actor_name)} commented on your post",
-           "body" => Map.fetch!(params, :comment_body),
+           "headline" => "#{actor_name} commented on your post",
+           "body" => comment_body,
            "primary_action" => %{
              "label" => "Open comment",
-             "url" => "mailto:#{recipient.email}"
+             "url" => "mailto:#{email}"
            },
-           "subject" => "#{Map.fetch!(params, :actor_name)} commented on your post",
-           "html_body" => "<p>#{Map.fetch!(params, :comment_body)}</p>",
-           "text_body" => Map.fetch!(params, :comment_body)
+           "subject" => "#{actor_name} commented on your post",
+           "html_body" => "<p>#{comment_body}</p>",
+           "text_body" => comment_body
          },
          channels: %{
            in_app: %{render_key: "comment.created.in_app", render_version: 2},
@@ -228,14 +232,12 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
       :ok
     end
 
-    test "prints the same stable identity and payload fields returned by the preview api" do
-      recipient = %{id: "recipient-1", email: "ada@example.com"}
-
+    test "mix preview.rendering parses inline JSON inputs" do
       assert {:ok, preview} =
                Chimeway.preview_rendering(
                  PreviewNotifier,
-                 %{actor_name: "Ada", comment_body: "New comment"},
-                 recipient: recipient,
+                 %{"actor_name" => "Ada", "comment_body" => "New comment"},
+                 recipient: %{"id" => "recipient-1", "email" => "ada@example.com"},
                  channel: :email
                )
 
@@ -244,10 +246,10 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
           Mix.Tasks.Preview.Rendering.run([
             "--notifier",
             "Elixir.Chimeway.Rendering.PreviewPipelineTest.PreviewNotifier",
-            "--params",
-            "%{actor_name: \"Ada\", comment_body: \"New comment\"}",
-            "--recipient",
-            "%{id: \"recipient-1\", email: \"ada@example.com\"}",
+            "--params-json",
+            "{\"actor_name\": \"Ada\", \"comment_body\": \"New comment\"}",
+            "--recipient-json",
+            "{\"id\": \"recipient-1\", \"email\": \"ada@example.com\"}",
             "--channel",
             "email"
           ])
@@ -260,6 +262,55 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
       assert output =~ "\"html_body\" => \"<p>New comment</p>\""
     end
 
+    test "mix preview.rendering parses JSON files" do
+      params_path = Path.join(System.tmp_dir!(), "preview_params_#{System.unique_integer()}.json")
+      recipient_path = Path.join(System.tmp_dir!(), "preview_recipient_#{System.unique_integer()}.json")
+
+      File.write!(params_path, "{\"actor_name\": \"Ada\", \"comment_body\": \"New comment\"}")
+      File.write!(recipient_path, "{\"id\": \"recipient-1\", \"email\": \"ada@example.com\"}")
+
+      on_exit(fn ->
+        File.rm(params_path)
+        File.rm(recipient_path)
+      end)
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Preview.Rendering.run([
+            "--notifier",
+            "Elixir.Chimeway.Rendering.PreviewPipelineTest.PreviewNotifier",
+            "--params-file",
+            params_path,
+            "--recipient-file",
+            recipient_path,
+            "--channel",
+            "email"
+          ])
+        end)
+
+      assert output =~ "\"subject\" => \"Ada commented on your post\""
+    end
+
+    test "mix preview.rendering rejects executable input paths" do
+      error =
+        capture_io(:stderr, fn ->
+          assert catch_exit(
+                   Mix.Tasks.Preview.Rendering.run([
+                     "--notifier",
+                     "Elixir.Chimeway.Rendering.PreviewPipelineTest.PreviewNotifier",
+                     "--params-json",
+                     "File.read!(\"secrets.txt\")",
+                     "--recipient-json",
+                     "{}",
+                     "--channel",
+                     "email"
+                   ])
+                 ) == {:shutdown, 1}
+        end)
+
+      assert error =~ "Preview rendering failed: Invalid JSON syntax"
+    end
+
     test "exits non-zero with usage guidance when required flags are missing" do
       error =
         capture_io(:stderr, fn ->
@@ -269,8 +320,6 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
 
       assert error =~ "Usage: mix preview.rendering"
       assert error =~ "--notifier"
-      assert error =~ "--params"
-      assert error =~ "--recipient"
       assert error =~ "--channel"
     end
   end
