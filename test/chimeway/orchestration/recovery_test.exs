@@ -75,6 +75,9 @@ defmodule Chimeway.Orchestration.RecoveryDispatcherStub do
       :skip ->
         {:skip, delivery}
 
+      {:error, reason} ->
+        {:error, reason}
+
       _ ->
         updated_delivery =
           delivery
@@ -168,6 +171,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       assert_receive {:dispatch, [^notification_id], dispatch_opts}
       assert dispatch_opts[:event_id] == event.id
       assert dispatch_opts[:post_commit] == true
+      assert dispatch_opts[:use_persisted_channels] == true
       refute Keyword.has_key?(dispatch_opts, :notifier)
       refute_receive {:channels_called, _}, 50
       assert [%Delivery{} = delivery | _] = recovery.deliveries
@@ -256,6 +260,54 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       assert duplicate.delivery.id == delivery.id
       assert duplicate.delivery.status == :dispatched
       refute_receive {:dispatch_delivery, ^delivery_id, _}, 50
+    end
+
+    test "dispatcher failure returns the error and leaves the row recoverable" do
+      %{delivery: delivery} =
+        DispatchHelpers.create_pending_delivery(
+          notification_key: "test.recovery.delivery_error",
+          recipient_identity: "user:recovery-delivery-error",
+          channel: :email
+        )
+
+      delivery =
+        delivery
+        |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+        |> Repo.update!()
+
+      Application.put_env(
+        :chimeway,
+        Chimeway.Orchestration.RecoveryDispatcherStub,
+        test_pid: self(),
+        dispatch_delivery_result: {:error, :boom}
+      )
+
+      assert {:error, :boom} =
+               Deliveries.recover_delivery(delivery.id,
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "worker_missed"
+               )
+
+      delivery_id = delivery.id
+      assert_receive {:dispatch_delivery, ^delivery_id, dispatch_opts}
+      assert dispatch_opts[:pre_planned] == true
+      assert dispatch_opts[:post_commit] == true
+
+      failed_delivery = Repo.get!(Delivery, delivery.id)
+      assert failed_delivery.status == :pending
+      assert failed_delivery.orchestration_state == :ready
+      refute Map.has_key?(failed_delivery.metadata || %{}, "recovered_at")
+
+      recoverable_ids =
+        Deliveries.list_recoverable_deliveries(
+          now: ~U[2026-01-15 12:30:00Z],
+          older_than: 60
+        )
+        |> Enum.map(& &1.id)
+
+      assert delivery.id in recoverable_ids
     end
 
     test "normalizes dispatcher skip and terminal/deferred rows into explicit noop results" do

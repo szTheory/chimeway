@@ -379,6 +379,29 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert delivery.render_data["subject"] == "Durable Subject"
   end
 
+  test "ordinary notifier-less planning keeps the default in_app-only contract" do
+    notification =
+      insert_notification("user-default-in-app", %{}, %{
+        render_channels: %{
+          "email" => %{"render_key" => "durable.email", "render_version" => 10},
+          "in_app" => %{"render_key" => "durable.in_app", "render_version" => 11},
+          "sms_custom" => %{"render_key" => "durable.sms_custom", "render_version" => 12}
+        }
+      })
+
+    assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification)
+
+    assert delivery.channel == "in_app"
+    assert delivery.render_key == "durable.in_app"
+    assert delivery.render_version == 11
+    assert delivery_count_for(notification.id) == 1
+
+    persisted_channels =
+      Repo.all(from(d in Delivery, where: d.notification_id == ^notification.id, select: d.channel))
+
+    assert persisted_channels == ["in_app"]
+  end
+
   test "planning returns missing_render_declaration when channel snapshot is absent" do
     notification =
       insert_notification("user-missing-snapshot", %{}, %{
