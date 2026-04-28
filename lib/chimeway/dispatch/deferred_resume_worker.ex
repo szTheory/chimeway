@@ -22,23 +22,34 @@ if Code.ensure_loaded?(Oban) do
     @impl Oban.Worker
     def perform(%Oban.Job{args: %{"delivery_id" => delivery_id}}) do
       Multi.new()
-      |> Multi.run(:resume_delivery, fn _repo, _changes ->
-        case Deliveries.resume_deferred_delivery(delivery_id, source: "oban_scheduler") do
-          {:ok, delivery} -> {:ok, {:resumed, delivery}}
-          {:noop, delivery} -> {:ok, {:noop, delivery}}
-        end
-      end)
-      |> Multi.run(:dispatch_job, fn _repo, %{resume_delivery: resume_delivery} ->
-        case resume_delivery do
-          {:resumed, delivery} -> Oban.insert(ObanWorker.new(%{delivery_id: delivery.id}))
-          {:noop, _delivery} -> {:ok, nil}
-        end
-      end)
+      |> Multi.run(:resume_delivery, resume_delivery_step(delivery_id))
+      |> Multi.run(:dispatch_job, &dispatch_job_step/2)
       |> Repo.transaction()
-      |> case do
-        {:ok, _changes} -> :ok
-        {:error, _step, reason, _changes} -> {:error, reason}
+      |> normalize_transaction_result()
+    end
+
+    defp resume_delivery_step(delivery_id) do
+      fn _repo, _changes ->
+        delivery_id
+        |> Deliveries.resume_deferred_delivery(source: "oban_scheduler")
+        |> normalize_resume_result()
       end
     end
+
+    defp normalize_resume_result({:ok, delivery}), do: {:ok, {:resumed, delivery}}
+    defp normalize_resume_result({:noop, delivery}), do: {:ok, {:noop, delivery}}
+
+    defp dispatch_job_step(_repo, %{resume_delivery: {:resumed, delivery}}) do
+      delivery.id
+      |> build_dispatch_job()
+      |> Oban.insert()
+    end
+
+    defp dispatch_job_step(_repo, %{resume_delivery: {:noop, _delivery}}), do: {:ok, nil}
+
+    defp build_dispatch_job(delivery_id), do: ObanWorker.new(%{delivery_id: delivery_id})
+
+    defp normalize_transaction_result({:ok, _changes}), do: :ok
+    defp normalize_transaction_result({:error, _step, reason, _changes}), do: {:error, reason}
   end
 end
