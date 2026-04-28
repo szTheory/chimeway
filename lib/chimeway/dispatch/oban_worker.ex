@@ -117,7 +117,7 @@ if Code.ensure_loaded?(Oban) do
         }) do
       delivery = Deliveries.get_delivery!(delivery_id)
 
-      if delivery.status in Deliveries.terminal_states() do
+      if delivery.status in Deliveries.terminal_states() or delivery.orchestration_state != :ready do
         :ok
       else
         Telemetry.span(

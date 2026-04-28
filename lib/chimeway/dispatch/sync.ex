@@ -50,6 +50,9 @@ defmodule Chimeway.Dispatch.Sync do
   # --- Private ---
 
   defp dispatch_planned_delivery(%{status: :suppressed} = delivery), do: {:ok, delivery}
+  defp dispatch_planned_delivery(%{orchestration_state: state} = delivery) when state != :ready,
+    do: {:ok, delivery}
+
   defp dispatch_planned_delivery(delivery), do: dispatch_delivery(delivery)
 
   defp dispatch_delivery(%{status: status} = delivery) do

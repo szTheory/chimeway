@@ -54,7 +54,9 @@ if Code.ensure_loaded?(Oban) do
 
     defp do_enqueue(_repo, %{plan_notifications: deliveries}) do
       deliveries
-      |> Enum.filter(fn delivery -> delivery.status == :pending end)
+      |> Enum.filter(fn delivery ->
+        delivery.status == :pending and delivery.orchestration_state == :ready
+      end)
       |> Enum.reduce_while({:ok, []}, fn delivery, {:ok, jobs} ->
         case enqueue_one(delivery) do
           {:ok, job} -> {:cont, {:ok, [job | jobs]}}
