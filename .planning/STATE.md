@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: none
-status: completed
-stopped_at: Archived milestone v1.1 and cleared active planning state
+milestone: v1.2
+milestone_name: Delivery Orchestration
+status: ready_for_planning
+stopped_at: Milestone v1.2 initialized and roadmap created
 last_updated: "2026-04-28T00:00:00.000Z"
 last_activity: 2026-04-28
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
-  percent: 100
+  percent: 0
 ---
 
 # Project State
@@ -20,15 +20,15 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-04-28)
 
-**Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.
-**Current focus:** No active milestone. Start next planning cycle with `$gsd-new-milestone`.
+**Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
+**Current focus:** Phase 17 - Delivery Windows & Deferral Semantics
 
 ## Current Position
 
-Phase: None
-Plan: None
-Status: milestone_shipped
-Last activity: 2026-04-28
+Phase: 17
+Plan: —
+Status: roadmap_defined
+Last activity: 2026-04-28 — Milestone v1.2 started and roadmap created
 
 ## Accumulated Context
 
@@ -40,24 +40,17 @@ Recent decisions affecting current work:
 - [Init]: Persist stable `notification_key` + version for durable identity.
 - [Init]: Treat explainability ("why wasn't this sent?") as core value.
 - [Init]: Start with durable spine and one-channel slice before channel expansion.
-- [10-01]: Thread notification_key, event_id, and correlation_id through the dispatch chain.
-- [10-01]: Persist correlation identifiers in Delivery.metadata using string keys.
-- [10-01]: Enrich the [:deliveries, :plan] telemetry span with correlation identifiers.
-- [10-02]: Enrich all lifecycle telemetry spans (policy, sync, oban, attempts) with correlation metadata from delivery records.
-- [10-02]: Improve `Chimeway.Telemetry.span/3` to automatically merge start metadata into stop metadata.
+- [10-01]: Thread `notification_key`, `event_id`, and `correlation_id` through the dispatch chain.
+- [10-01]: Persist correlation identifiers in `Delivery.metadata` using string keys.
+- [10-02]: Enrich all lifecycle telemetry spans with correlation metadata from delivery records.
 - [11-01]: Resolve channel adapter configs without creating atoms from runtime channel strings.
-- [11-01]: Keep explainability surfaces string-safe for valid custom channels.
 - [12-01]: Make Oban planning and enqueueing transactionally consistent.
-- Store category preferences in a separate durable table keyed by recipient and notification_category.
-- Use one policy-settings row per recipient for quiet hours and delivery caps.
-- Evaluate category rules first, then quiet-hours/delivery-cap settings, then existing read-state suppression.
-- Count prior deliveries in the configured cap window to enforce delivery caps without runtime atoms or caller input.
-- Updated installation instructions to include mix dependencies, Ecto migrations, basic configuration, and supervision tree integration.
-- Updated getting started instructions to define a simple notifier, trigger a notification, and read from the inbox.
-- Added `__using__` macro to `Chimeway.Notifier` to support the idiomatic `use Chimeway.Notifier` API expected by developers, providing a better Time to First Run experience.
-- Document Oban Ecto.Multi transactional dispatch to ensure developers use reliable enqueueing by default.
-- Explicitly document telemetry metadata safety considerations to prevent developer leakage of sensitive notification payload data.
-- Emphasize runtime config and contract test usage to prevent credential leaks and ensure environment safety.
+- [13-01]: Store category preferences separately from per-channel notification preferences.
+- [13-02]: Persist recipient policy settings for quiet hours and delivery caps.
+- [14-01]: Preserve durable attempt history and terminal convergence across sync and Oban paths.
+- [15-01]: Keep trace queries tenancy-aware while preserving safe telemetry redaction.
+- [16-01]: Treat installation and integration docs as first-class product surface.
+- [v1.2]: Prioritize orchestration behavior before channel breadth to create the next large product-value jump.
 
 ### Pending Todos
 
@@ -69,12 +62,13 @@ None.
 
 ### Deferred Items
 
-None.
+- Workflow journeys and escalation trees beyond digest/window orchestration.
+- Broad provider expansion beyond the existing outbound seam.
 
 ### Session Continuity
 
-Last session: 2026-04-27T21:34:51.845Z
-Stopped at: Milestone v1.1 archived
+Last session: 2026-04-28T00:00:00.000Z
+Stopped at: Milestone v1.2 initialized
 Resume file: None
 
-**Planned Phase:** None
+**Planned Phase:** 17

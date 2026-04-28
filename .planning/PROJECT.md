@@ -2,29 +2,35 @@
 
 ## What This Is
 
-Chimeway is an open-source, embedded notification layer for Elixir and Phoenix applications. It provides durable notification records and delivery planning from one event to many recipients across channels, with explainable traces from trigger through policy and provider attempts. It is local-first by design: host applications keep their own data, policies, and operational controls.
+Chimeway is an open-source, embedded notification layer for Elixir and Phoenix applications. It provides durable notification records, delivery orchestration, and explainable traces from trigger through policy, scheduling, batching, and provider attempts. It is local-first by design: host applications keep their own data, policies, and operational controls.
 
 ## Core Value
 
-Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, or was suppressed.
+Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
 ## Current State
 
-Chimeway has shipped `v1.1 Production Trust` as of 2026-04-27. The project now has explicit policy controls, durable delivery final-state handling, safe correlated observability, and documented integration seams that are strong enough for production adoption.
+Chimeway shipped `v1.1 Production Trust` on 2026-04-27 with explicit policy controls, durable delivery final-state handling, safe correlated observability, and documented integration seams that are strong enough for production adoption. The next milestone focuses on the product behaviors SaaS teams expect once the durable core is trustworthy: scheduling, batching, richer rendering, and recovery.
 
-## Next Milestone Goals
+## Current Milestone: v1.2 Delivery Orchestration
 
-- Define the next milestone before opening new phase work.
-- Re-prioritize deferred v2 themes: digests, delivery windows, analytics, workflow journeys, and richer content templating.
-- Keep durable identity, explainability, and adapter seams as non-negotiable baseline constraints.
+**Goal:** Turn Chimeway from a durable notification engine into a product-grade notification layer that can decide not just whether to send, but when, how, and in what grouped form.
 
-### Out of Scope
+**Target features:**
+- Delivery windows and scheduled send behavior
+- Recipient-timezone-aware quiet-hours deferral
+- Digest and batching workflows for noisy event streams
+- Richer, versioned content templating across channels
+- Recovery and reconciliation for persisted-but-not-fully-dispatched lifecycle gaps
+- Operator analytics for sent, suppressed, delayed, digested, and failed flows
+
+## Out of Scope
 
 - Hosted, multi-tenant notification SaaS or open-core billing model — Chimeway is embedded OSS infrastructure.
 - Reimplementing channel/provider foundations such as Swoosh or Oban — Chimeway integrates with them.
 - Marketing automation, campaigns, or customer-engagement journey tooling — Chimeway is transactional/product notification focused.
 - Hard-coding one SMS/push vendor — adapter seams remain replaceable.
-- Forcing final package topology in v0.1 while core API is still stabilizing — structure can evolve before 1.0.
+- Broad channel-matrix expansion before orchestration behavior is mature — timing, batching, and recovery are the higher-leverage gaps for current adopters.
 
 ## Context
 
@@ -38,16 +44,17 @@ Prior context includes:
 - Host-app integration seam guidance for auth, tenancy, URL generation, and correlation IDs.
 - The shipped v1.0 milestone established the durable spine, policy checkpoints, telemetry correlation, safe adapter resolution, and transactional Oban dispatch as the baseline to build from.
 - The shipped v1.1 milestone established production-trust behavior across preferences, reliability, observability, and integration documentation.
+- Current milestone research reinforces that the next value jump is orchestration behavior: scheduled jobs, channel-aware rendering, template previewability, and explicit transport-specific shaping before broad channel breadth.
 
 ## Constraints
 
 - **Tech Stack**: Elixir/Phoenix/Ecto-first with Oban and Swoosh integration seams — align with existing ecosystem strengths.
-- **Architecture**: Stable notification keys (e.g., `comment.created`) must be persisted as durable identity — avoid module-name coupling in data.
-- **Data Ownership**: Host app database is source of truth for events, inbox state, deliveries, and attempts — no hosted control plane.
+- **Architecture**: Stable notification keys (for example, `comment.created`) must be persisted as durable identity — avoid module-name coupling in data.
+- **Data Ownership**: Host app database is source of truth for events, inbox state, deliveries, attempts, deferrals, and digest batches — no hosted control plane.
 - **Composability**: Channel/provider integrations must use replaceable adapter behaviours — avoid hard vendor lock-in.
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
-- **Scope**: v1.1 should prove production trust and one mature vertical slice before broad channel matrix expansion.
+- **Scope**: v1.2 should prioritize orchestration behavior over channel breadth so the library becomes materially more useful for SaaS product teams.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -67,6 +74,7 @@ Prior context includes:
 | Durable attempt history and convergence | Make retries and final outcomes inspectable under concurrency and failure | Implemented in Phase 14 |
 | Tenancy-aware trace queries | Preserve host ownership boundaries in observability surfaces | Implemented in Phase 15 |
 | Integration docs as product surface | Lower host-app adoption risk with explicit setup and adapter guidance | Implemented in Phase 16 |
+| Prioritize orchestration before channel breadth in v1.2 | Scheduling, batching, rendering, and recovery create larger product value than adding more providers now | Active milestone direction |
 
 ## Archived Milestone Context
 
@@ -112,4 +120,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-28 after v1.1 milestone completion*
+*Last updated: 2026-04-28 after milestone v1.2 start*
