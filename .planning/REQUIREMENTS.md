@@ -10,7 +10,7 @@
 
 - [x] **ORCH-01**: Product teams can declare whether a notification delivery sends immediately, defers to the next allowed window, or participates in digesting.
 - [x] **ORCH-02**: Delivery-window decisions respect recipient timezone and persist the reason, window rule, and next eligible send time.
-- [ ] **ORCH-03**: Deferred deliveries resume automatically through durable async scheduling without losing lifecycle traceability.
+- [x] **ORCH-03**: Deferred deliveries resume automatically through durable async scheduling without losing lifecycle traceability.
 
 ### Digests
 

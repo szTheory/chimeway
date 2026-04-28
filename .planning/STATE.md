@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: planning
-stopped_at: Phase 18 context gathered (assumptions mode)
-last_updated: "2026-04-28T11:25:35.321Z"
+status: executing
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-04-28T12:05:56Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_plans: 6
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 17 - Delivery Windows & Deferral Semantics
+**Current focus:** Phase 18 — scheduled-resume-deferred-dispatch
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Ready to plan
+Phase: 18 (scheduled-resume-deferred-dispatch) — EXECUTING
+Plan: 3 of 3
+Status: Ready to execute
 Last activity: 2026-04-28
 
 ## Accumulated Context
@@ -60,6 +60,12 @@ Recent decisions affecting current work:
 - Held deliveries remain pending with zero attempts until a later phase adds resume scheduling.
 - Dispatchers and workers now require orchestration_state == :ready before immediate execution.
 - Trace explanations expose sanitized persisted planning facts and a normalized rule identity.
+- Deferred resume mutates the existing delivery row instead of creating replacement deliveries or scheduler-owned state.
+- Resume promotion succeeds only when the row is still pending, deferred, and due at update time.
+- Supersession converges through status :cancelled plus a durable suppression_reason on the same row.
+- Deferred rows now schedule a dedicated Oban resume worker at `next_eligible_at` instead of enqueueing the performer directly.
+- Resume-worker job args remain limited to `delivery_id`, with all planning facts read from the canonical delivery row.
+- Resume promotion and performer enqueue now share one transaction so `:ready` cannot persist without a canonical dispatch job.
 
 ### Pending Todos
 
@@ -76,8 +82,8 @@ None.
 
 ### Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 18 context gathered (assumptions mode)
-Resume file: --resume-file
+Last session: 2026-04-28T12:05:56Z
+Stopped at: Completed 18-02-PLAN.md
+Resume file: None
 
-**Planned Phase:** 17
+**Planned Phase:** 18

@@ -32,6 +32,12 @@ Success criteria:
 **Goal**: Resume deferred deliveries automatically through durable scheduling and lifecycle-safe async execution.
 **Depends on**: Phase 17
 **Requirements**: ORCH-03
+**Plans:** 3 plans
+
+Plans:
+- [x] 18-01-PLAN.md — Lock the deferred-resume contract with targeted scheduling, promotion, and rollback tests.
+- [x] 18-02-PLAN.md — Implement canonical deferred-to-ready promotion plus scheduled resume worker reuse of the normal Oban dispatch path.
+- [ ] 18-03-PLAN.md — Preserve resume trace continuity and prove race-safe lifecycle convergence.
 
 Success criteria:
 1. Deferred deliveries are resumed through Oban-backed scheduling without creating duplicate sends.
@@ -91,4 +97,4 @@ Success criteria:
 
 ## Next Up
 
-**Phase 17: Delivery Windows & Deferral Semantics** — Define the durable planning model for immediate sends, quiet-hours deferral, and recipient-timezone-aware delivery windows.
+**Phase 18: Scheduled Resume & Deferred Dispatch** — Preserve resume trace continuity and prove race-safe lifecycle convergence.
