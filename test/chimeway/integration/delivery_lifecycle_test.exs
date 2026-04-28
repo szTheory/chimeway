@@ -648,6 +648,91 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     end
   end
 
+  describe "Scenario I: deferred rows resume and cancel on the same delivery identity" do
+    test "resume_deferred_delivery promotes the existing row to orchestration_state == :ready" do
+      assert {:ok, _settings} =
+               Settings.upsert_settings(%{
+                 recipient_id: "user:11",
+                 quiet_hours_start_minute: 22 * 60,
+                 quiet_hours_end_minute: 8 * 60,
+                 time_zone: "America/New_York"
+               })
+
+      assert {:ok, result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleA,
+                 %{user_id: 11},
+                 idempotency_key: "lifecycle_deferred_resume_001",
+                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+               )
+
+      [delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.id in ^result.trace.delivery_ids
+          )
+        )
+
+      original_id = delivery.id
+      assert delivery.orchestration_state == :deferred
+      assert attempt_count(delivery.id) == 0
+
+      assert {:ok, resumed_delivery} =
+               Chimeway.Deliveries.resume_deferred_delivery(
+                 delivery.id,
+                 now: ~U[2026-01-15 13:00:00Z],
+                 source: "scheduled_resume"
+               )
+
+      assert resumed_delivery.id == original_id
+      assert resumed_delivery.status == :pending
+      assert resumed_delivery.orchestration_state == :ready
+      assert resumed_delivery.metadata["resume_source"] == "scheduled_resume"
+      assert resumed_delivery.metadata["resumed_at"] == "2026-01-15T13:00:00.000000Z"
+      assert attempt_count(resumed_delivery.id) == 0
+    end
+
+    test "cancel_deferred_delivery keeps the same row and marks supersession on suppression_reason == \"superseded\"" do
+      assert {:ok, _settings} =
+               Settings.upsert_settings(%{
+                 recipient_id: "user:12",
+                 quiet_hours_start_minute: 22 * 60,
+                 quiet_hours_end_minute: 8 * 60,
+                 time_zone: "America/New_York"
+               })
+
+      assert {:ok, result} =
+               Chimeway.trigger(
+                 ChimewayTest.Notifiers.LifecycleA,
+                 %{user_id: 12},
+                 idempotency_key: "lifecycle_deferred_resume_002",
+                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+               )
+
+      [delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.id in ^result.trace.delivery_ids
+          )
+        )
+
+      original_id = delivery.id
+
+      assert {:ok, cancelled_delivery} =
+               Chimeway.Deliveries.cancel_deferred_delivery(
+                 delivery,
+                 "superseded",
+                 now: ~U[2026-01-15 12:55:00Z]
+               )
+
+      assert cancelled_delivery.id == original_id
+      assert cancelled_delivery.status == :cancelled
+      assert cancelled_delivery.orchestration_state == :deferred
+      assert cancelled_delivery.suppression_reason == "superseded"
+      assert attempt_count(cancelled_delivery.id) == 0
+    end
+  end
+
   defp attempt_count(delivery_id) do
     Repo.aggregate(from(a in DeliveryAttempt, where: a.delivery_id == ^delivery_id), :count, :id)
   end
