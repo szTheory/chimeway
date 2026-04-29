@@ -93,6 +93,40 @@ defmodule Chimeway.Digests.FlushSchedulingTest do
       assert bucket_id == first_bucket.id
       assert scheduled_at == first_bucket.window_ends_at
     end
+
+    test "valid lookup_attrs helpers still schedule the normal flush path" do
+      insert_rule(%{
+        rule_key: "digest.comment.helper",
+        match_notification_key: nil,
+        match_category: "comments",
+        group_by: :digest_key,
+        window_kind: :fixed,
+        window_minutes: 30
+      })
+
+      delivery =
+        insert_digest_held_delivery(%{
+          notification_key: "comment.created",
+          recipient_id: "user-helpers",
+          channel: "email"
+        })
+
+      assert {:ok, %DigestBucket{} = bucket} =
+               Accumulation.accumulate_delivery(delivery,
+                 accumulated_at: ~U[2026-01-15 10:05:00.000000Z],
+                 lookup_attrs: %{category: "comments", digest_key: "team:ops"}
+               )
+
+      assert bucket.recipient_id == "user-helpers"
+      assert bucket.channel == "email"
+      assert bucket.grouping_value == "team:ops"
+
+      assert_enqueued(
+        worker: DigestFlushWorker,
+        args: %{bucket_id: bucket.id},
+        scheduled_at: bucket.window_ends_at
+      )
+    end
   end
 
   defp insert_rule(overrides) do

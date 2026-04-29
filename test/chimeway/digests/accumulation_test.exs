@@ -323,6 +323,96 @@ defmodule Chimeway.Digests.AccumulationTest do
       refute second_bucket.window_ends_at == after_boundary.next_eligible_at
       assert Repo.aggregate(DigestBucket, :count, :id) == 2
     end
+
+    test "rejects invalid_lookup_attrs when recipient_id overrides the persisted notification owner" do
+      insert_rule(%{
+        rule_key: "digest.comment.fixed",
+        match_notification_key: "comment.created",
+        group_by: :notification_key,
+        window_kind: :fixed,
+        window_minutes: 30
+      })
+
+      delivery =
+        insert_digest_held_delivery(%{
+          notification_key: "comment.created",
+          recipient_id: "user-owner",
+          channel: "email"
+        })
+
+      assert {:error, {:invalid_lookup_attrs, %{recipient_id: "forged-owner"}}} =
+               Accumulation.accumulate_delivery(delivery,
+                 accumulated_at: ~U[2026-01-15 10:05:00.000000Z],
+                 lookup_attrs: %{recipient_id: "forged-owner"}
+               )
+
+      assert Repo.aggregate(DigestBucket, :count, :id) == 0
+      assert Repo.aggregate(DigestMembership, :count, :id) == 0
+    end
+
+    test "rejects invalid_lookup_attrs when channel, notification_key, or notification_version override durable digest identity" do
+      insert_rule(%{
+        rule_key: "digest.comment.fixed",
+        match_notification_key: "comment.created",
+        group_by: :notification_key,
+        window_kind: :fixed,
+        window_minutes: 30
+      })
+
+      delivery =
+        insert_digest_held_delivery(%{
+          notification_key: "comment.created",
+          recipient_id: "user-identity",
+          channel: "email"
+        })
+
+      invalid_cases = [
+        {%{channel: "sms"}, %{channel: "sms"}},
+        {%{notification_key: "comment.updated"}, %{notification_key: "comment.updated"}},
+        {%{notification_version: 2}, %{notification_version: 2}}
+      ]
+
+      for {lookup_attrs, mismatch} <- invalid_cases do
+        assert {:error, {:invalid_lookup_attrs, ^mismatch}} =
+                 Accumulation.accumulate_delivery(delivery,
+                   accumulated_at: ~U[2026-01-15 10:05:00.000000Z],
+                   lookup_attrs: lookup_attrs
+                 )
+      end
+
+      assert Repo.aggregate(DigestBucket, :count, :id) == 0
+      assert Repo.aggregate(DigestMembership, :count, :id) == 0
+    end
+
+    test "allows category and digest_key helper lookup_attrs without overriding durable identity" do
+      insert_rule(%{
+        rule_key: "digest.comment.helper",
+        match_notification_key: nil,
+        match_category: "comments",
+        group_by: :digest_key,
+        window_kind: :fixed,
+        window_minutes: 30
+      })
+
+      delivery =
+        insert_digest_held_delivery(%{
+          notification_key: "comment.created",
+          recipient_id: "user-helper",
+          channel: "email"
+        })
+
+      assert {:ok, %DigestBucket{} = bucket} =
+               Accumulation.accumulate_delivery(delivery,
+                 accumulated_at: ~U[2026-01-15 10:05:00.000000Z],
+                 lookup_attrs: %{category: "comments", digest_key: "team:ops"}
+               )
+
+      assert bucket.recipient_id == "user-helper"
+      assert bucket.channel == "email"
+      assert bucket.grouping_value == "team:ops"
+      assert Repo.aggregate(DigestBucket, :count, :id) == 1
+      assert Repo.aggregate(DigestMembership, :count, :id) == 1
+    end
   end
 
   defp insert_rule(overrides) do
