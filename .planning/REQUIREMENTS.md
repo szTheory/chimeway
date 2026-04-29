@@ -27,7 +27,7 @@
 ### Recovery & Analytics
 
 - [x] **OPS-01**: Operators can detect and reconcile persisted events or deliveries that were never fully dispatched after trigger-time failures.
-- [ ] **OPS-02**: Operators can query aggregate outcomes by notification key, channel, and lifecycle result, including sent, suppressed, delayed, digested, failed, and exhausted flows.
+- [x] **OPS-02**: Operators can query aggregate outcomes by notification key, channel, and lifecycle result, including sent, suppressed, delayed, digested, failed, and exhausted flows.
 
 ## Future Requirements
 
@@ -58,13 +58,13 @@
 | ORCH-02 | Phase 17 | Complete |
 | ORCH-03 | Phase 18 | Complete |
 | DIGEST-01 | Phase 19 | Complete |
-| DIGEST-02 | Phase 20 | Pending |
-| DIGEST-03 | Phase 20 | Pending |
+| DIGEST-02 | Phase 23 | Pending |
+| DIGEST-03 | Phase 23 | Pending |
 | TMPL-01 | Phase 21 | Complete |
 | TMPL-02 | Phase 21 | Complete |
 | TMPL-03 | Phase 21 | Complete |
-| OPS-01 | Phase 22 | Pending |
-| OPS-02 | Phase 22 | Pending |
+| OPS-01 | Phase 22 | Complete |
+| OPS-02 | Phase 22 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 11 total
@@ -73,4 +73,4 @@
 
 ---
 *Requirements defined: 2026-04-28*
-*Last updated: 2026-04-28 after milestone v1.2 definition*
+*Last updated: 2026-04-28 after milestone v1.2 audit gap planning*

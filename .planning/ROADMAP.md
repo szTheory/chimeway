@@ -14,7 +14,7 @@
 **Goal:** Turn Chimeway from a durable notification engine into a product-grade notification layer that can decide not just whether to send, but when, how, and in what grouped form.
 
 **Requirement coverage:** 11/11 mapped
-**Phase range:** 17-22
+**Phase range:** 17-23
 
 ## Phase Plan
 
@@ -127,6 +127,16 @@ Success criteria:
 2. Reconciliation preserves idempotency and explainability instead of mutating history opaquely.
 3. Aggregate query surfaces report sent, suppressed, delayed, digested, failed, and exhausted outcomes by key and channel.
 
+### Phase 23: Digest Flush Scheduling & Audit Closure
+**Goal**: Close the Phase 20 digest handoff gap by scheduling emitted digest dispatch automatically from durable bucket state, then re-verify the flow and repair audit traceability.
+**Depends on**: Phase 22
+**Requirements**: DIGEST-02, DIGEST-03
+
+Success criteria:
+1. Digest accumulation or window-close execution schedules `DigestFlushWorker` automatically from durable bucket state without relying on manual runtime intervention.
+2. The end-to-end flow from trigger through digest-held accumulation to emitted digest dispatch is verified in a production-shaped path and documented in `20-VERIFICATION.md`.
+3. Requirements traceability and checkbox state match verified implementation, including the Phase 23 digest closure work and Phase 22 operational audit cleanup.
+
 ## Summary Table
 
 | Phase | Name | Goal | Requirements | Success Criteria |
@@ -138,7 +148,8 @@ Success criteria:
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
 | 21.1 | Rendering durability and preview hardening | 2/2 | Complete    | 2026-04-28 |
 | 22 | Recovery & Outcome Analytics | 4/4 | Complete | 2026-04-28 |
+| 23 | Digest Flush Scheduling & Audit Closure | 0/0 | Pending | 2026-04-28 |
 
 ## Next Up
 
-**Milestone closeout** — Phase execution is complete; run the security pass and milestone completion workflow before archiving `v1.2`.
+**Plan Phase 23** — close the digest scheduling audit gap before milestone closeout.
