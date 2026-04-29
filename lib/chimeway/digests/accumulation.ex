@@ -86,10 +86,14 @@ defmodule Chimeway.Digests.Accumulation do
             window_ends_at
           )
 
-        case insert_membership(bucket, delivery, accumulated_at) do
-          :inserted -> refresh_bucket!(bucket.id)
-          :existing -> refresh_bucket!(bucket.id)
-        end
+        bucket =
+          case insert_membership(bucket, delivery, accumulated_at) do
+            :inserted -> refresh_bucket!(bucket.id)
+            :existing -> refresh_bucket!(bucket.id)
+          end
+
+        schedule_flush_if_needed(bucket)
+        bucket
     end
   end
 
@@ -306,6 +310,27 @@ defmodule Chimeway.Digests.Accumulation do
 
   defp normalize_datetime(%DateTime{} = datetime) do
     %{DateTime.truncate(datetime, :second) | microsecond: {0, 6}}
+  end
+
+  defp schedule_flush_if_needed(%DigestBucket{} = bucket) do
+    case {configured_dispatcher(), bucket.member_count, bucket.flush_state} do
+      {Chimeway.Dispatch.Oban, 1, :pending} ->
+        if Code.ensure_loaded?(Chimeway.Dispatch.Oban) do
+          case Chimeway.Dispatch.Oban.enqueue_digest_flush(bucket) do
+            {:ok, _job} -> :ok
+            {:error, reason} -> Repo.rollback(reason)
+          end
+        else
+          :ok
+        end
+
+      _other ->
+        :ok
+    end
+  end
+
+  defp configured_dispatcher do
+    Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
   end
 
   defp time_zone_database do

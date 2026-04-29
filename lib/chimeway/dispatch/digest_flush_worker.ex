@@ -5,7 +5,8 @@ if Code.ensure_loaded?(Oban) do
     use Oban.Worker,
       queue: :chimeway_delivery,
       max_attempts: 5,
-      unique: [fields: [:args], keys: [:bucket_id], period: 60]
+      replace: [scheduled: [:scheduled_at]],
+      unique: [fields: [:args], keys: [:bucket_id], period: 60, timestamp: :scheduled_at]
 
     alias Chimeway.Digests
 

@@ -10,6 +10,13 @@ defmodule Chimeway.Digests.FlushSchedulingTest do
   alias Chimeway.Notifications.Notification
 
   setup do
+    previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+    end)
+
     Repo.delete_all(DigestMembership)
     Repo.delete_all(DigestBucket)
     Repo.delete_all(Chimeway.Digests.DigestRule)

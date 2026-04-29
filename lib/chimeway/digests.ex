@@ -1,5 +1,17 @@
 defmodule Chimeway.Digests do
-  @moduledoc "Public digest-rule persistence API for durable rule lookup and storage."
+  @moduledoc """
+  Public digest-rule persistence API for durable rule lookup and storage.
+
+  Digest flush execution closes automatically only when the configured
+  dispatcher is `Chimeway.Dispatch.Oban`, because bucket accumulation can then
+  schedule `Chimeway.Dispatch.DigestFlushWorker` from persisted
+  `window_ends_at` state.
+
+  Hosts using any other dispatcher still retain the durable public
+  `emit_bucket/2` seam and are expected to drive flush execution explicitly.
+  Chimeway does not imply built-in automatic digest scheduling outside the Oban
+  path.
+  """
 
   import Ecto.Query, only: [from: 2]
 
@@ -115,7 +127,12 @@ defmodule Chimeway.Digests do
     ]
   end
 
-  @doc "Emits a due digest bucket and returns the canonical emitted delivery identity."
+  @doc """
+  Emits a due digest bucket and returns the canonical emitted delivery identity.
+
+  This remains the explicit host-managed flush seam when
+  `Chimeway.Dispatch.Oban` is not the configured dispatcher.
+  """
   @spec emit_bucket(binary() | map(), keyword()) :: {:ok, map()} | {:error, term()}
   def emit_bucket(bucket_or_id, opts \\ []), do: Emission.emit_bucket(bucket_or_id, opts)
 end

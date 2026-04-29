@@ -28,9 +28,19 @@ if Code.ensure_loaded?(Oban) do
 
     @behaviour Chimeway.Dispatch
 
-    alias Chimeway.{DeliveryPlanning, Dispatch.DeferredResumeWorker, Dispatch.ObanWorker, Repo}
+    import Ecto.Query, only: [from: 2]
+
+    alias Chimeway.{
+      DeliveryPlanning,
+      Digests.DigestBucket,
+      Dispatch.DeferredResumeWorker,
+      Dispatch.DigestFlushWorker,
+      Dispatch.ObanWorker,
+      Repo
+    }
     alias Chimeway.Telemetry
     alias Ecto.Multi
+    alias Oban.Job
 
     @impl Chimeway.Dispatch
     def dispatch(notifications, opts) when is_list(notifications) do
@@ -57,6 +67,12 @@ if Code.ensure_loaded?(Oban) do
     def dispatch_delivery(delivery_id, _opts) when is_binary(delivery_id) do
       delivery = Chimeway.Deliveries.get_delivery!(delivery_id)
       dispatch_delivery(delivery, [])
+    end
+
+    def enqueue_digest_flush(%DigestBucket{window_ends_at: %DateTime{} = scheduled_at} = bucket) do
+      bucket.id
+      |> do_enqueue_digest_flush(scheduled_at)
+      |> collapse_duplicate_digest_flush_jobs(bucket.id, scheduled_at)
     end
 
     defp do_plan(notifications, opts, _repo, _changes) do
@@ -126,6 +142,58 @@ if Code.ensure_loaded?(Oban) do
           {result, %{}}
         end
       )
+    end
+
+    defp build_digest_flush_job(bucket_id, scheduled_at) do
+      DigestFlushWorker.new(%{bucket_id: bucket_id}, scheduled_at: scheduled_at)
+    end
+
+    defp do_enqueue_digest_flush(bucket_id, scheduled_at) do
+      case existing_digest_flush_job(bucket_id, scheduled_at) do
+        %Job{} = job ->
+          {:ok, job}
+
+        nil ->
+          bucket_id
+          |> build_digest_flush_job(scheduled_at)
+          |> Oban.insert()
+      end
+    end
+
+    defp existing_digest_flush_job(bucket_id, scheduled_at) do
+      matching_digest_flush_jobs(bucket_id, scheduled_at)
+      |> List.first()
+    end
+
+    defp collapse_duplicate_digest_flush_jobs({:ok, %Job{} = job}, bucket_id, scheduled_at) do
+      case matching_digest_flush_jobs(bucket_id, scheduled_at) do
+        [%Job{} = keep | duplicates] ->
+          duplicate_ids = Enum.map(duplicates, & &1.id)
+
+          if duplicate_ids != [] do
+            from(enqueued in Job, where: enqueued.id in ^duplicate_ids)
+            |> Repo.delete_all()
+          end
+
+          {:ok, keep}
+
+        [] ->
+          {:ok, job}
+      end
+    end
+
+    defp collapse_duplicate_digest_flush_jobs(other, _bucket_id, _scheduled_at), do: other
+
+    defp matching_digest_flush_jobs(bucket_id, scheduled_at) do
+      from(job in Job,
+        where:
+          job.worker == ^to_string(DigestFlushWorker) and
+            fragment("?->>'bucket_id' = ?", job.args, ^bucket_id) and
+            job.scheduled_at == ^scheduled_at and
+            job.state in ["available", "scheduled", "executing", "retryable"],
+        order_by: [asc: job.inserted_at, asc: job.id]
+      )
+      |> Repo.all()
     end
   end
 end
