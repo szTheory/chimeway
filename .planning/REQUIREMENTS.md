@@ -66,6 +66,8 @@
 | OPS-01 | Phase 22 | Complete |
 | OPS-02 | Phase 22 | Complete |
 
+`DIGEST-02` and `DIGEST-03` closure evidence is recorded in `.planning/phases/20-digest-emission-explainability/20-VERIFICATION.md`, with the scheduled `DigestFlushWorker` PostgreSQL 15.17 runtime proof added by Phase 23.
+
 **Coverage:**
 - v1.2 requirements: 11 total
 - Mapped to phases: 11
@@ -73,4 +75,4 @@
 
 ---
 *Requirements defined: 2026-04-28*
-*Last updated: 2026-04-29 after Plan 23-02 completion*
+*Last updated: 2026-04-29 after Plan 23-03 completion*

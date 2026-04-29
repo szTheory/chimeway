@@ -81,6 +81,10 @@ This blocker affects the full-suite gate, but it does not change the targeted di
 | `DIGEST-02` | ✓ SATISFIED | The scheduled `DigestFlushWorker` path now proves one emitted digest identity per bucket, canonical `delivery_id` dispatch, and durable source-row convergence via [test/chimeway/integration/digest_delivery_lifecycle_test.exs](/Users/jon/projects/chimeway/test/chimeway/integration/digest_delivery_lifecycle_test.exs:90) plus [test/chimeway/digests/flush_scheduling_test.exs](/Users/jon/projects/chimeway/test/chimeway/digests/flush_scheduling_test.exs:27). |
 | `DIGEST-03` | ✓ SATISFIED | Explainability remains covered by [test/chimeway/orchestration/digest_explainability_test.exs](/Users/jon/projects/chimeway/test/chimeway/orchestration/digest_explainability_test.exs:17) and [test/chimeway/traces_test.exs](/Users/jon/projects/chimeway/test/chimeway/traces_test.exs:592), with the missing scheduled/recovery runtime path now closed by the new integration coverage. |
 
+## Closure Summary
+
+Phase 23 closes the missing digest scheduling audit gap for `DIGEST-02` and `DIGEST-03`: the scheduled `DigestFlushWorker` runtime path is now proven on PostgreSQL 15.17, the recovery replay path joins the same durable bucket semantics, and the scope boundary remains explicit for Oban-backed versus host-managed installs. The follow-up full-suite blocker is operational debt outside the digest closure path, not a remaining gap in the digest verification itself.
+
 ## Scope Boundary
 
 Automatic digest flush scheduling is **closed only for Oban-backed hosts** in this phase. Non-Oban hosts still use the documented host-managed flush seam through `emit_bucket/2`; this verification does not claim automatic scheduling beyond that boundary.
