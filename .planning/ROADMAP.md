@@ -33,7 +33,7 @@
 Plans:
 - [x] 24-01-PLAN.md — Add the workflow declaration contract and durable definition/step storage.
 - [x] 24-02-PLAN.md — Create notification-anchored workflow runs and append-only transition history at trigger time.
-- [ ] 24-03-PLAN.md — Link canonical deliveries to workflow runs/steps and prove persisted replay without callback re-entry.
+- [x] 24-03-PLAN.md — Link canonical deliveries to workflow runs/steps and prove persisted replay without callback re-entry.
 
 Success criteria:
 1. Workflow declarations persist a stable workflow key/version and ordered step definitions without durable dependence on module names.

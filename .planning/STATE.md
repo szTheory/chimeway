@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Workflow Journeys
-status: active
-stopped_at: Completed 24-workflow-contracts-state-spine-02-PLAN.md
-last_updated: "2026-04-29T16:40:30.099Z"
-last_activity: 2026-04-29 — Completed plan 24-02 workflow run and transition persistence
+status: completed
+stopped_at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
+last_updated: "2026-04-29T16:49:45.984Z"
+last_activity: 2026-04-29 — Completed plan 24-03 delivery workflow linkage and persisted replay
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 ## Current Position
 
-Phase: 24 — Workflow Contracts & State Spine
-Plan: 24-03 next
-Status: 24-02 complete
-Last activity: 2026-04-29 — Completed plan 24-02 workflow run and transition persistence
+Phase: 25 — Progression Engine & Wait Gates
+Plan: 25-01 next
+Status: Phase 24 complete
+Last activity: 2026-04-29 — Completed plan 24-03 delivery workflow linkage and persisted replay
 
 ## Accumulated Context
 
@@ -112,6 +112,8 @@ Recent decisions affecting current work:
 - Workflow identity persists as definition rows plus ordered step rows keyed by workflow_key and workflow_version.
 - Notifications persist nullable workflow_definition_id so trigger-time run creation can reuse durable workflow identity without hiding linkage in metadata.
 - Initial workflow truth is split between one current-state workflow_run row and two explicit transition facts: workflow_started and step_activated.
+- Canonical delivery linkage resolves from the durable workflow run current_step_id, and only the active-step channel receives workflow_run_id and workflow_step_id.
+- Recovery keeps persisted workflow replay behind explicit use_persisted_workflow: true validation while still reading linkage from Chimeway-owned workflow rows.
 
 ### Pending Todos
 
@@ -133,8 +135,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-29T16:40:30.092Z
-Stopped at: Completed 24-workflow-contracts-state-spine-02-PLAN.md
+Last session: 2026-04-29T16:49:45.979Z
+Stopped at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
 Resume file: None
 
-**Planned Phase:** Phase 24 — Workflow Contracts & State Spine
+**Planned Phase:** Phase 25 — Progression Engine & Wait Gates
