@@ -73,9 +73,20 @@ defmodule Chimeway.Workflows.Progression do
 
     Repo.transaction(fn ->
       with {:ok, run} <- Workflows.lock_run(Repo, workflow_run_id),
-           {:ok, run} <- maybe_reactivate_due(Repo, run, now),
-           {:ok, result} <- do_progress_active_run(Repo, run, now) do
-        result
+           {:ok, intermediate} <- maybe_reactivate_due(Repo, run, now) do
+        case intermediate do
+          # Past-due wait advanced directly via advance_after_wait/5 — done.
+          {:advanced, _advanced_run, _deliveries} = advanced ->
+            advanced
+
+          # Run was already :active (not waiting) — fall through to evaluation.
+          %WorkflowRun{} = run ->
+            case do_progress_active_run(Repo, run, now) do
+              {:ok, result} -> result
+              {:noop, run, reason} -> {:noop, run, reason}
+              {:error, reason} -> Repo.rollback(reason)
+            end
+        end
       else
         {:noop, run, reason} -> {:noop, run, reason}
         {:error, reason} -> Repo.rollback(reason)
@@ -320,11 +331,30 @@ defmodule Chimeway.Workflows.Progression do
 
   defp maybe_reactivate_due(repo, %WorkflowRun{state: :waiting} = run, now) do
     case run.status_context do
+      %{"due_at" => due_at_iso, "to_step" => to_step, "anchor_delivery_id" => anchor_delivery_id}
+      when is_binary(due_at_iso) and is_binary(to_step) and is_binary(anchor_delivery_id) ->
+        case DateTime.from_iso8601(due_at_iso) do
+          {:ok, due_at, _offset} ->
+            if DateTime.compare(now, due_at) in [:gt, :eq] do
+              # Wait elapsed: advance directly to the persisted to_step instead
+              # of re-evaluating the active step's rules (which would re-match
+              # the same wait_until rule and loop forever — CR-01).
+              advance_after_wait(repo, run, to_step, anchor_delivery_id, now)
+            else
+              {:noop, run, :wait_not_due}
+            end
+
+          _ ->
+            {:noop, run, :invalid_due_at}
+        end
+
+      # Backward-compat: persisted contexts from older runs that lack to_step
+      # or anchor_delivery_id can still surface a deterministic noop reason.
       %{"due_at" => due_at_iso} when is_binary(due_at_iso) ->
         case DateTime.from_iso8601(due_at_iso) do
           {:ok, due_at, _offset} ->
             if DateTime.compare(now, due_at) in [:gt, :eq] do
-              reactivate_run(repo, run, now)
+              {:noop, run, :wait_context_incomplete}
             else
               {:noop, run, :wait_not_due}
             end
@@ -340,31 +370,88 @@ defmodule Chimeway.Workflows.Progression do
 
   defp maybe_reactivate_due(_repo, %WorkflowRun{} = run, _now), do: {:ok, run}
 
-  defp reactivate_run(repo, run, now) do
+  # CR-01 fix: the wait_until rule's advancement seam. Reloads the anchor
+  # delivery row, appends one `reactivated_from_wait` transition, then runs
+  # the canonical post-cursor advancement (cursor update + step_activated
+  # transition + canonical plan_next_step_delivery) using the persisted
+  # to_step from status_context. This replaces the previous
+  # reactivate_run -> rule-re-evaluation path which looped forever.
+  defp advance_after_wait(repo, %WorkflowRun{} = run, to_step_key, anchor_delivery_id, now)
+       when is_binary(to_step_key) and is_binary(anchor_delivery_id) do
     reactivation_context =
       run.status_context
       |> Map.put("reactivated_at", DateTime.to_iso8601(now))
 
-    with {:ok, updated_run} <-
-           Workflows.update_run(repo, run, %{
-             state: :active,
-             status_reason: @reactivated_reason,
-             status_context: reactivation_context,
-             last_transition_at: now
-           }),
-         {:ok, _transition} <-
+    with {:ok, anchor_delivery} <- fetch_anchor_delivery(repo, anchor_delivery_id),
+         {:ok, _reactivated_transition} <-
            Workflows.append_transition(repo, %{
              workflow_run_id: run.id,
              workflow_step_id: run.current_step_id,
+             delivery_id: anchor_delivery.id,
              from_state: :waiting,
              to_state: :active,
              reason: @reactivated_reason,
              context: reactivation_context,
              inserted_at: now
-           }) do
-      {:ok, updated_run}
+           }),
+         %WorkflowStep{} = next_step <-
+           Workflows.fetch_step_by_key(run.workflow_definition_id, to_step_key) ||
+             {:error, :unknown_to_step},
+         {:ok, advanced_run} <-
+           Workflows.update_run(repo, run, %{
+             state: :active,
+             current_step_id: next_step.id,
+             last_transition_at: now,
+             status_reason: @advanced_reason,
+             status_context: %{
+               "rule_kind" => "wait_until",
+               "workflow_outcome" => "wait_elapsed",
+               "anchor_delivery_id" => anchor_delivery.id,
+               "to_step" => to_step_key,
+               "from_step" => current_step_key(run)
+             }
+           }),
+         {:ok, _activated_transition} <-
+           Workflows.append_transition(repo, %{
+             workflow_run_id: run.id,
+             workflow_step_id: next_step.id,
+             from_state: :active,
+             to_state: :active,
+             reason: "step_activated",
+             context: %{"step_key" => next_step.step_key, "source" => "progression"},
+             inserted_at: now
+           }),
+         notification = Repo.get!(Notification, anchor_delivery.notification_id),
+         {:ok, next_delivery} <-
+           DeliveryPlanning.plan_next_step_delivery(notification, next_step.channel,
+             notification_key: persisted_notification_key(notification),
+             use_persisted_workflow: true,
+             use_persisted_channels: true,
+             use_persisted_orchestration: true
+           ) do
+      {:ok, {:advanced, advanced_run, [next_delivery]}}
+    else
+      {:error, :unknown_to_step} -> {:noop, run, :unknown_to_step}
+      nil -> {:noop, run, :unknown_to_step}
+      {:error, reason} -> {:error, reason}
     end
   end
+
+  defp fetch_anchor_delivery(repo, anchor_delivery_id) do
+    case repo.get(Delivery, anchor_delivery_id) do
+      nil -> {:error, :anchor_delivery_not_found}
+      %Delivery{} = delivery -> {:ok, delivery}
+    end
+  end
+
+  defp current_step_key(%WorkflowRun{current_step_id: step_id}) when is_binary(step_id) do
+    case Repo.get(WorkflowStep, step_id) do
+      %WorkflowStep{step_key: step_key} -> step_key
+      _ -> nil
+    end
+  end
+
+  defp current_step_key(_), do: nil
 
   # ---- Internal: row locking + helpers ---------------------------------------
 
