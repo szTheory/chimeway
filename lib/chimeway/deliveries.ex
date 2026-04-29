@@ -13,6 +13,9 @@ defmodule Chimeway.Deliveries do
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Telemetry
+  # NOTE: `Chimeway.Workflows.Progression` is referenced by its fully qualified
+  # name in `maybe_progress_workflow/1` to avoid a compile-time circular alias
+  # ordering between this module and the progression engine.
   alias Ecto.Multi
 
   @terminal_states [:succeeded, :suppressed, :cancelled, :digested]
@@ -464,6 +467,7 @@ defmodule Chimeway.Deliveries do
       metadata: metadata
     )
     |> Repo.update()
+    |> maybe_apply_progression()
   end
 
   @doc """
@@ -746,6 +750,7 @@ defmodule Chimeway.Deliveries do
       metadata: metadata
     )
     |> Repo.update()
+    |> maybe_apply_progression()
   end
 
   def exhaust_delivery(%Delivery{status: status}),
@@ -1003,6 +1008,11 @@ defmodule Chimeway.Deliveries do
     |> Repo.transaction()
     |> case do
       {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
+        # Canonical convergence point — drive workflow progression once after
+        # the durable transaction commits so the engine reads the final
+        # delivery row and can take its own FOR UPDATE locks without nesting
+        # SELECT FOR UPDATE inside the attempt-recording lock.
+        maybe_progress_workflow(updated_delivery)
         {:ok, %{delivery: updated_delivery, attempt: attempt}}
 
       {:error, step, reason, changes} ->
@@ -1041,6 +1051,10 @@ defmodule Chimeway.Deliveries do
   # The explicit suppression_reason ("permanent_failure" or "bounced") is the
   # durable explanation operators see in traces.
   defp cancel_with_reason(%Delivery{} = delivery, reason) when is_binary(reason) do
+    # NOTE: progression is invoked by `record_attempt/2` after the wrapping
+    # `Multi` commits, so this private direct-cancel helper does NOT call
+    # `maybe_apply_progression/1` itself. That keeps the canonical convergence
+    # path single-entry: one progression call per `record_attempt/2` call.
     metadata =
       delivery.metadata
       |> ensure_metadata_map()
@@ -1120,4 +1134,29 @@ defmodule Chimeway.Deliveries do
   defp sensitive_key?(key) when is_atom(key), do: sensitive_key?(Atom.to_string(key))
   defp sensitive_key?(key) when is_binary(key), do: String.downcase(key) in @sensitive_keys
   defp sensitive_key?(_), do: false
+
+  # ---- Workflow progression hook ---------------------------------------------
+  # All canonical terminal-write paths converge through one of these helpers so
+  # the workflow progression engine sees every relevant delivery state change
+  # exactly once. The engine is itself noop-safe for non-workflow-linked rows,
+  # non-active runs, and unmatched rules per ESC-03 / T-25-06.
+
+  defp maybe_apply_progression({:ok, %Delivery{} = delivery} = ok) do
+    maybe_progress_workflow(delivery)
+    ok
+  end
+
+  defp maybe_apply_progression(other), do: other
+
+  defp maybe_progress_workflow(%Delivery{workflow_run_id: nil}), do: :noop
+
+  defp maybe_progress_workflow(%Delivery{workflow_run_id: workflow_run_id})
+       when is_binary(workflow_run_id) do
+    case Chimeway.Workflows.Progression.progress_run(workflow_run_id, []) do
+      {:ok, _result} -> :ok
+      {:error, _reason} -> :error
+    end
+  end
+
+  defp maybe_progress_workflow(_other), do: :noop
 end

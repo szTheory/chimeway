@@ -74,12 +74,31 @@ defmodule ChimewayTest.Notifiers.WorkflowProgression do
   end
 end
 
+# Plan-only dispatcher: plans canonical delivery rows but does not drive them
+# through the adapter. This lets the test control terminal convergence
+# explicitly so we can prove `Progression.progress_run/2` evaluates the engine
+# logic itself rather than the side-effects of the auto-progression hook on
+# `Deliveries.record_attempt/2`.
+defmodule ChimewayTest.Dispatchers.PlanOnly do
+  @behaviour Chimeway.Dispatch
+
+  alias Chimeway.DeliveryPlanning
+
+  @impl true
+  def dispatch(notifications, opts) when is_list(notifications) do
+    DeliveryPlanning.plan_notifications(notifications, opts)
+  end
+
+  @impl true
+  def dispatch_delivery(delivery, _opts), do: {:ok, delivery}
+end
+
 defmodule Chimeway.Orchestration.WorkflowProgressionTest do
   use Chimeway.DataCase, async: false
 
   import Ecto.Query
 
-  alias Chimeway.{Delivery, Repo}
+  alias Chimeway.{Deliveries, Delivery, Repo}
   alias Chimeway.Notifications.Notification
   alias Chimeway.Workflows.{Progression, WorkflowRun, WorkflowStep, WorkflowTransition}
 
@@ -87,7 +106,7 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
     previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
 
-    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    Application.put_env(:chimeway, :dispatcher, ChimewayTest.Dispatchers.PlanOnly)
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     Chimeway.Adapters.Test.clear()
 
@@ -105,16 +124,28 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       %{notification: notification, workflow_run: workflow_run, in_app_step: in_app_step} =
         trigger_workflow!("wait-due-success")
 
-      # The Sync dispatcher already drove the in_app delivery to :succeeded
-      # during trigger. The progression engine should observe that converged
-      # delivery row, see the wait_until rule on the active step, and persist
-      # the wait gate without advancing the run yet.
-      terminal_delivery = fetch_delivery!(notification.id, "in_app")
-      assert terminal_delivery.status == :succeeded
-      assert terminal_delivery.workflow_run_id == workflow_run.id
-      assert terminal_delivery.workflow_step_id == in_app_step.id
+      # PlanOnly dispatcher leaves the in_app delivery :pending so we can drive
+      # convergence ourselves. Going pending -> dispatched -> succeeded via the
+      # canonical helpers exercises the same convergence path that production
+      # code uses (REL-03), and `record_attempt/2` invokes the progression seam
+      # automatically once the row converges.
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      assert pending_delivery.status == :pending
+      assert pending_delivery.workflow_run_id == workflow_run.id
+      assert pending_delivery.workflow_step_id == in_app_step.id
 
-      assert {:ok, {:waiting, updated_run}} = Progression.progress_run(workflow_run.id, [])
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+      assert terminal_delivery.status == :succeeded
+
+      # The convergence hook inside `record_attempt/2` already drove progression
+      # once. Calling the engine again must be duplicate-safe: the run is now
+      # :waiting and the wait gate is not yet due, so we get a noop.
+      assert {:ok, {:noop, updated_run, :wait_not_due}} =
+               Progression.progress_run(workflow_run.id, [])
 
       assert updated_run.id == workflow_run.id
       assert updated_run.state == :waiting
@@ -158,28 +189,34 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       %{notification: notification, workflow_run: workflow_run, in_app_step: in_app_step, email_step: email_step} =
         trigger_workflow!("outcome-bounce")
 
-      # Sync dispatcher already drove the in_app delivery to :succeeded; rewrite
-      # the canonical row to a curated `:cancelled / "bounced"` terminal so we
-      # can prove the engine evaluates `on_outcome` rules off the converged
-      # delivery facts (D-12).
-      in_app_delivery = fetch_delivery!(notification.id, "in_app")
+      # PlanOnly dispatcher leaves the in_app delivery :pending. Drive it
+      # through the canonical convergence path with a `bounced` adapter
+      # outcome — `record_attempt/2` will route to terminal `:cancelled /
+      # "bounced"` and invoke the progression seam automatically.
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
 
-      terminal_delivery =
-        in_app_delivery
-        |> Ecto.Changeset.change(status: :cancelled, suppression_reason: "bounced")
-        |> Repo.update!()
+      {:ok, %{delivery: terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :bounced, error_class: "bounced"})
 
-      assert {:ok, {:advanced, updated_run, [email_delivery]}} =
-               Progression.progress_run(workflow_run.id, [])
+      assert terminal_delivery.status == :cancelled
+      assert terminal_delivery.suppression_reason == "bounced"
 
-      assert updated_run.id == workflow_run.id
+      # The convergence hook already drove the engine — the run should already
+      # be advanced onto the email step.
+      updated_run = Repo.get!(WorkflowRun, workflow_run.id)
       assert updated_run.state == :active
       assert updated_run.current_step_id == email_step.id
 
       # The next-step delivery is created through the canonical planning path
       # (no replacement rows) and is linked to the new active step.
-      assert email_delivery.notification_id == notification.id
-      assert email_delivery.channel == "email"
+      [email_delivery] =
+        Repo.all(
+          from(d in Delivery,
+            where: d.notification_id == ^notification.id and d.channel == "email"
+          )
+        )
+
       assert email_delivery.workflow_run_id == workflow_run.id
       assert email_delivery.workflow_step_id == email_step.id
 
@@ -201,8 +238,10 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
 
       # Re-entering progression with the same converged inputs must not create a
       # second next-step delivery — duplicate-safe noops are mandatory under
-      # ESC-03.
-      assert {:ok, {:noop, _run, _reason}} = Progression.progress_run(workflow_run.id, [])
+      # ESC-03. The active step is now `email` and its config has no progress
+      # rules, so the engine returns :no_progress_rules.
+      assert {:ok, {:noop, _run, :no_progress_rules}} =
+               Progression.progress_run(workflow_run.id, [])
 
       assert email_delivery_count(notification.id) == 1
     end
@@ -249,6 +288,8 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
 
       in_app_delivery = fetch_delivery!(notification.id, "in_app")
 
+      # Drive convergence directly via Ecto so we can assert that calling the
+      # progression engine after a converged delivery advances exactly once.
       _terminal =
         in_app_delivery
         |> Ecto.Changeset.change(status: :cancelled, suppression_reason: "bounced")
