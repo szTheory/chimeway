@@ -24,6 +24,31 @@ defmodule Chimeway.Workflows.ProgressionOutcome do
     * `:bounced`             — `delivery.status == :cancelled` and
                                 `suppression_reason == "bounced"`
 
+  ## Early-fire warning for `temporary_failure` (WR-02)
+
+  `temporary_failure` resolves from a `delivery.status == :failed` row, which
+  is **NOT** terminal: `Chimeway.Deliveries`'s `@allowed_transitions` permits
+  `failed: [:dispatched]`, the path Oban uses while a delivery is being
+  retried. A workflow authoring:
+
+      %{"kind" => "on_outcome", "outcome" => "temporary_failure", "to_step" => "email"}
+
+  fires `to_step` on the **FIRST** transient `:failed` write — before any
+  retry has been attempted. The original delivery may still succeed on a
+  later attempt, leaving the host with BOTH a successful primary delivery
+  AND the destination-step delivery for the same notification.
+
+  If the intent is "fire after retries are exhausted", use
+  `retries_exhausted` (which resolves only from a guaranteed-terminal
+  `:cancelled` row with `suppression_reason == "retries_exhausted"`). If the
+  intent IS "fire immediately on the first failure so we can try a
+  different channel while the original retries", pair the destination
+  step's notifier with an idempotency key so the host can collapse a
+  primary success + an early-fire escalation to one user-visible delivery.
+
+  See `Chimeway.Notifier` moduledoc near `@progress_outcomes` for the
+  authoring-time version of this warning.
+
   Per D-05, `:pending`, `:dispatched`, and `:digested` deliveries always return
   `:not_branchable_yet`. Cancelled rows whose `suppression_reason` is not in the
   curated set also return `:not_branchable_yet` so workflow rules never advance
@@ -72,6 +97,11 @@ defmodule Chimeway.Workflows.ProgressionOutcome do
     {:branchable, :suppressed, evidence_for(delivery, attempt)}
   end
 
+  # `:failed` is non-terminal (Chimeway.Deliveries permits `failed: [:dispatched]`),
+  # so this branch may fire BEFORE retries are exhausted. See the
+  # "Early-fire warning for `temporary_failure` (WR-02)" section in this
+  # module's @moduledoc for the operator-facing consequence and the
+  # recommended pairing with idempotency keys at the destination step.
   def from_delivery(%Delivery{status: :failed} = delivery, attempt) do
     {:branchable, :temporary_failure, evidence_for(delivery, attempt)}
   end
