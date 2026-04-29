@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Workflow Journeys
-status: completed
+status: executing
 stopped_at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
-last_updated: "2026-04-29T16:49:45.984Z"
-last_activity: 2026-04-29 — Completed plan 24-03 delivery workflow linkage and persisted replay
+last_updated: "2026-04-29T18:55:23.652Z"
+last_activity: 2026-04-29 -- Phase 25 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
+  total_plans: 6
   completed_plans: 3
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.3 Workflow Journeys — durable multi-step workflows, escalations, and journey-level explainability.
+**Current focus:** Phase 25 — progression-engine-wait-gates
 
 ## Current Position
 
-Phase: 25 — Progression Engine & Wait Gates
-Plan: 25-01 next
-Status: Phase 24 complete
-Last activity: 2026-04-29 — Completed plan 24-03 delivery workflow linkage and persisted replay
+Phase: 25 (progression-engine-wait-gates) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 25
+Last activity: 2026-04-29 -- Phase 25 execution started
 
 ## Accumulated Context
 
