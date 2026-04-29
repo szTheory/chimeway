@@ -68,6 +68,8 @@ if Code.ensure_loaded?(Oban) do
     def normalize_progress_result({:ok, {:advanced, _run, _deliveries}}), do: :ok
     def normalize_progress_result({:ok, {:waiting, _run}}), do: :ok
     def normalize_progress_result({:ok, {:noop, _run, _reason}}), do: :ok
+    def normalize_progress_result({:ok, {:completed, _run}}), do: :ok
+    def normalize_progress_result({:ok, {:stopped, _run}}), do: :ok
     def normalize_progress_result({:error, :workflow_run_not_found}), do: :ok
     def normalize_progress_result({:error, reason}), do: {:error, reason}
   end
