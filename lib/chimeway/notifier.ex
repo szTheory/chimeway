@@ -603,6 +603,7 @@ defmodule Chimeway.Notifier do
     case kind do
       "wait_until" -> normalize_wait_until_rule(rule)
       "on_outcome" -> normalize_on_outcome_rule(rule)
+      "stop" -> normalize_stop_rule(rule)
       other -> {:error, {:unknown_rule_kind, other}}
     end
   end
@@ -650,6 +651,24 @@ defmodule Chimeway.Notifier do
              "kind" => "on_outcome",
              "outcome" => normalized_outcome,
              "to_step" => normalized_to_step
+           }}
+        end
+
+      extra ->
+        {:error, {:mixed_rule_shape, extra}}
+    end
+  end
+
+  defp normalize_stop_rule(%{} = rule) do
+    case extra_keys(rule, ~w(kind outcome)) do
+      [] ->
+        outcome = Map.get(rule, "outcome", Map.get(rule, :outcome))
+
+        with {:ok, normalized_outcome} <- normalize_progress_outcome(outcome) do
+          {:ok,
+           %{
+             "kind" => "stop",
+             "outcome" => normalized_outcome
            }}
         end
 

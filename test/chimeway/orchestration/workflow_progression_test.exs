@@ -74,6 +74,61 @@ defmodule ChimewayTest.Notifiers.WorkflowProgression do
   end
 end
 
+defmodule ChimewayTest.Notifiers.WorkflowTerminal do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.workflow_terminal"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Workflow terminal"}}
+
+  def channels(_params, _recipient), do: {:ok, [:in_app]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Terminal",
+         "body" => "Terminal body",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test"}
+       },
+       channels: %{
+         in_app: %{render_key: "test.workflow_terminal.in_app", render_version: 1}
+       }
+     }}
+  end
+
+  def workflow(params, _recipient) do
+    # Scenario-driven workflows based on params
+    rules =
+      case params[:scenario] do
+        "stop_rule" ->
+          [%{"kind" => "stop", "outcome" => "bounced"}]
+        "implicit_complete" ->
+          [] # Empty rules meaning implicit completion on branchable outcome
+      end
+
+    {:ok,
+     %{
+       workflow_key: "test.workflow_terminal.workflow",
+       workflow_version: 1,
+       steps: [
+         %{
+           step_key: "in_app",
+           step_order: 1,
+           channel: :in_app,
+           config: %{
+             "progress" => rules
+           }
+         }
+       ]
+     }}
+  end
+end
+
 # Plan-only dispatcher: plans canonical delivery rows but does not drive them
 # through the adapter. This lets the test control terminal convergence
 # explicitly so we can prove `Progression.progress_run/2` evaluates the engine
@@ -388,7 +443,121 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
     end
   end
 
+  describe "terminal evaluations (ESC-01/ESC-02)" do
+    test "stop rule matches on a branchable outcome, stops the run, and records a :stopped transition" do
+      %{notification: notification, workflow_run: workflow_run, in_app_step: in_app_step} =
+        trigger_terminal_workflow!("stop-outcome", "stop_rule")
+
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :bounced, error_class: "bounced"})
+
+      assert terminal_delivery.status == :cancelled
+      assert terminal_delivery.suppression_reason == "bounced"
+
+      # Calling progress_run explicitly as if it was driven by the engine:
+      # Wait, the convergence hook in `record_attempt/2` already drove progression
+      # so the run should be stopped right away! Let's assert that directly.
+      stopped_run = Repo.get!(WorkflowRun, workflow_run.id)
+      assert stopped_run.state == :stopped
+      assert stopped_run.status_reason == "workflow_stopped"
+
+      transitions = list_transitions(workflow_run.id)
+      stopped_transitions = Enum.filter(transitions, &(&1.reason == "workflow_stopped"))
+      assert length(stopped_transitions) == 1
+
+      [stopped_transition] = stopped_transitions
+      assert stopped_transition.workflow_step_id == in_app_step.id
+      assert stopped_transition.delivery_id == terminal_delivery.id
+      assert stopped_transition.context["workflow_outcome"] == "bounced"
+      assert stopped_transition.context["rule_kind"] == "stop"
+
+      # Re-entering progression with the same converged inputs must noop
+      assert {:ok, {:noop, _run, :run_not_active}} =
+               Progression.progress_run(workflow_run.id, [])
+    end
+
+    test "implicit completion when rules exhaust on a branchable outcome" do
+      %{notification: notification, workflow_run: workflow_run, in_app_step: in_app_step} =
+        trigger_terminal_workflow!("implicit-complete", "implicit_complete")
+
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :bounced, error_class: "bounced"})
+
+      completed_run = Repo.get!(WorkflowRun, workflow_run.id)
+      assert completed_run.state == :completed
+      assert completed_run.status_reason == "workflow_completed"
+
+      transitions = list_transitions(workflow_run.id)
+      completed_transitions = Enum.filter(transitions, &(&1.reason == "workflow_completed"))
+      assert length(completed_transitions) == 1
+
+      [completed_transition] = completed_transitions
+      assert completed_transition.workflow_step_id == in_app_step.id
+      assert completed_transition.delivery_id == terminal_delivery.id
+      assert completed_transition.context["workflow_outcome"] == "bounced"
+      assert completed_transition.context["rule_kind"] == "implicit_completion"
+
+      assert {:ok, {:noop, _run, :run_not_active}} =
+               Progression.progress_run(workflow_run.id, [])
+    end
+
+    test "implicit completion does not apply to non-branchable (pending) outcomes" do
+      %{notification: notification, workflow_run: workflow_run} =
+        trigger_terminal_workflow!("implicit-pending", "implicit_complete")
+
+      in_app_delivery = fetch_delivery!(notification.id, "in_app")
+
+      # Delivery is :pending so it is :not_branchable_yet.
+      # The run should remain :active and progression should noop.
+      assert {:ok, {:noop, run, :no_progress_rules}} = Progression.progress_run(workflow_run.id, [])
+      assert run.state == :active
+    end
+  end
+
   # ---- Helpers ----------------------------------------------------------------
+
+  defp trigger_terminal_workflow!(scenario_tag, params_scenario) do
+    user_id = "wt-#{scenario_tag}-#{System.unique_integer([:positive])}"
+
+    {:ok, _result} =
+      Chimeway.trigger(
+        ChimewayTest.Notifiers.WorkflowTerminal,
+        %{user_id: user_id, scenario: params_scenario},
+        idempotency_key: "wt-#{scenario_tag}-#{System.unique_integer([:positive])}"
+      )
+
+    notification =
+      Repo.one!(
+        from(n in Notification,
+          where: n.recipient_identity == ^"user:#{user_id}",
+          order_by: [desc: n.inserted_at],
+          limit: 1
+        )
+      )
+
+    workflow_run = Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
+
+    in_app_step =
+      Repo.one!(
+        from(ws in WorkflowStep,
+          where: ws.workflow_definition_id == ^notification.workflow_definition_id,
+          order_by: [asc: ws.step_order],
+          limit: 1
+        )
+      )
+
+    %{
+      notification: notification,
+      workflow_run: workflow_run,
+      in_app_step: in_app_step
+    }
+  end
 
   defp trigger_workflow!(scenario_tag) do
     user_id = "wp-#{scenario_tag}-#{System.unique_integer([:positive])}"
