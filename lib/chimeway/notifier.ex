@@ -26,11 +26,13 @@ defmodule Chimeway.Notifier do
   @callback orchestration(map(), map()) ::
               {:ok, :immediate | :digest | :digest_held | keyword(atom()) | map()}
               | {:error, term()}
+  @callback workflow(map(), map()) :: {:ok, map()} | {:error, term()}
 
   @optional_callbacks channels: 2
   @optional_callbacks rendering: 2
   @optional_callbacks delayed_fallback_channels: 2
   @optional_callbacks orchestration: 2
+  @optional_callbacks workflow: 2
 
   @spec validate_module!(module()) :: :ok | {:error, term()}
   def validate_module!(module) when is_atom(module) do
@@ -64,6 +66,18 @@ defmodule Chimeway.Notifier do
           default_digest_key: String.t() | nil,
           digest_keys: %{String.t() => String.t()},
           source: :default | :notifier | :planner_override
+        }
+  @type workflow_step_resolution :: %{
+          step_key: String.t(),
+          step_order: pos_integer(),
+          channel: String.t(),
+          config: map()
+        }
+  @type workflow_resolution :: %{
+          workflow_key: String.t(),
+          workflow_version: pos_integer(),
+          steps: [workflow_step_resolution()],
+          source: :notifier | :planner_override
         }
 
   @spec resolve_orchestration(module() | nil, map(), map(), term()) ::
@@ -298,9 +312,253 @@ defmodule Chimeway.Notifier do
       Map.has_key?(persisted, :source)
   end
 
+  @spec resolve_workflow(module() | nil, map(), map(), term()) ::
+          {:ok, workflow_resolution() | nil} | {:error, term()}
+  def resolve_workflow(notifier, trigger_params, recipient, override \\ :unset)
+
+  def resolve_workflow(_notifier, _trigger_params, _recipient, override) when override != :unset do
+    normalize_workflow_declaration(override)
+  end
+
+  def resolve_workflow(nil, _trigger_params, _recipient, _override), do: {:ok, nil}
+
+  def resolve_workflow(notifier, trigger_params, recipient, _override) when is_atom(notifier) do
+    if function_exported?(notifier, :workflow, 2) do
+      notifier
+      |> apply(:workflow, [trigger_params, recipient])
+      |> handle_workflow_result()
+    else
+      {:ok, nil}
+    end
+  end
+
+  @spec normalize_workflow_declaration(map()) :: {:ok, workflow_resolution()} | {:error, term()}
+  def normalize_workflow_declaration(%{} = declaration) do
+    workflow_key = Map.get(declaration, :workflow_key, Map.get(declaration, "workflow_key"))
+    workflow_version = Map.get(declaration, :workflow_version, Map.get(declaration, "workflow_version"))
+    steps = Map.get(declaration, :steps, Map.get(declaration, "steps"))
+    source = Map.get(declaration, :source, Map.get(declaration, "source", :notifier))
+
+    with :ok <- require_workflow_fields(workflow_key, workflow_version, steps),
+         {:ok, normalized_source} <- normalize_workflow_source(source),
+         {:ok, normalized_workflow_key} <- normalize_workflow_key(workflow_key),
+         {:ok, normalized_workflow_version} <- normalize_workflow_version(workflow_version),
+         {:ok, normalized_steps} <- normalize_workflow_steps(steps) do
+      {:ok,
+       %{
+         workflow_key: normalized_workflow_key,
+         workflow_version: normalized_workflow_version,
+         steps: normalized_steps,
+         source: normalized_source
+       }}
+    else
+      :error -> {:error, {:workflow_resolution_failed, {:invalid_workflow_declaration, declaration}}}
+      {:error, reason} -> {:error, {:workflow_resolution_failed, reason}}
+    end
+  end
+
+  def normalize_workflow_declaration(other),
+    do: {:error, {:workflow_resolution_failed, {:invalid_workflow_declaration, other}}}
+
+  @spec serialize_workflow(workflow_resolution()) :: map()
+  def serialize_workflow(workflow) when is_map(workflow) do
+    %{
+      "workflow_key" => workflow.workflow_key,
+      "workflow_version" => workflow.workflow_version,
+      "steps" =>
+        Enum.map(workflow.steps, fn step ->
+          %{
+            "step_key" => step.step_key,
+            "step_order" => step.step_order,
+            "channel" => step.channel,
+            "config" => step.config
+          }
+        end),
+      "source" => Atom.to_string(workflow.source)
+    }
+  end
+
+  def persisted_workflow_override(%{} = persisted), do: persisted
+  def persisted_workflow_override(other), do: other
+
   @spec resolve_rendering(module(), map(), map()) ::
           {:ok, Chimeway.Rendering.rendering_declaration()} | {:error, term()}
   def resolve_rendering(notifier, trigger_params, recipient) when is_atom(notifier) do
     Chimeway.Rendering.resolve_declaration(notifier, trigger_params, recipient)
+  end
+
+  defp handle_workflow_result({:ok, declaration}), do: normalize_workflow_declaration(declaration)
+
+  defp handle_workflow_result({:error, reason}),
+    do: {:error, {:workflow_resolution_failed, reason}}
+
+  defp handle_workflow_result(unexpected),
+    do: {:error, {:workflow_resolution_failed, {:unexpected_result, unexpected}}}
+
+  defp require_workflow_fields(nil, _workflow_version, _steps), do: :error
+  defp require_workflow_fields(_workflow_key, nil, _steps), do: :error
+  defp require_workflow_fields(_workflow_key, _workflow_version, steps) when is_list(steps), do: :ok
+  defp require_workflow_fields(_workflow_key, _workflow_version, _steps), do: :error
+
+  defp normalize_workflow_source(source) when source in [:notifier, :planner_override], do: {:ok, source}
+  defp normalize_workflow_source("notifier"), do: {:ok, :notifier}
+  defp normalize_workflow_source("planner_override"), do: {:ok, :planner_override}
+  defp normalize_workflow_source(source), do: {:error, {:invalid_workflow_source, source}}
+
+  defp normalize_workflow_key(workflow_key) when is_binary(workflow_key) do
+    normalized_workflow_key = String.trim(workflow_key)
+
+    if normalized_workflow_key == "" do
+      {:error, {:blank_workflow_key, workflow_key}}
+    else
+      {:ok, normalized_workflow_key}
+    end
+  end
+
+  defp normalize_workflow_key(workflow_key),
+    do: {:error, {:blank_workflow_key, workflow_key}}
+
+  defp normalize_workflow_version(workflow_version)
+       when is_integer(workflow_version) and workflow_version > 0,
+       do: {:ok, workflow_version}
+
+  defp normalize_workflow_version(workflow_version),
+    do: {:error, {:invalid_workflow_version, workflow_version}}
+
+  defp normalize_workflow_steps(steps) when is_list(steps) and length(steps) > 0 do
+    with {:ok, normalized_steps} <- normalize_workflow_step_list(steps),
+         :ok <- validate_unique_workflow_step_keys(normalized_steps),
+         :ok <- validate_unique_workflow_step_orders(normalized_steps),
+         :ok <- validate_sequential_workflow_step_orders(normalized_steps) do
+      {:ok, Enum.sort_by(normalized_steps, & &1.step_order)}
+    end
+  end
+
+  defp normalize_workflow_steps(steps) when is_list(steps),
+    do: {:error, {:invalid_workflow_steps, steps}}
+
+  defp normalize_workflow_steps(other), do: {:error, {:invalid_workflow_steps, other}}
+
+  defp normalize_workflow_step_list(steps) do
+    Enum.reduce_while(steps, {:ok, []}, fn step, {:ok, acc} ->
+      case normalize_workflow_step(step) do
+        {:ok, normalized_step} -> {:cont, {:ok, [normalized_step | acc]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, normalized_steps} -> {:ok, Enum.reverse(normalized_steps)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp normalize_workflow_step(%{} = step) do
+    step_key = Map.get(step, :step_key, Map.get(step, "step_key"))
+    step_order = Map.get(step, :step_order, Map.get(step, "step_order"))
+    channel = Map.get(step, :channel, Map.get(step, "channel"))
+    config = Map.get(step, :config, Map.get(step, "config", %{}))
+
+    with {:ok, normalized_step_key} <- normalize_workflow_step_key(step_key),
+         {:ok, normalized_step_order} <- normalize_workflow_step_order(step_order),
+         {:ok, normalized_channel} <- normalize_workflow_channel(channel),
+         {:ok, normalized_config} <- normalize_workflow_config(config) do
+      {:ok,
+       %{
+         step_key: normalized_step_key,
+         step_order: normalized_step_order,
+         channel: normalized_channel,
+         config: normalized_config
+       }}
+    end
+  end
+
+  defp normalize_workflow_step(step), do: {:error, {:invalid_workflow_step, step}}
+
+  defp normalize_workflow_step_key(step_key) when is_binary(step_key) do
+    normalized_step_key = String.trim(step_key)
+
+    if normalized_step_key == "" do
+      {:error, {:invalid_workflow_step_key, step_key}}
+    else
+      {:ok, normalized_step_key}
+    end
+  end
+
+  defp normalize_workflow_step_key(step_key),
+    do: {:error, {:invalid_workflow_step_key, step_key}}
+
+  defp normalize_workflow_step_order(step_order)
+       when is_integer(step_order) and step_order > 0,
+       do: {:ok, step_order}
+
+  defp normalize_workflow_step_order(step_order),
+    do: {:error, {:invalid_workflow_step_order, step_order}}
+
+  defp normalize_workflow_channel(channel) when is_atom(channel),
+    do: {:ok, Atom.to_string(channel)}
+
+  defp normalize_workflow_channel(channel) when is_binary(channel) do
+    normalized_channel = String.trim(channel)
+
+    if normalized_channel == "" do
+      {:error, {:invalid_workflow_channel, channel}}
+    else
+      {:ok, normalized_channel}
+    end
+  end
+
+  defp normalize_workflow_channel(channel),
+    do: {:error, {:invalid_workflow_channel, channel}}
+
+  defp normalize_workflow_config(config) when is_map(config), do: {:ok, config}
+  defp normalize_workflow_config(config), do: {:error, {:invalid_workflow_config, config}}
+
+  defp validate_unique_workflow_step_keys(steps) do
+    case find_duplicate(steps, & &1.step_key) do
+      nil -> :ok
+      duplicate_step_key -> {:error, {:duplicate_workflow_step_key, duplicate_step_key}}
+    end
+  end
+
+  defp validate_unique_workflow_step_orders(steps) do
+    case find_duplicate(steps, & &1.step_order) do
+      nil -> :ok
+      duplicate_step_order -> {:error, {:duplicate_workflow_step_order, duplicate_step_order}}
+    end
+  end
+
+  defp validate_sequential_workflow_step_orders(steps) do
+    step_orders = steps |> Enum.map(& &1.step_order) |> Enum.sort()
+    expected_step_orders = Enum.to_list(1..length(steps))
+
+    if step_orders == expected_step_orders do
+      :ok
+    else
+      invalid_step_order =
+        step_orders
+        |> Enum.zip(expected_step_orders)
+        |> Enum.find_value(fn
+          {actual, expected} when actual != expected -> actual
+          _ -> nil
+        end)
+
+      {:error, {:invalid_workflow_step_order, invalid_step_order}}
+    end
+  end
+
+  defp find_duplicate(items, fun) do
+    Enum.reduce_while(items, MapSet.new(), fn item, seen ->
+      value = fun.(item)
+
+      if MapSet.member?(seen, value) do
+        {:halt, value}
+      else
+        {:cont, MapSet.put(seen, value)}
+      end
+    end)
+    |> case do
+      %MapSet{} -> nil
+      duplicate -> duplicate
+    end
   end
 end
