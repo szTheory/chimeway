@@ -28,6 +28,12 @@
 
 **Goal:** Persist stable workflow identity, declarations, run state, and transition history.
 **Requirements:** WRK-01, WRK-03, API-02
+**Plans:** 3 plans
+
+Plans:
+- [ ] 24-01-PLAN.md — Add the workflow declaration contract and durable definition/step storage.
+- [ ] 24-02-PLAN.md — Create notification-anchored workflow runs and append-only transition history at trigger time.
+- [ ] 24-03-PLAN.md — Link canonical deliveries to workflow runs/steps and prove persisted replay without callback re-entry.
 
 Success criteria:
 1. Workflow declarations persist a stable workflow key/version and ordered step definitions without durable dependence on module names.
