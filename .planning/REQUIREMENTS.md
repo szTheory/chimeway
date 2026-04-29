@@ -15,7 +15,7 @@
 ### Digests
 
 - [x] **DIGEST-01**: Teams can define digest rules that group repeated notifications by recipient, notification key or category, and delivery window.
-- [ ] **DIGEST-02**: Digest generation is idempotent and records which source events and notifications were included in each digest delivery.
+- [x] **DIGEST-02**: Digest generation is idempotent and records which source events and notifications were included in each digest delivery.
 - [ ] **DIGEST-03**: Operators can explain why a notification was included in a digest, skipped from a digest, or emitted immediately instead.
 
 ### Templates & Rendering
@@ -58,7 +58,7 @@
 | ORCH-02 | Phase 17 | Complete |
 | ORCH-03 | Phase 18 | Complete |
 | DIGEST-01 | Phase 19 | Complete |
-| DIGEST-02 | Phase 23 | Pending |
+| DIGEST-02 | Phase 23 | Complete |
 | DIGEST-03 | Phase 23 | Pending |
 | TMPL-01 | Phase 21 | Complete |
 | TMPL-02 | Phase 21 | Complete |

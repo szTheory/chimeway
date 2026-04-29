@@ -128,13 +128,19 @@ Success criteria:
 3. Aggregate query surfaces report sent, suppressed, delayed, digested, failed, and exhausted outcomes by key and channel.
 
 ### Phase 23: Digest Flush Scheduling & Audit Closure
-**Goal**: Close the Phase 20 digest handoff gap by scheduling emitted digest dispatch automatically from durable bucket state, then re-verify the flow and repair audit traceability.
+**Goal**: Close the Phase 20 digest handoff gap by scheduling emitted digest dispatch automatically from durable bucket state for Oban-backed hosts, then re-verify the flow and repair audit traceability.
 **Depends on**: Phase 22
 **Requirements**: DIGEST-02, DIGEST-03
+**Plans:** 1/3 plans complete
+
+Plans:
+- [x] 23-01-PLAN.md — Schedule `DigestFlushWorker` automatically from durable digest bucket state for Oban-backed installs and document the non-Oban boundary.
+- [ ] 23-02-PLAN.md — Persist notifier orchestration snapshots so recovery can replay digest-held semantics durably.
+- [ ] 23-03-PLAN.md — Prove the scheduled end-to-end path with CI or PostgreSQL 15+ evidence and close Phase 20/23 verification traceability.
 
 Success criteria:
-1. Digest accumulation or window-close execution schedules `DigestFlushWorker` automatically from durable bucket state without relying on manual runtime intervention.
-2. The end-to-end flow from trigger through digest-held accumulation to emitted digest dispatch is verified in a production-shaped path and documented in `20-VERIFICATION.md`.
+1. For Oban-backed installs, digest accumulation or window-close execution schedules `DigestFlushWorker` automatically from durable bucket state without relying on manual runtime intervention; non-Oban hosts keep the documented host-managed flush seam.
+2. The end-to-end flow from trigger through digest-held accumulation to emitted digest dispatch is verified in a production-shaped CI or PostgreSQL 15+ path and documented in `20-VERIFICATION.md`.
 3. Requirements traceability and checkbox state match verified implementation, including the Phase 23 digest closure work and Phase 22 operational audit cleanup.
 
 ## Summary Table
@@ -148,8 +154,8 @@ Success criteria:
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
 | 21.1 | Rendering durability and preview hardening | 2/2 | Complete    | 2026-04-28 |
 | 22 | Recovery & Outcome Analytics | 4/4 | Complete | 2026-04-28 |
-| 23 | Digest Flush Scheduling & Audit Closure | 0/0 | Pending | 2026-04-28 |
+| 23 | Digest Flush Scheduling & Audit Closure | 1/3 | In Progress | 2026-04-29 |
 
 ## Next Up
 
-**Plan Phase 23** — close the digest scheduling audit gap before milestone closeout.
+**Plan 23-02** — persist orchestration snapshots so recovery can replay digest-held semantics durably.

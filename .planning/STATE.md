@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: completed
-stopped_at: Completed 22-04-PLAN.md
-last_updated: "2026-04-28T22:48:38.369Z"
-last_activity: 2026-04-28 -- Completed 22-04-PLAN.md
+status: executing
+stopped_at: Completed 23-01-PLAN.md
+last_updated: "2026-04-29T01:52:47.872Z"
+last_activity: 2026-04-29
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 7
-  total_plans: 23
-  completed_plans: 23
-  percent: 100
+  total_plans: 26
+  completed_plans: 24
+  percent: 92
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 22 complete — recovery-outcome-analytics
+**Current focus:** Phase 23 — digest-flush-scheduling-audit-closure
 
 ## Current Position
 
-Phase: 22 (recovery-outcome-analytics) — COMPLETED
-Plan: 4 of 4
-Status: Phase 22 execution complete
-Last activity: 2026-04-28 -- Completed 22-04-PLAN.md
+Phase: 23 (digest-flush-scheduling-audit-closure) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-29
 
 ## Accumulated Context
 
@@ -96,6 +96,9 @@ Recent decisions affecting current work:
 - Recovery claims stamp recovery_source, recovery_reason, and recovered_at on the canonical delivery row exactly once, with duplicate attempts converging to {:noop, delivery}.
 - Persisted render_channels remain recovery-only behind use_persisted_channels: true so ordinary notifier-less planning keeps the default in_app path.
 - Failed recovery dispatch handoffs clear recovery metadata and restore recoverable age so operators can retry the same canonical row immediately.
+- Automatic digest flush scheduling is enabled only when the configured dispatcher is Chimeway.Dispatch.Oban; all other dispatchers keep emit_bucket/2 as the explicit host-managed seam.
+- Bucket state remains the scheduling source of truth: accumulation only schedules on the first persisted membership while emit_bucket/2 still owns due/idempotency checks.
+- DigestFlushWorker stays thin and carries only bucket_id, mirroring the Phase 18 scheduled worker posture.
 
 ### Pending Todos
 
@@ -116,8 +119,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-28T22:46:55.801Z
-Stopped at: Completed 22-04-PLAN.md
+Last session: 2026-04-29T01:52:47.866Z
+Stopped at: Completed 23-01-PLAN.md
 Resume file: None
 
 **Planned Phase:** 22 (recovery-outcome-analytics) — 4 plans — 2026-04-28T22:32:51.439Z
