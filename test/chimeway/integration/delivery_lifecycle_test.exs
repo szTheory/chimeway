@@ -247,6 +247,54 @@ defmodule ChimewayTest.Notifiers.LifecycleRenderedEmail do
   end
 end
 
+defmodule ChimewayTest.Notifiers.LifecycleWorkflow do
+  @behaviour Chimeway.Notifier
+  def notification_key, do: "test.lifecycle_workflow"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Workflow lifecycle"}}
+  def channels(_params, _recipient), do: {:ok, [:email]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "subject" => "Workflow lifecycle",
+         "html_body" => "<p>Workflow lifecycle</p>",
+         "text_body" => "Workflow lifecycle"
+       },
+       channels: %{
+         email: %{render_key: "test.lifecycle_workflow.email", render_version: 1}
+       }
+     }}
+  end
+
+  def workflow(_params, _recipient) do
+    {:ok,
+     %{
+       workflow_key: "test.lifecycle.workflow",
+       workflow_version: 1,
+       steps: [
+         %{
+           step_key: "email-first",
+           step_order: 1,
+           channel: :email,
+           config: %{"template" => "first"}
+         },
+         %{
+           step_key: "in-app-followup",
+           step_order: 2,
+           channel: :in_app,
+           config: %{"template" => "followup"}
+         }
+       ]
+     }}
+  end
+end
+
 defmodule Chimeway.Integration.DeliveryLifecycleTest do
   use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
@@ -1115,6 +1163,79 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       assert duplicate.delivery.id == delivery.id
       assert attempt_count(delivery.id) == 1
+    end
+  end
+
+  describe "Scenario L: workflow-linked canonical deliveries remain derivable from durable run state" do
+    test "active-step delivery row persists workflow_run_id and workflow_step_id" do
+      assert {:ok, result} =
+               Chimeway.Trigger.trigger(
+                 ChimewayTest.Notifiers.LifecycleWorkflow,
+                 %{user_id: 24},
+                 idempotency_key: "idem-lifecycle-workflow-linkage"
+               )
+
+      notification =
+        Repo.one!(
+          from(n in Chimeway.Notifications.Notification,
+            where: n.event_id == ^result.event.id
+          )
+        )
+
+      workflow_run =
+        Repo.one!(
+          from(wr in "chimeway_workflow_runs",
+            where: field(wr, :notification_id) == ^Ecto.UUID.dump!(notification.id),
+            select: %{
+              id: field(wr, :id),
+              current_step_id: field(wr, :current_step_id),
+              state: field(wr, :state)
+            }
+          )
+        )
+
+      delivery =
+        Repo.one!(
+          from(d in Delivery,
+            where: d.notification_id == ^notification.id and d.channel == "email"
+          )
+        )
+
+      assert delivery.workflow_run_id == workflow_run.id
+      assert delivery.workflow_step_id == workflow_run.current_step_id
+
+      current_step =
+        Repo.one!(
+          from(ws in "chimeway_workflow_steps",
+            where: field(ws, :id) == ^workflow_run.current_step_id,
+            select: %{
+              id: field(ws, :id),
+              step_key: field(ws, :step_key),
+              step_order: field(ws, :step_order)
+            }
+          )
+        )
+
+      assert workflow_run.state == "active"
+      assert current_step.step_key == "email-first"
+      assert current_step.step_order == 1
+
+      activated_transition =
+        Repo.one!(
+          from(wt in "chimeway_workflow_transitions",
+            where:
+              field(wt, :workflow_run_id) == ^workflow_run.id and
+                field(wt, :workflow_step_id) == ^delivery.workflow_step_id and
+                field(wt, :reason) == "step_activated",
+            select: %{
+              workflow_step_id: field(wt, :workflow_step_id),
+              delivery_id: field(wt, :delivery_id)
+            }
+          )
+        )
+
+      assert activated_transition.workflow_step_id == delivery.workflow_step_id
+      assert delivery.id
     end
   end
 

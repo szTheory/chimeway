@@ -83,6 +83,78 @@ defmodule ChimewayTest.Notifiers.RecoveryDigestCallbackProbe do
   end
 end
 
+defmodule ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.recovery.persisted_workflow_probe"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Recovery persisted workflow probe"}}
+  def channels(_params, _recipient), do: {:ok, [:email]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "subject" => "Recovery persisted workflow probe",
+         "html_body" => "<p>Workflow probe</p>",
+         "text_body" => "Workflow probe"
+       },
+       channels: %{
+         email: %{render_key: "test.recovery.persisted_workflow_probe.email", render_version: 1}
+       }
+     }}
+  end
+
+  def workflow(_params, recipient) do
+    if test_pid = test_pid() do
+      send(test_pid, {:workflow_called, recipient.recipient_identity})
+    end
+
+    case workflow_mode() do
+      :raise -> raise "workflow callback should not run during persisted recovery"
+      _allow -> workflow_declaration()
+    end
+  end
+
+  defp workflow_declaration do
+    {:ok,
+     %{
+       workflow_key: "test.recovery.persisted_workflow",
+       workflow_version: 1,
+       steps: [
+         %{
+           step_key: "email-first",
+           step_order: 1,
+           channel: :email,
+           config: %{"template" => "first"}
+         },
+         %{
+           step_key: "in-app-followup",
+           step_order: 2,
+           channel: :in_app,
+           config: %{"template" => "followup"}
+         }
+       ]
+     }}
+  end
+
+  defp test_pid do
+    :chimeway
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(:test_pid)
+  end
+
+  defp workflow_mode do
+    :chimeway
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(:workflow_mode, :allow)
+  end
+end
+
 defmodule Chimeway.Orchestration.RecoveryDispatcherStub do
   @behaviour Chimeway.Dispatch
 
@@ -159,6 +231,9 @@ defmodule Chimeway.Orchestration.RecoveryTest do
     previous_digest_probe =
       Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryDigestCallbackProbe, [])
 
+    previous_workflow_probe =
+      Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe, [])
+
     Application.put_env(:chimeway, :dispatcher, Chimeway.Orchestration.RecoveryDispatcherStub)
 
     Application.put_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub,
@@ -171,6 +246,13 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       :chimeway,
       ChimewayTest.Notifiers.RecoveryDigestCallbackProbe,
       test_pid: self()
+    )
+
+    Application.put_env(
+      :chimeway,
+      ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe,
+      test_pid: self(),
+      workflow_mode: :allow
     )
 
     on_exit(fn ->
@@ -192,6 +274,12 @@ defmodule Chimeway.Orchestration.RecoveryTest do
         :chimeway,
         ChimewayTest.Notifiers.RecoveryDigestCallbackProbe,
         previous_digest_probe
+      )
+
+      Application.put_env(
+        :chimeway,
+        ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe,
+        previous_workflow_probe
       )
     end)
 
@@ -342,6 +430,75 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       refute Keyword.has_key?(dispatch_opts, :notifier)
       refute_receive {:digest_channels_called, _}, 50
       refute_receive {:orchestration_called, _}, 50
+    end
+
+    test "use_persisted_workflow replays the stored workflow declaration without re-entering callback code" do
+      assert {:ok, trigger_result} =
+               Chimeway.Trigger.trigger(
+                 ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe,
+                 %{user_id: 77},
+                 idempotency_key: "recovery-persisted-workflow"
+               )
+
+      event = trigger_result.event
+
+      notification =
+        Repo.one!(
+          from(n in Chimeway.Notifications.Notification,
+            where: n.event_id == ^event.id
+          )
+        )
+
+      workflow_run =
+        Repo.one!(
+          from(wr in "chimeway_workflow_runs",
+            where: field(wr, :notification_id) == ^Ecto.UUID.dump!(notification.id),
+            select: %{
+              id: field(wr, :id),
+              current_step_id: field(wr, :current_step_id)
+            }
+          )
+        )
+
+      notification_id = notification.id
+      assert_receive {:dispatch, [^notification_id], _initial_dispatch_opts}
+      assert_receive {:workflow_called, "user:77"}
+
+      Repo.delete_all(from(d in Delivery, where: d.notification_id == ^notification.id))
+
+      notification
+      |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+      |> Repo.update!()
+
+      event
+      |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+      |> Repo.update!()
+
+      Application.put_env(
+        :chimeway,
+        ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe,
+        test_pid: self(),
+        workflow_mode: :raise
+      )
+
+      assert {:ok, recovery} =
+               Deliveries.recover_event(event.id,
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "workflow_replay_gap",
+                 use_persisted_workflow: true
+               )
+
+      [recovered_delivery] = recovery.deliveries
+      assert recovered_delivery.workflow_run_id == workflow_run.id
+      assert recovered_delivery.workflow_step_id == workflow_run.current_step_id
+
+      assert_receive {:dispatch, [^notification_id], dispatch_opts}
+      assert dispatch_opts[:use_persisted_channels] == true
+      assert dispatch_opts[:use_persisted_orchestration] == true
+      assert dispatch_opts[:use_persisted_workflow] == true
+      refute_receive {:workflow_called, _}, 50
     end
   end
 
