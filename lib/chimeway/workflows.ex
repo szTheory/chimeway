@@ -5,11 +5,37 @@ defmodule Chimeway.Workflows do
 
   alias Ecto.Multi
   alias Chimeway.Repo
-  alias Chimeway.Workflows.{WorkflowDefinition, WorkflowStep}
+
+  alias Chimeway.Workflows.{
+    WorkflowDefinition,
+    WorkflowRun,
+    WorkflowStep,
+    WorkflowTransition
+  }
+
+  @active_state :active
+  @trigger_context %{"source" => "trigger"}
+  @workflow_started_reason "workflow_started"
+  @step_activated_reason "step_activated"
 
   @spec upsert_definition(String.t(), Chimeway.Notifier.workflow_resolution()) ::
           {:ok, WorkflowDefinition.t()} | {:error, term()}
   def upsert_definition(notification_key, workflow)
+      when is_binary(notification_key) and is_map(workflow) do
+    Multi.new()
+    |> Multi.run(:workflow_definition, fn repo, _changes ->
+      ensure_definition(repo, notification_key, workflow)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{workflow_definition: definition}} -> {:ok, preload_steps(Repo, definition)}
+      {:error, _operation, reason, _changes} -> {:error, reason}
+    end
+  end
+
+  @spec ensure_definition(Ecto.Repo.t(), String.t(), Chimeway.Notifier.workflow_resolution()) ::
+          {:ok, WorkflowDefinition.t()} | {:error, term()}
+  def ensure_definition(repo, notification_key, workflow)
       when is_binary(notification_key) and is_map(workflow) do
     definition_attrs = %{
       workflow_key: workflow.workflow_key,
@@ -17,37 +43,32 @@ defmodule Chimeway.Workflows do
       notification_key: notification_key
     }
 
-    step_attrs = Enum.map(workflow.steps, &Map.take(&1, [:step_key, :step_order, :channel, :config]))
+    definition_changeset = WorkflowDefinition.changeset(%WorkflowDefinition{}, definition_attrs)
 
-    Multi.new()
-    |> Multi.run(:workflow_definition, fn repo, _changes ->
-      definition_changeset = WorkflowDefinition.changeset(%WorkflowDefinition{}, definition_attrs)
+    case repo.insert(definition_changeset,
+           on_conflict: [
+             set: [notification_key: notification_key, updated_at: DateTime.utc_now()]
+           ],
+           conflict_target: [:workflow_key, :workflow_version]
+         ) do
+      {:ok, _definition} ->
+        definition =
+          repo.get_by!(WorkflowDefinition,
+            workflow_key: workflow.workflow_key,
+            workflow_version: workflow.workflow_version
+          )
 
-      case repo.insert(definition_changeset,
-             on_conflict: [set: [notification_key: notification_key, updated_at: DateTime.utc_now()]],
-             conflict_target: [:workflow_key, :workflow_version]
-           ) do
-        {:ok, _definition} ->
-          {:ok,
-           repo.get_by!(WorkflowDefinition,
-             workflow_key: workflow.workflow_key,
-             workflow_version: workflow.workflow_version
-           )}
+        {_count, _rows} =
+          repo.delete_all(
+            from(step in WorkflowStep, where: step.workflow_definition_id == ^definition.id)
+          )
 
-        {:error, reason} ->
-          {:error, reason}
-      end
-    end)
-    |> Multi.delete_all(:delete_steps, fn %{workflow_definition: definition} ->
-      from(step in WorkflowStep, where: step.workflow_definition_id == ^definition.id)
-    end)
-    |> Multi.run(:insert_steps, fn repo, %{workflow_definition: definition} ->
-      insert_steps(repo, definition.id, step_attrs)
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{workflow_definition: definition}} -> {:ok, preload_steps(definition)}
-      {:error, _operation, reason, _changes} -> {:error, reason}
+        with {:ok, _steps} <- insert_steps(repo, definition.id, workflow.steps) do
+          {:ok, preload_steps(repo, definition)}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -60,13 +81,55 @@ defmodule Chimeway.Workflows do
        workflow_key: workflow_key,
        workflow_version: workflow_version
      )
-     |> preload_steps()}
+     |> preload_steps(Repo)}
   end
 
-  defp preload_steps(nil), do: nil
+  @spec create_initial_run(Ecto.Repo.t(), Ecto.UUID.t(), WorkflowDefinition.t(), DateTime.t()) ::
+          {:ok, WorkflowRun.t()} | {:error, term()}
+  def create_initial_run(repo, notification_id, %WorkflowDefinition{} = definition, timestamp)
+      when is_binary(notification_id) do
+    definition = preload_steps(repo, definition)
 
-  defp preload_steps(definition) do
-    Repo.preload(definition, steps: from(step in WorkflowStep, order_by: [asc: step.step_order]))
+    with {:ok, first_step} <- fetch_first_step(definition),
+         {:ok, workflow_run} <-
+           repo.insert(
+             WorkflowRun.changeset(%WorkflowRun{}, %{
+               notification_id: notification_id,
+               workflow_definition_id: definition.id,
+               current_step_id: first_step.id,
+               state: @active_state,
+               started_at: timestamp,
+               last_transition_at: timestamp,
+               status_reason: @workflow_started_reason,
+               status_context: @trigger_context
+             })
+           ),
+         {:ok, _started_transition} <-
+           insert_transition(repo, %{
+             workflow_run_id: workflow_run.id,
+             to_state: @active_state,
+             reason: @workflow_started_reason,
+             context: @trigger_context,
+             inserted_at: timestamp
+           }),
+         {:ok, _activated_transition} <-
+           insert_transition(repo, %{
+             workflow_run_id: workflow_run.id,
+             workflow_step_id: first_step.id,
+             from_state: @active_state,
+             to_state: @active_state,
+             reason: @step_activated_reason,
+             context: Map.put(@trigger_context, "step_key", first_step.step_key),
+             inserted_at: timestamp
+           }) do
+      {:ok, workflow_run}
+    end
+  end
+
+  defp preload_steps(_repo, nil), do: nil
+
+  defp preload_steps(repo, definition) do
+    repo.preload(definition, steps: from(step in WorkflowStep, order_by: [asc: step.step_order]))
   end
 
   defp insert_steps(repo, workflow_definition_id, step_attrs) do
@@ -82,5 +145,14 @@ defmodule Chimeway.Workflows do
       {:ok, inserted_steps} -> {:ok, Enum.reverse(inserted_steps)}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp fetch_first_step(%WorkflowDefinition{steps: [first_step | _rest]}), do: {:ok, first_step}
+
+  defp fetch_first_step(%WorkflowDefinition{steps: []}),
+    do: {:error, :workflow_definition_missing_steps}
+
+  defp insert_transition(repo, attrs) do
+    repo.insert(WorkflowTransition.changeset(%WorkflowTransition{}, attrs))
   end
 end

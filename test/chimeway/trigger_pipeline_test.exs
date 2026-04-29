@@ -133,7 +133,15 @@ defmodule Chimeway.TriggerPipelineTest do
     end
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{"subject" => "workflow", recipient: recipient}}
+    def build(_params, recipient) do
+      {:ok,
+       %{
+         "subject" => "workflow",
+         "html_body" => "workflow",
+         "text_body" => "workflow",
+         recipient: recipient
+       }}
+    end
 
     @impl true
     def channels(_params, _recipient), do: {:ok, [:email]}
@@ -145,8 +153,18 @@ defmodule Chimeway.TriggerPipelineTest do
          workflow_key: "comment.escalation",
          workflow_version: 1,
          steps: [
-           %{step_key: "email-first", step_order: 1, channel: :email, config: %{"template" => "first"}},
-           %{step_key: "in-app-followup", step_order: 2, channel: :in_app, config: %{"template" => "followup"}}
+           %{
+             step_key: "email-first",
+             step_order: 1,
+             channel: :email,
+             config: %{"template" => "first"}
+           },
+           %{
+             step_key: "in-app-followup",
+             step_order: 2,
+             channel: :in_app,
+             config: %{"template" => "followup"}
+           }
          ]
        }}
     end
@@ -157,6 +175,9 @@ defmodule Chimeway.TriggerPipelineTest do
 
     @impl true
     def dispatch(_notifications, _opts), do: {:error, :forced_dispatch_failure}
+
+    @impl true
+    def dispatch_delivery(_delivery, _opts), do: {:error, :forced_dispatch_failure}
   end
 
   defmodule SpyDispatcher do
@@ -170,6 +191,9 @@ defmodule Chimeway.TriggerPipelineTest do
 
       {:ok, []}
     end
+
+    @impl true
+    def dispatch_delivery(_delivery, _opts), do: {:ok, nil}
   end
 
   test "returns error when idempotency key is missing" do
@@ -353,7 +377,7 @@ defmodule Chimeway.TriggerPipelineTest do
                "default_digest_key" => nil,
                "digest_keys" => %{"email" => "thread:digest-z"},
                "source" => "notifier"
-           }
+             }
            ]
   end
 
@@ -418,7 +442,7 @@ defmodule Chimeway.TriggerPipelineTest do
                run.status_reason == "workflow_started"
            end)
 
-    assert MapSet.new(Enum.map(workflow_runs, & &1.notification_id)) ==
+    assert MapSet.new(Enum.map(workflow_runs, &Ecto.UUID.load!(&1.notification_id))) ==
              MapSet.new(Enum.map(notifications, & &1.id))
 
     workflow_transitions =

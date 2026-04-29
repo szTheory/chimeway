@@ -29,6 +29,7 @@ defmodule Chimeway.Trigger do
   alias Chimeway.Notifier
   alias Chimeway.Repo
   alias Chimeway.Telemetry
+  alias Chimeway.Workflows
   alias Ecto.Multi
   alias Ecto.UUID
 
@@ -128,23 +129,29 @@ defmodule Chimeway.Trigger do
   defp validate_idempotency_key(_idempotency_key), do: {:error, :invalid_idempotency_key}
 
   defp insert_notifications(repo, notifier, params, event, recipients) do
-    with {:ok, notifications_attrs} <- notifications_attrs(notifier, params, event, recipients) do
+    with {:ok, notifications} <- notifications_attrs(repo, notifier, params, event, recipients) do
       try do
-        {count, _rows} = repo.insert_all("chimeway_notifications", notifications_attrs)
-        {:ok, count}
+        rows = Enum.map(notifications, & &1.row)
+        {count, _rows} = repo.insert_all("chimeway_notifications", rows)
+
+        with :ok <- insert_workflow_runs(repo, notifications) do
+          {:ok, count}
+        end
       rescue
         error -> {:error, error}
       end
     end
   end
 
-  defp notifications_attrs(notifier, params, event, recipients) do
+  defp notifications_attrs(repo, notifier, params, event, recipients) do
     timestamp = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
     recipients
-    |> Enum.reduce_while({:ok, []}, fn recipient, {:ok, acc} ->
+    |> Enum.reduce_while({:ok, [], %{}}, fn recipient, {:ok, acc, workflow_cache} ->
       with {:ok, rendering} <- Notifier.resolve_rendering(notifier, params, recipient),
-           {:ok, orchestration} <- Notifier.resolve_orchestration(notifier, params, recipient) do
+           {:ok, orchestration} <- Notifier.resolve_orchestration(notifier, params, recipient),
+           {:ok, workflow_definition, workflow_cache} <-
+             resolve_workflow_definition(repo, notifier, params, recipient, workflow_cache) do
         render_assigns = sanitize_render_assigns(rendering.assigns)
         render_channels = sanitize_render_channels(Map.get(rendering, :channels, %{}))
         orchestration = Notifier.serialize_orchestration(orchestration)
@@ -158,15 +165,17 @@ defmodule Chimeway.Trigger do
           render_assigns: render_assigns,
           render_channels: render_channels,
           orchestration: orchestration,
+          workflow_definition_id: workflow_definition_id(workflow_definition),
           inserted_at: timestamp,
           updated_at: timestamp
         }
 
-        {:cont, {:ok, [row | acc]}}
+        {:cont,
+         {:ok, [%{row: row, workflow_definition: workflow_definition} | acc], workflow_cache}}
       end
     end)
     |> case do
-      {:ok, rows} -> {:ok, Enum.reverse(rows)}
+      {:ok, rows, _workflow_cache} -> {:ok, Enum.reverse(rows)}
       {:error, _reason} = error -> error
     end
   end
@@ -272,6 +281,55 @@ defmodule Chimeway.Trigger do
   end
 
   defp sanitize_render_channels(_not_map), do: %{}
+
+  defp resolve_workflow_definition(repo, notifier, params, recipient, workflow_cache) do
+    with {:ok, nil} <- Notifier.resolve_workflow(notifier, params, recipient) do
+      {:ok, nil, workflow_cache}
+    else
+      {:ok, workflow} ->
+        workflow_identity = {workflow.workflow_key, workflow.workflow_version}
+
+        case Map.fetch(workflow_cache, workflow_identity) do
+          {:ok, workflow_definition} ->
+            {:ok, workflow_definition, workflow_cache}
+
+          :error ->
+            with {:ok, workflow_definition} <-
+                   Workflows.ensure_definition(repo, notifier.notification_key(), workflow) do
+              {:ok, workflow_definition,
+               Map.put(workflow_cache, workflow_identity, workflow_definition)}
+            end
+        end
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  defp insert_workflow_runs(repo, notifications) do
+    Enum.reduce_while(notifications, :ok, fn
+      %{workflow_definition: nil}, :ok ->
+        {:cont, :ok}
+
+      %{
+        row: %{id: notification_id, inserted_at: inserted_at},
+        workflow_definition: workflow_definition
+      },
+      :ok ->
+        case Workflows.create_initial_run(
+               repo,
+               UUID.load!(notification_id),
+               workflow_definition,
+               inserted_at
+             ) do
+          {:ok, _workflow_run} -> {:cont, :ok}
+          {:error, reason} -> {:halt, {:error, reason}}
+        end
+    end)
+  end
+
+  defp workflow_definition_id(nil), do: nil
+  defp workflow_definition_id(%{id: id}), do: UUID.dump!(id)
 
   defp sanitize_map(map) when is_map(map) do
     Enum.reduce(map, %{}, fn {key, value}, acc ->
