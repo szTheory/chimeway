@@ -4,7 +4,7 @@
 
 - [x] **WRK-01**: Teams can declare a named workflow with a stable workflow key, version, and ordered notification steps for a notifier.
 - [ ] **WRK-02**: Each workflow step can define explicit progression rules based on elapsed time or the prior delivery outcome.
-- [ ] **WRK-03**: Workflow execution persists canonical journey state, current step, and transition reasoning on Chimeway-owned records.
+- [x] **WRK-03**: Workflow execution persists canonical journey state, current step, and transition reasoning on Chimeway-owned records.
 
 ## Escalations
 
@@ -43,7 +43,7 @@
 |---|---|---|---|
 | WRK-01 | 24 | completed | Completed by plan 24-01 workflow declaration contract and durable step storage |
 | WRK-02 | 25 | planned | Time/outcome-based progression rules |
-| WRK-03 | 24 | planned | Durable journey state and transition persistence |
+| WRK-03 | 24 | completed | Completed by plan 24-02 workflow run and transition persistence |
 | ESC-01 | 26 | planned | Escalation between workflow steps |
 | ESC-02 | 26 | planned | Stop/cancel terminal semantics |
 | ESC-03 | 25 | planned | Idempotent progression and race safety |

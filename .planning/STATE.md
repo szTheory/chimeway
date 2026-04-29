@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Workflow Journeys
 status: active
-stopped_at: Completed 24-workflow-contracts-state-spine-01-PLAN.md
-last_updated: "2026-04-29T16:29:49.705Z"
-last_activity: 2026-04-29 — Completed plan 24-01 durable workflow contract storage
+stopped_at: Completed 24-workflow-contracts-state-spine-02-PLAN.md
+last_updated: "2026-04-29T16:40:30.099Z"
+last_activity: 2026-04-29 — Completed plan 24-02 workflow run and transition persistence
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 ## Current Position
 
 Phase: 24 — Workflow Contracts & State Spine
-Plan: 24-02 next
-Status: 24-01 complete
-Last activity: 2026-04-29 — Completed plan 24-01 durable workflow contract storage
+Plan: 24-03 next
+Status: 24-02 complete
+Last activity: 2026-04-29 — Completed plan 24-02 workflow run and transition persistence
 
 ## Accumulated Context
 
@@ -110,6 +110,8 @@ Recent decisions affecting current work:
 - Phase 23 closure artifacts keep the automatic digest scheduling boundary explicit for Oban-backed hosts.
 - Workflow declarations resolve through an optional workflow/2 callback and serialize into durable string-keyed workflow data.
 - Workflow identity persists as definition rows plus ordered step rows keyed by workflow_key and workflow_version.
+- Notifications persist nullable workflow_definition_id so trigger-time run creation can reuse durable workflow identity without hiding linkage in metadata.
+- Initial workflow truth is split between one current-state workflow_run row and two explicit transition facts: workflow_started and step_activated.
 
 ### Pending Todos
 
@@ -131,8 +133,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-29T16:29:49.700Z
-Stopped at: Completed 24-workflow-contracts-state-spine-01-PLAN.md
+Last session: 2026-04-29T16:40:30.092Z
+Stopped at: Completed 24-workflow-contracts-state-spine-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** Phase 24 — Workflow Contracts & State Spine
