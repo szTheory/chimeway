@@ -89,7 +89,9 @@ defmodule Chimeway.Reliability.WorkflowProgressionRaceTest do
   @moduledoc """
   REL — concurrency regression for the Phase 25 workflow progression engine.
 
-  Asserts ESC-03 + WRK-02:
+  ## What this suite proves
+
+  Asserts ESC-03 + WRK-02 *for in-process re-entry safety*:
 
     * 10 concurrent direct calls into `Chimeway.Workflows.Progression.progress_run/2`
       against the same `workflow_run_id` must collapse to exactly one
@@ -99,6 +101,34 @@ defmodule Chimeway.Reliability.WorkflowProgressionRaceTest do
       appended (no duplicate audit history).
     * Concurrent calls against a *waiting* (not-yet-due) run must all noop and
       never emit a next-step delivery — the wait gate is the contract.
+
+  ## What this suite does NOT prove (WR-01)
+
+  `Task.async_stream/3` plus `Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())`
+  fans out the work across multiple BEAM processes, but in SQL Sandbox manual mode
+  every `allow`-ed process shares one checked-out database connection.
+  PostgreSQL `FOR UPDATE` only serializes work across *different* connections —
+  within a single connection, locks are non-blocking. The 10 tasks therefore
+  exercise the engine's in-process noop short-circuit logic (which is correct
+  and necessary), but they do **not** demonstrate that two production processes
+  hitting the same `workflow_run_id` over **separate** database connections
+  collapse to one winner via row-level locking.
+
+  The engine's `FOR UPDATE` discipline lives in `lib/chimeway/workflows/progression.ex`
+  at `Chimeway.Workflows.lock_run/2` (called at the top of `progress_run/2`) and
+  `lock_active_step_delivery/3` (lines 372-378). Those locks are correct in code.
+  Cross-connection contention coverage is tracked as a follow-up in
+  `.planning/phases/25-progression-engine-wait-gates/deferred-items.md` under
+  "Cross-connection FOR UPDATE proof for workflow progression engine (WR-01)".
+
+  ## Why we did not add a non-sandboxed test here
+
+  `Ecto.Adapters.SQL.Sandbox.checkout(Repo, sandbox: false)` would let the test
+  use a real connection, but breaks `Chimeway.DataCase` ownership semantics
+  (manual cleanup, ordering hazards with `async: false` siblings, and CI-flake
+  risk under shared state). The deferred-items entry captures this trade-off
+  and lists the work needed to add cross-connection coverage in a future
+  test-infrastructure phase.
   """
 
   use Chimeway.DataCase, async: false
