@@ -82,10 +82,25 @@ defmodule Chimeway.Workflows.Progression do
       end
     end)
     |> case do
-      {:ok, {:advanced, run, deliveries}} -> {:ok, {:advanced, run, deliveries}}
-      {:ok, {:waiting, run}} -> {:ok, {:waiting, run}}
-      {:ok, {:noop, run, reason}} -> {:ok, {:noop, run, reason}}
-      {:error, reason} -> {:error, reason}
+      {:ok, {:advanced, run, deliveries}} ->
+        {:ok, {:advanced, run, deliveries}}
+
+      {:ok, {:waiting, run}} ->
+        # Per D-11, Oban-backed hosts schedule a `WorkflowProgressionWorker`
+        # job at the persisted `due_at` so due waits wake automatically. The
+        # canonical wait state is already durable on the row at this point,
+        # so any scheduling failure is safe — `progress_due_runs/1` is the
+        # shared manual fallback for non-Oban hosts and for failed scheduler
+        # inserts. Scheduling lives outside the engine transaction to avoid
+        # nesting Oban inserts inside the FOR UPDATE locks the engine took.
+        _ = maybe_schedule_due_progression_job(run)
+        {:ok, {:waiting, run}}
+
+      {:ok, {:noop, run, reason}} ->
+        {:ok, {:noop, run, reason}}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -389,5 +404,64 @@ defmodule Chimeway.Workflows.Progression do
       %{"notification_key" => key} when is_binary(key) -> key
       _ -> nil
     end
+  end
+
+  # ---- Internal: optional Oban scheduling (D-11) -----------------------------
+
+  # When the configured dispatcher is `Chimeway.Dispatch.Oban`, schedule a
+  # `Chimeway.Dispatch.WorkflowProgressionWorker` job at the persisted
+  # `due_at` so the wait gate wakes automatically. Non-Oban dispatchers
+  # continue to drive due-run progression through `progress_due_runs/1` —
+  # both seams call this same engine, so internal semantics match
+  # regardless of host wiring.
+  defp maybe_schedule_due_progression_job(%WorkflowRun{} = run) do
+    cond do
+      not oban_dispatcher_configured?() ->
+        :ok
+
+      not Code.ensure_loaded?(Chimeway.Dispatch.WorkflowProgressionWorker) ->
+        :ok
+
+      true ->
+        case parse_due_at(run.status_context) do
+          {:ok, %DateTime{} = due_at} ->
+            insert_due_progression_job(run.id, due_at)
+
+          :error ->
+            :ok
+        end
+    end
+  end
+
+  defp oban_dispatcher_configured? do
+    Application.get_env(:chimeway, :dispatcher) == Chimeway.Dispatch.Oban
+  end
+
+  defp parse_due_at(%{"due_at" => due_at_iso}) when is_binary(due_at_iso) do
+    case DateTime.from_iso8601(due_at_iso) do
+      {:ok, due_at, _offset} -> {:ok, due_at}
+      _ -> :error
+    end
+  end
+
+  defp parse_due_at(_), do: :error
+
+  defp insert_due_progression_job(workflow_run_id, %DateTime{} = due_at) do
+    job =
+      apply(Chimeway.Dispatch.WorkflowProgressionWorker, :new, [
+        %{workflow_run_id: workflow_run_id},
+        [scheduled_at: due_at]
+      ])
+
+    case apply(Oban, :insert, [job]) do
+      {:ok, _job} -> :ok
+      # Best-effort scheduling: a failed insert is non-fatal because the
+      # canonical wait state is already durable and `progress_due_runs/1`
+      # remains the shared manual fallback. We swallow the error and let the
+      # caller see the original `{:ok, {:waiting, run}}` result.
+      _ -> :ok
+    end
+  rescue
+    _ -> :ok
   end
 end
