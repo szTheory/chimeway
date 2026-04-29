@@ -26,6 +26,8 @@ defmodule Chimeway.Digests.Accumulation do
     :window_starts_at,
     :window_ends_at
   ]
+  @identity_lookup_keys [:recipient_id, :channel, :notification_key, :notification_version]
+  @helper_lookup_keys [:category, :digest_key]
 
   @doc """
   Accumulates a digest-held delivery into a durable bucket and membership row.
@@ -122,7 +124,7 @@ defmodule Chimeway.Digests.Accumulation do
   defp event_category(_event), do: nil
 
   defp build_lookup_attrs(delivery, notification, event, lookup_attrs) do
-    %{
+    derived = %{
       recipient_id: notification.recipient_identity,
       channel: delivery.channel,
       notification_key: event.notification_key,
@@ -130,7 +132,26 @@ defmodule Chimeway.Digests.Accumulation do
       category: event_category(event),
       digest_key: digest_key(delivery)
     }
-    |> Map.merge(lookup_attrs)
+
+    identity_overrides = Map.take(lookup_attrs, @identity_lookup_keys)
+
+    case mismatched_identity_lookup_attrs(derived, identity_overrides) do
+      mismatch when map_size(mismatch) == 0 ->
+        Map.merge(derived, Map.take(lookup_attrs, @helper_lookup_keys))
+
+      mismatch ->
+        Repo.rollback({:invalid_lookup_attrs, mismatch})
+    end
+  end
+
+  defp mismatched_identity_lookup_attrs(derived, identity_overrides) do
+    Enum.reduce(identity_overrides, %{}, fn {key, value}, mismatch ->
+      if Map.get(derived, key) == value do
+        mismatch
+      else
+        Map.put(mismatch, key, value)
+      end
+    end)
   end
 
   defp digest_key(%Delivery{planning_context: planning_context}) when is_map(planning_context) do
