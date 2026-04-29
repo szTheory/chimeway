@@ -45,6 +45,12 @@ Success criteria:
 
 **Goal:** Advance workflows safely based on elapsed time and prior delivery outcome.
 **Requirements:** WRK-02, ESC-03
+**Plans:** 3 plans
+
+Plans:
+- [ ] 25-01-PLAN.md — Lock the workflow progression rule contract and curated outcome vocabulary.
+- [ ] 25-02-PLAN.md — Build the durable wait-gate and outcome-driven progression engine on canonical workflow and delivery rows.
+- [ ] 25-03-PLAN.md — Add the thin due-run worker and concurrency proof for duplicate-safe progression.
 
 Success criteria:
 1. Workflow steps can wait until a due time and then advance through a durable progression seam.
