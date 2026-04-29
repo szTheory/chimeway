@@ -7,6 +7,7 @@ defmodule Chimeway.Delivery do
   import Ecto.Changeset
 
   alias Chimeway.Notifications.Notification
+  alias Chimeway.Workflows.{WorkflowRun, WorkflowStep}
 
   @type t :: %__MODULE__{}
 
@@ -45,6 +46,8 @@ defmodule Chimeway.Delivery do
 
     belongs_to(:notification, Notification)
     belongs_to(:digest_delivery, Chimeway.Delivery)
+    belongs_to(:workflow_run, WorkflowRun)
+    belongs_to(:workflow_step, WorkflowStep)
     has_many(:attempts, Chimeway.DeliveryAttempt)
 
     timestamps(type: :utc_datetime_usec)
@@ -66,6 +69,8 @@ defmodule Chimeway.Delivery do
     render_key
     render_version
     render_data
+    workflow_run_id
+    workflow_step_id
   )a
 
   def changeset(delivery, attrs) do

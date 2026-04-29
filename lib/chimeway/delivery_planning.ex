@@ -6,7 +6,7 @@ defmodule Chimeway.DeliveryPlanning do
   `Chimeway.Deliveries.plan_delivery/3` directly.
   """
 
-  alias Chimeway.{Deliveries, Delivery, Notifier, Policy, Rendering, Repo}
+  alias Chimeway.{Deliveries, Delivery, Notifier, Policy, Rendering, Repo, Workflows}
   alias Chimeway.Digests.Accumulation
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -85,6 +85,7 @@ defmodule Chimeway.DeliveryPlanning do
     source = delayed_fallback_source_for(channel, delayed_fallback_set, delayed_fallback_source)
     trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
+    workflow_linkage = resolve_workflow_linkage(notification, channel, opts)
 
     with {:ok, render_result} <-
            resolve_render_result(notification, channel, trigger_params, opts),
@@ -97,9 +98,12 @@ defmodule Chimeway.DeliveryPlanning do
              correlation_id: Keyword.get(opts, :correlation_id),
              render_key: render_result[:render_key],
              render_version: render_result[:render_version],
-             render_data: render_result[:render_data]
+             render_data: render_result[:render_data],
+             workflow_run_id: workflow_linkage[:workflow_run_id],
+             workflow_step_id: workflow_linkage[:workflow_step_id]
            ),
          {:ok, delivery} <- maybe_apply_render_result(delivery, render_result),
+         {:ok, delivery} <- maybe_apply_workflow_linkage(delivery, workflow_linkage),
          {:ok, orchestration} <-
            resolve_orchestration(notification, opts, trigger_params, recipient),
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
@@ -441,6 +445,33 @@ defmodule Chimeway.DeliveryPlanning do
     else
       Deliveries.apply_render_result(delivery, render_result)
     end
+  end
+
+  defp maybe_apply_workflow_linkage(%Delivery{} = delivery, workflow_linkage)
+       when map_size(workflow_linkage) == 0,
+       do: {:ok, delivery}
+
+  defp maybe_apply_workflow_linkage(%Delivery{} = delivery, workflow_linkage) do
+    if delivery.workflow_run_id == workflow_linkage.workflow_run_id &&
+         delivery.workflow_step_id == workflow_linkage.workflow_step_id do
+      {:ok, delivery}
+    else
+      Deliveries.apply_workflow_linkage(delivery, workflow_linkage)
+    end
+  end
+
+  defp resolve_workflow_linkage(%Notification{} = notification, channel, opts) do
+    with true <- use_workflow_linkage?(notification, opts),
+         {:ok, %{channel: ^channel} = linkage} <- Workflows.active_step_linkage(notification) do
+      linkage
+    else
+      _ -> %{}
+    end
+  end
+
+  defp use_workflow_linkage?(%Notification{} = notification, opts) do
+    Keyword.get(opts, :use_persisted_workflow, false) == true or
+      is_binary(notification.workflow_definition_id)
   end
 
   defp digest_planning_context(channel, orchestration, digest_key) do

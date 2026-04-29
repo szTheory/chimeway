@@ -9,7 +9,7 @@ defmodule Chimeway.Deliveries do
   import Ecto.Changeset, only: [change: 2]
   import Ecto.Query, only: [from: 2]
 
-  alias Chimeway.{Delivery, DeliveryAttempt, Repo}
+  alias Chimeway.{Delivery, DeliveryAttempt, Repo, Workflows}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Telemetry
@@ -222,25 +222,23 @@ defmodule Chimeway.Deliveries do
         correlation_id: event.correlation_id,
         post_commit: true,
         use_persisted_channels: true,
-        use_persisted_orchestration: true
+        use_persisted_orchestration: true,
+        use_persisted_workflow: Keyword.get(opts, :use_persisted_workflow, false)
       ]
 
-      case dispatcher.dispatch(notifications, dispatch_opts) do
-        {:ok, deliveries_or_results} ->
-          deliveries =
-            deliveries_or_results
-            |> dispatched_deliveries()
-            |> stamp_recovery_metadata(source, reason, now)
+      with :ok <- maybe_validate_persisted_workflows(notifications, dispatch_opts),
+           {:ok, deliveries_or_results} <- dispatcher.dispatch(notifications, dispatch_opts) do
+        deliveries =
+          deliveries_or_results
+          |> dispatched_deliveries()
+          |> stamp_recovery_metadata(source, reason, now)
 
-          {:ok,
-           %{
-             event: event,
-             deliveries: deliveries,
-             recovery: recovery_metadata(source, reason, now)
-           }}
-
-        {:error, reason_term} ->
-          {:error, reason_term}
+        {:ok,
+         %{
+           event: event,
+           deliveries: deliveries,
+           recovery: recovery_metadata(source, reason, now)
+         }}
       end
     else
       {:noop,
@@ -286,7 +284,11 @@ defmodule Chimeway.Deliveries do
          {:ok, render_version} <-
            normalize_optional_render_version(Keyword.get(opts, :render_version)),
          {:ok, render_data} <-
-           normalize_optional_render_data(Keyword.get(opts, :render_data, %{})) do
+           normalize_optional_render_data(Keyword.get(opts, :render_data, %{})),
+         {:ok, workflow_run_id} <-
+           normalize_optional_binary_id(Keyword.get(opts, :workflow_run_id)),
+         {:ok, workflow_step_id} <-
+           normalize_optional_binary_id(Keyword.get(opts, :workflow_step_id)) do
       metadata =
         opts
         |> Keyword.get(:metadata, %{})
@@ -306,7 +308,9 @@ defmodule Chimeway.Deliveries do
           metadata: metadata,
           render_key: render_key,
           render_version: render_version,
-          render_data: render_data
+          render_data: render_data,
+          workflow_run_id: workflow_run_id,
+          workflow_step_id: workflow_step_id
         })
         |> Repo.insert(on_conflict: :nothing, conflict_target: [:notification_id, :channel])
 
@@ -372,7 +376,27 @@ defmodule Chimeway.Deliveries do
 
   defp normalize_optional_datetime(value), do: {:error, {:invalid_next_eligible_at, value}}
 
+  defp normalize_optional_binary_id(nil), do: {:ok, nil}
+
+  defp normalize_optional_binary_id(value) when is_binary(value), do: Ecto.UUID.cast(value)
+
+  defp normalize_optional_binary_id(value), do: {:error, {:invalid_binary_id, value}}
+
   defp normalize_microsecond({microsecond, _precision}), do: {microsecond, 6}
+
+  defp maybe_validate_persisted_workflows(notifications, opts) do
+    if Keyword.get(opts, :use_persisted_workflow, false) do
+      notifications
+      |> Enum.reduce_while(:ok, fn notification, :ok ->
+        case Workflows.persisted_workflow(notification) do
+          {:ok, _workflow} -> {:cont, :ok}
+          {:error, reason} -> {:halt, {:error, reason}}
+        end
+      end)
+    else
+      :ok
+    end
+  end
 
   defp normalize_delayed_fallback_source(:default), do: {:ok, "default"}
   defp normalize_delayed_fallback_source(:notifier), do: {:ok, "notifier"}
@@ -506,6 +530,27 @@ defmodule Chimeway.Deliveries do
 
   def apply_render_result(%Delivery{} = _delivery, render_result),
     do: {:error, {:invalid_render_result, render_result}}
+
+  @doc """
+  Persists workflow run and active-step linkage on the canonical delivery row.
+  """
+  @spec apply_workflow_linkage(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
+  def apply_workflow_linkage(%Delivery{} = delivery, linkage) when is_map(linkage) do
+    with {:ok, workflow_run_id} <-
+           normalize_optional_binary_id(Map.get(linkage, :workflow_run_id)),
+         {:ok, workflow_step_id} <-
+           normalize_optional_binary_id(Map.get(linkage, :workflow_step_id)) do
+      delivery
+      |> change(%{
+        workflow_run_id: workflow_run_id,
+        workflow_step_id: workflow_step_id
+      })
+      |> Repo.update()
+    end
+  end
+
+  def apply_workflow_linkage(%Delivery{} = _delivery, linkage),
+    do: {:error, {:invalid_workflow_linkage, linkage}}
 
   @doc """
   Marks a digest-held source row as included in an emitted digest.

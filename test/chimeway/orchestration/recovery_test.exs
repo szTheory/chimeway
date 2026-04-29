@@ -491,8 +491,8 @@ defmodule Chimeway.Orchestration.RecoveryTest do
                )
 
       [recovered_delivery] = recovery.deliveries
-      assert recovered_delivery.workflow_run_id == workflow_run.id
-      assert recovered_delivery.workflow_step_id == workflow_run.current_step_id
+      assert recovered_delivery.workflow_run_id == Ecto.UUID.load!(workflow_run.id)
+      assert recovered_delivery.workflow_step_id == Ecto.UUID.load!(workflow_run.current_step_id)
 
       assert_receive {:dispatch, [^notification_id], dispatch_opts}
       assert dispatch_opts[:use_persisted_channels] == true

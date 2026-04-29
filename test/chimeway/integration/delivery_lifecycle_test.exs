@@ -237,7 +237,7 @@ defmodule ChimewayTest.Notifiers.LifecycleRenderedEmail do
        channels: %{
          email: %{render_key: "test.lifecycle_rendered_email.email", render_version: 3}
        }
-       }}
+     }}
   end
 
   defp test_pid do
@@ -903,7 +903,12 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert resumed_delivery.metadata["resumed_at"] == "2026-01-15T13:00:00.000000Z"
       assert DateTime.compare(resumed_delivery.updated_at, ~U[2026-01-15 13:00:00Z]) == :eq
       assert attempt_count(resumed_delivery.id) == 0
-      assert Repo.aggregate(from(d in Delivery, where: d.notification_id == ^delivery.notification_id), :count, :id) == 1
+
+      assert Repo.aggregate(
+               from(d in Delivery, where: d.notification_id == ^delivery.notification_id),
+               :count,
+               :id
+             ) == 1
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: resumed_delivery.id})
 
@@ -913,40 +918,69 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert updated_delivery.metadata["resume_source"] == "scheduled_resume"
       assert updated_delivery.metadata["resume_scheduled_at"] == "2026-01-15T13:00:00.000000Z"
       assert updated_delivery.metadata["resumed_at"] == "2026-01-15T13:00:00.000000Z"
-      assert Repo.aggregate(from(d in Delivery, where: d.notification_id == ^delivery.notification_id), :count, :id) == 1
+
+      assert Repo.aggregate(
+               from(d in Delivery, where: d.notification_id == ^delivery.notification_id),
+               :count,
+               :id
+             ) == 1
 
       assert {:ok, explanation} = Traces.explain_delivery(updated_delivery.id)
       assert Map.get(explanation, :resume_source) == "scheduled_resume"
-      assert DateTime.compare(Map.get(explanation, :resume_scheduled_at), ~U[2026-01-15 13:00:00Z]) ==
+
+      assert DateTime.compare(
+               Map.get(explanation, :resume_scheduled_at),
+               ~U[2026-01-15 13:00:00Z]
+             ) ==
                :eq
+
       assert DateTime.compare(Map.get(explanation, :resumed_at), ~U[2026-01-15 13:00:00Z]) == :eq
 
       case updated_delivery do
         %Delivery{status: :pending, orchestration_state: :deferred} = re_deferred_delivery ->
           assert re_deferred_delivery.planning_reason == "quiet_hours"
           assert re_deferred_delivery.planning_context["time_zone"] == "America/New_York"
-          assert DateTime.compare(re_deferred_delivery.next_eligible_at, resumed_delivery.next_eligible_at) ==
+
+          assert DateTime.compare(
+                   re_deferred_delivery.next_eligible_at,
+                   resumed_delivery.next_eligible_at
+                 ) ==
                    :gt
+
           assert attempt_count(re_deferred_delivery.id) == 0
 
           assert explanation.status == :pending
           assert explanation.planning_reason == "quiet_hours"
           assert explanation.planning_context["time_zone"] == "America/New_York"
-          assert DateTime.compare(explanation.next_eligible_at, re_deferred_delivery.next_eligible_at) ==
+
+          assert DateTime.compare(
+                   explanation.next_eligible_at,
+                   re_deferred_delivery.next_eligible_at
+                 ) ==
                    :eq
 
         %Delivery{status: :succeeded, orchestration_state: :ready} = succeeded_delivery ->
           assert succeeded_delivery.planning_reason == "quiet_hours"
           assert succeeded_delivery.planning_context["time_zone"] == "America/New_York"
-          assert DateTime.compare(succeeded_delivery.next_eligible_at, resumed_delivery.next_eligible_at) ==
+
+          assert DateTime.compare(
+                   succeeded_delivery.next_eligible_at,
+                   resumed_delivery.next_eligible_at
+                 ) ==
                    :eq
+
           assert attempt_count(succeeded_delivery.id) == 1
 
           assert explanation.status == :succeeded
           assert explanation.planning_reason == "quiet_hours"
           assert explanation.planning_context["time_zone"] == "America/New_York"
-          assert DateTime.compare(explanation.next_eligible_at, succeeded_delivery.next_eligible_at) ==
+
+          assert DateTime.compare(
+                   explanation.next_eligible_at,
+                   succeeded_delivery.next_eligible_at
+                 ) ==
                    :eq
+
           assert explanation.last_attempt.outcome == :succeeded
 
         other ->
@@ -1030,7 +1064,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     end
 
     test "dispatch uses preplanned render_data without a second rendering callback" do
-      Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail, test_pid: self())
+      Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail,
+        test_pid: self()
+      )
 
       assert {:ok, _result} =
                Chimeway.trigger(
@@ -1062,7 +1098,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     end
 
     test "explanations expose render identity without render bodies or raw render_data" do
-      Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail, test_pid: self())
+      Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail,
+        test_pid: self()
+      )
 
       assert {:ok, _result} =
                Chimeway.trigger(
@@ -1201,8 +1239,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           )
         )
 
-      assert delivery.workflow_run_id == workflow_run.id
-      assert delivery.workflow_step_id == workflow_run.current_step_id
+      assert delivery.workflow_run_id == Ecto.UUID.load!(workflow_run.id)
+      assert delivery.workflow_step_id == Ecto.UUID.load!(workflow_run.current_step_id)
 
       current_step =
         Repo.one!(
@@ -1225,7 +1263,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           from(wt in "chimeway_workflow_transitions",
             where:
               field(wt, :workflow_run_id) == ^workflow_run.id and
-                field(wt, :workflow_step_id) == ^delivery.workflow_step_id and
+                field(wt, :workflow_step_id) == ^Ecto.UUID.dump!(delivery.workflow_step_id) and
                 field(wt, :reason) == "step_activated",
             select: %{
               workflow_step_id: field(wt, :workflow_step_id),
@@ -1234,7 +1272,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           )
         )
 
-      assert activated_transition.workflow_step_id == delivery.workflow_step_id
+      assert Ecto.UUID.load!(activated_transition.workflow_step_id) == delivery.workflow_step_id
       assert delivery.id
     end
   end

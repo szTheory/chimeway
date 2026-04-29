@@ -84,6 +84,68 @@ defmodule Chimeway.Workflows do
      |> preload_steps(Repo)}
   end
 
+  @spec persisted_workflow(Ecto.UUID.t() | map()) ::
+          {:ok, Chimeway.Notifier.workflow_resolution() | nil} | {:error, term()}
+  def persisted_workflow(%{workflow_definition_id: nil}), do: {:ok, nil}
+
+  def persisted_workflow(%{workflow_definition_id: workflow_definition_id})
+      when is_binary(workflow_definition_id) do
+    persisted_workflow(workflow_definition_id)
+  end
+
+  def persisted_workflow(workflow_definition_id) when is_binary(workflow_definition_id) do
+    case Repo.get(WorkflowDefinition, workflow_definition_id) |> then(&preload_steps(Repo, &1)) do
+      nil ->
+        {:ok, nil}
+
+      definition ->
+        {:ok,
+         %{
+           workflow_key: definition.workflow_key,
+           workflow_version: definition.workflow_version,
+           source: :planner_override,
+           steps:
+             Enum.map(definition.steps, fn step ->
+               %{
+                 step_key: step.step_key,
+                 step_order: step.step_order,
+                 channel: step.channel,
+                 config: step.config || %{}
+               }
+             end)
+         }}
+    end
+  end
+
+  @spec active_step_linkage(Ecto.UUID.t() | map()) ::
+          {:ok,
+           %{
+             workflow_run_id: Ecto.UUID.t(),
+             workflow_step_id: Ecto.UUID.t(),
+             channel: String.t()
+           }
+           | nil}
+          | {:error, term()}
+  def active_step_linkage(%{id: notification_id}) when is_binary(notification_id) do
+    active_step_linkage(notification_id)
+  end
+
+  def active_step_linkage(notification_id) when is_binary(notification_id) do
+    query =
+      from(wr in WorkflowRun,
+        join: ws in WorkflowStep,
+        on: wr.current_step_id == ws.id,
+        where: wr.notification_id == ^notification_id,
+        select: %{
+          workflow_run_id: wr.id,
+          workflow_step_id: ws.id,
+          channel: ws.channel
+        }
+      )
+
+    {:ok, Repo.one(query)}
+  end
+
   @spec create_initial_run(Ecto.Repo.t(), Ecto.UUID.t(), WorkflowDefinition.t(), DateTime.t()) ::
           {:ok, WorkflowRun.t()} | {:error, term()}
   def create_initial_run(repo, notification_id, %WorkflowDefinition{} = definition, timestamp)
