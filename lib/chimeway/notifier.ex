@@ -239,6 +239,65 @@ defmodule Chimeway.Notifier do
 
   defp normalize_digest_key(digest_key), do: {:error, {:invalid_digest_key, digest_key}}
 
+  @spec serialize_orchestration(orchestration_resolution()) :: map()
+  def serialize_orchestration(orchestration) when is_map(orchestration) do
+    %{
+      "default" => orchestration.default |> Atom.to_string(),
+      "channels" =>
+        orchestration.channels
+        |> Enum.into(%{}, fn {channel, mode} -> {channel, Atom.to_string(mode)} end),
+      "default_digest_key" => Map.get(orchestration, :default_digest_key),
+      "digest_keys" => Map.get(orchestration, :digest_keys, %{}),
+      "source" => orchestration.source |> Atom.to_string()
+    }
+  end
+
+  def persisted_orchestration_override(%{} = persisted) do
+    if persisted_orchestration_snapshot?(persisted) do
+      channels =
+        persisted
+        |> Map.get("channels", Map.get(persisted, :channels, %{}))
+        |> Enum.into(%{})
+
+      digest_keys =
+        persisted
+        |> Map.get("digest_keys", Map.get(persisted, :digest_keys, %{}))
+        |> Enum.into(%{})
+
+      default_digest_key =
+        Map.get(persisted, "default_digest_key", Map.get(persisted, :default_digest_key))
+
+      persisted
+      |> Map.get("default", Map.get(persisted, :default, "immediate"))
+      |> then(&Map.put(channels, "default", &1))
+      |> maybe_put_default_digest_key(default_digest_key)
+      |> then(fn override ->
+        Enum.reduce(digest_keys, override, fn {channel, digest_key}, acc ->
+          Map.put(acc, channel, {:digest_held, [digest_key: digest_key]})
+        end)
+      end)
+    else
+      persisted
+    end
+  end
+
+  def persisted_orchestration_override(other), do: other
+
+  defp maybe_put_default_digest_key(channels, nil), do: channels
+
+  defp maybe_put_default_digest_key(channels, digest_key) do
+    Map.put(channels, "default", {:digest_held, [digest_key: digest_key]})
+  end
+
+  defp persisted_orchestration_snapshot?(persisted) do
+    Map.has_key?(persisted, "channels") or
+      Map.has_key?(persisted, :channels) or
+      Map.has_key?(persisted, "digest_keys") or
+      Map.has_key?(persisted, :digest_keys) or
+      Map.has_key?(persisted, "source") or
+      Map.has_key?(persisted, :source)
+  end
+
   @spec resolve_rendering(module(), map(), map()) ::
           {:ok, Chimeway.Rendering.rendering_declaration()} | {:error, term()}
   def resolve_rendering(notifier, trigger_params, recipient) when is_atom(notifier) do

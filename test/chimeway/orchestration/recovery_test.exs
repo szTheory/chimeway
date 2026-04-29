@@ -70,7 +70,9 @@ defmodule ChimewayTest.Notifiers.RecoveryDigestCallbackProbe do
   end
 
   def orchestration(_params, recipient) do
-    if test_pid = test_pid(), do: send(test_pid, {:orchestration_called, recipient.recipient_identity})
+    if test_pid = test_pid(),
+      do: send(test_pid, {:orchestration_called, recipient.recipient_identity})
+
     {:ok, [email: {:digest, [digest_key: "thread:#{recipient.recipient_identity}"]}]}
   end
 
@@ -147,14 +149,24 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
   setup do
     previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
-    previous_recovery_dispatcher = Application.get_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub, [])
-    previous_probe = Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryCallbackProbe, [])
+
+    previous_recovery_dispatcher =
+      Application.get_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub, [])
+
+    previous_probe =
+      Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryCallbackProbe, [])
+
     previous_digest_probe =
       Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryDigestCallbackProbe, [])
 
     Application.put_env(:chimeway, :dispatcher, Chimeway.Orchestration.RecoveryDispatcherStub)
-    Application.put_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub, test_pid: self())
+
+    Application.put_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub,
+      test_pid: self()
+    )
+
     Application.put_env(:chimeway, ChimewayTest.Notifiers.RecoveryCallbackProbe, test_pid: self())
+
     Application.put_env(
       :chimeway,
       ChimewayTest.Notifiers.RecoveryDigestCallbackProbe,
@@ -163,6 +175,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
     on_exit(fn ->
       Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+
       Application.put_env(
         :chimeway,
         Chimeway.Orchestration.RecoveryDispatcherStub,
@@ -215,11 +228,13 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       assert recovery.recovery.source == "ops_console"
       assert recovery.recovery.reason == "trigger_commit_gap"
       assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00.000000Z]
+
       assert Enum.sort(Enum.map(recovery.deliveries, & &1.channel)) == [
                "email",
                "in_app",
                "sms_custom"
              ]
+
       assert Enum.all?(recovery.deliveries, &(&1.status == :dispatched))
 
       notification_id = notification.id
@@ -283,6 +298,14 @@ defmodule Chimeway.Orchestration.RecoveryTest do
           )
         )
 
+      notification_id = notification.id
+      assert_receive {:dispatch, [^notification_id], initial_dispatch_opts}
+      assert_receive {:digest_channels_called, _}
+      assert_receive {:orchestration_called, "user:42"}
+      assert_receive {:orchestration_called, "user:42"}
+      refute initial_dispatch_opts[:use_persisted_channels]
+      refute initial_dispatch_opts[:use_persisted_orchestration]
+
       Repo.delete_all(from(d in Delivery, where: d.notification_id == ^notification.id))
 
       notification
@@ -313,7 +336,6 @@ defmodule Chimeway.Orchestration.RecoveryTest do
                "source" => "planner_override"
              }
 
-      notification_id = notification.id
       assert_receive {:dispatch, [^notification_id], dispatch_opts}
       assert dispatch_opts[:use_persisted_channels] == true
       assert dispatch_opts[:use_persisted_orchestration] == true

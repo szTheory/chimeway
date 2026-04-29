@@ -86,7 +86,8 @@ defmodule Chimeway.DeliveryPlanning do
     trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
 
-    with {:ok, render_result} <- resolve_render_result(notification, channel, trigger_params, opts),
+    with {:ok, render_result} <-
+           resolve_render_result(notification, channel, trigger_params, opts),
          {:ok, delivery} <-
            Deliveries.plan_delivery(notification.id, channel,
              delay_fallback: delay_fallback,
@@ -100,7 +101,7 @@ defmodule Chimeway.DeliveryPlanning do
            ),
          {:ok, delivery} <- maybe_apply_render_result(delivery, render_result),
          {:ok, orchestration} <-
-           resolve_orchestration(opts, trigger_params, recipient),
+           resolve_orchestration(notification, opts, trigger_params, recipient),
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
       with {:ok, delivery} <- evaluate_planning_policy(delivery, opts),
            {:ok, delivery} <- maybe_accumulate_digest_delivery(delivery) do
@@ -296,7 +297,8 @@ defmodule Chimeway.DeliveryPlanning do
        when is_map(render_assigns) and map_size(render_assigns) > 0,
        do: render_assigns
 
-  defp render_trigger_params(_notification, trigger_params), do: normalize_trigger_params(trigger_params)
+  defp render_trigger_params(_notification, trigger_params),
+    do: normalize_trigger_params(trigger_params)
 
   defp notification_recipient(%Notification{} = notification) do
     %{
@@ -306,13 +308,27 @@ defmodule Chimeway.DeliveryPlanning do
     }
   end
 
-  defp resolve_orchestration(opts, trigger_params, recipient) do
+  defp resolve_orchestration(notification, opts, trigger_params, recipient) do
     Notifier.resolve_orchestration(
       Keyword.get(opts, :notifier),
       trigger_params,
       recipient,
-      Keyword.get(opts, :orchestration, :unset)
+      orchestration_override(notification, opts)
     )
+  end
+
+  defp orchestration_override(%Notification{} = notification, opts) do
+    cond do
+      Keyword.has_key?(opts, :orchestration) ->
+        Keyword.get(opts, :orchestration)
+
+      Keyword.get(opts, :use_persisted_orchestration, false) == true and
+        is_map(notification.orchestration) and map_size(notification.orchestration) > 0 ->
+        Notifier.persisted_orchestration_override(notification.orchestration)
+
+      true ->
+        :unset
+    end
   end
 
   defp apply_declared_orchestration(delivery, channel, orchestration) do
@@ -364,8 +380,12 @@ defmodule Chimeway.DeliveryPlanning do
 
     case Map.fetch(render_channels, channel) do
       {:ok, channel_rendering} ->
-        render_key = Map.get(channel_rendering, "render_key") || Map.get(channel_rendering, :render_key)
-        render_version = Map.get(channel_rendering, "render_version") || Map.get(channel_rendering, :render_version)
+        render_key =
+          Map.get(channel_rendering, "render_key") || Map.get(channel_rendering, :render_key)
+
+        render_version =
+          Map.get(channel_rendering, "render_version") ||
+            Map.get(channel_rendering, :render_version)
 
         normalized_rendering = %{
           render_key: render_key,
@@ -393,7 +413,9 @@ defmodule Chimeway.DeliveryPlanning do
       {:ok, rendered_delivery} ->
         {:ok, rendered_delivery}
 
-      {:error, {:rendering_failed, unsupported_channel, {:unsupported_render_channel, unsupported_channel}}} ->
+      {:error,
+       {:rendering_failed, unsupported_channel,
+        {:unsupported_render_channel, unsupported_channel}}} ->
         {:ok,
          %{
            channel: unsupported_channel,
@@ -407,8 +429,9 @@ defmodule Chimeway.DeliveryPlanning do
     end
   end
 
-  defp maybe_apply_render_result(%Delivery{} = delivery, render_result) when map_size(render_result) == 0,
-    do: {:ok, delivery}
+  defp maybe_apply_render_result(%Delivery{} = delivery, render_result)
+       when map_size(render_result) == 0,
+       do: {:ok, delivery}
 
   defp maybe_apply_render_result(%Delivery{} = delivery, render_result) do
     if delivery.render_key == render_result.render_key &&

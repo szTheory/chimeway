@@ -203,7 +203,9 @@ defmodule Chimeway.Deliveries do
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
     event = Repo.get!(Event, event_id)
     dispatcher = configured_dispatcher()
-    recoverable_event_ids = opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
+
+    recoverable_event_ids =
+      opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
 
     if event_id in recoverable_event_ids do
       notifications =
@@ -219,7 +221,8 @@ defmodule Chimeway.Deliveries do
         notification_key: event.notification_key,
         correlation_id: event.correlation_id,
         post_commit: true,
-        use_persisted_channels: true
+        use_persisted_channels: true,
+        use_persisted_orchestration: true
       ]
 
       case dispatcher.dispatch(notifications, dispatch_opts) do
@@ -282,7 +285,8 @@ defmodule Chimeway.Deliveries do
          {:ok, render_key} <- normalize_optional_render_key(Keyword.get(opts, :render_key)),
          {:ok, render_version} <-
            normalize_optional_render_version(Keyword.get(opts, :render_version)),
-         {:ok, render_data} <- normalize_optional_render_data(Keyword.get(opts, :render_data, %{})) do
+         {:ok, render_data} <-
+           normalize_optional_render_data(Keyword.get(opts, :render_data, %{})) do
       metadata =
         opts
         |> Keyword.get(:metadata, %{})
@@ -709,14 +713,19 @@ defmodule Chimeway.Deliveries do
   defp normalize_datetime!(value),
     do: raise(ArgumentError, "expected DateTime, got: #{inspect(value)}")
 
-  defp recoverable_cutoff!(%DateTime{} = now, older_than) when is_integer(older_than) and older_than >= 0 do
+  defp recoverable_cutoff!(%DateTime{} = now, older_than)
+       when is_integer(older_than) and older_than >= 0 do
     now
     |> DateTime.add(-older_than, :second)
     |> normalize_datetime!()
   end
 
   defp recoverable_cutoff!(_now, older_than),
-    do: raise(ArgumentError, "expected non-negative integer older_than, got: #{inspect(older_than)}")
+    do:
+      raise(
+        ArgumentError,
+        "expected non-negative integer older_than, got: #{inspect(older_than)}"
+      )
 
   defp normalize_resume_source!(value) when is_atom(value), do: Atom.to_string(value)
   defp normalize_resume_source!(value) when is_binary(value) and byte_size(value) > 0, do: value
@@ -832,7 +841,9 @@ defmodule Chimeway.Deliveries do
       )
     end
 
-    Repo.all(from(d in Delivery, where: d.id in ^delivery_ids, order_by: [asc: d.channel, asc: d.id]))
+    Repo.all(
+      from(d in Delivery, where: d.id in ^delivery_ids, order_by: [asc: d.channel, asc: d.id])
+    )
   end
 
   defp iso8601_utc_usec(nil), do: nil

@@ -27,7 +27,18 @@ defmodule Chimeway.TriggerPipelineTest do
     end
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, "subject" => "test", "html_body" => "test", "text_body" => "test", recipient: recipient}}
+    def build(_params, recipient),
+      do:
+        {:ok,
+         %{
+           "headline" => "test",
+           "body" => "test",
+           "primary_action" => %{"label" => "test", "url" => "http://test"},
+           "subject" => "test",
+           "html_body" => "test",
+           "text_body" => "test",
+           recipient: recipient
+         }}
 
     @impl true
     def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
@@ -54,7 +65,18 @@ defmodule Chimeway.TriggerPipelineTest do
     end
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, "subject" => "test", "html_body" => "test", "text_body" => "test", recipient: recipient}}
+    def build(_params, recipient),
+      do:
+        {:ok,
+         %{
+           "headline" => "test",
+           "body" => "test",
+           "primary_action" => %{"label" => "test", "url" => "http://test"},
+           "subject" => "test",
+           "html_body" => "test",
+           "text_body" => "test",
+           recipient: recipient
+         }}
   end
 
   defmodule DigestSnapshotNotifier do
