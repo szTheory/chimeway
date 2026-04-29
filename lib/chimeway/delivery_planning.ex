@@ -74,6 +74,23 @@ defmodule Chimeway.DeliveryPlanning do
     end
   end
 
+  @doc """
+  Plans exactly one canonical delivery for the given `channel` on the supplied
+  notification using the current active-step workflow linkage.
+
+  Used by `Chimeway.Workflows.Progression` after the engine advances the run
+  cursor to the next step — the planner reuses the same idempotent
+  `Deliveries.plan_delivery/3` path and the same `resolve_workflow_linkage/3`
+  helper so progression-emitted next-step rows go through one canonical
+  planning seam (D-10).
+  """
+  @spec plan_next_step_delivery(Notification.t(), atom() | binary(), keyword()) ::
+          {:ok, Delivery.t()} | {:error, term()}
+  def plan_next_step_delivery(%Notification{} = notification, channel, opts \\ [])
+      when is_list(opts) do
+    plan_one_channel(notification, to_string(channel), MapSet.new(), :default, opts)
+  end
+
   defp plan_one_channel(
          notification,
          channel,

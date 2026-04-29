@@ -191,6 +191,78 @@ defmodule Chimeway.Workflows do
     end
   end
 
+  @doc """
+  Returns the canonical workflow_run row by id, raising if not found. Used by
+  the progression service after locking the row inside its transaction.
+  """
+  @spec get_run!(Ecto.UUID.t()) :: WorkflowRun.t()
+  def get_run!(workflow_run_id) when is_binary(workflow_run_id) do
+    Repo.get!(WorkflowRun, workflow_run_id)
+  end
+
+  @doc """
+  Locks a workflow run for update inside the given repo and returns it. Returns
+  `{:error, :workflow_run_not_found}` if the row no longer exists. Must be
+  invoked inside a transaction.
+  """
+  @spec lock_run(Ecto.Repo.t(), Ecto.UUID.t()) ::
+          {:ok, WorkflowRun.t()} | {:error, :workflow_run_not_found}
+  def lock_run(repo, workflow_run_id) when is_binary(workflow_run_id) do
+    case repo.one(from(wr in WorkflowRun, where: wr.id == ^workflow_run_id, lock: "FOR UPDATE")) do
+      nil -> {:error, :workflow_run_not_found}
+      run -> {:ok, run}
+    end
+  end
+
+  @doc """
+  Returns the active workflow_step row for a workflow_run, raising if none.
+  """
+  @spec get_current_step!(WorkflowRun.t()) :: WorkflowStep.t()
+  def get_current_step!(%WorkflowRun{current_step_id: current_step_id})
+      when is_binary(current_step_id) do
+    Repo.get!(WorkflowStep, current_step_id)
+  end
+
+  @doc """
+  Looks up a workflow_step by step_key inside the same workflow definition.
+  Returns `nil` if the step does not exist — callers treat this as a noop
+  rather than crashing the progression transaction.
+  """
+  @spec fetch_step_by_key(Ecto.UUID.t(), String.t()) :: WorkflowStep.t() | nil
+  def fetch_step_by_key(workflow_definition_id, step_key)
+      when is_binary(workflow_definition_id) and is_binary(step_key) do
+    Repo.one(
+      from(ws in WorkflowStep,
+        where: ws.workflow_definition_id == ^workflow_definition_id and ws.step_key == ^step_key
+      )
+    )
+  end
+
+  @doc """
+  Appends one workflow_transition row using the supplied repo (so callers can
+  participate in the progression transaction). Required keys: `workflow_run_id`,
+  `to_state`, and `reason`. Optional keys: `workflow_step_id`, `delivery_id`,
+  `from_state`, `context`, `inserted_at`.
+  """
+  @spec append_transition(Ecto.Repo.t(), map()) ::
+          {:ok, WorkflowTransition.t()} | {:error, Ecto.Changeset.t()}
+  def append_transition(repo, attrs) when is_map(attrs) do
+    insert_transition(repo, attrs)
+  end
+
+  @doc """
+  Updates a workflow run row with the supplied fields. Used by the progression
+  service to record waiting state and reason/context, advance the current step
+  cursor, or reactivate a previously waiting run.
+  """
+  @spec update_run(Ecto.Repo.t(), WorkflowRun.t(), map()) ::
+          {:ok, WorkflowRun.t()} | {:error, Ecto.Changeset.t()}
+  def update_run(repo, %WorkflowRun{} = run, attrs) when is_map(attrs) do
+    run
+    |> Ecto.Changeset.change(attrs)
+    |> repo.update()
+  end
+
   defp preload_steps(_repo, nil), do: nil
 
   defp preload_steps(repo, definition) do
