@@ -66,7 +66,7 @@
 | OPS-01 | Phase 22 | Complete |
 | OPS-02 | Phase 22 | Complete |
 
-`DIGEST-02` and `DIGEST-03` closure evidence is recorded in `.planning/phases/20-digest-emission-explainability/20-VERIFICATION.md`, with the scheduled `DigestFlushWorker` PostgreSQL 15.17 runtime proof added by Phase 23.
+`DIGEST-02` and `DIGEST-03` closure evidence is recorded in `.planning/phases/20-digest-emission-explainability/20-VERIFICATION.md`, which now reports canonical `status: passed` after both `MIX_ENV=test mix ci.test` and the PostgreSQL 15.17 replay passed on 2026-04-29. The closure remains scoped to automatic digest flush scheduling for Oban-backed hosts; non-Oban installs still use the documented host-managed `emit_bucket/2` seam.
 
 **Coverage:**
 - v1.2 requirements: 11 total
@@ -75,4 +75,4 @@
 
 ---
 *Requirements defined: 2026-04-28*
-*Last updated: 2026-04-29 after Plan 23-03 completion*
+*Last updated: 2026-04-29 after Plan 23-06 completion*
