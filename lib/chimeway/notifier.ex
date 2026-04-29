@@ -510,8 +510,179 @@ defmodule Chimeway.Notifier do
   defp normalize_workflow_channel(channel),
     do: {:error, {:invalid_workflow_channel, channel}}
 
-  defp normalize_workflow_config(config) when is_map(config), do: {:ok, config}
+  defp normalize_workflow_config(config) when is_map(config) do
+    progress = Map.get(config, "progress", Map.get(config, :progress, :unset))
+
+    case progress do
+      :unset ->
+        {:ok, config}
+
+      rules when is_list(rules) ->
+        with {:ok, normalized_rules} <- normalize_workflow_progress_rules(rules) do
+          # Persist progress under the durable string key only — replay-safe
+          # serialization should not have to decide between atom and string keys
+          # later (D-08).
+          updated_config =
+            config
+            |> Map.delete(:progress)
+            |> Map.put("progress", normalized_rules)
+
+          {:ok, updated_config}
+        end
+
+      other ->
+        {:error, {:invalid_workflow_progress_rules, other}}
+    end
+  end
+
   defp normalize_workflow_config(config), do: {:error, {:invalid_workflow_config, config}}
+
+  # Curated workflow-outcome vocabulary (D-04). Mirrors the values returned by
+  # `Chimeway.Workflows.ProgressionOutcome.from_delivery/2` so authoring rules
+  # at declaration time and runtime branch resolution share one stable set.
+  @progress_outcomes ~w(delivered suppressed temporary_failure retries_exhausted permanent_failure bounced)
+
+  # Per D-01 only one wait anchor is supported in Phase 25: the prior
+  # delivery's terminal_at timestamp. Other anchors are reserved for later
+  # phases and must fail normalization rather than silently no-op at runtime.
+  @progress_wait_anchors ~w(prior_delivery_terminal_at)
+
+  defp normalize_workflow_progress_rules(rules) do
+    rules
+    |> Enum.reduce_while({:ok, []}, fn rule, {:ok, acc} ->
+      case normalize_workflow_progress_rule(rule) do
+        {:ok, normalized_rule} ->
+          {:cont, {:ok, [normalized_rule | acc]}}
+
+        {:error, reason} ->
+          {:halt, {:error, {:invalid_workflow_progress_rule, reason}}}
+      end
+    end)
+    |> case do
+      {:ok, normalized_rules} -> {:ok, Enum.reverse(normalized_rules)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp normalize_workflow_progress_rule(%{} = rule) do
+    kind = Map.get(rule, "kind", Map.get(rule, :kind))
+
+    case kind do
+      "wait_until" -> normalize_wait_until_rule(rule)
+      "on_outcome" -> normalize_on_outcome_rule(rule)
+      other -> {:error, {:unknown_rule_kind, other}}
+    end
+  end
+
+  defp normalize_workflow_progress_rule(other),
+    do: {:error, {:invalid_progress_rule_shape, other}}
+
+  defp normalize_wait_until_rule(%{} = rule) do
+    # `wait_until` rules carry only anchor + delay_seconds + to_step. Mixing in
+    # an `outcome` (or any other key) is rejected so the persisted DSL stays
+    # one rule-shape per kind per D-06/D-08.
+    case extra_keys(rule, ~w(kind anchor delay_seconds to_step)) do
+      [] ->
+        anchor = Map.get(rule, "anchor", Map.get(rule, :anchor))
+        delay_seconds = Map.get(rule, "delay_seconds", Map.get(rule, :delay_seconds))
+        to_step = Map.get(rule, "to_step", Map.get(rule, :to_step))
+
+        with {:ok, normalized_anchor} <- normalize_progress_anchor(anchor),
+             {:ok, normalized_delay} <- normalize_progress_delay_seconds(delay_seconds),
+             {:ok, normalized_to_step} <- normalize_progress_to_step(to_step) do
+          {:ok,
+           %{
+             "kind" => "wait_until",
+             "anchor" => normalized_anchor,
+             "delay_seconds" => normalized_delay,
+             "to_step" => normalized_to_step
+           }}
+        end
+
+      extra ->
+        {:error, {:mixed_rule_shape, extra}}
+    end
+  end
+
+  defp normalize_on_outcome_rule(%{} = rule) do
+    case extra_keys(rule, ~w(kind outcome to_step)) do
+      [] ->
+        outcome = Map.get(rule, "outcome", Map.get(rule, :outcome))
+        to_step = Map.get(rule, "to_step", Map.get(rule, :to_step))
+
+        with {:ok, normalized_outcome} <- normalize_progress_outcome(outcome),
+             {:ok, normalized_to_step} <- normalize_progress_to_step(to_step) do
+          {:ok,
+           %{
+             "kind" => "on_outcome",
+             "outcome" => normalized_outcome,
+             "to_step" => normalized_to_step
+           }}
+        end
+
+      extra ->
+        {:error, {:mixed_rule_shape, extra}}
+    end
+  end
+
+  defp extra_keys(%{} = rule, allowed) do
+    rule
+    |> Enum.reduce([], fn {key, _value}, acc ->
+      key_string = to_string_key(key)
+
+      if key_string in allowed do
+        acc
+      else
+        [key_string | acc]
+      end
+    end)
+    |> Enum.sort()
+  end
+
+  defp to_string_key(key) when is_binary(key), do: key
+  defp to_string_key(key) when is_atom(key), do: Atom.to_string(key)
+  defp to_string_key(key), do: inspect(key)
+
+  defp normalize_progress_anchor(anchor) when anchor in @progress_wait_anchors,
+    do: {:ok, anchor}
+
+  defp normalize_progress_anchor(anchor) when is_atom(anchor) and not is_nil(anchor) do
+    normalize_progress_anchor(Atom.to_string(anchor))
+  end
+
+  defp normalize_progress_anchor(anchor), do: {:error, {:invalid_anchor, anchor}}
+
+  defp normalize_progress_outcome(outcome) when outcome in @progress_outcomes,
+    do: {:ok, outcome}
+
+  defp normalize_progress_outcome(outcome) when is_atom(outcome) and not is_nil(outcome) do
+    normalize_progress_outcome(Atom.to_string(outcome))
+  end
+
+  defp normalize_progress_outcome(outcome), do: {:error, {:invalid_outcome, outcome}}
+
+  defp normalize_progress_delay_seconds(delay_seconds)
+       when is_integer(delay_seconds) and delay_seconds > 0,
+       do: {:ok, delay_seconds}
+
+  defp normalize_progress_delay_seconds(delay_seconds),
+    do: {:error, {:invalid_delay_seconds, delay_seconds}}
+
+  defp normalize_progress_to_step(to_step) when is_binary(to_step) do
+    normalized_to_step = String.trim(to_step)
+
+    if normalized_to_step == "" do
+      {:error, {:blank_to_step, to_step}}
+    else
+      {:ok, normalized_to_step}
+    end
+  end
+
+  defp normalize_progress_to_step(to_step) when is_atom(to_step) and not is_nil(to_step) do
+    normalize_progress_to_step(Atom.to_string(to_step))
+  end
+
+  defp normalize_progress_to_step(to_step), do: {:error, {:blank_to_step, to_step}}
 
   defp validate_unique_workflow_step_keys(steps) do
     case find_duplicate(steps, & &1.step_key) do
