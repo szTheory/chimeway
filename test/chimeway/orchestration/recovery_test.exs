@@ -39,6 +39,48 @@ defmodule ChimewayTest.Notifiers.RecoveryCallbackProbe do
   end
 end
 
+defmodule ChimewayTest.Notifiers.RecoveryDigestCallbackProbe do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.recovery.digest_callback_probe"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Recovery digest callback probe"}}
+
+  def channels(_params, _recipient) do
+    if test_pid = test_pid(), do: send(test_pid, {:digest_channels_called, self()})
+    {:ok, [:email]}
+  end
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "subject" => "Recovery digest callback probe",
+         "html_body" => "<p>Probe body</p>",
+         "text_body" => "Probe body"
+       },
+       channels: %{
+         email: %{render_key: "test.recovery.digest_callback_probe.email", render_version: 1}
+       }
+     }}
+  end
+
+  def orchestration(_params, recipient) do
+    if test_pid = test_pid(), do: send(test_pid, {:orchestration_called, recipient.recipient_identity})
+    {:ok, [email: {:digest, [digest_key: "thread:#{recipient.recipient_identity}"]}]}
+  end
+
+  defp test_pid do
+    :chimeway
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(:test_pid)
+  end
+end
+
 defmodule Chimeway.Orchestration.RecoveryDispatcherStub do
   @behaviour Chimeway.Dispatch
 
@@ -107,10 +149,17 @@ defmodule Chimeway.Orchestration.RecoveryTest do
     previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     previous_recovery_dispatcher = Application.get_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub, [])
     previous_probe = Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryCallbackProbe, [])
+    previous_digest_probe =
+      Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryDigestCallbackProbe, [])
 
     Application.put_env(:chimeway, :dispatcher, Chimeway.Orchestration.RecoveryDispatcherStub)
     Application.put_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub, test_pid: self())
     Application.put_env(:chimeway, ChimewayTest.Notifiers.RecoveryCallbackProbe, test_pid: self())
+    Application.put_env(
+      :chimeway,
+      ChimewayTest.Notifiers.RecoveryDigestCallbackProbe,
+      test_pid: self()
+    )
 
     on_exit(fn ->
       Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
@@ -124,6 +173,12 @@ defmodule Chimeway.Orchestration.RecoveryTest do
         :chimeway,
         ChimewayTest.Notifiers.RecoveryCallbackProbe,
         previous_probe
+      )
+
+      Application.put_env(
+        :chimeway,
+        ChimewayTest.Notifiers.RecoveryDigestCallbackProbe,
+        previous_digest_probe
       )
     end)
 
@@ -209,6 +264,62 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       assert recovery.event.id == event.id
       assert recovery.deliveries == []
       refute_received {:dispatch, _, _}
+    end
+
+    test "replays persisted digest orchestration and keeps recovered deliveries digest_held" do
+      assert {:ok, trigger_result} =
+               Chimeway.Trigger.trigger(
+                 ChimewayTest.Notifiers.RecoveryDigestCallbackProbe,
+                 %{user_id: 42},
+                 idempotency_key: "recovery-digest-held"
+               )
+
+      event = trigger_result.event
+
+      notification =
+        Repo.one!(
+          from(n in Chimeway.Notifications.Notification,
+            where: n.event_id == ^event.id
+          )
+        )
+
+      Repo.delete_all(from(d in Delivery, where: d.notification_id == ^notification.id))
+
+      notification
+      |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+      |> Repo.update!()
+
+      event
+      |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+      |> Repo.update!()
+
+      assert {:ok, recovery} =
+               Deliveries.recover_event(event.id,
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "digest_replay_gap"
+               )
+
+      [recovered_delivery] = recovery.deliveries
+      assert recovered_delivery.channel == "email"
+      assert recovered_delivery.status == :dispatched
+      assert recovered_delivery.orchestration_state == :digest_held
+      assert recovered_delivery.planning_reason == "digest_rule"
+
+      assert recovered_delivery.planning_context == %{
+               "channel" => "email",
+               "digest_key" => "thread:user:42",
+               "source" => "planner_override"
+             }
+
+      notification_id = notification.id
+      assert_receive {:dispatch, [^notification_id], dispatch_opts}
+      assert dispatch_opts[:use_persisted_channels] == true
+      assert dispatch_opts[:use_persisted_orchestration] == true
+      refute Keyword.has_key?(dispatch_opts, :notifier)
+      refute_receive {:digest_channels_called, _}, 50
+      refute_receive {:orchestration_called, _}, 50
     end
   end
 

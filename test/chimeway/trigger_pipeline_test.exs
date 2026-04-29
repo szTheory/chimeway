@@ -57,6 +57,41 @@ defmodule Chimeway.TriggerPipelineTest do
     def build(_params, recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, "subject" => "test", "html_body" => "test", "text_body" => "test", recipient: recipient}}
   end
 
+  defmodule DigestSnapshotNotifier do
+    @behaviour Chimeway.Notifier
+
+    @impl true
+    def notification_key, do: "comment.created.digest_snapshot"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(_params) do
+      {:ok,
+       [
+         %{recipient_identity: "digest-a", channel: :email},
+         %{recipient_identity: "digest-z", channel: :email}
+       ]}
+    end
+
+    @impl true
+    def build(_params, recipient), do: {:ok, %{"subject" => "digest", recipient: recipient}}
+
+    @impl true
+    def channels(_params, _recipient), do: {:ok, [:email, :in_app]}
+
+    @impl true
+    def orchestration(_params, recipient) do
+      {:ok,
+       %{
+         default: :digest,
+         email: {:digest, [digest_key: "thread:#{recipient.recipient_identity}"]},
+         in_app: :immediate
+       }}
+    end
+  end
+
   defmodule FailingDispatcher do
     @behaviour Chimeway.Dispatch
 
@@ -228,5 +263,37 @@ defmodule Chimeway.TriggerPipelineTest do
       Repo.aggregate(from(n in Notification, where: n.event_id == ^event.id), :count, :id)
 
     assert notification_count == 3
+  end
+
+  test "persists a normalized orchestration snapshot on notifications at trigger time" do
+    assert {:ok, result} =
+             Trigger.trigger(DigestSnapshotNotifier, %{}, idempotency_key: "idem-digest-snapshot")
+
+    notifications =
+      Repo.all(
+        from(n in Notification,
+          where: n.event_id == ^result.event.id,
+          order_by: [asc: n.recipient_identity]
+        )
+      )
+
+    assert Enum.map(notifications, & &1.recipient_identity) == ["digest-a", "digest-z"]
+
+    assert Enum.map(notifications, &Map.get(&1, :orchestration)) == [
+             %{
+               "default" => "digest_held",
+               "channels" => %{"email" => "digest_held", "in_app" => "immediate"},
+               "default_digest_key" => nil,
+               "digest_keys" => %{"email" => "thread:digest-a"},
+               "source" => "notifier"
+             },
+             %{
+               "default" => "digest_held",
+               "channels" => %{"email" => "digest_held", "in_app" => "immediate"},
+               "default_digest_key" => nil,
+               "digest_keys" => %{"email" => "thread:digest-z"},
+               "source" => "notifier"
+             }
+           ]
   end
 end
