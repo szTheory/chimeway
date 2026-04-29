@@ -131,12 +131,15 @@ Success criteria:
 **Goal**: Close the Phase 20 digest handoff gap by scheduling emitted digest dispatch automatically from durable bucket state for Oban-backed hosts, then re-verify the flow and repair audit traceability.
 **Depends on**: Phase 22
 **Requirements**: DIGEST-02, DIGEST-03
-**Plans:** 3/3 plans complete
+**Plans:** 4/6 plans complete
 
 Plans:
 - [x] 23-01-PLAN.md — Schedule `DigestFlushWorker` automatically from durable digest bucket state for Oban-backed installs and document the non-Oban boundary.
 - [x] 23-02-PLAN.md — Persist notifier orchestration snapshots so recovery can replay digest-held semantics durably.
 - [x] 23-03-PLAN.md — Prove the scheduled end-to-end path with PostgreSQL 15.17 evidence, finalize `20-VERIFICATION.md`, and close Phase 20/23 verification traceability.
+- [x] 23-04-PLAN.md — Repair the deferred-resume Oban worker regression, re-establish the full-suite gate, and keep resumed rows lifecycle-safe when policy re-evaluates at perform time.
+- [ ] 23-05-PLAN.md — Harden digest accumulation against forged lookup identities so bucket selection cannot cross recipient or channel ownership boundaries.
+- [ ] 23-06-PLAN.md — Re-run the resolved closure gates and bring `20-VERIFICATION.md`, `REQUIREMENTS.md`, and `ROADMAP.md` back into truthful alignment.
 
 Success criteria:
 1. For Oban-backed installs, digest accumulation or window-close execution schedules `DigestFlushWorker` automatically from durable bucket state without relying on manual runtime intervention; non-Oban hosts keep the documented host-managed flush seam.
@@ -154,8 +157,8 @@ Success criteria:
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
 | 21.1 | Rendering durability and preview hardening | 2/2 | Complete    | 2026-04-28 |
 | 22 | Recovery & Outcome Analytics | 4/4 | Complete | 2026-04-28 |
-| 23 | Digest Flush Scheduling & Audit Closure | 3/3 | Complete | 2026-04-29 |
+| 23 | Digest Flush Scheduling & Audit Closure | 4/6 | In Progress | 2026-04-29 |
 
 ## Next Up
 
-**Milestone close-out** — digest scheduling verification is complete; see `20-VERIFICATION.md` for the PostgreSQL 15.17 evidence and follow-up note about the unrelated deferred-resume full-suite blocker.
+**Phase 23-05** — harden digest accumulation lookup identity boundaries, then finish audit artifact realignment in `23-06`.

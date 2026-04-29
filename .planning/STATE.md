@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: verifying
-stopped_at: Completed 23-03-PLAN.md
-last_updated: "2026-04-29T02:16:15.064Z"
-last_activity: 2026-04-29
+status: executing
+stopped_at: Completed 23-04-PLAN.md
+last_updated: "2026-04-29T02:54:58Z"
+last_activity: 2026-04-29 -- Completed 23-04-PLAN.md
 progress:
   total_phases: 8
-  completed_phases: 8
-  total_plans: 26
-  completed_plans: 26
-  percent: 100
+  completed_phases: 7
+  total_plans: 29
+  completed_plans: 27
+  percent: 93
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 ## Current Position
 
 Phase: 23 (digest-flush-scheduling-audit-closure) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-04-29
+Plan: 4 of 6
+Status: Executing Phase 23
+Last activity: 2026-04-29 -- Completed 23-04-PLAN.md
 
 ## Accumulated Context
 
@@ -103,6 +103,7 @@ Recent decisions affecting current work:
 - Replay recovered orchestration through Notifier.resolve_orchestration/4 override normalization so recovered deliveries keep planner_override explainability while reusing the existing planner seam.
 - Use a local PostgreSQL 15.17 runtime to gather production-shaped digest evidence because the host/server default was PostgreSQL 14.17.
 - Record the unrelated PostgreSQL 15 full-suite blocker separately instead of weakening the digest closure evidence.
+- ObanWorker now persists perform-time `{:defer, decision}` outcomes on the canonical delivery row and reuses the dispatcher seam for follow-up scheduling.
 
 ### Pending Todos
 
@@ -110,7 +111,7 @@ None.
 
 ### Blockers/Concerns
 
-- PostgreSQL 15.17 full-suite verification still fails in test/chimeway/integration/delivery_lifecycle_test.exs:815 (deferred resume path); logged in .planning/phases/23-digest-flush-scheduling-audit-closure/deferred-items.md.
+- Phase 23 still has open follow-up plans for digest lookup hardening (`23-05`) and audit artifact realignment (`23-06`).
 
 ### Roadmap Evolution
 
@@ -123,8 +124,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-29T02:16:15.056Z
-Stopped at: Completed 23-03-PLAN.md
+Last session: 2026-04-29T02:54:58Z
+Stopped at: Completed 23-04-PLAN.md
 Resume file: None
 
-**Planned Phase:** 23 (digest-flush-scheduling-audit-closure) — 3 plans — 2026-04-29T02:00:21.661Z
+**Planned Phase:** 23 (digest-flush-scheduling-audit-closure) — 6 plans — 2026-04-29T02:49:01.205Z
