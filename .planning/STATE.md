@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Delivery Orchestration
-status: archived
-stopped_at: Archived milestone v1.2
-last_updated: "2026-04-29T13:57:00Z"
+milestone: v1.3
+milestone_name: Workflow Journeys
+status: active
+stopped_at: Defining requirements and roadmap for milestone v1.3
+last_updated: "2026-04-29T15:34:12Z"
 last_activity: 2026-04-29
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 29
-  completed_plans: 29
-  percent: 100
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** No active milestone. Define the next milestone before resuming phase execution.
+**Current focus:** v1.3 Workflow Journeys — durable multi-step workflows, escalations, and journey-level explainability.
 
 ## Current Position
 
-Phase: None
-Plan: None
-Status: Milestone archived
-Last activity: 2026-04-29
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-29 — Milestone v1.3 started
 
 ## Accumulated Context
 
@@ -123,13 +123,14 @@ None.
 
 ### Deferred Items
 
-- Workflow journeys and escalation trees beyond digest/window orchestration.
 - Broad provider expansion beyond the existing outbound seam.
+- Read/unread-driven branching as a primary workflow driver.
+- Reference operator UI and broader adoption-surface work after workflow semantics stabilize.
 
 ### Session Continuity
 
-Last session: 2026-04-29T03:04:58.823Z
-Stopped at: Completed 23-06-PLAN.md
+Last session: 2026-04-29T15:34:12Z
+Stopped at: Milestone v1.3 initialized
 Resume file: None
 
-**Planned Phase:** None. Run `$gsd-new-milestone` to define the next scope.
+**Planned Phase:** Phase 24 — Workflow Contracts & State Spine

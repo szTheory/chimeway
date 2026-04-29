@@ -10,12 +10,29 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped `v1.2 Delivery Orchestration` on 2026-04-29. The library now supports durable delivery-window deferral, scheduled resume, digest accumulation and emission, versioned rendering contracts, recovery/reconciliation flows, and grouped outcome analytics while preserving canonical lifecycle history and explainable operator traces.
+Chimeway shipped `v1.2 Delivery Orchestration` on 2026-04-29. The library now supports durable delivery-window deferral, scheduled resume, digest accumulation and emission, versioned rendering contracts, recovery/reconciliation flows, and grouped outcome analytics while preserving canonical lifecycle history and explainable operator traces. The next milestone, `v1.3 Workflow Journeys`, turns that single-notification orchestration substrate into a durable multi-step journey engine for SaaS product teams.
+
+## Current Milestone: v1.3 Workflow Journeys
+
+**Goal:** Turn Chimeway from single-notification orchestration into a durable, explainable workflow engine for multi-step notification journeys.
+
+**Target features:**
+- Define ordered workflow steps across channels with stable workflow identity.
+- Wait, branch, and escalate based on elapsed time or prior delivery outcome.
+- Stop or cancel remaining steps when terminal conditions are met.
+- Persist journey state durably with operator-visible progression reasons.
+- Expose traces for the whole journey, not just one delivery.
+
+## Product Arc
+
+- `v1.3 Workflow Journeys` — durable, explainable multi-step workflows and escalations.
+- `v1.4 Channel Feedback Loops` — first-class outbound channels plus receipts/webhooks that can feed workflow progression.
+- `v1.5 Adoption Surface` — reference flows, integration polish, and operator UX that make the library easier to adopt in production.
 
 ## Next Milestone Goals
 
-- Define workflow-journey requirements before broadening provider scope.
-- Decide whether the next value jump is multi-step notification workflows, escalation policies, or broader channel expansion.
+- Make time-based and outcome-based workflow progression the next major product-value jump.
+- Keep read/unread-driven branching and broad channel expansion deferred until the core journey model is stable.
 - Preserve the local-first, explainable lifecycle model while extending beyond single-notification orchestration.
 
 ## Out of Scope
@@ -38,7 +55,7 @@ Prior context includes:
 - Host-app integration seam guidance for auth, tenancy, URL generation, and correlation IDs.
 - The shipped v1.0 milestone established the durable spine, policy checkpoints, telemetry correlation, safe adapter resolution, and transactional Oban dispatch as the baseline to build from.
 - The shipped v1.1 milestone established production-trust behavior across preferences, reliability, observability, and integration documentation.
-- Current milestone research reinforces that the next value jump is orchestration behavior: scheduled jobs, channel-aware rendering, template previewability, and explicit transport-specific shaping before broad channel breadth.
+- Current milestone research reinforces that the next value jump is workflow behavior: time/outcome-based progression, escalation semantics, and journey-level explainability before broader channel breadth.
 
 ## Constraints
 
@@ -48,8 +65,8 @@ Prior context includes:
 - **Composability**: Channel/provider integrations must use replaceable adapter behaviours — avoid hard vendor lock-in.
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
-- **Scope**: v1.2 should prioritize orchestration behavior over channel breadth so the library becomes materially more useful for SaaS product teams.
-- **Scope**: The next milestone should not dilute the orchestration model with broad provider expansion until workflow priorities are explicit.
+- **Scope**: v1.3 should prioritize workflow journeys and escalation semantics over broad channel expansion.
+- **Scope**: The next milestone should stay centered on time/outcome progression before read/unread-driven branching or UI productization.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -72,6 +89,7 @@ Prior context includes:
 | Prioritize orchestration before channel breadth in v1.2 | Scheduling, batching, rendering, and recovery create larger product value than adding more providers now | Shipped in v1.2 |
 | Keep canonical lifecycle identity through orchestration features | Deferred, digested, recovered, and emitted flows should stay explainable on durable rows | Implemented across phases 17-23 |
 | Persist orchestration and rendering declarations as durable data | Replay, recovery, and preview should not depend on notifier module re-entry | Implemented across phases 21-23 |
+| Prioritize workflow journeys before channel breadth in v1.3 | Multi-step SaaS notification behavior is the next major adoption gap after single-notification orchestration | Active milestone direction |
 
 ## Archived Milestone Context
 
@@ -140,4 +158,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-29 after milestone v1.2 completion*
+*Last updated: 2026-04-29 for milestone v1.3 initialization*
