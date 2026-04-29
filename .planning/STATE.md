@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Workflow Journeys
 status: executing
 stopped_at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
-last_updated: "2026-04-29T20:15:44.252Z"
+last_updated: "2026-04-29T20:18:28.582Z"
 last_activity: 2026-04-29 -- Phase 25 execution started
 progress:
   total_phases: 5
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 ## Current Position
 
 Phase: 25 (progression-engine-wait-gates) — EXECUTING
-Plan: 1 of 3
+Plan: 1 of 6
 Status: Executing Phase 25
 Last activity: 2026-04-29 -- Phase 25 execution started
 
