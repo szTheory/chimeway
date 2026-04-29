@@ -170,14 +170,14 @@ defmodule Chimeway.Integration.DigestDeliveryLifecycleTest do
       group_by: :digest_key
     )
 
-    %{event: event, notification: notification} =
+    %{event: event, notification: persisted_notification} =
       DispatchHelpers.create_notification(
         notification_key: "comment.recovery",
         recipient_identity: "user:recover"
       )
 
-    notification =
-      notification
+    persisted_notification =
+      persisted_notification
       |> Ecto.Changeset.change(
         orchestration: %{
           "default" => "digest_held",
@@ -207,6 +207,7 @@ defmodule Chimeway.Integration.DigestDeliveryLifecycleTest do
     [recovered_delivery] = recovery.deliveries
     assert recovered_delivery.status == :pending
     assert recovered_delivery.orchestration_state == :digest_held
+    assert persisted_notification.id == recovered_delivery.notification_id
 
     bucket =
       Repo.one!(
@@ -242,10 +243,23 @@ defmodule Chimeway.Integration.DigestDeliveryLifecycleTest do
              :count
            ) == 2
 
-    assert_enqueued(worker: DigestFlushWorker, args: %{bucket_id: bucket.id})
-    assert :ok = perform_job(DigestFlushWorker, %{bucket_id: bucket.id})
+    assert_enqueued(
+      worker: DigestFlushWorker,
+      args: %{bucket_id: bucket.id},
+      scheduled_at: bucket.window_ends_at
+    )
 
-    emitted_bucket = Repo.get!(DigestBucket, bucket.id)
+    due_bucket =
+      bucket
+      |> Ecto.Changeset.change(
+        window_starts_at: DateTime.add(DateTime.utc_now(), -120, :second),
+        window_ends_at: DateTime.add(DateTime.utc_now(), -60, :second)
+      )
+      |> Repo.update!()
+
+    assert :ok = perform_job(DigestFlushWorker, %{bucket_id: due_bucket.id})
+
+    emitted_bucket = Repo.get!(DigestBucket, due_bucket.id)
     emitted = Repo.get!(Delivery, emitted_bucket.digest_delivery_id)
 
     assert_enqueued(worker: ObanWorker, args: %{delivery_id: emitted.id})
