@@ -184,6 +184,86 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
     end
   end
 
+  describe "wait_until rule advancement after due_at elapses (CR-01 regression)" do
+    test "past-due wait_until advances the run to the persisted to_step, creates exactly one next-step delivery, and noops on re-entry" do
+      %{
+        notification: notification,
+        workflow_run: workflow_run,
+        email_step: email_step
+      } = trigger_workflow!("past-due-advance")
+
+      # Drive the in_app delivery through the canonical convergence path with
+      # a :succeeded outcome. record_attempt/2 invokes the progression seam
+      # automatically once the row converges, stamping the run as :waiting with
+      # a persisted due_at 1800 seconds after the terminal updated_at.
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: _terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+      # Sanity check: the convergence hook moved the run to :waiting.
+      waiting_run = Repo.get!(WorkflowRun, workflow_run.id)
+      assert waiting_run.state == :waiting
+
+      # Parse the persisted due_at and compute a past-due now.
+      due_at = parse_iso8601!(waiting_run.status_context["due_at"])
+      past_due_now = DateTime.add(due_at, 1, :second)
+
+      # First past-due call must advance the run — not loop back to :waiting.
+      assert {:ok, {:advanced, advanced_run, [next_delivery]}} =
+               Progression.progress_run(workflow_run.id, now: past_due_now)
+
+      # The run must advance to the email step.
+      assert advanced_run.state == :active
+      assert advanced_run.current_step_id == email_step.id
+
+      # The status_reason must be one of the canonical post-advancement reasons.
+      assert advanced_run.status_reason in [
+               "progressed_on_delivery_outcome",
+               "step_activated",
+               "reactivated_from_wait"
+             ]
+
+      # The next-step delivery must be canonical — linked to the email step.
+      assert next_delivery.notification_id == notification.id
+      assert next_delivery.channel == "email"
+      assert next_delivery.workflow_step_id == email_step.id
+
+      # Exactly one email delivery is created — no duplicates.
+      assert email_delivery_count(notification.id) == 1
+
+      # Second past-due call must noop — the active step is now email and its
+      # config has no progress rules, so the engine returns :no_progress_rules.
+      assert {:ok, {:noop, _run, _reason}} =
+               Progression.progress_run(workflow_run.id,
+                 now: DateTime.add(past_due_now, 60, :second)
+               )
+
+      # Still exactly one email delivery after the second call.
+      assert email_delivery_count(notification.id) == 1
+
+      # Transition audit: exactly one reactivated_from_wait (loop-closure proof)
+      # and exactly one step_activated for the email step.
+      transitions = list_transitions(workflow_run.id)
+
+      reactivated_transitions =
+        Enum.filter(transitions, &(&1.reason == "reactivated_from_wait"))
+
+      activated_transitions =
+        Enum.filter(transitions, fn t ->
+          t.reason == "step_activated" and
+            t.context["step_key"] == "email"
+        end)
+
+      assert length(reactivated_transitions) == 1,
+             "expected exactly 1 reactivated_from_wait transition, got #{length(reactivated_transitions)}"
+
+      assert length(activated_transitions) == 1,
+             "expected exactly 1 step_activated transition for email step, got #{length(activated_transitions)}"
+    end
+  end
+
   describe "on_outcome rule advances on a curated terminal outcome (D-03/D-12)" do
     test "bounced prior delivery advances the run to the email step and persists supporting facts" do
       %{notification: notification, workflow_run: workflow_run, in_app_step: in_app_step, email_step: email_step} =
