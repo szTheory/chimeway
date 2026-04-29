@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
 status: executing
-stopped_at: Completed 23-04-PLAN.md
-last_updated: "2026-04-29T02:54:58Z"
-last_activity: 2026-04-29 -- Completed 23-04-PLAN.md
+stopped_at: Completed 23-05-PLAN.md
+last_updated: "2026-04-29T03:00:03.513Z"
+last_activity: 2026-04-29
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 29
-  completed_plans: 27
-  percent: 93
+  completed_plans: 28
+  percent: 97
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 ## Current Position
 
 Phase: 23 (digest-flush-scheduling-audit-closure) — EXECUTING
-Plan: 4 of 6
-Status: Executing Phase 23
-Last activity: 2026-04-29 -- Completed 23-04-PLAN.md
+Plan: 5 of 6
+Status: Ready to execute
+Last activity: 2026-04-29
 
 ## Accumulated Context
 
@@ -104,6 +104,8 @@ Recent decisions affecting current work:
 - Use a local PostgreSQL 15.17 runtime to gather production-shaped digest evidence because the host/server default was PostgreSQL 14.17.
 - Record the unrelated PostgreSQL 15 full-suite blocker separately instead of weakening the digest closure evidence.
 - ObanWorker now persists perform-time `{:defer, decision}` outcomes on the canonical delivery row and reuses the dispatcher seam for follow-up scheduling.
+- Digest bucket identity remains derived from locked delivery, notification, and event records; caller lookup_attrs may only supply helper fields or matching identity keys.
+- Rejected lookup identity overrides fail with {:invalid_lookup_attrs, mismatch} so ownership-boundary violations are explicit and testable.
 
 ### Pending Todos
 
@@ -111,7 +113,7 @@ None.
 
 ### Blockers/Concerns
 
-- Phase 23 still has open follow-up plans for digest lookup hardening (`23-05`) and audit artifact realignment (`23-06`).
+- Phase 23 still has one open follow-up plan for audit artifact realignment (`23-06`).
 
 ### Roadmap Evolution
 
@@ -124,8 +126,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-29T02:54:58Z
-Stopped at: Completed 23-04-PLAN.md
+Last session: 2026-04-29T03:00:03.506Z
+Stopped at: Completed 23-05-PLAN.md
 Resume file: None
 
 **Planned Phase:** 23 (digest-flush-scheduling-audit-closure) — 6 plans — 2026-04-29T02:49:01.205Z
