@@ -114,6 +114,83 @@ defmodule Chimeway.NotifierContractTest do
       do: {:ok, %{assigns: %{}, channels: %{" " => %{render_key: " ", render_version: 0}}}}
   end
 
+  defmodule WorkflowNotifier do
+    @behaviour Notifier
+
+    @impl true
+    def notification_key, do: "comment.escalation"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(_params), do: {:ok, [%{recipient_identity: "user-1"}]}
+
+    @impl true
+    def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+
+    @impl true
+    def workflow(_params, _recipient) do
+      {:ok,
+       %{
+         workflow_key: "comment.escalation",
+         workflow_version: 3,
+         steps: [
+           %{step_key: "email", step_order: 2, channel: :email, config: %{"delay_minutes" => 30}},
+           %{step_key: "in_app", step_order: 1, channel: "in_app", config: %{}}
+         ]
+       }}
+    end
+  end
+
+  defmodule InvalidWorkflowNotifier do
+    @behaviour Notifier
+
+    @impl true
+    def notification_key, do: "workflow.invalid"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(_params), do: {:ok, [%{recipient_identity: "user-1"}]}
+
+    @impl true
+    def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+
+    @impl true
+    def workflow(_params, _recipient) do
+      {:ok,
+       %{
+         workflow_key: "",
+         workflow_version: 0,
+         steps: [
+           %{step_key: "dup", step_order: 1, channel: :email, config: %{}},
+           %{step_key: "dup", step_order: 1, channel: "", config: %{}}
+         ]
+       }}
+    end
+  end
+
+  defmodule InvalidWorkflowShapeNotifier do
+    @behaviour Notifier
+
+    @impl true
+    def notification_key, do: "workflow.invalid_shape"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(_params), do: {:ok, [%{recipient_identity: "user-1"}]}
+
+    @impl true
+    def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+
+    @impl true
+    def workflow(_params, _recipient), do: {:ok, %{workflow_key: "shape.only"}}
+  end
+
   defmodule MissingNotificationKey do
     def version, do: 1
     def recipients(_params), do: {:ok, [%{recipient_identity: "user-1"}]}
@@ -196,5 +273,104 @@ defmodule Chimeway.NotifierContractTest do
                assigns: %{},
                channels: %{email: %{render_key: "comment.created.email", render_version: 0}}
              })
+  end
+
+  test "normalizes workflow declarations into durable identity and ordered steps" do
+    assert {:ok,
+            %{
+              workflow_key: "comment.escalation",
+              workflow_version: 3,
+              source: :notifier,
+              steps: [
+                %{
+                  step_key: "in_app",
+                  step_order: 1,
+                  channel: "in_app",
+                  config: %{}
+                },
+                %{
+                  step_key: "email",
+                  step_order: 2,
+                  channel: "email",
+                  config: %{"delay_minutes" => 30}
+                }
+              ]
+            }} = Notifier.resolve_workflow(WorkflowNotifier, %{}, %{recipient_identity: "user-1"})
+  end
+
+  test "rejects invalid workflow declarations with tagged errors" do
+    assert {:error, {:workflow_resolution_failed, {:blank_workflow_key, ""}}} =
+             Notifier.resolve_workflow(InvalidWorkflowNotifier, %{}, %{recipient_identity: "user-1"})
+
+    assert {:error, {:workflow_resolution_failed, {:invalid_workflow_version, 0}}} =
+             Notifier.normalize_workflow_declaration(%{
+               workflow_key: "comment.escalation",
+               workflow_version: 0,
+               steps: [%{step_key: "email", step_order: 1, channel: "email", config: %{}}]
+             })
+
+    assert {:error, {:workflow_resolution_failed, {:duplicate_workflow_step_key, "email"}}} =
+             Notifier.normalize_workflow_declaration(%{
+               workflow_key: "comment.escalation",
+               workflow_version: 1,
+               steps: [
+                 %{step_key: "email", step_order: 1, channel: "email", config: %{}},
+                 %{step_key: "email", step_order: 2, channel: "in_app", config: %{}}
+               ]
+             })
+
+    assert {:error, {:workflow_resolution_failed, {:duplicate_workflow_step_order, 1}}} =
+             Notifier.normalize_workflow_declaration(%{
+               workflow_key: "comment.escalation",
+               workflow_version: 1,
+               steps: [
+                 %{step_key: "email", step_order: 1, channel: "email", config: %{}},
+                 %{step_key: "in_app", step_order: 1, channel: "in_app", config: %{}}
+               ]
+             })
+
+    assert {:error, {:workflow_resolution_failed, {:invalid_workflow_channel, ""}}} =
+             Notifier.normalize_workflow_declaration(%{
+               workflow_key: "comment.escalation",
+               workflow_version: 1,
+               steps: [%{step_key: "email", step_order: 1, channel: "", config: %{}}]
+             })
+
+    assert {:error, {:workflow_resolution_failed, {:invalid_workflow_step_order, 3}}} =
+             Notifier.normalize_workflow_declaration(%{
+               workflow_key: "comment.escalation",
+               workflow_version: 1,
+               steps: [%{step_key: "email", step_order: 3, channel: "email", config: %{}}]
+             })
+
+    assert {:error, {:workflow_resolution_failed, {:invalid_workflow_declaration, %{workflow_key: "shape.only"}}}} =
+             Notifier.resolve_workflow(InvalidWorkflowShapeNotifier, %{}, %{recipient_identity: "user-1"})
+  end
+
+  test "serializes workflow declarations into durable string-keyed data and rebuilds overrides without callback re-entry" do
+    assert {:ok, workflow} =
+             Notifier.resolve_workflow(WorkflowNotifier, %{}, %{recipient_identity: "user-1"})
+
+    assert %{
+             "workflow_key" => "comment.escalation",
+             "workflow_version" => 3,
+             "source" => "notifier",
+             "steps" => [
+               %{
+                 "step_key" => "in_app",
+                 "step_order" => 1,
+                 "channel" => "in_app",
+                 "config" => %{}
+               },
+               %{
+                 "step_key" => "email",
+                 "step_order" => 2,
+                 "channel" => "email",
+                 "config" => %{"delay_minutes" => 30}
+               }
+             ]
+           } = serialized = Notifier.serialize_workflow(workflow)
+
+    assert {:ok, ^workflow} = Notifier.resolve_workflow(nil, %{}, %{}, serialized)
   end
 end
