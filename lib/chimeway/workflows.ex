@@ -45,30 +45,33 @@ defmodule Chimeway.Workflows do
 
     definition_changeset = WorkflowDefinition.changeset(%WorkflowDefinition{}, definition_attrs)
 
-    case repo.insert(definition_changeset,
-           on_conflict: [
-             set: [notification_key: notification_key, updated_at: DateTime.utc_now()]
-           ],
-           conflict_target: [:workflow_key, :workflow_version]
-         ) do
-      {:ok, _definition} ->
-        definition =
-          repo.get_by!(WorkflowDefinition,
-            workflow_key: workflow.workflow_key,
-            workflow_version: workflow.workflow_version
-          )
+    with {:ok, _definition} <-
+           repo.insert(definition_changeset,
+             on_conflict: [
+               set: [notification_key: notification_key, updated_at: DateTime.utc_now()]
+             ],
+             conflict_target: [:workflow_key, :workflow_version]
+           ) do
+      definition =
+        repo.get_by!(WorkflowDefinition,
+          workflow_key: workflow.workflow_key,
+          workflow_version: workflow.workflow_version
+        )
+        |> then(&preload_steps(repo, &1))
 
-        {_count, _rows} =
-          repo.delete_all(
-            from(step in WorkflowStep, where: step.workflow_definition_id == ^definition.id)
-          )
+      case definition.steps do
+        [] ->
+          with {:ok, _steps} <- insert_steps(repo, definition.id, workflow.steps) do
+            {:ok, preload_steps(repo, definition)}
+          end
 
-        with {:ok, _steps} <- insert_steps(repo, definition.id, workflow.steps) do
-          {:ok, preload_steps(repo, definition)}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
+        persisted_steps ->
+          if same_steps?(persisted_steps, workflow.steps) do
+            {:ok, definition}
+          else
+            {:error, :workflow_definition_version_conflict}
+          end
+      end
     end
   end
 
@@ -191,7 +194,9 @@ defmodule Chimeway.Workflows do
   defp preload_steps(_repo, nil), do: nil
 
   defp preload_steps(repo, definition) do
-    repo.preload(definition, steps: from(step in WorkflowStep, order_by: [asc: step.step_order]))
+    repo.preload(definition, [steps: from(step in WorkflowStep, order_by: [asc: step.step_order])],
+      force: true
+    )
   end
 
   defp insert_steps(repo, workflow_definition_id, step_attrs) do
@@ -216,5 +221,35 @@ defmodule Chimeway.Workflows do
 
   defp insert_transition(repo, attrs) do
     repo.insert(WorkflowTransition.changeset(%WorkflowTransition{}, attrs))
+  end
+
+  defp same_steps?(persisted_steps, workflow_steps) do
+    normalize_persisted_steps(persisted_steps) == normalize_workflow_steps(workflow_steps)
+  end
+
+  defp normalize_persisted_steps(steps) do
+    steps
+    |> Enum.map(fn step ->
+      %{
+        step_key: step.step_key,
+        step_order: step.step_order,
+        channel: step.channel,
+        config: step.config || %{}
+      }
+    end)
+    |> Enum.sort_by(& &1.step_order)
+  end
+
+  defp normalize_workflow_steps(steps) do
+    steps
+    |> Enum.map(fn step ->
+      %{
+        step_key: step.step_key,
+        step_order: step.step_order,
+        channel: step.channel,
+        config: Map.get(step, :config) || Map.get(step, "config") || %{}
+      }
+    end)
+    |> Enum.sort_by(& &1.step_order)
   end
 end

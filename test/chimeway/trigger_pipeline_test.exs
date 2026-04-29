@@ -421,6 +421,9 @@ defmodule Chimeway.TriggerPipelineTest do
     workflow_runs =
       Repo.all(
         from(wr in "chimeway_workflow_runs",
+          join: n in Notification,
+          on: field(wr, :notification_id) == n.id,
+          where: n.event_id == ^result.event.id,
           order_by: [asc: field(wr, :notification_id)],
           select: %{
             id: field(wr, :id),
@@ -450,6 +453,9 @@ defmodule Chimeway.TriggerPipelineTest do
         from(wt in "chimeway_workflow_transitions",
           join: wr in "chimeway_workflow_runs",
           on: field(wt, :workflow_run_id) == field(wr, :id),
+          join: n in Notification,
+          on: field(wr, :notification_id) == n.id,
+          where: n.event_id == ^result.event.id,
           order_by: [asc: field(wr, :notification_id), asc: field(wt, :inserted_at)],
           select: %{
             workflow_run_id: field(wt, :workflow_run_id),
@@ -517,5 +523,51 @@ defmodule Chimeway.TriggerPipelineTest do
 
     assert workflow_runs_count == 2
     assert workflow_transitions_count == 4
+  end
+
+  test "reuses persisted workflow definitions across distinct trigger events" do
+    assert {:ok, first_result} =
+             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: "idem-workflow-v1-a")
+
+    assert {:ok, second_result} =
+             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: "idem-workflow-v1-b")
+
+    refute first_result.event.id == second_result.event.id
+
+    definition_ids =
+      Repo.all(
+        from(n in Notification,
+          where: n.event_id in ^[first_result.event.id, second_result.event.id],
+          select: n.workflow_definition_id,
+          distinct: true
+        )
+      )
+
+    assert length(definition_ids) == 1
+
+    definition_id = hd(definition_ids) |> Ecto.UUID.dump!()
+
+    workflow_runs_count =
+      Repo.aggregate(
+        from(wr in "chimeway_workflow_runs",
+          where: field(wr, :workflow_definition_id) == ^definition_id
+        ),
+        :count,
+        :id
+      )
+
+    workflow_transitions_count =
+      Repo.aggregate(
+        from(wt in "chimeway_workflow_transitions",
+          join: wr in "chimeway_workflow_runs",
+          on: field(wt, :workflow_run_id) == field(wr, :id),
+          where: field(wr, :workflow_definition_id) == ^definition_id
+        ),
+        :count,
+        :id
+      )
+
+    assert workflow_runs_count == 4
+    assert workflow_transitions_count == 8
   end
 end
