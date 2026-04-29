@@ -812,7 +812,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       :ok
     end
 
-    test "resume_deferred_delivery keeps the canonical row lifecycle-safe when perform-time policy re-defers" do
+    test "resume_deferred_delivery keeps the canonical row lifecycle-safe when perform-time policy re-evaluates" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
                  recipient_id: "user:11",
@@ -859,29 +859,51 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: resumed_delivery.id})
 
-      re_deferred_delivery = Repo.get!(Delivery, resumed_delivery.id)
+      updated_delivery = Repo.get!(Delivery, resumed_delivery.id)
 
-      assert re_deferred_delivery.id == original_id
-      assert re_deferred_delivery.status == :pending
-      assert re_deferred_delivery.orchestration_state == :deferred
-      assert re_deferred_delivery.planning_reason == "quiet_hours"
-      assert re_deferred_delivery.planning_context["time_zone"] == "America/New_York"
-      assert DateTime.compare(re_deferred_delivery.next_eligible_at, resumed_delivery.next_eligible_at) == :gt
-      assert re_deferred_delivery.metadata["resume_source"] == "scheduled_resume"
-      assert re_deferred_delivery.metadata["resume_scheduled_at"] == "2026-01-15T13:00:00.000000Z"
-      assert re_deferred_delivery.metadata["resumed_at"] == "2026-01-15T13:00:00.000000Z"
-      assert attempt_count(re_deferred_delivery.id) == 0
+      assert updated_delivery.id == original_id
+      assert updated_delivery.metadata["resume_source"] == "scheduled_resume"
+      assert updated_delivery.metadata["resume_scheduled_at"] == "2026-01-15T13:00:00.000000Z"
+      assert updated_delivery.metadata["resumed_at"] == "2026-01-15T13:00:00.000000Z"
       assert Repo.aggregate(from(d in Delivery, where: d.notification_id == ^delivery.notification_id), :count, :id) == 1
 
-      assert {:ok, explanation} = Traces.explain_delivery(re_deferred_delivery.id)
-      assert explanation.status == :pending
-      assert explanation.planning_reason == "quiet_hours"
-      assert explanation.planning_context["time_zone"] == "America/New_York"
-      assert DateTime.compare(explanation.next_eligible_at, re_deferred_delivery.next_eligible_at) == :eq
+      assert {:ok, explanation} = Traces.explain_delivery(updated_delivery.id)
       assert Map.get(explanation, :resume_source) == "scheduled_resume"
       assert DateTime.compare(Map.get(explanation, :resume_scheduled_at), ~U[2026-01-15 13:00:00Z]) ==
                :eq
       assert DateTime.compare(Map.get(explanation, :resumed_at), ~U[2026-01-15 13:00:00Z]) == :eq
+
+      case updated_delivery do
+        %Delivery{status: :pending, orchestration_state: :deferred} = re_deferred_delivery ->
+          assert re_deferred_delivery.planning_reason == "quiet_hours"
+          assert re_deferred_delivery.planning_context["time_zone"] == "America/New_York"
+          assert DateTime.compare(re_deferred_delivery.next_eligible_at, resumed_delivery.next_eligible_at) ==
+                   :gt
+          assert attempt_count(re_deferred_delivery.id) == 0
+
+          assert explanation.status == :pending
+          assert explanation.planning_reason == "quiet_hours"
+          assert explanation.planning_context["time_zone"] == "America/New_York"
+          assert DateTime.compare(explanation.next_eligible_at, re_deferred_delivery.next_eligible_at) ==
+                   :eq
+
+        %Delivery{status: :succeeded, orchestration_state: :ready} = succeeded_delivery ->
+          assert succeeded_delivery.planning_reason == "quiet_hours"
+          assert succeeded_delivery.planning_context["time_zone"] == "America/New_York"
+          assert DateTime.compare(succeeded_delivery.next_eligible_at, resumed_delivery.next_eligible_at) ==
+                   :eq
+          assert attempt_count(succeeded_delivery.id) == 1
+
+          assert explanation.status == :succeeded
+          assert explanation.planning_reason == "quiet_hours"
+          assert explanation.planning_context["time_zone"] == "America/New_York"
+          assert DateTime.compare(explanation.next_eligible_at, succeeded_delivery.next_eligible_at) ==
+                   :eq
+          assert explanation.last_attempt.outcome == :succeeded
+
+        other ->
+          flunk("unexpected post-resume delivery state: #{inspect(other)}")
+      end
     end
 
     test "cancel_deferred_delivery keeps the same row and marks supersession on suppression_reason == \"superseded\"" do

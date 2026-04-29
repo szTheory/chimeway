@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
-status: completed
-stopped_at: Completed 23-06-PLAN.md
-last_updated: "2026-04-29T03:04:58.829Z"
+status: archived
+stopped_at: Archived milestone v1.2
+last_updated: "2026-04-29T13:57:00Z"
 last_activity: 2026-04-29
 progress:
   total_phases: 8
@@ -18,16 +18,16 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-28)
+See: .planning/PROJECT.md (updated 2026-04-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 23 — digest-flush-scheduling-audit-closure
+**Current focus:** No active milestone. Define the next milestone before resuming phase execution.
 
 ## Current Position
 
-Phase: 23 (digest-flush-scheduling-audit-closure) — COMPLETE
-Plan: 6 of 6
-Status: Completed
+Phase: None
+Plan: None
+Status: Milestone archived
 Last activity: 2026-04-29
 
 ## Accumulated Context
@@ -132,4 +132,4 @@ Last session: 2026-04-29T03:04:58.823Z
 Stopped at: Completed 23-06-PLAN.md
 Resume file: None
 
-**Planned Phase:** 23 (digest-flush-scheduling-audit-closure) — 6 plans — 2026-04-29T02:49:01.205Z
+**Planned Phase:** None. Run `$gsd-new-milestone` to define the next scope.

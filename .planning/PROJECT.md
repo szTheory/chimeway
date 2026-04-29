@@ -10,19 +10,13 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped `v1.1 Production Trust` on 2026-04-27 with explicit policy controls, durable delivery final-state handling, safe correlated observability, and documented integration seams that are strong enough for production adoption. The next milestone focuses on the product behaviors SaaS teams expect once the durable core is trustworthy: scheduling, batching, richer rendering, and recovery.
+Chimeway shipped `v1.2 Delivery Orchestration` on 2026-04-29. The library now supports durable delivery-window deferral, scheduled resume, digest accumulation and emission, versioned rendering contracts, recovery/reconciliation flows, and grouped outcome analytics while preserving canonical lifecycle history and explainable operator traces.
 
-## Current Milestone: v1.2 Delivery Orchestration
+## Next Milestone Goals
 
-**Goal:** Turn Chimeway from a durable notification engine into a product-grade notification layer that can decide not just whether to send, but when, how, and in what grouped form.
-
-**Target features:**
-- Delivery windows and scheduled send behavior
-- Recipient-timezone-aware quiet-hours deferral
-- Digest and batching workflows for noisy event streams
-- Richer, versioned content templating across channels
-- Recovery and reconciliation for persisted-but-not-fully-dispatched lifecycle gaps
-- Operator analytics for sent, suppressed, delayed, digested, and failed flows
+- Define workflow-journey requirements before broadening provider scope.
+- Decide whether the next value jump is multi-step notification workflows, escalation policies, or broader channel expansion.
+- Preserve the local-first, explainable lifecycle model while extending beyond single-notification orchestration.
 
 ## Out of Scope
 
@@ -55,6 +49,7 @@ Prior context includes:
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
 - **Scope**: v1.2 should prioritize orchestration behavior over channel breadth so the library becomes materially more useful for SaaS product teams.
+- **Scope**: The next milestone should not dilute the orchestration model with broad provider expansion until workflow priorities are explicit.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -74,9 +69,34 @@ Prior context includes:
 | Durable attempt history and convergence | Make retries and final outcomes inspectable under concurrency and failure | Implemented in Phase 14 |
 | Tenancy-aware trace queries | Preserve host ownership boundaries in observability surfaces | Implemented in Phase 15 |
 | Integration docs as product surface | Lower host-app adoption risk with explicit setup and adapter guidance | Implemented in Phase 16 |
-| Prioritize orchestration before channel breadth in v1.2 | Scheduling, batching, rendering, and recovery create larger product value than adding more providers now | Active milestone direction |
+| Prioritize orchestration before channel breadth in v1.2 | Scheduling, batching, rendering, and recovery create larger product value than adding more providers now | Shipped in v1.2 |
+| Keep canonical lifecycle identity through orchestration features | Deferred, digested, recovered, and emitted flows should stay explainable on durable rows | Implemented across phases 17-23 |
+| Persist orchestration and rendering declarations as durable data | Replay, recovery, and preview should not depend on notifier module re-entry | Implemented across phases 21-23 |
 
 ## Archived Milestone Context
+
+<details>
+<summary>v1.2 Delivery Orchestration planning context</summary>
+
+### Milestone Scope
+
+Turn Chimeway from a durable notification engine into a product-grade notification layer that can decide not just whether to send, but when, how, and in what grouped form.
+
+### Delivered Features
+
+- Delivery windows and recipient-timezone-aware quiet-hours deferral.
+- Scheduled resume and digest accumulation/emission over canonical delivery rows.
+- Durable render identity, validated render contracts, and local preview tooling.
+- Recovery/reconciliation flows plus grouped outcome analytics.
+
+### Validated Requirements Snapshot
+
+- Delivery planning can persist immediate, deferred, and digest-held behavior with explainable reasons.
+- Deferred rows resume safely without duplicating canonical lifecycle history.
+- Digest generation and explainability are verified end to end for Oban-backed scheduling.
+- Rendering identity, preview, recovery, and outcome analytics all operate from durable persisted state.
+
+</details>
 
 <details>
 <summary>v1.1 Production Trust planning context</summary>
@@ -120,8 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-28 after Phase 21.1 completion*
- current state
-
----
-*Last updated: 2026-04-28 after milestone v1.2 start*
+*Last updated: 2026-04-29 after milestone v1.2 completion*
