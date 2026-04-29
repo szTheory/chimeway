@@ -114,6 +114,44 @@ defmodule Chimeway.TriggerPipelineTest do
     end
   end
 
+  defmodule WorkflowSnapshotNotifier do
+    @behaviour Chimeway.Notifier
+
+    @impl true
+    def notification_key, do: "comment.created.workflow_snapshot"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(_params) do
+      {:ok,
+       [
+         %{recipient_identity: "workflow-a", channel: :email},
+         %{recipient_identity: "workflow-z", channel: :email}
+       ]}
+    end
+
+    @impl true
+    def build(_params, recipient), do: {:ok, %{"subject" => "workflow", recipient: recipient}}
+
+    @impl true
+    def channels(_params, _recipient), do: {:ok, [:email]}
+
+    @impl true
+    def workflow(_params, _recipient) do
+      {:ok,
+       %{
+         workflow_key: "comment.escalation",
+         workflow_version: 1,
+         steps: [
+           %{step_key: "email-first", step_order: 1, channel: :email, config: %{"template" => "first"}},
+           %{step_key: "in-app-followup", step_order: 2, channel: :in_app, config: %{"template" => "followup"}}
+         ]
+       }}
+    end
+  end
+
   defmodule FailingDispatcher do
     @behaviour Chimeway.Dispatch
 
@@ -315,7 +353,145 @@ defmodule Chimeway.TriggerPipelineTest do
                "default_digest_key" => nil,
                "digest_keys" => %{"email" => "thread:digest-z"},
                "source" => "notifier"
-             }
+           }
            ]
+  end
+
+  test "persists workflow runs and initial transitions for workflow-enabled triggers" do
+    assert {:ok, result} =
+             Trigger.trigger(
+               WorkflowSnapshotNotifier,
+               %{},
+               idempotency_key: "idem-workflow-snapshot"
+             )
+
+    notifications =
+      Repo.all(
+        from(n in Notification,
+          where: n.event_id == ^result.event.id,
+          order_by: [asc: n.recipient_identity],
+          select: %{id: n.id, recipient_identity: n.recipient_identity}
+        )
+      )
+
+    definition =
+      Repo.one!(
+        from(wd in "chimeway_workflow_definitions",
+          where:
+            field(wd, :workflow_key) == "comment.escalation" and
+              field(wd, :workflow_version) == 1,
+          select: %{id: field(wd, :id)}
+        )
+      )
+
+    first_step =
+      Repo.one!(
+        from(ws in "chimeway_workflow_steps",
+          where: field(ws, :workflow_definition_id) == ^definition.id,
+          order_by: [asc: field(ws, :step_order)],
+          limit: 1,
+          select: %{id: field(ws, :id), step_key: field(ws, :step_key)}
+        )
+      )
+
+    workflow_runs =
+      Repo.all(
+        from(wr in "chimeway_workflow_runs",
+          order_by: [asc: field(wr, :notification_id)],
+          select: %{
+            id: field(wr, :id),
+            notification_id: field(wr, :notification_id),
+            workflow_definition_id: field(wr, :workflow_definition_id),
+            current_step_id: field(wr, :current_step_id),
+            state: field(wr, :state),
+            status_reason: field(wr, :status_reason)
+          }
+        )
+      )
+
+    assert length(workflow_runs) == length(notifications)
+
+    assert Enum.all?(workflow_runs, fn run ->
+             run.workflow_definition_id == definition.id and
+               run.current_step_id == first_step.id and
+               run.state == "active" and
+               run.status_reason == "workflow_started"
+           end)
+
+    assert MapSet.new(Enum.map(workflow_runs, & &1.notification_id)) ==
+             MapSet.new(Enum.map(notifications, & &1.id))
+
+    workflow_transitions =
+      Repo.all(
+        from(wt in "chimeway_workflow_transitions",
+          join: wr in "chimeway_workflow_runs",
+          on: field(wt, :workflow_run_id) == field(wr, :id),
+          order_by: [asc: field(wr, :notification_id), asc: field(wt, :inserted_at)],
+          select: %{
+            workflow_run_id: field(wt, :workflow_run_id),
+            workflow_step_id: field(wt, :workflow_step_id),
+            from_state: field(wt, :from_state),
+            to_state: field(wt, :to_state),
+            reason: field(wt, :reason)
+          }
+        )
+      )
+
+    assert Enum.count(workflow_transitions, &(&1.reason == "workflow_started")) ==
+             length(workflow_runs)
+
+    assert Enum.count(workflow_transitions, &(&1.reason == "step_activated")) ==
+             length(workflow_runs)
+
+    assert Enum.all?(workflow_transitions, fn transition ->
+             transition.reason in ["workflow_started", "step_activated"] and
+               transition.to_state == "active"
+           end)
+
+    activated_steps =
+      workflow_transitions
+      |> Enum.filter(&(&1.reason == "step_activated"))
+      |> Enum.map(& &1.workflow_step_id)
+
+    assert activated_steps == List.duplicate(first_step.id, length(workflow_runs))
+  end
+
+  test "duplicate workflow triggers do not create duplicate workflow runs for the canonical event" do
+    idempotency_key = "idem-workflow-duplicate"
+
+    assert {:ok, first_result} =
+             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: idempotency_key)
+
+    assert {:duplicate, duplicate_event} =
+             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: idempotency_key)
+
+    assert duplicate_event.id == first_result.event.id
+
+    workflow_runs_count =
+      Repo.aggregate(
+        from(wr in "chimeway_workflow_runs",
+          join: n in Notification,
+          on: field(wr, :notification_id) == n.id,
+          where: n.event_id == ^first_result.event.id
+        ),
+        :count,
+        :id
+      )
+
+    workflow_transitions_count =
+      Repo.aggregate(
+        from(wt in "chimeway_workflow_transitions",
+          join: wr in "chimeway_workflow_runs",
+          on: field(wt, :workflow_run_id) == field(wr, :id),
+          join: n in Notification,
+          on: field(wr, :notification_id) == n.id,
+          where: n.event_id == ^first_result.event.id
+        ),
+        :count,
+        :id
+      )
+
+    assert workflow_runs_count == 2
+    assert workflow_transitions_count == 4
   end
 end
