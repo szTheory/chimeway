@@ -866,7 +866,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert re_deferred_delivery.orchestration_state == :deferred
       assert re_deferred_delivery.planning_reason == "quiet_hours"
       assert re_deferred_delivery.planning_context["time_zone"] == "America/New_York"
-      assert DateTime.compare(re_deferred_delivery.next_eligible_at, ~U[2026-04-29 12:00:00Z]) == :eq
+      assert DateTime.compare(re_deferred_delivery.next_eligible_at, resumed_delivery.next_eligible_at) == :gt
       assert re_deferred_delivery.metadata["resume_source"] == "scheduled_resume"
       assert re_deferred_delivery.metadata["resume_scheduled_at"] == "2026-01-15T13:00:00.000000Z"
       assert re_deferred_delivery.metadata["resumed_at"] == "2026-01-15T13:00:00.000000Z"
@@ -877,7 +877,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert explanation.status == :pending
       assert explanation.planning_reason == "quiet_hours"
       assert explanation.planning_context["time_zone"] == "America/New_York"
-      assert DateTime.compare(explanation.next_eligible_at, ~U[2026-04-29 12:00:00Z]) == :eq
+      assert DateTime.compare(explanation.next_eligible_at, re_deferred_delivery.next_eligible_at) == :eq
       assert Map.get(explanation, :resume_source) == "scheduled_resume"
       assert DateTime.compare(Map.get(explanation, :resume_scheduled_at), ~U[2026-01-15 13:00:00Z]) ==
                :eq

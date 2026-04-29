@@ -145,8 +145,35 @@ if Code.ensure_loaded?(Oban) do
             {:error, _} = err -> err
           end
 
+        {:defer, decision} ->
+          handle_deferred_delivery(delivery, decision, attempt, max_attempts)
+
         {:ok, :proceed} ->
           do_dispatch(delivery, attempt, max_attempts)
+      end
+    end
+
+    defp handle_deferred_delivery(%Delivery{} = delivery, decision, attempt, max_attempts) do
+      with {:ok, updated_delivery} <- Deliveries.apply_planning_decision(delivery, decision) do
+        case updated_delivery do
+          %Delivery{orchestration_state: :ready} ->
+            do_dispatch(updated_delivery, attempt, max_attempts)
+
+          %Delivery{} ->
+            if updated_delivery.status in Deliveries.terminal_states() do
+              :ok
+            else
+              case configured_dispatcher().dispatch_delivery(
+                     updated_delivery,
+                     pre_planned: true,
+                     post_commit: true
+                   ) do
+                {:ok, _delivery} -> :ok
+                {:skip, _delivery} -> :ok
+                {:error, reason} -> {:error, {:deferred_handoff_failed, reason}}
+              end
+            end
+        end
       end
     end
 
@@ -269,6 +296,10 @@ if Code.ensure_loaded?(Oban) do
         %{} = pr when map_size(pr) > 0 -> {:adapter_temporary, pr}
         _ -> :adapter_temporary
       end
+    end
+
+    defp configured_dispatcher do
+      Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     end
   end
 end
