@@ -4,6 +4,7 @@ defmodule Chimeway.Digests.EmissionTest do
   alias Chimeway.{Delivery, Deliveries, Repo}
   alias Chimeway.Digests
   alias Chimeway.Digests.{Accumulation, DigestBucket, DigestMembership, Emission}
+  alias Chimeway.Dispatch.DigestFlushWorker
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
@@ -82,6 +83,47 @@ defmodule Chimeway.Digests.EmissionTest do
              ) == 1
 
       assert rule.id == reloaded_bucket.digest_rule_id
+    end
+
+    test "scheduled worker execution and direct emit retries converge on one digest_delivery_id" do
+      insert_rule(%{
+        rule_key: "digest.comment.fixed",
+        match_notification_key: "comment.created",
+        group_by: :notification_key,
+        window_kind: :fixed,
+        window_minutes: 30
+      })
+
+      delivery =
+        insert_digest_held_delivery(%{
+          notification_key: "comment.created",
+          recipient_id: "user-worker",
+          channel: "email"
+        })
+
+      accumulated_at = ~U[2026-01-15 10:05:00.000000Z]
+      {:ok, bucket} = Accumulation.accumulate_delivery(delivery, accumulated_at: accumulated_at)
+
+      assert :ok =
+               DigestFlushWorker.perform(%Oban.Job{
+                 args: %{"bucket_id" => bucket.id},
+                 scheduled_at: bucket.window_ends_at
+               })
+
+      assert {:ok, %{digest_delivery: retried_emit, bucket: retried_bucket}} =
+               Digests.emit_bucket(bucket.id, emitted_at: bucket.window_ends_at)
+
+      reloaded_bucket = Repo.get!(DigestBucket, bucket.id)
+
+      assert reloaded_bucket.flush_state == :emitted
+      assert reloaded_bucket.digest_delivery_id == retried_emit.id
+      assert retried_bucket.digest_delivery_id == retried_emit.id
+
+      assert Repo.aggregate(
+               from(d in Delivery, where: d.id == ^reloaded_bucket.digest_delivery_id),
+               :count,
+               :id
+             ) == 1
     end
 
     test "persists included membership resolution facts and converges included source rows to :digested" do
