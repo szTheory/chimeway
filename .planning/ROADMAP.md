@@ -131,11 +131,11 @@ Success criteria:
 **Goal**: Close the Phase 20 digest handoff gap by scheduling emitted digest dispatch automatically from durable bucket state for Oban-backed hosts, then re-verify the flow and repair audit traceability.
 **Depends on**: Phase 22
 **Requirements**: DIGEST-02, DIGEST-03
-**Plans:** 1/3 plans complete
+**Plans:** 2/3 plans complete
 
 Plans:
 - [x] 23-01-PLAN.md — Schedule `DigestFlushWorker` automatically from durable digest bucket state for Oban-backed installs and document the non-Oban boundary.
-- [ ] 23-02-PLAN.md — Persist notifier orchestration snapshots so recovery can replay digest-held semantics durably.
+- [x] 23-02-PLAN.md — Persist notifier orchestration snapshots so recovery can replay digest-held semantics durably.
 - [ ] 23-03-PLAN.md — Prove the scheduled end-to-end path with CI or PostgreSQL 15+ evidence and close Phase 20/23 verification traceability.
 
 Success criteria:
@@ -154,8 +154,8 @@ Success criteria:
 | 21 | Template Versioning & Rendering Contracts | 5/5 | Complete    | 2026-04-28 |
 | 21.1 | Rendering durability and preview hardening | 2/2 | Complete    | 2026-04-28 |
 | 22 | Recovery & Outcome Analytics | 4/4 | Complete | 2026-04-28 |
-| 23 | Digest Flush Scheduling & Audit Closure | 1/3 | In Progress | 2026-04-29 |
+| 23 | Digest Flush Scheduling & Audit Closure | 2/3 | In Progress | 2026-04-29 |
 
 ## Next Up
 
-**Plan 23-02** — persist orchestration snapshots so recovery can replay digest-held semantics durably.
+**Plan 23-03** — prove the scheduled end-to-end path with CI or PostgreSQL 15+ evidence and close verification traceability.

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Delivery Orchestration
 status: executing
-stopped_at: Completed 23-01-PLAN.md
-last_updated: "2026-04-29T01:52:47.872Z"
+stopped_at: Completed 23-02-PLAN.md
+last_updated: "2026-04-29T02:00:21.661Z"
 last_activity: 2026-04-29
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 26
-  completed_plans: 24
-  percent: 92
+  completed_plans: 25
+  percent: 96
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 ## Current Position
 
 Phase: 23 (digest-flush-scheduling-audit-closure) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-29
 
@@ -99,6 +99,8 @@ Recent decisions affecting current work:
 - Automatic digest flush scheduling is enabled only when the configured dispatcher is Chimeway.Dispatch.Oban; all other dispatchers keep emit_bucket/2 as the explicit host-managed seam.
 - Bucket state remains the scheduling source of truth: accumulation only schedules on the first persisted membership while emit_bucket/2 still owns due/idempotency checks.
 - DigestFlushWorker stays thin and carries only bucket_id, mirroring the Phase 18 scheduled worker posture.
+- Persist normalized orchestration snapshots on notifications with string-keyed durable fields instead of reconstructing digest semantics from notifier callbacks during recovery.
+- Replay recovered orchestration through Notifier.resolve_orchestration/4 override normalization so recovered deliveries keep planner_override explainability while reusing the existing planner seam.
 
 ### Pending Todos
 
@@ -106,7 +108,7 @@ None.
 
 ### Blockers/Concerns
 
-- Advisory: `recover_event/2` still cannot replay notifier-defined orchestration snapshots such as `:digest_held`; recovered events currently restore persisted channels but may not preserve digest/deferred semantics until that durability gap is addressed.
+None.
 
 ### Roadmap Evolution
 
@@ -119,8 +121,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-29T01:52:47.866Z
-Stopped at: Completed 23-01-PLAN.md
+Last session: 2026-04-29T02:00:21.655Z
+Stopped at: Completed 23-02-PLAN.md
 Resume file: None
 
-**Planned Phase:** 22 (recovery-outcome-analytics) — 4 plans — 2026-04-28T22:32:51.439Z
+**Planned Phase:** 23 (digest-flush-scheduling-audit-closure) — 3 plans — 2026-04-29T02:00:21.661Z
