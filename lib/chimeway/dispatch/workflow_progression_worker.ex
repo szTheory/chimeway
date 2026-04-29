@@ -64,10 +64,11 @@ if Code.ensure_loaded?(Oban) do
     # success without triggering retry storms. `:workflow_run_not_found` is
     # treated as a noop too: the row may have been deleted between the
     # scheduler insert and the perform call, and there is nothing to retry.
-    defp normalize_progress_result({:ok, {:advanced, _run, _deliveries}}), do: :ok
-    defp normalize_progress_result({:ok, {:waiting, _run}}), do: :ok
-    defp normalize_progress_result({:ok, {:noop, _run, _reason}}), do: :ok
-    defp normalize_progress_result({:error, :workflow_run_not_found}), do: :ok
-    defp normalize_progress_result({:error, reason}), do: {:error, reason}
+    @doc false
+    def normalize_progress_result({:ok, {:advanced, _run, _deliveries}}), do: :ok
+    def normalize_progress_result({:ok, {:waiting, _run}}), do: :ok
+    def normalize_progress_result({:ok, {:noop, _run, _reason}}), do: :ok
+    def normalize_progress_result({:error, :workflow_run_not_found}), do: :ok
+    def normalize_progress_result({:error, reason}), do: {:error, reason}
   end
 end

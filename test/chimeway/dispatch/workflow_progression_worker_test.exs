@@ -229,6 +229,18 @@ defmodule Chimeway.Dispatch.WorkflowProgressionWorkerTest do
     end
   end
 
+  describe "normalize_progress_result/1" do
+    test "gracefully handles :completed terminal tuple without crashing" do
+      run = %WorkflowRun{id: Ecto.UUID.generate(), state: :completed}
+      assert WorkflowProgressionWorker.normalize_progress_result({:ok, {:completed, run}}) == :ok
+    end
+
+    test "gracefully handles :stopped terminal tuple without crashing" do
+      run = %WorkflowRun{id: Ecto.UUID.generate(), state: :stopped}
+      assert WorkflowProgressionWorker.normalize_progress_result({:ok, {:stopped, run}}) == :ok
+    end
+  end
+
   # ---- Helpers ----------------------------------------------------------------
 
   defp trigger_workflow!(scenario_tag) do
