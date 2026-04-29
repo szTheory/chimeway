@@ -2,7 +2,7 @@
 
 ## Workflow Model
 
-- [ ] **WRK-01**: Teams can declare a named workflow with a stable workflow key, version, and ordered notification steps for a notifier.
+- [x] **WRK-01**: Teams can declare a named workflow with a stable workflow key, version, and ordered notification steps for a notifier.
 - [ ] **WRK-02**: Each workflow step can define explicit progression rules based on elapsed time or the prior delivery outcome.
 - [ ] **WRK-03**: Workflow execution persists canonical journey state, current step, and transition reasoning on Chimeway-owned records.
 
@@ -15,7 +15,7 @@
 ## API & Integration
 
 - [ ] **API-01**: Host applications can submit explicit workflow progression signals through a stable public API without mutating durable history directly.
-- [ ] **API-02**: Workflow declarations remain explicit, durable, and decoupled from notifier module names or replay-time callback re-entry.
+- [x] **API-02**: Workflow declarations remain explicit, durable, and decoupled from notifier module names or replay-time callback re-entry.
 - [ ] **INT-03**: Documentation and examples show how to model a common SaaS journey such as `in_app -> email escalation` with both sync and Oban-backed operation.
 
 ## Operator Explainability
@@ -41,14 +41,14 @@
 
 | Requirement | Phase | Status | Notes |
 |---|---|---|---|
-| WRK-01 | 24 | planned | Workflow identity and declaration contract |
+| WRK-01 | 24 | completed | Completed by plan 24-01 workflow declaration contract and durable step storage |
 | WRK-02 | 25 | planned | Time/outcome-based progression rules |
 | WRK-03 | 24 | planned | Durable journey state and transition persistence |
 | ESC-01 | 26 | planned | Escalation between workflow steps |
 | ESC-02 | 26 | planned | Stop/cancel terminal semantics |
 | ESC-03 | 25 | planned | Idempotent progression and race safety |
 | API-01 | 27 | planned | Stable host signal API |
-| API-02 | 24 | planned | Durable declaration model |
+| API-02 | 24 | completed | Completed by plan 24-01 replay-safe workflow declaration storage |
 | INT-03 | 28 | planned | Docs and reference flows |
 | OPS-03 | 27 | planned | Journey inspection surface |
 | OPS-04 | 27 | planned | Payload-safe chain-level traces |

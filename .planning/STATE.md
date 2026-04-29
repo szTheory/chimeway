@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Workflow Journeys
 status: active
-stopped_at: Defining requirements and roadmap for milestone v1.3
-last_updated: "2026-04-29T15:34:12Z"
-last_activity: 2026-04-29
+stopped_at: Completed 24-workflow-contracts-state-spine-01-PLAN.md
+last_updated: "2026-04-29T16:29:49.705Z"
+last_activity: 2026-04-29 — Completed plan 24-01 durable workflow contract storage
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-04-29 — Milestone v1.3 started
+Phase: 24 — Workflow Contracts & State Spine
+Plan: 24-02 next
+Status: 24-01 complete
+Last activity: 2026-04-29 — Completed plan 24-01 durable workflow contract storage
 
 ## Accumulated Context
 
@@ -108,6 +108,8 @@ Recent decisions affecting current work:
 - Rejected lookup identity overrides fail with {:invalid_lookup_attrs, mismatch} so ownership-boundary violations are explicit and testable.
 - Phase 20 digest closure stays closed only after both the targeted PostgreSQL 15.17 slice and MIX_ENV=test mix ci.test pass.
 - Phase 23 closure artifacts keep the automatic digest scheduling boundary explicit for Oban-backed hosts.
+- Workflow declarations resolve through an optional workflow/2 callback and serialize into durable string-keyed workflow data.
+- Workflow identity persists as definition rows plus ordered step rows keyed by workflow_key and workflow_version.
 
 ### Pending Todos
 
@@ -129,8 +131,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-29T15:34:12Z
-Stopped at: Milestone v1.3 initialized
+Last session: 2026-04-29T16:29:49.700Z
+Stopped at: Completed 24-workflow-contracts-state-spine-01-PLAN.md
 Resume file: None
 
 **Planned Phase:** Phase 24 — Workflow Contracts & State Spine
