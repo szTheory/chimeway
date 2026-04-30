@@ -56,6 +56,7 @@ defmodule Chimeway.Workflows.WorkflowRun do
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> validate_inclusion(:state, @state_values)
+    |> validate_length(:tenant_id, min: 1)
     |> put_default_status_context()
     |> unique_constraint(:notification_id,
       name: :chimeway_workflow_runs_notification_id_index

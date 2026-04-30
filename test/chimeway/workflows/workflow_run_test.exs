@@ -41,6 +41,14 @@ defmodule Chimeway.Workflows.WorkflowRunTest do
       assert {"can't be blank", _} = changeset.errors[:tenant_id]
     end
 
+    test "rejects empty-string tenant_id" do
+      changeset = WorkflowRun.changeset(%WorkflowRun{}, Map.put(@base_required, :tenant_id, ""))
+
+      refute changeset.valid?
+      assert {"can't be blank", metadata} = changeset.errors[:tenant_id]
+      assert metadata[:validation] in [:required, :length]
+    end
+
     test "spine fields other than tenant_id are optional" do
       attrs = Map.put(@base_required, :tenant_id, "acme")
 
