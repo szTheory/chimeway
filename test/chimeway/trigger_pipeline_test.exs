@@ -394,7 +394,8 @@ defmodule Chimeway.TriggerPipelineTest do
              Trigger.trigger(
                WorkflowSnapshotNotifier,
                %{},
-               idempotency_key: "idem-workflow-snapshot"
+               idempotency_key: "idem-workflow-snapshot",
+               tenant_id: "acme"
              )
 
     notifications =
@@ -499,10 +500,16 @@ defmodule Chimeway.TriggerPipelineTest do
     idempotency_key = "idem-workflow-duplicate"
 
     assert {:ok, first_result} =
-             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: idempotency_key)
+             Trigger.trigger(WorkflowSnapshotNotifier, %{},
+               idempotency_key: idempotency_key,
+               tenant_id: "acme"
+             )
 
     assert {:duplicate, duplicate_event} =
-             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: idempotency_key)
+             Trigger.trigger(WorkflowSnapshotNotifier, %{},
+               idempotency_key: idempotency_key,
+               tenant_id: "acme"
+             )
 
     assert duplicate_event.id == first_result.event.id
 
