@@ -4,14 +4,14 @@ milestone: v1.3
 milestone_name: Workflow Journeys
 status: executing
 stopped_at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
-last_updated: "2026-04-29T20:18:28.582Z"
-last_activity: 2026-04-29 -- Phase 25 execution started
+last_updated: "2026-04-30T16:02:24.396Z"
+last_activity: 2026-04-30 -- Phase 27 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 9
-  completed_plans: 6
-  percent: 67
+  completed_phases: 3
+  total_plans: 16
+  completed_plans: 13
+  percent: 81
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 25 — progression-engine-wait-gates
+**Current focus:** Phase 27 — journey-traces-host-signal-api
 
 ## Current Position
 
-Phase: 25 (progression-engine-wait-gates) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 25
-Last activity: 2026-04-29 -- Phase 25 execution started
+Phase: 27 (journey-traces-host-signal-api) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 27
+Last activity: 2026-04-30 -- Phase 27 execution started
 
 ## Accumulated Context
 
@@ -139,4 +139,4 @@ Last session: 2026-04-29T16:49:45.979Z
 Stopped at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
 Resume file: None
 
-**Planned Phase:** 25 (Progression Engine & Wait Gates) — 6 plans — 2026-04-29T20:15:44.245Z
+**Planned Phase:** 27 (journey-traces-host-signal-api) — 6 plans — 2026-04-30T16:02:24.388Z
