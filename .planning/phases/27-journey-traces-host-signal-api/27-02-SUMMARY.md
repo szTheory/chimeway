@@ -95,6 +95,15 @@ Both tasks followed RED → GREEN:
 
 None — all routing logic is fully implemented and all tests exercise real database paths.
 
+## Self-Check: PASSED
+
+- `lib/chimeway/workflows.ex` — FOUND
+- `lib/chimeway/dispatch/signal_router_worker.ex` — FOUND
+- `test/chimeway/workflows_test.exs` — FOUND
+- `test/chimeway/dispatch/signal_router_worker_test.exs` — FOUND
+- `.planning/phases/27-journey-traces-host-signal-api/27-02-SUMMARY.md` — FOUND
+- Commits `239aa1a`, `b3a88d2`, `9ea4032`, `6ab36b7`, `5fc7543` — all present in git log
+
 ## Threat Flags
 
 No new network endpoints, auth paths, file access patterns, or schema changes were introduced. The cross-tenant isolation threat T-27-03 (identified in the plan's `<threat_model>`) is mitigated: `find_runs_waiting_for_signal/2` structurally filters by `tenant_id = ^signal.tenant_id`, making cross-tenant signal bleeding impossible without modifying the query itself.
