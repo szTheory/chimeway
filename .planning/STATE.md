@@ -1,33 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Workflow Journeys
-status: verifying
-stopped_at: Completed 28-01-PLAN.md
-last_updated: "2026-04-30T19:20:48.763Z"
+milestone: v1.4
+milestone_name: Channel Feedback Loops
+status: planning
+stopped_at: Phase 29 context gathered (assumptions mode)
+last_updated: "2026-04-30T20:14:24.309Z"
 last_activity: 2026-04-30
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 18
-  percent: 100
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-29)
+See: .planning/PROJECT.md (updated 2026-04-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 28 — docs-reference-flows-closure (Milestone v1.3 Complete)
+**Current focus:** Phase 29 — Outbound Channel Contracts (Milestone v1.4)
 
 ## Current Position
 
-Phase: 28 (docs-reference-flows-closure) — COMPLETED
-Plan: 1 of 1
-Status: Phase complete — milestone v1.3 closed
+Phase: 29 (Outbound Channel Contracts) — NOT STARTED
+Plan: 0 of 0
+Status: Planning completed — ready for phase execution
 Last activity: 2026-04-30
 
 ## Accumulated Context
@@ -90,8 +89,6 @@ Recent decisions affecting current work:
 - Preview stays pure and non-persistent by routing through Notifier.resolve_rendering/3 and Rendering.render_delivery/4 without delivery-row writes.
 - The Mix task remains a convenience shell that parses local inputs, delegates to Chimeway.preview_rendering/3, and prints stable render identity plus validated payload data.
 - Phase 21 local preview uses the same production rendering declaration and channel validation path as dispatch planning.
-- Phase 21 local preview uses the same production rendering declaration and channel validation path as dispatch planning.
-- The Mix task remains a convenience shell that parses local inputs, delegates to Chimeway.preview_rendering/3, and prints stable render identity plus validated payload data.
 - Recovery detection for Phase 22 now relies on canonical event/notification/delivery tables only and never inspects Oban job state.
 - Recovery claims stamp recovery_source, recovery_reason, and recovered_at on the canonical delivery row exactly once, with duplicate attempts converging to {:noop, delivery}.
 - Persisted render_channels remain recovery-only behind use_persisted_channels: true so ordinary notifier-less planning keeps the default in_app path.
@@ -138,6 +135,8 @@ Recent decisions affecting current work:
 - Signal routing enforces cross-tenant and cross-actor isolation structurally via Ecto joins before matching active workflows.
 - Provided a realistic SaaS missed-mention escalation as the canonical example for multi-step journeys.
 - Clarified synchronous vs async (Oban-backed) progression models in documentation.
+- [v1.3]: Prioritize workflow journeys before channel breadth in v1.3. Workflow behavior is the next major product-value jump.
+- [v1.4]: Expand outbound channel contracts and implement inbound feedback loops (webhooks) to drive workflow progression based on terminal outcomes (bounced, delivered).
 
 ### Pending Todos
 
@@ -149,7 +148,7 @@ None.
 
 ### Roadmap Evolution
 
-- Phase 21.1 inserted after Phase 21: Rendering durability and preview hardening (URGENT)
+- Milestone v1.4 initialized with 4 phases (29-32) focusing on Channel Feedback Loops.
 
 ### Deferred Items
 
@@ -159,9 +158,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-30T19:20:48.757Z
-Stopped at: Completed Milestone v1.3
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 29 context gathered (assumptions mode)
+Resume file: --resume-file
 
-**Planned Phase:** None
-nal-api) — 6 plans — 2026-04-30T16:02:24.388Z
+**Planned Phase:** Phase 29 (Outbound Channel Contracts)
