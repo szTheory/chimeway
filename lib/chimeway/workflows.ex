@@ -5,6 +5,7 @@ defmodule Chimeway.Workflows do
 
   alias Ecto.Multi
   alias Chimeway.Repo
+  alias Chimeway.Signals.Signal
 
   alias Chimeway.Workflows.{
     WorkflowDefinition,
@@ -262,6 +263,80 @@ defmodule Chimeway.Workflows do
     run
     |> Ecto.Changeset.change(attrs)
     |> repo.update()
+  end
+
+  @doc """
+  Routes an incoming signal to all waiting workflow runs for the same tenant
+  whose `pending_signals` list contains the signal's `event_name`.
+
+  For each matched run the function:
+    1. Transitions the run from `:waiting` to `:active` and clears `pending_signals`.
+    2. Appends an immutable `WorkflowTransition` recording the `event_name` (but
+       **not** the raw payload — payload safety is enforced here per the threat
+       model requirement T-27-03).
+
+  All mutations per run are wrapped in one `Ecto.Multi` transaction so the state
+  update and the trace record are always atomically consistent.
+
+  Cross-tenant isolation is enforced structurally: the query always filters by
+  `tenant_id = ^signal.tenant_id`, making it structurally impossible for a signal
+  from one tenant to resume a run belonging to another.
+
+  Returns `{:ok, results_map}` where `results_map` contains per-run outcomes keyed
+  by `{:run_updated, run.id}` and `{:transition_inserted, run.id}`.
+  """
+  @spec route_signal(Signal.t()) :: {:ok, map()} | {:error, term()}
+  def route_signal(%Signal{tenant_id: tenant_id, event_name: event_name} = _signal)
+      when is_binary(tenant_id) and is_binary(event_name) do
+    matched_runs = find_runs_waiting_for_signal(tenant_id, event_name)
+
+    multi =
+      Enum.reduce(matched_runs, Multi.new(), fn run, acc ->
+        now = DateTime.utc_now()
+
+        acc
+        |> Multi.update(
+          {:run_updated, run.id},
+          Ecto.Changeset.change(run, %{
+            state: :active,
+            pending_signals: [],
+            status_reason: "signal_received",
+            last_transition_at: now
+          })
+        )
+        |> Multi.insert(
+          {:transition_inserted, run.id},
+          WorkflowTransition.changeset(%WorkflowTransition{}, %{
+            workflow_run_id: run.id,
+            from_state: :waiting,
+            to_state: :active,
+            reason: "signal_received",
+            context: %{"event_name" => event_name},
+            inserted_at: now
+          })
+        )
+      end)
+
+    case Repo.transaction(multi) do
+      {:ok, results} -> {:ok, results}
+      {:error, _operation, reason, _changes} -> {:error, reason}
+    end
+  end
+
+  # Finds all WorkflowRun rows that are:
+  #   - owned by the given tenant (cross-tenant isolation, T-27-03)
+  #   - currently in the :waiting state
+  #   - have the given event_name present in their pending_signals array
+  defp find_runs_waiting_for_signal(tenant_id, event_name) do
+    Repo.all(
+      from(wr in WorkflowRun,
+        where:
+          wr.tenant_id == ^tenant_id and
+            wr.state == :waiting and
+            ^event_name in wr.pending_signals,
+        lock: "FOR UPDATE"
+      )
+    )
   end
 
   defp preload_steps(_repo, nil), do: nil
