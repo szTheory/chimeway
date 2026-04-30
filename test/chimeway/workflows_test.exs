@@ -23,6 +23,8 @@ defmodule Chimeway.WorkflowsTest do
   }
 
   defp insert_workflow_run!(attrs) do
+    {recipient_identity, attrs} = Map.pop(attrs, :recipient_identity, "user_1")
+
     event = Repo.insert!(%Event{
       notification_key: "test.signal_routing",
       notification_version: 1,
@@ -32,7 +34,7 @@ defmodule Chimeway.WorkflowsTest do
 
     notification = Repo.insert!(%Notification{
       event_id: event.id,
-      recipient_identity: "user:#{System.unique_integer([:positive])}",
+      recipient_identity: recipient_identity,
       recipient_type: "user",
       metadata: %{},
       render_assigns: %{
@@ -176,7 +178,10 @@ defmodule Chimeway.WorkflowsTest do
 
   describe "route_signal/1 — basic matching" do
     test "resumes a waiting workflow run that has the signal's event_name in pending_signals" do
-      run = insert_workflow_run!(%{pending_signals: ["invoice_paid", "receipt_sent"]})
+      run = insert_workflow_run!(%{
+        pending_signals: ["invoice_paid"],
+        suspended_until: DateTime.utc_now()
+      })
       signal = insert_signal!(%{event_name: "invoice_paid"})
 
       assert {:ok, results} = Workflows.route_signal(signal)
@@ -185,8 +190,23 @@ defmodule Chimeway.WorkflowsTest do
       assert updated_run.state == :active
       assert updated_run.pending_signals == []
       assert updated_run.status_reason == "signal_received"
+      assert updated_run.suspended_until == nil
       assert Map.has_key?(results, {:run_updated, run.id})
       assert Map.has_key?(results, {:transition_inserted, run.id})
+    end
+
+    test "does not resume a waiting run from a different actor_id (tenant and event match)" do
+      run = insert_workflow_run!(%{
+        recipient_identity: "user_2",
+        pending_signals: ["invoice_paid"]
+      })
+
+      signal = insert_signal!(%{event_name: "invoice_paid", actor_id: "user_1"})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      unchanged_run = Repo.get!(WorkflowRun, run.id)
+      assert unchanged_run.state == :waiting
     end
 
     test "does not resume a waiting run from a different tenant" do
