@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Workflow Journeys
 status: executing
-stopped_at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
-last_updated: "2026-04-30T16:02:24.396Z"
-last_activity: 2026-04-30 -- Phase 27 execution started
+stopped_at: Completed Phase 27
+last_updated: "2026-04-30T18:00:44.278Z"
+last_activity: 2026-04-30
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 16
-  completed_plans: 13
-  percent: 81
+  completed_phases: 4
+  total_plans: 17
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 ## Current Position
 
-Phase: 27 (journey-traces-host-signal-api) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 27
-Last activity: 2026-04-30 -- Phase 27 execution started
+Phase: 27 (journey-traces-host-signal-api) — COMPLETED
+Plan: 7 of 7
+Status: Completed Phase 27
+Last activity: 2026-04-30
 
 ## Accumulated Context
 
@@ -114,6 +114,28 @@ Recent decisions affecting current work:
 - Initial workflow truth is split between one current-state workflow_run row and two explicit transition facts: workflow_started and step_activated.
 - Canonical delivery linkage resolves from the durable workflow run current_step_id, and only the active-step channel receives workflow_run_id and workflow_step_id.
 - Recovery keeps persisted workflow replay behind explicit use_persisted_workflow: true validation while still reading linkage from Chimeway-owned workflow rows.
+- Tenant id is required on every WorkflowRun row, asserted via validate_required; legacy internal callers default to 'default' until host-supplied tenancy lands.
+- Signals and the State Spine ship in a single migration so the schema arrives atomically before any downstream worker can be wired.
+- Chimeway.Signal.track/4 wraps insert + Oban enqueue in one Ecto.Multi so the queued job is rolled back on insert failure — no orphaned signals or jobs.
+- SignalRouterWorker ships barebones in 27-01 so the API can reference it; full routing logic is owned by 27-02.
+- route_signal uses Ecto.Multi.reduce over matched runs so all updates and transition inserts share one transaction boundary — no partial fan-out possible.
+- Cross-tenant isolation is structural: the query always includes tenant_id = ^signal.tenant_id in the WHERE clause; no opt-in required per T-27-03.
+- Payload is never written to WorkflowTransition.context — only event_name is recorded, matching the structural-traces-only approach from 27-RESEARCH.md.
+- SignalRouterWorker returns {:error, :signal_not_found} for missing signal rows so Oban schedules retry, and :ok for both zero-match and successful routing.
+- explain/2 resolves current_step_name via a LEFT JOIN to chimeway_workflow_steps on current_step_id, so callers receive the step key in one query without a separate lookup.
+- list_traces/3 uses a two-query pattern: first confirm tenant ownership (returning :not_found on mismatch), then fetch transitions. This keeps the tenant guard structurally mandatory.
+- Both functions return {:error, :not_found} rather than an empty result for missing/cross-tenant IDs to prevent timing-based information disclosure.
+- Payload safety is structural: WorkflowTransition.context only ever contains structural metadata (event_name, step_key, source); the inspection API does not need to redact anything at query time.
+- Backfill legacy workflow runs to tenant_id = 'default' during migration instead of adding a schema default, so future inserts still have to provide tenant_id explicitly.
+- Backfill pending_signals to an empty array for pre-27 rows so inspection code never sees NULL for the spine field.
+- Keep empty-string tenant rejection at the changeset boundary to align WorkflowRun with the existing Signal validation contract.
+- Trigger.trigger/3 now requires host-supplied tenant_id and returns {:error, :missing_tenant_id} when omitted rather than silently using a shared default.
+- Workflow run creation keeps tenant identity as an explicit positional argument all the way into Workflows.create_initial_run/5.
+- Trigger-created workflow runs are verified through persisted state alone by round-tripping Trigger.trigger/3 into Workflows.explain/2 and Workflows.route_signal/1.
+- Keep route_signal/1 on a function-form Repo.transaction so the matching FOR UPDATE query and the resume writes share one database transaction while preserving the existing results-map shape.
+- Standardize signal-routing jobs on :chimeway_signals to match the project’s chimeway_* Oban queue naming convention.
+- Interpret list_traces(..., limit: 0) as an explicitly bounded empty result instead of falling back to an unbounded read.
+- Signal routing enforces cross-tenant and cross-actor isolation structurally via Ecto joins before matching active workflows.
 
 ### Pending Todos
 
@@ -135,8 +157,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-29T16:49:45.979Z
-Stopped at: Completed 24-workflow-contracts-state-spine-03-PLAN.md
+Last session: 2026-04-30T17:55:59.513Z
+Stopped at: Completed Phase 27
 Resume file: None
 
 **Planned Phase:** 27 (journey-traces-host-signal-api) — 6 plans — 2026-04-30T16:02:24.388Z

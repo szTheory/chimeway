@@ -14,14 +14,17 @@
 
 ## API & Integration
 
-- [ ] **API-01**: Host applications can submit explicit workflow progression signals through a stable public API without mutating durable history directly.
+- [x] **API-01
+**: Host applications can submit explicit workflow progression signals through a stable public API without mutating durable history directly.
 - [x] **API-02**: Workflow declarations remain explicit, durable, and decoupled from notifier module names or replay-time callback re-entry.
 - [ ] **INT-03**: Documentation and examples show how to model a common SaaS journey such as `in_app -> email escalation` with both sync and Oban-backed operation.
 
 ## Operator Explainability
 
-- [ ] **OPS-03**: Operators can inspect the current workflow position, completed steps, pending next action, and the reason a workflow advanced, waited, escalated, or stopped.
-- [ ] **OPS-04**: Journey traces preserve payload-safe explanation across multiple deliveries and channels under one workflow run.
+- [x] **OPS-03
+**: Operators can inspect the current workflow position, completed steps, pending next action, and the reason a workflow advanced, waited, escalated, or stopped.
+- [x] **OPS-04
+**: Journey traces preserve payload-safe explanation across multiple deliveries and channels under one workflow run.
 
 ## Future Requirements
 

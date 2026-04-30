@@ -83,9 +83,10 @@ Plans:
 - [x] 27-01-PLAN.md — Introduce the Authoritative State Spine on WorkflowRun and provide the durable Signal API boundary for host applications.
 - [x] 27-02-PLAN.md — Process incoming signals and wake up suspended workflows via SignalRouterWorker.
 - [x] 27-03-PLAN.md — Expose tenancy-aware inspection API answering workflow state and traces.
-- [ ] 27-04-PLAN.md — (gap-closure) Migration upgrade-safety + WorkflowRun.changeset empty-tenant guard. Closes CR-01, WR-03, IN-04.
-- [ ] 27-05-PLAN.md — (gap-closure) Thread tenant_id through Chimeway.Trigger pipeline + end-to-end Trigger->explain test. Closes CR-04.
-- [ ] 27-06-PLAN.md — (gap-closure) Lock-in-transaction for route_signal + Oban queue declaration + honor :limit in list_traces. Closes CR-02, CR-03, WR-06.
+- [x] 27-04-PLAN.md — (gap-closure) Migration upgrade-safety + WorkflowRun.changeset empty-tenant guard. Closes CR-01, WR-03, IN-04.
+- [x] 27-05-PLAN.md — (gap-closure) Thread tenant_id through Chimeway.Trigger pipeline + end-to-end Trigger->explain test. Closes CR-04.
+- [x] 27-06-PLAN.md — (gap-closure) Lock-in-transaction for route_signal + Oban queue declaration + honor :limit in list_traces. Closes CR-02, CR-03, WR-06.
+- [x] 27-07-PLAN.md — (gap-closure) Signal routing isolation.
 
 Success criteria:
 1. Host applications can submit validated workflow progression signals through a stable API boundary.
