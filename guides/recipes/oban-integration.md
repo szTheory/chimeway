@@ -28,22 +28,36 @@ config :chimeway,
 
 When you use the `Chimeway.Dispatch.Oban` dispatcher, Chimeway will automatically convert delivery plans into Oban jobs instead of executing them synchronously.
 
-## Setting Up the Queue
+## Setting Up the Queues and Workers
 
-Chimeway's Oban dispatcher enqueues jobs into a specific queue named `chimeway_delivery`. You must configure your Oban instance to process this queue.
-
-Update your Oban configuration to include the `chimeway_delivery` queue:
+Chimeway uses several queues to handle different background tasks. Update your Oban configuration to include these queues:
 
 ```elixir
 # config/config.exs
 config :my_app, Oban,
   repo: MyApp.Repo,
-  plugins: [Oban.Plugins.Pruner],
+  plugins: [
+    Oban.Plugins.Pruner,
+    # Configure the ProgressionWorker to run periodically (e.g., every minute)
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"* * * * *", Chimeway.Workflows.Workers.ProgressionWorker}
+     ]}
+  ],
   queues: [
     default: 10,
-    chimeway_delivery: [limit: 20] # Add this line
+    chimeway_delivery: [limit: 20],   # For async dispatch of notifications
+    chimeway_signals: [limit: 10],    # For processing workflow signals
+    chimeway_workflows: [limit: 5]    # For general workflow progression tasks (if any)
   ]
 ```
+
+### Workflow Engine Workers
+
+If you are using Chimeway's Workflow Engine for multi-step journeys (like wait gates and escalations), you need to configure Oban to process two specific workers:
+
+1.  **`Chimeway.Workflows.Workers.ProgressionWorker`**: This worker is responsible for evaluating wait gates. When a workflow enters a wait step, it pauses. The `ProgressionWorker` must be scheduled to run periodically (e.g., every minute using `Oban.Plugins.Cron` as shown above) to check for expired wait steps and resume progression.
+2.  **`Chimeway.Workflows.Workers.SignalRouterWorker`**: When your application emits signals (e.g., "user viewed notification") via `Chimeway.Signal.track/4`, the engine enqueues a job for the `SignalRouterWorker`. This worker processes the signal in the background (using the `chimeway_signals` queue) to see if it satisfies any active stop conditions, preventing slow web requests when tracking user feedback.
 
 ## Transactional Enqueueing for Consistency
 
