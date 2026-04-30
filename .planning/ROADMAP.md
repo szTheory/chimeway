@@ -98,6 +98,10 @@ Success criteria:
 
 **Goal:** Demonstrate real SaaS workflow usage and close milestone verification.
 **Requirements:** INT-03
+**Plans:** 1 plan
+
+Plans:
+- [ ] 28-01-PLAN.md — Create multi-step journey reference docs, update Oban integration guide, and close milestone traceability.
 
 Success criteria:
 1. Documentation walks through at least one realistic SaaS journey such as `in_app -> email escalation`.

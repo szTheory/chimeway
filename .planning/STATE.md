@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Workflow Journeys
-status: executing
-stopped_at: Completed Phase 27
-last_updated: "2026-04-30T18:00:44.278Z"
+status: verifying
+stopped_at: Completed 28-01-PLAN.md
+last_updated: "2026-04-30T19:20:48.763Z"
 last_activity: 2026-04-30
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
+  completed_phases: 5
+  total_plans: 18
+  completed_plans: 18
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 Phase: 27 (journey-traces-host-signal-api) — COMPLETED
 Plan: 7 of 7
-Status: Completed Phase 27
+Status: Phase complete — ready for verification
 Last activity: 2026-04-30
 
 ## Accumulated Context
@@ -136,6 +136,8 @@ Recent decisions affecting current work:
 - Standardize signal-routing jobs on :chimeway_signals to match the project’s chimeway_* Oban queue naming convention.
 - Interpret list_traces(..., limit: 0) as an explicitly bounded empty result instead of falling back to an unbounded read.
 - Signal routing enforces cross-tenant and cross-actor isolation structurally via Ecto joins before matching active workflows.
+- Provided a realistic SaaS missed-mention escalation as the canonical example for multi-step journeys.
+- Clarified synchronous vs async (Oban-backed) progression models in documentation.
 
 ### Pending Todos
 
@@ -157,8 +159,8 @@ None.
 
 ### Session Continuity
 
-Last session: 2026-04-30T17:55:59.513Z
-Stopped at: Completed Phase 27
+Last session: 2026-04-30T19:20:48.757Z
+Stopped at: Completed 28-01-PLAN.md
 Resume file: None
 
 **Planned Phase:** 27 (journey-traces-host-signal-api) — 6 plans — 2026-04-30T16:02:24.388Z
