@@ -25,6 +25,10 @@ defmodule Chimeway.Workflows.WorkflowRun do
     field(:last_transition_at, :utc_datetime_usec)
     field(:status_reason, :string)
     field(:status_context, :map, default: %{})
+    field(:tenant_id, :string)
+    field(:suspended_until, :utc_datetime_usec)
+    field(:pending_signals, {:array, :string}, default: [])
+    field(:terminal_reason, :string)
 
     timestamps(type: :utc_datetime_usec)
   end
@@ -37,9 +41,15 @@ defmodule Chimeway.Workflows.WorkflowRun do
     started_at
     last_transition_at
     status_reason
+    tenant_id
   )a
 
-  @optional_fields ~w(status_context)a
+  @optional_fields ~w(
+    status_context
+    suspended_until
+    pending_signals
+    terminal_reason
+  )a
 
   def changeset(workflow_run, attrs) do
     workflow_run

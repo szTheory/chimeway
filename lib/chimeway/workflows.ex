@@ -162,6 +162,7 @@ defmodule Chimeway.Workflows do
                notification_id: notification_id,
                workflow_definition_id: definition.id,
                current_step_id: first_step.id,
+               tenant_id: "default",
                state: @active_state,
                started_at: timestamp,
                last_transition_at: timestamp,
