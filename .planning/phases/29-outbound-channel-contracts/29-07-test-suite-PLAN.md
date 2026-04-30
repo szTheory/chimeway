@@ -2,7 +2,7 @@
 phase: 29-outbound-channel-contracts
 plan: "07"
 type: execute
-wave: 4
+wave: 5
 depends_on:
   - "03"
   - "04"
