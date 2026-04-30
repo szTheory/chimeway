@@ -1,0 +1,196 @@
+defmodule Chimeway.WorkflowsTest do
+  use Chimeway.DataCase, async: false
+
+  import Ecto.Query
+
+  alias Chimeway.Repo
+  alias Chimeway.Signals.Signal
+  alias Chimeway.Workflows
+  alias Chimeway.Workflows.{WorkflowRun, WorkflowTransition}
+  alias Chimeway.Events.Event
+  alias Chimeway.Notifications.Notification
+
+  # ---- Fixtures ----------------------------------------------------------------
+
+  @base_run_attrs %{
+    state: :waiting,
+    started_at: DateTime.utc_now(),
+    last_transition_at: DateTime.utc_now(),
+    status_reason: "waiting_for_signal",
+    status_context: %{},
+    tenant_id: "acme"
+  }
+
+  defp insert_workflow_run!(attrs \\ %{}) do
+    event = Repo.insert!(%Event{
+      notification_key: "test.signal_routing",
+      notification_version: 1,
+      idempotency_key: "sig-routing-#{System.unique_integer([:positive])}",
+      payload: %{}
+    })
+
+    notification = Repo.insert!(%Notification{
+      event_id: event.id,
+      recipient_identity: "user:#{System.unique_integer([:positive])}",
+      recipient_type: "user",
+      metadata: %{},
+      render_assigns: %{
+        "headline" => "test",
+        "body" => "test body",
+        "primary_action" => %{"label" => "Open", "url" => "https://example.test"}
+      },
+      render_channels: %{
+        "in_app" => %{"render_key" => "test.in_app", "render_version" => 1}
+      }
+    })
+
+    # We need a WorkflowDefinition and WorkflowStep to link the run.
+    definition = Repo.insert!(
+      Chimeway.Workflows.WorkflowDefinition.changeset(%Chimeway.Workflows.WorkflowDefinition{}, %{
+        workflow_key: "test.signal_routing.workflow.#{System.unique_integer([:positive])}",
+        workflow_version: 1,
+        notification_key: "test.signal_routing"
+      })
+    )
+
+    step = Repo.insert!(
+      Chimeway.Workflows.WorkflowStep.changeset(%Chimeway.Workflows.WorkflowStep{}, %{
+        workflow_definition_id: definition.id,
+        step_key: "in_app",
+        step_order: 1,
+        channel: "in_app",
+        config: %{}
+      })
+    )
+
+    merged = Map.merge(@base_run_attrs, attrs)
+
+    Repo.insert!(
+      WorkflowRun.changeset(%WorkflowRun{}, Map.merge(merged, %{
+        notification_id: notification.id,
+        workflow_definition_id: definition.id,
+        current_step_id: step.id
+      }))
+    )
+  end
+
+  defp insert_signal!(attrs \\ %{}) do
+    defaults = %{tenant_id: "acme", actor_id: "user_1", event_name: "invoice_paid", payload: %{}}
+    Repo.insert!(Signal.changeset(%Signal{}, Map.merge(defaults, attrs)))
+  end
+
+  # ---- Tests -------------------------------------------------------------------
+
+  describe "route_signal/1 — basic matching" do
+    test "resumes a waiting workflow run that has the signal's event_name in pending_signals" do
+      run = insert_workflow_run!(%{pending_signals: ["invoice_paid", "receipt_sent"]})
+      signal = insert_signal!(%{event_name: "invoice_paid"})
+
+      assert {:ok, results} = Workflows.route_signal(signal)
+
+      updated_run = Repo.get!(WorkflowRun, run.id)
+      assert updated_run.state == :active
+      assert updated_run.pending_signals == []
+      assert updated_run.status_reason == "signal_received"
+
+      # Confirm route_signal returned an :ok tuple (exact shape depends on impl)
+      assert is_map(results) or is_list(results)
+    end
+
+    test "does not resume a waiting run from a different tenant" do
+      _other_tenant_run = insert_workflow_run!(%{
+        tenant_id: "other_tenant",
+        pending_signals: ["invoice_paid"]
+      })
+
+      signal = insert_signal!(%{tenant_id: "acme", event_name: "invoice_paid"})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      # The other-tenant run must not have been touched
+      other_runs = Repo.all(
+        from(wr in WorkflowRun, where: wr.tenant_id == "other_tenant")
+      )
+
+      for run <- other_runs do
+        assert run.state == :waiting, "expected other-tenant run to remain :waiting"
+      end
+    end
+
+    test "does not resume a waiting run that does not include the signal's event_name" do
+      run = insert_workflow_run!(%{pending_signals: ["receipt_sent"]})
+      signal = insert_signal!(%{event_name: "invoice_paid"})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      unchanged_run = Repo.get!(WorkflowRun, run.id)
+      assert unchanged_run.state == :waiting
+    end
+
+    test "does not resume a run that is not in :waiting state" do
+      run = insert_workflow_run!(%{state: :active, pending_signals: ["invoice_paid"]})
+      signal = insert_signal!(%{event_name: "invoice_paid"})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      unchanged_run = Repo.get!(WorkflowRun, run.id)
+      assert unchanged_run.state == :active
+    end
+  end
+
+  describe "route_signal/1 — transition traces" do
+    test "inserts a WorkflowTransition for the matched run on signal receipt" do
+      run = insert_workflow_run!(%{pending_signals: ["invoice_paid"]})
+      signal = insert_signal!(%{event_name: "invoice_paid", payload: %{"amount" => 100}})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      transitions = Repo.all(
+        from(wt in WorkflowTransition,
+          where: wt.workflow_run_id == ^run.id,
+          order_by: [asc: wt.inserted_at]
+        )
+      )
+
+      signal_transitions = Enum.filter(transitions, &(&1.reason == "signal_received"))
+      assert length(signal_transitions) == 1
+
+      [transition] = signal_transitions
+      assert transition.from_state == :waiting
+      assert transition.to_state == :active
+      # Transition context records the event name but NOT the payload (safety)
+      assert transition.context["event_name"] == "invoice_paid"
+      refute Map.has_key?(transition.context, "payload")
+    end
+
+    test "routes multiple waiting runs for the same tenant and event_name" do
+      run1 = insert_workflow_run!(%{pending_signals: ["invoice_paid"]})
+      run2 = insert_workflow_run!(%{pending_signals: ["invoice_paid", "other_event"]})
+      signal = insert_signal!(%{event_name: "invoice_paid"})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      assert Repo.get!(WorkflowRun, run1.id).state == :active
+      assert Repo.get!(WorkflowRun, run2.id).state == :active
+    end
+  end
+
+  describe "route_signal/1 — idempotency" do
+    test "calling route_signal twice does not double-transition a run" do
+      run = insert_workflow_run!(%{pending_signals: ["invoice_paid"]})
+      signal = insert_signal!(%{event_name: "invoice_paid"})
+
+      assert {:ok, _} = Workflows.route_signal(signal)
+      # Second call: run is now :active with empty pending_signals, so it won't match again
+      assert {:ok, _} = Workflows.route_signal(signal)
+
+      transitions = Repo.all(
+        from(wt in WorkflowTransition,
+          where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+        )
+      )
+
+      assert length(transitions) == 1
+    end
+  end
+end
