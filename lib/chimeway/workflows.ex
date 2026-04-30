@@ -327,7 +327,7 @@ defmodule Chimeway.Workflows do
   """
   @spec list_traces(String.t(), Ecto.UUID.t(), keyword()) ::
           {:ok, [WorkflowTransition.t()]} | {:error, :not_found}
-  def list_traces(tenant_id, execution_id, _opts \\ [])
+  def list_traces(tenant_id, execution_id, opts \\ [])
       when is_binary(tenant_id) and is_binary(execution_id) do
     # First confirm the run exists and belongs to this tenant (T-27-04 / T-27-05)
     run_query =
@@ -341,13 +341,19 @@ defmodule Chimeway.Workflows do
         {:error, :not_found}
 
       _run_id ->
-        traces =
-          Repo.all(
-            from(wt in WorkflowTransition,
-              where: wt.workflow_run_id == ^execution_id,
-              order_by: [asc: wt.inserted_at]
-            )
+        traces_query =
+          from(wt in WorkflowTransition,
+            where: wt.workflow_run_id == ^execution_id,
+            order_by: [asc: wt.inserted_at]
           )
+
+        traces_query =
+          case Keyword.get(opts, :limit) do
+            limit when is_integer(limit) and limit >= 0 -> from(wt in traces_query, limit: ^limit)
+            _ -> traces_query
+          end
+
+        traces = Repo.all(traces_query)
 
         {:ok, traces}
     end
