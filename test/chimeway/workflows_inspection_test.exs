@@ -1,8 +1,6 @@
 defmodule Chimeway.WorkflowsInspectionTest do
   use Chimeway.DataCase, async: false
 
-  import Ecto.Query
-
   alias Chimeway.Repo
   alias Chimeway.Workflows
   alias Chimeway.Workflows.{WorkflowRun, WorkflowTransition}
@@ -119,7 +117,7 @@ defmodule Chimeway.WorkflowsInspectionTest do
     end
 
     test "returns suspended_until, pending_signals, and terminal_reason in the result" do
-      suspended_until = ~U[2026-05-01 00:00:00Z]
+      suspended_until = ~U[2026-05-01 00:00:00.000000Z]
 
       run =
         insert_workflow_run!(%{

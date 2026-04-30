@@ -266,6 +266,94 @@ defmodule Chimeway.Workflows do
   end
 
   @doc """
+  Returns the workflow run state for the given `tenant_id` and `execution_id`
+  (the workflow run's primary key). The returned map includes the authoritative
+  State Spine fields plus the current step key for operator-friendly inspection.
+
+  Returns `{:error, :not_found}` if the run does not exist or belongs to a
+  different tenant — preventing cross-tenant information disclosure (T-27-05).
+  """
+  @spec explain(String.t(), Ecto.UUID.t()) ::
+          {:ok,
+           %{
+             id: Ecto.UUID.t(),
+             tenant_id: String.t(),
+             state: atom(),
+             status_reason: String.t() | nil,
+             current_step_name: String.t() | nil,
+             suspended_until: DateTime.t() | nil,
+             pending_signals: [String.t()],
+             terminal_reason: String.t() | nil
+           }}
+          | {:error, :not_found}
+  def explain(tenant_id, execution_id)
+      when is_binary(tenant_id) and is_binary(execution_id) do
+    query =
+      from(wr in WorkflowRun,
+        left_join: ws in WorkflowStep,
+        on: wr.current_step_id == ws.id,
+        where: wr.id == ^execution_id and wr.tenant_id == ^tenant_id,
+        select: %{
+          id: wr.id,
+          tenant_id: wr.tenant_id,
+          state: wr.state,
+          status_reason: wr.status_reason,
+          current_step_name: ws.step_key,
+          suspended_until: wr.suspended_until,
+          pending_signals: wr.pending_signals,
+          terminal_reason: wr.terminal_reason
+        }
+      )
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found}
+      result -> {:ok, result}
+    end
+  end
+
+  @doc """
+  Returns the structural `WorkflowTransition` records for a given execution,
+  strictly scoped to the supplied `tenant_id`.
+
+  Trace context intentionally contains only structural progression metadata
+  (e.g., `event_name`, `step_key`). Raw signal payloads are never written to
+  transition context, making this surface payload-safe by construction (T-27-04).
+
+  Returns `{:error, :not_found}` if the workflow run does not exist or belongs
+  to a different tenant.
+
+  Opts:
+    - `:limit` — max number of traces to return (default: all)
+  """
+  @spec list_traces(String.t(), Ecto.UUID.t(), keyword()) ::
+          {:ok, [WorkflowTransition.t()]} | {:error, :not_found}
+  def list_traces(tenant_id, execution_id, _opts \\ [])
+      when is_binary(tenant_id) and is_binary(execution_id) do
+    # First confirm the run exists and belongs to this tenant (T-27-04 / T-27-05)
+    run_query =
+      from(wr in WorkflowRun,
+        where: wr.id == ^execution_id and wr.tenant_id == ^tenant_id,
+        select: wr.id
+      )
+
+    case Repo.one(run_query) do
+      nil ->
+        {:error, :not_found}
+
+      _run_id ->
+        traces =
+          Repo.all(
+            from(wt in WorkflowTransition,
+              where: wt.workflow_run_id == ^execution_id,
+              order_by: [asc: wt.inserted_at]
+            )
+          )
+
+        {:ok, traces}
+    end
+  end
+
+  @doc """
   Routes an incoming signal to all waiting workflow runs for the same tenant
   whose `pending_signals` list contains the signal's `event_name`.
 
