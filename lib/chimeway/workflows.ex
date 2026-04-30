@@ -150,10 +150,15 @@ defmodule Chimeway.Workflows do
     {:ok, Repo.one(query)}
   end
 
-  @spec create_initial_run(Ecto.Repo.t(), Ecto.UUID.t(), WorkflowDefinition.t(), DateTime.t()) ::
-          {:ok, WorkflowRun.t()} | {:error, term()}
-  def create_initial_run(repo, notification_id, %WorkflowDefinition{} = definition, timestamp)
-      when is_binary(notification_id) do
+  @spec create_initial_run(
+          Ecto.Repo.t(),
+          Ecto.UUID.t(),
+          WorkflowDefinition.t(),
+          DateTime.t(),
+          String.t()
+        ) :: {:ok, WorkflowRun.t()} | {:error, term()}
+  def create_initial_run(repo, notification_id, %WorkflowDefinition{} = definition, timestamp, tenant_id)
+      when is_binary(notification_id) and is_binary(tenant_id) do
     definition = preload_steps(repo, definition)
 
     with {:ok, first_step} <- fetch_first_step(definition),
@@ -163,7 +168,7 @@ defmodule Chimeway.Workflows do
                notification_id: notification_id,
                workflow_definition_id: definition.id,
                current_step_id: first_step.id,
-               tenant_id: "default",
+               tenant_id: tenant_id,
                state: @active_state,
                started_at: timestamp,
                last_transition_at: timestamp,

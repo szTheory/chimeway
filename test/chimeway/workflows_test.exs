@@ -22,7 +22,7 @@ defmodule Chimeway.WorkflowsTest do
     tenant_id: "acme"
   }
 
-  defp insert_workflow_run!(attrs \\ %{}) do
+  defp insert_workflow_run!(attrs) do
     event = Repo.insert!(%Event{
       notification_key: "test.signal_routing",
       notification_version: 1,
@@ -75,12 +75,104 @@ defmodule Chimeway.WorkflowsTest do
     )
   end
 
-  defp insert_signal!(attrs \\ %{}) do
+  defp insert_signal!(attrs) do
     defaults = %{tenant_id: "acme", actor_id: "user_1", event_name: "invoice_paid", payload: %{}}
     Repo.insert!(Signal.changeset(%Signal{}, Map.merge(defaults, attrs)))
   end
 
+  defp insert_workflow_definition!(attrs) do
+    definition =
+      Repo.insert!(
+        Chimeway.Workflows.WorkflowDefinition.changeset(
+          %Chimeway.Workflows.WorkflowDefinition{},
+          Map.merge(
+            %{
+              workflow_key: "test.initial_run.workflow.#{System.unique_integer([:positive])}",
+              workflow_version: 1,
+              notification_key: "test.initial_run"
+            },
+            attrs
+          )
+        )
+      )
+
+    step =
+      Repo.insert!(
+        Chimeway.Workflows.WorkflowStep.changeset(%Chimeway.Workflows.WorkflowStep{}, %{
+          workflow_definition_id: definition.id,
+          step_key: "email-first",
+          step_order: 1,
+          channel: "email",
+          config: %{}
+        })
+      )
+
+    %{definition | steps: [step]}
+  end
+
   # ---- Tests -------------------------------------------------------------------
+
+  describe "create_initial_run/5" do
+    test "persists the supplied tenant_id on the workflow run" do
+      event =
+        Repo.insert!(%Event{
+          notification_key: "test.initial_run",
+          notification_version: 1,
+          idempotency_key: "initial-run-#{System.unique_integer([:positive])}",
+          payload: %{}
+        })
+
+      notification =
+        Repo.insert!(%Notification{
+          event_id: event.id,
+          recipient_identity: "user:#{System.unique_integer([:positive])}",
+          recipient_type: "user",
+          metadata: %{},
+          render_assigns: %{},
+          render_channels: %{}
+        })
+
+      definition = insert_workflow_definition!(%{})
+      timestamp = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+      assert {:ok, run} =
+               Workflows.create_initial_run(Repo, notification.id, definition, timestamp, "acme")
+
+      assert run.tenant_id == "acme"
+
+      persisted_run = Repo.get!(WorkflowRun, run.id)
+      assert persisted_run.tenant_id == "acme"
+      assert persisted_run.status_reason == "workflow_started"
+    end
+
+    test "rejects an empty tenant_id through the workflow run changeset" do
+      event =
+        Repo.insert!(%Event{
+          notification_key: "test.initial_run.invalid",
+          notification_version: 1,
+          idempotency_key: "initial-run-invalid-#{System.unique_integer([:positive])}",
+          payload: %{}
+        })
+
+      notification =
+        Repo.insert!(%Notification{
+          event_id: event.id,
+          recipient_identity: "user:#{System.unique_integer([:positive])}",
+          recipient_type: "user",
+          metadata: %{},
+          render_assigns: %{},
+          render_channels: %{}
+        })
+
+      definition = insert_workflow_definition!(%{notification_key: "test.initial_run.invalid"})
+      timestamp = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Workflows.create_initial_run(Repo, notification.id, definition, timestamp, "")
+
+      assert {"can't be blank", _metadata} = changeset.errors[:tenant_id]
+    end
+  end
 
   describe "route_signal/1 — basic matching" do
     test "resumes a waiting workflow run that has the signal's event_name in pending_signals" do
