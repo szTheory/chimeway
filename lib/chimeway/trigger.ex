@@ -45,17 +45,19 @@ defmodule Chimeway.Trigger do
       end
 
     with {:ok, idempotency_key} <- Keyword.fetch(opts, :idempotency_key),
+         {:ok, tenant_id} <- fetch_tenant_id(opts),
          :ok <- validate_idempotency_key(idempotency_key),
+         :ok <- validate_tenant_id(tenant_id),
          :ok <- Notifier.validate_module!(notifier),
          {:ok, recipients} <- notifier.recipients(params) do
-      do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients)
+      do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients, tenant_id)
     else
       :error -> {:error, :missing_idempotency_key}
       {:error, _reason} = error -> error
     end
   end
 
-  defp do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients) do
+  defp do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients, tenant_id) do
     normalized_recipients = normalize_recipients(recipients)
 
     Telemetry.span(
@@ -78,7 +80,7 @@ defmodule Chimeway.Trigger do
             })
           )
           |> Multi.run(:notifications, fn repo, %{event: event} ->
-            insert_notifications(repo, notifier, params, event, normalized_recipients)
+            insert_notifications(repo, notifier, params, event, normalized_recipients, tenant_id)
           end)
           |> Repo.transaction()
 
@@ -128,13 +130,30 @@ defmodule Chimeway.Trigger do
 
   defp validate_idempotency_key(_idempotency_key), do: {:error, :invalid_idempotency_key}
 
-  defp insert_notifications(repo, notifier, params, event, recipients) do
+  defp fetch_tenant_id(opts) do
+    case Keyword.fetch(opts, :tenant_id) do
+      {:ok, tenant_id} -> {:ok, tenant_id}
+      :error -> {:error, :missing_tenant_id}
+    end
+  end
+
+  defp validate_tenant_id(tenant_id) when is_binary(tenant_id) do
+    if String.trim(tenant_id) == "" do
+      {:error, :invalid_tenant_id}
+    else
+      :ok
+    end
+  end
+
+  defp validate_tenant_id(_tenant_id), do: {:error, :invalid_tenant_id}
+
+  defp insert_notifications(repo, notifier, params, event, recipients, tenant_id) do
     with {:ok, notifications} <- notifications_attrs(repo, notifier, params, event, recipients) do
       try do
         rows = Enum.map(notifications, & &1.row)
         {count, _rows} = repo.insert_all("chimeway_notifications", rows)
 
-        with :ok <- insert_workflow_runs(repo, notifications) do
+        with :ok <- insert_workflow_runs(repo, notifications, tenant_id) do
           {:ok, count}
         end
       rescue
@@ -306,7 +325,7 @@ defmodule Chimeway.Trigger do
     end
   end
 
-  defp insert_workflow_runs(repo, notifications) do
+  defp insert_workflow_runs(repo, notifications, tenant_id) do
     Enum.reduce_while(notifications, :ok, fn
       %{workflow_definition: nil}, :ok ->
         {:cont, :ok}
@@ -320,7 +339,8 @@ defmodule Chimeway.Trigger do
                repo,
                UUID.load!(notification_id),
                workflow_definition,
-               inserted_at
+               inserted_at,
+               tenant_id
              ) do
           {:ok, _workflow_run} -> {:cont, :ok}
           {:error, reason} -> {:halt, {:error, reason}}

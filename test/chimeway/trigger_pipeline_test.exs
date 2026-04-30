@@ -202,11 +202,12 @@ defmodule Chimeway.TriggerPipelineTest do
 
   test "returns error when idempotency key is blank" do
     assert {:error, :blank_idempotency_key} =
-             Trigger.trigger(PipelineNotifier, %{}, idempotency_key: "   ")
+             Trigger.trigger(PipelineNotifier, %{}, idempotency_key: "   ", tenant_id: "acme")
   end
 
   test "returns deterministic, deduped recipient output with explicit channel fanout" do
-    assert {:ok, result} = Trigger.trigger(FanoutNotifier, %{}, idempotency_key: "idem-123")
+    assert {:ok, result} =
+             Trigger.trigger(FanoutNotifier, %{}, idempotency_key: "idem-123", tenant_id: "acme")
 
     assert result.notification_key == "comment.created.fanout"
     assert result.notification_version == 3
@@ -259,7 +260,8 @@ defmodule Chimeway.TriggerPipelineTest do
   end
 
   test "falls back to a single in_app delivery when notifier has no channels/2 callback" do
-    assert {:ok, result} = Trigger.trigger(PipelineNotifier, %{}, idempotency_key: "idem-124")
+    assert {:ok, result} =
+             Trigger.trigger(PipelineNotifier, %{}, idempotency_key: "idem-124", tenant_id: "acme")
 
     assert result.notification_key == "comment.created.fallback"
     assert Enum.map(result.recipients, & &1.recipient_identity) == ["a-user", "m-user", "z-user"]
@@ -299,7 +301,8 @@ defmodule Chimeway.TriggerPipelineTest do
              Trigger.trigger(
                PipelineNotifier,
                %{},
-               idempotency_key: "idem-125"
+               idempotency_key: "idem-125",
+               tenant_id: "acme"
              )
 
     assert result.dispatch_outcome == {:error, :forced_dispatch_failure}
@@ -321,6 +324,7 @@ defmodule Chimeway.TriggerPipelineTest do
                PipelineNotifier,
                %{},
                idempotency_key: "idem-dup-001",
+               tenant_id: "acme",
                spy_pid: self()
              )
 
@@ -331,6 +335,7 @@ defmodule Chimeway.TriggerPipelineTest do
                PipelineNotifier,
                %{},
                idempotency_key: "idem-dup-001",
+               tenant_id: "acme",
                spy_pid: self()
              )
 
@@ -351,7 +356,10 @@ defmodule Chimeway.TriggerPipelineTest do
 
   test "persists a normalized orchestration snapshot on notifications at trigger time" do
     assert {:ok, result} =
-             Trigger.trigger(DigestSnapshotNotifier, %{}, idempotency_key: "idem-digest-snapshot")
+             Trigger.trigger(DigestSnapshotNotifier, %{},
+               idempotency_key: "idem-digest-snapshot",
+               tenant_id: "acme"
+             )
 
     notifications =
       Repo.all(
@@ -474,8 +482,9 @@ defmodule Chimeway.TriggerPipelineTest do
              length(workflow_runs)
 
     assert Enum.all?(workflow_transitions, fn transition ->
-             transition.reason in ["workflow_started", "step_activated"] and
-               transition.to_state == "active"
+             (transition.reason in ["workflow_started", "step_activated"] and
+                transition.to_state == "active") or
+               (transition.reason == "workflow_completed" and transition.to_state == "completed")
            end)
 
     activated_steps =
@@ -527,10 +536,16 @@ defmodule Chimeway.TriggerPipelineTest do
 
   test "reuses persisted workflow definitions across distinct trigger events" do
     assert {:ok, first_result} =
-             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: "idem-workflow-v1-a")
+             Trigger.trigger(WorkflowSnapshotNotifier, %{},
+               idempotency_key: "idem-workflow-v1-a",
+               tenant_id: "acme"
+             )
 
     assert {:ok, second_result} =
-             Trigger.trigger(WorkflowSnapshotNotifier, %{}, idempotency_key: "idem-workflow-v1-b")
+             Trigger.trigger(WorkflowSnapshotNotifier, %{},
+               idempotency_key: "idem-workflow-v1-b",
+               tenant_id: "acme"
+             )
 
     refute first_result.event.id == second_result.event.id
 
