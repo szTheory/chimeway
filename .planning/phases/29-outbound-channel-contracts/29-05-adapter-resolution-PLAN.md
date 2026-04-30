@@ -7,6 +7,7 @@ depends_on:
   - "02"
 files_modified:
   - lib/chimeway/dispatch/executor.ex
+  - lib/chimeway/dispatch/sync.ex
 autonomous: true
 requirements:
   - CHAN-01
@@ -18,10 +19,14 @@ must_haves:
     - "Legacy :adapter config still works as the fallback when no :channel_adapters is set"
     - "adapter_module is persisted on the attempt row as inspect(module) string"
     - "adapter_fallback telemetry fires when :channel_adapters is set AND lookup misses"
+    - "[:chimeway, :dispatch, :sync, :stop] stop metadata includes adapter_module so dashboards can break failure rate down by vendor"
   artifacts:
     - path: "lib/chimeway/dispatch/executor.ex"
       provides: "resolve_adapter/1 private helper + adapter_module in record_attempt attrs"
       contains: "resolve_adapter"
+    - path: "lib/chimeway/dispatch/sync.ex"
+      provides: "adapter_module threaded into [:chimeway, :dispatch, :sync, :stop] stop metadata"
+      contains: "adapter_module"
   key_links:
     - from: "lib/chimeway/dispatch/executor.ex"
       to: "Application.get_env(:chimeway, :channel_adapters, %{})"
@@ -31,19 +36,27 @@ must_haves:
       to: "Deliveries.record_attempt/2"
       via: "adapter_module: inspect(adapter) in attrs map"
       pattern: "adapter_module: inspect"
+    - from: "lib/chimeway/dispatch/sync.ex"
+      to: "Telemetry.span [:dispatch, :sync]"
+      via: "adapter_module in stop metadata closure"
+      pattern: "adapter_module"
 ---
 
 <objective>
 Extend `Chimeway.Dispatch.Executor.run_delivery/1` with per-channel adapter resolution
 (`resolve_adapter/1` private helper) and persist the resolved adapter module name on
-the attempt row (D-15 through D-21). The `adapter_module` column from Plan 02 must
-exist before this plan runs (Wave 3 depends on Wave 1 Plan 02).
+the attempt row (D-15 through D-21). Also thread `adapter_module` into the
+`[:chimeway, :dispatch, :sync, :stop]` telemetry span stop metadata (D-22 second clause)
+so dashboards can break failure rate down by vendor. The `adapter_module` column from
+Plan 02 must exist before this plan runs (Wave 3 depends on Wave 1 Plan 02).
 
 Purpose: Satisfies success criterion #3 — "the delivery engine correctly routes payloads
 to the specified non-email adapter." Legacy single-`:adapter` configs continue working
-unchanged (D-18).
+unchanged (D-18). The D-22 telemetry clause enriches the existing `:sync, :stop` span
+with `:adapter_module` metadata — no new span is created.
 
-Output: Modified executor.ex with resolve_adapter/1 and adapter_module persistence.
+Output: Modified executor.ex with resolve_adapter/1 and adapter_module persistence;
+modified sync.ex threading adapter_module into the span stop metadata.
 </objective>
 
 <execution_context>
@@ -58,7 +71,7 @@ Output: Modified executor.ex with resolve_adapter/1 and adapter_module persisten
 @.planning/phases/29-outbound-channel-contracts/29-PATTERNS.md
 
 <interfaces>
-<!-- Exact current code shapes in executor.ex and the resolver analog. -->
+<!-- Exact current code shapes in executor.ex and sync.ex. -->
 
 From lib/chimeway/dispatch/executor.ex (current run_delivery/1, lines 29-44):
 ```elixir
@@ -87,6 +100,38 @@ defp preferred_config(channel) do
   case Application.get_env(:chimeway, :channel_adapter_configs, %{}) do
     configs when is_map(configs) -> Map.get(configs, channel)
     _ -> nil
+  end
+end
+```
+
+From lib/chimeway/dispatch/sync.ex (do_dispatch_with_telemetry and do_dispatch, lines 85-112):
+```elixir
+defp do_dispatch_with_telemetry(delivery) do
+  Telemetry.span(
+    [:dispatch, :sync],
+    Telemetry.safe_meta(%{
+      delivery_id: delivery.id,
+      channel: delivery.channel,
+      notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+    }),
+    fn ->
+      result = do_dispatch(delivery)
+      outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
+      {result, Telemetry.safe_meta(%{outcome: outcome})}
+    end
+  )
+end
+
+defp do_dispatch(delivery) do
+  case Executor.run_delivery(delivery) do
+    {:ok, %{delivery: updated_delivery}} ->
+      {:ok, updated_delivery}
+
+    {:error, step, reason, _changes} ->
+      {:error, {step, reason}}
+
+    {:error, _reason} = error ->
+      error
   end
 end
 ```
@@ -193,6 +238,123 @@ Key implementation notes (D-20):
   <done>resolve_adapter/1 exists; adapter_module persisted on attempt; existing delivery_lifecycle tests pass</done>
 </task>
 
+<task type="auto">
+  <name>Task 2: Thread adapter_module into [:chimeway, :dispatch, :sync, :stop] stop metadata</name>
+  <files>lib/chimeway/dispatch/sync.ex</files>
+  <read_first>
+    - lib/chimeway/dispatch/sync.ex — read the full file before editing; understand do_dispatch/1 and do_dispatch_with_telemetry/1 shapes; note that do_dispatch/1 unwraps the {:ok, %{delivery: _, attempt: _}} tuple from Executor.run_delivery/1 down to {:ok, updated_delivery}, losing the attempt
+  </read_first>
+  <action>
+D-22's second clause requires `:adapter_module` in the `[:chimeway, :dispatch, :sync, :stop]`
+stop metadata. The span's stop metadata closure currently produces `%{outcome: outcome}`.
+We need to add `adapter_module` from the attempt returned by `Executor.run_delivery/1`.
+
+Make two targeted changes to `lib/chimeway/dispatch/sync.ex`:
+
+**Change 1** — Modify `do_dispatch/1` to return a two-element tuple `{result, adapter_module}`
+so the stop metadata closure can access the adapter_module without a separate DB read:
+
+Replace:
+```elixir
+defp do_dispatch(delivery) do
+  case Executor.run_delivery(delivery) do
+    {:ok, %{delivery: updated_delivery}} ->
+      {:ok, updated_delivery}
+
+    {:error, step, reason, _changes} ->
+      {:error, {step, reason}}
+
+    {:error, _reason} = error ->
+      error
+  end
+end
+```
+
+With:
+```elixir
+defp do_dispatch(delivery) do
+  case Executor.run_delivery(delivery) do
+    {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
+      {{:ok, updated_delivery}, attempt.adapter_module}    # D-22: thread adapter_module up
+
+    {:ok, %{delivery: updated_delivery}} ->
+      {{:ok, updated_delivery}, nil}                       # defensive: attempt missing
+
+    {:error, step, reason, _changes} ->
+      {{:error, {step, reason}}, nil}
+
+    {:error, _reason} = error ->
+      {error, nil}
+  end
+end
+```
+
+**Change 2** — Modify `do_dispatch_with_telemetry/1` to destructure the two-element tuple
+from `do_dispatch/1` and include `adapter_module` in the stop metadata:
+
+Replace:
+```elixir
+defp do_dispatch_with_telemetry(delivery) do
+  Telemetry.span(
+    [:dispatch, :sync],
+    Telemetry.safe_meta(%{
+      delivery_id: delivery.id,
+      channel: delivery.channel,
+      notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+    }),
+    fn ->
+      result = do_dispatch(delivery)
+      outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
+      {result, Telemetry.safe_meta(%{outcome: outcome})}
+    end
+  )
+end
+```
+
+With:
+```elixir
+defp do_dispatch_with_telemetry(delivery) do
+  Telemetry.span(
+    [:dispatch, :sync],
+    Telemetry.safe_meta(%{
+      delivery_id: delivery.id,
+      channel: delivery.channel,
+      notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+    }),
+    fn ->
+      {result, adapter_module} = do_dispatch(delivery)    # D-22: destructure adapter_module
+      outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
+
+      stop_meta =
+        Telemetry.safe_meta(%{
+          outcome: outcome,
+          adapter_module: adapter_module                  # D-22: nil for failed/pre-Phase-29
+        })
+
+      {result, stop_meta}
+    end
+  )
+end
+```
+
+Important: `Telemetry.safe_meta/1` already includes `:adapter_module` in `@allowed_meta_keys`
+after Plan 04 Task 2. `safe_meta/1` uses `Map.take(@allowed_meta_keys)` — nil values are
+preserved (nil is a valid map value; `Map.take` does not filter by value). No additional
+change to telemetry.ex is needed.
+  </action>
+  <verify>
+    <automated>cd /Users/jon/projects/chimeway && mix test test/chimeway/integration/delivery_lifecycle_test.exs 2>&1 | tail -15</automated>
+  </verify>
+  <acceptance_criteria>
+    - `grep -c "adapter_module" lib/chimeway/dispatch/sync.ex` outputs at least `2` (stop meta + do_dispatch return)
+    - `grep -c "do_dispatch(delivery)" lib/chimeway/dispatch/sync.ex` outputs `1` (call site unchanged)
+    - `grep -c "{result, adapter_module}" lib/chimeway/dispatch/sync.ex` outputs `1`
+    - `mix compile` exits 0 with no errors
+    - `mix test test/chimeway/integration/delivery_lifecycle_test.exs` passes
+  </acceptance_criteria>
+  <done>sync.ex threads adapter_module from do_dispatch/1 into the [:chimeway, :dispatch, :sync, :stop] stop metadata; existing delivery_lifecycle tests pass</done>
+</task>
+
 </tasks>
 
 <threat_model>
@@ -202,6 +364,7 @@ Key implementation notes (D-20):
 |----------|-------------|
 | config → executor | :channel_adapters module values cross from config.exs atoms into executor dispatch call |
 | executor → DB | adapter_module string (from inspect/1) crosses from runtime into chimeway_delivery_attempts row |
+| executor → telemetry | adapter_module string crosses from executor into [:chimeway, :dispatch, :sync, :stop] stop metadata |
 
 ## STRIDE Threat Register
 
@@ -218,6 +381,7 @@ After plan execution:
 - `mix compile` exits 0
 - `grep -c "resolve_adapter" lib/chimeway/dispatch/executor.ex` returns `2`
 - `grep -c "adapter_module: inspect" lib/chimeway/dispatch/executor.ex` returns `1`
+- `grep -c "adapter_module" lib/chimeway/dispatch/sync.ex` returns at least `2`
 - `mix test test/chimeway/integration/delivery_lifecycle_test.exs` passes
 </verification>
 
@@ -226,7 +390,8 @@ After plan execution:
 `adapter_module: inspect(adapter)` to `Deliveries.record_attempt/2`.
 `resolve_adapter/1` private function exists with `:channel_adapters` map lookup,
 `:adapter` fallback, and conditional `adapter_fallback` telemetry (D-19).
-Existing delivery lifecycle tests pass (backwards-compat D-18 preserved).
+`sync.ex` threads `adapter_module` from the attempt into the `[:chimeway, :dispatch, :sync, :stop]`
+stop metadata (D-22). Existing delivery lifecycle tests pass (backwards-compat D-18 preserved).
 </success_criteria>
 
 <output>

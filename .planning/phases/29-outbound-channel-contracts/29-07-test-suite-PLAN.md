@@ -14,6 +14,7 @@ files_modified:
   - test/chimeway/integration/delivery_lifecycle_test.exs
   - test/chimeway/traces_test.exs
   - test/chimeway/telemetry_integration_test.exs
+  - test/chimeway/application_validation_test.exs
 autonomous: true
 requirements:
   - CHAN-01
@@ -25,8 +26,11 @@ must_haves:
     - "channel_contract_test.exs has round-trip cases for Sms (valid + error), Push (valid + error), Chat (valid + error)"
     - "channel_contract_test.exs has one registry-overlay case proving host-defined channels resolve correctly"
     - "delivery_lifecycle_test.exs asserts attempt.adapter_module == the test adapter module string"
+    - "delivery_lifecycle_test.exs asserts adapter_module differs across two attempts with different adapters (D-21)"
     - "traces_test.exs asserts explanation.last_attempt.adapter_module is present and not nil"
     - "telemetry_integration_test.exs asserts channel_unregistered and adapter_fallback events fire"
+    - "telemetry_integration_test.exs channel_unregistered test erases :persistent_term key in on_exit"
+    - "application_validation_test.exs asserts validate_channel_render_modules!/0 raises ArgumentError for non-existent module"
     - "All 25 decisions D-01..D-25 are covered by at least one test assertion"
     - "mix test exits 0 across the full suite"
   artifacts:
@@ -37,7 +41,7 @@ must_haves:
       provides: "Round-trip tests for Sms, Push, Chat + registry-overlay"
       contains: "sms"
     - path: "test/chimeway/integration/delivery_lifecycle_test.exs"
-      provides: "adapter_module assertion on attempt row"
+      provides: "adapter_module assertion on attempt row + per-attempt diff test"
       contains: "adapter_module"
     - path: "test/chimeway/traces_test.exs"
       provides: "adapter_module assertion in explain_delivery last_attempt"
@@ -45,6 +49,9 @@ must_haves:
     - path: "test/chimeway/telemetry_integration_test.exs"
       provides: "channel_unregistered and adapter_fallback telemetry assertions"
       contains: "channel_unregistered"
+    - path: "test/chimeway/application_validation_test.exs"
+      provides: "D-13 boot validation: assert_raise ArgumentError for typo'd module"
+      contains: "assert_raise ArgumentError"
   key_links:
     - from: "test/chimeway/rendering/channel_contract_test.exs"
       to: "lib/chimeway/rendering/channels/sms.ex"
@@ -54,11 +61,15 @@ must_haves:
       to: "lib/chimeway/dispatch/executor.ex"
       via: "attempt.adapter_module assertion after trigger"
       pattern: "adapter_module"
+    - from: "test/chimeway/application_validation_test.exs"
+      to: "lib/chimeway/application.ex"
+      via: "direct call to validate_channel_render_modules!/0"
+      pattern: "validate_channel_render_modules"
 ---
 
 <objective>
 Update `Chimeway.Adapters.Test` with channel-tagged mailbox sends (D-23), then write
-the full test coverage for Phase 29 across four test files. This is the final integration
+the full test coverage for Phase 29 across five test files. This is the final integration
 wave: all implementation is in place, tests prove each decision is correctly implemented.
 
 Purpose: The test suite is the executable verification of all 25 locked decisions. Plan 07
@@ -197,13 +208,17 @@ Note on process context: `self()` during sync dispatch is the test process. Duri
 </task>
 
 <task type="auto" tdd="true">
-  <name>Task 2: Extend channel_contract_test.exs with Sms/Push/Chat + registry-overlay</name>
-  <files>test/chimeway/rendering/channel_contract_test.exs</files>
+  <name>Task 2: Extend channel_contract_test.exs with Sms/Push/Chat + registry-overlay + boot validation test</name>
+  <files>
+    test/chimeway/rendering/channel_contract_test.exs,
+    test/chimeway/application_validation_test.exs
+  </files>
   <read_first>
     - test/chimeway/rendering/channel_contract_test.exs — read the full file before adding; understand existing test describe blocks and aliases to append to the right section
     - lib/chimeway/rendering/channels/sms.ex — confirm the exact field names that should appear in render_data
     - lib/chimeway/rendering/channels/push.ex — same
     - lib/chimeway/rendering/channels/chat.ex — same
+    - lib/chimeway/application.ex — read the validate_channel_render_modules!/0 function signature (private, so tests call it via Application.start/2 or directly via :erlang.apply; see action below for the recommended approach)
   </read_first>
   <behavior>
     - Sms round-trip: render_delivery(:sms, "otp.sent.sms", 1, %{"text_body" => "Your code is 123456"}) returns {:ok, %{channel: "sms", render_data: %{"text_body" => "Your code is 123456"}, render_key: "otp.sent.sms", render_version: 1}}
@@ -215,12 +230,12 @@ Note on process context: `self()` during sync dispatch is the test process. Duri
     - Push vendor-field strip: render_data never includes "device_token", "apns_topic" (D-07)
     - Chat round-trip: render_delivery(:chat, "comment.chat", 1, %{"text" => "Hello", "rich_payload" => %{"blocks" => []}}) returns {:ok, %{channel: "chat", render_data: %{"rich_payload" => %{"blocks" => []}, "text" => "Hello"}, ...}}
     - Chat error: render_delivery(:chat, ..., %{}) returns changeset with text: ["can't be blank"] (D-09)
-    - Registry overlay: after Application.put_env(:chimeway, :channel_render_modules, %{"slack" => TestSlackChannel}), render_delivery(:slack, ...) returns {:ok, %{channel: "slack", ...}}
+    - Registry overlay: after Application.put_env(:chimeway, :channel_render_modules, %{"slack" => TestRegistryChannel}), render_delivery(:slack, ...) returns {:ok, %{channel: "slack", ...}}
+    - D-13 boot validation: validate_channel_render_modules!/0 raises ArgumentError when :channel_render_modules contains a non-existent module
   </behavior>
   <action>
-Append the following test cases to `test/chimeway/rendering/channel_contract_test.exs`.
-Read the existing file first to find the correct location (append inside the appropriate
-describe block, or add new describe blocks after the existing ones).
+**test/chimeway/rendering/channel_contract_test.exs** — append the following describe blocks.
+Read the existing file first to find the correct location (append after the existing describe blocks).
 
 Add a describe block for SMS (D-01, D-02, D-03, D-04, D-25):
 ```elixir
@@ -391,9 +406,93 @@ describe "registry-overlay channel resolution" do
   end
 end
 ```
+
+**test/chimeway/application_validation_test.exs** — create this new file for D-13 boot
+validation testing. The `validate_channel_render_modules!/0` function is private, so the
+test calls it via `:erlang.apply(Chimeway.Application, :validate_channel_render_modules!, [])`.
+Alternatively, use `Application.put_env` to configure a bad module and call
+`Chimeway.Application.start(:normal, [])` — but that would start the supervisor. The
+safer approach: call the private function directly via `:erlang.apply`.
+
+Create `test/chimeway/application_validation_test.exs` with:
+```elixir
+defmodule Chimeway.ApplicationValidationTest do
+  use ExUnit.Case, async: false
+
+  @moduledoc """
+  Tests D-13: validate_channel_render_modules!/0 raises at boot for invalid modules.
+  """
+
+  describe "validate_channel_render_modules!/0" do
+    test "raises ArgumentError for non-existent module (D-13)" do
+      original = Application.get_env(:chimeway, :channel_render_modules)
+
+      Application.put_env(
+        :chimeway,
+        :channel_render_modules,
+        %{"custom" => Chimeway.NonExistent.Channel}
+      )
+
+      on_exit(fn ->
+        case original do
+          nil -> Application.delete_env(:chimeway, :channel_render_modules)
+          val -> Application.put_env(:chimeway, :channel_render_modules, val)
+        end
+      end)
+
+      assert_raise ArgumentError, ~r/could not be loaded/, fn ->
+        :erlang.apply(Chimeway.Application, :validate_channel_render_modules!, [])
+      end
+    end
+
+    test "raises ArgumentError when module exists but lacks validate/1 (D-13)" do
+      original = Application.get_env(:chimeway, :channel_render_modules)
+
+      # Use a real module that does NOT export validate/1
+      Application.put_env(
+        :chimeway,
+        :channel_render_modules,
+        %{"custom" => Chimeway.Delivery}
+      )
+
+      on_exit(fn ->
+        case original do
+          nil -> Application.delete_env(:chimeway, :channel_render_modules)
+          val -> Application.put_env(:chimeway, :channel_render_modules, val)
+        end
+      end)
+
+      assert_raise ArgumentError, ~r/does not export validate\/1/, fn ->
+        :erlang.apply(Chimeway.Application, :validate_channel_render_modules!, [])
+      end
+    end
+
+    test "passes silently when :channel_render_modules is empty (D-13)" do
+      original = Application.get_env(:chimeway, :channel_render_modules)
+      Application.put_env(:chimeway, :channel_render_modules, %{})
+
+      on_exit(fn ->
+        case original do
+          nil -> Application.delete_env(:chimeway, :channel_render_modules)
+          val -> Application.put_env(:chimeway, :channel_render_modules, val)
+        end
+      end)
+
+      # Should not raise — empty registry is valid
+      assert :ok ==
+               Enum.reduce(%{}, :ok, fn _, acc -> acc end)
+
+      # Call the private function — no exception
+      :erlang.apply(Chimeway.Application, :validate_channel_render_modules!, [])
+    end
+  end
+end
+```
+
+Note: `async: false` is required because these tests mutate global application env.
   </action>
   <verify>
-    <automated>cd /Users/jon/projects/chimeway && mix test test/chimeway/rendering/channel_contract_test.exs 2>&1 | tail -15</automated>
+    <automated>cd /Users/jon/projects/chimeway && mix test test/chimeway/rendering/channel_contract_test.exs test/chimeway/application_validation_test.exs 2>&1 | tail -15</automated>
   </verify>
   <acceptance_criteria>
     - `grep -c "SMS channel" test/chimeway/rendering/channel_contract_test.exs` outputs `1`
@@ -401,28 +500,33 @@ end
     - `grep -c "Chat channel" test/chimeway/rendering/channel_contract_test.exs` outputs `1`
     - `grep -c "registry-overlay" test/chimeway/rendering/channel_contract_test.exs` outputs `1`
     - `grep -c "text_body" test/chimeway/rendering/channel_contract_test.exs` outputs at least `4` (multiple SMS tests)
+    - `grep -c "assert_raise ArgumentError" test/chimeway/application_validation_test.exs` outputs `2`
+    - `grep -c "validate_channel_render_modules" test/chimeway/application_validation_test.exs` outputs at least `3`
+    - `grep -c "NonExistent" test/chimeway/application_validation_test.exs` outputs `1`
     - `mix test test/chimeway/rendering/channel_contract_test.exs` exits 0 with all tests passing
+    - `mix test test/chimeway/application_validation_test.exs` exits 0 with all tests passing
   </acceptance_criteria>
-  <done>channel_contract_test.exs has SMS/Push/Chat round-trips, error cases, vendor-field strip, GSM-7 no-limit, and registry-overlay tests — all passing</done>
+  <done>channel_contract_test.exs has SMS/Push/Chat round-trips, error cases, vendor-field strip, GSM-7 no-limit, and registry-overlay tests — all passing; application_validation_test.exs has D-13 boot validation raise tests</done>
 </task>
 
 <task type="auto" tdd="true">
-  <name>Task 3: Extend delivery_lifecycle, traces, and telemetry tests</name>
+  <name>Task 3: Extend delivery_lifecycle, traces, and telemetry tests + D-21 per-attempt diff</name>
   <files>
     test/chimeway/integration/delivery_lifecycle_test.exs,
     test/chimeway/traces_test.exs,
     test/chimeway/telemetry_integration_test.exs
   </files>
   <read_first>
-    - test/chimeway/integration/delivery_lifecycle_test.exs — read the full file to find existing Scenario B (Test adapter) test block around lines 378-440; understand the Application.put_env isolation pattern used there
+    - test/chimeway/integration/delivery_lifecycle_test.exs — read the full file to find existing Scenario B (Test adapter) test block around lines 378-440; understand the Application.put_env isolation pattern used there; find how retry/second-attempt delivery is exercised (needed for D-21 test)
     - test/chimeway/traces_test.exs — read the existing explain_delivery test section to find where to add adapter_module assertions
     - test/chimeway/telemetry_integration_test.exs — read the existing telemetry attach/assert pattern to replicate it for the two new events
   </read_first>
   <behavior>
     - delivery_lifecycle_test: attempt.adapter_module == "Chimeway.Adapters.Test" after sync delivery
     - delivery_lifecycle_test: assert_receive {:chimeway_delivery, "email", %Chimeway.Delivery{}} after sync delivery (D-23)
+    - delivery_lifecycle_test (D-21): attempt 1 has adapter_module == inspect(AdapterA), attempt 2 has adapter_module == inspect(AdapterB), and the two values differ
     - traces_test: explanation.last_attempt.adapter_module == "Chimeway.Adapters.Test" for a Phase-29 attempt
-    - telemetry_integration_test: [:chimeway, :rendering, :channel_unregistered] fires with %{channel: "unknown_xyz_channel"} when unknown channel hits graceful fallback (D-14)
+    - telemetry_integration_test: [:chimeway, :rendering, :channel_unregistered] fires with %{channel: "unknown_xyz_channel"} when unknown channel hits graceful fallback (D-14); :persistent_term key erased in on_exit for determinism
     - telemetry_integration_test: [:chimeway, :dispatch, :adapter_fallback] fires with %{channel: _, fallback_module: _} when :channel_adapters is set and lookup misses (D-19)
     - telemetry_integration_test: NO adapter_fallback event when only :adapter is configured and no :channel_adapters (D-18/D-19)
   </behavior>
@@ -449,6 +553,44 @@ assert attempt.adapter_module == "Chimeway.Adapters.Test"
 
 Or access it from the `{:ok, %{attempt: attempt}}` return of `record_attempt`.
 
+Add a NEW test for D-21 (per-attempt adapter_module difference). Add it inside the
+same Scenario B describe block with its own setup:
+
+```elixir
+test "adapter_module differs across attempts when adapter is reconfigured between attempts (D-21)" do
+  # Attempt 1: deliver with Adapters.Test (adapter A)
+  Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+
+  # Build and trigger a delivery — read the existing test for the exact factory/helper used
+  # to create a delivery struct; use the same pattern here
+  delivery = build_and_persist_test_delivery()   # replace with actual helper name from the file
+  {:ok, _} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+
+  [attempt1] = Chimeway.Repo.all(Chimeway.DeliveryAttempt)
+  assert attempt1.adapter_module == inspect(Chimeway.Adapters.Test)
+
+  # Reset attempt records for clarity
+  Chimeway.Repo.delete_all(Chimeway.DeliveryAttempt)
+
+  # Attempt 2: reconfigure to Adapters.Logger (adapter B) and trigger another delivery
+  Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+
+  delivery2 = build_and_persist_test_delivery()
+  Chimeway.Dispatch.Sync.dispatch_delivery(delivery2, [])
+
+  [attempt2] = Chimeway.Repo.all(Chimeway.DeliveryAttempt)
+  assert attempt2.adapter_module == inspect(Chimeway.Adapters.Logger)
+
+  # D-21: the two values must differ — same delivery type, different adapter
+  assert attempt1.adapter_module != attempt2.adapter_module
+end
+```
+
+IMPORTANT: Before writing this test, read `test/chimeway/integration/delivery_lifecycle_test.exs`
+in full to identify the exact factory/helper function used to build and persist delivery structs.
+Replace `build_and_persist_test_delivery()` with the actual function name from the file.
+Use `on_exit` to restore `:adapter` config if not already covered by the describe block's setup.
+
 **test/chimeway/traces_test.exs**:
 
 Find the existing `explain_delivery` test section. In a test that creates a delivery and
@@ -469,10 +611,19 @@ assert is_nil(explanation.last_attempt.adapter_module) or
 **test/chimeway/telemetry_integration_test.exs**:
 
 Follow the existing telemetry attach + assert_receive pattern already in the file.
-Add two new test cases (or two new tests within an existing describe block):
+Add three new test cases:
 
 ```elixir
 test "emits channel_unregistered telemetry for unknown render channels (D-14)" do
+  # Erase :persistent_term once-flag BEFORE test so the emit fires even if a prior test
+  # hit this channel. Erase in on_exit so subsequent test runs are deterministic.
+  channel_string = "unknown_xyz_channel_#{System.unique_integer()}"
+  :persistent_term.erase({:chimeway_channel_unregistered_logged, channel_string})
+
+  on_exit(fn ->
+    :persistent_term.erase({:chimeway_channel_unregistered_logged, channel_string})
+  end)
+
   handler_id = "test-channel-unregistered-#{System.unique_integer()}"
 
   :telemetry.attach(
@@ -487,9 +638,24 @@ test "emits channel_unregistered telemetry for unknown render channels (D-14)" d
   on_exit(fn -> :telemetry.detach(handler_id) end)
 
   # Trigger rendering for a channel not in compiled clauses or registry
-  Chimeway.Rendering.render_delivery(:unknown_xyz_channel, "test.key", 1, %{"x" => "y"})
+  Chimeway.Rendering.render_delivery(
+    String.to_atom(channel_string),
+    "test.key",
+    1,
+    %{"x" => "y"}
+  )
 
-  assert_receive {:telemetry_event, %{count: 1}, %{channel: "unknown_xyz_channel"}}, 500
+  assert_receive {:telemetry_event, %{count: 1}, %{channel: ^channel_string}}, 500
+
+  # D-14 once-flag: a second call with the same channel does NOT re-emit
+  Chimeway.Rendering.render_delivery(
+    String.to_atom(channel_string),
+    "test.key",
+    1,
+    %{"x" => "y"}
+  )
+
+  refute_receive {:telemetry_event, _, %{channel: ^channel_string}}, 100
 end
 
 test "emits adapter_fallback telemetry when :channel_adapters set and lookup misses (D-19)" do
@@ -512,9 +678,9 @@ test "emits adapter_fallback telemetry when :channel_adapters set and lookup mis
   # Set :channel_adapters for "sms" only, then trigger an "email" delivery
   Application.put_env(:chimeway, :channel_adapters, %{"sms" => Chimeway.Adapters.Logger})
 
-  # Call resolve_adapter indirectly via a delivery or directly via test helper
-  # The adapter_fallback fires because :channel_adapters is non-empty and "email" is not in it
-  Chimeway.Dispatch.Executor.run_delivery(build_test_delivery_for_channel("email"))
+  # Trigger resolve_adapter/1 indirectly via an executor call or directly by calling
+  # the private function. Use :erlang.apply to reach the private resolve_adapter/1:
+  :erlang.apply(Chimeway.Dispatch.Executor, :resolve_adapter, ["email"])
 
   assert_receive {:telemetry_event, %{count: 1}, %{channel: "email", fallback_module: _}}, 500
 end
@@ -532,34 +698,47 @@ test "does NOT emit adapter_fallback when only :adapter is configured (D-18, D-1
     nil
   )
 
-  on_exit(fn -> :telemetry.detach(handler_id) end)
+  on_exit(fn ->
+    :telemetry.detach(handler_id)
+    Application.delete_env(:chimeway, :channel_adapters)
+  end)
 
-  # Only :adapter is configured — no :channel_adapters
-  # Trigger delivery; no adapter_fallback should fire
-  :timer.sleep(50)
+  # Ensure :channel_adapters is NOT set (only :adapter exists)
+  Application.delete_env(:chimeway, :channel_adapters)
+
+  # Call resolve_adapter for any channel — should use fallback silently
+  :erlang.apply(Chimeway.Dispatch.Executor, :resolve_adapter, ["email"])
+
+  # Give any async event a moment; then assert counter is still zero
+  Process.sleep(50)
   assert :counters.get(received, 1) == 0
 end
 ```
 
-Use the existing helpers in the test file (`build_test_delivery_for_channel/1` or equivalent)
-to create a delivery struct for testing. If no such helper exists, construct a minimal
-delivery struct directly — read the existing test file for the pattern used there.
+Note: `resolve_adapter/1` is private. If `:erlang.apply` on a private function fails at
+runtime (Elixir enforces no visibility at the call site but the BEAM allows it), use an
+indirect path: trigger a full delivery cycle via `Chimeway.Dispatch.Sync.dispatch_delivery/2`
+with the appropriate adapter config, then assert the telemetry event. Read the existing
+delivery_lifecycle_test.exs for the exact delivery build pattern.
   </action>
   <verify>
     <automated>cd /Users/jon/projects/chimeway && mix test test/chimeway/integration/delivery_lifecycle_test.exs test/chimeway/traces_test.exs test/chimeway/telemetry_integration_test.exs 2>&1 | tail -20</automated>
   </verify>
   <acceptance_criteria>
-    - `grep -c "adapter_module" test/chimeway/integration/delivery_lifecycle_test.exs` outputs at least `1`
+    - `grep -c "adapter_module" test/chimeway/integration/delivery_lifecycle_test.exs` outputs at least `2` (assertion + D-21 test)
     - `grep -c "chimeway_delivery" test/chimeway/integration/delivery_lifecycle_test.exs` outputs at least `1`
+    - `grep -c "adapter_module != attempt2.adapter_module" test/chimeway/integration/delivery_lifecycle_test.exs` outputs `1` (D-21)
     - `grep -c "adapter_module" test/chimeway/traces_test.exs` outputs at least `1`
     - `grep -c "channel_unregistered" test/chimeway/telemetry_integration_test.exs` outputs `1`
     - `grep -c "adapter_fallback" test/chimeway/telemetry_integration_test.exs` outputs at least `2`
+    - `grep -c "persistent_term.erase" test/chimeway/telemetry_integration_test.exs` outputs at least `2` (before + on_exit)
+    - `grep -c "refute_receive" test/chimeway/telemetry_integration_test.exs` outputs at least `1` (once-flag second-call assertion)
     - `mix test test/chimeway/integration/delivery_lifecycle_test.exs` passes
     - `mix test test/chimeway/traces_test.exs` passes
     - `mix test test/chimeway/telemetry_integration_test.exs` passes
     - `mix test` (full suite) exits 0
   </acceptance_criteria>
-  <done>All three test files extended with Phase 29 assertions; full suite green</done>
+  <done>All three test files extended with Phase 29 assertions including D-21 per-attempt diff; :persistent_term erased in on_exit; full suite green</done>
 </task>
 
 </tasks>
@@ -586,16 +765,20 @@ After plan execution:
 - `mix test` (full suite) exits 0
 - `grep -c "chimeway_delivery" lib/chimeway/adapters/test.ex` returns `1`
 - `grep -c "channel_unregistered" test/chimeway/telemetry_integration_test.exs` returns `1`
-- `grep -c "adapter_module" test/chimeway/integration/delivery_lifecycle_test.exs` returns at least `1`
+- `grep -c "adapter_module" test/chimeway/integration/delivery_lifecycle_test.exs` returns at least `2`
+- `grep -c "assert_raise ArgumentError" test/chimeway/application_validation_test.exs` returns `2`
+- `grep -c "persistent_term.erase" test/chimeway/telemetry_integration_test.exs` returns at least `2`
 - All 25 decisions D-01..D-25 have at least one test assertion per the Coverage Matrix in 29-RESEARCH.md
 </verification>
 
 <success_criteria>
 Adapters.Test sends channel-tagged messages to the test process. channel_contract_test.exs
 has 10+ new test cases covering Sms/Push/Chat round-trips, error cases, vendor-field strip,
-and registry-overlay. delivery_lifecycle_test.exs asserts adapter_module on the attempt row.
-traces_test.exs asserts adapter_module in explanation.last_attempt. telemetry_integration_test.exs
-asserts both new telemetry events. Full suite (mix test) exits 0.
+and registry-overlay. delivery_lifecycle_test.exs asserts adapter_module on the attempt row
+AND proves it differs across attempts with different adapters (D-21). traces_test.exs asserts
+adapter_module in explanation.last_attempt. telemetry_integration_test.exs asserts both new
+telemetry events and the channel_unregistered once-flag behavior. application_validation_test.exs
+proves D-13 boot validation raises for bad modules. Full suite (mix test) exits 0.
 </success_criteria>
 
 <output>

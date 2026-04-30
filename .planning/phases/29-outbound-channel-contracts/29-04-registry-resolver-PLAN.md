@@ -2,9 +2,10 @@
 phase: 29-outbound-channel-contracts
 plan: "04"
 type: execute
-wave: 2
+wave: 3
 depends_on:
   - "01"
+  - "03"
 files_modified:
   - lib/chimeway/rendering.ex
   - lib/chimeway/application.ex
@@ -18,12 +19,12 @@ must_haves:
   truths:
     - "channel_module/1 resolves sms/push/chat to the new compiled clauses"
     - "channel_module/1 resolves host-configured channels via :channel_render_modules registry"
-    - "Unknown channels trigger [:chimeway, :rendering, :channel_unregistered] telemetry + Logger.warning"
+    - "Unknown channels trigger [:chimeway, :rendering, :channel_unregistered] telemetry + Logger.warning on first hit per channel per BEAM lifetime"
     - "Boot validation rejects typo'd module names in :channel_render_modules before the app serves traffic"
     - "adapter_module key passes through the telemetry safe_meta/1 allowlist"
   artifacts:
     - path: "lib/chimeway/rendering.ex"
-      provides: "Three-layer channel_module/1 resolution"
+      provides: "Three-layer channel_module/1 resolution with persistent_term once-flag"
       contains: "channel_unregistered"
     - path: "lib/chimeway/application.ex"
       provides: "validate_channel_render_modules!/0 boot guard"
@@ -50,9 +51,10 @@ telemetry `@allowed_meta_keys` allowlist with `:adapter_module` (D-12, D-13, D-1
 
 Purpose: Makes the channel-render-module registry seam public and validated. Host apps
 can configure `:channel_render_modules` in `config.exs`; unknown channels emit an
-observable telemetry signal instead of silently producing empty render_data. Plan 04
-runs in Wave 2 (parallel with Plan 03) because it depends only on Plan 01 (the behaviour
-module that the new compiled clauses alias).
+observable telemetry signal (once per channel per BEAM lifetime, using a `:persistent_term`
+once-flag) instead of silently producing empty render_data. Plan 04 runs in Wave 3
+(after Plan 03) because it aliases Sms/Push/Chat modules that Plan 03 creates — aliasing
+a non-existent module prevents compilation.
 
 Output: Three-layer channel_module/1 in rendering.ex, boot guard in application.ex,
 adapter_module in telemetry allowlist.
@@ -137,7 +139,7 @@ end
 <tasks>
 
 <task type="auto" tdd="true">
-  <name>Task 1: Extend channel_module/1 with three-layer resolution + telemetry</name>
+  <name>Task 1: Extend channel_module/1 with three-layer resolution + persistent_term once-flag</name>
   <files>lib/chimeway/rendering.ex</files>
   <read_first>
     - lib/chimeway/rendering.ex — read the full file before editing; need exact line positions of the alias block and channel_module/1 function clauses; note whether `require Logger` already exists
@@ -150,7 +152,8 @@ end
     - channel_module("push") returns {:ok, Chimeway.Rendering.Channels.Push}
     - channel_module("chat") returns {:ok, Chimeway.Rendering.Channels.Chat}
     - channel_module("slack") with :channel_render_modules configured to %{"slack" => MySlack} returns {:ok, MySlack}
-    - channel_module("unknown_xyz") with no registry entry emits [:chimeway, :rendering, :channel_unregistered] telemetry with %{channel: "unknown_xyz"} metadata AND returns {:error, {:unsupported_render_channel, "unknown_xyz"}}
+    - channel_module("unknown_xyz") with no registry entry emits [:chimeway, :rendering, :channel_unregistered] telemetry with %{channel: "unknown_xyz"} metadata on the FIRST call AND returns {:error, {:unsupported_render_channel, "unknown_xyz"}}
+    - channel_module("unknown_xyz") on a SECOND call with the same channel does NOT re-emit telemetry (once-per-BEAM-lifetime via :persistent_term)
   </behavior>
   <action>
 Make exactly two changes to `lib/chimeway/rendering.ex`:
@@ -191,19 +194,26 @@ defp channel_module(channel) do
   # Layer 1: host-configured registry lookup (D-12)
   case Application.get_env(:chimeway, :channel_render_modules, %{}) |> Map.get(channel) do
     nil ->
+      # D-14: emit once per channel per BEAM lifetime using :persistent_term once-flag.
+      # Key shape: {:chimeway_channel_unregistered_logged, channel_string}
+      # :persistent_term read is constant-time (zero hot-path overhead after first hit).
+      unless :persistent_term.get({:chimeway_channel_unregistered_logged, channel}, false) do
+        :telemetry.execute(
+          [:chimeway, :rendering, :channel_unregistered],
+          %{count: 1},
+          %{channel: channel}
+        )
+
+        Logger.warning(
+          "[chimeway] unregistered render channel #{inspect(channel)} hit graceful fallback — " <>
+            "render_data will be empty. Configure :channel_render_modules or add a compiled clause."
+        )
+
+        :persistent_term.put({:chimeway_channel_unregistered_logged, channel}, true)
+      end
+
       # Layer 3: graceful fallback — delivery_planning.ex catches
       # {:unsupported_render_channel, _} and substitutes render_data: %{}
-      :telemetry.execute(
-        [:chimeway, :rendering, :channel_unregistered],
-        %{count: 1},
-        %{channel: channel}
-      )
-
-      Logger.warning(
-        "[chimeway] unregistered render channel #{inspect(channel)} hit graceful fallback — " <>
-          "render_data will be empty. Configure :channel_render_modules or add a compiled clause."
-      )
-
       {:error, {:unsupported_render_channel, channel}}
 
     module ->
@@ -223,6 +233,8 @@ produces `render_data: %{}`) is Layer 3 — it is NOT in rendering.ex. rendering
     - `grep -c "channel_render_modules" lib/chimeway/rendering.ex` outputs `1`
     - `grep -c "channel_unregistered" lib/chimeway/rendering.ex` outputs `1`
     - `grep -c "Logger.warning" lib/chimeway/rendering.ex` outputs `1`
+    - `grep -c "persistent_term" lib/chimeway/rendering.ex` outputs `2` (get + put)
+    - `grep -c "chimeway_channel_unregistered_logged" lib/chimeway/rendering.ex` outputs `2`
     - `grep 'alias Chimeway.Rendering.Channels' lib/chimeway/rendering.ex` contains `Sms, Push, Chat`
     - `grep -c "channel_module(\"sms\")" lib/chimeway/rendering.ex` outputs `1`
     - `grep -c "channel_module(\"push\")" lib/chimeway/rendering.ex` outputs `1`
@@ -230,7 +242,7 @@ produces `render_data: %{}`) is Layer 3 — it is NOT in rendering.ex. rendering
     - `mix compile` exits 0
     - `mix test test/chimeway/rendering/channel_contract_test.exs` passes
   </acceptance_criteria>
-  <done>Three-layer channel_module/1 in rendering.ex; sms/push/chat have compiled clauses; unknown channel triggers telemetry</done>
+  <done>Three-layer channel_module/1 in rendering.ex; sms/push/chat have compiled clauses; unknown channel triggers telemetry once per BEAM lifetime via :persistent_term</done>
 </task>
 
 <task type="auto">
@@ -334,6 +346,7 @@ it inherits `adapter_module` automatically.
 | T-29-12 | Denial of Service | Atom exhaustion from runtime channel strings | mitigate | D-12: registry lookup uses Map.get on config.exs atoms — no String.to_atom anywhere; channel strings stay strings; module atoms come from compile-time config only |
 | T-29-13 | Information Disclosure | Logger.warning with channel string | accept | Channel strings (e.g. "slack") are host-app identifiers already in notifier code; logging them at warning level adds no new disclosure beyond what operators can see in source |
 | T-29-14 | Spoofing | Fake module in :channel_render_modules | mitigate | D-13 boot guard: Code.ensure_loaded? rejects non-existent modules; function_exported? enforces validate/1 contract; operator must control config.exs to inject a module |
+| T-29-14b | Denial of Service | :persistent_term key accumulation from many unknown channels | accept | Keys are keyed by channel string; in practice the set of unknown channels per deployment is small and bounded; :persistent_term has no GC overhead for small fixed sets |
 </threat_model>
 
 <verification>
@@ -341,13 +354,15 @@ After plan execution:
 - `mix compile` exits 0
 - `grep -c "validate_channel_render_modules!" lib/chimeway/application.ex` returns `2`
 - `grep -c "channel_render_modules" lib/chimeway/rendering.ex` returns `1`
+- `grep -c "persistent_term" lib/chimeway/rendering.ex` returns `2`
 - `grep "allowed_meta_keys" lib/chimeway/telemetry.ex` contains `adapter_module`
 - `mix test test/chimeway/rendering/channel_contract_test.exs` passes
 </verification>
 
 <success_criteria>
 `channel_module/1` has five compiled clauses plus registry-overlay plus graceful fallback
-with telemetry. `Application.start/2` calls `validate_channel_render_modules!/0`.
+with telemetry (emitted once per channel per BEAM lifetime via `:persistent_term`).
+`Application.start/2` calls `validate_channel_render_modules!/0`.
 `@allowed_meta_keys` includes `:adapter_module`. `mix compile` exits 0.
 </success_criteria>
 
