@@ -73,7 +73,7 @@ the full test coverage for Phase 29 across five test files. This is the final in
 wave: all implementation is in place, tests prove each decision is correctly implemented.
 
 Purpose: The test suite is the executable verification of all 25 locked decisions. Plan 07
-runs last (Wave 4) because it depends on all implementation plans (03, 04, 05, 06) being
+runs last (Wave 5) because it depends on all implementation plans (03, 04, 05, 06) being
 complete so the tests can actually pass.
 
 Output: Updated test.ex adapter + extended test files; full suite green.

@@ -894,16 +894,16 @@ end
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **`[:chimeway, :dispatch, :delivery, :stop]` — does this event exist or should Phase 29 create it?**
-   - What we know: The current telemetry catalog (telemetry.ex) does NOT include a `[:chimeway, :dispatch, :delivery]` span. The existing span wrapping `Executor.run_delivery/1` is `[:chimeway, :dispatch, :sync]`.
-   - What's unclear: D-22 references this event. Was it intended to be created new, or is it a reference to `[:chimeway, :dispatch, :sync]`?
-   - Recommendation: Planner should interpret D-22 as adding `:adapter_module` to the stop metadata of `[:chimeway, :dispatch, :sync, :stop]` since that is the actual span covering executor execution today. If a new `:delivery` span is needed, it should be in `Executor.run_delivery/1` directly. Flag for confirmation if the planner disagrees.
+1. **`[:chimeway, :dispatch, :delivery, :stop]` — does this event exist or should Phase 29 create it?** *(RESOLVED 2026-04-30)*
+   - **Resolution:** D-22 maps to enriching the existing `[:chimeway, :dispatch, :sync, :stop]` event metadata with `:adapter_module`. The current span at `Executor.run_delivery/1` IS the dispatch-stop event; renaming it would be a breaking change to existing consumers. Phase 29 adds `:adapter_module` to the stop metadata of the existing span (via the `extra_stop_meta` / equivalent path the executor uses), and adds `:adapter_module` to `Chimeway.Telemetry.@allowed_meta_keys`. No new span is created.
+   - **Implementation site:** Plan 05 must include a task that passes `adapter_module: inspect(adapter)` into the existing dispatch span's stop metadata. Plan 04 separately extends `@allowed_meta_keys`.
 
-2. **`channel_unregistered` once-flag — needed for Phase 29?**
-   - What we know: D-14 says "the first time an unknown channel hits the graceful fallback." Implementing a per-process/global once-flag adds complexity.
-   - Recommendation: Emit on every hit for Phase 29. The planner can add ETS-based deduplication as an optional hardening task (Wave 3 or later).
+2. **`channel_unregistered` once-flag — needed for Phase 29?** *(RESOLVED 2026-04-30)*
+   - **Resolution:** Honor D-14's "first time" language. Use `:persistent_term` for per-channel-string deduplication (zero hot-path cost: read is constant-time, write happens once per unknown channel per BEAM lifetime). Key shape: `{:chimeway_channel_unregistered_logged, channel_string}`. Reset on `:persistent_term.erase/1` is not needed for production (BEAM restart resets), but tests SHOULD erase keys in `on_exit` to keep test runs deterministic.
+   - **Why this over ETS:** `:persistent_term` is purpose-built for "write-rarely, read-frequently" boot/registry-style state. ETS would require an owner process and table-creation-at-boot plumbing; `:persistent_term` is a one-line read/write with no infrastructure.
+   - **Implementation site:** Plan 04 Task 1's `channel_unregistered` emit gains a `:persistent_term.get/2`-with-default-`false` guard before `:telemetry.execute` and `Logger.warning`. After emit, `:persistent_term.put/2` records the flag.
 
 ---
 
