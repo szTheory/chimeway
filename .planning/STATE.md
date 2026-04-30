@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 27 — journey-traces-host-signal-api
+**Current focus:** Phase 28 — docs-reference-flows-closure (Milestone v1.3 Complete)
 
 ## Current Position
 
-Phase: 27 (journey-traces-host-signal-api) — COMPLETED
-Plan: 7 of 7
-Status: Phase complete — ready for verification
+Phase: 28 (docs-reference-flows-closure) — COMPLETED
+Plan: 1 of 1
+Status: Phase complete — milestone v1.3 closed
 Last activity: 2026-04-30
 
 ## Accumulated Context
@@ -160,7 +160,8 @@ None.
 ### Session Continuity
 
 Last session: 2026-04-30T19:20:48.757Z
-Stopped at: Completed 28-01-PLAN.md
+Stopped at: Completed Milestone v1.3
 Resume file: None
 
-**Planned Phase:** 27 (journey-traces-host-signal-api) — 6 plans — 2026-04-30T16:02:24.388Z
+**Planned Phase:** None
+nal-api) — 6 plans — 2026-04-30T16:02:24.388Z

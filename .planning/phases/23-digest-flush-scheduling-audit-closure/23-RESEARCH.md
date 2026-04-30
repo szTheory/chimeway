@@ -351,17 +351,15 @@ job =
 | A1 | A periodic due-bucket scanner would be a viable fallback if the project decides not to schedule one job per bucket. [ASSUMED] | Standard Stack / Alternatives Considered | Planner may over-prescribe a fallback the maintainers do not want; core recommendation still stands without it. |
 | A2 | Custom in-memory timer or ETS scheduling would be one of the likely bad alternatives if a developer tries to avoid Oban. [ASSUMED] | Don't Hand-Roll | Low technical risk; this is advisory framing, not a required implementation fact. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does Phase 23 own the Phase 22 recovery-orchestration defect?**
-   - What we know: the review and state file both call out that `recover_event/2` cannot currently replay `:digest_held` semantics. [VERIFIED: .planning/phases/22-recovery-outcome-analytics/22-REVIEW.md + .planning/STATE.md]
-   - What's unclear: whether maintainers want that fix bundled into digest closure or inserted as a follow-on phase.
-   - Recommendation: include it in Phase 23 unless the user explicitly splits it out, because otherwise DIGEST-02/DIGEST-03 remain behaviorally leaky under recovery. [VERIFIED: review + requirements intent]
+   - Resolution: yes. Phase 23 should absorb the `recover_event/2` replay defect because DIGEST-02 and DIGEST-03 remain behaviorally leaky if recovered notifications can degrade from `:digest_held` to immediate send. [VERIFIED: .planning/phases/22-recovery-outcome-analytics/22-REVIEW.md + .planning/REQUIREMENTS.md]
+   - Planning impact: include durable orchestration snapshot persistence plus recovery replay coverage in Phase 23 plans and verification artifacts. [VERIFIED: research recommendation]
 
 2. **Should Phase 23 support sync-only installs as "automatic scheduling"?**
-   - What we know: Oban is optional in the project stack, but the roadmap's success criterion explicitly says scheduling should happen automatically from durable state. [VERIFIED: AGENTS.md + .planning/ROADMAP.md]
-   - What's unclear: whether "automatic" must mean built-in scheduler behavior for non-Oban hosts or whether milestone closure may rely on the recommended Oban path.
-   - Recommendation: plan the verified production-shaped path around Oban and, if needed, expose a DB-backed due-bucket query/helper for non-Oban hosts as a fallback seam rather than watering down the success criterion. [VERIFIED: project stack + current code patterns]
+   - Resolution: the verified automatic path for milestone closure should be Oban-backed because Oban is the project's recommended async seam, but the phase must also make the non-Oban boundary explicit instead of silently narrowing scope. [VERIFIED: AGENTS.md + .planning/ROADMAP.md]
+   - Planning impact: Phase 23 plans should implement automatic bucket scheduling when Oban is configured, add a durable due-bucket fallback seam or explicit host-integration handoff for non-Oban installs, and avoid marking requirement closure until the verification artifact states that scope precisely. [VERIFIED: project stack + checker feedback]
 
 ## Environment Availability
 

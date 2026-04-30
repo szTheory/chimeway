@@ -16,3 +16,19 @@
 - Requirements: 11/11 satisfied
 - Git range: `v1.0..v1.1`
 - Notes: Completed reliability hardening, explicit policy controls, observability surfaces, and integration paths.
+
+## v1.2 Delivery Orchestration
+
+- Status: shipped
+- Date: 2026-04-29
+- Phases: 17-23
+- Requirements: 11/11 satisfied
+- Notes: Delivery orchestration (digest and deferred) completed.
+
+## v1.3 Workflow Journeys
+
+- Status: shipped
+- Date: 2026-04-30
+- Phases: 24-28
+- Requirements: 11/11 satisfied
+- Notes: Workflow engine, escalations, wait gates, host signal API, and tracing.

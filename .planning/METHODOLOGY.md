@@ -66,3 +66,17 @@ names and keep host-app ownership boundaries intact.
 
 **Apply when:** Designing persistence, orchestration, digest behavior, trace surfaces, or operator
 debugging flows.
+
+## Least-Surprise DX Default
+
+**Diagnoses:** Tooling, APIs, or recommendations that optimize for clever short-term convenience at
+the cost of predictability, safety, or easy mental models for library adopters and maintainers.
+
+**Recommends:** Choose the most predictable safe default that fits ecosystem norms. Prefer
+data-first public APIs, explicit validation, stable error shapes, and developer tooling that reuses
+real production paths without hidden code execution or silent fallback magic. Escalate only when
+the safer default would materially harm the product model or long-term ergonomics.
+
+**Apply when:** Designing library entrypoints, preview or operator tooling, CLI interfaces, safe
+defaults, validation contracts, or developer-facing UX where convenience could otherwise smuggle in
+surprising behavior.

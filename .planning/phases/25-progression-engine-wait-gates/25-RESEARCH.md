@@ -203,7 +203,7 @@ The exact names should stay small and explicit. A strong starting set is: `deliv
 |---|---|---|
 | `delivered` | `delivery.status == :succeeded` | Terminal success is already explicit on the canonical row. [VERIFIED: repo grep] |
 | `suppressed` | `delivery.status == :suppressed` | Policy/config suppression is business-meaningful for workflow branching. [VERIFIED: repo grep] [ASSUMED] |
-| `temporary_failure` | `delivery.status == :failed` | Current Chimeway semantics use `:failed` for transient failure before exhaustion. [VERIFIED: repo grep] |
+| `temporary_failure` | `delivery.status == :failed` | Current Chimeway semantics use `:failed` for transient failure before exhaustion, and Phase 25 should expose that as an explicit workflow-facing branch only when the step declares an `on_outcome temporary_failure` rule. [VERIFIED: repo grep] [ASSUMED] |
 | `retries_exhausted` | `delivery.status == :cancelled` and `suppression_reason == "retries_exhausted"` | This distinguishes retry-budget exhaustion from other terminal failures. [VERIFIED: repo grep] |
 | `permanent_failure` | `delivery.status == :cancelled` and `suppression_reason == "permanent_failure"` | Permanent provider failure should branch differently from exhaustion or bounce. [VERIFIED: repo grep] |
 | `bounced` | `delivery.status == :cancelled` and `suppression_reason == "bounced"` | Bounce is a distinct operator and product outcome already captured durably. [VERIFIED: repo grep] |
@@ -291,17 +291,17 @@ end
 
 This existing explanation contract already models delivery lifecycle truth separately from attempt evidence, which is the strongest in-repo argument for a curated workflow-facing outcome layer. [VERIFIED: repo grep]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should temporary failure be branchable immediately, or only after retry exhaustion?**
    - What we know: current delivery semantics use `:failed` for transient failure before later success or exhaustion. [VERIFIED: repo grep]
-   - What's unclear: whether product intent for Phase 25 wants "escalate on first temporary failure" or "escalate only after convergence". [ASSUMED]
-   - Recommendation: keep the curated vocabulary capable of expressing `temporary_failure`, but require plan-time clarity on whether rules may branch on it immediately. [ASSUMED]
+   - Resolved: Phase 25 treats `temporary_failure` as a real workflow-facing outcome. When the active step declares an explicit `on_outcome temporary_failure` rule, the progression engine may branch immediately from the persisted `:failed` delivery row; otherwise the engine records a noop and later retries may still converge the delivery to another outcome. [ASSUMED]
+   - Implementation consequence: the mapper and runtime seam must support `temporary_failure` end to end, while duplicate-safe claim logic ensures only one branch decision is emitted even if later retries or duplicate workers revisit the same row. [ASSUMED]
 
 2. **Should `digested` ever become a workflow-facing outcome later?**
    - What we know: delivery status includes `:digested`, and digest flows already preserve canonical rows. [VERIFIED: repo grep]
-   - What's unclear: whether workflow journeys in v1.3 will treat digest holding/emission as branchable prior-step outcomes or as orthogonal orchestration. [ASSUMED]
-   - Recommendation: do not include `digested` in the initial curated workflow vocabulary unless a concrete workflow use case requires it. [ASSUMED]
+   - Resolved: no for Phase 25. Digest holding/emission remains orthogonal orchestration, not a workflow branch outcome, unless a later phase introduces a concrete journey use case that requires it. [ASSUMED]
+   - Implementation consequence: `:digested` stays in the non-branchable bucket with other not-yet-converged or orthogonal states. [ASSUMED]
 
 ## Validation Architecture
 
