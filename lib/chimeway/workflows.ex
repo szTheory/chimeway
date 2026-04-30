@@ -385,12 +385,12 @@ defmodule Chimeway.Workflows do
   by `{:run_updated, run.id}` and `{:transition_inserted, run.id}`.
   """
   @spec route_signal(Signal.t()) :: {:ok, map()} | {:error, term()}
-  def route_signal(%Signal{tenant_id: tenant_id, event_name: event_name} = _signal)
-      when is_binary(tenant_id) and is_binary(event_name) do
+  def route_signal(%Signal{tenant_id: tenant_id, event_name: event_name, actor_id: actor_id} = _signal)
+      when is_binary(tenant_id) and is_binary(event_name) and is_binary(actor_id) do
     Repo.transaction(fn ->
-      matched_runs = find_runs_waiting_for_signal(tenant_id, event_name)
+      matched_runs = find_runs_waiting_for_signal(tenant_id, actor_id, event_name)
 
-        now = DateTime.utc_now()
+      now = DateTime.utc_now()
 
       Enum.reduce_while(matched_runs, %{}, fn run, acc ->
         with {:ok, updated_run} <-
@@ -398,7 +398,8 @@ defmodule Chimeway.Workflows do
                  state: :active,
                  pending_signals: [],
                  status_reason: "signal_received",
-                 last_transition_at: now
+                 last_transition_at: now,
+                 suspended_until: nil
                }),
              {:ok, transition} <-
                append_transition(Repo, %{
@@ -421,17 +422,21 @@ defmodule Chimeway.Workflows do
   end
 
   # Finds all WorkflowRun rows that are:
-  #   - owned by the given tenant (cross-tenant isolation, T-27-03)
+  #   - owned by the given tenant and actor_id (cross-tenant isolation, T-27-03, T-27-07-01)
   #   - currently in the :waiting state
   #   - have the given event_name present in their pending_signals array
-  defp find_runs_waiting_for_signal(tenant_id, event_name) do
+  defp find_runs_waiting_for_signal(tenant_id, actor_id, event_name) do
     Repo.all(
       from(wr in WorkflowRun,
+        join: n in Chimeway.Notifications.Notification,
+        on: wr.notification_id == n.id,
         where:
           wr.tenant_id == ^tenant_id and
+            n.recipient_identity == ^actor_id and
             wr.state == :waiting and
             ^event_name in wr.pending_signals,
-        lock: "FOR UPDATE"
+        lock: "FOR UPDATE",
+        select: wr
       )
     )
   end
