@@ -25,3 +25,7 @@ repo_config =
   end
 
 config :chimeway, Chimeway.Repo, repo_config
+
+config :chimeway, Oban,
+  repo: Chimeway.Repo,
+  queues: [chimeway_delivery: 10, chimeway_signals: 5]

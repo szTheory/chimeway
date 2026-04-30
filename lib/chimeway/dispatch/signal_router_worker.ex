@@ -13,7 +13,7 @@ defmodule Chimeway.Dispatch.SignalRouterWorker do
   job `:completed`. Returns `{:error, :signal_not_found}` when the signal row no
   longer exists; Oban will schedule a retry.
   """
-  use Oban.Worker, queue: :signals
+  use Oban.Worker, queue: :chimeway_signals
 
   alias Chimeway.Repo
   alias Chimeway.Signals.Signal
