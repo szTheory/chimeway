@@ -92,6 +92,7 @@ defmodule Chimeway.MixProject do
         "guides/flows/trigger-to-delivery.md",
         "guides/flows/policy-and-preferences.md",
         "guides/flows/async-dispatch.md",
+        "guides/flows/multi-step-journeys.md",
         "guides/recipes/oban-integration.md",
         "guides/recipes/custom-adapter.md",
         "guides/recipes/tracing-a-notification.md",
