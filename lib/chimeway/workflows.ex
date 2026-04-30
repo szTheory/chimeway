@@ -376,39 +376,37 @@ defmodule Chimeway.Workflows do
   @spec route_signal(Signal.t()) :: {:ok, map()} | {:error, term()}
   def route_signal(%Signal{tenant_id: tenant_id, event_name: event_name} = _signal)
       when is_binary(tenant_id) and is_binary(event_name) do
-    matched_runs = find_runs_waiting_for_signal(tenant_id, event_name)
+    Repo.transaction(fn ->
+      matched_runs = find_runs_waiting_for_signal(tenant_id, event_name)
 
-    multi =
-      Enum.reduce(matched_runs, Multi.new(), fn run, acc ->
         now = DateTime.utc_now()
 
-        acc
-        |> Multi.update(
-          {:run_updated, run.id},
-          Ecto.Changeset.change(run, %{
-            state: :active,
-            pending_signals: [],
-            status_reason: "signal_received",
-            last_transition_at: now
-          })
-        )
-        |> Multi.insert(
-          {:transition_inserted, run.id},
-          WorkflowTransition.changeset(%WorkflowTransition{}, %{
-            workflow_run_id: run.id,
-            from_state: :waiting,
-            to_state: :active,
-            reason: "signal_received",
-            context: %{"event_name" => event_name},
-            inserted_at: now
-          })
-        )
+      Enum.reduce_while(matched_runs, %{}, fn run, acc ->
+        with {:ok, updated_run} <-
+               update_run(Repo, run, %{
+                 state: :active,
+                 pending_signals: [],
+                 status_reason: "signal_received",
+                 last_transition_at: now
+               }),
+             {:ok, transition} <-
+               append_transition(Repo, %{
+                 workflow_run_id: run.id,
+                 from_state: :waiting,
+                 to_state: :active,
+                 reason: "signal_received",
+                 context: %{"event_name" => event_name},
+                 inserted_at: now
+               }) do
+          {:cont,
+           acc
+           |> Map.put({:run_updated, run.id}, updated_run)
+           |> Map.put({:transition_inserted, run.id}, transition)}
+        else
+          {:error, reason} -> {:halt, Repo.rollback(reason)}
+        end
       end)
-
-    case Repo.transaction(multi) do
-      {:ok, results} -> {:ok, results}
-      {:error, _operation, reason, _changes} -> {:error, reason}
-    end
+    end)
   end
 
   # Finds all WorkflowRun rows that are:

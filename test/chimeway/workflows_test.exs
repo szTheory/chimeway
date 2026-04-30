@@ -9,6 +9,7 @@ defmodule Chimeway.WorkflowsTest do
   alias Chimeway.Workflows.{WorkflowRun, WorkflowTransition}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+  alias Ecto.Adapters.SQL.Sandbox
 
   # ---- Fixtures ----------------------------------------------------------------
 
@@ -92,9 +93,8 @@ defmodule Chimeway.WorkflowsTest do
       assert updated_run.state == :active
       assert updated_run.pending_signals == []
       assert updated_run.status_reason == "signal_received"
-
-      # Confirm route_signal returned an :ok tuple (exact shape depends on impl)
-      assert is_map(results) or is_list(results)
+      assert Map.has_key?(results, {:run_updated, run.id})
+      assert Map.has_key?(results, {:transition_inserted, run.id})
     end
 
     test "does not resume a waiting run from a different tenant" do
@@ -168,10 +168,14 @@ defmodule Chimeway.WorkflowsTest do
       run2 = insert_workflow_run!(%{pending_signals: ["invoice_paid", "other_event"]})
       signal = insert_signal!(%{event_name: "invoice_paid"})
 
-      assert {:ok, _results} = Workflows.route_signal(signal)
+      assert {:ok, results} = Workflows.route_signal(signal)
 
       assert Repo.get!(WorkflowRun, run1.id).state == :active
       assert Repo.get!(WorkflowRun, run2.id).state == :active
+      assert Map.has_key?(results, {:run_updated, run1.id})
+      assert Map.has_key?(results, {:transition_inserted, run1.id})
+      assert Map.has_key?(results, {:run_updated, run2.id})
+      assert Map.has_key?(results, {:transition_inserted, run2.id})
     end
   end
 
@@ -189,6 +193,40 @@ defmodule Chimeway.WorkflowsTest do
           where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
         )
       )
+
+      assert length(transitions) == 1
+    end
+
+    test "route_signal/1 holds FOR UPDATE locks through commit under concurrent calls" do
+      run = insert_workflow_run!(%{pending_signals: ["invoice_paid"]})
+      signal = insert_signal!(%{event_name: "invoice_paid"})
+      parent = self()
+
+      results =
+        1..2
+        |> Task.async_stream(
+          fn _ ->
+            Sandbox.allow(Repo, parent, self())
+            Workflows.route_signal(signal)
+          end,
+          ordered: false,
+          max_concurrency: 2,
+          timeout: 15_000
+        )
+        |> Enum.map(fn {:ok, result} -> result end)
+
+      assert Enum.all?(results, &match?({:ok, _}, &1))
+
+      updated_run = Repo.get!(WorkflowRun, run.id)
+      assert updated_run.state == :active
+      assert updated_run.pending_signals == []
+
+      transitions =
+        Repo.all(
+          from(wt in WorkflowTransition,
+            where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+          )
+        )
 
       assert length(transitions) == 1
     end
