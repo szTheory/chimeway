@@ -13,12 +13,36 @@ defmodule Chimeway.MigrationContractTest do
     assert regclass("chimeway_notifications_inbox_read_inserted_index")
   end
 
+  test "phase 27 state spine tables and columns exist" do
+    assert regclass("chimeway_signals")
+
+    assert workflow_runs_column("tenant_id") == {false, "character varying"}
+    assert workflow_runs_column("pending_signals") == {true, "ARRAY"}
+    assert workflow_runs_column("suspended_until") == {true, "timestamp without time zone"}
+    assert workflow_runs_column("terminal_reason") == {true, "character varying"}
+  end
+
   defp regclass(name) do
     sql = "SELECT to_regclass($1)"
 
     case Ecto.Adapters.SQL.query!(Repo, sql, ["public." <> name]).rows do
       [[nil]] -> nil
       [[value]] -> value
+    end
+  end
+
+  defp workflow_runs_column(column_name) do
+    sql = """
+    SELECT is_nullable = 'YES', data_type
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'chimeway_workflow_runs'
+      AND column_name = $1
+    """
+
+    case Ecto.Adapters.SQL.query!(Repo, sql, [column_name]).rows do
+      [[is_nullable, data_type]] -> {is_nullable, data_type}
+      _ -> nil
     end
   end
 end
