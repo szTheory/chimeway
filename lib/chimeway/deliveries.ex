@@ -418,6 +418,23 @@ defmodule Chimeway.Deliveries do
   def get_delivery!(id), do: Repo.get!(Delivery, id)
 
   @doc """
+  Fetches a delivery by a provider message ID from its attempts.
+  """
+  @spec get_delivery_by_provider_message_id(String.t()) :: {:ok, Delivery.t()} | {:error, :not_found}
+  def get_delivery_by_provider_message_id(provider_message_id) when is_binary(provider_message_id) do
+    case Repo.one(
+           from(a in DeliveryAttempt,
+             where: a.provider_message_id == ^provider_message_id,
+             preload: [:delivery],
+             limit: 1
+           )
+         ) do
+      %DeliveryAttempt{delivery: %Delivery{} = delivery} -> {:ok, delivery}
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @doc """
   Transitions a delivery to a new status, respecting the allowed transition table.
   Returns {:error, {:invalid_transition, from: current, to: new}} for disallowed transitions.
   """
