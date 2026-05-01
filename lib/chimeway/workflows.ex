@@ -392,7 +392,7 @@ defmodule Chimeway.Workflows do
   """
   @spec route_signal(Signal.t()) :: {:ok, map()} | {:error, term()}
   def route_signal(
-        %Signal{tenant_id: tenant_id, event_name: event_name, actor_id: actor_id} = _signal
+        %Signal{tenant_id: tenant_id, event_name: event_name, actor_id: actor_id} = signal
       )
       when is_binary(tenant_id) and is_binary(event_name) and is_binary(actor_id) do
     Repo.transaction(fn ->
@@ -416,6 +416,7 @@ defmodule Chimeway.Workflows do
                  to_state: :active,
                  reason: "signal_received",
                  context: %{"event_name" => event_name},
+                 delivery_id: Map.get(signal.payload, "delivery_id"),
                  inserted_at: now
                }) do
           {:cont,

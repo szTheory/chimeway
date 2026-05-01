@@ -288,6 +288,89 @@ defmodule Chimeway.WorkflowsTest do
       refute Map.has_key?(transition.context, "payload")
     end
 
+    test "populates transition.delivery_id from signal.payload[\"delivery_id\"]" do
+      run = insert_workflow_run!(%{pending_signals: ["invoice_paid"]})
+
+      # Insert a real delivery row so the FK constraint
+      # `chimeway_workflow_transitions_delivery_id_fkey` is satisfied. The
+      # FK is `on_delete: :nilify_all` (governs delete behavior) but is still
+      # enforced at insert time — non-null values must reference an existing
+      # chimeway_deliveries.id row.
+      delivery_event =
+        Repo.insert!(%Event{
+          notification_key: "test.delivery_link",
+          notification_version: 1,
+          idempotency_key: "delivery-link-#{System.unique_integer([:positive])}",
+          payload: %{}
+        })
+
+      delivery_notification =
+        Repo.insert!(%Notification{
+          event_id: delivery_event.id,
+          recipient_identity: "user_1",
+          recipient_type: "user",
+          metadata: %{},
+          render_assigns: %{},
+          render_channels: %{}
+        })
+
+      delivery =
+        Repo.insert!(
+          Chimeway.Delivery.changeset(%Chimeway.Delivery{}, %{
+            notification_id: delivery_notification.id,
+            channel: "in_app",
+            status: :pending,
+            tenant_id: "acme",
+            actor_id: "user_1"
+          })
+        )
+
+      delivery_id = delivery.id
+
+      signal =
+        insert_signal!(%{
+          event_name: "invoice_paid",
+          payload: %{"delivery_id" => delivery_id, "amount" => 100}
+        })
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      [transition] =
+        Repo.all(
+          from(wt in WorkflowTransition,
+            where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+          )
+        )
+
+      # The new column populated from signal.payload["delivery_id"] (D-02 / D-21)
+      assert transition.delivery_id == delivery_id
+
+      # Phase 31 payload-safety contract: context still records only event_name
+      assert transition.context["event_name"] == "invoice_paid"
+      refute Map.has_key?(transition.context, "payload")
+      # Guards against accidental double-write: delivery_id is a column, not a context key
+      refute Map.has_key?(transition.context, "delivery_id")
+    end
+
+    test "leaves transition.delivery_id nil when signal payload omits \"delivery_id\"" do
+      run = insert_workflow_run!(%{pending_signals: ["invoice_paid"]})
+
+      # payload: %{} exercises Map.get/2 returning nil — host-app callers via
+      # Chimeway.Signal.track/4 may legitimately omit "delivery_id".
+      signal = insert_signal!(%{event_name: "invoice_paid", payload: %{}})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      [transition] =
+        Repo.all(
+          from(wt in WorkflowTransition,
+            where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+          )
+        )
+
+      assert transition.delivery_id == nil
+    end
+
     test "routes multiple waiting runs for the same tenant and event_name" do
       run1 = insert_workflow_run!(%{pending_signals: ["invoice_paid"]})
       run2 = insert_workflow_run!(%{pending_signals: ["invoice_paid", "other_event"]})
