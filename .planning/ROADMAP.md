@@ -14,7 +14,7 @@
 - [x] **Phase 29: Outbound Channel Contracts** - Define adapter behaviors and channel-specific render contracts for non-email channels. (completed 2026-05-01)
 - [ ] **Phase 30: Inbound Feedback Normalization** - Implement a canonical webhook ingestion layer that translates vendor payloads to Chimeway delivery outcomes.
 - [x] **Phase 31: Feedback-Driven Progression** - Connect normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
-- [ ] **Phase 32: Operator Traces & Audit** - Expand timeline traces to show provider callbacks and resulting workflow transitions.
+- [x] **Phase 32: Operator Traces & Audit** - Expand timeline traces to show provider callbacks and resulting workflow transitions. (completed 2026-05-01)
 
 ### Progress
 
@@ -23,7 +23,7 @@
 | 29. Outbound Channel Contracts | 7/7 | Complete    | 2026-05-01 |
 | 30. Inbound Feedback Normalization | 0/0 | Not started | - |
 | 31. Feedback-Driven Progression | 2/2 | Complete | 2026-05-01 |
-| 32. Operator Traces & Audit | 0/2 | Planned | - |
+| 32. Operator Traces & Audit | 2/2 | Complete    | 2026-05-01 |
 
 ## Phase Details
 
@@ -82,5 +82,5 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 32-01-PLAN.md — Populate WorkflowTransition.delivery_id from signal.payload in route_signal/1 (write-path delta + D-21 tests)
-- [ ] 32-02-PLAN.md — Extend Chimeway.Traces with webhook + workflow timeline projection (read-side helpers + D-19/D-20 tests)
+- [x] 32-01-PLAN.md — Populate WorkflowTransition.delivery_id from signal.payload in route_signal/1 (write-path delta + D-21 tests)
+- [x] 32-02-PLAN.md — Extend Chimeway.Traces with webhook + workflow timeline projection (read-side helpers + D-19/D-20 tests)

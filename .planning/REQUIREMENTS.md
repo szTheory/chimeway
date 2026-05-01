@@ -26,5 +26,5 @@
 | FEED-02     | Phase 30 | Pending |
 | FLOW-01     | Phase 31 | Pending |
 | FLOW-02     | Phase 31 | Pending |
-| TRAC-01     | Phase 32 | Pending |
-| TRAC-02     | Phase 32 | Pending |
+| TRAC-01     | Phase 32 | Complete |
+| TRAC-02     | Phase 32 | Complete |
