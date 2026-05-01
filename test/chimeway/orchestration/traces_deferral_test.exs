@@ -63,6 +63,7 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
     assert explanation.planning_context["time_zone"] == "America/New_York"
     assert DateTime.compare(explanation.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
     assert Map.get(explanation, :resume_source) == "scheduled_resume"
+
     assert DateTime.compare(Map.get(explanation, :resume_scheduled_at), ~U[2026-01-15 13:00:00Z]) ==
              :eq
 

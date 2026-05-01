@@ -18,7 +18,8 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
     def recipients(_params), do: {:ok, [%{id: "recipient-1", email: "ada@example.com"}]}
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{legacy_recipient: recipient[:id] || recipient["id"]}}
+    def build(_params, recipient),
+      do: {:ok, %{legacy_recipient: recipient[:id] || recipient["id"]}}
 
     @impl true
     def rendering(params, recipient) do
@@ -179,9 +180,7 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
     test "returns tagged production-style errors for invalid channels and malformed assigns" do
       recipient = %{id: "recipient-1"}
 
-      assert {:error,
-              {:rendering_failed, "sms",
-               {:unsupported_render_channel, "sms"}}} =
+      assert {:error, {:rendering_failed, "sms", {:unsupported_render_channel, "sms"}}} =
                Chimeway.preview_rendering(
                  InvalidChannelNotifier,
                  %{},
@@ -190,8 +189,7 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
                )
 
       assert {:error,
-              {:rendering_failed, "email",
-               {:invalid_channel_payload, "email", %Ecto.Changeset{}}}} =
+              {:rendering_failed, "email", {:invalid_channel_payload, "email", %Ecto.Changeset{}}}} =
                Chimeway.preview_rendering(
                  InvalidAssignsNotifier,
                  %{},
@@ -264,7 +262,9 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
 
     test "mix preview.rendering parses JSON files" do
       params_path = Path.join(System.tmp_dir!(), "preview_params_#{System.unique_integer()}.json")
-      recipient_path = Path.join(System.tmp_dir!(), "preview_recipient_#{System.unique_integer()}.json")
+
+      recipient_path =
+        Path.join(System.tmp_dir!(), "preview_recipient_#{System.unique_integer()}.json")
 
       File.write!(params_path, "{\"actor_name\": \"Ada\", \"comment_body\": \"New comment\"}")
       File.write!(recipient_path, "{\"id\": \"recipient-1\", \"email\": \"ada@example.com\"}")

@@ -157,7 +157,13 @@ defmodule Chimeway.Workflows do
           DateTime.t(),
           String.t()
         ) :: {:ok, WorkflowRun.t()} | {:error, term()}
-  def create_initial_run(repo, notification_id, %WorkflowDefinition{} = definition, timestamp, tenant_id)
+  def create_initial_run(
+        repo,
+        notification_id,
+        %WorkflowDefinition{} = definition,
+        timestamp,
+        tenant_id
+      )
       when is_binary(notification_id) and is_binary(tenant_id) do
     definition = preload_steps(repo, definition)
 
@@ -385,7 +391,9 @@ defmodule Chimeway.Workflows do
   by `{:run_updated, run.id}` and `{:transition_inserted, run.id}`.
   """
   @spec route_signal(Signal.t()) :: {:ok, map()} | {:error, term()}
-  def route_signal(%Signal{tenant_id: tenant_id, event_name: event_name, actor_id: actor_id} = _signal)
+  def route_signal(
+        %Signal{tenant_id: tenant_id, event_name: event_name, actor_id: actor_id} = _signal
+      )
       when is_binary(tenant_id) and is_binary(event_name) and is_binary(actor_id) do
     Repo.transaction(fn ->
       matched_runs = find_runs_waiting_for_signal(tenant_id, actor_id, event_name)
@@ -444,9 +452,9 @@ defmodule Chimeway.Workflows do
   defp preload_steps(_repo, nil), do: nil
 
   defp preload_steps(repo, definition) do
-    repo.preload(definition, [steps: from(step in WorkflowStep, order_by: [asc: step.step_order])],
-      force: true
-    )
+    repo.preload(
+      definition,
+      [steps: from(step in WorkflowStep, order_by: [asc: step.step_order])], force: true)
   end
 
   defp insert_steps(repo, workflow_definition_id, step_attrs) do

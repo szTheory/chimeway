@@ -33,14 +33,16 @@ defmodule Chimeway.IdempotencyConstraintTest do
              Trigger.trigger(
                IdempotentNotifier,
                %{"body" => "hello", "password" => "drop-this"},
-               idempotency_key: "serial-dup-key"
+               idempotency_key: "serial-dup-key",
+               tenant_id: "acme"
              )
 
     assert {:duplicate, existing_event} =
              Trigger.trigger(
                IdempotentNotifier,
                %{"body" => "hello", "password" => "drop-this"},
-               idempotency_key: "serial-dup-key"
+               idempotency_key: "serial-dup-key",
+               tenant_id: "acme"
              )
 
     assert existing_event.id == first.event.id
@@ -70,7 +72,8 @@ defmodule Chimeway.IdempotencyConstraintTest do
           Trigger.trigger(
             IdempotentNotifier,
             %{"body" => "hello", "secret" => "drop-this"},
-            idempotency_key: "concurrent-dup-key"
+            idempotency_key: "concurrent-dup-key",
+            tenant_id: "acme"
           )
         end,
         ordered: false,

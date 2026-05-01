@@ -65,14 +65,16 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
                Trigger.trigger(
                  IdempotentNotifier,
                  %{"body" => "hello"},
-                 idempotency_key: "rel01-d02a-serial"
+                 idempotency_key: "rel01-d02a-serial",
+                 tenant_id: "acme"
                )
 
       assert {:duplicate, existing_event} =
                Trigger.trigger(
                  IdempotentNotifier,
                  %{"body" => "hello"},
-                 idempotency_key: "rel01-d02a-serial"
+                 idempotency_key: "rel01-d02a-serial",
+                 tenant_id: "acme"
                )
 
       assert existing_event.id == first.event.id
@@ -100,7 +102,8 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
                Trigger.trigger(
                  IdempotentNotifier,
                  %{"body" => "hello"},
-                 idempotency_key: "rel01-d03-inert-sync"
+                 idempotency_key: "rel01-d03-inert-sync",
+                 tenant_id: "acme"
                )
 
       first_delivery_count =
@@ -118,7 +121,8 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
                Trigger.trigger(
                  IdempotentNotifier,
                  %{"body" => "hello"},
-                 idempotency_key: "rel01-d03-inert-sync"
+                 idempotency_key: "rel01-d03-inert-sync",
+                 tenant_id: "acme"
                )
 
       after_delivery_count =
@@ -148,7 +152,8 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
                Trigger.trigger(
                  IdempotentNotifier,
                  %{"body" => "hello"},
-                 idempotency_key: "rel01-d03-inert-oban"
+                 idempotency_key: "rel01-d03-inert-oban",
+                 tenant_id: "acme"
                )
 
       # Drain any enqueued jobs from the first trigger so the assertion below
@@ -159,7 +164,8 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
                Trigger.trigger(
                  IdempotentNotifier,
                  %{"body" => "hello"},
-                 idempotency_key: "rel01-d03-inert-oban"
+                 idempotency_key: "rel01-d03-inert-oban",
+                 tenant_id: "acme"
                )
 
       refute_enqueued(worker: ObanWorker)
@@ -281,7 +287,8 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest do
             Trigger.trigger(
               IdempotentNotifier,
               %{"body" => "hello"},
-              idempotency_key: "rel01-d14a-concurrent"
+              idempotency_key: "rel01-d14a-concurrent",
+              tenant_id: "acme"
             )
           end,
           ordered: false,

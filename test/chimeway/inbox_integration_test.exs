@@ -34,7 +34,8 @@ defmodule Chimeway.InboxIntegrationTest do
              Chimeway.trigger(
                IntegrationNotifier,
                %{"body" => "hello inbox", "password" => "redact"},
-               idempotency_key: "inbox-integration-1"
+               idempotency_key: "inbox-integration-1",
+               tenant_id: "acme"
              )
 
     notifications_before = Chimeway.list_for_recipient("user:42")

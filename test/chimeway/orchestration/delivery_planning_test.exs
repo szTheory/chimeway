@@ -395,7 +395,9 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert delivery_count_for(notification.id) == 1
 
     persisted_channels =
-      Repo.all(from(d in Delivery, where: d.notification_id == ^notification.id, select: d.channel))
+      Repo.all(
+        from(d in Delivery, where: d.notification_id == ^notification.id, select: d.channel)
+      )
 
     assert persisted_channels == ["in_app"]
   end
@@ -431,15 +433,17 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: Map.get(attrs, :metadata, %{}),
-        render_assigns: Map.get(attrs, :render_assigns, %{
-          "subject" => "Default Subject",
-          "html_body" => "<p>Default html</p>",
-          "text_body" => "Default text"
-        }),
-        render_channels: Map.get(attrs, :render_channels, %{
-          "email" => %{"render_key" => "default.email", "render_version" => 1},
-          "in_app" => %{"render_key" => "default.in_app", "render_version" => 1}
-        })
+        render_assigns:
+          Map.get(attrs, :render_assigns, %{
+            "subject" => "Default Subject",
+            "html_body" => "<p>Default html</p>",
+            "text_body" => "Default text"
+          }),
+        render_channels:
+          Map.get(attrs, :render_channels, %{
+            "email" => %{"render_key" => "default.email", "render_version" => 1},
+            "in_app" => %{"render_key" => "default.in_app", "render_version" => 1}
+          })
       })
       |> Repo.insert()
 

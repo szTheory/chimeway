@@ -42,7 +42,8 @@ defmodule Chimeway.TelemetryIntegrationTest do
 
     opts = [
       idempotency_key: "telem-key-#{System.unique_integer()}",
-      correlation_id: "test-corr-#{System.unique_integer()}"
+      correlation_id: "test-corr-#{System.unique_integer()}",
+      tenant_id: "acme"
     ]
 
     Chimeway.Trigger.trigger(notifier, params, opts)

@@ -638,7 +638,12 @@ defmodule Chimeway.TracesTest do
                  outcome: "exhausted",
                  count: 1
                },
-               %{notification_key: "ops.analytics", channel: "email", outcome: "failed", count: 1},
+               %{
+                 notification_key: "ops.analytics",
+                 channel: "email",
+                 outcome: "failed",
+                 count: 1
+               },
                %{notification_key: "ops.analytics", channel: "email", outcome: "sent", count: 2},
                %{
                  notification_key: "ops.analytics",
@@ -727,13 +732,17 @@ defmodule Chimeway.TracesTest do
     suppressed =
       insert_notification(insert_event(%{notification_key: notification_key}), "user:suppressed")
 
-    delayed = insert_notification(insert_event(%{notification_key: notification_key}), "user:delayed")
-    resumed = insert_notification(insert_event(%{notification_key: notification_key}), "user:resumed")
+    delayed =
+      insert_notification(insert_event(%{notification_key: notification_key}), "user:delayed")
+
+    resumed =
+      insert_notification(insert_event(%{notification_key: notification_key}), "user:resumed")
 
     digested =
       insert_notification(insert_event(%{notification_key: notification_key}), "user:digested")
 
-    failed = insert_notification(insert_event(%{notification_key: notification_key}), "user:failed")
+    failed =
+      insert_notification(insert_event(%{notification_key: notification_key}), "user:failed")
 
     exhausted =
       insert_notification(insert_event(%{notification_key: notification_key}), "user:exhausted")

@@ -147,8 +147,9 @@ defmodule Chimeway.Workflows.ProgressionOutcome do
 
   defp status_to_string(nil), do: nil
 
-  defp attempt_outcome_to_string(%DeliveryAttempt{outcome: outcome}) when is_atom(outcome) and not is_nil(outcome),
-    do: Atom.to_string(outcome)
+  defp attempt_outcome_to_string(%DeliveryAttempt{outcome: outcome})
+       when is_atom(outcome) and not is_nil(outcome),
+       do: Atom.to_string(outcome)
 
   defp attempt_outcome_to_string(_), do: nil
 

@@ -117,7 +117,12 @@ defmodule Chimeway.Dispatch.WorkflowProgressionWorkerTest do
     previous_dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     previous_adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
 
-    Application.put_env(:chimeway, :dispatcher, ChimewayTest.Dispatchers.WorkflowProgressionWorkerPlanOnly)
+    Application.put_env(
+      :chimeway,
+      :dispatcher,
+      ChimewayTest.Dispatchers.WorkflowProgressionWorkerPlanOnly
+    )
+
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     Chimeway.Adapters.Test.clear()
 
@@ -250,7 +255,8 @@ defmodule Chimeway.Dispatch.WorkflowProgressionWorkerTest do
       Chimeway.trigger(
         ChimewayTest.Notifiers.WorkflowProgressionWorker,
         %{user_id: user_id},
-        idempotency_key: "wpw-#{scenario_tag}-#{System.unique_integer([:positive])}"
+        idempotency_key: "wpw-#{scenario_tag}-#{System.unique_integer([:positive])}",
+        tenant_id: "acme"
       )
 
     notification =
@@ -262,7 +268,8 @@ defmodule Chimeway.Dispatch.WorkflowProgressionWorkerTest do
         )
       )
 
-    workflow_run = Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
+    workflow_run =
+      Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
 
     steps =
       Repo.all(

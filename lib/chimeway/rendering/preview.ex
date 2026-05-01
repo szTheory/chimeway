@@ -18,7 +18,8 @@ defmodule Chimeway.Rendering.Preview do
   @spec preview(module(), map(), keyword()) :: {:ok, t()} | {:error, term()}
   def preview(notifier, params, opts \\ [])
 
-  def preview(notifier, params, opts) when is_atom(notifier) and is_map(params) and is_list(opts) do
+  def preview(notifier, params, opts)
+      when is_atom(notifier) and is_map(params) and is_list(opts) do
     with :ok <- Notifier.validate_module!(notifier),
          {:ok, recipient} <- fetch_required_option(opts, :recipient),
          {:ok, channel} <- fetch_required_channel(opts),

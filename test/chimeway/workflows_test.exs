@@ -25,55 +25,65 @@ defmodule Chimeway.WorkflowsTest do
   defp insert_workflow_run!(attrs) do
     {recipient_identity, attrs} = Map.pop(attrs, :recipient_identity, "user_1")
 
-    event = Repo.insert!(%Event{
-      notification_key: "test.signal_routing",
-      notification_version: 1,
-      idempotency_key: "sig-routing-#{System.unique_integer([:positive])}",
-      payload: %{}
-    })
+    event =
+      Repo.insert!(%Event{
+        notification_key: "test.signal_routing",
+        notification_version: 1,
+        idempotency_key: "sig-routing-#{System.unique_integer([:positive])}",
+        payload: %{}
+      })
 
-    notification = Repo.insert!(%Notification{
-      event_id: event.id,
-      recipient_identity: recipient_identity,
-      recipient_type: "user",
-      metadata: %{},
-      render_assigns: %{
-        "headline" => "test",
-        "body" => "test body",
-        "primary_action" => %{"label" => "Open", "url" => "https://example.test"}
-      },
-      render_channels: %{
-        "in_app" => %{"render_key" => "test.in_app", "render_version" => 1}
-      }
-    })
+    notification =
+      Repo.insert!(%Notification{
+        event_id: event.id,
+        recipient_identity: recipient_identity,
+        recipient_type: "user",
+        metadata: %{},
+        render_assigns: %{
+          "headline" => "test",
+          "body" => "test body",
+          "primary_action" => %{"label" => "Open", "url" => "https://example.test"}
+        },
+        render_channels: %{
+          "in_app" => %{"render_key" => "test.in_app", "render_version" => 1}
+        }
+      })
 
     # We need a WorkflowDefinition and WorkflowStep to link the run.
-    definition = Repo.insert!(
-      Chimeway.Workflows.WorkflowDefinition.changeset(%Chimeway.Workflows.WorkflowDefinition{}, %{
-        workflow_key: "test.signal_routing.workflow.#{System.unique_integer([:positive])}",
-        workflow_version: 1,
-        notification_key: "test.signal_routing"
-      })
-    )
+    definition =
+      Repo.insert!(
+        Chimeway.Workflows.WorkflowDefinition.changeset(
+          %Chimeway.Workflows.WorkflowDefinition{},
+          %{
+            workflow_key: "test.signal_routing.workflow.#{System.unique_integer([:positive])}",
+            workflow_version: 1,
+            notification_key: "test.signal_routing"
+          }
+        )
+      )
 
-    step = Repo.insert!(
-      Chimeway.Workflows.WorkflowStep.changeset(%Chimeway.Workflows.WorkflowStep{}, %{
-        workflow_definition_id: definition.id,
-        step_key: "in_app",
-        step_order: 1,
-        channel: "in_app",
-        config: %{}
-      })
-    )
+    step =
+      Repo.insert!(
+        Chimeway.Workflows.WorkflowStep.changeset(%Chimeway.Workflows.WorkflowStep{}, %{
+          workflow_definition_id: definition.id,
+          step_key: "in_app",
+          step_order: 1,
+          channel: "in_app",
+          config: %{}
+        })
+      )
 
     merged = Map.merge(@base_run_attrs, attrs)
 
     Repo.insert!(
-      WorkflowRun.changeset(%WorkflowRun{}, Map.merge(merged, %{
-        notification_id: notification.id,
-        workflow_definition_id: definition.id,
-        current_step_id: step.id
-      }))
+      WorkflowRun.changeset(
+        %WorkflowRun{},
+        Map.merge(merged, %{
+          notification_id: notification.id,
+          workflow_definition_id: definition.id,
+          current_step_id: step.id
+        })
+      )
     )
   end
 
@@ -178,10 +188,12 @@ defmodule Chimeway.WorkflowsTest do
 
   describe "route_signal/1 — basic matching" do
     test "resumes a waiting workflow run that has the signal's event_name in pending_signals" do
-      run = insert_workflow_run!(%{
-        pending_signals: ["invoice_paid"],
-        suspended_until: DateTime.utc_now()
-      })
+      run =
+        insert_workflow_run!(%{
+          pending_signals: ["invoice_paid"],
+          suspended_until: DateTime.utc_now()
+        })
+
       signal = insert_signal!(%{event_name: "invoice_paid"})
 
       assert {:ok, results} = Workflows.route_signal(signal)
@@ -196,10 +208,11 @@ defmodule Chimeway.WorkflowsTest do
     end
 
     test "does not resume a waiting run from a different actor_id (tenant and event match)" do
-      run = insert_workflow_run!(%{
-        recipient_identity: "user_2",
-        pending_signals: ["invoice_paid"]
-      })
+      run =
+        insert_workflow_run!(%{
+          recipient_identity: "user_2",
+          pending_signals: ["invoice_paid"]
+        })
 
       signal = insert_signal!(%{event_name: "invoice_paid", actor_id: "user_1"})
 
@@ -210,19 +223,18 @@ defmodule Chimeway.WorkflowsTest do
     end
 
     test "does not resume a waiting run from a different tenant" do
-      _other_tenant_run = insert_workflow_run!(%{
-        tenant_id: "other_tenant",
-        pending_signals: ["invoice_paid"]
-      })
+      _other_tenant_run =
+        insert_workflow_run!(%{
+          tenant_id: "other_tenant",
+          pending_signals: ["invoice_paid"]
+        })
 
       signal = insert_signal!(%{tenant_id: "acme", event_name: "invoice_paid"})
 
       assert {:ok, _results} = Workflows.route_signal(signal)
 
       # The other-tenant run must not have been touched
-      other_runs = Repo.all(
-        from(wr in WorkflowRun, where: wr.tenant_id == "other_tenant")
-      )
+      other_runs = Repo.all(from(wr in WorkflowRun, where: wr.tenant_id == "other_tenant"))
 
       for run <- other_runs do
         assert run.state == :waiting, "expected other-tenant run to remain :waiting"
@@ -257,12 +269,13 @@ defmodule Chimeway.WorkflowsTest do
 
       assert {:ok, _results} = Workflows.route_signal(signal)
 
-      transitions = Repo.all(
-        from(wt in WorkflowTransition,
-          where: wt.workflow_run_id == ^run.id,
-          order_by: [asc: wt.inserted_at]
+      transitions =
+        Repo.all(
+          from(wt in WorkflowTransition,
+            where: wt.workflow_run_id == ^run.id,
+            order_by: [asc: wt.inserted_at]
+          )
         )
-      )
 
       signal_transitions = Enum.filter(transitions, &(&1.reason == "signal_received"))
       assert length(signal_transitions) == 1
@@ -300,11 +313,12 @@ defmodule Chimeway.WorkflowsTest do
       # Second call: run is now :active with empty pending_signals, so it won't match again
       assert {:ok, _} = Workflows.route_signal(signal)
 
-      transitions = Repo.all(
-        from(wt in WorkflowTransition,
-          where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+      transitions =
+        Repo.all(
+          from(wt in WorkflowTransition,
+            where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+          )
         )
-      )
 
       assert length(transitions) == 1
     end

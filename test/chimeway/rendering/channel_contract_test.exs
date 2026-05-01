@@ -53,7 +53,8 @@ defmodule Chimeway.Rendering.ChannelContractTest do
     end
 
     test "returns tagged runtime validation failures for malformed channel payloads" do
-      assert {:error, {:rendering_failed, "email", {:invalid_channel_payload, "email", changeset}}} =
+      assert {:error,
+              {:rendering_failed, "email", {:invalid_channel_payload, "email", changeset}}} =
                Rendering.render_delivery(
                  :email,
                  "comment.created.email",

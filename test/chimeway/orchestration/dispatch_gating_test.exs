@@ -11,6 +11,7 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
     Dispatch.Sync,
     Repo
   }
+
   alias Chimeway.Policy.Settings
   alias Chimeway.Test.DispatchHelpers
 
@@ -27,7 +28,18 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
     def recipients(_params), do: {:ok, [%{recipient_identity: "user:digest-held"}]}
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, "subject" => "test", "html_body" => "test", "text_body" => "test", recipient: recipient}}
+    def build(_params, recipient),
+      do:
+        {:ok,
+         %{
+           "headline" => "test",
+           "body" => "test",
+           "primary_action" => %{"label" => "test", "url" => "http://test"},
+           "subject" => "test",
+           "html_body" => "test",
+           "text_body" => "test",
+           recipient: recipient
+         }}
 
     @impl true
     def channels(_params, _recipient), do: {:ok, [:email]}

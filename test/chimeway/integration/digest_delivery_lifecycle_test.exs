@@ -239,7 +239,9 @@ defmodule Chimeway.Integration.DigestDeliveryLifecycleTest do
     assert same_bucket_id == bucket.id
 
     assert Repo.aggregate(
-             from(membership in DigestMembership, where: membership.digest_bucket_id == ^bucket.id),
+             from(membership in DigestMembership,
+               where: membership.digest_bucket_id == ^bucket.id
+             ),
              :count
            ) == 2
 

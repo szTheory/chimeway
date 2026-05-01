@@ -316,7 +316,8 @@ defmodule Chimeway.Notifier do
           {:ok, workflow_resolution() | nil} | {:error, term()}
   def resolve_workflow(notifier, trigger_params, recipient, override \\ :unset)
 
-  def resolve_workflow(_notifier, _trigger_params, _recipient, override) when override != :unset do
+  def resolve_workflow(_notifier, _trigger_params, _recipient, override)
+      when override != :unset do
     normalize_workflow_declaration(override)
   end
 
@@ -335,7 +336,10 @@ defmodule Chimeway.Notifier do
   @spec normalize_workflow_declaration(map()) :: {:ok, workflow_resolution()} | {:error, term()}
   def normalize_workflow_declaration(%{} = declaration) do
     workflow_key = Map.get(declaration, :workflow_key, Map.get(declaration, "workflow_key"))
-    workflow_version = Map.get(declaration, :workflow_version, Map.get(declaration, "workflow_version"))
+
+    workflow_version =
+      Map.get(declaration, :workflow_version, Map.get(declaration, "workflow_version"))
+
     steps = Map.get(declaration, :steps, Map.get(declaration, "steps"))
     source = Map.get(declaration, :source, Map.get(declaration, "source", :notifier))
 
@@ -352,8 +356,11 @@ defmodule Chimeway.Notifier do
          source: normalized_source
        }}
     else
-      :error -> {:error, {:workflow_resolution_failed, {:invalid_workflow_declaration, declaration}}}
-      {:error, reason} -> {:error, {:workflow_resolution_failed, reason}}
+      :error ->
+        {:error, {:workflow_resolution_failed, {:invalid_workflow_declaration, declaration}}}
+
+      {:error, reason} ->
+        {:error, {:workflow_resolution_failed, reason}}
     end
   end
 
@@ -397,10 +404,15 @@ defmodule Chimeway.Notifier do
 
   defp require_workflow_fields(nil, _workflow_version, _steps), do: :error
   defp require_workflow_fields(_workflow_key, nil, _steps), do: :error
-  defp require_workflow_fields(_workflow_key, _workflow_version, steps) when is_list(steps), do: :ok
+
+  defp require_workflow_fields(_workflow_key, _workflow_version, steps) when is_list(steps),
+    do: :ok
+
   defp require_workflow_fields(_workflow_key, _workflow_version, _steps), do: :error
 
-  defp normalize_workflow_source(source) when source in [:notifier, :planner_override], do: {:ok, source}
+  defp normalize_workflow_source(source) when source in [:notifier, :planner_override],
+    do: {:ok, source}
+
   defp normalize_workflow_source("notifier"), do: {:ok, :notifier}
   defp normalize_workflow_source("planner_override"), do: {:ok, :planner_override}
   defp normalize_workflow_source(source), do: {:error, {:invalid_workflow_source, source}}

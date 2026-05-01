@@ -94,10 +94,17 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
       changeset = Delivery.changeset(%Delivery{}, attrs)
 
       assert changeset.valid?
-      assert Ecto.Changeset.get_change(changeset, :planning_context) == %{"orchestration" => "digest"}
+
+      assert Ecto.Changeset.get_change(changeset, :planning_context) == %{
+               "orchestration" => "digest"
+             }
+
       assert Ecto.Changeset.get_change(changeset, :render_key) == "comment.created.email"
       assert Ecto.Changeset.get_change(changeset, :render_version) == 3
-      assert Ecto.Changeset.get_change(changeset, :render_data) == %{"subject" => "Comment created"}
+
+      assert Ecto.Changeset.get_change(changeset, :render_data) == %{
+               "subject" => "Comment created"
+             }
     end
   end
 
@@ -151,7 +158,8 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
       assert {:ok, result} =
                Trigger.trigger(RenderIdentityNotifier, params,
-                 idempotency_key: "render-trigger-001"
+                 idempotency_key: "render-trigger-001",
+                 tenant_id: "acme"
                )
 
       notification =
@@ -179,7 +187,8 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
       assert {:ok, result} =
                Trigger.trigger(RenderIdentityNotifier, params,
-                 idempotency_key: "render-trigger-002"
+                 idempotency_key: "render-trigger-002",
+                 tenant_id: "acme"
                )
 
       notification =
@@ -197,7 +206,8 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
       assert {:ok, result} =
                Trigger.trigger(RenderIdentityNotifier, params,
-                 idempotency_key: "render-trigger-003"
+                 idempotency_key: "render-trigger-003",
+                 tenant_id: "acme"
                )
 
       notification =

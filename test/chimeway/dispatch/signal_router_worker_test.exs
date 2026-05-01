@@ -7,58 +7,70 @@ defmodule Chimeway.Dispatch.SignalRouterWorkerTest do
   alias Chimeway.Dispatch.SignalRouterWorker
   alias Chimeway.Repo
   alias Chimeway.Signals.Signal
-  alias Chimeway.Workflows
   alias Chimeway.Workflows.{WorkflowRun, WorkflowTransition}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
   # ---- Fixtures ----------------------------------------------------------------
 
-  defp insert_signal!(attrs \\ %{}) do
-    defaults = %{tenant_id: "acme", actor_id: "user_42", event_name: "form_submitted", payload: %{}}
+  defp insert_signal!(attrs) do
+    defaults = %{
+      tenant_id: "acme",
+      actor_id: "user_42",
+      event_name: "form_submitted",
+      payload: %{}
+    }
+
     Repo.insert!(Signal.changeset(%Signal{}, Map.merge(defaults, attrs)))
   end
 
   defp insert_waiting_workflow_run!(tenant_id, pending_signals) do
-    event = Repo.insert!(%Event{
-      notification_key: "test.signal_worker",
-      notification_version: 1,
-      idempotency_key: "sw-#{System.unique_integer([:positive])}",
-      payload: %{}
-    })
-
-    notification = Repo.insert!(%Notification{
-      event_id: event.id,
-      recipient_identity: "user:#{System.unique_integer([:positive])}",
-      recipient_type: "user",
-      metadata: %{},
-      render_assigns: %{
-        "headline" => "test",
-        "body" => "test body",
-        "primary_action" => %{"label" => "Open", "url" => "https://example.test"}
-      },
-      render_channels: %{
-        "in_app" => %{"render_key" => "test.in_app", "render_version" => 1}
-      }
-    })
-
-    definition = Repo.insert!(
-      Chimeway.Workflows.WorkflowDefinition.changeset(%Chimeway.Workflows.WorkflowDefinition{}, %{
-        workflow_key: "test.signal_worker.workflow.#{System.unique_integer([:positive])}",
-        workflow_version: 1,
-        notification_key: "test.signal_worker"
+    event =
+      Repo.insert!(%Event{
+        notification_key: "test.signal_worker",
+        notification_version: 1,
+        idempotency_key: "sw-#{System.unique_integer([:positive])}",
+        payload: %{}
       })
-    )
 
-    step = Repo.insert!(
-      Chimeway.Workflows.WorkflowStep.changeset(%Chimeway.Workflows.WorkflowStep{}, %{
-        workflow_definition_id: definition.id,
-        step_key: "in_app",
-        step_order: 1,
-        channel: "in_app",
-        config: %{}
+    notification =
+      Repo.insert!(%Notification{
+        event_id: event.id,
+        recipient_identity: "user_42",
+        recipient_type: "user",
+        metadata: %{},
+        render_assigns: %{
+          "headline" => "test",
+          "body" => "test body",
+          "primary_action" => %{"label" => "Open", "url" => "https://example.test"}
+        },
+        render_channels: %{
+          "in_app" => %{"render_key" => "test.in_app", "render_version" => 1}
+        }
       })
-    )
+
+    definition =
+      Repo.insert!(
+        Chimeway.Workflows.WorkflowDefinition.changeset(
+          %Chimeway.Workflows.WorkflowDefinition{},
+          %{
+            workflow_key: "test.signal_worker.workflow.#{System.unique_integer([:positive])}",
+            workflow_version: 1,
+            notification_key: "test.signal_worker"
+          }
+        )
+      )
+
+    step =
+      Repo.insert!(
+        Chimeway.Workflows.WorkflowStep.changeset(%Chimeway.Workflows.WorkflowStep{}, %{
+          workflow_definition_id: definition.id,
+          step_key: "in_app",
+          step_order: 1,
+          channel: "in_app",
+          config: %{}
+        })
+      )
 
     Repo.insert!(
       WorkflowRun.changeset(%WorkflowRun{}, %{
@@ -102,11 +114,12 @@ defmodule Chimeway.Dispatch.SignalRouterWorkerTest do
 
       assert :ok = perform_job(SignalRouterWorker, %{"signal_id" => signal.id})
 
-      transitions = Repo.all(
-        from(wt in WorkflowTransition,
-          where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+      transitions =
+        Repo.all(
+          from(wt in WorkflowTransition,
+            where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+          )
         )
-      )
 
       assert length(transitions) == 1
       [transition] = transitions

@@ -34,7 +34,8 @@ defmodule Chimeway.PersistenceTransactionTest do
              Trigger.trigger(
                FailingNotificationNotifier,
                %{"password" => "redact-me", "body" => "hello"},
-               idempotency_key: "rollback-case-1"
+               idempotency_key: "rollback-case-1",
+               tenant_id: "acme"
              )
 
     assert Repo.aggregate(

@@ -374,7 +374,8 @@ defmodule Chimeway.Orchestration.RecoveryTest do
                Chimeway.Trigger.trigger(
                  ChimewayTest.Notifiers.RecoveryDigestCallbackProbe,
                  %{user_id: 42},
-                 idempotency_key: "recovery-digest-held"
+                 idempotency_key: "recovery-digest-held",
+                 tenant_id: "acme"
                )
 
       event = trigger_result.event
@@ -437,7 +438,8 @@ defmodule Chimeway.Orchestration.RecoveryTest do
                Chimeway.Trigger.trigger(
                  ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe,
                  %{user_id: 77},
-                 idempotency_key: "recovery-persisted-workflow"
+                 idempotency_key: "recovery-persisted-workflow",
+                 tenant_id: "acme"
                )
 
       event = trigger_result.event

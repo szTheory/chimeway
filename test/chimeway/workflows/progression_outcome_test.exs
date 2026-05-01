@@ -20,7 +20,8 @@ defmodule Chimeway.Workflows.ProgressionOutcomeTest do
     test "suppressed: suppressed delivery resolves to {:branchable, :suppressed, evidence}" do
       delivery = %Delivery{status: :suppressed, suppression_reason: "channel_disabled"}
 
-      assert {:branchable, :suppressed, evidence} = ProgressionOutcome.from_delivery(delivery, nil)
+      assert {:branchable, :suppressed, evidence} =
+               ProgressionOutcome.from_delivery(delivery, nil)
 
       assert evidence.delivery_status == "suppressed"
       assert evidence.suppression_reason == "channel_disabled"

@@ -37,7 +37,8 @@ defmodule Chimeway.Rendering do
 
   @spec normalize_declaration(map()) :: {:ok, rendering_declaration()} | {:error, term()}
   def normalize_declaration(%{} = declaration) do
-    with {:ok, assigns} <- normalize_assigns(Map.get(declaration, :assigns, Map.get(declaration, "assigns"))),
+    with {:ok, assigns} <-
+           normalize_assigns(Map.get(declaration, :assigns, Map.get(declaration, "assigns"))),
          {:ok, channels} <-
            normalize_channels(Map.get(declaration, :channels, Map.get(declaration, "channels"))),
          {:ok, source} <- normalize_source(Map.get(declaration, :source, :notifier)) do
@@ -73,7 +74,9 @@ defmodule Chimeway.Rendering do
         {:error, {:rendering_failed, normalize_channel_error(channel), reason}}
 
       {:error, {:unsupported_render_channel, unsupported_channel}} ->
-        {:error, {:rendering_failed, unsupported_channel, {:unsupported_render_channel, unsupported_channel}}}
+        {:error,
+         {:rendering_failed, unsupported_channel,
+          {:unsupported_render_channel, unsupported_channel}}}
 
       {:error, reason} ->
         {:error, {:rendering_failed, normalize_channel_error(channel), reason}}
@@ -111,7 +114,8 @@ defmodule Chimeway.Rendering do
   defp normalize_channels(channels) when is_map(channels) and map_size(channels) > 0 do
     Enum.reduce_while(channels, {:ok, %{}}, fn {channel, declaration}, {:ok, acc} ->
       with {:ok, normalized_channel} <- normalize_channel(channel),
-           {:ok, normalized_declaration} <- normalize_channel_declaration(normalized_channel, declaration) do
+           {:ok, normalized_declaration} <-
+             normalize_channel_declaration(normalized_channel, declaration) do
         {:cont, {:ok, Map.put(acc, normalized_channel, normalized_declaration)}}
       else
         {:error, reason} -> {:halt, {:error, reason}}
@@ -171,8 +175,9 @@ defmodule Chimeway.Rendering do
   defp normalize_render_key(channel, render_key),
     do: {:error, {:invalid_render_key, channel, render_key}}
 
-  defp normalize_render_version(_channel, render_version) when is_integer(render_version) and render_version > 0,
-    do: {:ok, render_version}
+  defp normalize_render_version(_channel, render_version)
+       when is_integer(render_version) and render_version > 0,
+       do: {:ok, render_version}
 
   defp normalize_render_version(channel, render_version),
     do: {:error, {:invalid_render_version, channel, render_version}}
@@ -228,8 +233,11 @@ defmodule Chimeway.Rendering do
 
   defp validate_channel_payload({:ok, module}, channel, attrs) do
     case module.validate(attrs) do
-      {:ok, validated_attrs} -> {:ok, validated_attrs}
-      {:error, %Ecto.Changeset{} = changeset} -> {:error, {:invalid_channel_payload, channel, changeset}}
+      {:ok, validated_attrs} ->
+        {:ok, validated_attrs}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, {:invalid_channel_payload, channel, changeset}}
     end
   end
 

@@ -261,7 +261,10 @@ defmodule Chimeway.TriggerPipelineTest do
 
   test "falls back to a single in_app delivery when notifier has no channels/2 callback" do
     assert {:ok, result} =
-             Trigger.trigger(PipelineNotifier, %{}, idempotency_key: "idem-124", tenant_id: "acme")
+             Trigger.trigger(PipelineNotifier, %{},
+               idempotency_key: "idem-124",
+               tenant_id: "acme"
+             )
 
     assert result.notification_key == "comment.created.fallback"
     assert Enum.map(result.recipients, & &1.recipient_identity) == ["a-user", "m-user", "z-user"]
@@ -450,8 +453,8 @@ defmodule Chimeway.TriggerPipelineTest do
     assert Enum.all?(workflow_runs, fn run ->
              run.workflow_definition_id == definition.id and
                run.current_step_id == first_step.id and
-               run.state == "active" and
-               run.status_reason == "workflow_started"
+               run.state == "completed" and
+               run.status_reason == "workflow_completed"
            end)
 
     assert MapSet.new(Enum.map(workflow_runs, &Ecto.UUID.load!(&1.notification_id))) ==
@@ -538,7 +541,7 @@ defmodule Chimeway.TriggerPipelineTest do
       )
 
     assert workflow_runs_count == 2
-    assert workflow_transitions_count == 4
+    assert workflow_transitions_count == 6
   end
 
   test "reuses persisted workflow definitions across distinct trigger events" do
@@ -590,6 +593,6 @@ defmodule Chimeway.TriggerPipelineTest do
       )
 
     assert workflow_runs_count == 4
-    assert workflow_transitions_count == 8
+    assert workflow_transitions_count == 12
   end
 end

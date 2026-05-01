@@ -317,7 +317,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleA,
                  %{user_id: 1},
-                 idempotency_key: "lifecycle_a_001"
+                 idempotency_key: "lifecycle_a_001",
+                 tenant_id: "acme"
                )
 
       # Event row
@@ -395,7 +396,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleB,
                  %{user_id: 2},
-                 idempotency_key: "lifecycle_b_001"
+                 idempotency_key: "lifecycle_b_001",
+                 tenant_id: "acme"
                )
 
       # Get notification
@@ -445,7 +447,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleC,
                  %{user_id: 3},
-                 idempotency_key: "lifecycle_c_001"
+                 idempotency_key: "lifecycle_c_001",
+                 tenant_id: "acme"
                )
 
       # Second trigger — same idempotency_key returns {:duplicate, event}
@@ -453,7 +456,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleC,
                  %{user_id: 3},
-                 idempotency_key: "lifecycle_c_001"
+                 idempotency_key: "lifecycle_c_001",
+                 tenant_id: "acme"
                )
 
       # Exactly one event row
@@ -536,7 +540,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleFanout,
                  %{user_id: 4},
-                 idempotency_key: "lifecycle_fanout_001"
+                 idempotency_key: "lifecycle_fanout_001",
+                 tenant_id: "acme"
                )
 
       [event] =
@@ -617,7 +622,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleDelayedFallback,
                  %{user_id: 5},
-                 idempotency_key: "lifecycle_delayed_fallback_001"
+                 idempotency_key: "lifecycle_delayed_fallback_001",
+                 tenant_id: "acme"
                )
 
       [event] =
@@ -665,7 +671,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleNoDelayedFallback,
                  %{user_id: 6},
-                 idempotency_key: "lifecycle_no_delayed_fallback_001"
+                 idempotency_key: "lifecycle_no_delayed_fallback_001",
+                 tenant_id: "acme"
                )
 
       [event] =
@@ -699,7 +706,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleCustomChannel,
                  %{user_id: 7},
-                 idempotency_key: "lifecycle_custom_channel_001"
+                 idempotency_key: "lifecycle_custom_channel_001",
+                 tenant_id: "acme"
                )
 
       [event] =
@@ -741,7 +749,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                  ChimewayTest.Notifiers.LifecycleA,
                  %{user_id: 8},
                  idempotency_key: "lifecycle_trace_contract_001",
-                 correlation_id: "phase8-trace-001"
+                 correlation_id: "phase8-trace-001",
+                 tenant_id: "acme"
                )
 
       assert result.dispatch_outcome == :ok or match?({:error, _}, result.dispatch_outcome)
@@ -791,7 +800,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                  ChimewayTest.Notifiers.LifecycleA,
                  %{user_id: 9},
                  idempotency_key: "lifecycle_deferred_001",
-                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+                 evaluation_time: ~U[2026-01-15 03:30:00Z],
+                 tenant_id: "acme"
                )
 
       assert result.dispatch_outcome == :ok
@@ -820,7 +830,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleDigestHeld,
                  %{user_id: 10},
-                 idempotency_key: "lifecycle_digest_held_001"
+                 idempotency_key: "lifecycle_digest_held_001",
+                 tenant_id: "acme"
                )
 
       assert result.dispatch_outcome == :ok
@@ -874,7 +885,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                  ChimewayTest.Notifiers.LifecycleA,
                  %{user_id: 11},
                  idempotency_key: "lifecycle_deferred_resume_001",
-                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+                 evaluation_time: ~U[2026-01-15 03:30:00Z],
+                 tenant_id: "acme"
                )
 
       [delivery] =
@@ -1002,7 +1014,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                  ChimewayTest.Notifiers.LifecycleA,
                  %{user_id: 12},
                  idempotency_key: "lifecycle_deferred_resume_002",
-                 evaluation_time: ~U[2026-01-15 03:30:00Z]
+                 evaluation_time: ~U[2026-01-15 03:30:00Z],
+                 tenant_id: "acme"
                )
 
       [delivery] =
@@ -1072,7 +1085,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleRenderedEmail,
                  %{user_id: 13},
-                 idempotency_key: "lifecycle_rendered_email_001"
+                 idempotency_key: "lifecycle_rendered_email_001",
+                 tenant_id: "acme"
                )
 
       assert_receive {:rendering_called, _}, 1000
@@ -1106,7 +1120,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleRenderedEmail,
                  %{user_id: 14},
-                 idempotency_key: "lifecycle_rendered_email_002"
+                 idempotency_key: "lifecycle_rendered_email_002",
+                 tenant_id: "acme"
                )
 
       [delivery] =
@@ -1210,7 +1225,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.Trigger.trigger(
                  ChimewayTest.Notifiers.LifecycleWorkflow,
                  %{user_id: 24},
-                 idempotency_key: "idem-lifecycle-workflow-linkage"
+                 idempotency_key: "idem-lifecycle-workflow-linkage",
+                 tenant_id: "acme"
                )
 
       notification =
@@ -1254,7 +1270,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           )
         )
 
-      assert workflow_run.state == "active"
+      assert workflow_run.state == "completed"
       assert current_step.step_key == "email-first"
       assert current_step.step_order == 1
 

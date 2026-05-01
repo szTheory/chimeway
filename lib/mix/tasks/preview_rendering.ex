@@ -42,7 +42,8 @@ defmodule Mix.Tasks.Preview.Rendering do
         with :ok <- validate_required_switches(opts),
              {:ok, notifier} <- parse_notifier(Keyword.fetch!(opts, :notifier)),
              {:ok, params} <- build_map_input(opts, :params_file, :params_json, :param),
-             {:ok, recipient} <- build_map_input(opts, :recipient_file, :recipient_json, :recipient_field),
+             {:ok, recipient} <-
+               build_map_input(opts, :recipient_file, :recipient_json, :recipient_field),
              {:ok, preview} <-
                Chimeway.preview_rendering(
                  notifier,
@@ -66,8 +67,14 @@ defmodule Mix.Tasks.Preview.Rendering do
   defp validate_required_switches(opts) do
     has_notifier = Keyword.has_key?(opts, :notifier)
     has_channel = Keyword.has_key?(opts, :channel)
-    has_params = Keyword.has_key?(opts, :params_json) or Keyword.has_key?(opts, :params_file) or Keyword.has_key?(opts, :param)
-    has_recipient = Keyword.has_key?(opts, :recipient_json) or Keyword.has_key?(opts, :recipient_file) or Keyword.has_key?(opts, :recipient_field)
+
+    has_params =
+      Keyword.has_key?(opts, :params_json) or Keyword.has_key?(opts, :params_file) or
+        Keyword.has_key?(opts, :param)
+
+    has_recipient =
+      Keyword.has_key?(opts, :recipient_json) or Keyword.has_key?(opts, :recipient_file) or
+        Keyword.has_key?(opts, :recipient_field)
 
     if has_notifier and has_channel and has_params and has_recipient do
       :ok

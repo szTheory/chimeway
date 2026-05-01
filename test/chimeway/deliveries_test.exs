@@ -115,7 +115,9 @@ defmodule Chimeway.DeliveriesTest do
     next_eligible_at = attrs |> Map.get(:next_eligible_at) |> normalize_datetime()
 
     {:ok, delivery} =
-      Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, :in_app), metadata: metadata)
+      Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, :in_app),
+        metadata: metadata
+      )
 
     delivery
     |> Ecto.Changeset.change(%{
@@ -654,7 +656,11 @@ defmodule Chimeway.DeliveriesTest do
                result
 
       # No attempt row should have been persisted
-      assert Repo.aggregate(DeliveryAttempt, :count, :id) == 0
+      assert Repo.aggregate(
+               from(a in DeliveryAttempt, where: a.delivery_id == ^delivery.id),
+               :count,
+               :id
+             ) == 0
     end
 
     test "stores provider_response in attempt row", %{notification: notification} do

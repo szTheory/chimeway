@@ -4,7 +4,15 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
 
   import Ecto.Query
 
-  alias Chimeway.{Deliveries, Delivery, Dispatch.DeferredResumeWorker, Dispatch.ObanWorker, Repo, Traces}
+  alias Chimeway.{
+    Deliveries,
+    Delivery,
+    Dispatch.DeferredResumeWorker,
+    Dispatch.ObanWorker,
+    Repo,
+    Traces
+  }
+
   alias Chimeway.Test.DispatchHelpers
 
   setup do
@@ -228,7 +236,9 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
       assert explanation.last_attempt == nil
 
       assert Repo.aggregate(
-               from(d in Delivery, where: d.notification_id == ^cancelled_delivery.notification_id),
+               from(d in Delivery,
+                 where: d.notification_id == ^cancelled_delivery.notification_id
+               ),
                :count,
                :id
              ) == 1

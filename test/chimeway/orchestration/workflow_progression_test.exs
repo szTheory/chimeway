@@ -107,8 +107,10 @@ defmodule ChimewayTest.Notifiers.WorkflowTerminal do
       case params[:scenario] do
         "stop_rule" ->
           [%{"kind" => "stop", "outcome" => "bounced"}]
+
         "implicit_complete" ->
-          [] # Empty rules meaning implicit completion on branchable outcome
+          # Empty rules meaning implicit completion on branchable outcome
+          []
       end
 
     {:ok,
@@ -228,7 +230,10 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
 
       # The waiting transition is appended once with the same anchor/due context.
       transitions = list_transitions(workflow_run.id)
-      waiting_transitions = Enum.filter(transitions, &(&1.reason == "waiting_for_step_progression"))
+
+      waiting_transitions =
+        Enum.filter(transitions, &(&1.reason == "waiting_for_step_progression"))
+
       assert length(waiting_transitions) == 1
 
       [waiting_transition] = waiting_transitions
@@ -321,7 +326,12 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
 
   describe "on_outcome rule advances on a curated terminal outcome (D-03/D-12)" do
     test "bounced prior delivery advances the run to the email step and persists supporting facts" do
-      %{notification: notification, workflow_run: workflow_run, in_app_step: in_app_step, email_step: email_step} =
+      %{
+        notification: notification,
+        workflow_run: workflow_run,
+        in_app_step: in_app_step,
+        email_step: email_step
+      } =
         trigger_workflow!("outcome-bounce")
 
       # PlanOnly dispatcher leaves the in_app delivery :pending. Drive it
@@ -511,11 +521,13 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       %{notification: notification, workflow_run: workflow_run} =
         trigger_terminal_workflow!("implicit-pending", "implicit_complete")
 
-      in_app_delivery = fetch_delivery!(notification.id, "in_app")
+      _in_app_delivery = fetch_delivery!(notification.id, "in_app")
 
       # Delivery is :pending so it is :not_branchable_yet.
       # The run should remain :active and progression should noop.
-      assert {:ok, {:noop, run, :no_progress_rules}} = Progression.progress_run(workflow_run.id, [])
+      assert {:ok, {:noop, run, :no_progress_rules}} =
+               Progression.progress_run(workflow_run.id, [])
+
       assert run.state == :active
     end
   end
@@ -529,7 +541,8 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       Chimeway.trigger(
         ChimewayTest.Notifiers.WorkflowTerminal,
         %{user_id: user_id, scenario: params_scenario},
-        idempotency_key: "wt-#{scenario_tag}-#{System.unique_integer([:positive])}"
+        idempotency_key: "wt-#{scenario_tag}-#{System.unique_integer([:positive])}",
+        tenant_id: "acme"
       )
 
     notification =
@@ -541,7 +554,8 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
         )
       )
 
-    workflow_run = Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
+    workflow_run =
+      Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
 
     in_app_step =
       Repo.one!(
@@ -566,7 +580,8 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       Chimeway.trigger(
         ChimewayTest.Notifiers.WorkflowProgression,
         %{user_id: user_id},
-        idempotency_key: "wp-#{scenario_tag}-#{System.unique_integer([:positive])}"
+        idempotency_key: "wp-#{scenario_tag}-#{System.unique_integer([:positive])}",
+        tenant_id: "acme"
       )
 
     notification =
@@ -578,7 +593,8 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
         )
       )
 
-    workflow_run = Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
+    workflow_run =
+      Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
 
     steps =
       Repo.all(

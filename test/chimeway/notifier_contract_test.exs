@@ -63,7 +63,10 @@ defmodule Chimeway.NotifierContractTest do
     def rendering(params, recipient) do
       {:ok,
        %{
-         assigns: %{"comment_id" => params.comment_id, "recipient" => recipient.recipient_identity},
+         assigns: %{
+           "comment_id" => params.comment_id,
+           "recipient" => recipient.recipient_identity
+         },
          channels: %{
            in_app: %{render_key: "comment.created.in_app", render_version: 3},
            email: %{render_key: "comment.created.email", render_version: 4}
@@ -85,7 +88,8 @@ defmodule Chimeway.NotifierContractTest do
     def recipients(_params), do: {:ok, [%{recipient_identity: "user-1"}]}
 
     @impl true
-    def build(params, recipient), do: {:ok, %{post_id: params.post_id, recipient: recipient.recipient_identity}}
+    def build(params, recipient),
+      do: {:ok, %{post_id: params.post_id, recipient: recipient.recipient_identity}}
 
     @impl true
     def channels(_params, _recipient), do: {:ok, [:email]}
@@ -349,7 +353,9 @@ defmodule Chimeway.NotifierContractTest do
 
   test "rejects invalid workflow declarations with tagged errors" do
     assert {:error, {:workflow_resolution_failed, {:blank_workflow_key, ""}}} =
-             Notifier.resolve_workflow(InvalidWorkflowNotifier, %{}, %{recipient_identity: "user-1"})
+             Notifier.resolve_workflow(InvalidWorkflowNotifier, %{}, %{
+               recipient_identity: "user-1"
+             })
 
     assert {:error, {:workflow_resolution_failed, {:invalid_workflow_version, 0}}} =
              Notifier.normalize_workflow_declaration(%{
@@ -392,8 +398,12 @@ defmodule Chimeway.NotifierContractTest do
                steps: [%{step_key: "email", step_order: 3, channel: "email", config: %{}}]
              })
 
-    assert {:error, {:workflow_resolution_failed, {:invalid_workflow_declaration, %{workflow_key: "shape.only"}}}} =
-             Notifier.resolve_workflow(InvalidWorkflowShapeNotifier, %{}, %{recipient_identity: "user-1"})
+    assert {:error,
+            {:workflow_resolution_failed,
+             {:invalid_workflow_declaration, %{workflow_key: "shape.only"}}}} =
+             Notifier.resolve_workflow(InvalidWorkflowShapeNotifier, %{}, %{
+               recipient_identity: "user-1"
+             })
   end
 
   test "normalizes step progress rules with string-keyed wait_until and on_outcome shapes" do
@@ -489,8 +499,7 @@ defmodule Chimeway.NotifierContractTest do
              })
 
     assert {:error,
-            {:workflow_resolution_failed,
-             {:invalid_workflow_progress_rule, {:blank_to_step, ""}}}} =
+            {:workflow_resolution_failed, {:invalid_workflow_progress_rule, {:blank_to_step, ""}}}} =
              Notifier.normalize_workflow_declaration(%{
                workflow_key: "comment.progress",
                workflow_version: 1,

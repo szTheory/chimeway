@@ -38,6 +38,7 @@ if Code.ensure_loaded?(Oban) do
       Dispatch.ObanWorker,
       Repo
     }
+
     alias Chimeway.Telemetry
     alias Ecto.Multi
     alias Oban.Job

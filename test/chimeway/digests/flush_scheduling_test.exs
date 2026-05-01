@@ -171,12 +171,13 @@ defmodule Chimeway.Digests.FlushSchedulingTest do
              Deliveries.apply_planning_decision(delivery, %{
                orchestration_state: :digest_held,
                planning_reason: "digest_rule",
-               planning_context: %{
-                 "channel" => channel,
-                 "source" => "test",
-                 "rule_identity" => "digest_rule"
-               }
-               |> maybe_put("digest_key", digest_key),
+               planning_context:
+                 %{
+                   "channel" => channel,
+                   "source" => "test",
+                   "rule_identity" => "digest_rule"
+                 }
+                 |> maybe_put("digest_key", digest_key),
                next_eligible_at: next_eligible_at
              })
 

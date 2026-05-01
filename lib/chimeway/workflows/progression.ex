@@ -54,6 +54,8 @@ defmodule Chimeway.Workflows.Progression do
   @type progress_result ::
           {:ok, {:advanced, WorkflowRun.t(), [Delivery.t()]}}
           | {:ok, {:waiting, WorkflowRun.t()}}
+          | {:ok, {:completed, WorkflowRun.t()}}
+          | {:ok, {:stopped, WorkflowRun.t()}}
           | {:ok, {:noop, WorkflowRun.t() | nil, atom()}}
           | {:error, term()}
 
@@ -106,6 +108,12 @@ defmodule Chimeway.Workflows.Progression do
         # nesting Oban inserts inside the FOR UPDATE locks the engine took.
         _ = maybe_schedule_due_progression_job(run)
         {:ok, {:waiting, run}}
+
+      {:ok, {:completed, run}} ->
+        {:ok, {:completed, run}}
+
+      {:ok, {:stopped, run}} ->
+        {:ok, {:stopped, run}}
 
       {:ok, {:noop, run, reason}} ->
         {:ok, {:noop, run, reason}}
@@ -163,12 +171,21 @@ defmodule Chimeway.Workflows.Progression do
 
     cond do
       rules == [] ->
-        {:noop, run, :no_progress_rules}
+        case outcome do
+          {:branchable, branchable_outcome, evidence} ->
+            complete_run(repo, run, step, delivery, branchable_outcome, evidence, now)
+
+          :not_branchable_yet ->
+            {:noop, run, :no_progress_rules}
+        end
 
       true ->
-        case match_on_outcome(rules, outcome) do
-          {:match, rule, branchable_outcome, evidence} ->
+        case match_rule(rules, outcome) do
+          {:match, %{"kind" => "on_outcome"} = rule, branchable_outcome, evidence} ->
             advance_run(repo, run, step, delivery, rule, branchable_outcome, evidence, now)
+
+          {:match, %{"kind" => "stop"} = rule, branchable_outcome, evidence} ->
+            stop_run(repo, run, step, delivery, rule, branchable_outcome, evidence, now)
 
           :no_match ->
             case match_wait_until(rules, outcome) do
@@ -176,7 +193,13 @@ defmodule Chimeway.Workflows.Progression do
                 enter_waiting(repo, run, step, delivery, rule, now)
 
               :no_match ->
-                {:noop, run, :no_matching_progress_rule}
+                case outcome do
+                  {:branchable, branchable_outcome, evidence} ->
+                    complete_run(repo, run, step, delivery, branchable_outcome, evidence, now)
+
+                  :not_branchable_yet ->
+                    {:noop, run, :no_matching_progress_rule}
+                end
 
               {:not_branchable, _rule} ->
                 {:noop, run, :prior_delivery_not_converged}
@@ -187,12 +210,12 @@ defmodule Chimeway.Workflows.Progression do
 
   # ---- Internal: rule matching -----------------------------------------------
 
-  defp match_on_outcome(rules, {:branchable, outcome, evidence}) do
+  defp match_rule(rules, {:branchable, outcome, evidence}) do
     outcome_string = Atom.to_string(outcome)
 
     rules
     |> Enum.find(fn rule ->
-      rule["kind"] == "on_outcome" and rule["outcome"] == outcome_string
+      rule["kind"] in ["on_outcome", "stop"] and rule["outcome"] == outcome_string
     end)
     |> case do
       nil -> :no_match
@@ -200,7 +223,7 @@ defmodule Chimeway.Workflows.Progression do
     end
   end
 
-  defp match_on_outcome(_rules, :not_branchable_yet), do: :no_match
+  defp match_rule(_rules, :not_branchable_yet), do: :no_match
 
   defp match_wait_until(rules, {:branchable, _outcome, _evidence}) do
     case Enum.find(rules, fn rule -> rule["kind"] == "wait_until" end) do
@@ -316,6 +339,74 @@ defmodule Chimeway.Workflows.Progression do
                ) do
           {:ok, {:advanced, updated_run, [next_delivery]}}
         end
+    end
+  end
+
+  # ---- Internal: terminate (stop / complete) ---------------------------------
+
+  defp stop_run(repo, run, step, delivery, _rule, outcome, evidence, now) do
+    outcome_string = Atom.to_string(outcome)
+
+    context =
+      %{
+        "rule_kind" => "stop",
+        "workflow_outcome" => outcome_string,
+        "anchor_delivery_id" => delivery.id
+      }
+      |> maybe_put_evidence(evidence)
+
+    with {:ok, updated_run} <-
+           Workflows.update_run(repo, run, %{
+             state: :stopped,
+             status_reason: "workflow_stopped",
+             status_context: context,
+             last_transition_at: now
+           }),
+         {:ok, _transition} <-
+           Workflows.append_transition(repo, %{
+             workflow_run_id: run.id,
+             workflow_step_id: step.id,
+             delivery_id: delivery.id,
+             from_state: :active,
+             to_state: :stopped,
+             reason: "workflow_stopped",
+             context: context,
+             inserted_at: now
+           }) do
+      {:ok, {:stopped, updated_run}}
+    end
+  end
+
+  defp complete_run(repo, run, step, delivery, outcome, evidence, now) do
+    outcome_string = Atom.to_string(outcome)
+
+    context =
+      %{
+        "rule_kind" => "implicit_completion",
+        "workflow_outcome" => outcome_string,
+        "anchor_delivery_id" => delivery.id
+      }
+      |> maybe_put_evidence(evidence)
+
+    with {:ok, updated_run} <-
+           Workflows.update_run(repo, run, %{
+             state: :completed,
+             status_reason: "workflow_completed",
+             status_context: context,
+             last_transition_at: now
+           }),
+         {:ok, _transition} <-
+           Workflows.append_transition(repo, %{
+             workflow_run_id: run.id,
+             workflow_step_id: step.id,
+             delivery_id: delivery.id,
+             from_state: :active,
+             to_state: :completed,
+             reason: "workflow_completed",
+             context: context,
+             inserted_at: now
+           }) do
+      {:ok, {:completed, updated_run}}
     end
   end
 

@@ -300,9 +300,19 @@ defmodule Chimeway.Digests.Accumulation do
         inc: [member_count: 1],
         set: [
           first_accumulated_at:
-            fragment("COALESCE(LEAST(?, ?), ?)", b.first_accumulated_at, ^accumulated_at, ^accumulated_at),
+            fragment(
+              "COALESCE(LEAST(?, ?), ?)",
+              b.first_accumulated_at,
+              ^accumulated_at,
+              ^accumulated_at
+            ),
           last_accumulated_at:
-            fragment("COALESCE(GREATEST(?, ?), ?)", b.last_accumulated_at, ^accumulated_at, ^accumulated_at),
+            fragment(
+              "COALESCE(GREATEST(?, ?), ?)",
+              b.last_accumulated_at,
+              ^accumulated_at,
+              ^accumulated_at
+            ),
           updated_at: ^accumulated_at
         ]
       ]

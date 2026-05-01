@@ -18,7 +18,15 @@ defmodule Chimeway.TelemetryCorrelationTest do
     end
 
     @impl true
-    def build(_params, recipient), do: {:ok, %{"headline" => "test", "body" => "test", "primary_action" => %{"label" => "test", "url" => "http://test"}, recipient: recipient}}
+    def build(_params, recipient),
+      do:
+        {:ok,
+         %{
+           "headline" => "test",
+           "body" => "test",
+           "primary_action" => %{"label" => "test", "url" => "http://test"},
+           recipient: recipient
+         }}
   end
 
   test "delivery records persist correlation identifiers in metadata" do
@@ -30,7 +38,8 @@ defmodule Chimeway.TelemetryCorrelationTest do
                CorrelationNotifier,
                %{"foo" => "bar"},
                idempotency_key: idempotency_key,
-               correlation_id: correlation_id
+               correlation_id: correlation_id,
+               tenant_id: "acme"
              )
 
     event = result.event
@@ -82,7 +91,8 @@ defmodule Chimeway.TelemetryCorrelationTest do
       CorrelationNotifier,
       %{},
       idempotency_key: idempotency_key,
-      correlation_id: correlation_id
+      correlation_id: correlation_id,
+      tenant_id: "acme"
     )
 
     assert_receive {:telemetry_event, meta}

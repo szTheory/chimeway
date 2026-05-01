@@ -9,7 +9,7 @@ defmodule Chimeway.WorkflowsInspectionTest do
 
   # ---- Fixtures ----------------------------------------------------------------
 
-  defp insert_workflow_run!(attrs \\ %{}) do
+  defp insert_workflow_run!(attrs) do
     event =
       Repo.insert!(%Event{
         notification_key: "test.inspection",
@@ -80,7 +80,7 @@ defmodule Chimeway.WorkflowsInspectionTest do
     )
   end
 
-  defp insert_transition!(run, attrs \\ %{}) do
+  defp insert_transition!(run, attrs) do
     defaults = %{
       workflow_run_id: run.id,
       to_state: :active,
@@ -195,8 +195,15 @@ defmodule Chimeway.WorkflowsInspectionTest do
 
     test "returns transitions ordered by inserted_at ascending by default" do
       run = insert_workflow_run!(%{tenant_id: "acme"})
-      t1 = insert_transition!(run, %{reason: "workflow_started", inserted_at: ~U[2026-04-30 10:00:00Z]})
-      t2 = insert_transition!(run, %{reason: "step_activated", inserted_at: ~U[2026-04-30 11:00:00Z]})
+
+      t1 =
+        insert_transition!(run, %{
+          reason: "workflow_started",
+          inserted_at: ~U[2026-04-30 10:00:00Z]
+        })
+
+      t2 =
+        insert_transition!(run, %{reason: "step_activated", inserted_at: ~U[2026-04-30 11:00:00Z]})
 
       assert {:ok, traces} = Workflows.list_traces("acme", run.id)
 
@@ -206,11 +213,33 @@ defmodule Chimeway.WorkflowsInspectionTest do
 
     test "returns all transitions when no limit is supplied and limits when requested" do
       run = insert_workflow_run!(%{tenant_id: "acme"})
-      t1 = insert_transition!(run, %{reason: "workflow_started", inserted_at: ~U[2026-04-30 10:00:00Z]})
-      t2 = insert_transition!(run, %{reason: "step_activated", inserted_at: ~U[2026-04-30 11:00:00Z]})
-      t3 = insert_transition!(run, %{reason: "workflow_waiting", inserted_at: ~U[2026-04-30 12:00:00Z]})
-      t4 = insert_transition!(run, %{reason: "signal_received", inserted_at: ~U[2026-04-30 13:00:00Z]})
-      t5 = insert_transition!(run, %{reason: "workflow_completed", inserted_at: ~U[2026-04-30 14:00:00Z]})
+
+      t1 =
+        insert_transition!(run, %{
+          reason: "workflow_started",
+          inserted_at: ~U[2026-04-30 10:00:00Z]
+        })
+
+      t2 =
+        insert_transition!(run, %{reason: "step_activated", inserted_at: ~U[2026-04-30 11:00:00Z]})
+
+      t3 =
+        insert_transition!(run, %{
+          reason: "workflow_waiting",
+          inserted_at: ~U[2026-04-30 12:00:00Z]
+        })
+
+      t4 =
+        insert_transition!(run, %{
+          reason: "signal_received",
+          inserted_at: ~U[2026-04-30 13:00:00Z]
+        })
+
+      t5 =
+        insert_transition!(run, %{
+          reason: "workflow_completed",
+          inserted_at: ~U[2026-04-30 14:00:00Z]
+        })
 
       assert {:ok, all_traces} = Workflows.list_traces("acme", run.id)
       assert Enum.map(all_traces, & &1.id) == [t1.id, t2.id, t3.id, t4.id, t5.id]
@@ -223,7 +252,9 @@ defmodule Chimeway.WorkflowsInspectionTest do
 
     test "returns an empty list when limit is zero" do
       run = insert_workflow_run!(%{tenant_id: "acme"})
+
       insert_transition!(run, %{reason: "workflow_started", inserted_at: ~U[2026-04-30 10:00:00Z]})
+
       insert_transition!(run, %{reason: "step_activated", inserted_at: ~U[2026-04-30 11:00:00Z]})
 
       assert {:ok, []} = Workflows.list_traces("acme", run.id, limit: 0)
