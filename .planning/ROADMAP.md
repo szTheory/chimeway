@@ -23,7 +23,7 @@
 | 29. Outbound Channel Contracts | 7/7 | Complete    | 2026-05-01 |
 | 30. Inbound Feedback Normalization | 0/0 | Not started | - |
 | 31. Feedback-Driven Progression | 2/2 | Complete | 2026-05-01 |
-| 32. Operator Traces & Audit | 0/0 | Not started | - |
+| 32. Operator Traces & Audit | 0/2 | Planned | - |
 
 ## Phase Details
 
@@ -78,5 +78,9 @@ Plans:
   1. Operators querying trace data can see exactly when a webhook was received and what outcome it produced.
   2. Trace output clearly links the inbound webhook event to the workflow progression step that it triggered.
   3. Diagnostic tools can explain why a journey stopped or escalated based on asynchronous feedback.
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 32-01-PLAN.md — Populate WorkflowTransition.delivery_id from signal.payload in route_signal/1 (write-path delta + D-21 tests)
+- [ ] 32-02-PLAN.md — Extend Chimeway.Traces with webhook + workflow timeline projection (read-side helpers + D-19/D-20 tests)
