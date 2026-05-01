@@ -13,7 +13,7 @@
 
 - [x] **Phase 29: Outbound Channel Contracts** - Define adapter behaviors and channel-specific render contracts for non-email channels. (completed 2026-05-01)
 - [ ] **Phase 30: Inbound Feedback Normalization** - Implement a canonical webhook ingestion layer that translates vendor payloads to Chimeway delivery outcomes.
-- [ ] **Phase 31: Feedback-Driven Progression** - Connect normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
+- [x] **Phase 31: Feedback-Driven Progression** - Connect normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
 - [ ] **Phase 32: Operator Traces & Audit** - Expand timeline traces to show provider callbacks and resulting workflow transitions.
 
 ### Progress
@@ -22,7 +22,7 @@
 |-------|----------------|--------|-----------|
 | 29. Outbound Channel Contracts | 7/7 | Complete    | 2026-05-01 |
 | 30. Inbound Feedback Normalization | 0/0 | Not started | - |
-| 31. Feedback-Driven Progression | 0/2 | Not started | - |
+| 31. Feedback-Driven Progression | 2/2 | Complete | 2026-05-01 |
 | 32. Operator Traces & Audit | 0/0 | Not started | - |
 
 ## Phase Details
@@ -67,8 +67,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 31-01-PLAN.md — Denormalize Tenant and Actor ID onto Delivery
-- [ ] 31-02-PLAN.md — Emit Standard Workflow Signals from Webhooks
+- [x] 31-01-PLAN.md — Denormalize Tenant and Actor ID onto Delivery
+- [x] 31-02-PLAN.md — Emit Standard Workflow Signals from Webhooks
 
 ### Phase 32: Operator Traces & Audit
 **Goal**: Operators can fully audit the asynchronous lifecycle of a notification journey including provider feedback.
