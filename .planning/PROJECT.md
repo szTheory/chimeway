@@ -10,18 +10,18 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped `v1.2 Delivery Orchestration` on 2026-04-29. The library now supports durable delivery-window deferral, scheduled resume, digest accumulation and emission, versioned rendering contracts, recovery/reconciliation flows, and grouped outcome analytics while preserving canonical lifecycle history and explainable operator traces. The next milestone, `v1.3 Workflow Journeys`, turns that single-notification orchestration substrate into a durable multi-step journey engine for SaaS product teams.
+Chimeway shipped `v1.3 Workflow Journeys` on 2026-04-30. Phase 29 (Outbound Channel Contracts) of milestone `v1.4 Channel Feedback Loops` completed 2026-05-01: the library now exposes a public `Chimeway.Rendering.Channel` behaviour, ships built-in render-validators for Email, InApp, Sms, Push, and Chat, and resolves + persists per-attempt adapter modules so operator traces can answer "which adapter handled this attempt?" end-to-end.
 
-## Current Milestone: v1.3 Workflow Journeys
+## Current Milestone: v1.4 Channel Feedback Loops
 
-**Goal:** Turn Chimeway from single-notification orchestration into a durable, explainable workflow engine for multi-step notification journeys.
+**Goal:** Extend Chimeway from a single outbound channel (email) to a first-class multi-channel substrate (SMS, push, chat) with inbound provider feedback that can drive workflow progression.
 
 **Target features:**
-- Define ordered workflow steps across channels with stable workflow identity.
-- Wait, branch, and escalate based on elapsed time or prior delivery outcome.
-- Stop or cancel remaining steps when terminal conditions are met.
-- Persist journey state durably with operator-visible progression reasons.
-- Expose traces for the whole journey, not just one delivery.
+- Generic outbound channel adapters (SMS, Push, Chat) without vendor coupling.
+- Channel-specific render contracts (e.g. `text_body` for SMS vs `html_body` for email).
+- Webhook ingestion + canonical normalization of provider callbacks (delivered/bounced/failed).
+- Feedback-driven workflow progression (escalate on bounce, stop on delivered).
+- Operator traces that connect inbound webhook events back to the journey step they triggered.
 
 ## Product Arc
 
@@ -158,4 +158,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-29 for milestone v1.3 initialization*
+*Last updated: 2026-05-01 — Phase 29 (Outbound Channel Contracts) complete; v1.4 milestone in progress*
