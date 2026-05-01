@@ -160,6 +160,130 @@ defmodule Chimeway.TelemetryIntegrationTest do
     end
   end
 
+  describe "Phase 29 D-14 channel_unregistered telemetry" do
+    test "emits [:chimeway, :rendering, :channel_unregistered] on first hit and is silent on subsequent hits" do
+      # Each test owns a unique channel string so the :persistent_term once-flag
+      # does not collide with sibling tests. We still erase the flag both before
+      # the test (defensive) and on_exit (deterministic for re-runs).
+      channel_string = "telem_unknown_xyz_#{System.unique_integer([:positive])}"
+      :persistent_term.erase({:chimeway_channel_unregistered_logged, channel_string})
+
+      on_exit(fn ->
+        :persistent_term.erase({:chimeway_channel_unregistered_logged, channel_string})
+      end)
+
+      handler_id = :"chimeway_test_channel_unregistered_#{System.unique_integer([:positive])}"
+      test_pid = self()
+
+      :telemetry.attach(
+        handler_id,
+        [:chimeway, :rendering, :channel_unregistered],
+        fn _event, measurements, metadata, _config ->
+          send(test_pid, {:channel_unregistered_event, measurements, metadata})
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
+      # First call: telemetry MUST fire.
+      Chimeway.Rendering.render_delivery(channel_string, "x.x.unknown", 1, %{})
+
+      assert_receive {:channel_unregistered_event, %{count: 1}, %{channel: ^channel_string}}, 500
+
+      # D-14 once-flag: a second call with the same channel does NOT re-emit.
+      Chimeway.Rendering.render_delivery(channel_string, "x.x.unknown", 1, %{})
+
+      refute_receive {:channel_unregistered_event, _, %{channel: ^channel_string}}, 100
+    end
+  end
+
+  describe "Phase 29 D-19 adapter_fallback telemetry" do
+    setup do
+      original_channel_adapters = Application.get_env(:chimeway, :channel_adapters)
+      original_adapter = Application.get_env(:chimeway, :adapter)
+
+      on_exit(fn ->
+        case original_channel_adapters do
+          nil -> Application.delete_env(:chimeway, :channel_adapters)
+          val -> Application.put_env(:chimeway, :channel_adapters, val)
+        end
+
+        case original_adapter do
+          nil -> Application.delete_env(:chimeway, :adapter)
+          mod -> Application.put_env(:chimeway, :adapter, mod)
+        end
+      end)
+
+      :ok
+    end
+
+    test "emits [:chimeway, :dispatch, :adapter_fallback] when :channel_adapters is set and lookup misses" do
+      handler_id = :"chimeway_test_adapter_fallback_#{System.unique_integer([:positive])}"
+      test_pid = self()
+
+      :telemetry.attach(
+        handler_id,
+        [:chimeway, :dispatch, :adapter_fallback],
+        fn _event, measurements, metadata, _config ->
+          send(test_pid, {:adapter_fallback_event, measurements, metadata})
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
+      # :channel_adapters explicitly set for "sms" only; an in_app delivery will miss
+      # the per-channel map and fall back to :adapter, firing the telemetry.
+      Application.put_env(:chimeway, :channel_adapters, %{"sms" => Chimeway.Adapters.Logger})
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+
+      ctx =
+        Chimeway.Test.DispatchHelpers.create_pending_delivery(
+          notification_key: "test.adapter_fallback_hit",
+          channel: :in_app
+        )
+
+      assert {:ok, _} = Chimeway.Dispatch.Sync.dispatch_delivery(ctx.delivery, [])
+
+      assert_receive {:adapter_fallback_event, %{count: 1}, metadata}, 500
+      assert metadata.channel == "in_app"
+      assert is_binary(metadata.fallback_module)
+    end
+
+    test "does NOT emit adapter_fallback when only :adapter is configured (no :channel_adapters)" do
+      handler_id = :"chimeway_test_no_adapter_fallback_#{System.unique_integer([:positive])}"
+      counter = :counters.new(1, [])
+
+      :telemetry.attach(
+        handler_id,
+        [:chimeway, :dispatch, :adapter_fallback],
+        fn _event, _measurements, _metadata, _config ->
+          :counters.add(counter, 1, 1)
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
+      # Ensure :channel_adapters is NOT set; only :adapter exists.
+      Application.delete_env(:chimeway, :channel_adapters)
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+
+      ctx =
+        Chimeway.Test.DispatchHelpers.create_pending_delivery(
+          notification_key: "test.adapter_no_fallback",
+          channel: :in_app
+        )
+
+      assert {:ok, _} = Chimeway.Dispatch.Sync.dispatch_delivery(ctx.delivery, [])
+
+      # Give any async telemetry callback a moment to fire if it would.
+      Process.sleep(50)
+      assert :counters.get(counter, 1) == 0
+    end
+  end
+
   describe "correlation metadata enrichment" do
     test "all enriched spans include notification_key and appropriate IDs" do
       {:ok, _result} = run_trigger()
