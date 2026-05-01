@@ -41,6 +41,7 @@ defmodule Chimeway.DeliveryAttempt do
     field(:provider_response, :map)
     field(:attempt_number, :integer)
     field(:error_class, :string)
+    field(:adapter_module, :string)
     field(:inserted_at, :utc_datetime_usec)
 
     belongs_to(:delivery, Chimeway.Delivery)
@@ -50,7 +51,7 @@ defmodule Chimeway.DeliveryAttempt do
   # Deliveries.record_attempt/2 was wired to inject the value via the
   # :next_attempt_number Multi step (Plan 14-04 Task 2).
   @required_fields ~w(delivery_id outcome attempt_number)a
-  @optional_fields ~w(error_class provider_response)a
+  @optional_fields ~w(error_class provider_response adapter_module)a
 
   def changeset(attempt, attrs) do
     attempt
