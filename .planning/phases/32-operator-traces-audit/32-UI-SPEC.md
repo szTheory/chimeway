@@ -1,10 +1,11 @@
 ---
 phase: 32
 slug: operator-traces-audit
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-01
+reviewed_at: 2026-05-01
 surface_kind: structured-data-operator-output
 ---
 
