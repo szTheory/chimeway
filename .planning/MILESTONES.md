@@ -32,3 +32,11 @@
 - Phases: 24-28
 - Requirements: 11/11 satisfied
 - Notes: Workflow engine, escalations, wait gates, host signal API, and tracing.
+
+## v1.4 Channel Feedback Loops
+
+- Status: planned
+- Date: TBD
+- Phases: 29-32
+- Requirements: 8 planned
+- Notes: Outbound channel contracts, inbound feedback normalization, feedback-driven progression, and operator traces.

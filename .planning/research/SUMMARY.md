@@ -1,134 +1,61 @@
-# Project Research Summary
+# Research Summary: Chimeway Milestone v1.4 - Channel Feedback Loops
 
-**Project:** Chimeway
-**Domain:** Embedded notification workflow orchestration
-**Researched:** 2026-04-29
-**Confidence:** HIGH
+**Domain:** Embedded notification workflow orchestration (Channel & Feedback Expansion)
+**Researched:** 2026-04-30
+**Overall confidence:** HIGH
 
 ## Executive Summary
 
-Chimeway already has the hard substrate most notification libraries never finish: durable identity, policy controls, explainable lifecycle traces, deferred/digest orchestration, rendering durability, and recovery. The next product-value jump is not “more channels” or “more polish” in isolation. It is durable multi-step workflow journeys that let SaaS teams define what happens after the first notification.
+Chimeway established a durable workflow engine in v1.3. The next major leverage point is enabling those multi-step journeys to interact with a broader set of channels (SMS, Push, Chat) and to react to asynchronous provider feedback (receipts, bounces, callbacks). Until now, Chimeway operated primarily in a "fire-and-forget" model post-dispatch (except for synchronous failure or Oban retry convergence). Provider callbacks represent true terminal state.
 
-Research across comparable notification systems reinforces that delay mechanics, channel fanout, and conditional delivery are expected, but chain-level workflow state and explainability are usually still app-owned or relatively light. Chimeway can differentiate by making journey progression, escalation, and stop reasoning durable first-class behavior while staying local-first and embedded.
+Research shows the Elixir ecosystem has fragmented but capable libraries for these channels (e.g., `pigeon` for push, `twilio_elixir` for SMS, `slack_elixir` for chat). Rather than hardcoding these libraries, Chimeway must maintain its adapter-seam philosophy, allowing host apps to plug in their preferred clients while Chimeway standardizes the inbound webhook normalization and state convergence. 
 
-The key risk is scope dilution: adding channel breadth, read/unread-driven branching, or UI productization too early would slow the milestone and weaken the core workflow model. The recommended approach is to ship an API-first workflow milestone centered on time-based and outcome-based journeys, then expand channels and adoption surfaces afterward.
+By ingesting webhooks as signals into the v1.3 Workflow Engine, Chimeway can drive outcome-based progression (e.g., escalate to SMS if the Email bounces, or mark the journey completed if a Push is opened/delivered).
 
 ## Key Findings
 
-### Recommended Stack
-
-Keep the current Elixir/Ecto/PostgreSQL/Oban stack. The main addition is conceptual, not infrastructural: add a workflow-run and transition layer that reuses Chimeway's existing planning, dispatch, recovery, and trace seams.
-
-**Core technologies:**
-- Elixir: workflow progression runtime — stays aligned with host apps and existing notifier APIs
-- PostgreSQL: durable workflow state — transactional progression, locking, and explainable history
-- Oban: scheduled progression — time-based waits and escalations without inventing a new async engine
-
-### Expected Features
-
-The table stakes for this milestone are durable workflow definitions, time-based waits, outcome-based escalation, stop conditions, and journey-level operator traces.
-
-**Must have (table stakes):**
-- Multi-step journey definitions with stable identity
-- Wait/advance/escalate/stop semantics driven by time and prior outcomes
-- Journey traces that explain current position and next action
-
-**Should have (competitive):**
-- Transition reasons persisted as durable data
-- Host signal API seams that do not let apps mutate history directly
-
-**Defer (v2+):**
-- Read/unread-driven branching as the primary workflow driver
-- Visual journey builders
-- Broad channel expansion in the same milestone
-
-### Architecture Approach
-
-Add a workflow layer that persists declaration snapshots, workflow runs, current-step state, and transition history, then links emitted deliveries back to the journey. Reuse Oban for due-step advancement, and extend trace APIs so operators can inspect the entire journey chain safely.
-
-**Major components:**
-1. Workflow declarations — normalized key/version plus ordered step definitions
-2. Workflow runs and transitions — durable current state plus append-only transition history
-3. Progression engine/workers — evaluates waits, outcomes, escalations, and stop conditions
-4. Journey traces — exposes step position, history, and reasoning without leaking payloads
-
-### Critical Pitfalls
-
-1. **Split-brain workflow state** — avoid by anchoring journeys directly to canonical notification/delivery rows
-2. **Duplicate advancement under retries** — avoid with transactional claims and idempotent progression
-3. **Over-notifying escalations** — avoid by persisting stop conditions and checking them before emitting the next step
-4. **Read-state scope creep** — avoid by keeping v1.3 centered on time/outcome progression
-5. **Missing journey-level traces** — avoid by making chain explainability a requirement, not polish
+**Stack:** Continue using Elixir/Ecto/Oban with replaceable Adapter Behaviors; add an inbound normalized webhook parsing layer.
+**Architecture:** Expose an ingest/webhook seam that normalizes vendor payloads into canonical Chimeway outcomes, then emits these as workflow signals.
+**Critical pitfall:** Hard-coupling the library to specific vendor SDKs (like Twilio or Slack) instead of standardizing the adapter contract. 
 
 ## Implications for Roadmap
 
 Based on research, suggested phase structure:
 
-### Phase 24: Workflow Contracts & State Spine
-**Rationale:** durable identity/state must exist before any progression logic
-**Delivers:** workflow declarations, run storage, transition persistence, and schema contracts
-**Addresses:** durable workflow identity and explainability foundations
-**Avoids:** split-brain workflow state
+1. **[Phase] Outbound Channel Contracts** - Define adapter behaviors and channel-specific render contracts for SMS, Push, and Chat.
+   - Addresses: Need for non-email messaging without vendor lock-in.
+   - Avoids: Hard-coupling to `twilio_elixir` or `pigeon`.
 
-### Phase 25: Progression Engine & Wait Gates
-**Rationale:** time/outcome-based advancement is the core new capability
-**Delivers:** deterministic progression evaluation, due-step scheduling, and idempotent advancement
-**Uses:** PostgreSQL locking and Oban scheduling
-**Implements:** progression engine
+2. **[Phase] Inbound Feedback Normalization** - Implement a canonical webhook ingestion layer that translates vendor payloads to Chimeway delivery outcomes.
+   - Addresses: Closing the loop on asynchronous delivery state (receipts, bounces, clicks).
+   - Avoids: Exposing raw vendor payloads in the core workflow spine.
 
-### Phase 26: Escalations & Stop Conditions
-**Rationale:** once progression exists, channel escalation and termination semantics become safe to add
-**Delivers:** follow-up progression, cancellation/stop rules, and no-duplicate escalation behavior
+3. **[Phase] Feedback-Driven Progression** - Connect the normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
+   - Addresses: Outcome-based escalation based on true delivery state rather than just dispatch success.
+   - Avoids: Split-brain state where the delivery row says "delivered" but the workflow engine is unaware.
 
-### Phase 27: Journey Traces & Host Signal API
-**Rationale:** journey-level operability and controlled host integration should land before closure
-**Delivers:** workflow inspection queries, progression reasons, and stable host signal seams
+4. **[Phase] Operator Traces & Audit** - Expand timeline traces to show provider callbacks and the resulting workflow transitions.
+   - Addresses: Explainability for asynchronous provider feedback.
 
-### Phase 28: Docs, Reference Flows, and Closure
-**Rationale:** production adoption needs concrete examples once the API stabilizes
-**Delivers:** reference journey examples, docs, and final milestone verification
+**Phase ordering rationale:**
+- Outbound channel contracts must exist first so that deliveries have a channel context.
+- Inbound feedback normalization builds the bridge from the outside world back to the delivery row.
+- Feedback-driven progression links the updated delivery row back to the workflow engine.
+- Operator traces seal the explainability loop.
 
-### Phase Ordering Rationale
-
-- Workflow declarations and state must precede progression because later workers need durable truth to act on.
-- Progression must precede escalation because fallback behavior is just a special case of controlled advancement.
-- Journey traces come after the main engine exists, but before milestone closure so the product remains explainable.
-- Docs and reference flows belong at the end of the milestone so they reflect the stable API rather than a moving target.
-
-### Research Flags
-
-Phases likely needing deeper research during planning:
-- **Phase 24:** API contract and schema choices need careful local design review
-- **Phase 25:** idempotent progression and worker race handling need targeted concurrency planning
-- **Phase 27:** host signal API needs boundary/security review
-
-Phases with standard patterns (skip research-phase):
-- **Phase 28:** documentation and reference-flow packaging should mostly reuse existing project patterns
+**Research flags for phases:**
+- Feedback Normalization: Needs deeper research during planning on how to securely ingest webhooks across different host app router setups (Plug vs Phoenix).
+- Feedback-Driven Progression: Carefully map delivery status convergence with the v1.3 Signal router.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Strong alignment with existing project architecture and official docs |
-| Features | HIGH | Deferred requirements and ecosystem patterns point to the same next gap |
-| Architecture | HIGH | The durable-state-first design follows directly from Chimeway's core value |
-| Pitfalls | HIGH | Most risks are visible from adjacent notification systems and Chimeway's current trajectory |
+| Stack | HIGH | Relying on host apps for SDKs aligns perfectly with existing Swoosh architecture. |
+| Features | HIGH | Outcomes mapped perfectly to SEED-001 requirements. |
+| Architecture | HIGH | Reuses v1.3 Signal architecture heavily. |
+| Pitfalls | HIGH | Known pain points from webhook ingestion are standard web dev concerns. |
 
-**Overall confidence:** HIGH
+## Gaps to Address
 
-### Gaps to Address
-
-- Sync-first host progression without Oban should stay documented as a seam, but not become the milestone's design center
-- Read/unread-driven branching remains a meaningful follow-on, but should not backdoor itself into v1.3 requirements
-
-## Sources
-
-### Primary (HIGH confidence)
-- https://laravel.com/docs/12.x/notifications — channel routing, delays, and expected notification-system behaviors
-- https://symfony.com/doc/current/notifier.html — transport and notifier architecture boundaries
-- https://github.com/excid3/noticed — comparable OSS notification patterns for delayed and multi-delivery behavior
-- Local planning and code context in `.planning/PROJECT.md`, `.planning/milestones/v1.1-ROADMAP.md`, `.planning/milestones/v1.2-ROADMAP.md`, `lib/chimeway/notifier.ex`, `lib/chimeway/inbox.ex`
-
----
-*Research completed: 2026-04-29*
-*Ready for roadmap: yes*
+- Whether Read/unread-driven branching is entirely out of scope for v1.4, or if basic read-receipt webhooks should trigger a state change. Current recommendation is to stick to delivery terminal states (bounced, delivered, failed) first.
