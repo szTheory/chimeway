@@ -400,6 +400,95 @@ defmodule Chimeway.TracesTest do
     end
   end
 
+  describe "explain_delivery/1 — Phase 29 D-22 adapter_module field" do
+    test "last_attempt surfaces adapter_module persisted on the attempt row" do
+      ctx = create_pending_delivery_for_traces()
+      {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: succeeded}} =
+        Deliveries.record_attempt(dispatched, %{
+          outcome: :succeeded,
+          provider_response: %{},
+          adapter_module: "Chimeway.Adapters.Test"
+        })
+
+      assert {:ok, %Explanation{last_attempt: last_attempt, timeline: timeline}} =
+               Traces.explain_delivery(succeeded.id)
+
+      assert last_attempt.adapter_module == "Chimeway.Adapters.Test"
+
+      attempt_entries = Enum.filter(timeline, fn entry -> entry.event == :attempt_recorded end)
+      assert length(attempt_entries) == 1
+      [%{detail: detail}] = attempt_entries
+      assert detail.adapter_module == "Chimeway.Adapters.Test"
+    end
+
+    test "last_attempt.adapter_module is nil for pre-Phase-29 attempts (no adapter_module column value)" do
+      ctx = create_pending_delivery_for_traces()
+      {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      # Simulate a pre-Phase-29 attempt by NOT supplying :adapter_module — the
+      # column is nullable and defaults to nil for legacy rows.
+      {:ok, %{delivery: succeeded}} =
+        Deliveries.record_attempt(dispatched, %{
+          outcome: :succeeded,
+          provider_response: %{}
+        })
+
+      assert {:ok, %Explanation{last_attempt: last_attempt, timeline: timeline}} =
+               Traces.explain_delivery(succeeded.id)
+
+      # The key MUST be present in the map (not omitted) and the value MUST be nil.
+      assert Map.has_key?(last_attempt, :adapter_module)
+      assert last_attempt.adapter_module == nil
+
+      attempt_entries = Enum.filter(timeline, fn entry -> entry.event == :attempt_recorded end)
+      assert length(attempt_entries) == 1
+      [%{detail: detail}] = attempt_entries
+      assert Map.has_key?(detail, :adapter_module)
+      assert detail.adapter_module == nil
+    end
+
+    test "adapter_module reflects the most recent attempt across multiple records" do
+      ctx = create_pending_delivery_for_traces()
+
+      {:ok, dispatched_a} = Deliveries.transition_status(ctx.delivery, :dispatched)
+
+      {:ok, %{delivery: failed_a}} =
+        Deliveries.record_attempt(dispatched_a, %{
+          outcome: :failed,
+          error_class: "temporary",
+          provider_response: %{seq: 1},
+          adapter_module: "Chimeway.Adapters.Logger"
+        })
+
+      {:ok, dispatched_b} = Deliveries.transition_status(failed_a, :dispatched)
+
+      {:ok, %{delivery: succeeded}} =
+        Deliveries.record_attempt(dispatched_b, %{
+          outcome: :succeeded,
+          provider_response: %{seq: 2},
+          adapter_module: "Chimeway.Adapters.Test"
+        })
+
+      assert {:ok, %Explanation{last_attempt: last_attempt, timeline: timeline}} =
+               Traces.explain_delivery(succeeded.id)
+
+      assert last_attempt.attempt_number == 2
+      assert last_attempt.adapter_module == "Chimeway.Adapters.Test"
+
+      attempt_entries =
+        timeline
+        |> Enum.filter(fn entry -> entry.event == :attempt_recorded end)
+        |> Enum.sort_by(& &1.detail.attempt_number)
+
+      assert length(attempt_entries) == 2
+      [first_entry, second_entry] = attempt_entries
+      assert first_entry.detail.adapter_module == "Chimeway.Adapters.Logger"
+      assert second_entry.detail.adapter_module == "Chimeway.Adapters.Test"
+    end
+  end
+
   describe "explain_delivery/1 — Phase 14 trace surface drift fixes (WR-05, WR-06)" do
     test "WR-05 regression: last_attempt_summary selects by attempt_number when inserted_at ties" do
       ctx = create_pending_delivery_for_traces()

@@ -29,7 +29,7 @@ defmodule Chimeway.Traces.Explanation do
       * `"retries_exhausted"` — set when status is `:cancelled` (Oban exhausted max_attempts on transient failures, REL-03 D-10/D-11)
       * `"permanent_failure"` — set when status is `:cancelled` (adapter returned a permanent error)
       * `"bounced"` — set when status is `:cancelled` (adapter returned a bounce)
-  - `last_attempt` — map with :outcome, :inserted_at, :attempt_number, :error_class for the most recent attempt, or nil
+  - `last_attempt` — map with :outcome, :inserted_at, :attempt_number, :error_class, :adapter_module for the most recent attempt, or nil. `:adapter_module` is nil for pre-Phase-29 attempts.
   - `digest` — digest-specific reasoning for source or emitted digest rows, else nil
   - `timeline` — chronological list of lifecycle events, each a map with :at, :event, :detail
   """
@@ -59,7 +59,8 @@ defmodule Chimeway.Traces.Explanation do
               outcome: atom(),
               inserted_at: DateTime.t(),
               attempt_number: pos_integer() | nil,
-              error_class: String.t() | nil
+              error_class: String.t() | nil,
+              adapter_module: String.t() | nil
             }
             | nil,
           timeline: [timeline_entry()]

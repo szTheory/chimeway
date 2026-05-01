@@ -277,7 +277,9 @@ defmodule Chimeway.Traces do
       outcome: attempt.outcome,
       inserted_at: attempt.inserted_at,
       attempt_number: attempt.attempt_number,
-      error_class: attempt.error_class
+      error_class: attempt.error_class,
+      adapter_module: attempt.adapter_module
+      # Phase 29 D-22 — nil for pre-Phase-29 rows
     }
   end
 
@@ -397,7 +399,9 @@ defmodule Chimeway.Traces do
           detail: %{
             outcome: attempt.outcome,
             attempt_number: attempt.attempt_number,
-            error_class: attempt.error_class
+            error_class: attempt.error_class,
+            adapter_module: attempt.adapter_module
+            # Phase 29 D-22 — nil for pre-Phase-29 rows
           }
         }
       end)
