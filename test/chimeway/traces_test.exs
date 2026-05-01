@@ -5,6 +5,7 @@ defmodule Chimeway.TracesTest do
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Traces.Explanation
+  alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun, WorkflowStep, WorkflowTransition}
 
   # --- Helpers ---
 
@@ -59,6 +60,104 @@ defmodule Chimeway.TracesTest do
   defp suppress_delivery(delivery, reason) do
     {:ok, suppressed} = Deliveries.suppress_delivery(delivery, reason)
     suppressed
+  end
+
+  # Phase 32 fixtures — workflow run + transition rows that link by delivery_id.
+  # The run keeps a private notification (different from the delivery's), satisfying
+  # the unique_constraint on chimeway_workflow_runs.notification_id while still
+  # exercising the delivery_id linkage on workflow transitions (D-21).
+  defp insert_workflow_run_for(delivery, opts) do
+    step_key = Keyword.get(opts, :step_key, "send_email")
+    tenant_id = Keyword.get(opts, :tenant_id, delivery.tenant_id)
+
+    run_event =
+      Repo.insert!(%Event{
+        notification_key: "test.phase32",
+        notification_version: 1,
+        idempotency_key: "phase32-#{System.unique_integer([:positive])}",
+        payload: %{}
+      })
+
+    run_notification =
+      Repo.insert!(%Notification{
+        event_id: run_event.id,
+        recipient_identity: "user:phase32-#{System.unique_integer([:positive])}",
+        recipient_type: "user",
+        metadata: %{}
+      })
+
+    definition =
+      Repo.insert!(
+        WorkflowDefinition.changeset(%WorkflowDefinition{}, %{
+          workflow_key: "test.phase32.workflow.#{System.unique_integer([:positive])}",
+          workflow_version: 1,
+          notification_key: "test.phase32"
+        })
+      )
+
+    step =
+      Repo.insert!(
+        WorkflowStep.changeset(%WorkflowStep{}, %{
+          workflow_definition_id: definition.id,
+          step_key: step_key,
+          step_order: 1,
+          channel: "in_app",
+          config: %{}
+        })
+      )
+
+    now = DateTime.utc_now()
+
+    run =
+      Repo.insert!(
+        WorkflowRun.changeset(%WorkflowRun{}, %{
+          notification_id: run_notification.id,
+          workflow_definition_id: definition.id,
+          current_step_id: step.id,
+          state: :active,
+          started_at: now,
+          last_transition_at: now,
+          status_reason: "phase32_test",
+          tenant_id: tenant_id,
+          pending_signals: []
+        })
+      )
+
+    Map.put(run, :current_step, step)
+  end
+
+  defp insert_workflow_transition!(run, delivery_id, reason, context, opts \\ []) do
+    Repo.insert!(
+      WorkflowTransition.changeset(%WorkflowTransition{}, %{
+        workflow_run_id: run.id,
+        from_state: Keyword.get(opts, :from_state, :active),
+        to_state: Keyword.get(opts, :to_state, :active),
+        reason: reason,
+        delivery_id: delivery_id,
+        workflow_step_id: Keyword.get(opts, :workflow_step_id, run.current_step.id),
+        context: context
+      })
+    )
+  end
+
+  defp insert_attempt!(delivery, attrs) do
+    {:ok, attempt} =
+      %Chimeway.DeliveryAttempt{}
+      |> Chimeway.DeliveryAttempt.changeset(
+        Map.merge(
+          %{
+            delivery_id: delivery.id,
+            outcome: :succeeded,
+            attempt_number: 1,
+            adapter_module: "TestAdapter",
+            provider_message_id: "msg_#{System.unique_integer([:positive])}"
+          },
+          attrs
+        )
+      )
+      |> Repo.insert()
+
+    attempt
   end
 
   # --- get_trace/1 ---
@@ -241,6 +340,230 @@ defmodule Chimeway.TracesTest do
       assert {:ok, exp} = Traces.explain_delivery(delivery.id)
       timestamps = Enum.map(exp.timeline, & &1.at)
       assert timestamps == Enum.sort(timestamps, DateTime)
+    end
+  end
+
+  describe "explain_delivery/1 — webhook + workflow timeline" do
+    test "Scenario A: bounced delivery + workflow_stopped transition surfaces both events" do
+      event = insert_event()
+      notification = insert_notification(event)
+      delivery = plan_delivery(notification)
+
+      # Bounced attempt — drives :webhook_received with outcome :bounced
+      _attempt =
+        insert_attempt!(delivery, %{
+          outcome: :bounced,
+          error_class: "bounced",
+          attempt_number: 1,
+          adapter_module: "TestAdapter",
+          provider_message_id: "msg_abc"
+        })
+
+      run = insert_workflow_run_for(delivery, step_key: "send_email")
+
+      # signal_received companion row (Phase 32 D-02 populated delivery_id)
+      insert_workflow_transition!(run, delivery.id, "signal_received",
+        %{"event_name" => "chimeway.delivery.bounced"})
+
+      # The progression engine's transition row
+      insert_workflow_transition!(run, delivery.id, "workflow_stopped",
+        %{
+          "workflow_outcome" => "bounced",
+          "from_step" => "send_email",
+          "to_step" => nil
+        })
+
+      assert {:ok, %Explanation{timeline: timeline}} = Traces.explain_delivery(delivery.id)
+      event_names = Enum.map(timeline, & &1.event)
+
+      assert :webhook_received in event_names
+      assert :workflow_stopped in event_names
+      # Backward-compat: existing entries still present
+      assert :attempt_recorded in event_names
+
+      webhook = Enum.find(timeline, &(&1.event == :webhook_received))
+      assert webhook.detail.outcome == :bounced
+      assert webhook.detail.adapter_module == "TestAdapter"
+      assert webhook.detail.provider_message_id == "msg_abc"
+      assert webhook.detail.signal_event_name == "chimeway.delivery.bounced"
+
+      stopped = Enum.find(timeline, &(&1.event == :workflow_stopped))
+      assert stopped.detail.workflow_outcome == "bounced"
+      assert stopped.detail.from_step == "send_email"
+      assert stopped.detail.workflow_run_id == run.id
+      # D-12 seven-field contract: reason is a verbatim copy of transition.reason
+      # (UI-SPEC line 273 shows `reason: "workflow_stopped"` in the operator output)
+      assert stopped.detail.reason == "workflow_stopped"
+    end
+
+    test "Scenario B: succeeded + workflow_progressed surfaces both events" do
+      event = insert_event()
+      notification = insert_notification(event)
+      delivery = plan_delivery(notification)
+
+      _attempt =
+        insert_attempt!(delivery, %{
+          outcome: :succeeded,
+          error_class: nil,
+          attempt_number: 1,
+          adapter_module: "TestAdapter",
+          provider_message_id: "msg_def"
+        })
+
+      run = insert_workflow_run_for(delivery, step_key: "send_email")
+
+      insert_workflow_transition!(run, delivery.id, "signal_received",
+        %{"event_name" => "chimeway.delivery.delivered"})
+
+      insert_workflow_transition!(run, delivery.id, "progressed_on_delivery_outcome",
+        %{
+          "workflow_outcome" => "delivered",
+          "from_step" => "send_email",
+          "to_step" => "wait_for_open"
+        })
+
+      assert {:ok, %Explanation{timeline: timeline}} = Traces.explain_delivery(delivery.id)
+      event_names = Enum.map(timeline, & &1.event)
+
+      assert :webhook_received in event_names
+      assert :workflow_progressed in event_names
+
+      webhook = Enum.find(timeline, &(&1.event == :webhook_received))
+      assert webhook.detail.outcome == :succeeded
+
+      progressed = Enum.find(timeline, &(&1.event == :workflow_progressed))
+      assert progressed.detail.workflow_outcome == "delivered"
+      assert progressed.detail.from_step == "send_email"
+      assert progressed.detail.to_step == "wait_for_open"
+      assert progressed.detail.workflow_run_id == run.id
+      # D-12 seven-field contract — verbatim copy of transition.reason
+      assert progressed.detail.reason == "progressed_on_delivery_outcome"
+    end
+
+    test "Scenario C: list_traces/3 surfaces populated delivery_id by struct introspection" do
+      event = insert_event()
+      notification = insert_notification(event)
+      delivery = plan_delivery(notification)
+
+      run = insert_workflow_run_for(delivery, step_key: "send_email")
+
+      # One transition WITHOUT a delivery link (e.g. step_activated)
+      insert_workflow_transition!(run, nil, "step_activated",
+        %{"event_name" => "internal_cursor"})
+
+      # One transition WITH a delivery link (Phase 32 D-02)
+      insert_workflow_transition!(run, delivery.id, "workflow_stopped",
+        %{"workflow_outcome" => "bounced"})
+
+      assert {:ok, traces} = Chimeway.Workflows.list_traces(delivery.tenant_id, run.id)
+      delivery_ids = Enum.map(traces, & &1.delivery_id)
+
+      # The populated delivery_id surfaces by struct introspection (D-10)
+      assert delivery.id in delivery_ids
+      # The unpopulated transition is still nil
+      assert nil in delivery_ids
+    end
+
+    test "Scenario D: cross-tenant transitions are excluded by defensive WorkflowRun.tenant_id join" do
+      event = insert_event()
+      notification = insert_notification(event)
+      delivery = plan_delivery(notification)
+
+      _attempt =
+        insert_attempt!(delivery, %{
+          outcome: :succeeded,
+          error_class: nil,
+          attempt_number: 1,
+          adapter_module: "TestAdapter",
+          provider_message_id: "msg_xyz"
+        })
+
+      # Tenant A's run + transition keyed by delivery.id (delivery.tenant_id == "default")
+      run_a = insert_workflow_run_for(delivery, step_key: "send_email")
+      insert_workflow_transition!(run_a, delivery.id, "workflow_completed",
+        %{"workflow_outcome" => "delivered"})
+
+      # Tenant B's run pointing at the same delivery.id but owned by a foreign tenant.
+      # FK chain limitation — cross-tenant delivery_id reuse is impossible in
+      # production, so we synthesize the adversarial state at the WorkflowRun
+      # boundary to verify the defensive wr.tenant_id == ^delivery.tenant_id
+      # filter (D-09 / T-32-T1).
+      run_b = insert_workflow_run_for(delivery, step_key: "send_email", tenant_id: "tenant_b_synth")
+      insert_workflow_transition!(run_b, delivery.id, "workflow_stopped",
+        %{"workflow_outcome" => "bounced"})
+
+      # Querying explain_delivery/1 for delivery (tenant "default") must NOT surface
+      # tenant_b's transition — the wr.tenant_id filter excludes it (D-09).
+      assert {:ok, %Explanation{timeline: timeline}} = Traces.explain_delivery(delivery.id)
+      event_names = Enum.map(timeline, & &1.event)
+
+      assert :workflow_completed in event_names
+      refute :workflow_stopped in event_names
+    end
+  end
+
+  describe "explain_delivery/1 — timeline detail PII boundary" do
+    test "no new event atom's :detail map exposes payload, recipient, or provider_response" do
+      event = insert_event()
+      notification = insert_notification(event)
+      delivery = plan_delivery(notification)
+
+      _attempt =
+        insert_attempt!(delivery, %{
+          outcome: :succeeded,
+          error_class: nil,
+          attempt_number: 1,
+          adapter_module: "TestAdapter",
+          provider_message_id: "msg_pii_check"
+        })
+
+      run = insert_workflow_run_for(delivery, step_key: "send_email")
+
+      insert_workflow_transition!(run, delivery.id, "signal_received",
+        %{"event_name" => "chimeway.delivery.delivered"})
+
+      # One row per progression atom so each appears in the timeline.
+      insert_workflow_transition!(run, delivery.id, "progressed_on_delivery_outcome",
+        %{"workflow_outcome" => "delivered", "from_step" => "a", "to_step" => "b"})
+
+      insert_workflow_transition!(run, delivery.id, "waiting_for_step_progression",
+        %{"due_at" => "2026-05-02T00:00:00Z", "rule_kind" => "wait_until"})
+
+      insert_workflow_transition!(run, delivery.id, "workflow_stopped",
+        %{"workflow_outcome" => "stopped"})
+
+      insert_workflow_transition!(run, delivery.id, "workflow_completed",
+        %{"workflow_outcome" => "completed"})
+
+      assert {:ok, %Explanation{timeline: timeline}} = Traces.explain_delivery(delivery.id)
+
+      new_atoms = [
+        :webhook_received,
+        :workflow_progressed,
+        :workflow_waiting,
+        :workflow_stopped,
+        :workflow_completed
+      ]
+
+      # NOTE: :reason is allowed (D-12 seven-field detail contract) and is
+      # NOT in this list. Vendor PII strings (recipient, email, phone,
+      # provider_response body, raw payload) ARE forbidden.
+      forbidden = [:payload, :data, :recipient, :email, :phone, :provider_response]
+
+      for atom <- new_atoms,
+          entry <- Enum.filter(timeline, &(&1.event == atom)),
+          key <- forbidden do
+        refute Map.has_key?(entry.detail, key),
+          "expected #{atom} :detail to not contain #{inspect(key)}; got: #{inspect(entry.detail)}"
+      end
+
+      # Defense-in-depth: every new atom appears in this fixture (sanity check
+      # so the for-comprehension above is not vacuously true).
+      event_names = Enum.map(timeline, & &1.event)
+
+      for atom <- new_atoms do
+        assert atom in event_names, "expected fixture to produce #{atom} entry"
+      end
     end
   end
 
