@@ -439,15 +439,19 @@ defmodule Chimeway.Deliveries do
   Returns {:error, {:invalid_transition, from: current, to: new}} for disallowed transitions.
   """
   @spec transition_status(Delivery.t(), atom()) :: {:ok, Delivery.t()} | {:error, term()}
-  def transition_status(%Delivery{} = delivery, new_status) do
-    allowed = Map.get(@allowed_transitions, delivery.status, [])
-
-    if new_status in allowed do
-      delivery
-      |> change(status: new_status)
-      |> Repo.update()
+  def transition_status(delivery, new_status) do
+    if delivery.status == new_status do
+      {:ok, delivery}
     else
-      {:error, {:invalid_transition, from: delivery.status, to: new_status}}
+      allowed = Map.get(@allowed_transitions, delivery.status, [])
+
+      if new_status in allowed do
+        delivery
+        |> change(status: new_status)
+        |> Repo.update()
+      else
+        {:error, {:invalid_transition, from: delivery.status, to: new_status}}
+      end
     end
   end
 
