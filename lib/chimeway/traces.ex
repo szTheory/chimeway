@@ -33,6 +33,7 @@ defmodule Chimeway.Traces do
   alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Repo}
   alias Chimeway.Digests.DigestMembership
   alias Chimeway.Traces.Explanation
+  alias Chimeway.Workflows.{WorkflowRun, WorkflowStep, WorkflowTransition}
 
   @doc """
   Returns the full event trace for the given event_id with all associations preloaded.
@@ -408,13 +409,20 @@ defmodule Chimeway.Traces do
 
     digest_entries = digest_timeline_entries(delivery, digest_context)
 
+    signal_event_name = lookup_signal_received_event_name(delivery)
+    webhook_received_entries = webhook_received_entries(attempts, signal_event_name)
+    workflow_transition_entries = workflow_transition_entries(delivery)
+
     (base ++
        deferred_entries ++
        resumed_entries ++
        recovery_entries ++
        suppression_entries ++
        cancellation_entries ++
-       digest_entries ++ attempt_entries)
+       digest_entries ++
+       attempt_entries ++
+       webhook_received_entries ++
+       workflow_transition_entries)
     |> Enum.sort_by(&timeline_sort_key/1)
   end
 
@@ -495,7 +503,128 @@ defmodule Chimeway.Traces do
   defp timeline_rank(:emitted_immediately), do: 10
   defp timeline_rank(:digest_emitted), do: 11
   defp timeline_rank(:attempt_recorded), do: 12
+  defp timeline_rank(:webhook_received), do: 13
+  defp timeline_rank(:workflow_progressed), do: 14
+  defp timeline_rank(:workflow_waiting), do: 15
+  defp timeline_rank(:workflow_stopped), do: 16
+  defp timeline_rank(:workflow_completed), do: 17
   defp timeline_rank(_event), do: 99
+
+  # ---------------------------------------------------------------------
+  # Phase 32 — webhook + workflow timeline projection (TRAC-01, TRAC-02)
+  # ---------------------------------------------------------------------
+
+  @spec webhook_received_entries([map()], String.t() | nil) :: [map()]
+  defp webhook_received_entries(attempts, signal_event_name) do
+    Enum.map(attempts, fn attempt ->
+      %{
+        at: attempt.inserted_at,
+        event: :webhook_received,
+        detail: %{
+          outcome: attempt.outcome,
+          provider_message_id: attempt.provider_message_id,
+          adapter_module: attempt.adapter_module,
+          signal_event_name: signal_event_name
+        }
+      }
+    end)
+  end
+
+  @spec workflow_transition_entries(Delivery.t()) :: [map()]
+  defp workflow_transition_entries(%Delivery{id: delivery_id, tenant_id: tenant_id}) do
+    query =
+      from(wt in WorkflowTransition,
+        join: wr in WorkflowRun,
+        on: wt.workflow_run_id == wr.id,
+        left_join: ws in WorkflowStep,
+        on: wt.workflow_step_id == ws.id,
+        where: wt.delivery_id == ^delivery_id and wr.tenant_id == ^tenant_id,
+        select: %{
+          at: wt.inserted_at,
+          reason: wt.reason,
+          context: wt.context,
+          workflow_run_id: wt.workflow_run_id,
+          workflow_step_id: wt.workflow_step_id,
+          workflow_step_key: ws.step_key
+        }
+      )
+
+    query
+    |> Repo.all()
+    |> Enum.flat_map(&project_workflow_transition/1)
+  end
+
+  @spec project_workflow_transition(map()) :: [map()]
+  defp project_workflow_transition(%{reason: reason} = row) do
+    case project_workflow_reason(reason) do
+      nil -> []
+      atom -> [%{at: row.at, event: atom, detail: build_workflow_detail(atom, row)}]
+    end
+  end
+
+  # Literal-string -> atom dispatch (D-07). The five new event atoms are
+  # compile-time literals; runtime atom-table allocation from untrusted strings
+  # is forbidden per atom-safety gate (T-32-T2 — D-16).
+  # Suppresses the three internal cursor reasons (D-08) and any unknown
+  # reason via the nil fallback.
+  @spec project_workflow_reason(String.t()) :: atom() | nil
+  defp project_workflow_reason("progressed_on_delivery_outcome"), do: :workflow_progressed
+  defp project_workflow_reason("waiting_for_step_progression"), do: :workflow_waiting
+  defp project_workflow_reason("workflow_stopped"), do: :workflow_stopped
+  defp project_workflow_reason("workflow_completed"), do: :workflow_completed
+  defp project_workflow_reason(_other), do: nil
+
+  @spec build_workflow_detail(atom(), map()) :: map()
+  defp build_workflow_detail(:workflow_waiting, row) do
+    ctx = row.context || %{}
+
+    %{
+      workflow_run_id: row.workflow_run_id,
+      workflow_step_id: row.workflow_step_id,
+      workflow_step_key: row.workflow_step_key,
+      due_at: Map.get(ctx, "due_at"),
+      rule_kind: Map.get(ctx, "rule_kind", "wait_until")
+    }
+  end
+
+  # The three progression-row atoms (:workflow_progressed,
+  # :workflow_stopped, :workflow_completed) share the same seven-field
+  # detail shape per D-12. `reason` is a verbatim copy of `transition.reason`
+  # for operator readability (UI-SPEC §A example at line 273).
+  defp build_workflow_detail(_atom, row) do
+    ctx = row.context || %{}
+
+    %{
+      workflow_run_id: row.workflow_run_id,
+      workflow_step_id: row.workflow_step_id,
+      workflow_step_key: row.workflow_step_key,
+      workflow_outcome: Map.get(ctx, "workflow_outcome"),
+      from_step: Map.get(ctx, "from_step"),
+      to_step: Map.get(ctx, "to_step"),
+      reason: row.reason
+    }
+  end
+
+  @spec lookup_signal_received_event_name(Delivery.t()) :: String.t() | nil
+  defp lookup_signal_received_event_name(%Delivery{id: delivery_id, tenant_id: tenant_id}) do
+    query =
+      from(wt in WorkflowTransition,
+        join: wr in WorkflowRun,
+        on: wt.workflow_run_id == wr.id,
+        where:
+          wt.delivery_id == ^delivery_id and
+            wr.tenant_id == ^tenant_id and
+            wt.reason == "signal_received",
+        order_by: [asc: wt.inserted_at],
+        limit: 1,
+        select: wt.context
+      )
+
+    case Repo.one(query) do
+      nil -> nil
+      ctx when is_map(ctx) -> Map.get(ctx, "event_name")
+    end
+  end
 
   defp maybe_filter_notification_key(query, nil), do: query
 
