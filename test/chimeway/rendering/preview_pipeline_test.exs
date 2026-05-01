@@ -69,7 +69,9 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
        %{
          assigns: %{},
          channels: %{
-           sms: %{render_key: "invalid.channel.sms", render_version: 1}
+           # Use a channel name that has no compiled clause and no registry entry
+           # so the unsupported_render_channel error path is exercised.
+           unknown_preview: %{render_key: "invalid.channel.unknown_preview", render_version: 1}
          }
        }}
     end
@@ -180,12 +182,14 @@ defmodule Chimeway.Rendering.PreviewPipelineTest do
     test "returns tagged production-style errors for invalid channels and malformed assigns" do
       recipient = %{id: "recipient-1"}
 
-      assert {:error, {:rendering_failed, "sms", {:unsupported_render_channel, "sms"}}} =
+      assert {:error,
+              {:rendering_failed, "unknown_preview",
+               {:unsupported_render_channel, "unknown_preview"}}} =
                Chimeway.preview_rendering(
                  InvalidChannelNotifier,
                  %{},
                  recipient: recipient,
-                 channel: :sms
+                 channel: :unknown_preview
                )
 
       assert {:error,
