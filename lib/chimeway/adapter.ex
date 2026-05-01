@@ -49,4 +49,27 @@ defmodule Chimeway.Adapter do
   """
   @callback deliver(delivery :: Chimeway.Delivery.t(), config :: keyword()) ::
               {:ok, map()} | {:error, atom(), map()}
+
+  @doc """
+  Verify the cryptographic signature of an incoming webhook from the provider.
+  Required for adapters supporting async feedback loops.
+  """
+  @callback verify_webhook(raw_body :: binary(), headers :: list(), config :: keyword()) ::
+              :ok | {:error, :unauthorized}
+
+  @doc """
+  Extract the delivery identity from a parsed provider webhook payload.
+  Required for adapters supporting async feedback loops.
+  """
+  @callback resolve_delivery(parsed_payload :: map()) ::
+              {:ok, %{delivery_id: binary()}} | {:ok, %{provider_message_id: String.t()}} | :error
+
+  @doc """
+  Map a parsed provider webhook payload into a normalized canonical Chimeway outcome.
+  Required for adapters supporting async feedback loops.
+  """
+  @callback normalize_feedback(parsed_payload :: map()) ::
+              {:ok, %{status: :delivered | :bounced | :failed}} | :error
+
+  @optional_callbacks verify_webhook: 3, resolve_delivery: 1, normalize_feedback: 1
 end
