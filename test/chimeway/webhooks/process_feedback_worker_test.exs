@@ -6,12 +6,14 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
   alias Chimeway.Webhooks.ProcessFeedbackWorker
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
+  alias Chimeway.Signals.Signal
+  alias Chimeway.Dispatch.SignalRouterWorker
 
   setup do
     event = insert_event("test.webhook")
     notification = insert_notification(event, "user-webhook")
     
-    assert {:ok, delivery} = Deliveries.plan_delivery(notification.id, "email", status: :pending)
+    assert {:ok, delivery} = Deliveries.plan_delivery(notification.id, "email", status: :pending, tenant_id: "default", actor_id: "system")
 
     %{delivery: delivery}
   end
@@ -69,6 +71,19 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       assert attempt.error_class == "bounced"
       assert attempt.provider_response == payload
       assert attempt.adapter_module == "SomeAdapter"
+
+      # Verify the signal was emitted
+      signals = Repo.all(Signal)
+      assert length(signals) == 1
+      signal = hd(signals)
+      assert signal.tenant_id == delivery.tenant_id
+      assert signal.actor_id == delivery.actor_id
+      assert signal.event_name == "chimeway.delivery.bounced"
+      assert signal.payload["delivery_id"] == delivery.id
+      assert signal.payload["status"] == "bounced"
+      assert signal.payload["error"] == "bounced"
+
+      assert_enqueued(worker: SignalRouterWorker, args: %{"signal_id" => signal.id})
     end
 
     test "processes feedback for a given provider_message_id", %{delivery: delivery} do
@@ -102,6 +117,19 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       assert attempt.error_class == nil
       assert attempt.provider_response == payload
       assert attempt.adapter_module == "FeedbackAdapter"
+
+      # Verify the signal was emitted
+      signals = Repo.all(Signal)
+      assert length(signals) == 1
+      signal = hd(signals)
+      assert signal.tenant_id == delivery.tenant_id
+      assert signal.actor_id == delivery.actor_id
+      assert signal.event_name == "chimeway.delivery.succeeded"
+      assert signal.payload["delivery_id"] == delivery.id
+      assert signal.payload["status"] == "succeeded"
+      refute Map.has_key?(signal.payload, "error")
+
+      assert_enqueued(worker: SignalRouterWorker, args: %{"signal_id" => signal.id})
     end
 
     test "returns error if delivery cannot be found by delivery_id" do
