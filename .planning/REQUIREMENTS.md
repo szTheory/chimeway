@@ -20,8 +20,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CHAN-01     | Phase 29 | Pending |
-| CHAN-02     | Phase 29 | Pending |
+| CHAN-01     | Phase 29 | Complete |
+| CHAN-02     | Phase 29 | Complete |
 | FEED-01     | Phase 30 | Pending |
 | FEED-02     | Phase 30 | Pending |
 | FLOW-01     | Phase 31 | Pending |

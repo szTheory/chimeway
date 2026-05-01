@@ -11,7 +11,7 @@
 
 ### Phases
 
-- [ ] **Phase 29: Outbound Channel Contracts** - Define adapter behaviors and channel-specific render contracts for non-email channels.
+- [x] **Phase 29: Outbound Channel Contracts** - Define adapter behaviors and channel-specific render contracts for non-email channels. (completed 2026-05-01)
 - [ ] **Phase 30: Inbound Feedback Normalization** - Implement a canonical webhook ingestion layer that translates vendor payloads to Chimeway delivery outcomes.
 - [ ] **Phase 31: Feedback-Driven Progression** - Connect normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
 - [ ] **Phase 32: Operator Traces & Audit** - Expand timeline traces to show provider callbacks and resulting workflow transitions.
@@ -20,7 +20,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 29. Outbound Channel Contracts | 0/7 | Not started | - |
+| 29. Outbound Channel Contracts | 7/7 | Complete    | 2026-05-01 |
 | 30. Inbound Feedback Normalization | 0/0 | Not started | - |
 | 31. Feedback-Driven Progression | 0/0 | Not started | - |
 | 32. Operator Traces & Audit | 0/0 | Not started | - |
@@ -38,13 +38,13 @@
 **Plans**: 7 plans
 
 Plans:
-- [ ] 29-01-channel-behaviour-PLAN.md — Create Chimeway.Rendering.Channel behaviour + __using__ macro
-- [ ] 29-02-migration-schema-PLAN.md — Migration for adapter_module column + DeliveryAttempt schema wiring
-- [ ] 29-03-channel-modules-PLAN.md — Create Sms/Push/Chat channel modules + refactor Email/InApp to declare @behaviour
-- [ ] 29-04-registry-resolver-PLAN.md — Three-layer channel_module/1 resolver + boot validation + telemetry allowlist
-- [ ] 29-05-adapter-resolution-PLAN.md — Per-channel adapter resolve_adapter/1 in Executor + adapter_module persistence
-- [ ] 29-06-traces-explain-PLAN.md — explain_delivery gains adapter_module in last_attempt + timeline entries
-- [ ] 29-07-test-suite-PLAN.md — Adapters.Test channel-tagging + full test coverage for all Phase 29 decisions
+- [x] 29-01-channel-behaviour-PLAN.md — Create Chimeway.Rendering.Channel behaviour + __using__ macro
+- [x] 29-02-migration-schema-PLAN.md — Migration for adapter_module column + DeliveryAttempt schema wiring
+- [x] 29-03-channel-modules-PLAN.md — Create Sms/Push/Chat channel modules + refactor Email/InApp to declare @behaviour
+- [x] 29-04-registry-resolver-PLAN.md — Three-layer channel_module/1 resolver + boot validation + telemetry allowlist
+- [x] 29-05-adapter-resolution-PLAN.md — Per-channel adapter resolve_adapter/1 in Executor + adapter_module persistence
+- [x] 29-06-traces-explain-PLAN.md — explain_delivery gains adapter_module in last_attempt + timeline entries
+- [x] 29-07-test-suite-PLAN.md — Adapters.Test channel-tagging + full test coverage for all Phase 29 decisions
 
 ### Phase 30: Inbound Feedback Normalization
 **Goal**: Asynchronous delivery feedback from providers is securely ingested and recorded as canonical delivery state.
