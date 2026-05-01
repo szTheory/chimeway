@@ -91,23 +91,39 @@ defmodule Chimeway.Dispatch.Sync do
         notification_key: Map.get(delivery.metadata || %{}, "notification_key")
       }),
       fn ->
-        result = do_dispatch(delivery)
+        # D-22: do_dispatch/1 now returns {result, adapter_module} so the stop-meta
+        # closure can include adapter_module without a second DB round-trip.
+        {result, adapter_module} = do_dispatch(delivery)
         outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
-        {result, Telemetry.safe_meta(%{outcome: outcome})}
+
+        stop_meta =
+          Telemetry.safe_meta(%{
+            outcome: outcome,
+            # D-22: nil for failed transitions or pre-Phase-29 attempts; safe_meta/1
+            # uses Map.take/2 which preserves nil values for allowed keys.
+            adapter_module: adapter_module
+          })
+
+        {result, stop_meta}
       end
     )
   end
 
   defp do_dispatch(delivery) do
     case Executor.run_delivery(delivery) do
+      {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
+        # D-22: thread adapter_module up to the sync,:stop telemetry metadata.
+        {{:ok, updated_delivery}, attempt.adapter_module}
+
       {:ok, %{delivery: updated_delivery}} ->
-        {:ok, updated_delivery}
+        # Defensive: attempt key missing from the executor return shape.
+        {{:ok, updated_delivery}, nil}
 
       {:error, step, reason, _changes} ->
-        {:error, {step, reason}}
+        {{:error, {step, reason}}, nil}
 
       {:error, _reason} = error ->
-        error
+        {error, nil}
     end
   end
 
