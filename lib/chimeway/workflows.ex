@@ -454,7 +454,9 @@ defmodule Chimeway.Workflows do
   defp preload_steps(repo, definition) do
     repo.preload(
       definition,
-      [steps: from(step in WorkflowStep, order_by: [asc: step.step_order])], force: true)
+      [steps: from(step in WorkflowStep, order_by: [asc: step.step_order])],
+      force: true
+    )
   end
 
   defp insert_steps(repo, workflow_definition_id, step_attrs) do
