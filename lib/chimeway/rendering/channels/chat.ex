@@ -1,6 +1,10 @@
-defmodule Chimeway.Rendering.Channels.Email do
+defmodule Chimeway.Rendering.Channels.Chat do
   @moduledoc """
-  Validates the durable email render contract.
+  Validates the durable chat render contract.
+
+  This is the discoverable starter validator for generic chat. Host apps with
+  vendor-specific shapes (Slack-only, Discord-only, in-house chat) should define
+  their own validators via the :channel_render_modules registry without modifying this module.
   """
 
   use Chimeway.Rendering.Channel
@@ -8,12 +12,11 @@ defmodule Chimeway.Rendering.Channels.Email do
   import Ecto.Changeset
 
   @types %{
-    subject: :string,
-    html_body: :string,
-    text_body: :string
+    text: :string,
+    rich_payload: :map
   }
 
-  @required_fields [:subject, :html_body, :text_body]
+  @required_fields [:text]
 
   @impl Chimeway.Rendering.Channel
   @spec validate(map()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}

@@ -1,6 +1,10 @@
-defmodule Chimeway.Rendering.Channels.Email do
+defmodule Chimeway.Rendering.Channels.Push do
   @moduledoc """
-  Validates the durable email render contract.
+  Validates the durable push render contract.
+
+  Only content fields are render concerns. APNs/FCM platform plumbing (apns_topic,
+  priority, collapse_id, expiration, push_type, device_token) belongs in the adapter,
+  not in render_data. Use the opaque `data` map for app-specific custom payloads.
   """
 
   use Chimeway.Rendering.Channel
@@ -8,12 +12,12 @@ defmodule Chimeway.Rendering.Channels.Email do
   import Ecto.Changeset
 
   @types %{
-    subject: :string,
-    html_body: :string,
-    text_body: :string
+    title: :string,
+    body: :string,
+    data: :map
   }
 
-  @required_fields [:subject, :html_body, :text_body]
+  @required_fields [:title, :body]
 
   @impl Chimeway.Rendering.Channel
   @spec validate(map()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}

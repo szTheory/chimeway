@@ -3,6 +3,8 @@ defmodule Chimeway.Rendering.Channels.InApp do
   Validates the durable in-app render contract.
   """
 
+  use Chimeway.Rendering.Channel
+
   import Ecto.Changeset
 
   @types %{
@@ -13,6 +15,7 @@ defmodule Chimeway.Rendering.Channels.InApp do
 
   @required_fields [:headline, :body, :primary_action]
 
+  @impl Chimeway.Rendering.Channel
   @spec validate(map()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
   def validate(attrs) when is_map(attrs) do
     {%{}, @types}

@@ -1,6 +1,13 @@
-defmodule Chimeway.Rendering.Channels.Email do
+defmodule Chimeway.Rendering.Channels.Sms do
   @moduledoc """
-  Validates the durable email render contract.
+  Validates the durable SMS render contract.
+
+  Only the message body is a render concern. Sender ID, Messaging Service SID,
+  and recipient phone number are adapter-config territory — never in render_data.
+
+  GSM-7 encoding supports up to 160 characters per segment; UCS-2 (unicode) supports
+  up to 70 characters per segment. Multi-segment messages are billed per segment.
+  Segmentation and encoding are vendor concerns handled in the adapter, not validated here.
   """
 
   use Chimeway.Rendering.Channel
@@ -8,12 +15,10 @@ defmodule Chimeway.Rendering.Channels.Email do
   import Ecto.Changeset
 
   @types %{
-    subject: :string,
-    html_body: :string,
     text_body: :string
   }
 
-  @required_fields [:subject, :html_body, :text_body]
+  @required_fields [:text_body]
 
   @impl Chimeway.Rendering.Channel
   @spec validate(map()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
