@@ -30,7 +30,7 @@ defmodule Chimeway.Telemetry do
 
   **Allowed keys:** `notification_key`, `event_id`, `recipient_id`, `channel`,
   `delivery_id`, `attempt_id`, `outcome`, `suppression_reason`, `correlation_id`,
-  `attempt_number`, `error_class`
+  `attempt_number`, `error_class`, `adapter_module`
 
   All metadata that call sites pass to `span/3` must be pre-filtered:
 
@@ -80,7 +80,7 @@ defmodule Chimeway.Telemetry do
   @allowed_meta_keys ~w(
     notification_key event_id recipient_id channel
     delivery_id attempt_id outcome suppression_reason correlation_id
-    attempt_number error_class
+    attempt_number error_class adapter_module
   )a
 
   @doc """
