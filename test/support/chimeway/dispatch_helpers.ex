@@ -110,7 +110,9 @@ defmodule Chimeway.Test.DispatchHelpers do
         notification_id: notification.id,
         channel: to_string(channel),
         status: :pending,
-        delay_fallback: delay_fallback
+        delay_fallback: delay_fallback,
+        tenant_id: "default",
+        actor_id: "system"
       })
       |> Repo.insert()
 

@@ -108,6 +108,8 @@ defmodule Chimeway.DeliveryPlanning do
            resolve_render_result(notification, channel, trigger_params, opts),
          {:ok, delivery} <-
            Deliveries.plan_delivery(notification.id, channel,
+             tenant_id: Keyword.get(opts, :tenant_id, "default"),
+             actor_id: notification.recipient_identity || "system",
              delay_fallback: delay_fallback,
              delayed_fallback_source: source,
              notification_key: Keyword.get(opts, :notification_key),

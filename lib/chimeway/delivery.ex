@@ -15,6 +15,8 @@ defmodule Chimeway.Delivery do
   @foreign_key_type :binary_id
 
   schema "chimeway_deliveries" do
+    field(:tenant_id, :string)
+    field(:actor_id, :string)
     field(:channel, :string)
 
     field(:status, Ecto.Enum,
@@ -53,7 +55,7 @@ defmodule Chimeway.Delivery do
     timestamps(type: :utc_datetime_usec)
   end
 
-  @required_fields ~w(notification_id channel status)a
+  @required_fields ~w(notification_id channel status tenant_id actor_id)a
   @optional_fields ~w(
     orchestration_state
     next_eligible_at
@@ -77,6 +79,8 @@ defmodule Chimeway.Delivery do
     delivery
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
+    |> validate_length(:tenant_id, min: 1)
+    |> validate_length(:actor_id, min: 1)
     |> unique_constraint(:channel,
       name: :chimeway_deliveries_notification_channel_index
     )

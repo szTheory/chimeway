@@ -116,7 +116,9 @@ defmodule Chimeway.DeliveriesTest do
 
     {:ok, delivery} =
       Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, :in_app),
-        metadata: metadata
+        metadata: metadata,
+        tenant_id: Map.get(attrs, :tenant_id, "default"),
+        actor_id: Map.get(attrs, :actor_id, "system")
       )
 
     delivery
@@ -145,7 +147,7 @@ defmodule Chimeway.DeliveriesTest do
       %{notification: notification} = insert_notification()
 
       assert {:ok, %Delivery{} = delivery} =
-               Deliveries.plan_delivery(notification.id, :in_app)
+               Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       assert delivery.channel == "in_app"
       assert delivery.status == :pending
@@ -156,7 +158,7 @@ defmodule Chimeway.DeliveriesTest do
       %{notification: notification} = insert_notification()
 
       assert {:ok, %Delivery{} = delivery} =
-               Deliveries.plan_delivery(notification.id, :in_app)
+               Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       assert delivery.orchestration_state == :ready
       assert delivery.planning_reason == nil
@@ -167,8 +169,8 @@ defmodule Chimeway.DeliveriesTest do
     test "is idempotent: duplicate calls create exactly one row" do
       %{notification: notification} = insert_notification()
 
-      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app)
-      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app)
+      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       count =
         Repo.aggregate(
@@ -184,14 +186,14 @@ defmodule Chimeway.DeliveriesTest do
       %{notification: notification} = insert_notification()
 
       assert {:ok, %Delivery{channel: "email"}} =
-               Deliveries.plan_delivery(notification.id, "email")
+               Deliveries.plan_delivery(notification.id, "email", tenant_id: "default", actor_id: "system")
     end
 
     test "allows different channels for same notification" do
       %{notification: notification} = insert_notification()
 
-      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app)
-      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :email)
+      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+      assert {:ok, _} = Deliveries.plan_delivery(notification.id, :email, tenant_id: "default", actor_id: "system")
 
       count =
         Repo.aggregate(
@@ -209,7 +211,7 @@ defmodule Chimeway.DeliveriesTest do
   describe "get_delivery!/1" do
     test "fetches delivery by id" do
       %{notification: notification} = insert_notification()
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       fetched = Deliveries.get_delivery!(delivery.id)
       assert fetched.id == delivery.id
@@ -228,39 +230,39 @@ defmodule Chimeway.DeliveriesTest do
     setup :insert_notification
 
     test "transitions pending → dispatched", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       assert {:ok, updated} = Deliveries.transition_status(delivery, :dispatched)
       assert updated.status == :dispatched
     end
 
     test "transitions pending → suppressed", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       assert {:ok, updated} = Deliveries.transition_status(delivery, :suppressed)
       assert updated.status == :suppressed
     end
 
     test "transitions pending → cancelled", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       assert {:ok, updated} = Deliveries.transition_status(delivery, :cancelled)
       assert updated.status == :cancelled
     end
 
     test "transitions dispatched → succeeded", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       assert {:ok, updated} = Deliveries.transition_status(dispatched, :succeeded)
       assert updated.status == :succeeded
     end
 
     test "transitions dispatched → failed", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       assert {:ok, updated} = Deliveries.transition_status(dispatched, :failed)
       assert updated.status == :failed
     end
 
     test "transitions failed → dispatched (retry)", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
       assert {:ok, updated} = Deliveries.transition_status(failed, :dispatched)
@@ -268,14 +270,14 @@ defmodule Chimeway.DeliveriesTest do
     end
 
     test "rejects invalid transition: pending → succeeded", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       assert {:error, {:invalid_transition, from: :pending, to: :succeeded}} =
                Deliveries.transition_status(delivery, :succeeded)
     end
 
     test "rejects invalid transition: succeeded → dispatched", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       {:ok, succeeded} = Deliveries.transition_status(dispatched, :succeeded)
 
@@ -286,7 +288,7 @@ defmodule Chimeway.DeliveriesTest do
     test "rejects general-path failed → cancelled (reserved for exhaust_delivery/1)", %{
       notification: notification
     } do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
 
@@ -311,7 +313,7 @@ defmodule Chimeway.DeliveriesTest do
     test "transitions :failed → :cancelled with retries_exhausted suppression_reason", %{
       notification: notification
     } do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
 
@@ -321,7 +323,7 @@ defmodule Chimeway.DeliveriesTest do
     end
 
     test "records policy_checkpoint=\"perform\" in metadata", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       {:ok, failed} = Deliveries.transition_status(dispatched, :failed)
 
@@ -330,14 +332,14 @@ defmodule Chimeway.DeliveriesTest do
     end
 
     test "rejects exhaust from :pending", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       assert {:error, {:invalid_exhaust_from, :pending}} =
                Deliveries.exhaust_delivery(delivery)
     end
 
     test "rejects exhaust from :succeeded", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       {:ok, succeeded} = Deliveries.transition_status(dispatched, :succeeded)
 
@@ -346,7 +348,7 @@ defmodule Chimeway.DeliveriesTest do
     end
 
     test "rejects exhaust from :dispatched", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
 
       assert {:error, {:invalid_exhaust_from, :dispatched}} =
@@ -360,7 +362,9 @@ defmodule Chimeway.DeliveriesTest do
         Deliveries.plan_delivery(notification.id, :in_app,
           correlation_id: "corr-123",
           event_id: "evt-456",
-          notification_key: "test.notification"
+          notification_key: "test.notification",
+          tenant_id: "default",
+          actor_id: "system"
         )
 
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
@@ -618,7 +622,7 @@ defmodule Chimeway.DeliveriesTest do
     test "atomically creates attempt row and updates delivery status to :succeeded", %{
       notification: notification
     } do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
 
       assert {:ok, %{delivery: updated_delivery, attempt: attempt}} =
@@ -635,7 +639,7 @@ defmodule Chimeway.DeliveriesTest do
     test "atomically creates attempt row and updates delivery status to :failed", %{
       notification: notification
     } do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
 
       assert {:ok, %{delivery: updated_delivery, attempt: attempt}} =
@@ -646,7 +650,7 @@ defmodule Chimeway.DeliveriesTest do
     end
 
     test "rolls back attempt insert if status transition fails", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       # Attempt to record from :pending status with outcome :succeeded;
       # transition pending → succeeded is invalid, forcing a rollback.
@@ -664,7 +668,7 @@ defmodule Chimeway.DeliveriesTest do
     end
 
     test "stores provider_response in attempt row", %{notification: notification} do
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
 
       {:ok, %{attempt: attempt}} =

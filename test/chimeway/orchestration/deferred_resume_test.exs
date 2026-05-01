@@ -329,7 +329,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
         recipient_identity: Keyword.fetch!(attrs, :recipient_identity)
       )
 
-    {:ok, delivery} = Deliveries.plan_delivery(fixture.notification.id, :email)
+    {:ok, delivery} = Deliveries.plan_delivery(fixture.notification.id, :email, tenant_id: "default", actor_id: "system")
 
     {:ok, delivery} =
       Deliveries.apply_planning_decision(delivery, %{

@@ -88,7 +88,9 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
         planning_context: %{"orchestration" => "digest"},
         render_key: "comment.created.email",
         render_version: 3,
-        render_data: %{"subject" => "Comment created"}
+        render_data: %{"subject" => "Comment created"},
+        tenant_id: "default",
+        actor_id: "system"
       }
 
       changeset = Delivery.changeset(%Delivery{}, attrs)
@@ -140,7 +142,9 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
           planning_context: %{"digest_bucket_id" => "bucket-1"},
           render_key: "comment.created.email",
           render_version: 2,
-          render_data: %{"subject" => "Ada commented", "body" => "New comment"}
+          render_data: %{"subject" => "Ada commented", "body" => "New comment"},
+          tenant_id: "default",
+          actor_id: "system"
         })
         |> Repo.insert!()
         |> Repo.preload(notification: :event)

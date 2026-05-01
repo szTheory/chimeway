@@ -89,7 +89,7 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
 
   defp insert_deferred_delivery do
     notification = insert_notification("user:trace-deferred")
-    {:ok, delivery} = Deliveries.plan_delivery(notification.id, :email)
+    {:ok, delivery} = Deliveries.plan_delivery(notification.id, :email, tenant_id: "default", actor_id: "system")
 
     {:ok, updated} =
       Deliveries.apply_planning_decision(delivery, %{
@@ -111,7 +111,7 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
 
   defp insert_digest_held_delivery do
     notification = insert_notification("user:trace-digest")
-    {:ok, delivery} = Deliveries.plan_delivery(notification.id, :email)
+    {:ok, delivery} = Deliveries.plan_delivery(notification.id, :email, tenant_id: "default", actor_id: "system")
 
     {:ok, updated} =
       Deliveries.apply_planning_decision(delivery, %{

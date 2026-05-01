@@ -354,7 +354,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
           recipient_identity: "user:recovery-event-noop"
         )
 
-      {:ok, _delivery} = Deliveries.plan_delivery(notification.id, :in_app)
+      {:ok, _delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
 
       assert {:noop, recovery} =
                Deliveries.recover_event(event.id,

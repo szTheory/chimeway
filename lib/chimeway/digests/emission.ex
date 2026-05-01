@@ -136,7 +136,9 @@ defmodule Chimeway.Digests.Emission do
       Deliveries.plan_delivery(notification.id, bucket.channel,
         notification_key: bucket.rule_key,
         event_id: event.id,
-        metadata: digest_payload
+        metadata: digest_payload,
+        tenant_id: Map.get(bucket, :tenant_id, "default"),
+        actor_id: Map.get(bucket, :actor_id, "system")
       )
 
     {:ok, ready_delivery} =

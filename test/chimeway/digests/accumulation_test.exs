@@ -462,7 +462,9 @@ defmodule Chimeway.Digests.AccumulationTest do
     assert {:ok, delivery} =
              Deliveries.plan_delivery(notification.id, channel,
                notification_key: notification_key,
-               event_id: event.id
+               event_id: event.id,
+               tenant_id: "default",
+               actor_id: "system"
              )
 
     assert {:ok, planned_delivery} =

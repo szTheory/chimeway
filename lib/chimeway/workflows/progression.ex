@@ -333,6 +333,7 @@ defmodule Chimeway.Workflows.Progression do
              {:ok, next_delivery} <-
                DeliveryPlanning.plan_next_step_delivery(notification, next_step.channel,
                  notification_key: persisted_notification_key(notification),
+                 tenant_id: run.tenant_id,
                  use_persisted_workflow: true,
                  use_persisted_channels: true,
                  use_persisted_orchestration: true
@@ -516,6 +517,7 @@ defmodule Chimeway.Workflows.Progression do
          {:ok, next_delivery} <-
            DeliveryPlanning.plan_next_step_delivery(notification, next_step.channel,
              notification_key: persisted_notification_key(notification),
+             tenant_id: run.tenant_id,
              use_persisted_workflow: true,
              use_persisted_channels: true,
              use_persisted_orchestration: true

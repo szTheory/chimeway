@@ -34,7 +34,7 @@ defmodule Chimeway.TracesTest do
   end
 
   defp plan_delivery(notification, channel \\ :in_app) do
-    {:ok, delivery} = Deliveries.plan_delivery(notification.id, channel)
+    {:ok, delivery} = Deliveries.plan_delivery(notification.id, channel, tenant_id: "default", actor_id: "system")
     delivery
   end
 
@@ -808,7 +808,9 @@ defmodule Chimeway.TracesTest do
       |> Chimeway.Delivery.changeset(%{
         notification_id: notification.id,
         channel: "in_app",
-        status: :pending
+        status: :pending,
+        tenant_id: "default",
+        actor_id: "system"
       })
       |> Chimeway.Repo.insert()
 

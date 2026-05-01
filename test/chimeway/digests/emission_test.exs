@@ -266,7 +266,7 @@ defmodule Chimeway.Digests.EmissionTest do
 
   defp insert_digest_held_delivery(attrs) do
     notification = insert_notification(attrs)
-    {:ok, delivery} = Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, "email"))
+    {:ok, delivery} = Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, "email"), tenant_id: "default", actor_id: "system")
 
     planning_context =
       Map.get(attrs, :planning_context, %{

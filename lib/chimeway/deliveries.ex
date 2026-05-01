@@ -277,7 +277,9 @@ defmodule Chimeway.Deliveries do
   def plan_delivery(notification_id, channel, opts) when is_list(opts) do
     channel_str = if is_atom(channel), do: Atom.to_string(channel), else: channel
 
-    with {:ok, delay_fallback} <-
+    with {:ok, tenant_id} <- normalize_tenant_id(Keyword.get(opts, :tenant_id)),
+         {:ok, actor_id} <- normalize_actor_id(Keyword.get(opts, :actor_id)),
+         {:ok, delay_fallback} <-
            normalize_delay_fallback(Keyword.get(opts, :delay_fallback, false)),
          {:ok, delayed_fallback_source} <-
            normalize_delayed_fallback_source(
@@ -305,6 +307,8 @@ defmodule Chimeway.Deliveries do
         %Delivery{}
         |> Delivery.changeset(%{
           notification_id: notification_id,
+          tenant_id: tenant_id,
+          actor_id: actor_id,
           channel: channel_str,
           status: :pending,
           delay_fallback: delay_fallback,
@@ -332,6 +336,12 @@ defmodule Chimeway.Deliveries do
   def plan_delivery(_notification_id, _channel, opts) do
     {:error, {:invalid_plan_delivery_opts, opts}}
   end
+
+  defp normalize_tenant_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
+  defp normalize_tenant_id(value), do: {:error, {:invalid_tenant_id, value}}
+
+  defp normalize_actor_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
+  defp normalize_actor_id(value), do: {:error, {:invalid_actor_id, value}}
 
   defp normalize_delay_fallback(value) when is_boolean(value), do: {:ok, value}
   defp normalize_delay_fallback(value), do: {:error, {:invalid_delay_fallback, value}}

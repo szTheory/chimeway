@@ -150,7 +150,7 @@ defmodule Chimeway.Orchestration.DigestExplainabilityTest do
         metadata: %{}
       })
 
-    {:ok, delivery} = Deliveries.plan_delivery(notification.id, :email)
+    {:ok, delivery} = Deliveries.plan_delivery(notification.id, :email, tenant_id: "default", actor_id: "system")
 
     {:ok, updated} =
       Deliveries.apply_planning_decision(delivery, %{
