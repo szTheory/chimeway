@@ -28,7 +28,8 @@ defmodule Chimeway.Dispatch.Executor do
           | {:error, term()}
   def run_delivery(%Delivery{} = delivery) do
     with {:ok, dispatched} <- Deliveries.transition_status(delivery, :dispatched) do
-      adapter = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+      # D-17: per-channel adapter resolution; was hardcoded Application.get_env(:adapter).
+      adapter = resolve_adapter(dispatched.channel)
       adapter_config = ChannelAdapterConfig.resolve(delivery.channel, [])
 
       {attempt_outcome, error_class, provider_response} =
@@ -39,7 +40,9 @@ defmodule Chimeway.Dispatch.Executor do
       Deliveries.record_attempt(dispatched, %{
         outcome: attempt_outcome,
         error_class: error_class,
-        provider_response: provider_response
+        provider_response: provider_response,
+        # D-20: persist module name as inspect/1 string (no "Elixir." prefix).
+        adapter_module: inspect(adapter)
       })
     end
   end
@@ -58,5 +61,38 @@ defmodule Chimeway.Dispatch.Executor do
   # or raises depending on attempt budget and status (oban_worker.ex).
   defp classify(other) do
     {:rejected, "unknown_classification", {:unknown_adapter_return, other}}
+  end
+
+  # D-17: Per-channel adapter resolution.
+  # Resolution order:
+  #   1. Map.get(:channel_adapters, channel) — explicit per-channel override.
+  #   2. :adapter config — legacy global fallback (D-18: kept unchanged, no deprecation).
+  #
+  # D-19: adapter_fallback telemetry fires ONLY when :channel_adapters is explicitly
+  # configured AND the lookup misses. Silent when only :adapter is configured.
+  #
+  # T-29-15/T-29-18: :channel_adapters values come from compile-time config atoms;
+  # the runtime channel string is used only for Map.get/2 against pre-existing
+  # atom keys, never via String.to_atom — atom-table-safe.
+  defp resolve_adapter(channel) when is_binary(channel) do
+    channel_adapters = Application.get_env(:chimeway, :channel_adapters, %{})
+
+    case Map.get(channel_adapters, channel) do
+      nil ->
+        fallback = Application.get_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+
+        if map_size(channel_adapters) > 0 do
+          :telemetry.execute(
+            [:chimeway, :dispatch, :adapter_fallback],
+            %{count: 1},
+            %{channel: channel, fallback_module: inspect(fallback)}
+          )
+        end
+
+        fallback
+
+      adapter_module ->
+        adapter_module
+    end
   end
 end
