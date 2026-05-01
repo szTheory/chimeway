@@ -25,6 +25,9 @@ defmodule Chimeway.Adapters.Test do
   def deliver(%Chimeway.Delivery{} = delivery, _config) do
     existing = Process.get(:chimeway_test_deliveries, [])
     Process.put(:chimeway_test_deliveries, [delivery | existing])
+    # D-23: channel-tagged mailbox send so per-channel assertions can use assert_receive.
+    # Process dictionary store above is unchanged; this only ADDS a per-test mailbox event.
+    send(self(), {:chimeway_delivery, delivery.channel, delivery})
     {:ok, %{adapter: "test", delivered_at: DateTime.utc_now()}}
   end
 

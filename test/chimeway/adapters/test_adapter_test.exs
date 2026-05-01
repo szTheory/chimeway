@@ -119,14 +119,17 @@ defmodule Chimeway.Adapters.TestAdapterTest do
 
       task =
         Task.async(fn ->
-          send(parent, TestAdapter.delivered_messages())
+          # Tag the message so we can selectively receive it past the D-23
+          # {:chimeway_delivery, _, _} mailbox event that the parent's deliver/2
+          # call enqueued in its own mailbox.
+          send(parent, {:isolation_probe, TestAdapter.delivered_messages()})
         end)
 
       Task.await(task)
 
       received =
         receive do
-          msgs -> msgs
+          {:isolation_probe, msgs} -> msgs
         after
           100 -> :timeout
         end

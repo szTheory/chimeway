@@ -183,6 +183,181 @@ defmodule Chimeway.Rendering.ChannelContractTest do
     end
   end
 
+  describe "SMS channel" do
+    # D-01, D-02, D-03, D-04, D-25 round-trip + error + vendor-strip + length coverage.
+
+    test "renders validated SMS payloads with text_body" do
+      assert {:ok,
+              %{
+                channel: "sms",
+                render_data: %{"text_body" => "Your code is 123456"},
+                render_key: "otp.sent.sms",
+                render_version: 1
+              }} =
+               Rendering.render_delivery(
+                 :sms,
+                 "otp.sent.sms",
+                 1,
+                 %{"text_body" => "Your code is 123456"}
+               )
+    end
+
+    test "returns tagged validation failure when text_body is missing" do
+      assert {:error, {:rendering_failed, "sms", {:invalid_channel_payload, "sms", changeset}}} =
+               Rendering.render_delivery(:sms, "otp.sent.sms", 1, %{})
+
+      assert %Ecto.Changeset{} = changeset
+      assert %{text_body: ["can't be blank"]} = errors_on(changeset)
+    end
+
+    test "strips vendor routing fields from render_data (D-02)" do
+      assert {:ok, %{render_data: render_data}} =
+               Rendering.render_delivery(
+                 :sms,
+                 "otp.sent.sms",
+                 1,
+                 %{"text_body" => "Hi", "from" => "+15551234567", "to" => "+15559876543"}
+               )
+
+      assert Map.keys(render_data) == ["text_body"]
+    end
+
+    test "does not enforce GSM-7 / UCS-2 length limits (D-03)" do
+      long_body = String.duplicate("x", 200)
+
+      assert {:ok, %{render_data: %{"text_body" => ^long_body}}} =
+               Rendering.render_delivery(:sms, "otp.sent.sms", 1, %{"text_body" => long_body})
+    end
+  end
+
+  describe "Push channel" do
+    # D-05, D-07, D-08 round-trip + optional data + error + platform-plumbing strip.
+
+    test "renders validated push payloads with title, body, and data" do
+      assert {:ok,
+              %{
+                channel: "push",
+                render_data: %{
+                  "body" => "New message",
+                  "data" => %{"deep_link" => "/inbox"},
+                  "title" => "Alert"
+                },
+                render_key: "alert.push",
+                render_version: 1
+              }} =
+               Rendering.render_delivery(
+                 :push,
+                 "alert.push",
+                 1,
+                 %{"title" => "Alert", "body" => "New message", "data" => %{"deep_link" => "/inbox"}}
+               )
+    end
+
+    test "renders push payload without optional data field" do
+      assert {:ok, %{render_data: render_data}} =
+               Rendering.render_delivery(
+                 :push,
+                 "alert.push",
+                 1,
+                 %{"title" => "Alert", "body" => "New message"}
+               )
+
+      refute Map.has_key?(render_data, "data")
+    end
+
+    test "returns tagged validation failure when body is missing" do
+      assert {:error, {:rendering_failed, "push", {:invalid_channel_payload, "push", changeset}}} =
+               Rendering.render_delivery(:push, "alert.push", 1, %{"title" => "Alert"})
+
+      assert %{body: ["can't be blank"]} = errors_on(changeset)
+    end
+
+    test "strips platform plumbing fields from render_data (D-07)" do
+      assert {:ok, %{render_data: render_data}} =
+               Rendering.render_delivery(
+                 :push,
+                 "alert.push",
+                 1,
+                 %{
+                   "title" => "Alert",
+                   "body" => "x",
+                   "device_token" => "abc",
+                   "apns_topic" => "com.myapp"
+                 }
+               )
+
+      refute Map.has_key?(render_data, "device_token")
+      refute Map.has_key?(render_data, "apns_topic")
+    end
+  end
+
+  describe "Chat channel" do
+    # D-09, D-10 round-trip + optional rich_payload + error.
+
+    test "renders validated chat payloads with text and rich_payload" do
+      assert {:ok,
+              %{
+                channel: "chat",
+                render_data: %{"rich_payload" => %{"blocks" => []}, "text" => "Hello"},
+                render_key: "comment.chat",
+                render_version: 1
+              }} =
+               Rendering.render_delivery(
+                 :chat,
+                 "comment.chat",
+                 1,
+                 %{"text" => "Hello", "rich_payload" => %{"blocks" => []}}
+               )
+    end
+
+    test "renders chat payload without optional rich_payload" do
+      assert {:ok, %{render_data: %{"text" => "Hi"} = render_data}} =
+               Rendering.render_delivery(:chat, "comment.chat", 1, %{"text" => "Hi"})
+
+      refute Map.has_key?(render_data, "rich_payload")
+    end
+
+    test "returns tagged validation failure when text is missing" do
+      assert {:error, {:rendering_failed, "chat", {:invalid_channel_payload, "chat", changeset}}} =
+               Rendering.render_delivery(:chat, "comment.chat", 1, %{})
+
+      assert %{text: ["can't be blank"]} = errors_on(changeset)
+    end
+  end
+
+  describe "registry-overlay channel resolution" do
+    # D-11, D-12: host-configured channel module via :channel_render_modules registry.
+
+    setup do
+      original = Application.get_env(:chimeway, :channel_render_modules)
+
+      Application.put_env(
+        :chimeway,
+        :channel_render_modules,
+        %{"slack_partner" => Chimeway.Rendering.Channels.Chat}
+      )
+
+      on_exit(fn ->
+        case original do
+          nil -> Application.delete_env(:chimeway, :channel_render_modules)
+          val -> Application.put_env(:chimeway, :channel_render_modules, val)
+        end
+      end)
+
+      :ok
+    end
+
+    test "host-defined channel resolves via :channel_render_modules registry (D-12)" do
+      assert {:ok, %{channel: "slack_partner", render_data: %{"text" => "hi"}}} =
+               Rendering.render_delivery(
+                 :slack_partner,
+                 "slack.message",
+                 1,
+                 %{"text" => "hi"}
+               )
+    end
+  end
+
   defp errors_on(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
       Enum.reduce(opts, message, fn {key, value}, acc ->

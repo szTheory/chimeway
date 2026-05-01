@@ -433,8 +433,54 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert attempt.outcome == :succeeded
       assert attempt.provider_response != nil
 
+      # D-20: adapter_module persisted as inspect(module) string on the attempt row.
+      assert attempt.adapter_module == inspect(Chimeway.Adapters.Test)
+
       # Test adapter captured the delivery
       TestAdapter.assert_delivered(delivery)
+
+      # D-23: channel-tagged mailbox send fires for the in_app channel of LifecycleB.
+      assert_receive {:chimeway_delivery, "in_app", %Chimeway.Delivery{}}
+    end
+
+    # D-21: same delivery identity, two separate dispatch runs with different adapters,
+    # produces two attempts whose adapter_module values differ. Phase 29's per-attempt
+    # adapter_module persistence must reflect the runtime adapter at attempt time.
+    test "adapter_module differs across attempts when adapter is reconfigured between attempts (D-21)" do
+      # Attempt 1: dispatch with Adapters.Test (set in scenario setup).
+      ctx_a =
+        Chimeway.Test.DispatchHelpers.create_pending_delivery(
+          notification_key: "test.adapter_diff_a",
+          channel: :in_app
+        )
+
+      assert {:ok, _} =
+               Chimeway.Dispatch.Sync.dispatch_delivery(ctx_a.delivery, [])
+
+      [attempt1] =
+        Repo.all(from(a in DeliveryAttempt, where: a.delivery_id == ^ctx_a.delivery.id))
+
+      assert attempt1.adapter_module == inspect(Chimeway.Adapters.Test)
+
+      # Attempt 2: reconfigure global :adapter to Adapters.Logger and drive a fresh delivery.
+      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Logger)
+
+      ctx_b =
+        Chimeway.Test.DispatchHelpers.create_pending_delivery(
+          notification_key: "test.adapter_diff_b",
+          channel: :in_app
+        )
+
+      assert {:ok, _} =
+               Chimeway.Dispatch.Sync.dispatch_delivery(ctx_b.delivery, [])
+
+      [attempt2] =
+        Repo.all(from(a in DeliveryAttempt, where: a.delivery_id == ^ctx_b.delivery.id))
+
+      assert attempt2.adapter_module == inspect(Chimeway.Adapters.Logger)
+
+      # D-21: per-attempt adapter_module reflects the runtime adapter at attempt time.
+      assert attempt1.adapter_module != attempt2.adapter_module
     end
   end
 

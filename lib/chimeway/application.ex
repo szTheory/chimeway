@@ -31,7 +31,14 @@ defmodule Chimeway.Application do
     end
   end
 
-  defp validate_channel_render_modules! do
+  @doc """
+  Validates the `:channel_render_modules` registry at boot.
+
+  Public so the boot-time D-13 contract is exercisable from tests; the function
+  is otherwise only invoked from `start/2`. Returns `:ok` when every entry maps
+  to a loaded module that exports `validate/1`. Raises `ArgumentError` otherwise.
+  """
+  def validate_channel_render_modules! do
     registry = Application.get_env(:chimeway, :channel_render_modules, %{})
 
     Enum.each(registry, fn {channel, module} ->
