@@ -53,10 +53,12 @@ defmodule Chimeway.Rendering.ChannelBehaviourTest do
     # behaviour module exists so that compile-time @impl checking can be
     # added to them in the next plan without changing this contract.
     test "Email module exports validate/1" do
+      Code.ensure_loaded!(Chimeway.Rendering.Channels.Email)
       assert function_exported?(Chimeway.Rendering.Channels.Email, :validate, 1)
     end
 
     test "InApp module exports validate/1" do
+      Code.ensure_loaded!(Chimeway.Rendering.Channels.InApp)
       assert function_exported?(Chimeway.Rendering.Channels.InApp, :validate, 1)
     end
   end
