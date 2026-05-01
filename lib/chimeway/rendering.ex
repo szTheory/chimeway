@@ -3,7 +3,9 @@ defmodule Chimeway.Rendering do
   Normalizes notifier rendering declarations into one durable contract.
   """
 
-  alias Chimeway.Rendering.Channels.{Email, InApp}
+  require Logger
+
+  alias Chimeway.Rendering.Channels.{Email, InApp, Sms, Push, Chat}
 
   @type channel_rendering :: %{
           render_key: String.t(),
@@ -227,9 +229,42 @@ defmodule Chimeway.Rendering do
     end)
   end
 
-  defp channel_module("in_app"), do: {:ok, InApp}
   defp channel_module("email"), do: {:ok, Email}
-  defp channel_module(channel), do: {:error, {:unsupported_render_channel, channel}}
+  defp channel_module("in_app"), do: {:ok, InApp}
+  defp channel_module("sms"), do: {:ok, Sms}
+  defp channel_module("push"), do: {:ok, Push}
+  defp channel_module("chat"), do: {:ok, Chat}
+
+  defp channel_module(channel) do
+    # Layer 1: host-configured registry lookup (D-12)
+    case Application.get_env(:chimeway, :channel_render_modules, %{}) |> Map.get(channel) do
+      nil ->
+        # D-14: emit once per channel per BEAM lifetime using :persistent_term once-flag.
+        # Key shape: {:chimeway_channel_unregistered_logged, channel_string}
+        # :persistent_term read is constant-time (zero hot-path overhead after first hit).
+        unless :persistent_term.get({:chimeway_channel_unregistered_logged, channel}, false) do
+          :telemetry.execute(
+            [:chimeway, :rendering, :channel_unregistered],
+            %{count: 1},
+            %{channel: channel}
+          )
+
+          Logger.warning(
+            "[chimeway] unregistered render channel #{inspect(channel)} hit graceful fallback — " <>
+              "render_data will be empty. Configure :channel_render_modules or add a compiled clause."
+          )
+
+          :persistent_term.put({:chimeway_channel_unregistered_logged, channel}, true)
+        end
+
+        # Layer 3: graceful fallback — delivery_planning.ex catches
+        # {:unsupported_render_channel, _} and substitutes render_data: %{}
+        {:error, {:unsupported_render_channel, channel}}
+
+      module ->
+        {:ok, module}
+    end
+  end
 
   defp validate_channel_payload({:ok, module}, channel, attrs) do
     case module.validate(attrs) do
