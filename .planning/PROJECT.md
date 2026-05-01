@@ -10,7 +10,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped `v1.3 Workflow Journeys` on 2026-04-30. Phase 29 (Outbound Channel Contracts) of milestone `v1.4 Channel Feedback Loops` completed 2026-05-01: the library now exposes a public `Chimeway.Rendering.Channel` behaviour, ships built-in render-validators for Email, InApp, Sms, Push, and Chat, and resolves + persists per-attempt adapter modules so operator traces can answer "which adapter handled this attempt?" end-to-end.
+Chimeway shipped `v1.3 Workflow Journeys` on 2026-04-30. Phase 32 (Operator Traces & Audit) of milestone `v1.4 Channel Feedback Loops` completed 2026-05-01: `WorkflowTransition.delivery_id` is now populated on `signal_received` rows from inbound `signal.payload["delivery_id"]`, and `Chimeway.Traces.explain_delivery/1` now projects five new compile-time-literal timeline atoms (`:webhook_received`, `:workflow_progressed`, `:workflow_waiting`, `:workflow_stopped`, `:workflow_completed`) with a defensive cross-tenant join — operators can now audit the full asynchronous lifecycle from webhook arrival through workflow progression in one timeline.
 
 ## Current Milestone: v1.4 Channel Feedback Loops
 
@@ -158,4 +158,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-01 — Phase 29 (Outbound Channel Contracts) complete; v1.4 milestone in progress*
+*Last updated: 2026-05-01 — Phase 32 (Operator Traces & Audit) complete; v1.4 milestone in progress*
