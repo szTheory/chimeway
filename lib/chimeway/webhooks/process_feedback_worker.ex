@@ -41,7 +41,21 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorker do
         end
 
       case Deliveries.record_attempt(delivery, attempt_params) do
-        {:ok, _} -> :ok
+        {:ok, _} ->
+          event_name = "chimeway.delivery.#{outcome}"
+          payload = %{"delivery_id" => delivery.id, "status" => to_string(outcome)}
+          
+          payload = 
+            if outcome in [:bounced, :failed] do
+              Map.put(payload, "error", to_string(outcome))
+            else
+              payload
+            end
+
+          case Chimeway.Signal.track(delivery.tenant_id, delivery.actor_id, event_name, payload) do
+            {:ok, _signal} -> :ok
+            error -> error
+          end
         error -> error
       end
     end
