@@ -3,6 +3,8 @@ defmodule Chimeway.Rendering.Channels.Email do
   Validates the durable email render contract.
   """
 
+  use Chimeway.Rendering.Channel
+
   import Ecto.Changeset
 
   @types %{
@@ -13,6 +15,7 @@ defmodule Chimeway.Rendering.Channels.Email do
 
   @required_fields [:subject, :html_body, :text_body]
 
+  @impl Chimeway.Rendering.Channel
   @spec validate(map()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
   def validate(attrs) when is_map(attrs) do
     {%{}, @types}
