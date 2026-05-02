@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Channel Feedback Loops
-status: milestone_complete
+status: executing
 stopped_at: Phase 32 context gathered (assumptions mode)
-last_updated: "2026-05-01T20:11:15.725Z"
-last_activity: 2026-05-01 -- Phase 32 execution started
+last_updated: "2026-05-02T01:48:10.513Z"
+last_activity: 2026-05-01
 progress:
-  total_phases: 4
+  total_phases: 6
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 10
-  percent: 100
+  total_plans: 17
+  completed_plans: 12
+  percent: 71
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 32 — operator-traces-audit
+**Current focus:** Phase 33 — webhook-ingress-durability
 
 ## Current Position
 
-Phase: 32
+Phase: 33
 Plan: Not started
-Status: Milestone complete
+Status: In progress
 Last activity: 2026-05-01
 
 ## Accumulated Context
@@ -151,6 +151,7 @@ None.
 ### Roadmap Evolution
 
 - Milestone v1.4 initialized with 4 phases (29-32) focusing on Channel Feedback Loops.
+- Milestone audit reopened v1.4 with 2 gap-closure phases (33-34) covering webhook durability and end-to-end feedback contract proof.
 
 ### Deferred Items
 
@@ -164,4 +165,4 @@ Last session: --stopped-at
 Stopped at: Phase 32 context gathered (assumptions mode)
 Resume file: --resume-file
 
-**Planned Phase:** 32 (Operator Traces & Audit) — 2 plans — 2026-05-01T20:09:24.578Z
+**Planned Phase:** 33 (Webhook Ingress Durability) — 5 plans — 2026-05-02T01:48:10.506Z

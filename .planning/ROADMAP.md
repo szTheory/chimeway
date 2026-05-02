@@ -15,15 +15,19 @@
 - [ ] **Phase 30: Inbound Feedback Normalization** - Implement a canonical webhook ingestion layer that translates vendor payloads to Chimeway delivery outcomes.
 - [x] **Phase 31: Feedback-Driven Progression** - Connect normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
 - [x] **Phase 32: Operator Traces & Audit** - Expand timeline traces to show provider callbacks and resulting workflow transitions. (completed 2026-05-01)
+- [ ] **Phase 33: Webhook Ingress Durability** - Close the webhook handoff and ingress safety gaps so provider callbacks only acknowledge success after durable queueing and safe delivery resolution.
+- [ ] **Phase 34: Feedback Contract E2E Proof** - Align outcome naming across feedback, workflow, and traces, then prove the real webhook-to-progression path end to end.
 
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 29. Outbound Channel Contracts | 7/7 | Complete    | 2026-05-01 |
-| 30. Inbound Feedback Normalization | 0/0 | Not started | - |
-| 31. Feedback-Driven Progression | 2/2 | Complete | 2026-05-01 |
+| 30. Inbound Feedback Normalization | 1/1 | Audit gap | - |
+| 31. Feedback-Driven Progression | 2/2 | Audit gap | 2026-05-01 |
 | 32. Operator Traces & Audit | 2/2 | Complete    | 2026-05-01 |
+| 33. Webhook Ingress Durability | 0/5 | Planned     | - |
+| 34. Feedback Contract E2E Proof | 0/0 | Not started | - |
 
 ## Phase Details
 
@@ -84,3 +88,32 @@ Plans:
 Plans:
 - [x] 32-01-PLAN.md — Populate WorkflowTransition.delivery_id from signal.payload in route_signal/1 (write-path delta + D-21 tests)
 - [x] 32-02-PLAN.md — Extend Chimeway.Traces with webhook + workflow timeline projection (read-side helpers + D-19/D-20 tests)
+
+### Phase 33: Webhook Ingress Durability
+**Goal**: Provider callbacks acknowledge success only after durable async handoff, and webhook ingress failures stay safe and explainable.
+**Depends on**: Phase 32
+**Requirements**: FEED-01, FEED-02
+**Gap Closure**: Closes v1.4 audit gaps for enqueue durability, host ingress proof, and unknown `delivery_id` handling.
+**Success Criteria**:
+  1. `Chimeway.Webhooks.process/4` only returns success when async processing is durably queued, and queue insertion failures surface explicitly.
+  2. Unknown or stale `delivery_id` callbacks fail safely without crashing the feedback worker.
+  3. The repo includes a runtime ingress seam or reference consumer proving a host-mounted HTTP path into `Chimeway.Webhooks.process/4`.
+**Plans**: 5 plans
+
+Plans:
+- [ ] 33-01-ingress-schema-PLAN.md — Ecto schema + migration + partial composite unique index for chimeway_webhook_ingress
+- [ ] 33-02-process-atomic-handoff-PLAN.md — Rewrite Webhooks.process/4 to atomic Multi+Oban handoff; add Deliveries.fetch_delivery/1
+- [ ] 33-03-worker-ingress-pivot-PLAN.md — Pivot ProcessFeedbackWorker to ingress-driven safe-noop with backwards-compat shim
+- [ ] 33-04-example-host-app-PLAN.md — Sibling Phoenix Mix project at examples/chimeway_demo_host/ proving host mount with body_reader + E2E test
+- [ ] 33-05-dedup-and-verification-PLAN.md — Dedup convergence integration test + 33-VERIFICATION.md phase-gate artifact
+
+### Phase 34: Feedback Contract E2E Proof
+**Goal**: Feedback outcomes use one canonical contract from normalization through workflow progression and operator traces, with end-to-end proof on the real path.
+**Depends on**: Phase 33
+**Requirements**: FLOW-01, FLOW-02
+**Gap Closure**: Closes v1.4 audit gaps for outcome vocabulary drift and missing webhook-to-workflow proof.
+**Success Criteria**:
+  1. Webhook normalization, signal emission, and trace projection agree on one canonical outcome/event vocabulary.
+  2. An end-to-end test proves a real webhook callback updates delivery state, emits the workflow signal, and progresses or stops a workflow as configured.
+  3. Verification and summary artifacts explicitly map `FLOW-01` and `FLOW-02` so the milestone audit can close without orphaned requirements.
+**Plans**: TBD
