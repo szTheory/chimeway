@@ -71,5 +71,13 @@ defmodule Chimeway.Adapter do
   @callback normalize_feedback(parsed_payload :: map()) ::
               {:ok, %{status: :delivered | :bounced | :failed}} | :error
 
-  @optional_callbacks verify_webhook: 3, resolve_delivery: 1, normalize_feedback: 1
+  @doc """
+  Extract a stable provider-assigned event ID from a parsed provider webhook payload.
+  Used for idempotent deduplication of provider retries (Phase 33 D-05 / A4).
+  Optional: adapters without stable event IDs omit this callback; those callbacks
+  get `provider_event_id = nil` (no dedup — the partial unique index ignores NULLs).
+  """
+  @callback resolve_provider_event_id(parsed :: map()) :: {:ok, binary()} | :none
+
+  @optional_callbacks verify_webhook: 3, resolve_delivery: 1, normalize_feedback: 1, resolve_provider_event_id: 1
 end
