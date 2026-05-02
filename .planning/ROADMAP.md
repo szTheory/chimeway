@@ -26,7 +26,7 @@
 | 30. Inbound Feedback Normalization | 1/1 | Audit gap | - |
 | 31. Feedback-Driven Progression | 2/2 | Audit gap | 2026-05-01 |
 | 32. Operator Traces & Audit | 2/2 | Complete    | 2026-05-01 |
-| 33. Webhook Ingress Durability | 0/5 | Planned     | - |
+| 33. Webhook Ingress Durability | 0/6 | Gap closure | - |
 | 34. Feedback Contract E2E Proof | 0/0 | Not started | - |
 
 ## Phase Details
@@ -98,7 +98,7 @@ Plans:
   1. `Chimeway.Webhooks.process/4` only returns success when async processing is durably queued, and queue insertion failures surface explicitly.
   2. Unknown or stale `delivery_id` callbacks fail safely without crashing the feedback worker.
   3. The repo includes a runtime ingress seam or reference consumer proving a host-mounted HTTP path into `Chimeway.Webhooks.process/4`.
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
 - [ ] 33-01-ingress-schema-PLAN.md — Ecto schema + migration + partial composite unique index for chimeway_webhook_ingress
@@ -106,6 +106,7 @@ Plans:
 - [ ] 33-03-worker-ingress-pivot-PLAN.md — Pivot ProcessFeedbackWorker to ingress-driven safe-noop with backwards-compat shim
 - [ ] 33-04-example-host-app-PLAN.md — Sibling Phoenix Mix project at examples/chimeway_demo_host/ proving host mount with body_reader + E2E test
 - [ ] 33-05-dedup-and-verification-PLAN.md — Dedup convergence integration test + 33-VERIFICATION.md phase-gate artifact
+- [ ] 33-06-cache-body-reader-chunked-fix-PLAN.md — Fix CacheBodyReader to accumulate all chunks (:more path); add chunked-body regression test (BL-01 gap closure)
 
 ### Phase 34: Feedback Contract E2E Proof
 **Goal**: Feedback outcomes use one canonical contract from normalization through workflow progression and operator traces, with end-to-end proof on the real path.
