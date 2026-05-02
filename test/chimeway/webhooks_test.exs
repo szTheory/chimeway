@@ -12,8 +12,8 @@ defmodule Chimeway.WebhooksTest do
     def verify_webhook(_body, [{"signature", "valid"}], _config), do: :ok
     def verify_webhook(_, _, _config), do: {:error, :unauthorized}
 
-    def resolve_delivery(%{"id" => "del_123"}), do: {:ok, %{delivery_id: "del_123"}}
-    def resolve_delivery(%{"msg_id" => "msg_123"}), do: {:ok, %{provider_message_id: "msg_123"}}
+    def resolve_delivery(%{"id" => id}) when is_binary(id), do: {:ok, %{delivery_id: id}}
+    def resolve_delivery(%{"msg_id" => pid}) when is_binary(pid), do: {:ok, %{provider_message_id: pid}}
     def resolve_delivery(_), do: :error
 
     def normalize_feedback(%{"status" => "bounce"}), do: {:ok, %{status: :bounced}}
@@ -23,10 +23,9 @@ defmodule Chimeway.WebhooksTest do
   end
 
   describe "process/4 — atomic handoff contract (Task 2 TDD RED)" do
-    test "returns {:ok, %Ingress{}} on success with delivery_id — new atomic contract" do
-      delivery_uuid = Ecto.UUID.generate()
-      body = Jason.encode!(%{"id" => delivery_uuid, "status" => "bounce"})
-      # This test FAILS against the old {: ok, :enqueued} implementation.
+    test "returns {:ok, %Ingress{}} on success with provider_message_id — new atomic contract" do
+      body = Jason.encode!(%{"msg_id" => "msg_abc", "status" => "bounce"})
+      # This test FAILS against the old {:ok, :enqueued} implementation.
       assert {:ok, %Chimeway.Webhooks.Ingress{} = ingress} =
                Webhooks.process(MockAdapter, body, [{"signature", "valid"}], [])
       assert ingress.id
