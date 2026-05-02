@@ -22,9 +22,9 @@
 |-------------|-------|--------|
 | CHAN-01     | Phase 29 | Complete |
 | CHAN-02     | Phase 29 | Complete |
-| FEED-01     | Phase 30 | Pending |
-| FEED-02     | Phase 30 | Pending |
-| FLOW-01     | Phase 31 | Pending |
-| FLOW-02     | Phase 31 | Pending |
+| FEED-01     | Phase 33 | Complete |
+| FEED-02     | Phase 33 | Complete |
+| FLOW-01     | Phase 34 | Pending |
+| FLOW-02     | Phase 34 | Pending |
 | TRAC-01     | Phase 32 | Complete |
 | TRAC-02     | Phase 32 | Complete |

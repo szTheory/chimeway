@@ -106,7 +106,7 @@ Plans:
 - [ ] 33-03-worker-ingress-pivot-PLAN.md — Pivot ProcessFeedbackWorker to ingress-driven safe-noop with backwards-compat shim
 - [ ] 33-04-example-host-app-PLAN.md — Sibling Phoenix Mix project at examples/chimeway_demo_host/ proving host mount with body_reader + E2E test
 - [ ] 33-05-dedup-and-verification-PLAN.md — Dedup convergence integration test + 33-VERIFICATION.md phase-gate artifact
-- [ ] 33-06-cache-body-reader-chunked-fix-PLAN.md — Fix CacheBodyReader to accumulate all chunks (:more path); add chunked-body regression test (BL-01 gap closure)
+- [x] 33-06-cache-body-reader-chunked-fix-PLAN.md — Fix CacheBodyReader to accumulate all chunks (:more path); add chunked-body regression test (BL-01 gap closure)
 
 ### Phase 34: Feedback Contract E2E Proof
 **Goal**: Feedback outcomes use one canonical contract from normalization through workflow progression and operator traces, with end-to-end proof on the real path.

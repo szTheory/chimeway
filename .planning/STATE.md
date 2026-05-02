@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Channel Feedback Loops
 status: executing
-stopped_at: Phase 32 context gathered (assumptions mode)
-last_updated: "2026-05-02T14:52:18.594Z"
-last_activity: 2026-05-02 -- Phase --phase execution started
+stopped_at: Completed 33-06-cache-body-reader-chunked-fix-PLAN.md
+last_updated: "2026-05-02T15:04:18.341Z"
+last_activity: 2026-05-02
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 18
-  completed_plans: 17
-  percent: 94
+  completed_plans: 18
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase --phase — 33
+**Current focus:** Phase 33 — webhook-ingress-durability
 
 ## Current Position
 
-Phase: --phase (33) — EXECUTING
-Plan: 1 of --name
-Status: Executing Phase --phase
-Last activity: 2026-05-02 -- Phase --phase execution started
+Phase: 33 (webhook-ingress-durability) — 33-06 GAP CLOSURE COMPLETE
+Plan: 6 of 6 (BL-01 closed)
+Status: Ready for re-verification
+Last activity: 2026-05-02 — completed 33-06 (CacheBodyReader chunked-body fix)
 
 ## Accumulated Context
 
@@ -139,6 +139,8 @@ Recent decisions affecting current work:
 - [v1.3]: Prioritize workflow journeys before channel breadth in v1.3. Workflow behavior is the next major product-value jump.
 - [v1.4]: Expand outbound channel contracts and implement inbound feedback loops (webhooks) to drive workflow progression based on terminal outcomes (bounced, delivered).
 - Wrapped feedback persistence and signal emission in atomic transactions by delegating to Chimeway.Signal.track/4.
+- [33-06]: Force chunked-body delivery in tests via a custom Plug.Conn.Adapter defined inside the test module — Plug.Test cannot produce {:more, ...} regardless of :read_length, and a custom adapter avoids booting a real Cowboy transport for the regression.
+- [33-06]: Replace single-clause `with {:ok, ...}` body-reader pattern with exhaustive `case` over :ok/:more/:error — exhaustiveness over brevity at a teaching-example boundary adopters are explicitly told to copy (D-12).
 
 ### Pending Todos
 
@@ -161,8 +163,8 @@ None.
 
 ### Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 32 context gathered (assumptions mode)
-Resume file: --resume-file
+Last session: 2026-05-02T15:04:13.140Z
+Stopped at: Completed 33-06-cache-body-reader-chunked-fix-PLAN.md
+Resume file: None
 
 **Planned Phase:** 33 (webhook-ingress-durability) — 6 plans — 2026-05-02T14:52:18.579Z
