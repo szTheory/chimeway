@@ -22,6 +22,17 @@ defmodule Chimeway.WebhooksTest do
     def normalize_feedback(_), do: :error
   end
 
+  describe "process/4 — atomic handoff contract (Task 2 TDD RED)" do
+    test "returns {:ok, %Ingress{}} on success with delivery_id — new atomic contract" do
+      delivery_uuid = Ecto.UUID.generate()
+      body = Jason.encode!(%{"id" => delivery_uuid, "status" => "bounce"})
+      # This test FAILS against the old {: ok, :enqueued} implementation.
+      assert {:ok, %Chimeway.Webhooks.Ingress{} = ingress} =
+               Webhooks.process(MockAdapter, body, [{"signature", "valid"}], [])
+      assert ingress.id
+    end
+  end
+
   describe "process/4" do
     test "returns {:error, :unauthorized} if verification fails" do
       assert {:error, :unauthorized} = Webhooks.process(MockAdapter, "invalid_body", [{"signature", "invalid"}], [])
