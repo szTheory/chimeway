@@ -15,7 +15,7 @@
 - [ ] **Phase 30: Inbound Feedback Normalization** - Implement a canonical webhook ingestion layer that translates vendor payloads to Chimeway delivery outcomes.
 - [x] **Phase 31: Feedback-Driven Progression** - Connect normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
 - [x] **Phase 32: Operator Traces & Audit** - Expand timeline traces to show provider callbacks and resulting workflow transitions. (completed 2026-05-01)
-- [ ] **Phase 33: Webhook Ingress Durability** - Close the webhook handoff and ingress safety gaps so provider callbacks only acknowledge success after durable queueing and safe delivery resolution.
+- [x] **Phase 33: Webhook Ingress Durability** - Close the webhook handoff and ingress safety gaps so provider callbacks only acknowledge success after durable queueing and safe delivery resolution. (completed 2026-05-02)
 - [ ] **Phase 34: Feedback Contract E2E Proof** - Align outcome naming across feedback, workflow, and traces, then prove the real webhook-to-progression path end to end.
 
 ### Progress
@@ -26,7 +26,7 @@
 | 30. Inbound Feedback Normalization | 1/1 | Audit gap | - |
 | 31. Feedback-Driven Progression | 2/2 | Audit gap | 2026-05-01 |
 | 32. Operator Traces & Audit | 2/2 | Complete    | 2026-05-01 |
-| 33. Webhook Ingress Durability | 0/6 | Gap closure | - |
+| 33. Webhook Ingress Durability | 6/6 | Complete    | 2026-05-02 |
 | 34. Feedback Contract E2E Proof | 0/0 | Not started | - |
 
 ## Phase Details
@@ -101,11 +101,11 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
-- [ ] 33-01-ingress-schema-PLAN.md — Ecto schema + migration + partial composite unique index for chimeway_webhook_ingress
-- [ ] 33-02-process-atomic-handoff-PLAN.md — Rewrite Webhooks.process/4 to atomic Multi+Oban handoff; add Deliveries.fetch_delivery/1
-- [ ] 33-03-worker-ingress-pivot-PLAN.md — Pivot ProcessFeedbackWorker to ingress-driven safe-noop with backwards-compat shim
-- [ ] 33-04-example-host-app-PLAN.md — Sibling Phoenix Mix project at examples/chimeway_demo_host/ proving host mount with body_reader + E2E test
-- [ ] 33-05-dedup-and-verification-PLAN.md — Dedup convergence integration test + 33-VERIFICATION.md phase-gate artifact
+- [x] 33-01-ingress-schema-PLAN.md — Ecto schema + migration + partial composite unique index for chimeway_webhook_ingress
+- [x] 33-02-process-atomic-handoff-PLAN.md — Rewrite Webhooks.process/4 to atomic Multi+Oban handoff; add Deliveries.fetch_delivery/1
+- [x] 33-03-worker-ingress-pivot-PLAN.md — Pivot ProcessFeedbackWorker to ingress-driven safe-noop with backwards-compat shim
+- [x] 33-04-example-host-app-PLAN.md — Sibling Phoenix Mix project at examples/chimeway_demo_host/ proving host mount with body_reader + E2E test
+- [x] 33-05-dedup-and-verification-PLAN.md — Dedup convergence integration test + 33-VERIFICATION.md phase-gate artifact
 - [x] 33-06-cache-body-reader-chunked-fix-PLAN.md — Fix CacheBodyReader to accumulate all chunks (:more path); add chunked-body regression test (BL-01 gap closure)
 
 ### Phase 34: Feedback Contract E2E Proof
