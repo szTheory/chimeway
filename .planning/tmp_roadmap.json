@@ -1,0 +1,66 @@
+{
+  "milestones": [
+    {
+      "heading": "Active Milestone: v1.4 Channel Feedback Loops",
+      "version": "v1.4"
+    }
+  ],
+  "phases": [
+    {
+      "number": "29",
+      "name": "Outbound Channel Contracts",
+      "goal": "Host apps can configure and render notifications for non-email channels (SMS, Push) using standard adapter boundaries.",
+      "depends_on": "Phase 28",
+      "plan_count": 7,
+      "summary_count": 7,
+      "has_context": true,
+      "has_research": true,
+      "disk_status": "complete",
+      "roadmap_complete": true
+    },
+    {
+      "number": "30",
+      "name": "Inbound Feedback Normalization",
+      "goal": "Asynchronous delivery feedback from providers is securely ingested and recorded as canonical delivery state.",
+      "depends_on": "Phase 29",
+      "plan_count": 1,
+      "summary_count": 1,
+      "has_context": false,
+      "has_research": true,
+      "disk_status": "complete",
+      "roadmap_complete": false
+    },
+    {
+      "number": "31",
+      "name": "Feedback-Driven Progression",
+      "goal": "Workflow journeys automatically progress or branch based on the asynchronous outcomes of earlier steps.",
+      "depends_on": "Phase 30",
+      "plan_count": 2,
+      "summary_count": 2,
+      "has_context": false,
+      "has_research": true,
+      "disk_status": "complete",
+      "roadmap_complete": true
+    },
+    {
+      "number": "32",
+      "name": "Operator Traces & Audit",
+      "goal": "Operators can fully audit the asynchronous lifecycle of a notification journey including provider feedback.",
+      "depends_on": "Phase 31",
+      "plan_count": 0,
+      "summary_count": 0,
+      "has_context": false,
+      "has_research": false,
+      "disk_status": "no_directory",
+      "roadmap_complete": false
+    }
+  ],
+  "phase_count": 4,
+  "completed_phases": 3,
+  "total_plans": 10,
+  "total_summaries": 10,
+  "progress_percent": 100,
+  "current_phase": null,
+  "next_phase": "32",
+  "missing_phase_details": null
+}

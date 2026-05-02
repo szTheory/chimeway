@@ -80,3 +80,18 @@ the safer default would materially harm the product model or long-term ergonomic
 **Apply when:** Designing library entrypoints, preview or operator tooling, CLI interfaces, safe
 defaults, validation contracts, or developer-facing UX where convenience could otherwise smuggle in
 surprising behavior.
+
+## Low-Escalation Recommendation Default
+
+**Diagnoses:** The agent asks the user to choose among medium-stakes implementation options even
+after enough codebase and ecosystem evidence exists to make a strong recommendation.
+
+**Recommends:** Research first, then present one cohesive recommendation set by default. Only
+surface a decision to the user when it is high-blast-radius, hard to reverse, public-model
+defining, or genuinely in tension with a locked project principle. For ordinary architecture and DX
+choices, choose the least-surprising option and document the tradeoff instead of offloading the
+decision.
+
+**Apply when:** Running discuss-phase, architectural research, planning, API-shape decisions,
+workflow/tooling design, and any phase where the user has signaled a preference for decisive
+one-shot recommendations.
