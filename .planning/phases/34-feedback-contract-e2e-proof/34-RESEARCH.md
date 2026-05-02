@@ -982,33 +982,28 @@ etc.). Reference: `33-04-SUMMARY.md:75`.
 schema + production worker behavior + table format + frontmatter pattern) is all
 [VERIFIED] against the cited source files.**
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **File layout: new file vs. new describe block?**
-   - What we know: Both are valid per CONTEXT.md D-05 (Claude's discretion).
-   - What's unclear: Whether the Phase 34 implementor will favor failure-diagnostic legibility over single-file convenience.
-   - Recommendation: NEW file (`feedback_pipeline_e2e_test.exs`). Existing file's two
-     describe blocks are about webhook ingress mechanics; Phase 34 spans
-     ingress + worker + signal router + workflow + trace and benefits from a separate
-     file. The shared setup is minimal (3 lines).
+1. **File layout: new file vs. new describe block?** **RESOLVED:** NEW file
+   (`feedback_pipeline_e2e_test.exs`). Existing file's two describe blocks are about
+   webhook ingress mechanics; Phase 34 spans ingress + worker + signal router + workflow
+   + trace and benefits from a separate file. The shared setup is minimal (3 lines).
+   Both options are valid per CONTEXT.md D-05 (Claude's discretion); legibility wins.
 
 2. **Should the `chimeway.delivery.failed` scenario be added preemptively?**
-   - What we know: D-09 / Deferred Ideas explicitly defaults to skip unless evidence emerges.
-   - What's unclear: Whether the progress + stop scenarios surface a code path that the
-     `failed` outcome would exercise differently.
-   - Recommendation: SKIP unless one of the two scenarios fails. The `failed` outcome
-     drives the same `canonicalize_status` + `Signal.track` + `route_signal` path as
-     `bounced`; it's a no-information-gain scenario in the absence of bug evidence.
+   **RESOLVED:** SKIP unless one of the two scenarios fails. The `failed` outcome drives
+   the same `canonicalize_status` + `Signal.track` + `route_signal` path as `bounced`;
+   it's a no-information-gain scenario in the absence of bug evidence. D-09 / Deferred
+   Ideas explicitly defaults to skip unless evidence emerges.
 
-3. **Should `34-VERIFICATION.md` declare `requirements-completed: [FLOW-01, FLOW-02]` in its OWN frontmatter (in addition to the per-plan SUMMARY frontmatter)?**
-   - What we know: Phase 33's `33-VERIFICATION.md` does NOT carry a `requirements-completed`
-     key in frontmatter; the per-plan SUMMARY frontmatter is what the milestone audit
-     scans (per `v1.4-MILESTONE-AUDIT.md:32-39`).
-   - What's unclear: Whether a future audit pass might also scan VERIFICATION.md frontmatter.
-   - Recommendation: FOLLOW the Phase 33 pattern verbatim — verification frontmatter
-     declares `phase`, `verified`, `status`, `score` only. Per-plan SUMMARY frontmatter
-     carries `requirements-completed`. If a future audit changes the expected
-     location, the fix is a 1-line additive edit; not worth speculating on.
+3. **Should `34-VERIFICATION.md` declare `requirements-completed: [FLOW-01, FLOW-02]` in
+   its OWN frontmatter (in addition to the per-plan SUMMARY frontmatter)?** **RESOLVED:**
+   FOLLOW the Phase 33 pattern verbatim — verification frontmatter declares `phase`,
+   `verified`, `status`, `score` only. Per-plan SUMMARY frontmatter carries
+   `requirements-completed`. Phase 33's `33-VERIFICATION.md` does NOT carry a
+   `requirements-completed` key; the per-plan SUMMARY frontmatter is what the milestone
+   audit scans (per `v1.4-MILESTONE-AUDIT.md:32-39`). If a future audit changes the
+   expected location, the fix is a 1-line additive edit; not worth speculating on.
 
 ## Environment Availability
 
