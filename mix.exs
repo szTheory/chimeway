@@ -68,8 +68,13 @@ defmodule Chimeway.MixProject do
       "verify.clean": ["cmd git diff --exit-code"],
       "verify.parity": [
         "cmd mix hex.build --unpack --output /tmp/chimeway_verify && ls /tmp/chimeway_verify"
-      ]
+      ],
       # verify.published: invoked as `mix verify.published <version>` (Mix task)
+      # Post-publish verify: proves the canonical host-mount E2E path (D-11, D-12, D-13).
+      # Run separately from ci.test to preserve fast feedback on core lib tests (Phase 33 D-10).
+      "verify.example": [
+        "cmd cd examples/chimeway_demo_host && mix deps.get && mix test"
+      ]
     ]
   end
 
