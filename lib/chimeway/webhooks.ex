@@ -31,7 +31,6 @@ defmodule Chimeway.Webhooks do
          {:ok, delivery_info} <- resolve_delivery(adapter_module, parsed),
          {:ok, feedback_info} <- normalize_feedback(adapter_module, parsed),
          {:ok, provider_event_id} <- extract_provider_event_id(adapter_module, parsed) do
-
       attrs = %{
         adapter_module: to_string(adapter_module),
         delivery_id: delivery_info[:delivery_id],
