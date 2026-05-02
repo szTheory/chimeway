@@ -8,6 +8,13 @@ defmodule DemoHost.Adapters.EchoAdapter do
   adapter ONLY. Production adapters MUST use `Plug.Crypto.secure_compare/2`
   against an HMAC computed over the raw request body. Do not copy this
   shape into a real adapter — see Phase 33 RESEARCH.md § Security Domain.
+
+  Note on delivery correlation: this fixture adapter maps the provider's "id"
+  field to `provider_message_id` (a plain string — no foreign-key constraint).
+  Production adapters that correlate back to a chimeway delivery row MUST
+  ensure the `delivery_id` value references an existing `chimeway_deliveries`
+  row (FK constraint). Use `provider_message_id` for opaque provider-side
+  identifiers; use `delivery_id` only when you have a real delivery UUID.
   """
 
   @behaviour Chimeway.Adapter
@@ -22,8 +29,12 @@ defmodule DemoHost.Adapters.EchoAdapter do
     end
   end
 
-  def resolve_delivery(%{"id" => id}) when is_binary(id), do: {:ok, %{delivery_id: id}}
+  # Maps the provider's "id" to provider_message_id (plain string, no FK).
+  # Maps "msg_id" the same way for an alternate fixture shape.
+  # Maps "delivery_id" directly to delivery_id (FK — use only with a real delivery row).
+  def resolve_delivery(%{"id" => id}) when is_binary(id), do: {:ok, %{provider_message_id: id}}
   def resolve_delivery(%{"msg_id" => pid}) when is_binary(pid), do: {:ok, %{provider_message_id: pid}}
+  def resolve_delivery(%{"delivery_id" => did}) when is_binary(did), do: {:ok, %{delivery_id: did}}
   def resolve_delivery(_), do: :error
 
   def normalize_feedback(%{"status" => "bounce"}), do: {:ok, %{status: :bounced}}

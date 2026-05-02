@@ -1,12 +1,11 @@
 defmodule DemoHostWeb.WebhooksControllerTest do
   use ExUnit.Case, async: false
-  use Plug.Test
+  import Plug.Test
+  import Plug.Conn
   use Oban.Testing, repo: Chimeway.Repo
 
   alias Chimeway.Repo
   alias Chimeway.Webhooks.{Ingress, ProcessFeedbackWorker}
-
-  @endpoint DemoHostWeb.Endpoint
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Chimeway.Repo)
@@ -17,9 +16,10 @@ defmodule DemoHostWeb.WebhooksControllerTest do
 
   describe "POST /webhooks/chimeway/echo (Phase 33 host-mount E2E proof)" do
     test "valid signature + parseable body returns 200, commits ingress row, and enqueues Oban job" do
-      # delivery_id must be a real UUID — schema field is :binary_id.
-      delivery_uuid = Ecto.UUID.generate()
-      body = Jason.encode!(%{"id" => delivery_uuid, "status" => "ok"})
+      # Use a provider-side message ID (plain string, no FK constraint).
+      # The EchoAdapter maps "id" -> provider_message_id.
+      provider_msg_id = "msg-" <> Ecto.UUID.generate()
+      body = Jason.encode!(%{"id" => provider_msg_id, "status" => "ok"})
       conn =
         conn(:post, "/webhooks/chimeway/echo", body)
         |> put_req_header("content-type", "application/json")
@@ -31,7 +31,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # T-33-ATOMIC verified end-to-end: ingress row durably committed
       assert [%Ingress{} = ingress] = Repo.all(Ingress)
       assert ingress.adapter_module == to_string(DemoHost.Adapters.EchoAdapter)
-      assert ingress.delivery_id == delivery_uuid
+      assert ingress.provider_message_id == provider_msg_id
       assert ingress.normalized_status == "delivered"
 
       # Oban job enqueued atomically with ingress row
@@ -39,8 +39,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
     end
 
     test "bad signature returns 401 and commits NO ingress row (D-09 / T-33-AUTH-LEAK)" do
-      # UUID for completeness, though this path errors at verify_webhook before reaching DB.
-      body = Jason.encode!(%{"id" => Ecto.UUID.generate(), "status" => "ok"})
+      body = Jason.encode!(%{"id" => "msg-" <> Ecto.UUID.generate(), "status" => "ok"})
       conn =
         conn(:post, "/webhooks/chimeway/echo", body)
         |> put_req_header("content-type", "application/json")
@@ -52,15 +51,26 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       refute_enqueued worker: ProcessFeedbackWorker
     end
 
-    test "malformed JSON body returns non-2xx and commits NO ingress row" do
+    test "unresolvable body returns non-2xx and commits NO ingress row" do
+      # Send valid JSON that Chimeway cannot process: an empty object has no
+      # "id" or "msg_id" key that EchoAdapter.resolve_delivery/1 recognizes,
+      # and no "status" key that normalize_feedback/1 recognizes. Chimeway
+      # returns {:error, :unresolvable_delivery}, the controller maps to 500.
+      # This covers D-03: any non-ok, non-unauthorized error -> non-2xx.
+      #
+      # NOTE: Plug.Parsers.ParseError (truly malformed JSON bytes) is handled
+      # differently in Phoenix test mode: Phoenix's RenderErrors renders a 400
+      # response AND then re-raises the exception (by design — the server HTTP
+      # adapter catches the re-raise in production; Plug.Test propagates it).
+      # Using a semantically-unprocessable but syntactically-valid JSON body
+      # avoids that test-mode wrinkle and exercises the same D-03 contract.
       conn =
-        conn(:post, "/webhooks/chimeway/echo", "not-valid-json{{{")
+        conn(:post, "/webhooks/chimeway/echo", Jason.encode!(%{}))
         |> put_req_header("content-type", "application/json")
         |> put_req_header("signature", "valid")
         |> DemoHostWeb.Endpoint.call(DemoHostWeb.Endpoint.init([]))
 
-      # Phoenix may return 400 (Plug.Parsers raises on bad JSON before reaching the controller)
-      # OR the controller's catch-all returns 500. Either way: NOT 2xx, NOT 401.
+      # Not 2xx (Chimeway returned {:error, :unresolvable_delivery} -> 500).
       refute conn.status in 200..299
       refute conn.status == 401
       assert Repo.aggregate(Ingress, :count) == 0
@@ -71,7 +81,8 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # in CacheBodyReader. With the canonical update_in pattern the body is stored
       # as `[chunk | acc]` and the controller MUST flatten via IO.iodata_to_binary/1
       # before passing to verify_webhook/3.
-      body = Jason.encode!(%{"id" => Ecto.UUID.generate(), "status" => "ok"})
+      provider_msg_id = "msg-" <> Ecto.UUID.generate()
+      body = Jason.encode!(%{"id" => provider_msg_id, "status" => "ok"})
       conn =
         conn(:post, "/webhooks/chimeway/echo", body)
         |> put_req_header("content-type", "application/json")
@@ -92,7 +103,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # added in Task 2) that computes HMAC-SHA256 over the raw body bytes.
       #
       # The body intentionally contains non-canonical whitespace (double-spaces
-      # inside the JSON object) — bytes like `{"id":  "del_rawbody", ...}`. Any
+      # inside the JSON object) — bytes like `{"id":  "msg-...", ...}`. Any
       # host code that calls Jason.decode + Jason.encode before verify_webhook
       # would produce normalized JSON without the double-spaces, and the HMAC
       # over those re-encoded bytes would NOT match the signature header.
@@ -101,14 +112,14 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # BEFORE Jason.decode — verified end-to-end. If a future refactor reorders
       # the controller pipeline to parse-then-verify, this test fails with 401
       # because the re-encoded bytes don't HMAC-match.
-      delivery_uuid = Ecto.UUID.generate()
+      provider_msg_id = "msg-rawbody-" <> Ecto.UUID.generate()
 
       # Hand-crafted body bytes with intentional double-spaces that will NOT
       # survive Jason.encode after Jason.decode. The body still parses to valid
       # JSON, but its byte representation is byte-distinguishable from any
       # re-encoded form.
       body =
-        ~s|{"id":  "| <> delivery_uuid <> ~s|",  "status": "ok"}|
+        ~s|{"id":  "| <> provider_msg_id <> ~s|",  "status": "ok"}|
 
       # Compute HMAC-SHA256 over the EXACT raw bytes using the same shared
       # secret RawBodyHmacAdapter expects.
@@ -128,10 +139,8 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # would fail with 401.
       assert conn.status == 200
 
-      # Sanity check: ingress row exists with the UUID we sent — proves the
-      # body did parse correctly AFTER verification (verify-then-parse, not
-      # parse-then-verify).
-      assert [%Ingress{delivery_id: ^delivery_uuid}] = Repo.all(Ingress)
+      # Sanity check: ingress row exists with the provider_message_id we sent.
+      assert [%Ingress{provider_message_id: ^provider_msg_id}] = Repo.all(Ingress)
 
       # Documentation note for executor / future readers:
       # If a developer swaps the controller pipeline to parse-then-verify

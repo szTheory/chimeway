@@ -3,6 +3,7 @@ import Config
 config :demo_host, DemoHostWeb.Endpoint,
   http: [port: 4001],
   url: [host: "localhost"],
+  secret_key_base: String.duplicate("demo-host-secret-key-base-for-local-use-only!", 2),
   render_errors: [formats: [json: DemoHostWeb.ErrorJSON], layout: false],
   pubsub_server: DemoHost.PubSub,
   live_view: [signing_salt: "demo-host"]

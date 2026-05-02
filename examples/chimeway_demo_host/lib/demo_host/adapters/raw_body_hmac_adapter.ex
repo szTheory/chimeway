@@ -10,6 +10,10 @@ defmodule DemoHost.Adapters.RawBodyHmacAdapter do
   production adapters MUST source secrets from configuration / Vault and use
   `Plug.Crypto.secure_compare/2` for the comparison. The constant-time
   compare is included here so the fixture demonstrates the correct shape.
+
+  Note on delivery correlation: this fixture adapter maps the provider's "id"
+  field to `provider_message_id` (plain string, no FK) for the same reason as
+  EchoAdapter — see EchoAdapter moduledoc for the full explanation.
   """
 
   @behaviour Chimeway.Adapter
@@ -34,7 +38,8 @@ defmodule DemoHost.Adapters.RawBodyHmacAdapter do
     end
   end
 
-  def resolve_delivery(%{"id" => id}) when is_binary(id), do: {:ok, %{delivery_id: id}}
+  # Maps the provider's "id" to provider_message_id (plain string, no FK).
+  def resolve_delivery(%{"id" => id}) when is_binary(id), do: {:ok, %{provider_message_id: id}}
   def resolve_delivery(_), do: :error
 
   def normalize_feedback(%{"status" => "ok"}), do: {:ok, %{status: :delivered}}
