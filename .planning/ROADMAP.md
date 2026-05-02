@@ -27,7 +27,7 @@
 | 31. Feedback-Driven Progression | 2/2 | Audit gap | 2026-05-01 |
 | 32. Operator Traces & Audit | 2/2 | Complete    | 2026-05-01 |
 | 33. Webhook Ingress Durability | 6/6 | Complete    | 2026-05-02 |
-| 34. Feedback Contract E2E Proof | 0/0 | Not started | - |
+| 34. Feedback Contract E2E Proof | 0/3 | Planned | - |
 
 ## Phase Details
 
@@ -117,4 +117,9 @@ Plans:
   1. Webhook normalization, signal emission, and trace projection agree on one canonical outcome/event vocabulary.
   2. An end-to-end test proves a real webhook callback updates delivery state, emits the workflow signal, and progresses or stops a workflow as configured.
   3. Verification and summary artifacts explicitly map `FLOW-01` and `FLOW-02` so the milestone audit can close without orphaned requirements.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 34-01-PLAN.md — Build feedback-pipeline E2E test in examples/chimeway_demo_host (progress + stop describes); two-stage Oban.drain_queue, all 7 D-07 assertions
+- [ ] 34-02-PLAN.md — Fix synthetic trace fixture vocabulary drift at test/chimeway/traces_test.exs:416,523 (chimeway.delivery.delivered → chimeway.delivery.succeeded)
+- [ ] 34-03-PLAN.md — Author 34-VERIFICATION.md with FLOW-01/FLOW-02 requirements table, three-axis vocabulary documentation, and Audit Notes pointing at FEED closure
