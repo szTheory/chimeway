@@ -18,7 +18,10 @@ defmodule Chimeway.Webhooks do
         }
         |> Map.merge(stringify_keys(delivery_info))
 
-      ProcessFeedbackWorker.new(args) |> Oban.insert()
+      case ProcessFeedbackWorker.new(args) |> Oban.insert() do
+        {:ok, _job} -> {:ok, :enqueued}
+        error -> error
+      end
     else
       {:error, :unauthorized} -> {:error, :unauthorized}
       _ -> :error
