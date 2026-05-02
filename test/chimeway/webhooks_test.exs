@@ -141,6 +141,77 @@ defmodule Chimeway.WebhooksTest do
     end
   end
 
+  describe "process/4 — dedup convergence (T-33-DEDUP / D-05)" do
+    test "duplicate provider retries with same (adapter_module, provider_event_id) collapse to ONE ingress row" do
+      # Use "msg_id" so resolve_delivery/1 sets provider_message_id (not delivery_id),
+      # avoiding a FK constraint against chimeway_deliveries on a random UUID.
+      body = Jason.encode!(%{"msg_id" => "msg_dedup_001", "status" => "ok", "event_id" => "evt_001"})
+      headers = [{"signature", "valid"}]
+
+      assert {:ok, %Chimeway.Webhooks.Ingress{} = first} =
+               Webhooks.process(MockAdapter, body, headers, [])
+      assert first.provider_event_id == "evt_001"
+
+      # Provider retry — same body, same headers, same event_id
+      assert {:ok, %Chimeway.Webhooks.Ingress{} = second} =
+               Webhooks.process(MockAdapter, body, headers, [])
+
+      # Both calls return success cleanly — neither surfaces the partial-unique conflict
+      # to the host (D-03: 2xx on both).
+      # Crucially: ONE durable ingress row, not two. The on_conflict: :nothing in
+      # Multi.insert(:ingress, ..., conflict_target: ..., where: provider_event_id IS NOT NULL)
+      # absorbs the duplicate at the DB level (T-33-DEDUP closed).
+      assert Repo.aggregate(Chimeway.Webhooks.Ingress, :count) == 1
+      assert first.provider_event_id == second.provider_event_id
+    end
+
+    test "different event_ids for same adapter produce TWO ingress rows (negative control)" do
+      # Use "msg_id" so resolve_delivery/1 sets provider_message_id (not delivery_id),
+      # avoiding a FK constraint against chimeway_deliveries.
+      body1 = Jason.encode!(%{"msg_id" => "msg_neg_001", "status" => "ok", "event_id" => "evt_001"})
+      body2 = Jason.encode!(%{"msg_id" => "msg_neg_002", "status" => "ok", "event_id" => "evt_002"})
+      headers = [{"signature", "valid"}]
+
+      assert {:ok, _first} = Webhooks.process(MockAdapter, body1, headers, [])
+      assert {:ok, _second} = Webhooks.process(MockAdapter, body2, headers, [])
+
+      assert Repo.aggregate(Chimeway.Webhooks.Ingress, :count) == 2
+    end
+
+    test "missing event_id (NULL provider_event_id) does NOT trigger dedup — exercises NULL-distinct semantics that the partial index preserves" do
+      # NOTE on what this test actually verifies (warning #9 disposition):
+      # This exercises PostgreSQL's standard NULL-distinct semantics — two NULL
+      # values do not collide on a unique index regardless of the WHERE clause
+      # on PG <= 14. The partial index `WHERE provider_event_id IS NOT NULL`
+      # PRESERVES that semantic by excluding NULL rows from the index entirely.
+      # On PG >= 15, `NULLS NOT DISTINCT` could change this behavior on a full
+      # unique index, but the partial index defended-by-WHERE here remains
+      # NULL-distinct by construction.
+      # The test's verification value is in describing the design intent —
+      # the assertion (`count == 2`) holds equally with or without the WHERE clause
+      # on PG <= 14, but the WHERE clause is what makes the design correct on
+      # arbitrary PG versions and explicitly documents the NULL-tolerant intent.
+      # Two distinct deliveries (different UUIDs) are used so the rows are not
+      # collapsed by some other adapter-side dedup mechanism.
+      # Use "msg_id" so resolve_delivery/1 sets provider_message_id (not delivery_id),
+      # avoiding a FK constraint against chimeway_deliveries.
+      body1 = Jason.encode!(%{"msg_id" => "msg_null_001", "status" => "ok"})  # no "event_id"
+      body2 = Jason.encode!(%{"msg_id" => "msg_null_002", "status" => "ok"})  # no "event_id"
+      headers = [{"signature", "valid"}]
+
+      assert {:ok, first} = Webhooks.process(MockAdapter, body1, headers, [])
+      assert first.provider_event_id == nil
+
+      assert {:ok, second} = Webhooks.process(MockAdapter, body2, headers, [])
+      assert second.provider_event_id == nil
+
+      # Pitfall 5 design: partial index `WHERE provider_event_id IS NOT NULL`
+      # means NULLs are excluded from the index — NULL rows do not collide.
+      # See PG >= 15 NULLS NOT DISTINCT for completeness.
+      assert Repo.aggregate(Chimeway.Webhooks.Ingress, :count) == 2
+    end
+  end
+
   describe "process/4 — atomic handoff (T-33-ATOMIC)" do
     test "rolls back the ingress row when the :ingress Multi step changeset fails" do
       # Use FailingOnInsertAdapter — its normalize_feedback/1 returns

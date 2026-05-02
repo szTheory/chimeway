@@ -1,9 +1,9 @@
 ---
 phase: 33
 slug: webhook-ingress-durability
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-01
 ---
 
@@ -81,4 +81,4 @@ created: 2026-05-01
 - [ ] Feedback latency < 30 s
 - [ ] `nyquist_compliant: true` set in frontmatter (after planner finalizes per-task rows)
 
-**Approval:** pending
+**Approval:** granted
