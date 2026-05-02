@@ -224,6 +224,32 @@ defmodule Chimeway.DeliveriesTest do
     end
   end
 
+  # ---- fetch_delivery/1 ----
+
+  describe "fetch_delivery/1" do
+    test "returns {:ok, delivery} when id matches an existing row" do
+      %{notification: notification} = insert_notification()
+      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+
+      assert {:ok, fetched} = Deliveries.fetch_delivery(delivery.id)
+      assert fetched.id == delivery.id
+    end
+
+    test "returns {:error, :not_found} when id does not match any row" do
+      assert {:error, :not_found} = Deliveries.fetch_delivery(Ecto.UUID.generate())
+    end
+
+    test "raises FunctionClauseError when called with non-binary input" do
+      assert_raise FunctionClauseError, fn ->
+        Deliveries.fetch_delivery(nil)
+      end
+
+      assert_raise FunctionClauseError, fn ->
+        Deliveries.fetch_delivery(123)
+      end
+    end
+  end
+
   # ---- transition_status/2 ----
 
   describe "transition_status/2" do
