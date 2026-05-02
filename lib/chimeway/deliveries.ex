@@ -428,6 +428,21 @@ defmodule Chimeway.Deliveries do
   def get_delivery!(id), do: Repo.get!(Delivery, id)
 
   @doc """
+  Fetches a delivery by ID without raising. Pairs with `get_delivery!/1` for
+  queue-boundary callers that prefer explicit `{:error, :not_found}`.
+
+  Added in Phase 33 to satisfy D-06 (worker must stop using raising lookup
+  paths at the queue boundary). Used by `Chimeway.Webhooks.ProcessFeedbackWorker`.
+  """
+  @spec fetch_delivery(binary()) :: {:ok, Delivery.t()} | {:error, :not_found}
+  def fetch_delivery(id) when is_binary(id) do
+    case Repo.get(Delivery, id) do
+      %Delivery{} = delivery -> {:ok, delivery}
+      nil -> {:error, :not_found}
+    end
+  end
+
+  @doc """
   Fetches a delivery by a provider message ID from its attempts.
   """
   @spec get_delivery_by_provider_message_id(String.t()) :: {:ok, Delivery.t()} | {:error, :not_found}
