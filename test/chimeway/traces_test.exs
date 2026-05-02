@@ -413,7 +413,7 @@ defmodule Chimeway.TracesTest do
       run = insert_workflow_run_for(delivery, step_key: "send_email")
 
       insert_workflow_transition!(run, delivery.id, "signal_received",
-        %{"event_name" => "chimeway.delivery.delivered"})
+        %{"event_name" => "chimeway.delivery.succeeded"})
 
       insert_workflow_transition!(run, delivery.id, "progressed_on_delivery_outcome",
         %{
