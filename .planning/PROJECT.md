@@ -10,7 +10,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped `v1.3 Workflow Journeys` on 2026-04-30. Phase 33 (Webhook Ingress Durability) of milestone `v1.4 Channel Feedback Loops` completed 2026-05-02: provider callbacks now acknowledge success only after a durable, atomic `Multi+Oban` handoff persists a `Chimeway.Webhooks.Ingress` row and enqueues `ProcessFeedbackWorker` in the same transaction; the canonical `examples/chimeway_demo_host` Phoenix host-mount proves the full host → ingress + worker path with E2E coverage; and the canonical `DemoHost.Plugs.CacheBodyReader` now handles all three `Plug.Conn.read_body/2` return shapes (`:ok`, `:more`, `:error`), so chunked production-shaped webhook bodies survive HMAC verification without the silent-truncation defect that BL-01 originally surfaced.
+Chimeway shipped `v1.3 Workflow Journeys` on 2026-04-30. Milestone `v1.4 Channel Feedback Loops` reached its final phase on 2026-05-02: Phase 33 (Webhook Ingress Durability) shipped a durable atomic `Multi+Oban` handoff, and Phase 34 (Feedback Contract E2E Proof) closed the milestone audit by aligning the canonical `chimeway.delivery.{succeeded,bounced,failed}` vocabulary across production code and test fixtures, shipping a host-mounted E2E test that exercises the full webhook → ingress → worker → signal → workflow-progression → operator-trace path on real Oban queues, and authoring `34-VERIFICATION.md` that maps FLOW-01 / FLOW-02 to Phase 31 + Phase 32 + Phase 34 evidence with the Three-Axis Vocabulary Contract documented.
 
 ## Current Milestone: v1.4 Channel Feedback Loops
 
