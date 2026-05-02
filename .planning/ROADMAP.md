@@ -16,7 +16,7 @@
 - [x] **Phase 31: Feedback-Driven Progression** - Connect normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
 - [x] **Phase 32: Operator Traces & Audit** - Expand timeline traces to show provider callbacks and resulting workflow transitions. (completed 2026-05-01)
 - [x] **Phase 33: Webhook Ingress Durability** - Close the webhook handoff and ingress safety gaps so provider callbacks only acknowledge success after durable queueing and safe delivery resolution. (completed 2026-05-02)
-- [ ] **Phase 34: Feedback Contract E2E Proof** - Align outcome naming across feedback, workflow, and traces, then prove the real webhook-to-progression path end to end.
+- [x] **Phase 34: Feedback Contract E2E Proof** - Align outcome naming across feedback, workflow, and traces, then prove the real webhook-to-progression path end to end. (completed 2026-05-02)
 
 ### Progress
 
@@ -27,7 +27,7 @@
 | 31. Feedback-Driven Progression | 2/2 | Audit gap | 2026-05-01 |
 | 32. Operator Traces & Audit | 2/2 | Complete    | 2026-05-01 |
 | 33. Webhook Ingress Durability | 6/6 | Complete    | 2026-05-02 |
-| 34. Feedback Contract E2E Proof | 0/3 | Planned | - |
+| 34. Feedback Contract E2E Proof | 3/3 | Complete    | 2026-05-02 |
 
 ## Phase Details
 
@@ -120,6 +120,6 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 34-01-PLAN.md — Build feedback-pipeline E2E test in examples/chimeway_demo_host (progress + stop describes); two-stage Oban.drain_queue, all 7 D-07 assertions
-- [ ] 34-02-PLAN.md — Fix synthetic trace fixture vocabulary drift at test/chimeway/traces_test.exs:416,523 (chimeway.delivery.delivered → chimeway.delivery.succeeded)
-- [ ] 34-03-PLAN.md — Author 34-VERIFICATION.md with FLOW-01/FLOW-02 requirements table, three-axis vocabulary documentation, and Audit Notes pointing at FEED closure
+- [x] 34-01-PLAN.md — Build feedback-pipeline E2E test in examples/chimeway_demo_host (progress + stop describes); two-stage Oban.drain_queue, all 7 D-07 assertions
+- [x] 34-02-PLAN.md — Fix synthetic trace fixture vocabulary drift at test/chimeway/traces_test.exs:416,523 (chimeway.delivery.delivered → chimeway.delivery.succeeded)
+- [x] 34-03-PLAN.md — Author 34-VERIFICATION.md with FLOW-01/FLOW-02 requirements table, three-axis vocabulary documentation, and Audit Notes pointing at FEED closure
