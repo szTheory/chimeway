@@ -76,4 +76,6 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
       - run: mix ci.test
