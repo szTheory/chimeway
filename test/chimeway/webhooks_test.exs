@@ -18,7 +18,10 @@ defmodule Chimeway.WebhooksTest do
     # schema's :binary_id cast cleanly (literal "del_123" would Postgrex-error
     # at insert because it is not a valid UUID). Phase 33 plan 02 Task 3.
     def resolve_delivery(%{"id" => id}) when is_binary(id), do: {:ok, %{delivery_id: id}}
-    def resolve_delivery(%{"msg_id" => pid}) when is_binary(pid), do: {:ok, %{provider_message_id: pid}}
+
+    def resolve_delivery(%{"msg_id" => pid}) when is_binary(pid),
+      do: {:ok, %{provider_message_id: pid}}
+
     def resolve_delivery(_), do: :error
 
     def normalize_feedback(%{"status" => "bounce"}), do: {:ok, %{status: :bounced}}
@@ -109,8 +112,10 @@ defmodule Chimeway.WebhooksTest do
       refute Map.has_key?(Map.from_struct(persisted), :headers)
 
       # Atomic Oban handoff
-      assert_enqueued worker: Chimeway.Webhooks.ProcessFeedbackWorker,
-                      args: %{"ingress_id" => ingress.id}
+      assert_enqueued(
+        worker: Chimeway.Webhooks.ProcessFeedbackWorker,
+        args: %{"ingress_id" => ingress.id}
+      )
     end
 
     test "returns {:ok, %Ingress{}} on success with delivery_id and atomically enqueues job" do
@@ -136,8 +141,10 @@ defmodule Chimeway.WebhooksTest do
       refute Map.has_key?(Map.from_struct(persisted), :headers)
 
       # Atomic Oban handoff
-      assert_enqueued worker: Chimeway.Webhooks.ProcessFeedbackWorker,
-                      args: %{"ingress_id" => ingress.id}
+      assert_enqueued(
+        worker: Chimeway.Webhooks.ProcessFeedbackWorker,
+        args: %{"ingress_id" => ingress.id}
+      )
     end
   end
 
@@ -145,11 +152,14 @@ defmodule Chimeway.WebhooksTest do
     test "duplicate provider retries with same (adapter_module, provider_event_id) collapse to ONE ingress row" do
       # Use "msg_id" so resolve_delivery/1 sets provider_message_id (not delivery_id),
       # avoiding a FK constraint against chimeway_deliveries on a random UUID.
-      body = Jason.encode!(%{"msg_id" => "msg_dedup_001", "status" => "ok", "event_id" => "evt_001"})
+      body =
+        Jason.encode!(%{"msg_id" => "msg_dedup_001", "status" => "ok", "event_id" => "evt_001"})
+
       headers = [{"signature", "valid"}]
 
       assert {:ok, %Chimeway.Webhooks.Ingress{} = first} =
                Webhooks.process(MockAdapter, body, headers, [])
+
       assert first.provider_event_id == "evt_001"
 
       # Provider retry — same body, same headers, same event_id
@@ -168,8 +178,12 @@ defmodule Chimeway.WebhooksTest do
     test "different event_ids for same adapter produce TWO ingress rows (negative control)" do
       # Use "msg_id" so resolve_delivery/1 sets provider_message_id (not delivery_id),
       # avoiding a FK constraint against chimeway_deliveries.
-      body1 = Jason.encode!(%{"msg_id" => "msg_neg_001", "status" => "ok", "event_id" => "evt_001"})
-      body2 = Jason.encode!(%{"msg_id" => "msg_neg_002", "status" => "ok", "event_id" => "evt_002"})
+      body1 =
+        Jason.encode!(%{"msg_id" => "msg_neg_001", "status" => "ok", "event_id" => "evt_001"})
+
+      body2 =
+        Jason.encode!(%{"msg_id" => "msg_neg_002", "status" => "ok", "event_id" => "evt_002"})
+
       headers = [{"signature", "valid"}]
 
       assert {:ok, _first} = Webhooks.process(MockAdapter, body1, headers, [])
@@ -195,8 +209,10 @@ defmodule Chimeway.WebhooksTest do
       # collapsed by some other adapter-side dedup mechanism.
       # Use "msg_id" so resolve_delivery/1 sets provider_message_id (not delivery_id),
       # avoiding a FK constraint against chimeway_deliveries.
-      body1 = Jason.encode!(%{"msg_id" => "msg_null_001", "status" => "ok"})  # no "event_id"
-      body2 = Jason.encode!(%{"msg_id" => "msg_null_002", "status" => "ok"})  # no "event_id"
+      # no "event_id"
+      body1 = Jason.encode!(%{"msg_id" => "msg_null_001", "status" => "ok"})
+      # no "event_id"
+      body2 = Jason.encode!(%{"msg_id" => "msg_null_002", "status" => "ok"})
       headers = [{"signature", "valid"}]
 
       assert {:ok, first} = Webhooks.process(MockAdapter, body1, headers, [])
@@ -233,7 +249,7 @@ defmodule Chimeway.WebhooksTest do
 
       # T-33-ATOMIC: NO ingress row, NO Oban job — both side effects rolled back atomically
       assert Repo.aggregate(Chimeway.Webhooks.Ingress, :count) == 0
-      refute_enqueued worker: Chimeway.Webhooks.ProcessFeedbackWorker
+      refute_enqueued(worker: Chimeway.Webhooks.ProcessFeedbackWorker)
     end
 
     test "unauthorized signature creates NO ingress row (D-09 / T-33-AUTH-LEAK)" do
@@ -241,7 +257,7 @@ defmodule Chimeway.WebhooksTest do
                Webhooks.process(MockAdapter, "any", [{"signature", "invalid"}], [])
 
       assert Repo.aggregate(Chimeway.Webhooks.Ingress, :count) == 0
-      refute_enqueued worker: Chimeway.Webhooks.ProcessFeedbackWorker
+      refute_enqueued(worker: Chimeway.Webhooks.ProcessFeedbackWorker)
     end
 
     test "unparseable body creates NO ingress row (D-09)" do
@@ -251,7 +267,7 @@ defmodule Chimeway.WebhooksTest do
                Webhooks.process(MockAdapter, "not-json", [{"signature", "valid"}], [])
 
       assert Repo.aggregate(Chimeway.Webhooks.Ingress, :count) == 0
-      refute_enqueued worker: Chimeway.Webhooks.ProcessFeedbackWorker
+      refute_enqueued(worker: Chimeway.Webhooks.ProcessFeedbackWorker)
     end
   end
 end

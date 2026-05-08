@@ -29,7 +29,7 @@ defmodule Chimeway.DeliveryAttempt do
 
   @doc """
   Returns the canonical list of allowed error_class string values.
-  Used by `Chimeway.Dispatch.Executor.classify/1` to validate that the dispatcher
+  Used by the dispatch executor to validate that the dispatcher
   only emits whitelisted classifications. `"unknown_classification"` is the BL-02
   fallback value emitted by `classify/1` for unexpected adapter return shapes.
   """
@@ -49,10 +49,10 @@ defmodule Chimeway.DeliveryAttempt do
   end
 
   # Plan 14-04 Task 3 promoted :attempt_number to @required_fields after
-    # Deliveries.record_attempt/2 was wired to inject the value via the
-    # :next_attempt_number Multi step (Plan 14-04 Task 2).
-    @required_fields ~w(delivery_id outcome attempt_number)a
-    @optional_fields ~w(error_class provider_response adapter_module provider_message_id)a
+  # Deliveries.record_attempt/2 was wired to inject the value via the
+  # :next_attempt_number Multi step (Plan 14-04 Task 2).
+  @required_fields ~w(delivery_id outcome attempt_number)a
+  @optional_fields ~w(error_class provider_response adapter_module provider_message_id)a
 
   def changeset(attempt, attrs) do
     attempt

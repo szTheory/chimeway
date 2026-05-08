@@ -35,7 +35,9 @@ defmodule Chimeway.TracesTest do
   end
 
   defp plan_delivery(notification, channel \\ :in_app) do
-    {:ok, delivery} = Deliveries.plan_delivery(notification.id, channel, tenant_id: "default", actor_id: "system")
+    {:ok, delivery} =
+      Deliveries.plan_delivery(notification.id, channel, tenant_id: "default", actor_id: "system")
+
     delivery
   end
 
@@ -362,16 +364,16 @@ defmodule Chimeway.TracesTest do
       run = insert_workflow_run_for(delivery, step_key: "send_email")
 
       # signal_received companion row (Phase 32 D-02 populated delivery_id)
-      insert_workflow_transition!(run, delivery.id, "signal_received",
-        %{"event_name" => "chimeway.delivery.bounced"})
+      insert_workflow_transition!(run, delivery.id, "signal_received", %{
+        "event_name" => "chimeway.delivery.bounced"
+      })
 
       # The progression engine's transition row
-      insert_workflow_transition!(run, delivery.id, "workflow_stopped",
-        %{
-          "workflow_outcome" => "bounced",
-          "from_step" => "send_email",
-          "to_step" => nil
-        })
+      insert_workflow_transition!(run, delivery.id, "workflow_stopped", %{
+        "workflow_outcome" => "bounced",
+        "from_step" => "send_email",
+        "to_step" => nil
+      })
 
       assert {:ok, %Explanation{timeline: timeline}} = Traces.explain_delivery(delivery.id)
       event_names = Enum.map(timeline, & &1.event)
@@ -412,15 +414,15 @@ defmodule Chimeway.TracesTest do
 
       run = insert_workflow_run_for(delivery, step_key: "send_email")
 
-      insert_workflow_transition!(run, delivery.id, "signal_received",
-        %{"event_name" => "chimeway.delivery.succeeded"})
+      insert_workflow_transition!(run, delivery.id, "signal_received", %{
+        "event_name" => "chimeway.delivery.succeeded"
+      })
 
-      insert_workflow_transition!(run, delivery.id, "progressed_on_delivery_outcome",
-        %{
-          "workflow_outcome" => "delivered",
-          "from_step" => "send_email",
-          "to_step" => "wait_for_open"
-        })
+      insert_workflow_transition!(run, delivery.id, "progressed_on_delivery_outcome", %{
+        "workflow_outcome" => "delivered",
+        "from_step" => "send_email",
+        "to_step" => "wait_for_open"
+      })
 
       assert {:ok, %Explanation{timeline: timeline}} = Traces.explain_delivery(delivery.id)
       event_names = Enum.map(timeline, & &1.event)
@@ -448,12 +450,12 @@ defmodule Chimeway.TracesTest do
       run = insert_workflow_run_for(delivery, step_key: "send_email")
 
       # One transition WITHOUT a delivery link (e.g. step_activated)
-      insert_workflow_transition!(run, nil, "step_activated",
-        %{"event_name" => "internal_cursor"})
+      insert_workflow_transition!(run, nil, "step_activated", %{"event_name" => "internal_cursor"})
 
       # One transition WITH a delivery link (Phase 32 D-02)
-      insert_workflow_transition!(run, delivery.id, "workflow_stopped",
-        %{"workflow_outcome" => "bounced"})
+      insert_workflow_transition!(run, delivery.id, "workflow_stopped", %{
+        "workflow_outcome" => "bounced"
+      })
 
       assert {:ok, traces} = Chimeway.Workflows.list_traces(delivery.tenant_id, run.id)
       delivery_ids = Enum.map(traces, & &1.delivery_id)
@@ -480,17 +482,22 @@ defmodule Chimeway.TracesTest do
 
       # Tenant A's run + transition keyed by delivery.id (delivery.tenant_id == "default")
       run_a = insert_workflow_run_for(delivery, step_key: "send_email")
-      insert_workflow_transition!(run_a, delivery.id, "workflow_completed",
-        %{"workflow_outcome" => "delivered"})
+
+      insert_workflow_transition!(run_a, delivery.id, "workflow_completed", %{
+        "workflow_outcome" => "delivered"
+      })
 
       # Tenant B's run pointing at the same delivery.id but owned by a foreign tenant.
       # FK chain limitation — cross-tenant delivery_id reuse is impossible in
       # production, so we synthesize the adversarial state at the WorkflowRun
       # boundary to verify the defensive wr.tenant_id == ^delivery.tenant_id
       # filter (D-09 / T-32-T1).
-      run_b = insert_workflow_run_for(delivery, step_key: "send_email", tenant_id: "tenant_b_synth")
-      insert_workflow_transition!(run_b, delivery.id, "workflow_stopped",
-        %{"workflow_outcome" => "bounced"})
+      run_b =
+        insert_workflow_run_for(delivery, step_key: "send_email", tenant_id: "tenant_b_synth")
+
+      insert_workflow_transition!(run_b, delivery.id, "workflow_stopped", %{
+        "workflow_outcome" => "bounced"
+      })
 
       # Querying explain_delivery/1 for delivery (tenant "default") must NOT surface
       # tenant_b's transition — the wr.tenant_id filter excludes it (D-09).
@@ -519,21 +526,29 @@ defmodule Chimeway.TracesTest do
 
       run = insert_workflow_run_for(delivery, step_key: "send_email")
 
-      insert_workflow_transition!(run, delivery.id, "signal_received",
-        %{"event_name" => "chimeway.delivery.succeeded"})
+      insert_workflow_transition!(run, delivery.id, "signal_received", %{
+        "event_name" => "chimeway.delivery.succeeded"
+      })
 
       # One row per progression atom so each appears in the timeline.
-      insert_workflow_transition!(run, delivery.id, "progressed_on_delivery_outcome",
-        %{"workflow_outcome" => "delivered", "from_step" => "a", "to_step" => "b"})
+      insert_workflow_transition!(run, delivery.id, "progressed_on_delivery_outcome", %{
+        "workflow_outcome" => "delivered",
+        "from_step" => "a",
+        "to_step" => "b"
+      })
 
-      insert_workflow_transition!(run, delivery.id, "waiting_for_step_progression",
-        %{"due_at" => "2026-05-02T00:00:00Z", "rule_kind" => "wait_until"})
+      insert_workflow_transition!(run, delivery.id, "waiting_for_step_progression", %{
+        "due_at" => "2026-05-02T00:00:00Z",
+        "rule_kind" => "wait_until"
+      })
 
-      insert_workflow_transition!(run, delivery.id, "workflow_stopped",
-        %{"workflow_outcome" => "stopped"})
+      insert_workflow_transition!(run, delivery.id, "workflow_stopped", %{
+        "workflow_outcome" => "stopped"
+      })
 
-      insert_workflow_transition!(run, delivery.id, "workflow_completed",
-        %{"workflow_outcome" => "completed"})
+      insert_workflow_transition!(run, delivery.id, "workflow_completed", %{
+        "workflow_outcome" => "completed"
+      })
 
       assert {:ok, %Explanation{timeline: timeline}} = Traces.explain_delivery(delivery.id)
 
@@ -554,7 +569,7 @@ defmodule Chimeway.TracesTest do
           entry <- Enum.filter(timeline, &(&1.event == atom)),
           key <- forbidden do
         refute Map.has_key?(entry.detail, key),
-          "expected #{atom} :detail to not contain #{inspect(key)}; got: #{inspect(entry.detail)}"
+               "expected #{atom} :detail to not contain #{inspect(key)}; got: #{inspect(entry.detail)}"
       end
 
       # Defense-in-depth: every new atom appears in this fixture (sanity check

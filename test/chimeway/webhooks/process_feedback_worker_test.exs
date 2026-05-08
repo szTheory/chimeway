@@ -14,7 +14,12 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
     event = insert_event("test.webhook")
     notification = insert_notification(event, "user-webhook")
 
-    assert {:ok, delivery} = Deliveries.plan_delivery(notification.id, "email", status: :pending, tenant_id: "default", actor_id: "system")
+    assert {:ok, delivery} =
+             Deliveries.plan_delivery(notification.id, "email",
+               status: :pending,
+               tenant_id: "default",
+               actor_id: "system"
+             )
 
     %{delivery: delivery}
   end
@@ -83,15 +88,18 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       assert reloaded.processed_at
     end
 
-    test "processes feedback for a provider_message_id-correlated ingress row", %{delivery: delivery} do
+    test "processes feedback for a provider_message_id-correlated ingress row", %{
+      delivery: delivery
+    } do
       delivery = Ecto.Changeset.change(delivery, status: :dispatched) |> Repo.update!()
 
       # Insert an initial attempt with a provider_message_id
-      {:ok, _} = Deliveries.record_attempt(delivery, %{
-        outcome: :succeeded,
-        adapter_module: "InitialAdapter",
-        provider_message_id: "msg_12345"
-      })
+      {:ok, _} =
+        Deliveries.record_attempt(delivery, %{
+          outcome: :succeeded,
+          adapter_module: "InitialAdapter",
+          provider_message_id: "msg_12345"
+        })
 
       {:ok, ingress} =
         %Ingress{}
@@ -123,7 +131,8 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       assert reloaded.processed_at
     end
 
-    test "marks ingress :ignored with :delivery_not_found and returns :ok on stale delivery_id", %{delivery: delivery} do
+    test "marks ingress :ignored with :delivery_not_found and returns :ok on stale delivery_id",
+         %{delivery: delivery} do
       # The DB FK (ON DELETE NILIFY_ALL) means delivery_id is always set to nil when
       # the referenced delivery is deleted — making the Deliveries.fetch_delivery/1
       # {:error, :not_found} branch unreachable via normal Ecto operations.
@@ -152,16 +161,29 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
 
       try do
         # Disable FK triggers for both setup and the worker's mark_ignored update.
-        Ecto.Adapters.SQL.query!(Repo, "ALTER TABLE chimeway_webhook_ingress DISABLE TRIGGER ALL", [])
-        Ecto.Adapters.SQL.query!(Repo, "UPDATE chimeway_webhook_ingress SET delivery_id = $1 WHERE id = $2", [
-          fake_uuid_bin,
-          ingress_uuid_bin
-        ])
+        Ecto.Adapters.SQL.query!(
+          Repo,
+          "ALTER TABLE chimeway_webhook_ingress DISABLE TRIGGER ALL",
+          []
+        )
+
+        Ecto.Adapters.SQL.query!(
+          Repo,
+          "UPDATE chimeway_webhook_ingress SET delivery_id = $1 WHERE id = $2",
+          [
+            fake_uuid_bin,
+            ingress_uuid_bin
+          ]
+        )
 
         # Triggers stay disabled so mark_ignored's Repo.update can succeed with the fake delivery_id.
         assert :ok = ProcessFeedbackWorker.perform(%Oban.Job{args: %{"ingress_id" => ingress.id}})
 
-        Ecto.Adapters.SQL.query!(Repo, "ALTER TABLE chimeway_webhook_ingress ENABLE TRIGGER ALL", [])
+        Ecto.Adapters.SQL.query!(
+          Repo,
+          "ALTER TABLE chimeway_webhook_ingress ENABLE TRIGGER ALL",
+          []
+        )
 
         reloaded = Repo.get!(Ingress, ingress.id)
         assert reloaded.ingress_state == :ignored
@@ -201,7 +223,10 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
   describe "perform/1 — safe-noop edge cases (Pitfall 2 + idempotency)" do
     test "returns :ok when ingress row was hard-deleted between commit and perform" do
       # Pitfall 2: race against Repo.delete by test cleanup or operator action
-      assert :ok = ProcessFeedbackWorker.perform(%Oban.Job{args: %{"ingress_id" => Ecto.UUID.generate()}})
+      assert :ok =
+               ProcessFeedbackWorker.perform(%Oban.Job{
+                 args: %{"ingress_id" => Ecto.UUID.generate()}
+               })
     end
 
     test "returns :ok when ingress is already :ignored (idempotent dedup convergence)" do
@@ -221,7 +246,9 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       assert :ok = ProcessFeedbackWorker.perform(%Oban.Job{args: %{"ingress_id" => ingress.id}})
     end
 
-    test "returns :ok when ingress is already :processed (idempotent re-run)", %{delivery: delivery} do
+    test "returns :ok when ingress is already :processed (idempotent re-run)", %{
+      delivery: delivery
+    } do
       {:ok, ingress} =
         %Ingress{}
         |> Ingress.changeset(%{
@@ -265,17 +292,20 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
         "status" => "delivered",
         "provider_response" => %{}
       }
+
       # Old behavior raised Ecto.NoResultsError — new shim returns :ok safely.
       assert :ok = ProcessFeedbackWorker.perform(%Oban.Job{args: legacy_args})
     end
 
     test "processes legacy provider_message_id args", %{delivery: delivery} do
       delivery = Ecto.Changeset.change(delivery, status: :dispatched) |> Repo.update!()
-      {:ok, _} = Deliveries.record_attempt(delivery, %{
-        outcome: :succeeded,
-        adapter_module: "InitialAdapter",
-        provider_message_id: "msg_legacy"
-      })
+
+      {:ok, _} =
+        Deliveries.record_attempt(delivery, %{
+          outcome: :succeeded,
+          adapter_module: "InitialAdapter",
+          provider_message_id: "msg_legacy"
+        })
 
       legacy_args = %{
         "provider_message_id" => "msg_legacy",

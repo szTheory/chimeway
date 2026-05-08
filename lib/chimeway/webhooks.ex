@@ -42,10 +42,12 @@ defmodule Chimeway.Webhooks do
 
       Multi.new()
       |> Multi.insert(:ingress, Ingress.changeset(%Ingress{}, attrs),
-           on_conflict: :nothing,
-           conflict_target: {:unsafe_fragment, ~s|("adapter_module", "provider_event_id") WHERE "provider_event_id" IS NOT NULL|},
-           returning: true
-         )
+        on_conflict: :nothing,
+        conflict_target:
+          {:unsafe_fragment,
+           ~s|("adapter_module", "provider_event_id") WHERE "provider_event_id" IS NOT NULL|},
+        returning: true
+      )
       |> Oban.insert(:job, fn %{ingress: ingress} ->
         ProcessFeedbackWorker.new(%{"ingress_id" => ingress.id})
       end)

@@ -1213,7 +1213,11 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           recipient_identity: "user:15"
         )
 
-      {:ok, delivery} = Deliveries.plan_delivery(fixture.notification.id, :email, tenant_id: "default", actor_id: "system")
+      {:ok, delivery} =
+        Deliveries.plan_delivery(fixture.notification.id, :email,
+          tenant_id: "default",
+          actor_id: "system"
+        )
 
       delivery =
         delivery

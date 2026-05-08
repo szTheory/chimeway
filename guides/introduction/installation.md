@@ -53,7 +53,7 @@ Replace `MyApp.Repo` with the actual name of your application's Repo module.
 
 Finally, add the Chimeway Supervisor to your application's supervision tree to ensure the background processing and inbox mechanics are started.
 
-Open your application module (usually `lib/my_app/application.ex`) and add `Chimeway.Application` to the children list:
+Open your application module (usually `lib/my_app/application.ex`) and add the Chimeway application to the children list:
 
 ```elixir
 def start(_type, _args) do

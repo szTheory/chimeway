@@ -437,7 +437,7 @@ defmodule Chimeway.Notifier do
   defp normalize_workflow_version(workflow_version),
     do: {:error, {:invalid_workflow_version, workflow_version}}
 
-  defp normalize_workflow_steps(steps) when is_list(steps) and length(steps) > 0 do
+  defp normalize_workflow_steps([_ | _] = steps) do
     with {:ok, normalized_steps} <- normalize_workflow_step_list(steps),
          :ok <- validate_unique_workflow_step_keys(normalized_steps),
          :ok <- validate_unique_workflow_step_orders(normalized_steps),

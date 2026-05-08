@@ -160,9 +160,7 @@ defmodule Chimeway.Rendering.ChannelContractTest do
 
       try do
         # First call: telemetry MUST fire + error returned
-        assert {:error,
-                {:rendering_failed, ^channel,
-                 {:unsupported_render_channel, ^channel}}} =
+        assert {:error, {:rendering_failed, ^channel, {:unsupported_render_channel, ^channel}}} =
                  Rendering.render_delivery(channel, "x.x.#{channel}", 1, %{})
 
         assert_receive {:telemetry_event, [:chimeway, :rendering, :channel_unregistered],
@@ -170,9 +168,7 @@ defmodule Chimeway.Rendering.ChannelContractTest do
                        500
 
         # Second call: same error, but NO new telemetry (once-per-BEAM-lifetime)
-        assert {:error,
-                {:rendering_failed, ^channel,
-                 {:unsupported_render_channel, ^channel}}} =
+        assert {:error, {:rendering_failed, ^channel, {:unsupported_render_channel, ^channel}}} =
                  Rendering.render_delivery(channel, "x.x.#{channel}", 1, %{})
 
         refute_receive {:telemetry_event, [:chimeway, :rendering, :channel_unregistered], _, _},
@@ -249,7 +245,11 @@ defmodule Chimeway.Rendering.ChannelContractTest do
                  :push,
                  "alert.push",
                  1,
-                 %{"title" => "Alert", "body" => "New message", "data" => %{"deep_link" => "/inbox"}}
+                 %{
+                   "title" => "Alert",
+                   "body" => "New message",
+                   "data" => %{"deep_link" => "/inbox"}
+                 }
                )
     end
 

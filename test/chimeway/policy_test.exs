@@ -252,7 +252,11 @@ defmodule Chimeway.PolicyTest do
       notification = insert_notification(event, "user-late-1")
 
       # Plan delivery while preference is still enabled (no row = enabled)
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :in_app,
+          tenant_id: "default",
+          actor_id: "system"
+        )
 
       # Now disable the channel preference
       Preferences.upsert_preference(%{

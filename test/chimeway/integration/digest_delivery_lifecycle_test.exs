@@ -314,7 +314,11 @@ defmodule Chimeway.Integration.DigestDeliveryLifecycleTest do
         metadata: %{}
       })
 
-    {:ok, delivery} = Deliveries.plan_delivery(notification.id, attrs.channel, tenant_id: "default", actor_id: "system")
+    {:ok, delivery} =
+      Deliveries.plan_delivery(notification.id, attrs.channel,
+        tenant_id: "default",
+        actor_id: "system"
+      )
 
     {:ok, updated} =
       Deliveries.apply_planning_decision(delivery, %{

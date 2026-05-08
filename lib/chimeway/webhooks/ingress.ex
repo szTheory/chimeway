@@ -68,11 +68,18 @@ defmodule Chimeway.Webhooks.Ingress do
     reason = get_field(changeset, :ignored_reason)
 
     cond do
-      delivery_id || pmid -> changeset
-      state == :ignored and reason -> changeset
+      delivery_id || pmid ->
+        changeset
+
+      state == :ignored and reason ->
+        changeset
+
       true ->
-        add_error(changeset, :delivery_id,
-          "must be present, or provider_message_id must be present, or ingress must be :ignored with a reason")
+        add_error(
+          changeset,
+          :delivery_id,
+          "must be present, or provider_message_id must be present, or ingress must be :ignored with a reason"
+        )
     end
   end
 end

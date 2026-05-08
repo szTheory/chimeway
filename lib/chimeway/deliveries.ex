@@ -445,8 +445,10 @@ defmodule Chimeway.Deliveries do
   @doc """
   Fetches a delivery by a provider message ID from its attempts.
   """
-  @spec get_delivery_by_provider_message_id(String.t()) :: {:ok, Delivery.t()} | {:error, :not_found}
-  def get_delivery_by_provider_message_id(provider_message_id) when is_binary(provider_message_id) do
+  @spec get_delivery_by_provider_message_id(String.t()) ::
+          {:ok, Delivery.t()} | {:error, :not_found}
+  def get_delivery_by_provider_message_id(provider_message_id)
+      when is_binary(provider_message_id) do
     case Repo.one(
            from(a in DeliveryAttempt,
              where: a.provider_message_id == ^provider_message_id,
@@ -777,7 +779,7 @@ defmodule Chimeway.Deliveries do
   exactly mirroring how `suppress_delivery/3` writes the `:suppressed` terminal state
   from any non-terminal status.
 
-  Called from `Chimeway.Dispatch.ObanWorker.perform/1` when
+  Called from the Oban worker when
   `job.attempt == job.max_attempts` and the adapter classification was `:temporary`
   (REL-03 D-10/D-11). Records `policy_checkpoint: "perform"` in metadata so traces
   preserve the explanation that exhaustion happened at perform time.

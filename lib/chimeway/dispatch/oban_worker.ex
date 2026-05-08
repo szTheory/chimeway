@@ -76,7 +76,7 @@ if Code.ensure_loaded?(Oban) do
 
     ## Phase 14 retry contract (REL-02 / REL-03)
 
-    OSS Oban 2.21.1 has no `c:exhausted/1` callback. This worker uses an in-band
+    OSS Oban 2.21.1 has no exhausted callback. This worker uses an in-band
     `attempt == max_attempts` guard inside `perform/1` to know when it has reached
     the final retry — that is the moment the durable `:cancelled retries_exhausted`
     state is written via `Deliveries.exhaust_delivery/1`.

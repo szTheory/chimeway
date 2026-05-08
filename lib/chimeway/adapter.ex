@@ -79,5 +79,8 @@ defmodule Chimeway.Adapter do
   """
   @callback resolve_provider_event_id(parsed :: map()) :: {:ok, binary()} | :none
 
-  @optional_callbacks verify_webhook: 3, resolve_delivery: 1, normalize_feedback: 1, resolve_provider_event_id: 1
+  @optional_callbacks verify_webhook: 3,
+                      resolve_delivery: 1,
+                      normalize_feedback: 1,
+                      resolve_provider_event_id: 1
 end

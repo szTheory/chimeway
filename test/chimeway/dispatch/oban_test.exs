@@ -61,7 +61,12 @@ defmodule Chimeway.Dispatch.ObanTest do
 
     test "transactional rollback prevents job from being enqueued" do
       %{notification: notification} = DispatchHelpers.create_notification()
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :in_app,
+          tenant_id: "default",
+          actor_id: "system"
+        )
 
       failing_multi =
         Ecto.Multi.new()
@@ -136,7 +141,12 @@ defmodule Chimeway.Dispatch.ObanTest do
   describe "Chimeway.Dispatch.ObanWorker.perform/1" do
     test "calls adapter and records attempt on success" do
       %{notification: notification} = DispatchHelpers.create_notification()
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :in_app,
+          tenant_id: "default",
+          actor_id: "system"
+        )
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
 
@@ -154,7 +164,13 @@ defmodule Chimeway.Dispatch.ObanTest do
     test "returns :ok immediately for terminal delivery without adapter call" do
       Chimeway.Adapters.Test.clear()
       %{notification: notification} = DispatchHelpers.create_notification()
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :in_app,
+          tenant_id: "default",
+          actor_id: "system"
+        )
+
       {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
       Deliveries.record_attempt(dispatched, %{outcome: :succeeded, provider_response: %{}})
 
@@ -165,7 +181,12 @@ defmodule Chimeway.Dispatch.ObanTest do
     test "records :failed attempt when adapter returns temporary error" do
       Application.put_env(:chimeway, :adapter, Chimeway.FailingTestAdapter)
       %{notification: notification} = DispatchHelpers.create_notification()
-      {:ok, delivery} = Deliveries.plan_delivery(notification.id, :in_app, tenant_id: "default", actor_id: "system")
+
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :in_app,
+          tenant_id: "default",
+          actor_id: "system"
+        )
 
       perform_job(ObanWorker, %{delivery_id: delivery.id})
 
