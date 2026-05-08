@@ -26,5 +26,8 @@ jobs:
           key: ${{ runner.os }}-mix-docs-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-docs-
-      - run: mix deps.get
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
       - run: mix ci.docs
