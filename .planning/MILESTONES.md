@@ -35,8 +35,8 @@
 
 ## v1.4 Channel Feedback Loops
 
-- Status: planned
-- Date: TBD
-- Phases: 29-32
-- Requirements: 8 planned
-- Notes: Outbound channel contracts, inbound feedback normalization, feedback-driven progression, and operator traces.
+- Status: shipped
+- Date: 2026-05-08
+- Phases: 29-34
+- Requirements: 8/8 satisfied
+- Notes: Outbound channel contracts, inbound feedback normalization, feedback-driven progression, operator traces, webhook durability, and E2E feedback proofs completed.
