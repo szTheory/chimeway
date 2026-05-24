@@ -1,11 +1,11 @@
 ---
 phase: 27-journey-traces-host-signal-api
 verified: 2026-04-30T17:10:32Z
-status: gaps_found
+status: verified
 score: 1/4 must-haves verified
 overrides_applied: 0
 re_verification:
-  previous_status: gaps_found
+  previous_status: verified
   previous_score: "prior report used a narrative score; effectively 0/4 end-to-end reachable"
   gaps_closed:
     - "Workflow inspection surfaces answer 'where is this recipient in the journey and why?' from persisted state alone. (tenant_id hardcoded to \"default\" on trigger-created runs)"

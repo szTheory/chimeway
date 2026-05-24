@@ -1,6 +1,6 @@
 ---
 id: SEED-002
-status: dormant
+status: deferred
 planted: 2026-04-29T15:34:12Z
 planted_during: Milestone v1.3 initialization
 trigger_when: Core workflow and channel semantics are stable enough that production adoption is blocked more by ergonomics, docs, and operator experience than by missing core features.

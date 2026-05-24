@@ -1,6 +1,6 @@
 ---
 id: SEED-001
-status: dormant
+status: implemented
 planted: 2026-04-29T15:34:12Z
 planted_during: Milestone v1.3 initialization
 trigger_when: Workflow journeys are stable and the next value jump depends on more first-class outbound channels or provider feedback flowing back into workflow state.

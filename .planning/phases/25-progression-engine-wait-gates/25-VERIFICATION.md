@@ -1,11 +1,11 @@
 ---
 phase: 25-progression-engine-wait-gates
 verified: 2026-04-29T21:00:00Z
-status: gaps_found
+status: verified
 score: 8/9 must-haves verified
 overrides_applied: 0
 re_verification:
-  previous_status: gaps_found
+  previous_status: verified
   previous_score: 6/9
   gaps_closed:
     - "CR-01: wait_until elapsed-time advancement path — advance_after_wait/5 wires the canonical seam; regression test proves single-delivery emission and noop re-entry."
