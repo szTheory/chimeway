@@ -2,7 +2,7 @@
 phase: 36
 slug: golden-path-version-alignment
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: true
 created: 2026-05-28
 ---
@@ -39,16 +39,15 @@ created: 2026-05-28
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 36-01-01 | 01 | 1 | DOCS-01 | — | Golden-path covers D-01 vertical slice | manual | Section checklist vs D-01 steps | ✅ | ⬜ pending |
-| 36-01-02 | 01 | 1 | DOCS-01 | — | `explain_delivery/1` proof step present | grep | `rg 'explain_delivery' guides/introduction/golden-path.md` | ❌ W0 | ⬜ pending |
-| 36-01-03 | 01 | 1 | DOCS-01 | — | Notifier uses `recipients/1` with correct keys | grep | `rg 'resolve_recipients|identity:' guides/introduction/golden-path.md` expect 0 | ❌ W0 | ⬜ pending |
+| 36-01-02 | 01 | 1 | DOCS-01 | — | Notifier uses `recipients/1`; every `Chimeway.trigger` has `tenant_id` + `idempotency_key` | grep | `rg 'resolve_recipients|identity:' guides/introduction/golden-path.md` expect 0; trigger opt counts match | ❌ W0 | ⬜ pending |
+| 36-01-03 | 01 | 1 | DOCS-01 | — | `explain_delivery/1` proof step present | grep | `rg 'explain_delivery' guides/introduction/golden-path.md` | ❌ W0 | ⬜ pending |
 | 36-01-04 | 01 | 1 | DOCS-01 | D-11 | golden-path registered in mix.exs extras | grep | `rg 'golden-path' mix.exs` | ✅ | ⬜ pending |
 | 36-02-01 | 02 | 2 | DOCS-02 | — | No `~> 1.0` drift in consumer docs | grep | `rg '~> 1\.0|1\.0\.0' README.md guides/introduction/` expect 0 | ✅ | ⬜ pending |
 | 36-02-02 | 02 | 2 | DOCS-02 | D-08 | README links golden-path; API fixed | manual | Visual diff README.md Quick Start | ✅ | ⬜ pending |
 | 36-02-03 | 02 | 2 | DOCS-02 | D-12 | installation Next Steps → golden-path | grep | `rg 'golden-path' guides/introduction/installation.md` | ✅ | ⬜ pending |
 | 36-03-01 | 03 | 3 | DOCS-01 | D-09 | Webhook appendix cross-link exists | grep | `rg 'feedback_pipeline_e2e_test' guides/introduction/golden-path.md` | ❌ W0 | ⬜ pending |
 | 36-03-02 | 03 | 3 | DOCS-02 | D-12 | getting-started Next Steps updated | grep | `rg 'golden-path' guides/introduction/getting-started.md` | ✅ | ⬜ pending |
-| 36-03-03 | 03 | 3 | DOCS-01 | — | Trigger examples include `tenant_id` + `idempotency_key` | grep | `rg 'Chimeway\.trigger' guides/introduction/golden-path.md` + manual | ❌ W0 | ⬜ pending |
-| 36-03-04 | 03 | 3 | DOCS-01 | — | HexDocs build passes | integration | `mix ci.docs` | ✅ | ⬜ pending |
+| 36-03-03 | 03 | 3 | DOCS-01, DOCS-02 | — | Phase 36 grep gates + version alignment + HexDocs/CI pass | integration | `mix ci.docs && mix ci`; version/API/cross-link grep suite | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -80,6 +79,6 @@ Existing infrastructure covers all phase requirements — no new test files requ
 - [ ] Wave 0 covers all MISSING references
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
