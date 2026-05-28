@@ -21,40 +21,26 @@ Then run:
 
 ```bash
 mix deps.get
+mix chimeway.gen.migrations
 mix ecto.migrate
 ```
 
 ## Quick Start
 
-Define a notifier:
+Follow the [Golden Path guide](guides/introduction/golden-path.md) for install, notifier setup, and your first explainable trace.
 
 ```elixir
-defmodule MyApp.OrderShippedNotifier do
-  use Chimeway.Notifier,
-    notification_key: "order_shipped",
-    version: 1
-
-  @impl true
-  def resolve_recipients(%{user_id: user_id}, _opts) do
-    {:ok, [%{identity: "user:#{user_id}", type: "user"}]}
-  end
-end
-```
-
-Trigger a notification:
-
-```elixir
-Chimeway.trigger(
-  MyApp.OrderShippedNotifier,
-  %{order_id: "ord-123", user_id: 42},
-  idempotency_key: "order-shipped-ord-123"
+Chimeway.trigger(MyApp.Notifiers.WelcomeUser, %{user_id: "u1", name: "Ada"},
+  idempotency_key: "welcome-u1",
+  tenant_id: "default"
 )
-# => {:ok, %{event: %Chimeway.Events.Event{}, notifications: [...]}}
 ```
 
 ## Documentation
 
+- [Golden Path Guide](guides/introduction/golden-path.md)
 - [Hex Docs](https://hexdocs.pm/chimeway)
+- [Installation Guide](guides/introduction/installation.md)
 - [Getting Started Guide](guides/introduction/getting-started.md)
 - [Trigger to Delivery Flow](guides/flows/trigger-to-delivery.md)
 - [Cheat Sheet](guides/cheatsheet.cheatmd)
