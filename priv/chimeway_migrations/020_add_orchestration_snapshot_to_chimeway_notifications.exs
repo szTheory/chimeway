@@ -1,0 +1,16 @@
+# chimeway_migration: add_orchestration_snapshot_to_chimeway_notifications
+defmodule Chimeway.Repo.Migrations.AddOrchestrationSnapshotToChimewayNotifications do
+  use Ecto.Migration
+
+  def up do
+    alter table(:chimeway_notifications) do
+      add(:orchestration, :map, null: false, default: %{})
+    end
+  end
+
+  def down do
+    alter table(:chimeway_notifications) do
+      remove(:orchestration)
+    end
+  end
+end
