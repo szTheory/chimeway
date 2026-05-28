@@ -13,6 +13,28 @@ defmodule Chimeway.Install.Migrations do
     defexception message: "repo_missing"
   end
 
+  defmodule UmbrellaRootError do
+    defexception message: "umbrella_root"
+  end
+
+  defmodule DuplicateSlugError do
+    defexception [:message, :slug, :paths]
+
+    @impl true
+    def exception(opts) do
+      slug = Keyword.fetch!(opts, :slug)
+      paths = Keyword.fetch!(opts, :paths)
+
+      %__MODULE__{
+        message:
+          "duplicate migration slug #{inspect(slug)}: #{Enum.join(paths, ", ")}. " <>
+            "Remove duplicate files before re-running the installer.",
+        slug: slug,
+        paths: paths
+      }
+    end
+  end
+
   @template_dir "chimeway_migrations"
   @migrations_dir Path.join(["priv", "repo", "migrations"])
   @source_namespace "Chimeway.Repo.Migrations"
@@ -36,7 +58,8 @@ defmodule Chimeway.Install.Migrations do
     * `:repo` — override host repo module (defaults to resolved config or mix.exs inference)
     * `:io` — IO device for progress output (defaults to `Mix.shell()`)
 
-  Returns `:ok` on success or `{:error, :repo_missing}` when the host repo cannot be resolved.
+  Returns `:ok` on success, `{:error, :repo_missing}` when the host repo cannot be resolved,
+  or `{:error, :umbrella_root}` when run from an umbrella root without explicit repo config.
   """
   def run(opts \\ []) do
     io = Keyword.get(opts, :io, Mix.shell())
@@ -72,7 +95,7 @@ defmodule Chimeway.Install.Migrations do
   @doc """
   Resolves the host Ecto repo module.
 
-  Returns `{:ok, repo}` or `{:error, :repo_missing}`.
+  Returns `{:ok, repo}`, `{:error, :repo_missing}`, or `{:error, :umbrella_root}`.
   """
   def resolve_repo(repo_override \\ nil)
 
@@ -134,9 +157,11 @@ defmodule Chimeway.Install.Migrations do
   def find_existing_by_slug(slug, migrations_dir \\ @migrations_dir) do
     :ok = validate_slug!(slug)
 
-    Path.wildcard(Path.join(migrations_dir, "*_#{slug}.exs"))
-    |> Enum.sort()
-    |> List.first()
+    case Path.wildcard(Path.join(migrations_dir, "*_#{slug}.exs")) |> Enum.sort() do
+      [] -> nil
+      [single] -> single
+      multiple -> raise(DuplicateSlugError, slug: slug, paths: multiple)
+    end
   end
 
   @doc """
@@ -204,12 +229,18 @@ defmodule Chimeway.Install.Migrations do
     mix_exs = Path.join(File.cwd!(), "mix.exs")
 
     with {:ok, content} <- File.read(mix_exs),
+         false <- umbrella_root?(content),
          [_, app] <- Regex.run(~r/app:\s*:(\w+)/, content) do
       app_module = Macro.camelize(app)
       validate_repo!(Module.concat([app_module, Repo]))
     else
+      true -> {:error, :umbrella_root}
       _ -> {:error, :repo_missing}
     end
+  end
+
+  defp umbrella_root?(content) when is_binary(content) do
+    Regex.match?(~r/apps_path\s*:/, content)
   end
 
   defp batch_base_timestamp do

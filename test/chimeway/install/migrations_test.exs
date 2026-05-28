@@ -2,7 +2,7 @@ defmodule Chimeway.Install.MigrationsTest do
   use ExUnit.Case, async: false
 
   alias Chimeway.Install.Migrations
-  alias Chimeway.Install.Migrations.RepoMissingError
+  alias Chimeway.Install.Migrations.{DuplicateSlugError, RepoMissingError}
 
   @moduletag :installer
 
@@ -91,6 +91,25 @@ defmodule Chimeway.Install.MigrationsTest do
     end
   end
 
+  test "find_existing_by_slug/2 raises when duplicate slug files exist" do
+    tmp_dir = System.tmp_dir!() |> Path.join("chimeway_install_test_#{System.unique_integer()}")
+    migrations_dir = Path.join(tmp_dir, "priv/repo/migrations")
+    File.mkdir_p!(migrations_dir)
+
+    first = Path.join(migrations_dir, "11111111111111_create_chimeway_events.exs")
+    second = Path.join(migrations_dir, "22222222222222_create_chimeway_events.exs")
+    File.write!(first, "# stub")
+    File.write!(second, "# stub")
+
+    try do
+      assert_raise DuplicateSlugError, ~r/duplicate migration slug "create_chimeway_events"/, fn ->
+        Migrations.find_existing_by_slug("create_chimeway_events", migrations_dir)
+      end
+    after
+      File.rm_rf!(tmp_dir)
+    end
+  end
+
   describe "resolve_repo" do
     test "resolve_repo!/0 uses config :chimeway, :repo when set" do
       previous = Application.get_env(:chimeway, :repo)
@@ -136,6 +155,52 @@ defmodule Chimeway.Install.MigrationsTest do
       assert_raise RepoMissingError, fn ->
         Migrations.resolve_repo!()
       end
+    end
+
+    test "resolve_repo/0 returns umbrella_root when mix.exs declares apps_path" do
+      previous = Application.get_env(:chimeway, :repo)
+      previous_cwd = File.cwd!()
+
+      tmp_dir =
+        System.tmp_dir!() |> Path.join("chimeway_umbrella_test_#{System.unique_integer()}")
+
+      File.mkdir_p!(tmp_dir)
+
+      File.write!(
+        Path.join(tmp_dir, "mix.exs"),
+        """
+        defmodule UmbrellaRoot.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              apps_path: "apps",
+              app: :umbrella_root,
+              version: "0.0.1",
+              elixir: "~> 1.17",
+              deps: []
+            ]
+          end
+        end
+        """
+      )
+
+      on_exit(fn ->
+        File.cd!(previous_cwd)
+
+        if previous do
+          Application.put_env(:chimeway, :repo, previous)
+        else
+          Application.delete_env(:chimeway, :repo)
+        end
+
+        File.rm_rf!(tmp_dir)
+      end)
+
+      Application.delete_env(:chimeway, :repo)
+      File.cd!(tmp_dir)
+
+      assert Migrations.resolve_repo() == {:error, :umbrella_root}
     end
   end
 
