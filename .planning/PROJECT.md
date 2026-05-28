@@ -10,7 +10,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.4 Channel Feedback Loops** on 2026-05-08 (re-audited and formally closed 2026-05-28). The library now supports generic outbound channel contracts (SMS, Push, Chat), durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression via canonical `chimeway.delivery.*` signals, and operator traces that link inbound webhooks to journey steps. End-to-end proof lives in `examples/chimeway_demo_host` with 549 tests passing at milestone close.
+Chimeway shipped **v1.4 Channel Feedback Loops** on 2026-05-08 (re-audited and formally closed 2026-05-28). **v1.5 Phase 35 (Installer Task) complete 2026-05-28** — `mix chimeway.gen.migrations` ships 31 canonical migration templates with slug idempotency, golden-diff and idempotency CI contracts (`mix ci.install_golden`). The library supports generic outbound channel contracts (SMS, Push, Chat), durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression via canonical `chimeway.delivery.*` signals, and operator traces that link inbound webhooks to journey steps. End-to-end proof lives in `examples/chimeway_demo_host` with 562 tests passing.
 
 ## Product Arc
 
@@ -189,4 +189,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-28 — Milestone v1.5 Adoption Surface started*
+*Last updated: 2026-05-28 — Phase 35 (Installer Task) complete; v1.5 in progress*
