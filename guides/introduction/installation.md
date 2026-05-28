@@ -9,7 +9,7 @@ Add `chimeway` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:chimeway, "~> 1.0.0"}
+    {:chimeway, "~> 0.1"}
   ]
 end
 ```
@@ -49,6 +49,8 @@ config :chimeway,
 
 Replace `MyApp.Repo` with the actual name of your application's Repo module.
 
+At runtime, Chimeway queries through `Chimeway.Repo`. Configure it to use the same database where your host migrations created the `chimeway_*` tables — see [Golden Path §3](golden-path.md#3-configure-chimeway) for the full shared-database setup.
+
 ## 4. Add to Supervision Tree
 
 Finally, add the Chimeway Supervisor to your application's supervision tree to ensure the background processing and inbox mechanics are started.
@@ -70,4 +72,6 @@ end
 
 ## Next Steps
 
-Now that Chimeway is installed and running, you're ready to start building notifications. Head over to the [Getting Started](getting-started.md) guide to create your first notification!
+Follow the [Golden Path](golden-path.md) guide to define a notifier, trigger your first notification, and verify explainability with `Chimeway.Traces.explain_delivery/1`.
+
+For inbox and channel depth, continue to [Getting Started](getting-started.md).
