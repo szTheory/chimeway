@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
 status: completed
-last_updated: "2026-05-28T20:56:07.710Z"
+last_updated: "2026-05-28T21:00:06.306Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 7
@@ -72,8 +72,8 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-28T21:25:00Z
-Resume file: None
+Last session: 2026-05-28T21:00:06.303Z
+Resume file: .planning/phases/36-golden-path-version-alignment/36-CONTEXT.md
 
 **Planned Phase:** 36 — Golden Path & Version Alignment
 
