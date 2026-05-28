@@ -213,6 +213,31 @@ defmodule Chimeway.Install.MigrationsTest do
     end
   end
 
+  describe "mix chimeway.gen.migrations subprocess" do
+    test "CLI generates 31 migrations via app.config path" do
+      tmp = scaffold_tmp_host!(include_config: true)
+
+      assert {_output, 0} =
+               System.cmd("mix", ["deps.get"],
+                 cd: tmp,
+                 stderr_to_stdout: true,
+                 env: [{"MIX_ENV", "dev"}]
+               )
+
+      assert {_output, exit} =
+               System.cmd("mix", ["chimeway.gen.migrations"],
+                 cd: tmp,
+                 stderr_to_stdout: true,
+                 env: [{"MIX_ENV", "dev"}]
+               )
+
+      assert exit == 0
+
+      migrations_dir = Path.join(tmp, "priv/repo/migrations")
+      assert length(File.ls!(migrations_dir)) == 31
+    end
+  end
+
   defp chimeway_root do
     __DIR__ |> Path.join("../../..") |> Path.expand()
   end
@@ -240,7 +265,8 @@ defmodule Chimeway.Install.MigrationsTest do
 
       defp deps do
         [
-          {:chimeway, path: #{inspect(chimeway_root())}}
+          {:chimeway, path: #{inspect(chimeway_root())}},
+          {:oban, "~> 2.17"}
         ]
       end
     end
