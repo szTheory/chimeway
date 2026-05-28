@@ -147,3 +147,17 @@ Optional: pass `correlation_id: "my-correlation-id"` on trigger, then `Chimeway.
 
 - [Getting Started](getting-started.md) — inbox listing, channels, and read/unread flows
 - [Tracing a Notification](../recipes/tracing-a-notification.md) — telemetry, correlation, and diagnosis depth
+
+## Next: webhook feedback loop
+
+When inbound delivery feedback should drive workflow progression, Chimeway records webhook handling on the delivery timeline.
+
+- **Progress path:** a succeeded delivery signal resumes the workflow; the trace timeline includes `:webhook_received` entries you can inspect with `Chimeway.Traces.explain_delivery/1`.
+- **Stop path:** a bounced signal stops the workflow; the timeline still records the feedback event for explainability.
+
+See the reference implementation in the repo:
+
+- [Demo host example](https://github.com/jonlunsford/chimeway/tree/main/examples/chimeway_demo_host/)
+- [Feedback pipeline E2E test](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs)
+
+Feedback appears as `:webhook_received` entries on `Chimeway.Traces.explain_delivery/1` timelines — use that API to answer why progression advanced or stopped after inbound webhook data.
