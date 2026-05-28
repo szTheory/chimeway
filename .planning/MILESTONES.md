@@ -36,7 +36,10 @@
 ## v1.4 Channel Feedback Loops
 
 - Status: shipped
-- Date: 2026-05-08
-- Phases: 29-34
+- Date: 2026-05-08 (formally closed 2026-05-28)
+- Phases: 29-34 (6 phases, 21 plans)
 - Requirements: 8/8 satisfied
-- Notes: Outbound channel contracts, inbound feedback normalization, feedback-driven progression, operator traces, webhook durability, and E2E feedback proofs completed.
+- Git tag: v1.4
+- Tests at close: 549 (`mix ci.test`)
+- Known deferred items at close: 7 (see STATE.md Deferred Items; audit tech debt in `milestones/v1.4-MILESTONE-AUDIT.md`)
+- Notes: Outbound channel contracts, inbound feedback normalization, feedback-driven progression, operator traces, webhook durability, E2E feedback proof host, and Three-Axis Vocabulary Contract.

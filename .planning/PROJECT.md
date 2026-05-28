@@ -10,30 +10,20 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped `v1.3 Workflow Journeys` on 2026-04-30. Milestone `v1.4 Channel Feedback Loops` reached its final phase on 2026-05-02: Phase 33 (Webhook Ingress Durability) shipped a durable atomic `Multi+Oban` handoff, and Phase 34 (Feedback Contract E2E Proof) closed the milestone audit by aligning the canonical `chimeway.delivery.{succeeded,bounced,failed}` vocabulary across production code and test fixtures, shipping a host-mounted E2E test that exercises the full webhook → ingress → worker → signal → workflow-progression → operator-trace path on real Oban queues, and authoring `34-VERIFICATION.md` that maps FLOW-01 / FLOW-02 to Phase 31 + Phase 32 + Phase 34 evidence with the Three-Axis Vocabulary Contract documented.
-
-## Current Milestone: v1.4 Channel Feedback Loops
-
-**Goal:** Extend Chimeway from a single outbound channel (email) to a first-class multi-channel substrate (SMS, push, chat) with inbound provider feedback that can drive workflow progression.
-
-**Target features:**
-- Generic outbound channel adapters (SMS, Push, Chat) without vendor coupling.
-- Channel-specific render contracts (e.g. `text_body` for SMS vs `html_body` for email).
-- Webhook ingestion + canonical normalization of provider callbacks (delivered/bounced/failed).
-- Feedback-driven workflow progression (escalate on bounce, stop on delivered).
-- Operator traces that connect inbound webhook events back to the journey step they triggered.
+Chimeway shipped **v1.4 Channel Feedback Loops** on 2026-05-08 (re-audited and formally closed 2026-05-28). The library now supports generic outbound channel contracts (SMS, Push, Chat), durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression via canonical `chimeway.delivery.*` signals, and operator traces that link inbound webhooks to journey steps. End-to-end proof lives in `examples/chimeway_demo_host` with 549 tests passing at milestone close.
 
 ## Product Arc
 
-- `v1.3 Workflow Journeys` — durable, explainable multi-step workflows and escalations.
-- `v1.4 Channel Feedback Loops` — first-class outbound channels plus receipts/webhooks that can feed workflow progression.
-- `v1.5 Adoption Surface` — reference flows, integration polish, and operator UX that make the library easier to adopt in production.
+- `v1.3 Workflow Journeys` — durable, explainable multi-step workflows and escalations (shipped 2026-04-30).
+- `v1.4 Channel Feedback Loops` — outbound channels plus inbound receipts/webhooks feeding workflow progression (shipped 2026-05-08).
+- `v1.5 Adoption Surface` — reference flows, integration polish, and operator UX (planned).
 
-## Next Milestone Goals
+## Next Milestone Goals (v1.5)
 
-- Make time-based and outcome-based workflow progression the next major product-value jump.
-- Keep read/unread-driven branching and broad channel expansion deferred until the core journey model is stable.
-- Preserve the local-first, explainable lifecycle model while extending beyond single-notification orchestration.
+- Reference flows and integration polish so host teams can adopt Chimeway without reconstructing seams.
+- Operator UX improvements for journey inspection and support workflows.
+- Persona/JTBD-driven DX roadmap (see SEED-004).
+- Preserve local-first ownership and explainable lifecycle traces while broadening adoption surfaces.
 
 ## Out of Scope
 
@@ -55,7 +45,8 @@ Prior context includes:
 - Host-app integration seam guidance for auth, tenancy, URL generation, and correlation IDs.
 - The shipped v1.0 milestone established the durable spine, policy checkpoints, telemetry correlation, safe adapter resolution, and transactional Oban dispatch as the baseline to build from.
 - The shipped v1.1 milestone established production-trust behavior across preferences, reliability, observability, and integration documentation.
-- Current milestone research reinforces that the next value jump is workflow behavior: time/outcome-based progression, escalation semantics, and journey-level explainability before broader channel breadth.
+- v1.4 shipped multi-channel outbound contracts and inbound feedback loops with E2E proof on a reference Phoenix host.
+- Next value jump is adoption surface: reference flows, integration docs, and operator UX — not more channel matrix expansion.
 
 ## Constraints
 
@@ -89,9 +80,36 @@ Prior context includes:
 | Prioritize orchestration before channel breadth in v1.2 | Scheduling, batching, rendering, and recovery create larger product value than adding more providers now | Shipped in v1.2 |
 | Keep canonical lifecycle identity through orchestration features | Deferred, digested, recovered, and emitted flows should stay explainable on durable rows | Implemented across phases 17-23 |
 | Persist orchestration and rendering declarations as durable data | Replay, recovery, and preview should not depend on notifier module re-entry | Implemented across phases 21-23 |
-| Prioritize workflow journeys before channel breadth in v1.3 | Multi-step SaaS notification behavior is the next major adoption gap after single-notification orchestration | Active milestone direction |
+| Prioritize workflow journeys before channel breadth in v1.3 | Multi-step SaaS notification behavior is the next major adoption gap after single-notification orchestration | Shipped in v1.3 |
+| Atomic webhook ingress via Multi+Oban | Prevent orphaned async feedback processing on partial failure | Shipped in v1.4 (Phase 33) |
+| Canonical `chimeway.delivery.*` vocabulary | Align normalization, signals, and trace projection for auditability | Shipped in v1.4 (Phase 34) |
+| Generic outbound channel behaviour | SMS/Push/Chat without vendor lock-in; per-channel render contracts | Shipped in v1.4 (Phase 29) |
 
 ## Archived Milestone Context
+
+<details>
+<summary>v1.4 Channel Feedback Loops planning context</summary>
+
+### Milestone Scope
+
+Extend Chimeway from email-only outbound delivery to multi-channel contracts with inbound provider feedback that drives workflow progression and operator auditability.
+
+### Delivered Features
+
+- `Chimeway.Rendering.Channel` behaviour and SMS/Push/Chat channel modules with registry resolution.
+- Webhook ingestion (`Chimeway.Webhooks.process/4`), ingress durability, and `ProcessFeedbackWorker`.
+- Feedback-driven progression via `Chimeway.Signal.track/4` and sync workflow progression.
+- Operator traces with `:webhook_received` and workflow transition projection.
+- `examples/chimeway_demo_host` E2E proof on real Oban queues.
+
+### Validated Requirements Snapshot
+
+- CHAN-01/02: Generic outbound adapters and per-channel render contracts.
+- FEED-01/02: Webhook ingestion and canonical delivery outcomes.
+- FLOW-01/02: Signals and outcome-based workflow progression from feedback.
+- TRAC-01/02: Operator traces link webhooks to journey steps.
+
+</details>
 
 <details>
 <summary>v1.2 Delivery Orchestration planning context</summary>
@@ -158,4 +176,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-02 — Phase 34 (Feedback Contract E2E Proof) complete; v1.4 milestone phases all complete (final audit pending)*
+*Last updated: 2026-05-28 after v1.4 milestone completion*
