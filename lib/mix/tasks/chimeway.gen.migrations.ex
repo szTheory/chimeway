@@ -12,6 +12,16 @@ defmodule Mix.Tasks.Chimeway.Gen.Migrations do
   See `guides/recipes/oban-integration.md` for Oban setup (D-10).
 
   Re-running is idempotent — existing slugs print `unchanged`.
+
+  ## Umbrella apps
+
+  Repo inference reads `app:` from the current directory's `mix.exs`. Umbrella roots
+  declare `apps_path` and host repos live in child apps, so inference from the root
+  is unreliable. Set an explicit repo in config before running from an umbrella root:
+
+      config :chimeway, repo: MyApp.Repo
+
+  Or run the task from the child app directory that owns the repo.
   """
 
   use Mix.Task
@@ -31,6 +41,18 @@ defmodule Mix.Tasks.Chimeway.Gen.Migrations do
     case Chimeway.Install.Migrations.run([]) do
       :ok ->
         :ok
+
+      {:error, :umbrella_root} ->
+        Mix.raise("""
+        Could not infer host Ecto repo from an umbrella root mix.exs.
+
+        Umbrella projects declare `apps_path` and child apps own their repos. Set an
+        explicit repo before running from the umbrella root:
+
+            config :chimeway, repo: MyApp.Repo
+
+        Or run `mix chimeway.gen.migrations` from the child app directory that owns the repo.
+        """)
 
       {:error, :repo_missing} ->
         Mix.raise("""
