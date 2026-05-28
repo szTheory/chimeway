@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: planning
-last_updated: "2026-05-28T19:57:07.855Z"
-last_activity: 2026-05-28 — Milestone v1.5 roadmap created
+status: executing
+last_updated: "2026-05-28T20:35:24.022Z"
+last_activity: 2026-05-28
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.5 Adoption Surface — installer, golden path, reference flows, operator trace MVP
+**Current focus:** Phase 35 — installer-task
 
 ## Current Position
 
-Phase: 35 (not started)
-Plan: —
-Status: Ready to plan Phase 35 — Installer Task
-Last activity: 2026-05-28 — Milestone v1.5 roadmap created
+Phase: 35 (installer-task) — EXECUTING
+Plan: 2 of 3
+Status: Plan 01 complete — ready for 35-02
+Last activity: 2026-05-28 — Completed 35-01-PLAN.md (templates + installer core)
 
 ## Accumulated Context
 
@@ -40,6 +40,7 @@ Recent v1.4 decisions affecting shipped behavior:
 - [v1.4]: Webhook ingress via atomic `Multi+Oban` handoff and ingress schema (Phase 33).
 - [v1.4]: Canonical `chimeway.delivery.{succeeded,bounced,failed}` vocabulary across normalization, signals, and traces (Phase 34).
 - [33-06]: `CacheBodyReader` must handle `:ok`, `:more`, and `:error` from `Plug.Conn.read_body/2` for chunked bodies.
+- [35-01]: D-05 Option A — infer `{App}.Repo` from host `mix.exs` when `config :chimeway, :repo` unset; 31 templates shipped excluding Oban (D-10).
 
 ### Pending Todos
 
@@ -68,7 +69,13 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-28T19:57:07.851Z
-Resume file: .planning/phases/35-installer-task/35-CONTEXT.md
+Last session: 2026-05-28T20:35:23.968Z
+Resume file: None
 
 **Planned Phase:** 35 — Installer Task
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Notes |
+|-------|------|----------|-------|
+| Phase 35 P01 | 12min | 3 tasks | 33 files |

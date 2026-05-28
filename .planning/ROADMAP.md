@@ -25,8 +25,10 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Host developers can bootstrap Chimeway schema via a documented, idempotent Mix task.
 **Depends on:** Phase 34 (v1.4 complete)
 **Requirements:** INST-01, INST-02
+**Plans:** 1/3 complete (35-01 ✅, 35-02 pending, 35-03 pending)
 
 **Success criteria:**
+
 1. `mix chimeway.gen.migrations` (or equivalent install task) exists and is documented in installation guide.
 2. Running the task on a fresh host generates expected migration files without manual schema copying.
 3. Re-running the task is idempotent and covered by golden-diff or contract test in CI.
@@ -40,6 +42,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Requirements:** DOCS-01, DOCS-02
 
 **Success criteria:**
+
 1. Golden-path guide covers dependency add → migrations → config → first `Chimeway.trigger/3` → trace query.
 2. Guide optionally extends to webhook feedback loop using demo host patterns.
 3. README, installation guide, and package version strings agree on semver (no `0.1` vs `1.0.0` drift).
@@ -53,6 +56,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Requirements:** DOCS-03
 
 **Success criteria:**
+
 1. Multi-step journey guide accurately describes `wait_until`, outcome progression, and signal routing as implemented.
 2. Any unsupported `stop_conditions` / `notification_read` patterns are removed, deferred with explicit callouts, or marked experimental with engine gap noted (INV-002 resolution).
 3. Doc-contract test or checklist flags journey guide sections against implemented APIs.
@@ -66,6 +70,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Requirements:** RECP-01, RECP-02
 
 **Success criteria:**
+
 1. Password-reset support trace recipe walks Feature Developer trigger setup and Support Operator trace inspection for "why no email?"
 2. Feedback escalation recipe walks Product Manager flow: send → webhook → workflow progression visible in trace.
 3. Recipes are self-contained under `guides/` or `examples/` with runnable snippets or demo host cross-links.
@@ -79,6 +84,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Requirements:** DEMO-01
 
 **Success criteria:**
+
 1. Demo host documents a trace inspection path (IEx, script, or minimal route) separate from webhook E2E.
 2. A maintainer or adopter can follow the doc and query delivery/trace outcomes on a triggered notification.
 3. Path is referenced from golden-path guide as the lowest-friction validation step.
@@ -92,6 +98,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Requirements:** OPER-01, OPER-02
 
 **Success criteria:**
+
 1. Trace lookup by user ID or correlation ID works behind host-provided auth behaviour (no hard-coded host auth).
 2. Timeline view shows delivery attempts, suppressions, webhook events, and workflow transitions in one redacted surface.
 3. Scope explicitly excludes bell inbox, campaign UI, and marketing tooling (MVP trace-only).
@@ -107,6 +114,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Requirements:** GATE-01
 
 **Success criteria:**
+
 1. `mix verify.example` (or equivalent) runs demo host / reference flow smoke checks in CI.
 2. Doc-contract checks validate installer task name, version strings, and golden-path steps against repo reality.
 3. Release checklist documents these gates as mandatory pre-ship steps.
