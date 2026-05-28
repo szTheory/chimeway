@@ -138,4 +138,143 @@ defmodule Chimeway.Install.MigrationsTest do
       end
     end
   end
+
+  describe "run/1 in tmp host" do
+    test "first run creates 31 files with host namespaces" do
+      tmp = scaffold_tmp_host!(include_config: true)
+      restore_repo_env()
+
+      Application.put_env(:chimeway, :repo, InstallerHost.Repo)
+
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          File.cd!(tmp, fn ->
+            assert :ok = Migrations.run()
+          end)
+        end)
+
+      migrations_dir = Path.join(tmp, "priv/repo/migrations")
+      files = File.ls!(migrations_dir)
+
+      assert length(files) == 31
+      refute Enum.any?(files, &String.contains?(&1, "create_oban_jobs_tables"))
+
+      Enum.each(files, fn file ->
+        content = File.read!(Path.join(migrations_dir, file))
+        assert content =~ "# chimeway_migration:"
+        refute content =~ "Chimeway.Repo.Migrations"
+      end)
+
+      created_lines = output |> String.split("\n", trim: true) |> Enum.filter(&String.starts_with?(&1, "created "))
+      assert length(created_lines) == 31
+      assert Enum.all?(created_lines, &String.contains?(&1, "priv/repo/migrations/"))
+    end
+
+    test "repo inference without config uses mix.exs app module" do
+      tmp = scaffold_tmp_host!(include_config: false)
+      restore_repo_env()
+      Application.delete_env(:chimeway, :repo)
+
+      File.cd!(tmp, fn ->
+        assert :ok = Migrations.run()
+      end)
+
+      migrations_dir = Path.join(tmp, "priv/repo/migrations")
+      assert length(File.ls!(migrations_dir)) == 31
+
+      [sample | _] = File.ls!(migrations_dir)
+      content = File.read!(Path.join(migrations_dir, sample))
+      assert content =~ "InstallerHost.Repo.Migrations"
+    end
+
+    test "second run is idempotent with unchanged output only" do
+      tmp = scaffold_tmp_host!(include_config: true)
+      restore_repo_env()
+      Application.put_env(:chimeway, :repo, InstallerHost.Repo)
+
+      File.cd!(tmp, fn ->
+        ExUnit.CaptureIO.capture_io(fn -> assert :ok = Migrations.run() end)
+
+        second_output =
+          ExUnit.CaptureIO.capture_io(fn ->
+            assert :ok = Migrations.run()
+          end)
+
+        assert length(File.ls!("priv/repo/migrations")) == 31
+
+        lines = second_output |> String.split("\n", trim: true)
+
+        unchanged_lines = Enum.filter(lines, &String.starts_with?(&1, "unchanged "))
+        created_lines = Enum.filter(lines, &String.starts_with?(&1, "created "))
+
+        assert length(unchanged_lines) == 31
+        assert created_lines == []
+      end)
+    end
+  end
+
+  defp chimeway_root do
+    __DIR__ |> Path.join("../../..") |> Path.expand()
+  end
+
+  defp scaffold_tmp_host!(opts) do
+    include_config? = Keyword.get(opts, :include_config, true)
+    unique = Integer.to_string(System.unique_integer([:positive]))
+    tmp = Path.join(System.tmp_dir!(), "chimeway_install_" <> unique)
+
+    File.mkdir_p!(Path.join(tmp, "priv/repo/migrations"))
+
+    mix_exs = """
+    defmodule InstallerHost.MixProject do
+      use Mix.Project
+
+      def project do
+        [
+          app: :installer_host,
+          version: "0.0.1",
+          elixir: "~> 1.17",
+          start_permanent: Mix.env() == :prod,
+          deps: deps()
+        ]
+      end
+
+      defp deps do
+        [
+          {:chimeway, path: #{inspect(chimeway_root())}}
+        ]
+      end
+    end
+    """
+
+    File.write!(Path.join(tmp, "mix.exs"), mix_exs)
+
+    if include_config? do
+      File.mkdir_p!(Path.join(tmp, "config"))
+
+      File.write!(
+        Path.join(tmp, "config/config.exs"),
+        """
+        import Config
+
+        config :chimeway, repo: InstallerHost.Repo
+        """
+      )
+    end
+
+    on_exit(fn -> File.rm_rf!(tmp) end)
+
+    tmp
+  end
+
+  defp restore_repo_env do
+    previous = Application.get_env(:chimeway, :repo)
+
+    on_exit(fn ->
+      if previous do
+        Application.put_env(:chimeway, :repo, previous)
+      else
+        Application.delete_env(:chimeway, :repo)
+      end
+    end)
+  end
 end

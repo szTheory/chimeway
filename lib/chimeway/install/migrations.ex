@@ -41,8 +41,7 @@ defmodule Chimeway.Install.Migrations do
   def run(opts \\ []) do
     io = Keyword.get(opts, :io, Mix.shell())
 
-    with {:ok, repo} <- resolve_repo(Keyword.get(opts, :repo)),
-         :ok <- validate_repo!(repo) do
+    with {:ok, repo} <- resolve_repo(Keyword.get(opts, :repo)) do
       host_prefix = host_migrations_prefix(repo)
       base_ts = batch_base_timestamp()
 
