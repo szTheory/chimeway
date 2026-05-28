@@ -102,9 +102,11 @@ defmodule Chimeway.Install.MigrationsTest do
     File.write!(second, "# stub")
 
     try do
-      assert_raise DuplicateSlugError, ~r/duplicate migration slug "create_chimeway_events"/, fn ->
-        Migrations.find_existing_by_slug("create_chimeway_events", migrations_dir)
-      end
+      assert_raise DuplicateSlugError,
+                   ~r/duplicate migration slug "create_chimeway_events"/,
+                   fn ->
+                     Migrations.find_existing_by_slug("create_chimeway_events", migrations_dir)
+                   end
     after
       File.rm_rf!(tmp_dir)
     end
