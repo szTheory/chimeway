@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
 status: executing
-last_updated: "2026-05-28T20:35:24.022Z"
+last_updated: "2026-05-28T20:38:21Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-28)
 ## Current Position
 
 Phase: 35 (installer-task) — EXECUTING
-Plan: 2 of 3
-Status: Plan 01 complete — ready for 35-02
-Last activity: 2026-05-28 — Completed 35-01-PLAN.md (templates + installer core)
+Plan: 3 of 3
+Status: Plan 02 complete — ready for 35-03
+Last activity: 2026-05-28 — Completed 35-02-PLAN.md (Mix task CLI + integration tests)
 
 ## Accumulated Context
 
@@ -41,6 +41,7 @@ Recent v1.4 decisions affecting shipped behavior:
 - [v1.4]: Canonical `chimeway.delivery.{succeeded,bounced,failed}` vocabulary across normalization, signals, and traces (Phase 34).
 - [33-06]: `CacheBodyReader` must handle `:ok`, `:more`, and `:error` from `Plug.Conn.read_body/2` for chunked bodies.
 - [35-01]: D-05 Option A — infer `{App}.Repo` from host `mix.exs` when `config :chimeway, :repo` unset; 31 templates shipped excluding Oban (D-10).
+- [35-02]: Tmp host subprocess tests include Oban dep for path-dep compile; moduledoc includes shortdoc for mix help verify.
 
 ### Pending Todos
 
@@ -69,13 +70,14 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-28T20:35:23.968Z
+Last session: 2026-05-28T20:38:21Z
 Resume file: None
 
-**Planned Phase:** 35 — Installer Task
+**Planned Phase:** 35 — Installer Task (plan 03 next)
 
 ## Performance Metrics
 
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 35 P01 | 12min | 3 tasks | 33 files |
+| Phase 35 P02 | 10min | 3 tasks | Mix task + integration tests |
