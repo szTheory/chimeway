@@ -10,12 +10,7 @@ defmodule Chimeway.Install.Migrations do
   """
 
   defmodule RepoMissingError do
-    defexception [:message]
-
-    @impl true
-    def exception(_assigns) do
-      %__MODULE__{message: :repo_missing}
-    end
+    defexception message: "repo_missing"
   end
 
   @template_dir "chimeway_migrations"
@@ -82,18 +77,18 @@ defmodule Chimeway.Install.Migrations do
   """
   def resolve_repo(repo_override \\ nil)
 
-  def resolve_repo(repo) when is_atom(repo) do
-    validate_repo!(repo)
-  end
-
   def resolve_repo(nil) do
     case Application.get_env(:chimeway, :repo) do
-      repo when is_atom(repo) ->
+      repo when is_atom(repo) and not is_nil(repo) ->
         validate_repo!(repo)
 
       _ ->
         infer_repo_from_mix_exs()
     end
+  end
+
+  def resolve_repo(repo) when is_atom(repo) do
+    validate_repo!(repo)
   end
 
   def resolve_repo(_invalid) do
@@ -155,8 +150,7 @@ defmodule Chimeway.Install.Migrations do
     |> Module.split()
     |> Enum.drop(-1)
     |> Kernel.++(["Repo", "Migrations"])
-    |> Module.concat()
-    |> Atom.to_string()
+    |> Enum.join(".")
   end
 
   defp templates_root do
