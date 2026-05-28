@@ -75,13 +75,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| — | — | Pending |
+| INST-01 | Phase 35 | Pending |
+| INST-02 | Phase 35 | Pending |
+| DOCS-01 | Phase 36 | Pending |
+| DOCS-02 | Phase 36 | Pending |
+| DOCS-03 | Phase 37 | Pending |
+| RECP-01 | Phase 38 | Pending |
+| RECP-02 | Phase 38 | Pending |
+| DEMO-01 | Phase 39 | Pending |
+| OPER-01 | Phase 40 | Pending |
+| OPER-02 | Phase 40 | Pending |
+| GATE-01 | Phase 41 | Pending |
 
 **Coverage:**
 - v1.5 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12 ⚠️
+- Mapped to phases: 12
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-28*
-*Last updated: 2026-05-28 after milestone v1.5 initialization*
+*Last updated: 2026-05-28 after roadmap creation*

@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: defining_requirements
+status: roadmap_ready
 stopped_at: null
-last_updated: "2026-05-28T20:00:00.000Z"
-last_activity: 2026-05-28 — Milestone v1.5 Adoption Surface started
+last_updated: "2026-05-28T20:30:00.000Z"
+last_activity: 2026-05-28 — Milestone v1.5 roadmap created (7 phases, 12 requirements)
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-28)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 35 (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-05-28 — Milestone v1.5 started
+Status: Ready to plan Phase 35 — Installer Task
+Last activity: 2026-05-28 — Milestone v1.5 roadmap created
 
 ## Accumulated Context
 
@@ -72,4 +72,4 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 Last session: v1.5 milestone initialization
 Resume file: `.planning/threads/2026-05-28-v1.5-milestone-assessment.md`
 
-**Planned Phase:** None (requirements in progress)
+**Planned Phase:** 35 — Installer Task
