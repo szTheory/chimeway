@@ -2,10 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: roadmap_ready
-stopped_at: null
-last_updated: "2026-05-28T20:30:00.000Z"
-last_activity: 2026-05-28 — Milestone v1.5 roadmap created (7 phases, 12 requirements)
+status: planning
+last_updated: "2026-05-28T19:57:07.855Z"
+last_activity: 2026-05-28 — Milestone v1.5 roadmap created
 progress:
   total_phases: 7
   completed_phases: 0
@@ -69,7 +68,7 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: v1.5 milestone initialization
-Resume file: `.planning/threads/2026-05-28-v1.5-milestone-assessment.md`
+Last session: 2026-05-28T19:57:07.851Z
+Resume file: .planning/phases/35-installer-task/35-CONTEXT.md
 
 **Planned Phase:** 35 — Installer Task
