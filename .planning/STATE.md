@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: completed
-last_updated: "2026-05-28T21:00:06.306Z"
+status: executing
+last_updated: "2026-05-28T21:23:28.879Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 7
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 14
+  completed_phases: 2
+  total_plans: 6
+  completed_plans: 6
+  percent: 29
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 36 — golden-path & version alignment
+**Current focus:** Phase 36 — golden-path-version-alignment
 
 ## Current Position
 
-Phase: 36
+Phase: 37
 Plan: Not started
-Status: Phase 35 complete — ready for Phase 36
+Status: Executing Phase 36
 Last activity: 2026-05-28
 
 ## Accumulated Context
