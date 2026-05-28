@@ -29,6 +29,14 @@ defmodule Chimeway.MixProject do
     ]
   end
 
+  def cli do
+    [
+      preferred_envs: [
+        "ci.install_golden": :test
+      ]
+    ]
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
@@ -74,6 +82,11 @@ defmodule Chimeway.MixProject do
       # Run separately from ci.test to preserve fast feedback on core lib tests (Phase 33 D-10).
       "verify.example": [
         "cmd cd examples/chimeway_demo_host && mix deps.get && mix test"
+      ],
+
+      # Installer golden-diff + idempotency contract (path-gated in CI, not default ci)
+      "ci.install_golden": [
+        "test test/chimeway/install/golden_diff_test.exs test/chimeway/install/idempotency_test.exs --warnings-as-errors"
       ]
     ]
   end
