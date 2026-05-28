@@ -88,6 +88,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GATE-01 | Phase 41 | Pending |
 
 **Coverage:**
+
 - v1.5 requirements: 12 total
 - Mapped to phases: 12
 - Unmapped: 0 ✓

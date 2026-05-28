@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: executing
-last_updated: "2026-05-28T21:25:00Z"
+status: completed
+last_updated: "2026-05-28T20:56:07.710Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 3
   completed_plans: 3
-  percent: 100
+  percent: 14
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-05-28)
 
 ## Current Position
 
-Phase: 35 (installer-task) — COMPLETE
-Plan: 3 of 3
+Phase: 36
+Plan: Not started
 Status: Phase 35 complete — ready for Phase 36
-Last activity: 2026-05-28 — Completed 35-03-PLAN.md (golden-diff CI contracts)
+Last activity: 2026-05-28
 
 ## Accumulated Context
 
