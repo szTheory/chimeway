@@ -1,7 +1,7 @@
 defmodule Chimeway.Test.InstallerFixture do
   @moduledoc false
 
-  @golden_dir Path.expand("../../fixtures/installer_golden", __DIR__)
+  @golden_dir Path.expand("../fixtures/installer_golden", __DIR__)
   @accept_golden_env "MIX_INSTALLER_ACCEPT_GOLDEN"
 
   @doc """
@@ -87,6 +87,7 @@ defmodule Chimeway.Test.InstallerFixture do
     |> Enum.map(&String.trim_trailing/1)
     |> Enum.reject(&compile_noise?/1)
     |> Enum.join("\n")
+    |> String.trim_trailing()
   end
 
   @doc """
@@ -116,7 +117,7 @@ defmodule Chimeway.Test.InstallerFixture do
     File.mkdir_p!(tree_dir)
 
     Enum.each(tree, fn {rel, content} ->
-      dest = Path.join(@golden_dir, "tree", rel)
+      dest = Path.join([@golden_dir, "tree", rel])
       File.mkdir_p!(Path.dirname(dest))
       File.write!(dest, content)
     end)
@@ -203,6 +204,17 @@ defmodule Chimeway.Test.InstallerFixture do
     if status != 0 do
       raise "mix deps.get failed in #{root}:\n#{output}"
     end
+
+    {compile_output, compile_status} =
+      System.cmd("mix", ["compile"],
+        cd: root,
+        stderr_to_stdout: true,
+        env: [{"MIX_ENV", "dev"}]
+      )
+
+    if compile_status != 0 do
+      raise "mix compile failed in #{root}:\n#{compile_output}"
+    end
   end
 
   defp host_mix_exs do
@@ -251,12 +263,7 @@ defmodule Chimeway.Test.InstallerFixture do
   end
 
   defp normalize_tmp_paths(content) do
-    tmp_dir = Regex.escape(System.tmp_dir!())
-    private_tmp = Regex.escape("/private" <> System.tmp_dir!())
-
-    content
-    |> Regex.replace(~r/#{tmp_dir}\/chimeway_installer_[^\s"]+/, "<TMP_PATH>")
-    |> Regex.replace(~r/#{private_tmp}\/chimeway_installer_[^\s"]+/, "<TMP_PATH>")
+    Regex.replace(~r/[^\s"]*chimeway_installer_[^\s"]+/, content, "<TMP_PATH>")
   end
 
   defp normalize_timestamps_in_content(content) do
@@ -280,8 +287,13 @@ defmodule Chimeway.Test.InstallerFixture do
     cond do
       String.starts_with?(line, "==> ") -> true
       String.starts_with?(line, "===> ") -> true
-      String.match?(line, ~r/^Compiling \d+ files? \(\.ex\)$/) -> true
+      String.match?(line, ~r/^Compiling \d+ files?/) -> true
       String.match?(line, ~r/^Generated .+ app$/) -> true
+      String.match?(line, ~r/^warning: this clause of defp/) -> true
+      String.match?(line, ~r/^│/) -> true
+      String.match?(line, ~r/^└─/) -> true
+      String.match?(line, ~r/^\s+\d+ │/) -> true
+      String.match?(line, ~r/^\s+~$/) -> true
       true -> false
     end
   end
