@@ -25,7 +25,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Host developers can bootstrap Chimeway schema via a documented, idempotent Mix task.
 **Depends on:** Phase 34 (v1.4 complete)
 **Requirements:** INST-01, INST-02
-**Plans:** 2/3 complete (35-01 ✅, 35-02 ✅, 35-03 pending)
+**Plans:** 3/3 complete (35-01 ✅, 35-02 ✅, 35-03 ✅)
 
 **Success criteria:**
 
@@ -125,8 +125,8 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INST-01 | Phase 35 | Pending |
-| INST-02 | Phase 35 | Pending |
+| INST-01 | Phase 35 | Complete |
+| INST-02 | Phase 35 | Complete |
 | DOCS-01 | Phase 36 | Pending |
 | DOCS-02 | Phase 36 | Pending |
 | DOCS-03 | Phase 37 | Pending |

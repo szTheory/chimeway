@@ -10,7 +10,7 @@ Requirements for the Adoption Surface milestone. Each maps to roadmap phases (st
 ### Installer & Onboarding (INST)
 
 - [x] **INST-01**: Host developer can run a documented Mix task (`mix chimeway.gen.migrations` or equivalent install task) to generate Chimeway migrations without hand-copying schema files
-- [ ] **INST-02**: Installer output is idempotent and verified by golden-diff or contract test so re-running does not corrupt host repos
+- [x] **INST-02**: Installer output is idempotent and verified by golden-diff or contract test so re-running does not corrupt host repos
 
 ### Integration Docs & Doc Truth (DOCS)
 
@@ -76,7 +76,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INST-01 | Phase 35 | Complete (35-02) |
-| INST-02 | Phase 35 | Pending |
+| INST-02 | Phase 35 | Complete (35-03) |
 | DOCS-01 | Phase 36 | Pending |
 | DOCS-02 | Phase 36 | Pending |
 | DOCS-03 | Phase 37 | Pending |
