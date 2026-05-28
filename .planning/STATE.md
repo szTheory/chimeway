@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
-status: awaiting_next_milestone
+milestone: v1.5
+milestone_name: Adoption Surface
+status: defining_requirements
 stopped_at: null
-last_updated: "2026-05-28T00:00:00.000Z"
-last_activity: 2026-05-28 — v1.4 milestone formally closed
+last_updated: "2026-05-28T20:00:00.000Z"
+last_activity: 2026-05-28 — Milestone v1.5 Adoption Surface started
 progress:
   total_phases: 0
   completed_phases: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning next milestone (v1.5 Adoption Surface)
+**Current focus:** v1.5 Adoption Surface — installer, golden path, reference flows, operator trace MVP
 
 ## Current Position
 
-Phase: None
-Plan: None
-Status: Awaiting next milestone
-Last activity: 2026-05-28
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-28 — Milestone v1.5 started
 
 ## Accumulated Context
 
@@ -48,33 +48,28 @@ None.
 
 ### Blockers/Concerns
 
-None.
+None for engine work. Adoption gaps drive v1.5 scope (assessment 2026-05-28).
+
+### Open Investigations
+
+| ID | Question | When |
+|----|----------|------|
+| INV-001 | `chimeway_admin` in-tree vs sibling Hex package? | v1.5 plan-phase |
+| INV-002 | Fix journey guide vs implement `pending_signals` on wait? | v1.5 early phase or v1.5.1 READ |
+| INV-003 | Mailglass adapter as v1.5 proof vs v1.6 SEED-003 | v1.5 discuss-phase |
 
 ### Roadmap Evolution
 
-- Milestone v1.4 initialized with phases 29–32; audit gap-closure added phases 33–34.
 - Milestone v1.4 formally closed 2026-05-28 after re-audit passed (8/8 requirements, 549 tests).
+- Milestone v1.5 initialized 2026-05-28; phases continue from 35.
 
 ### Deferred Items
 
-Items acknowledged at milestone close on 2026-05-28:
-
-| Category | Item | Status |
-|----------|------|--------|
-| seed | SEED-003-ecosystem-integrations | dormant |
-| seed | SEED-004-personas-and-dx-roadmap | dormant |
-| tech_debt | Phase 30 VERIFICATION.md absent (absorbed by Phase 33) | deferred |
-| tech_debt | Phase 33 A6 legacy shim deploy-runbook | deferred |
-| tech_debt | Phase 32 fetch_definition/2 parameter-order bug | deferred |
-| product | Broad provider expansion beyond outbound seam | deferred |
-| product | Read/unread-driven branching as primary workflow driver | deferred |
-
-Known deferred items at close: 7 (see table above; full tech debt in `milestones/v1.4-MILESTONE-AUDIT.md`)
+Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: v1.4 milestone complete
-Stopped at: Milestone v1.4 formally closed
-Resume file: None — run `/gsd-new-milestone` to start v1.5
+Last session: v1.5 milestone initialization
+Resume file: `.planning/threads/2026-05-28-v1.5-milestone-assessment.md`
 
-**Planned Phase:** None (awaiting next milestone)
+**Planned Phase:** None (requirements in progress)

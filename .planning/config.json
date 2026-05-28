@@ -1,5 +1,5 @@
 {
-  "model_profile": "balanced",
+  "model_profile": "adaptive",
   "commit_docs": true,
   "parallelization": true,
   "search_gitignored": false,
@@ -24,6 +24,13 @@
     "ui_safety_gate": true,
     "text_mode": false,
     "research_before_questions": true,
+    "milestone_assessment": {
+      "verify_lib_before_scope": true,
+      "adopter_lens_default": true,
+      "prefer_repo_inspection_over_docs": true,
+      "no_auto_new_milestone": true,
+      "flag_doc_impl_drift": true
+    },
     "discuss_mode": "assumptions",
     "skip_discuss": false,
     "code_review": true,
@@ -44,5 +51,13 @@
   },
   "resolve_model_ids": "omit",
   "mode": "yolo",
-  "granularity": "coarse"
+  "granularity": "coarse",
+  "runtime": "cursor",
+  "model_profile_overrides": {
+    "cursor": {
+      "opus": "composer-2.5",
+      "sonnet": "composer-2.5",
+      "haiku": "composer-2.5"
+    }
+  }
 }

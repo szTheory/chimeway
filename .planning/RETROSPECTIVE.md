@@ -71,3 +71,17 @@
 1. Explainability stays central — every milestone adds operator-visible linkage for new behavior.
 2. Gap-closure phases are cheaper than silent tech debt at milestone audit time.
 3. Reference host examples pay off when integration seams are host-owned (webhooks, body readers, HMAC).
+
+---
+
+## Milestone-Next Assessment: v1.5 readiness (2026-05-28)
+
+**Band:** ~82% (80–89%) — strong engine, adoption surfaces lag.
+
+**Pick:** v1.5 Adoption Surface (SEED-002 + SEED-004). Defer channel matrix (3/10), full SEED-003 (follow v1.5), READ branching (6/10, after doc truth).
+
+**Surprises:** `mix chimeway.gen.migrations` documented but no task exists; Phase 28 was v1.3 doc closure not adoption milestone; `enter_waiting` omits `pending_signals` while `route_signal` expects them.
+
+**Graduation to v1.5 planning:** installer + golden path + optional `chimeway_admin` trace MVP; fix version/doc drift as gates.
+
+Full thread: `.planning/threads/2026-05-28-v1.5-milestone-assessment.md`
