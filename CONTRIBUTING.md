@@ -39,6 +39,13 @@ mix ci
 
 This runs `mix ci.lint` (format check + compile + credo strict) followed by `mix ci.test`.
 
+## CI Entrypoints
+
+| Command | Purpose |
+|---------|---------|
+| `mix ci` | Default pre-merge gate (lint + test) |
+| `mix ci.install_golden` | Installer golden-diff + idempotency contract (path-gated in CI) |
+
 ## Pull Request Convention
 
 PR titles must use a semantic commit prefix:

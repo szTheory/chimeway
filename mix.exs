@@ -29,14 +29,6 @@ defmodule Chimeway.MixProject do
     ]
   end
 
-  def cli do
-    [
-      preferred_envs: [
-        "ci.install_golden": :test
-      ]
-    ]
-  end
-
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
@@ -64,7 +56,7 @@ defmodule Chimeway.MixProject do
       ],
 
       # Test lane
-      "ci.test": ["test"],
+      "ci.test": ["cmd env MIX_ENV=test mix test"],
 
       # Docs gate: fails on undocumented public functions
       "ci.docs": ["docs --warnings-as-errors"],
@@ -86,7 +78,7 @@ defmodule Chimeway.MixProject do
 
       # Installer golden-diff + idempotency contract (path-gated in CI, not default ci)
       "ci.install_golden": [
-        "test test/chimeway/install/golden_diff_test.exs test/chimeway/install/idempotency_test.exs --warnings-as-errors"
+        "cmd env MIX_ENV=test mix test test/chimeway/install/golden_diff_test.exs test/chimeway/install/idempotency_test.exs --warnings-as-errors"
       ]
     ]
   end

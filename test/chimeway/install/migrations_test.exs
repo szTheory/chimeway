@@ -165,7 +165,11 @@ defmodule Chimeway.Install.MigrationsTest do
         refute content =~ "Chimeway.Repo.Migrations"
       end)
 
-      created_lines = output |> String.split("\n", trim: true) |> Enum.filter(&String.starts_with?(&1, "created "))
+      created_lines =
+        output
+        |> String.split("\n", trim: true)
+        |> Enum.filter(&String.starts_with?(&1, "created "))
+
       assert length(created_lines) == 31
       assert Enum.all?(created_lines, &String.contains?(&1, "priv/repo/migrations/"))
     end

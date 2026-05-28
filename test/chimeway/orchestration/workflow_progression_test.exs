@@ -279,11 +279,7 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       assert advanced_run.current_step_id == email_step.id
 
       # The status_reason must be one of the canonical post-advancement reasons.
-      assert advanced_run.status_reason in [
-               "progressed_on_delivery_outcome",
-               "step_activated",
-               "reactivated_from_wait"
-             ]
+      assert advanced_run.status_reason == "progressed_on_delivery_outcome"
 
       # The next-step delivery must be canonical — linked to the email step.
       assert next_delivery.notification_id == notification.id
@@ -321,6 +317,52 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
 
       assert length(activated_transitions) == 1,
              "expected exactly 1 step_activated transition for email step, got #{length(activated_transitions)}"
+    end
+
+    test "past-due wait_until fails safely when to_step does not exist, appending zero orphan transitions" do
+      %{
+        notification: notification,
+        workflow_run: workflow_run
+      } = trigger_workflow!("past-due-unknown-step")
+
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: _terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+      waiting_run = Repo.get!(WorkflowRun, workflow_run.id)
+
+      # Sabotage the persisted status_context so to_step points to a non-existent step
+      bad_context = Map.put(waiting_run.status_context, "to_step", "non_existent_step")
+
+      {:ok, sabotaged_run} =
+        waiting_run
+        |> Ecto.Changeset.change(status_context: bad_context)
+        |> Repo.update()
+
+      due_at = parse_iso8601!(sabotaged_run.status_context["due_at"])
+      past_due_now = DateTime.add(due_at, 1, :second)
+
+      # First past-due call must noop due to unknown_to_step
+      assert {:ok, {:noop, _run, :unknown_to_step}} =
+               Progression.progress_run(workflow_run.id, now: past_due_now)
+
+      # Ensure zero reactivated_from_wait transitions
+      transitions = list_transitions(workflow_run.id)
+      reactivated_transitions = Enum.filter(transitions, &(&1.reason == "reactivated_from_wait"))
+      assert reactivated_transitions == []
+
+      # Second past-due call must noop again and still accumulate no transitions
+      assert {:ok, {:noop, _run, :unknown_to_step}} =
+               Progression.progress_run(workflow_run.id, now: past_due_now)
+
+      transitions_after_retry = list_transitions(workflow_run.id)
+
+      reactivated_transitions_after_retry =
+        Enum.filter(transitions_after_retry, &(&1.reason == "reactivated_from_wait"))
+
+      assert reactivated_transitions_after_retry == []
     end
   end
 

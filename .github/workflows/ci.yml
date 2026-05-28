@@ -79,3 +79,49 @@ jobs:
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - run: mix ci.test
+
+  install_golden_contract:
+    name: Installer golden + idempotency contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+      - name: Detect installer-related changes (PRs only)
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -qE '^priv/chimeway_migrations/|^lib/mix/tasks/chimeway\.gen\.migrations\.ex|^lib/chimeway/install/|^test/chimeway/install/|^test/fixtures/installer_golden/|^test/support/installer_fixture\.ex|^mix\.exs$'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        if: steps.detect.outputs.run == 'true'
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        if: steps.detect.outputs.run == 'true'
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+        if: steps.detect.outputs.run == 'true'
+      - run: mix ci.install_golden
+        if: steps.detect.outputs.run == 'true'
+        env:
+          MIX_ENV: test

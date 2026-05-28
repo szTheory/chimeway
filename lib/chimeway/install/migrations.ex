@@ -123,7 +123,8 @@ defmodule Chimeway.Install.Migrations do
   @doc """
   Rewrites template namespace from `Chimeway.Repo.Migrations` to the host prefix.
   """
-  def rewrite_namespace(content, host_prefix) when is_binary(content) and is_binary(host_prefix) do
+  def rewrite_namespace(content, host_prefix)
+      when is_binary(content) and is_binary(host_prefix) do
     String.replace(content, @source_namespace, host_prefix)
   end
 

@@ -4,7 +4,7 @@
       name: "default",
       files: %{
         included: ["lib/", "test/"],
-        excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
+        excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/", ~r"/test/fixtures/"]
       },
       strict: true,
       color: true,
