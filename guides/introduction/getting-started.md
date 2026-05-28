@@ -48,10 +48,17 @@ Use `Chimeway.trigger/3` to dispatch the notification. Because Chimeway requires
 
 ```elixir
 params = %{user_id: "user_12345", name: "Alice"}
-opts = [idempotency_key: "signup_user_12345"]
 
-{:ok, trigger_result} = Chimeway.trigger(MyApp.Notifiers.WelcomeUser, params, opts)
+{:ok, trigger_result} =
+  Chimeway.trigger(
+    MyApp.Notifiers.WelcomeUser,
+    params,
+    idempotency_key: "signup_user_12345",
+    tenant_id: "default"
+  )
 ```
+
+Both `:idempotency_key` and `:tenant_id` are required.
 
 ## 3. Check the Inbox
 
@@ -80,9 +87,12 @@ When a user reads the message, you can mark it as read:
 
 ## What's Next?
 
-You have successfully defined, triggered, and retrieved a Chimeway notification. 
+If you haven't yet, start with the [Golden Path](golden-path.md) for the canonical install-to-trace vertical slice including `Chimeway.Traces.explain_delivery/1`.
+
+You have successfully defined, triggered, and retrieved a Chimeway notification.
 
 To explore further, you might want to look into:
+- [Tracing a Notification](../recipes/tracing-a-notification.md) for explainability and telemetry depth
 - Configuring more complex [Channel Adapters](../recipes/custom-adapter.md)
 - Setting up [Policies and Preferences](../flows/policy-and-preferences.md) to respect user communication limits
 - Understanding the full [Trigger to Delivery Lifecycle](../flows/trigger-to-delivery.md)
