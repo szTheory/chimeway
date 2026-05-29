@@ -69,30 +69,53 @@ If you are using Chimeway's workflow engine for multi-step journeys (like `wait_
 
 ## Transactional Enqueueing for Consistency
 
-One of the major benefits of using Oban with Chimeway is transactional consistency. Because both Chimeway and Oban use Ecto and Postgres, you can guarantee that if a transaction commits, the notification will be enqueued, and if it rolls back, the notification won't be sent.
+Oban and Chimeway both use Ecto and Postgres, so you can align host writes, notification rows, and Oban jobs with explicit transaction boundaries. Two patterns cover the common cases:
 
-When triggering notifications, you can pass an `Ecto.Multi` struct to the `trigger` options. Chimeway will insert the delivery records and enqueue the Oban jobs within the same database transaction.
+### Two separate transactions
+
+`Chimeway.trigger/3` always commits event and notification rows in its **own** `Repo.transaction/1` before calling the configured dispatcher. Pass a `:multi` option to `Chimeway.trigger/3` is unsupported — use Pattern B below when you need shared transactions. Trigger does **not** return an updated `Ecto.Multi` struct.
+
+### Pattern A — host writes, then notify (recommended)
+
+Commit your host `Ecto.Multi` first, then call `Chimeway.trigger/3` after `Repo.transaction/1` succeeds:
 
 ```elixir
 alias Ecto.Multi
 alias MyApp.Repo
 
-# Start a multi transaction
-Multi.new()
-# ... do your application work (e.g., create a user) ...
-|> Multi.insert(:user, %MyApp.User{name: "Alice", email: "alice@example.com"})
-# Pass the multi to Chimeway
-|> Multi.run(:notification, fn repo, %{user: user} ->
-  Chimeway.trigger(
-    WelcomeNotifier,
-    %{name: user.name},
-    idempotency_key: "welcome-#{user.id}",
-    tenant_id: user.tenant_id,
-    multi: multi
-  )
-  # When using the multi option, trigger/3 returns {:ok, multi}
-end)
-|> Repo.transaction()
+with {:ok, %{user: user}} <-
+       Multi.new()
+       |> Multi.insert(:user, %MyApp.User{name: "Alice", email: "alice@example.com"})
+       |> Repo.transaction(),
+     {:ok, _result} <-
+       Chimeway.trigger(
+         WelcomeNotifier,
+         %{name: user.name, email: user.email},
+         idempotency_key: "welcome-#{user.id}",
+         tenant_id: user.tenant_id
+       ) do
+  :ok
+end
 ```
 
-If the transaction succeeds, all deliveries are guaranteed to be in the `chimeway_delivery` queue, ready for async processing by Oban. If the transaction fails, no jobs are enqueued.
+If the host transaction rolls back, no user row exists and `Chimeway.trigger/3` is never called. If the host transaction commits but trigger fails, you have a user without a notification — handle that in your `with`/`else` branch.
+
+### Pattern B — atomic delivery planning + Oban job insert
+
+When notification rows already exist and you need dispatch jobs in the **same** database transaction as other host writes, call the Oban dispatcher directly with `multi:`:
+
+```elixir
+alias Chimeway.Dispatch.Oban
+alias Chimeway.Repo
+alias Ecto.Multi
+
+multi =
+  Multi.new()
+  |> Multi.run(:host_work, fn _repo, _ -> {:ok, :done} end)
+
+# notifications must already be persisted (e.g. from a prior trigger)
+assert {:ok, _deliveries} = Oban.dispatch([notification], multi: multi)
+assert {:ok, _} = Repo.transaction(multi)
+```
+
+If the transaction succeeds, delivery rows and Oban jobs commit together. If it rolls back, neither persists. See `test/chimeway/dispatch/oban_transactional_test.exs` for commit and rollback proofs.
