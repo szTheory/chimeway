@@ -67,7 +67,7 @@
 2. Calling `Chimeway.mark_seen/3` emits a durable signal with documented semantics distinct from or aligned with read
 3. A `:waiting` run whose `pending_signals` includes the inbox-read event resumes to `:active` with a `signal_received` transition visible in operator traces (event name only, no raw payload)
 
-**Plans:** 0/3 plans complete
+**Plans:** 1/3 plans complete
 
 **Wave 1** *(no dependencies)*
 
@@ -173,7 +173,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete    | 2026-05-29 |
-| 49. Inbox Read → Signal | v1.7 | 0/TBD | Not started | — |
+| 49. Inbox Read → Signal | v1.7 | 1/3 | In Progress|  |
 | 50. Natural Escalation Demo | v1.7 | 0/TBD | Not started | — |
 | 51. Journey & Admin Proof | v1.7 | 0/TBD | Not started | — |
 | 52. Doc Truth & Gates | v1.7 | 0/TBD | Not started | — |
