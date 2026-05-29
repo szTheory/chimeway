@@ -50,7 +50,11 @@ defmodule MyApp.Notifiers.MentionEscalation do
                  "kind" => "wait_until",
                  "anchor" => "prior_delivery_terminal_at",
                  "delay_seconds" => 7200,
-                 "to_step" => "email"
+                 "to_step" => "email",
+                 "cancel_signals" => [
+                   "chimeway.notification.read",
+                   "chimeway.notification.seen"
+                 ]
                }
              ]
            }
@@ -67,17 +71,17 @@ defmodule MyApp.Notifiers.MentionEscalation do
 end
 ```
 
-Each step uses `step_key`, `step_order`, `channel`, and optional `config`. The `wait_until` rule anchors on `prior_delivery_terminal_at` (when the prior step's delivery reaches a terminal state) and waits `delay_seconds` before advancing to `to_step`.
+Each step uses `step_key`, `step_order`, `channel`, and optional `config`. The `wait_until` rule anchors on `prior_delivery_terminal_at` (when the prior step's delivery reaches a terminal state) and waits `delay_seconds` before advancing to `to_step`. Declare `cancel_signals` explicitly when you want signal-driven early exit; time-only waits omit the key.
 
 ## 2. Progress Rules
 
 Progress rules are declared in `config["progress"]` on a channel step. Chimeway supports three rule kinds only:
 
-| Kind | Required keys | Behavior |
-|------|---------------|----------|
-| `wait_until` | `anchor`, `delay_seconds`, `to_step` | After the step's delivery converges, the run enters `:waiting` until `due_at`, then advances to `to_step` |
-| `on_outcome` | `outcome`, `to_step` | When a delivery outcome matches, advance to `to_step` |
-| `stop` | `outcome` | When a delivery outcome matches, stop the run |
+| Kind | Required keys | Optional keys | Behavior |
+|------|---------------|---------------|----------|
+| `wait_until` | `anchor`, `delay_seconds`, `to_step` | `cancel_signals` (array of non-empty event-name strings) | After the step's delivery converges, the run enters `:waiting` until `due_at`, then advances to `to_step`. When `cancel_signals` is present, the engine copies the list into `run.pending_signals` at `:waiting` entry so `route_signal/1` can resume the run early |
+| `on_outcome` | `outcome`, `to_step` | — | When a delivery outcome matches, advance to `to_step` |
+| `stop` | `outcome` | — | When a delivery outcome matches, stop the run |
 
 There are no separate wait steps, signal-based stop DSL, ISO 8601 duration strings, or standalone wait actions — time gates are always `wait_until` rules on a channel step with integer `delay_seconds`.
 
@@ -181,16 +185,24 @@ Runnable end-to-end proof lives in the demo host:
 
 When matched, the run transitions to `:active`, clears `pending_signals`, and records a `signal_received` transition (event name only — no raw payload in trace context).
 
-**Engine gap today:** `enter_waiting/6` does **not** populate `pending_signals` when a run enters a `wait_until` wait. Host applications that need signal-driven early exit must set `pending_signals` on the run explicitly until the READ milestone ships. Generic inbox-read signals do not automatically cancel time-based escalation.
+When a run enters `:waiting` via `wait_until`, `enter_waiting/6` auto-populates `pending_signals` from the rule's `cancel_signals` when declared. Host applications no longer need manual `Workflows.update_run/3` calls to set `pending_signals` for `wait_until`-driven waits.
+
+### Canonical inbox cancel signals
+
+For inbox-driven early exit, declare these canonical event names in `cancel_signals`:
+
+- `chimeway.notification.read` — user explicitly read the notification
+- `chimeway.notification.seen` — user viewed the notification in the inbox
+
+Phase 48 documents these names but does **not** emit them. Wiring `Chimeway.mark_read/3` and `Chimeway.mark_seen/3` to emit durable signals is READ-02 (Phase 49).
 
 ## Deferred / Future (READ Milestone)
 
-Read-to-cancel (inbox read → signal → halt escalation) is **not** supported out of the box in v1.5:
+Inbox read/seen signal emission (READ-02) is not wired in v1.7 Phase 48:
 
-- **READ-01:** Auto-populate `pending_signals` when entering `wait_until` waits
 - **READ-02:** Wire inbox read/seen events to workflow cancellation without host glue
 
-Until READ ships, the primary escalation story remains time-based `wait_until` progression. Do not assume that viewing a notification stops a scheduled email step.
+Until READ-02 ships, the primary escalation story remains time-based `wait_until` progression. Do not assume that viewing a notification stops a scheduled email step — even when `cancel_signals` is declared, the engine only routes signals that are actually emitted.
 
 ## Next Steps
 
