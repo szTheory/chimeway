@@ -4,9 +4,7 @@ Ecto.Adapters.SQL.Sandbox.mode(Chimeway.Repo, :manual)
 if Code.ensure_loaded?(Mailglass) do
   {:ok, _} = Application.ensure_all_started(:mailglass)
 
-  migrations_path =
-    :code.priv_dir(:mailglass)
-    |> Path.join("repo/migrations")
+  migrations_path = Path.join([__DIR__, "support", "mailglass", "migrations"])
 
   test_repo_config = Application.get_env(:mailglass, Mailglass.TestRepo)
 
