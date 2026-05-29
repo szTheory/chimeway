@@ -85,6 +85,11 @@ defmodule Chimeway.MixProject do
       # GATE-01 doc-contract + version alignment gates (pre-ship; no Postgres required)
       "ci.verify_gates": [
         "cmd env MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --warnings-as-errors"
+      ],
+
+      # v1.6 GATE-02: TeamPulse consumer journey proof (demo host journey suite)
+      "verify.journeys": [
+        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only journey"
       ]
     ]
   end

@@ -27,14 +27,16 @@ mix ci
 mix ci.docs
 mix ci.verify_gates
 mix verify.example
+mix verify.journeys
 ```
 
 - `mix ci` — lint + full test suite
 - `mix ci.docs` — HexDocs build with warnings-as-errors
 - `mix ci.verify_gates` — adoption-surface doc-contract and version-alignment gates (GATE-01)
 - `mix verify.example` — demo host webhook E2E + chimeway_admin operator smoke
+- `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..05, GATE-02)
 
-All four must pass before publishing.
+All five must pass before publishing.
 
 ### Installer template changes
 

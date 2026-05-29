@@ -1,6 +1,44 @@
 # Chimeway Demo Host
 
-This Phoenix example app is a **non-webhook explainability sandbox**. It validates `Chimeway.Traces.explain_delivery/1` on a simple delivery without SendGrid, provider webhooks, or fixture inserts — the lowest-friction way to prove Chimeway's trace APIs work end-to-end.
+TeamPulse — a minimal B2B SaaS sandbox for Chimeway consumer journey proof. Maps SEED-004 personas (Feature Developer, Support Operator, Product Manager) with deterministic seeds and admin UI.
+
+## Quick start (5 minutes)
+
+From **repo root**:
+
+```bash
+mix deps.get && mix ecto.create && mix ecto.migrate
+mix demo.up --serve
+```
+
+Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway) and search `user:alex@teampulse.test`.
+
+Or from this directory:
+
+```bash
+mix demo.admin
+```
+
+## Demo commands
+
+| Command | Where | Purpose |
+|---------|-------|---------|
+| `mix demo.up` | repo root | Migrate + seed + print admin URL |
+| `mix demo.up --serve` | repo root | Above + start Phoenix admin UI |
+| `mix demo.up --check` | repo root | CI smoke — seed only, exit 0 |
+| `mix demo.seed` | demo host | Idempotent TeamPulse seeds |
+| `mix demo.admin` | demo host | Seed + `mix phx.server` |
+| `mix demo.trace` | demo host | Quick IEx explainability script |
+
+## TeamPulse scenarios (via `DemoHost.Seeds`)
+
+| Persona | Scenario | Notifier |
+|---------|----------|----------|
+| Feature Developer | Team invite sent | `DemoHost.Notifiers.InviteSent` |
+| Support Operator | Password reset suppressed | `DemoHost.Notifiers.PasswordReset` |
+| Product Manager | Payment escalation awaiting webhook | `DemoHost.Notifiers.PaymentReminder` |
+
+Copy `DemoHost.Seeds` patterns into your app — do not copy internal test fixture helpers from `feedback_pipeline_e2e_test.exs`.
 
 ## Prerequisites
 
