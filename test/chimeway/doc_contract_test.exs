@@ -267,6 +267,7 @@ defmodule Chimeway.DocContractTest do
     @required ~w(
       Chimeway.Adapters.Mailglass
       Chimeway.Adapter.Mailglass
+      Chimeway.trigger
       channel_adapters
       channel_adapter_configs
       render_key
@@ -276,6 +277,8 @@ defmodule Chimeway.DocContractTest do
       DemoHost.Mailers.InviteEmail
       orchestrates
       templating
+      idempotency_key
+      tenant_id
     )
 
     for required <- @required do
