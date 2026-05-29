@@ -36,7 +36,8 @@ defmodule DemoHost.MixProject do
 
   defp aliases do
     [
-      test: ["test"]
+      test: ["test"],
+      "demo.trace": ["run priv/scripts/trace_demo.exs"]
     ]
   end
 end
