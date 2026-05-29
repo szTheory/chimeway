@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: Ready for 37-03-PLAN.md
-stopped_at: Completed 37-02-PLAN.md
-last_updated: "2026-05-29T00:25:55.626Z"
+status: Phase 37 complete — ready for verify-work
+stopped_at: Completed 37-03-PLAN.md
+last_updated: "2026-05-29T00:27:48.162Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
-  percent: 29
+  completed_plans: 9
+  percent: 43
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 37 — doc-truth-journey-guides
+**Current focus:** Phase 38 — reference-recipes
 
 ## Current Position
 
-Phase: 37 (doc-truth-journey-guides) — EXECUTING
-Plan: 2 of 3 complete (37-02 done)
-Status: Ready for 37-03-PLAN.md
+Phase: 37 (doc-truth-journey-guides) — COMPLETE
+Plan: 3 of 3 complete (37-03 done)
+Status: Ready for `/gsd-verify-work` Phase 37
 Last activity: 2026-05-29
 
 ## Accumulated Context
@@ -46,6 +46,7 @@ Recent v1.4/v1.5 decisions affecting shipped behavior:
 - [35-03]: Golden fixture at `test/fixtures/installer_golden/`; `MIX_INSTALLER_ACCEPT_GOLDEN=1` refresh; path-gated `install_golden_contract` CI job.
 - [37-01]: INV-002 resolved via doc-truth — journey guide uses wait_until primary story; READ-01/READ-02 in Deferred section; forbidden API strings omitted from prose for grep gates.
 - [37-02]: Oban recipe uses Dispatch workers, per-run due_at scheduling as primary, chimeway_workflows queue removed; SignalRouterWorker documents pending_signals matching.
+- [37-03]: Journey guide doc-contract test uses forbidden/required string gates; Chimeway.Workflow check uses negative lookahead to permit Workflows module; DOCS-03 #3 closed.
 
 ### Pending Todos
 
@@ -68,6 +69,7 @@ None for engine work. Adoption gaps drive v1.5 scope (assessment 2026-05-28).
 - Milestone v1.4 formally closed 2026-05-28 after re-audit passed (8/8 requirements, 549 tests).
 - Milestone v1.5 initialized 2026-05-28; phases continue from 35.
 - Phase 35 complete 2026-05-28 — INST-01 and INST-02 satisfied.
+- Phase 37 complete 2026-05-29 — DOCS-03 satisfied (journey guide rewrite, Oban recipe fix, doc-contract test).
 
 ### Deferred Items
 
@@ -75,8 +77,8 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-29T00:25:55.623Z
-Stopped at: Completed 37-02-PLAN.md
+Last session: 2026-05-29T00:27:48.160Z
+Stopped at: Completed 37-03-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -88,3 +90,4 @@ Resume file: None
 | Phase 35 P02 | 10min | 3 tasks | Mix task + integration tests |
 | Phase 35 P03 | 45min | 5 tasks | Golden fixture + CI contracts |
 | Phase 37 P02 | 10min | 2 tasks | 1 files |
+| Phase 37 P03 | 12min | 2 tasks | 2 files |

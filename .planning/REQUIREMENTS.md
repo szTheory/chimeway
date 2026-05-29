@@ -16,7 +16,7 @@ Requirements for the Adoption Surface milestone. Each maps to roadmap phases (st
 
 - [x] **DOCS-01**: Golden-path guide walks a fresh Phoenix host from dependency add → migrations → first trigger → trace query → optional webhook feedback loop
 - [x] **DOCS-02**: README, installation guide, and `mix.exs` version strings are aligned so adopters see one credible semver story
-- [ ] **DOCS-03**: Journey/workflow guides match engine capabilities (doc-truth fix for `stop_conditions` / `pending_signals` drift, or explicit deferral callouts)
+- [x] **DOCS-03**: Journey/workflow guides match engine capabilities (doc-truth fix for `stop_conditions` / `pending_signals` drift, or explicit deferral callouts)
 
 ### Reference Recipes (RECP)
 
@@ -79,7 +79,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INST-02 | Phase 35 | Complete (35-03) |
 | DOCS-01 | Phase 36 | Complete |
 | DOCS-02 | Phase 36 | Complete |
-| DOCS-03 | Phase 37 | Pending |
+| DOCS-03 | Phase 37 | Complete |
 | RECP-01 | Phase 38 | Pending |
 | RECP-02 | Phase 38 | Pending |
 | DEMO-01 | Phase 39 | Pending |
