@@ -56,8 +56,8 @@ defmodule Chimeway.MixProject do
         "credo --strict"
       ],
 
-      # Test lane
-      "ci.test": ["cmd env MIX_ENV=test mix test"],
+      # Test lane (mailglass excluded — run mix verify.mailglass separately, GATE-04)
+      "ci.test": ["cmd env MIX_ENV=test mix test --exclude mailglass"],
 
       # Docs gate: fails on undocumented public functions
       "ci.docs": ["docs --warnings-as-errors"],
@@ -91,6 +91,12 @@ defmodule Chimeway.MixProject do
       # v1.7 GATE-03: TeamPulse consumer journey proof JOUR-01..08 (10 tests)
       "verify.journeys": [
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only journey"
+      ],
+
+      # v1.8 GATE-04: Mailglass adapter + webhook pipeline + demo host DEMO-06 proof
+      "verify.mailglass": [
+        "cmd env MIX_ENV=test mix test --only mailglass --warnings-as-errors",
+        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only mailglass --warnings-as-errors"
       ]
     ]
   end
