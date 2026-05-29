@@ -61,10 +61,11 @@ Optional cron calling `Chimeway.Workflows.Progression.progress_due_runs/1` (via 
 
 ### Workflow Engine Workers
 
-If you are using Chimeway's Workflow Engine for multi-step journeys (like wait gates and escalations), you need to configure Oban to process two specific workers:
+If you are using Chimeway's workflow engine for multi-step journeys (like `wait_until` gates and channel escalations), Oban processes two dispatch workers:
 
-1.  **`Chimeway.Workflows.Workers.ProgressionWorker`**: This worker is responsible for evaluating wait gates. When a workflow enters a wait step, it pauses. The `ProgressionWorker` must be scheduled to run periodically (e.g., every minute using `Oban.Plugins.Cron` as shown above) to check for expired wait steps and resume progression.
-2.  **`Chimeway.Workflows.Workers.SignalRouterWorker`**: When your application emits signals (e.g., "user viewed notification") via `Chimeway.Signal.track/4`, the engine enqueues a job for the `SignalRouterWorker`. This worker processes the signal in the background (using the `chimeway_signals` queue) to see if it satisfies any active stop conditions, preventing slow web requests when tracking user feedback.
+1. **`Chimeway.Dispatch.WorkflowProgressionWorker`** (`:chimeway_delivery` queue) — Evaluates past-due `wait_until` rules via `Chimeway.Workflows.Progression.progress_run/2`. When `dispatcher: Chimeway.Dispatch.Oban` is configured, the engine schedules one job per waiting run at that run's `due_at` (see [Wait advancement scheduling](#wait-advancement-scheduling) above). This is the primary path for time-based escalation.
+
+2. **`Chimeway.Dispatch.SignalRouterWorker`** (`:chimeway_signals` queue) — Processes `Chimeway.Signal.track/4` events asynchronously. Calls `Chimeway.Workflows.route_signal/1` to match `:waiting` runs whose `pending_signals` list contains the signal's `event_name`. It routes signals to waiting runs; progression rules (`on_outcome` / `stop`) apply separately when delivery outcomes converge on active steps.
 
 ## Transactional Enqueueing for Consistency
 
@@ -82,10 +83,11 @@ Multi.new()
 |> Multi.insert(:user, %MyApp.User{name: "Alice", email: "alice@example.com"})
 # Pass the multi to Chimeway
 |> Multi.run(:notification, fn repo, %{user: user} ->
-  WelcomeNotifier.trigger(
-    user.id,
+  Chimeway.trigger(
+    WelcomeNotifier,
     %{name: user.name},
-    # Ensure deliveries are saved and enqueued inside the Multi
+    idempotency_key: "welcome-#{user.id}",
+    tenant_id: user.tenant_id,
     multi: multi
   )
   # When using the multi option, trigger/3 returns {:ok, multi}
