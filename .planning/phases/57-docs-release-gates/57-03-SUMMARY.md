@@ -69,7 +69,7 @@ Each task was committed atomically:
 2. **Task 2: Add verify_mailglass CI job** - `cc4e0b0` (feat)
 3. **Task 3: Extend MAINTAINING.md to pre-ship sextet** - `bafd6ee` (docs)
 
-**Plan metadata:** pending (docs: complete plan)
+**Plan metadata:** `53f6c0d` (docs: complete plan)
 
 ## Files Created/Modified
 
