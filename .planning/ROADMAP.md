@@ -9,7 +9,7 @@
 - ✅ **v1.4** — [Archived roadmap](.planning/milestones/v1.4-ROADMAP.md) · [Audit](.planning/milestones/v1.4-MILESTONE-AUDIT.md) (shipped 2026-05-08, closed 2026-05-28)
 - ✅ **v1.5** — [Archived roadmap](.planning/milestones/v1.5-ROADMAP.md) · [Audit](.planning/milestones/v1.5-MILESTONE-AUDIT.md) (shipped 2026-05-29)
 - ✅ **v1.6** — [Archived roadmap](.planning/milestones/v1.6-ROADMAP.md) · [Audit](.planning/milestones/v1.6-MILESTONE-AUDIT.md) (shipped 2026-05-29)
-- 🚧 **v1.7** — READ + Adoption Polish (Phases 48–52, in progress)
+- 🚧 **v1.7** — READ + Adoption Polish (Phases 48–53, close-out in progress)
 
 ## Active Milestone
 
@@ -26,6 +26,7 @@
 - [x] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths (completed 2026-05-29)
 - [x] **Phase 51: Journey & Admin Proof** — READ journey plus all-persona admin traces in CI (completed 2026-05-29)
 - [x] **Phase 52: Doc Truth & Gates** — README/moduledoc fixes and `verify.journeys` expansion (completed 2026-05-29)
+- [ ] **Phase 53: Milestone Close-Out** — Nyquist validation retroactive sign-off + journey test hygiene
 
 ## Phase Details
 
@@ -185,6 +186,27 @@
 | 50. Natural Escalation Demo | v1.7 | 2/2 | Complete    | 2026-05-29 |
 | 51. Journey & Admin Proof | v1.7 | 2/2 | Complete    | 2026-05-29 |
 | 52. Doc Truth & Gates | v1.7 | 2/2 | Complete    | 2026-05-29 |
+| 53. Milestone Close-Out | v1.7 | 1/2 | In Progress|  |
+
+### Phase 53: Milestone Close-Out
+
+**Goal:** Close v1.7 milestone audit tech debt — retroactive Nyquist sign-off for Phases 48–51 and demo host journey test hygiene.
+
+**Depends on:** Phase 52
+
+**Requirements:** None (process debt closure; all 11 v1.7 requirements already satisfied)
+
+**Success Criteria** (what must be TRUE):
+
+1. Phases 48–51 `VALIDATION.md` files show `nyquist_compliant: true` with all per-task rows green
+2. `mix verify.journeys` passes with zero Phoenix.ConnTest deprecation warnings
+3. Journey test moduledocs accurately describe the JOUR-01..08 nine-test suite layout
+
+**Plans:** 1/2 plans executed
+
+| Wave | Plans | What it builds |
+|------|-------|----------------|
+| 1 | 53-01, 53-02 | Retroactive Nyquist validation (48–51); ConnCase deprecation fix + moduledoc alignment (parallel) |
 
 ---
-*Roadmap updated: 2026-05-29 — milestone v1.7 READ + Adoption Polish started (Phases 48–52)*
+*Roadmap updated: 2026-05-29 — Phase 53 added for v1.7 milestone close-out*
