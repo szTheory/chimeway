@@ -20,8 +20,8 @@ Requirements for the Adoption Surface milestone. Each maps to roadmap phases (st
 
 ### Reference Recipes (RECP)
 
-- [ ] **RECP-01**: Password-reset support trace recipe shows Support Operator JTBD — trigger → policy/delivery outcomes → explainable trace for "why didn't user get email?"
-- [ ] **RECP-02**: Feedback escalation recipe shows Product Manager JTBD — outbound send → webhook feedback → workflow progression step visible in trace
+- [x] **RECP-01**: Password-reset support trace recipe shows Support Operator JTBD — trigger → policy/delivery outcomes → explainable trace for "why didn't user get email?"
+- [x] **RECP-02**: Feedback escalation recipe shows Product Manager JTBD — outbound send → webhook feedback → workflow progression step visible in trace
 
 ### Demo Host (DEMO)
 
@@ -80,8 +80,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOCS-01 | Phase 36 | Complete |
 | DOCS-02 | Phase 36 | Complete |
 | DOCS-03 | Phase 37 | Complete |
-| RECP-01 | Phase 38 | Pending |
-| RECP-02 | Phase 38 | Pending |
+| RECP-01 | Phase 38 | Complete |
+| RECP-02 | Phase 38 | Complete |
 | DEMO-01 | Phase 39 | Pending |
 | OPER-01 | Phase 40 | Pending |
 | OPER-02 | Phase 40 | Pending |

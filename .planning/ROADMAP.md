@@ -131,8 +131,8 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 | DOCS-01 | Phase 36 | Pending |
 | DOCS-02 | Phase 36 | Pending |
 | DOCS-03 | Phase 37 | Complete |
-| RECP-01 | Phase 38 | Pending |
-| RECP-02 | Phase 38 | Pending |
+| RECP-01 | Phase 38 | Complete |
+| RECP-02 | Phase 38 | Complete |
 | DEMO-01 | Phase 39 | Pending |
 | OPER-01 | Phase 40 | Pending |
 | OPER-02 | Phase 40 | Pending |
