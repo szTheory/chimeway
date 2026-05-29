@@ -1,10 +1,11 @@
 ---
 phase: 42
 slug: close-gap-docs-02-gate-01-align-consumer-docs-to-1-0-0-and-f
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: true
 created: 2026-05-29
+updated: 2026-05-29
 ---
 
 # Phase 42 — Validation Strategy
@@ -39,12 +40,12 @@ created: 2026-05-29
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 42-01-01 | 01 | 1 | DOCS-02 | — | N/A | integration | `mix ci.verify_gates` | ✅ | ⬜ pending |
-| 42-01-02 | 01 | 1 | DOCS-02 | T-42-01 | No stale 0.x version strings in consumer docs | unit | `mix ci.verify_gates` | ✅ | ⬜ pending |
-| 42-02-01 | 02 | 2 | GATE-01 | — | N/A | docs build | `mix ci.docs` | ✅ | ⬜ pending |
-| 42-02-02 | 02 | 2 | GATE-01 | — | N/A | docs build | `mix ci.docs` | ✅ | ⬜ pending |
-| 42-03-01 | 03 | 3 | GATE-01 | T-42-03 | No prod auth bypass documented | grep | `! grep -q ALLOW_DEMO_ADMIN examples/chimeway_demo_host/README.md` | ✅ | ⬜ pending |
-| 42-03-02 | 03 | 3 | GATE-01 | — | N/A | quartet | `mix ci && mix ci.docs && mix ci.verify_gates && mix verify.example` | ✅ | ⬜ pending |
+| 42-01-01 | 01 | 1 | DOCS-02 | — | N/A | integration | `mix ci.verify_gates` | ✅ | ✅ green |
+| 42-01-02 | 01 | 1 | DOCS-02 | T-42-01 | No stale 0.x version strings in consumer docs | unit | `mix ci.verify_gates` | ✅ | ✅ green |
+| 42-02-01 | 02 | 2 | GATE-01 | — | N/A | docs build | `mix ci.docs` | ✅ | ✅ green |
+| 42-02-02 | 02 | 2 | GATE-01 | — | N/A | docs build | `mix ci.docs` | ✅ | ✅ green |
+| 42-03-01 | 03 | 3 | GATE-01 | T-42-03 | No prod auth bypass documented | grep | `! grep -q ALLOW_DEMO_ADMIN examples/chimeway_demo_host/README.md` | ✅ | ✅ green |
+| 42-03-02 | 03 | 3 | GATE-01 | — | N/A | quartet | `mix ci && mix ci.docs && mix ci.verify_gates && mix verify.example` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -71,11 +72,11 @@ Existing infrastructure covers all phase requirements:
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-05-29
