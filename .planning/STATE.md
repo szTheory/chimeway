@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
 status: executing
-stopped_at: Completed 41-01-PLAN.md
-last_updated: "2026-05-29T12:26:13.089Z"
+stopped_at: Completed 41-02-PLAN.md
+last_updated: "2026-05-29T12:34:27.313Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 22
-  completed_plans: 20
-  percent: 86
+  completed_plans: 21
+  percent: 91
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-28)
 ## Current Position
 
 Phase: 41 (release-verification-gates) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-29
 
@@ -48,7 +48,7 @@ Recent v1.4/v1.5 decisions affecting shipped behavior:
 - [37-02]: Oban recipe uses Dispatch workers, per-run due_at scheduling as primary, chimeway_workflows queue removed; SignalRouterWorker documents pending_signals matching.
 - [37-03]: Journey guide doc-contract test uses forbidden/required string gates; Chimeway.Workflow check uses negative lookahead to permit Workflows module; DOCS-03 #3 closed.
 - [Phase 41]: Trigger parity counts Chimeway.trigger( call sites only — Excludes Chimeway.trigger/3 arity prose references that would false-fail idempotency_key/tenant_id parity gate
-- [Phase 41]: identity: forbidden via negative lookbehind in golden-path — Permits recipient_identity: in notifier example per D-03 research pitfall
+- [Phase 41]: ci.verify_gates scoped to doc_contract_test.exs only — ci.docs and verify.example remain separate pre-ship mandates per D-14
 
 ### Pending Todos
 
@@ -79,8 +79,8 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-29T12:26:12.998Z
-Stopped at: Completed 41-01-PLAN.md
+Last session: 2026-05-29T12:34:27.305Z
+Stopped at: Completed 41-02-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -94,3 +94,4 @@ Resume file: None
 | Phase 37 P02 | 10min | 2 tasks | 1 files |
 | Phase 41 P01 | 12min | 2 tasks | Doc-contract adoption gates |
 | Phase 41 P01 | 12 | 2 tasks | 1 files |
+| Phase 41 P02 | 18 | 3 tasks | 4 files |

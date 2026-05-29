@@ -121,7 +121,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Doc drift and example breakage are caught before release, not by adopters in production.
 **Depends on:** Phase 40
 **Requirements:** GATE-01
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 | Wave | Plans | What it builds |
 |------|-------|----------------|
