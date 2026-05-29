@@ -149,6 +149,10 @@ After your first `explain_delivery/1` in your host app, the **lowest-friction** 
 
 Follow the [Demo host trace walkthrough](../../examples/chimeway_demo_host/README.md) for a copy-paste IEx session using `Chimeway.trigger/3` and `explain_delivery/1`.
 
+### Validate with operator UI (optional)
+
+After you have trace rows in the database, the [`chimeway_admin`](../../chimeway_admin/) package provides a browser UI for the same Support Operator lookup flow. See the demo host [Operator trace UI (browser)](../../examples/chimeway_demo_host/README.md#operator-trace-ui-browser) section: start `mix phx.server`, visit `/admin/chimeway`, search by recipient or correlation ID, and inspect the delivery timeline. This complements IEx validation; it does not replace webhook E2E proof.
+
 For **webhook-driven workflow progression**, use the [webhook feedback loop](#next-webhook-feedback-loop) appendix instead — the demo host README covers simple delivery explainability only.
 
 ## 7. What's next?

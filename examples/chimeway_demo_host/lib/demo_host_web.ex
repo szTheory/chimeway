@@ -9,6 +9,20 @@ defmodule DemoHostWeb do
   def router do
     quote do
       use Phoenix.Router
+      import Phoenix.LiveView.Router
+    end
+  end
+
+  def html do
+    quote do
+      use Phoenix.Component
+      import Phoenix.Component
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView, layout: {DemoHostWeb.Layouts, :root}
     end
   end
 

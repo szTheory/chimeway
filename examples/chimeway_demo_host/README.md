@@ -83,6 +83,25 @@ mix demo.trace
 
 Or: `mix run priv/scripts/trace_demo.exs`
 
+## Operator trace UI (browser)
+
+Visual trace lookup complements the IEx walkthrough above (Phase 39). Requires trace data from `mix demo.trace` or the IEx trigger section.
+
+```bash
+cd examples/chimeway_demo_host
+mix phx.server
+```
+
+Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway), search by recipient (e.g. `user:demo_user_1` from `mix demo.trace`), and open a delivery to inspect the unified timeline.
+
+### Production auth
+
+`DemoHost.AdminAuth` always allows access in `:dev` and `:test`. In `:prod` it returns `{:error, :unauthorized}` unless `ALLOW_DEMO_ADMIN=true` (staging-only escape hatch). Replace with your host's real authorization before exposing admin routes.
+
+### Out of scope for `chimeway_admin` MVP
+
+Bell inbox, marketing/campaign tooling, health aggregates dashboard, notification definitions registry, and `aggregate_outcomes/1` charts are **not** included — trace lookup only.
+
 ## Related guides
 
 - [Golden Path](../../guides/introduction/golden-path.md)

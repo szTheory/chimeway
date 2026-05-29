@@ -30,7 +30,10 @@ defmodule DemoHost.MixProject do
       # Even though chimeway declares it optional: true, the path-dep compilation resolves all
       # modules at compile time, so Oban must be present in the host's dep tree.
       {:oban, "~> 2.17"},
-      {:chimeway, path: "../.."}
+      {:chimeway, path: "../.."},
+      {:chimeway_admin, path: "../../chimeway_admin"},
+      {:phoenix_live_view, "~> 1.0"},
+      {:phoenix_html, "~> 4.0"}
     ]
   end
 

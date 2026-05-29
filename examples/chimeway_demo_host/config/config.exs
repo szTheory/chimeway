@@ -11,4 +11,6 @@ config :demo_host, DemoHostWeb.Endpoint,
 # Adapter config the controller reads at request time per Chimeway.Adapter discipline
 config :demo_host, :chimeway_adapter_config, []
 
+config :chimeway_admin, auth_module: DemoHost.AdminAuth
+
 import_config "#{config_env()}.exs"

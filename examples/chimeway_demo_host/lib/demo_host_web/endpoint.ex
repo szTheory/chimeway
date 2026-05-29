@@ -1,6 +1,15 @@
 defmodule DemoHostWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :demo_host
 
+  @session_options [
+    store: :cookie,
+    key: "_demo_host_key",
+    signing_salt: "demo-host-session"
+  ]
+
+  socket "/live", Phoenix.LiveView.Socket,
+    websocket: [connect_info: [session: @session_options]]
+
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:demo_host, :endpoint]
 
@@ -17,6 +26,7 @@ defmodule DemoHostWeb.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
+  plug Plug.Session, @session_options
 
   plug DemoHostWeb.Router
 end
