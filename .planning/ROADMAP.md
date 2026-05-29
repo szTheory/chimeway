@@ -44,7 +44,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 2. `Chimeway.Adapter.Mailglass` passes shared adapter contract tests for deliver success, temporary/permanent/bounced error classification, and redacted provider metadata
 3. Adapter config is read at call time via `Application.get_env/3` — no compile-time secrets
 
-**Plans:** 3/3 plans complete (2026-05-29)
+**Plans:** 3/3 plans complete
 
 **Wave 1 *(no dependencies)*:** 54-01 — Optional mailglass dep + test harness + adapter stub  
 **Wave 2 *(blocked on Wave 1)*:** 54-02 — `deliver/2` implementation (message build, tenancy, error mapping)  
@@ -107,7 +107,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 54. Mailglass Adapter Core | 1/3 | In Progress|  |
+| 54. Mailglass Adapter Core | 3/3 | Complete    | 2026-05-29 |
 | 55. Inbound Feedback Bridge | 0/? | Not started | — |
 | 56. Blueprint & Demo Proof | 0/? | Not started | — |
 | 57. Docs & Release Gates | 0/? | Not started | — |
