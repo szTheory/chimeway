@@ -39,19 +39,19 @@
 **Goal:** Close v1.5 re-audit regressions — align consumer docs to `{:chimeway, "~> 1.0"}`, reconcile major-aware drift patterns, fix ex_doc cross-package links, and get the MAINTAINING.md pre-ship quartet green.
 **Requirements**: DOCS-02, GATE-01
 **Depends on:** Phase 41
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 **Wave 1** *(no dependencies)*
 Plans:
-- [ ] 42-01-PLAN.md — DOCS-02 consumer version alignment + `stale_drift_patterns/2`
+- [x] 42-01-PLAN.md — DOCS-02 consumer version alignment + `stale_drift_patterns/2`
 
 **Wave 2** *(blocked on Wave 1 completion)*
 Plans:
-- [ ] 42-02-PLAN.md — ex_doc cross-package link fixes (4 guides)
+- [x] 42-02-PLAN.md — ex_doc cross-package link fixes (4 guides)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 Plans:
-- [ ] 42-03-PLAN.md — Demo README hygiene, audit update, pre-ship quartet sign-off
+- [x] 42-03-PLAN.md — Demo README hygiene, audit update, pre-ship quartet sign-off
 
 **Cross-cutting constraints:**
 - Phase succeeds only when all four MAINTAINING.md pre-ship commands exit 0 (`mix ci`, `mix ci.docs`, `mix ci.verify_gates`, `mix verify.example`)
