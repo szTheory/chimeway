@@ -42,7 +42,9 @@ config :my_app, Oban,
     # Primary wait advancement uses per-run jobs scheduled at due_at (see below).
     # {Oban.Plugins.Cron,
     #  crontab: [
-    #    {"* * * * *", Chimeway.Dispatch.WorkflowProgressionWorker}
+    #    # Cron fallback must call progress_due_runs/1 — WorkflowProgressionWorker alone is not valid here.
+    #    {"* * * * *", MyApp.ChimewayCron, args: %{"op" => "progress_due_runs"}}
+    #    # MyApp.ChimewayCron.perform/1 should invoke Chimeway.Workflows.Progression.progress_due_runs/1
     #  ]}
   ],
   queues: [
