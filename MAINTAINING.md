@@ -34,7 +34,7 @@ mix verify.journeys
 - `mix ci.docs` — HexDocs build with warnings-as-errors
 - `mix ci.verify_gates` — adoption-surface doc-contract and version-alignment gates (GATE-01)
 - `mix verify.example` — demo host webhook E2E + chimeway_admin operator smoke
-- `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 9 tests including READ read-cancel + time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
+- `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
 
 All five must pass before publishing.
 

@@ -29,7 +29,9 @@
       "adopter_lens_default": true,
       "prefer_repo_inspection_over_docs": true,
       "no_auto_new_milestone": true,
-      "flag_doc_impl_drift": true
+      "flag_doc_impl_drift": true,
+      "adoption_evidence_lens": true,
+      "run_at_new_milestone": true
     },
     "consumer_journey_proof": {
       "demo_app_path": "examples/chimeway_demo_host",

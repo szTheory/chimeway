@@ -1,8 +1,9 @@
 defmodule DemoHostWeb.JourneyTest do
   @moduledoc """
-  TeamPulse consumer journey proofs — part of the JOUR-01..08 suite (9 tests total).
+  TeamPulse consumer journey proofs — part of the JOUR-01..08 suite (10 tests total).
 
-  This module covers JOUR-01, JOUR-02, JOUR-03, and JOUR-06.
+  This module covers JOUR-01, JOUR-02, JOUR-03, and JOUR-06 (read-cancel Sync path,
+  read-cancel Oban due-worker path, and unread time-fallback).
 
   Other journey modules:
 
@@ -16,6 +17,7 @@ defmodule DemoHostWeb.JourneyTest do
   use Oban.Testing, repo: Chimeway.Repo
 
   alias Chimeway.{Delivery, Repo, Traces}
+  alias Chimeway.Dispatch.WorkflowProgressionWorker
   alias Chimeway.Notifications.Notification
   alias Chimeway.Signals.Signal
   alias Chimeway.Workflows
@@ -139,6 +141,61 @@ defmodule DemoHostWeb.JourneyTest do
     assert email_deliveries == []
 
     current_step = Workflows.get_current_step!(updated_run)
+    assert current_step.step_key == "initial_notice"
+  end
+
+  @tag :journey
+  @tag :jour_06
+  test "JOUR-06 mark_read cancels escalation before due_at (Oban due worker path)", _context do
+    previous_dispatcher = Application.get_env(:chimeway, :dispatcher)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+    end)
+
+    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+
+    assert {:ok, %{trace: %{delivery_ids: ids}}} = DemoHost.Seeds.escalation_waiting!()
+
+    drain_oban!(:chimeway_delivery)
+
+    in_app_delivery =
+      ids
+      |> Enum.map(&Repo.get!(Delivery, &1))
+      |> Enum.find(&(&1.channel == "in_app"))
+
+    refute is_nil(in_app_delivery)
+
+    notification = Repo.get!(Notification, in_app_delivery.notification_id)
+    run = Repo.get!(WorkflowRun, in_app_delivery.workflow_run_id)
+
+    assert run.state == :waiting
+    assert run.pending_signals == ["chimeway.notification.read"]
+
+    assert_enqueued(
+      worker: WorkflowProgressionWorker,
+      args: %{"workflow_run_id" => run.id}
+    )
+
+    assert :ok = Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity())
+
+    drain_oban!(:chimeway_signals)
+
+    updated_run = Repo.get!(WorkflowRun, run.id)
+    assert updated_run.state == :active
+    assert updated_run.pending_signals == []
+
+    drain_oban!(:chimeway_delivery)
+
+    email_deliveries =
+      from(d in Delivery,
+        where: d.workflow_run_id == ^run.id and d.channel == "email"
+      )
+      |> Repo.all()
+
+    assert email_deliveries == []
+
+    current_step = Workflows.get_current_step!(Repo.get!(WorkflowRun, run.id))
     assert current_step.step_key == "initial_notice"
   end
 

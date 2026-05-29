@@ -1,7 +1,8 @@
 # Thread: v1.6 adoption evidence assessment
 
 **Opened:** 2026-05-29  
-**Status:** open — handoff to v1.6 Consumer Journey Proof implementation  
+**Resolved:** 2026-05-29 — v1.6 Consumer Journey Proof shipped all listed gaps  
+**Status:** resolved  
 **Trigger:** Adoption evidence prompt at post-v1.5 milestone boundary
 
 ## Executive verdict
@@ -45,3 +46,15 @@
 ## Maintainer takeaway
 
 Ship TeamPulse demo domain + `mix demo.up` + `mix verify.journeys` before READ or SEED-003. That closes pre-adopter confidence gap.
+
+## Resolution (2026-05-29)
+
+v1.6 Consumer Journey Proof shipped. All residual gaps from the v1.5 audit table are closed:
+
+- `priv/repo/seeds.exs` + `DemoHost.Seeds` public API
+- TeamPulse persona domain (invite, password reset, payment escalation)
+- Host-mount admin test (JOUR-04)
+- Journey CI matrix (`mix verify.journeys`, GATE-02)
+- One-command spin-up (`mix demo.up`, `mix demo.admin`)
+
+Do not re-milestone adoption evidence. Next wedge is v1.7 READ (engine glue), with narrow demo polish in v1.7 close-out.
