@@ -4,7 +4,7 @@ Chimeway workflows coordinate multi-channel notification journeys over time. You
 
 ## Scenario: Missed Engagement Escalation
 
-When a user is mentioned in a document, deliver an `in_app` notification first. If they do not engage within two hours, escalate to `email`. The primary mechanism is a `wait_until` progress rule on the in-app step — not inbox-read cancellation or separate wait steps.
+When a user is mentioned in a document, deliver an `in_app` notification first. If they do not engage within two hours, escalate to `email`. Use a `wait_until` progress rule on the in-app step as the time gate, and declare `cancel_signals` with inbox read (`Chimeway.mark_read/3` → `chimeway.notification.read`) for complementary early exit — the two mechanisms work together, not as mutually exclusive alternatives.
 
 ## 1. Define the Notifier with a Workflow
 
@@ -229,3 +229,4 @@ For inbox-driven early exit, declare these canonical event names in `cancel_sign
 - [Oban Integration](../recipes/oban-integration.md) — dispatcher config, worker queues, and transactional enqueue patterns (see oban-integration recipe)
 - [Golden path](../introduction/golden-path.md) — fresh-host trigger → trace → webhook feedback loop
 - [Feedback escalation workflow](../recipes/feedback-escalation-workflow.md) — persona walkthrough for delivery-feedback → trace timeline
+- [Mention escalation recipe](../recipes/mention-escalation.md) — PM persona walkthrough for read-cancel plus wait_until time fallback

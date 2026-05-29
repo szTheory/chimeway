@@ -90,5 +90,6 @@ Look for `:webhook_received`, signal-driven resume (run returns to `:active`), o
 ## Related guides
 
 - [Multi-step journeys](../flows/multi-step-journeys.md) — workflow authoring reference  
+- [Mention escalation](mention-escalation.md) — inbox-read / PM JTBD path (not delivery-feedback webhooks)
 - [Golden Path](../introduction/golden-path.md) — first trigger and webhook loop  
 - [Tracing a Notification](tracing-a-notification.md) — telemetry and correlation depth
