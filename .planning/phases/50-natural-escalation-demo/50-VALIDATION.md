@@ -2,8 +2,8 @@
 phase: 50
 slug: natural-escalation-demo
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-29
 ---
 
@@ -38,13 +38,13 @@ created: 2026-05-29
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 50-01-01 | 01 | 1 | DEMO-03 | — | N/A | code review | grep `wait_until` in payment_reminder.ex | ✅ modify | ⬜ pending |
-| 50-01-02 | 01 | 1 | DEMO-03 | — | N/A | code review | grep absence of `stage_escalation_webhook` | ✅ delete | ⬜ pending |
-| 50-01-03 | 01 | 1 | DEMO-03 | — | N/A | code review | file deleted | ✅ delete | ⬜ pending |
-| 50-01-04 | 01 | 1 | DEMO-03 | — | N/A | journey | `mix test --only jour_03` | ❌ W0 | ⬜ pending |
-| 50-02-01 | 02 | 2 | DEMO-04 | — | N/A | doc contract | `mix ci.verify_gates` | ❌ W0 | ⬜ pending |
-| 50-02-02 | 02 | 2 | DEMO-04 | — | N/A | doc contract | `mix ci.verify_gates` | ❌ W0 | ⬜ pending |
-| 50-02-03 | 02 | 2 | DEMO-04 | — | N/A | doc contract | `mix ci.verify_gates` | ❌ W0 | ⬜ pending |
+| 50-01-01 | 01 | 1 | DEMO-03 | — | N/A | code review | grep `wait_until` in payment_reminder.ex | ✅ modify | ✅ green |
+| 50-01-02 | 01 | 1 | DEMO-03 | — | N/A | code review | grep absence of `stage_escalation_webhook` | ✅ delete | ✅ green |
+| 50-01-03 | 01 | 1 | DEMO-03 | — | N/A | code review | file deleted | ✅ delete | ✅ green |
+| 50-01-04 | 01 | 1 | DEMO-03 | — | N/A | journey | `mix test --only jour_03` | ❌ W0 | ✅ green |
+| 50-02-01 | 02 | 2 | DEMO-04 | — | N/A | doc contract | `mix ci.verify_gates` | ❌ W0 | ✅ green |
+| 50-02-02 | 02 | 2 | DEMO-04 | — | N/A | doc contract | `mix ci.verify_gates` | ❌ W0 | ✅ green |
+| 50-02-03 | 02 | 2 | DEMO-04 | — | N/A | doc contract | `mix ci.verify_gates` | ❌ W0 | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,14 +52,14 @@ created: 2026-05-29
 
 ## Wave 0 Requirements
 
-- [ ] `payment_reminder.ex` — `wait_until` + `cancel_signals` workflow
-- [ ] `seeds.ex` — trigger-only; remove adapter swap + `stage_escalation_webhook/1`
-- [ ] Delete `pending_webhook_adapter.ex`
-- [ ] `journey_test.exs` — JOUR-03 READ path
-- [ ] Create `guides/recipes/mention-escalation.md`
-- [ ] `multi-step-journeys.md` — intro line 7 + recipe link
-- [ ] `doc_contract_test.exs` — mention-escalation describe block
-- [ ] `mix.exs` — docs extras entry
+- [x] `payment_reminder.ex` — `wait_until` + `cancel_signals` workflow
+- [x] `seeds.ex` — trigger-only; remove adapter swap + `stage_escalation_webhook/1`
+- [x] Delete `pending_webhook_adapter.ex`
+- [x] `journey_test.exs` — JOUR-03 READ path
+- [x] Create `guides/recipes/mention-escalation.md`
+- [x] `multi-step-journeys.md` — intro line 7 + recipe link
+- [x] `doc_contract_test.exs` — mention-escalation describe block
+- [x] `mix.exs` — docs extras entry
 
 ---
 
@@ -73,11 +73,11 @@ created: 2026-05-29
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** retroactive sign-off via plan 53-01 (2026-05-29)
