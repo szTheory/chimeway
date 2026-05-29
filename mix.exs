@@ -120,6 +120,7 @@ defmodule Chimeway.MixProject do
         "guides/recipes/tracing-a-notification.md",
         "guides/recipes/password-reset-support-trace.md",
         "guides/recipes/feedback-escalation-workflow.md",
+        "guides/recipes/mention-escalation.md",
         "guides/cheatsheet.cheatmd"
       ],
       groups_extras: [
