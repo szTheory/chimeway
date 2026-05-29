@@ -150,7 +150,7 @@ Both functions require the correct `tenant_id`. Querying a run ID that belongs t
 
 The proven production path for delivery outcomes driving workflow progression:
 
-1. Provider webhook → `Chimeway.Webhooks` ingress → `ProcessFeedbackWorker`
+1. Provider webhook → `Chimeway.Webhooks` ingress → `Chimeway.Webhooks.ProcessFeedbackWorker`
 2. Worker records the attempt and calls `Chimeway.Signal.track/4` with canonical event names: `chimeway.delivery.succeeded`, `chimeway.delivery.bounced`, or `chimeway.delivery.failed`
 3. `Chimeway.Dispatch.SignalRouterWorker` (Oban queue `:chimeway_signals`) delegates to `Chimeway.Workflows.route_signal/1`
 4. For waiting runs with matching `pending_signals`, the run resumes; for active runs, `on_outcome` / `stop` rules evaluate on delivery convergence inside `progress_run/2`
@@ -194,5 +194,5 @@ Until READ ships, the primary escalation story remains time-based `wait_until` p
 
 ## Next Steps
 
-- [Oban Integration](../recipes/oban-integration.md) — dispatcher config, worker queues, and production scheduling (worker path corrections land in Phase 38 recipes when available)
+- [Oban Integration](../recipes/oban-integration.md) — dispatcher config, worker queues, and transactional enqueue patterns (see oban-integration recipe)
 - [Golden path](../introduction/golden-path.md) — fresh-host trigger → trace → webhook feedback loop
