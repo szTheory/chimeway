@@ -26,7 +26,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 - [x] **Phase 54: Mailglass Adapter Core** — Outbound delivery through Mailglass with contract-tested adapter behaviour (complete 2026-05-29)
 - [x] **Phase 55: Inbound Feedback Bridge** — Mailglass webhooks normalize into Chimeway outcomes and drive workflow progression (completed 2026-05-29)
 - [x] **Phase 56: Blueprint & Demo Proof** — Reference recipe plus TeamPulse demo host end-to-end proof (complete 2026-05-29)
-- [ ] **Phase 57: Docs & Release Gates** — Integration guide, doc-contract tests, and `mix verify.mailglass` CI gate
+- [x] **Phase 57: Docs & Release Gates** — Integration guide, doc-contract tests, and `mix verify.mailglass` CI gate
 
 ## Phase Details
 
@@ -108,10 +108,10 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 2. Doc-contract tests fail if guide text regresses to pre-Mailglass assumptions or omits required setup steps
 3. `mix verify.mailglass` (or equivalent named entrypoint) runs in CI and appears in MAINTAINING.md pre-ship checklist without breaking the existing journey/doc gate quintet
 
-**Plans:** 1/3 plans complete
+**Plans:** 3/3 plans complete
 
-**Wave 1 *(parallel)*:** 57-01 — Golden-path Mailglass integration guide (DOCS-06, D-01–D-07) ✓; 57-03 — `mix verify.mailglass` + CI job + MAINTAINING sextet (GATE-04, D-12–D-18, D-22–D-23)  
-**Wave 2 *(blocked on 57-01)*:** 57-02 — Integration guide doc-contract tests (DOCS-07, D-08–D-11)
+**Wave 1 *(parallel)*:** 57-01 — Golden-path Mailglass integration guide (DOCS-06, D-01–D-07) ✓; 57-03 — `mix verify.mailglass` + CI job + MAINTAINING sextet (GATE-04, D-12–D-18, D-22–D-23) ✓  
+**Wave 2 *(blocked on 57-01)*:** 57-02 — Integration guide doc-contract tests (DOCS-07, D-08–D-11) ✓
 
 ## Progress
 
@@ -120,7 +120,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 | 54. Mailglass Adapter Core | 3/3 | Complete    | 2026-05-29 |
 | 55. Inbound Feedback Bridge | 3/3 | Complete    | 2026-05-29 |
 | 56. Blueprint & Demo Proof | 2/2 | Complete    | 2026-05-29 |
-| 57. Docs & Release Gates | 1/3 | In Progress | — |
+| 57. Docs & Release Gates | 3/3 | Complete    | 2026-05-29 |
 
 ---
 *Roadmap updated: 2026-05-29 — milestone v1.8 Ecosystem Integration Blueprints*

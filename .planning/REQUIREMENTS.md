@@ -21,7 +21,7 @@
 ### Integration Docs (DOCS)
 
 - [x] **DOCS-06**: Golden-path integration guide covers Chimeway + Mailglass dependency setup, adapter registration, delivery config, and inbound feedback wiring
-- [ ] **DOCS-07**: Doc-contract tests lock Mailglass integration guide truth and forbid regressions to pre-integration assumptions
+- [x] **DOCS-07**: Doc-contract tests lock Mailglass integration guide truth and forbid regressions to pre-integration assumptions
 
 ### Release Gates (GATE)
 
@@ -72,7 +72,7 @@ Deferred to later milestones. Tracked but not in v1.8 roadmap.
 | ECOS-05 | Phase 56 | Complete |
 | DEMO-06 | Phase 56 | Complete |
 | DOCS-06 | Phase 57 | Complete |
-| DOCS-07 | Phase 57 | Pending |
+| DOCS-07 | Phase 57 | Complete |
 | GATE-04 | Phase 57 | Complete |
 
 **Coverage:**
