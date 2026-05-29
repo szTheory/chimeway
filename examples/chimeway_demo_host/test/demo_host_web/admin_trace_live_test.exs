@@ -1,5 +1,11 @@
 defmodule DemoHostWeb.AdminTraceLiveTest do
-  @moduledoc "Host-mount admin integration (JOUR-04, JOUR-07, JOUR-08)."
+  @moduledoc """
+  Host-mount admin integration — part of the JOUR-01..08 journey suite.
+
+  Covers JOUR-04 (admin search finds seeded invite), JOUR-07 (Sam password-reset
+  suppression), and JOUR-08 (Morgan payment-escalation trace). Tagged `:journey`
+  for `mix verify.journeys`.
+  """
   use DemoHostWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest

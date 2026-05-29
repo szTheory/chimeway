@@ -1,8 +1,15 @@
 defmodule DemoHostWeb.JourneyTest do
   @moduledoc """
-  TeamPulse consumer journey proofs (JOUR-01..06).
+  TeamPulse consumer journey proofs — part of the JOUR-01..08 suite (9 tests total).
 
-  Tagged `:journey` for `mix test --only journey` / `mix verify.journeys`.
+  This module covers JOUR-01, JOUR-02, JOUR-03, and JOUR-06.
+
+  Other journey modules:
+
+  * `DemoHostWeb.AdminTraceLiveTest` — JOUR-04, JOUR-07, JOUR-08
+  * `Mix.Tasks.Demo.UpTest` (`demo_up_test.exs`) — JOUR-05
+
+  All tests are tagged `:journey` for `mix test --only journey` / `mix verify.journeys`.
   """
   use DemoHostWeb.ConnCase, async: false
   import Ecto.Query, only: [from: 2]
