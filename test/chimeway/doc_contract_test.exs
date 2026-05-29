@@ -168,4 +168,220 @@ defmodule Chimeway.DocContractTest do
       end
     end
   end
+
+  @adoption_forbidden_strings ~w(
+    stop_conditions
+    Workflows.Workers
+    Chimeway.Trigger.trigger
+    resolve_recipients
+  )
+
+  @adoption_forbidden_phrases_golden_path ["mix chimeway.install"]
+  @adoption_forbidden_phrases_installation ["mix chimeway.install"]
+  @adoption_forbidden_phrases_readme ["mix chimeway.install"]
+
+  @golden_path_guide "guides/introduction/golden-path.md"
+
+  describe "golden path doc contract (DOCS-01 / GATE-01)" do
+    setup do
+      content = File.read!(@golden_path_guide)
+      %{content: content}
+    end
+
+    for forbidden <- @adoption_forbidden_strings do
+      test "forbids #{forbidden} in golden path guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "golden path guide must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    for phrase <- @adoption_forbidden_phrases_golden_path do
+      test "forbids #{phrase} in golden path guide", %{content: content} do
+        refute String.contains?(content, unquote(phrase)),
+               "golden path guide must not reference #{unquote(phrase)}"
+      end
+    end
+
+    test "forbids identity: (not recipient_identity:) in golden path guide", %{
+      content: content
+    } do
+      refute Regex.match?(~r/(?<!recipient_)identity:/, content),
+             "golden path guide must not reference identity: (recipient_identity: is permitted)"
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in golden path guide", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "golden path guide must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      mix chimeway.gen.migrations
+      Chimeway.trigger
+      idempotency_key
+      tenant_id
+      Chimeway.Traces.explain_delivery
+      installation.md
+    )
+
+    for required <- @required do
+      test "requires #{required} in golden path guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "golden path guide must reference #{unquote(required)}"
+      end
+    end
+
+    test "every Chimeway.trigger example includes idempotency_key and tenant_id", %{
+      content: content
+    } do
+      triggers = Regex.scan(~r/Chimeway\.trigger\(/, content) |> length()
+      idem = Regex.scan(~r/idempotency_key:/, content) |> length()
+      tenant = Regex.scan(~r/tenant_id:/, content) |> length()
+
+      assert triggers > 0
+      assert triggers == idem,
+             "expected idempotency_key on every trigger (got #{idem}/#{triggers})"
+
+      assert triggers == tenant,
+             "expected tenant_id on every trigger (got #{tenant}/#{triggers})"
+    end
+  end
+
+  @installation_guide "guides/introduction/installation.md"
+
+  describe "installation doc contract (GATE-01)" do
+    setup do
+      content = File.read!(@installation_guide)
+      %{content: content}
+    end
+
+    for forbidden <- @adoption_forbidden_strings do
+      test "forbids #{forbidden} in installation guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "installation guide must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    for phrase <- @adoption_forbidden_phrases_installation do
+      test "forbids #{phrase} in installation guide", %{content: content} do
+        refute String.contains?(content, unquote(phrase)),
+               "installation guide must not reference #{unquote(phrase)}"
+      end
+    end
+
+    test "forbids identity: in installation guide", %{content: content} do
+      refute String.contains?(content, "identity:"),
+             "installation guide must not reference identity:"
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in installation guide", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "installation guide must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      mix chimeway.gen.migrations
+      Chimeway.Traces.explain_delivery
+      golden-path
+    )
+
+    for required <- @required do
+      test "requires #{required} in installation guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "installation guide must reference #{unquote(required)}"
+      end
+    end
+  end
+
+  describe "README install doc contract (GATE-01)" do
+    setup do
+      content = File.read!("README.md")
+      %{content: content}
+    end
+
+    for forbidden <- @adoption_forbidden_strings do
+      test "forbids #{forbidden} in README", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "README must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    for phrase <- @adoption_forbidden_phrases_readme do
+      test "forbids #{phrase} in README", %{content: content} do
+        refute String.contains?(content, unquote(phrase)),
+               "README must not reference #{unquote(phrase)}"
+      end
+    end
+
+    test "forbids identity: in README", %{content: content} do
+      refute String.contains?(content, "identity:"),
+             "README must not reference identity:"
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in README", %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "README must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      mix chimeway.gen.migrations
+      Chimeway.trigger
+      idempotency_key
+      tenant_id
+      golden-path
+    )
+
+    for required <- @required do
+      test "requires #{required} in README", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "README must reference #{unquote(required)}"
+      end
+    end
+  end
+
+  @oban_integration_recipe "guides/recipes/oban-integration.md"
+
+  describe "oban integration doc contract (IN-01 / GATE-01)" do
+    setup do
+      content = File.read!(@oban_integration_recipe)
+      %{content: content}
+    end
+
+    @forbidden_strings ~w(
+      Workflows.Workers
+      Chimeway.Trigger.trigger
+      stop_conditions
+    )
+
+    for forbidden <- @forbidden_strings do
+      test "forbids #{forbidden} in oban integration recipe", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "oban integration recipe must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in oban integration recipe", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "oban integration recipe must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Chimeway.Dispatch.WorkflowProgressionWorker
+      Chimeway.Dispatch.SignalRouterWorker
+      chimeway_delivery
+      chimeway_signals
+    )
+
+    for required <- @required do
+      test "requires #{required} in oban integration recipe", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "oban integration recipe must reference #{unquote(required)}"
+      end
+    end
+  end
 end
