@@ -619,4 +619,141 @@ defmodule Chimeway.NotifierContractTest do
 
     assert {:ok, ^workflow} = Notifier.resolve_workflow(nil, %{}, %{}, serialized)
   end
+
+  describe "wait_until cancel_signals normalization (READ-01)" do
+    defp progress_workflow_fixture(progress_rules) do
+      %{
+        workflow_key: "comment.progress",
+        workflow_version: 1,
+        steps: [
+          %{
+            step_key: "in_app",
+            step_order: 1,
+            channel: "in_app",
+            config: %{"progress" => progress_rules}
+          },
+          %{step_key: "email", step_order: 2, channel: "email", config: %{}}
+        ]
+      }
+    end
+
+    defp base_wait_until_rule(overrides) do
+      Map.merge(
+        %{
+          "kind" => "wait_until",
+          "anchor" => "prior_delivery_terminal_at",
+          "delay_seconds" => 1800,
+          "to_step" => "email"
+        },
+        overrides
+      )
+    end
+
+    test "accepts a valid cancel_signals list" do
+      assert {:ok, workflow} =
+               Notifier.normalize_workflow_declaration(
+                 progress_workflow_fixture([
+                   base_wait_until_rule(%{
+                     "cancel_signals" => [
+                       "chimeway.notification.read",
+                       "chimeway.notification.seen"
+                     ]
+                   })
+                 ])
+               )
+
+      [in_app_step | _] = workflow.steps
+      [rule] = in_app_step.config["progress"]
+
+      assert rule["cancel_signals"] == [
+               "chimeway.notification.read",
+               "chimeway.notification.seen"
+             ]
+    end
+
+    test "trims and dedupes cancel_signals entries" do
+      assert {:ok, workflow} =
+               Notifier.normalize_workflow_declaration(
+                 progress_workflow_fixture([
+                   base_wait_until_rule(%{
+                     "cancel_signals" => [
+                       " chimeway.delivery.succeeded ",
+                       "chimeway.delivery.succeeded"
+                     ]
+                   })
+                 ])
+               )
+
+      [in_app_step | _] = workflow.steps
+      [rule] = in_app_step.config["progress"]
+
+      assert rule["cancel_signals"] == ["chimeway.delivery.succeeded"]
+    end
+
+    test "omits cancel_signals key for an explicit empty list" do
+      assert {:ok, workflow} =
+               Notifier.normalize_workflow_declaration(
+                 progress_workflow_fixture([
+                   base_wait_until_rule(%{"cancel_signals" => []})
+                 ])
+               )
+
+      [in_app_step | _] = workflow.steps
+      [rule] = in_app_step.config["progress"]
+
+      refute Map.has_key?(rule, "cancel_signals")
+    end
+
+    test "rejects blank cancel_signals entries" do
+      assert {:error,
+              {:workflow_resolution_failed,
+               {:invalid_workflow_progress_rule,
+                {:invalid_cancel_signals, {:blank_entry, "   "}}}}} =
+               Notifier.normalize_workflow_declaration(
+                 progress_workflow_fixture([
+                   base_wait_until_rule(%{"cancel_signals" => ["   "]})
+                 ])
+               )
+    end
+
+    test "rejects non-list cancel_signals" do
+      assert {:error,
+              {:workflow_resolution_failed,
+               {:invalid_workflow_progress_rule,
+                {:invalid_cancel_signals, {:not_a_list, "not_a_list"}}}}} =
+               Notifier.normalize_workflow_declaration(
+                 progress_workflow_fixture([
+                   base_wait_until_rule(%{"cancel_signals" => "not_a_list"})
+                 ])
+               )
+    end
+
+    test "rejects cancel_signals lists over the max count" do
+      signals = Enum.map(1..11, &"chimeway.signal.#{&1}")
+
+      assert {:error,
+              {:workflow_resolution_failed,
+               {:invalid_workflow_progress_rule,
+                {:invalid_cancel_signals, {:too_many, 11}}}}} =
+               Notifier.normalize_workflow_declaration(
+                 progress_workflow_fixture([
+                   base_wait_until_rule(%{"cancel_signals" => signals})
+                 ])
+               )
+    end
+
+    test "rejects wait_until rules that mix cancel_signals with outcome keys" do
+      assert {:error,
+              {:workflow_resolution_failed,
+               {:invalid_workflow_progress_rule, {:mixed_rule_shape, _}}}} =
+               Notifier.normalize_workflow_declaration(
+                 progress_workflow_fixture([
+                   base_wait_until_rule(%{
+                     "cancel_signals" => ["chimeway.notification.read"],
+                     "outcome" => "delivered"
+                   })
+                 ])
+               )
+    end
+  end
 end
