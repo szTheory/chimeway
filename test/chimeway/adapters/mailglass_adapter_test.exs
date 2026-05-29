@@ -20,14 +20,38 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
     use Mailglass.DataCase, async: false
     use Chimeway.Adapter.ContractTest
 
+    @webhook_contract true
     @moduletag :mailglass
 
     alias Chimeway.Adapters.Mailglass, as: MailglassAdapter
+    alias Chimeway.Repo
     alias Chimeway.TestSupport.MailglassFixtures
+    alias Chimeway.Webhooks
+    alias Chimeway.Webhooks.Ingress
 
     def adapter_module, do: MailglassAdapter
     def sample_delivery, do: MailglassFixtures.sample_delivery()
     def simulate_error?, do: true
+    def webhook_contract?, do: true
+
+    def webhook_fixtures do
+      message_id = "postmark-msg-123"
+      delivered_at = "2026-05-29T12:00:00Z"
+
+      payload =
+        MailglassFixtures.postmark_delivery_payload(
+          message_id: message_id,
+          delivered_at: delivered_at
+        )
+
+      %{
+        valid_body: MailglassFixtures.encode_postmark_payload(payload),
+        valid_headers: MailglassFixtures.postmark_delivery_headers(),
+        config: MailglassFixtures.postmark_webhook_config_keyword(),
+        provider_message_id: message_id,
+        provider_event_id: "Delivery:#{message_id}:#{delivered_at}"
+      }
+    end
 
     setup do
       Mailglass.Adapters.Fake.checkout()
@@ -204,6 +228,39 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
         assert {:ok, id} = MailglassAdapter.resolve_provider_event_id(parsed)
         assert is_binary(id) and id != ""
         assert String.starts_with?(id, "Delivery:")
+      end
+    end
+
+    describe "webhook dedup (T-55-06)" do
+      setup do
+        :ok = Ecto.Adapters.SQL.Sandbox.checkout(Chimeway.Repo)
+        Ecto.Adapters.SQL.Sandbox.mode(Chimeway.Repo, {:shared, self()})
+        :ok
+      end
+
+      @tag :webhook
+      test "duplicate provider_event_id collapses to one ingress row" do
+        fixtures = webhook_fixtures()
+
+        assert {:ok, %Ingress{} = first} =
+                 Webhooks.process(
+                   MailglassAdapter,
+                   fixtures.valid_body,
+                   fixtures.valid_headers,
+                   fixtures.config
+                 )
+
+        assert first.provider_event_id == fixtures.provider_event_id
+
+        assert {:ok, %Ingress{} = _second} =
+                 Webhooks.process(
+                   MailglassAdapter,
+                   fixtures.valid_body,
+                   fixtures.valid_headers,
+                   fixtures.config
+                 )
+
+        assert Repo.aggregate(Ingress, :count) == 1
       end
     end
   end

@@ -49,14 +49,20 @@ if Code.ensure_loaded?(Mailglass) do
     @doc false
     def postmark_delivery_payload(opts \\ []) do
       message_id = Keyword.get(opts, :message_id, "postmark-msg-123")
+      delivered_at = Keyword.get(opts, :delivered_at, "2026-05-29T12:00:00Z")
 
       %{
         "RecordType" => "Delivery",
         "MessageID" => message_id,
-        "DeliveredAt" => "2026-05-29T12:00:00Z",
+        "DeliveredAt" => delivered_at,
         "Recipient" => "test@example.com",
         "Tag" => "chimeway-test"
       }
+    end
+
+    @doc false
+    def postmark_delivery_payload_for_message_id(message_id) when is_binary(message_id) do
+      postmark_delivery_payload(message_id: message_id)
     end
 
     @doc false

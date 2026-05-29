@@ -41,6 +41,10 @@ defmodule Chimeway.Adapter.ContractTest do
   - `simulate_error?/0` — if `true`, activates the error return shape contract test
     (default: `false`; Logger adapter and similar always-succeed adapters should
     leave this false)
+  - `webhook_contract?/0` — if `true`, documents webhook contract activation (pair with
+    `@webhook_contract true` module attribute to compile webhook tests)
+  - `webhook_fixtures/0` — returns fixture map when `@webhook_contract true`
+    (`valid_body`, `valid_headers`, `config`, `provider_message_id`, `provider_event_id`)
   """
 
   defmacro __using__(_opts) do
@@ -50,6 +54,10 @@ defmodule Chimeway.Adapter.ContractTest do
       # Default simulate_error? — override in the using module to activate error shape test
       def simulate_error?, do: false
       defoverridable simulate_error?: 0
+
+      # Default webhook_contract? — override to activate webhook callback contract tests
+      def webhook_contract?, do: false
+      defoverridable webhook_contract?: 0
 
       @doc false
       def __contract_check_no_sensitive_keys!(meta) when is_map(meta) do
@@ -67,6 +75,27 @@ defmodule Chimeway.Adapter.ContractTest do
         end
 
         :ok
+      end
+
+      @doc false
+      def __contract_parse_webhook_body!(adapter, body, headers, config)
+          when is_atom(adapter) and is_binary(body) and is_list(headers) and is_list(config) do
+        cond do
+          function_exported?(adapter, :parse_webhook_body, 3) ->
+            case adapter.parse_webhook_body(body, headers, config) do
+              {:ok, parsed} ->
+                parsed
+
+              {:error, reason} ->
+                flunk("parse_webhook_body/3 returned #{inspect(reason)} for #{inspect(adapter)}")
+            end
+
+          true ->
+            case Jason.decode(body) do
+              {:ok, parsed} -> parsed
+              {:error, _} -> flunk("Jason.decode/1 failed for webhook body on #{inspect(adapter)}")
+            end
+        end
       end
 
       describe "Chimeway.Adapter contract" do
@@ -115,7 +144,99 @@ defmodule Chimeway.Adapter.ContractTest do
       end
     end
 
+    webhook_contract? = Module.get_attribute(env.module, :webhook_contract, false)
+
+    webhook_tests =
+      if webhook_contract? do
+        unless Module.defines?(env.module, {:webhook_fixtures, 0}) do
+          raise CompileError,
+            file: env.file,
+            line: env.line,
+            description:
+              "#{inspect(env.module)} sets @webhook_contract true but must define webhook_fixtures/0"
+        end
+
+        quote do
+          describe "Chimeway.Adapter webhook contract" do
+            test "verify_webhook accepts valid fixture credentials" do
+              fixtures = webhook_fixtures()
+              adapter = adapter_module()
+
+              assert :ok =
+                       adapter.verify_webhook(
+                         fixtures.valid_body,
+                         fixtures.valid_headers,
+                         fixtures.config
+                       )
+            end
+
+            test "verify_webhook rejects invalid credentials" do
+              fixtures = webhook_fixtures()
+              adapter = adapter_module()
+              invalid_headers = [{"authorization", "Basic #{Base.encode64("wrong:creds")}"}]
+
+              assert {:error, :unauthorized} =
+                       adapter.verify_webhook(fixtures.valid_body, invalid_headers, fixtures.config)
+            end
+
+            test "resolve_delivery extracts provider_message_id from parsed fixture" do
+              fixtures = webhook_fixtures()
+              adapter = adapter_module()
+
+              parsed =
+                __contract_parse_webhook_body!(
+                  adapter,
+                  fixtures.valid_body,
+                  fixtures.valid_headers,
+                  fixtures.config
+                )
+
+              assert {:ok, %{provider_message_id: id}} = adapter.resolve_delivery(parsed)
+              assert is_binary(id) and id != ""
+              assert id == fixtures.provider_message_id
+            end
+
+            test "normalize_feedback maps fixture to canonical delivery outcome" do
+              fixtures = webhook_fixtures()
+              adapter = adapter_module()
+
+              parsed =
+                __contract_parse_webhook_body!(
+                  adapter,
+                  fixtures.valid_body,
+                  fixtures.valid_headers,
+                  fixtures.config
+                )
+
+              assert {:ok, %{status: status}} = adapter.normalize_feedback(parsed)
+              assert status in [:delivered, :bounced, :failed]
+            end
+
+            test "resolve_provider_event_id returns stable id when fixture supplies event id" do
+              fixtures = webhook_fixtures()
+              adapter = adapter_module()
+
+              parsed =
+                __contract_parse_webhook_body!(
+                  adapter,
+                  fixtures.valid_body,
+                  fixtures.valid_headers,
+                  fixtures.config
+                )
+
+              assert {:ok, id} = adapter.resolve_provider_event_id(parsed)
+              assert is_binary(id) and id != ""
+              assert id == fixtures.provider_event_id
+            end
+          end
+        end
+      else
+        quote do
+        end
+      end
+
     quote do
+      unquote(webhook_tests)
     end
   end
 end
