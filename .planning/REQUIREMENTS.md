@@ -85,7 +85,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEMO-01 | Phase 39 | Complete |
 | OPER-01 | Phase 40 | Complete |
 | OPER-02 | Phase 40 | Complete |
-| GATE-01 | Phase 41 | Pending |
+| GATE-01 | Phase 41 | In Progress |
 
 **Coverage:**
 

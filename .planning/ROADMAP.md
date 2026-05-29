@@ -121,7 +121,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Doc drift and example breakage are caught before release, not by adopters in production.
 **Depends on:** Phase 40
 **Requirements:** GATE-01
-**Plans:** 3 plans in 3 waves
+**Plans:** 1/3 plans executed
 
 | Wave | Plans | What it builds |
 |------|-------|----------------|
@@ -130,6 +130,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 | 3 *(blocked on Wave 2)* | 41-03 | `verify.example` admin smoke expansion + `verify_example` CI job (D-08–D-11) |
 
 **Cross-cutting constraints:**
+
 - Doc drift and example breakage must be caught before release, not by adopters in production
 - `mix ci.verify_gates` runs scoped doc-contract tests only — not full `mix test`
 - `verify.example` is pre-ship GATE-01 proof — not bundled into default `mix ci`
@@ -157,7 +158,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 | DEMO-01 | Phase 39 | Pending |
 | OPER-01 | Phase 40 | Pending |
 | OPER-02 | Phase 40 | Pending |
-| GATE-01 | Phase 41 | Pending |
+| GATE-01 | Phase 41 | In Progress |
 
 **Coverage:** 12/12 requirements mapped ✓
 

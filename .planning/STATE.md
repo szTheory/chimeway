@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: Ready to execute
-stopped_at: Phase 41 planned (3 plans)
-last_updated: "2026-05-29T12:00:00.000Z"
-last_activity: 2026-05-29 -- Phase 41 planning complete (3 plans)
+status: executing
+stopped_at: Completed 41-01-PLAN.md
+last_updated: "2026-05-29T12:26:13.089Z"
+last_activity: 2026-05-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 22
-  completed_plans: 19
+  completed_plans: 20
   percent: 86
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 41 — release verification gates
+**Current focus:** Phase 41 — release-verification-gates
 
 ## Current Position
 
-Phase: 41
-Plan: Not started
+Phase: 41 (release-verification-gates) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-05-29 -- Phase 41 planning complete (3 plans)
+Last activity: 2026-05-29
 
 ## Accumulated Context
 
@@ -47,6 +47,8 @@ Recent v1.4/v1.5 decisions affecting shipped behavior:
 - [37-01]: INV-002 resolved via doc-truth — journey guide uses wait_until primary story; READ-01/READ-02 in Deferred section; forbidden API strings omitted from prose for grep gates.
 - [37-02]: Oban recipe uses Dispatch workers, per-run due_at scheduling as primary, chimeway_workflows queue removed; SignalRouterWorker documents pending_signals matching.
 - [37-03]: Journey guide doc-contract test uses forbidden/required string gates; Chimeway.Workflow check uses negative lookahead to permit Workflows module; DOCS-03 #3 closed.
+- [Phase 41]: Trigger parity counts Chimeway.trigger( call sites only — Excludes Chimeway.trigger/3 arity prose references that would false-fail idempotency_key/tenant_id parity gate
+- [Phase 41]: identity: forbidden via negative lookbehind in golden-path — Permits recipient_identity: in notifier example per D-03 research pitfall
 
 ### Pending Todos
 
@@ -77,9 +79,9 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-29T10:42:28.838Z
-Stopped at: Phase 41 context gathered (assumptions mode)
-Resume file: .planning/phases/41-release-verification-gates/41-CONTEXT.md
+Last session: 2026-05-29T12:26:12.998Z
+Stopped at: Completed 41-01-PLAN.md
+Resume file: None
 
 ## Performance Metrics
 
@@ -90,4 +92,5 @@ Resume file: .planning/phases/41-release-verification-gates/41-CONTEXT.md
 | Phase 35 P02 | 10min | 3 tasks | Mix task + integration tests |
 | Phase 35 P03 | 45min | 5 tasks | Golden fixture + CI contracts |
 | Phase 37 P02 | 10min | 2 tasks | 1 files |
-| Phase 37 P03 | 12min | 2 tasks | 2 files |
+| Phase 41 P01 | 12min | 2 tasks | Doc-contract adoption gates |
+| Phase 41 P01 | 12 | 2 tasks | 1 files |
