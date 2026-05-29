@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: executing
-stopped_at: Completed 41-03-PLAN.md
-last_updated: "2026-05-29T12:38:48.000Z"
+status: complete
+stopped_at: Milestone v1.5 closed
+last_updated: "2026-05-29T13:30:00.000Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 22
   completed_plans: 22
   percent: 100
@@ -18,16 +18,16 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-28)
+See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 41 — release-verification-gates
+**Current focus:** Planning next milestone (`/gsd-new-milestone`)
 
 ## Current Position
 
-Phase: 41 (release-verification-gates) — COMPLETE
-Plan: 3 of 3
-Status: All plans executed
+Milestone: v1.5 Adoption Surface — **SHIPPED** (2026-05-29)
+Phases: 35–41 (7 phases, 22 plans)
+Status: Milestone closed and tagged `v1.5`
 Last activity: 2026-05-29
 
 ## Accumulated Context
@@ -35,21 +35,12 @@ Last activity: 2026-05-29
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent v1.4/v1.5 decisions affecting shipped behavior:
+Recent v1.5 decisions affecting shipped behavior:
 
-- [v1.4]: Generic outbound channel behaviour with per-channel render contracts and adapter resolution (Phase 29).
-- [v1.4]: Webhook ingress via atomic `Multi+Oban` handoff and ingress schema (Phase 33).
-- [v1.4]: Canonical `chimeway.delivery.{succeeded,bounced,failed}` vocabulary across normalization, signals, and traces (Phase 34).
-- [33-06]: `CacheBodyReader` must handle `:ok`, `:more`, and `:error` from `Plug.Conn.read_body/2` for chunked bodies.
-- [35-01]: D-05 Option A — infer `{App}.Repo` from host `mix.exs` when `config :chimeway, :repo` unset; 31 templates shipped excluding Oban (D-10).
-- [35-02]: Tmp host subprocess tests include Oban dep for path-dep compile; moduledoc includes shortdoc for mix help verify.
-- [35-03]: Golden fixture at `test/fixtures/installer_golden/`; `MIX_INSTALLER_ACCEPT_GOLDEN=1` refresh; path-gated `install_golden_contract` CI job.
-- [37-01]: INV-002 resolved via doc-truth — journey guide uses wait_until primary story; READ-01/READ-02 in Deferred section; forbidden API strings omitted from prose for grep gates.
-- [37-02]: Oban recipe uses Dispatch workers, per-run due_at scheduling as primary, chimeway_workflows queue removed; SignalRouterWorker documents pending_signals matching.
-- [37-03]: Journey guide doc-contract test uses forbidden/required string gates; Chimeway.Workflow check uses negative lookahead to permit Workflows module; DOCS-03 #3 closed.
 - [Phase 41]: Trigger parity counts Chimeway.trigger( call sites only — Excludes Chimeway.trigger/3 arity prose references that would false-fail idempotency_key/tenant_id parity gate
 - [Phase 41]: ci.verify_gates scoped to doc_contract_test.exs only — ci.docs and verify.example remain separate pre-ship mandates per D-14
 - [Phase 41]: verify.example additive chain — demo host E2E first, chimeway_admin smoke second; dedicated verify_example CI job always-on without path-gating (D-08–D-11)
+- [Phase 41]: verify.example requires mix cmd --shell on Elixir 1.19+ (Mix 1.19 cmd no longer expands shell operators without --shell)
 
 ### Pending Todos
 
@@ -57,43 +48,43 @@ None.
 
 ### Blockers/Concerns
 
-None for engine work. Adoption gaps drive v1.5 scope (assessment 2026-05-28).
+None for v1.5 scope.
 
 ### Open Investigations
 
 | ID | Question | When |
 |----|----------|------|
-| INV-001 | `chimeway_admin` in-tree vs sibling Hex package? | v1.5 plan-phase |
+| INV-001 | `chimeway_admin` in-tree vs sibling Hex package? | **Resolved** — in-tree package shipped Phase 40 |
 | INV-002 | Fix journey guide vs implement `pending_signals` on wait? | **Resolved doc-truth** in 37-01; engine glue deferred READ milestone |
-| INV-003 | Mailglass adapter as v1.5 proof vs v1.6 SEED-003 | v1.5 discuss-phase |
+| INV-003 | Mailglass adapter as v1.5 proof vs v1.6 SEED-003 | v1.6 discuss-phase |
 
 ### Roadmap Evolution
 
+- Milestone v1.5 formally closed 2026-05-29 after audit passed (12/12 requirements, 655 tests).
 - Milestone v1.4 formally closed 2026-05-28 after re-audit passed (8/8 requirements, 549 tests).
-- Milestone v1.5 initialized 2026-05-28; phases continue from 35.
-- Phase 35 complete 2026-05-28 — INST-01 and INST-02 satisfied.
-- Phase 37 complete 2026-05-29 — DOCS-03 satisfied (journey guide rewrite, Oban recipe fix, doc-contract test).
 
 ### Deferred Items
 
-Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
+Tech debt acknowledged at v1.5 close (see `milestones/v1.5-MILESTONE-AUDIT.md`):
+
+| Category | Item | Status |
+|----------|------|--------|
+| docs | ex_doc relative-link warnings block `mix ci.docs` | deferred |
+| nyquist | Phase 35/39 VALIDATION.md frontmatter incomplete | deferred |
+| verify | verify.example Mix 1.19 --shell fix | **resolved** (4ca792f) |
 
 ### Session Continuity
 
-Last session: 2026-05-29T12:38:48.000Z
-Stopped at: Completed 41-03-PLAN.md
+Last session: 2026-05-29T13:30:00.000Z
+Stopped at: Milestone v1.5 closed
 Resume file: None
 
 ## Performance Metrics
 
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
-| Phase 37 P01 | 15min | 3 tasks | Journey guide rewrite |
-| Phase 35 P01 | 12min | 3 tasks | 33 files |
-| Phase 35 P02 | 10min | 3 tasks | Mix task + integration tests |
-| Phase 35 P03 | 45min | 5 tasks | Golden fixture + CI contracts |
-| Phase 37 P02 | 10min | 2 tasks | 1 files |
 | Phase 41 P01 | 12min | 2 tasks | Doc-contract adoption gates |
-| Phase 41 P01 | 12 | 2 tasks | 1 files |
-| Phase 41 P02 | 18 | 3 tasks | 4 files |
-| Phase 41 P03 | 12 | 3 tasks | 3 files |
+| Phase 41 P02 | 18min | 3 tasks | ci.verify_gates + runbook |
+| Phase 41 P03 | 12min | 3 tasks | verify.example + CI job |
+| Phase 40 | 3 plans | — | chimeway_admin MVP |
+| Phase 35–39 | 16 plans | — | Installer through demo trace |

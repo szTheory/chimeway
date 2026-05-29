@@ -10,19 +10,19 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.4 Channel Feedback Loops** on 2026-05-08 (re-audited and formally closed 2026-05-28). **v1.5 Phase 39 (Demo Host Trace Path) complete 2026-05-29** — demo host README provides a non-webhook IEx walkthrough for `Chimeway.trigger/3` + `explain_delivery/1`, cross-linked from golden-path as lowest-friction validation (DEMO-01). Phase 37 journey guides, Phase 35 installer task, and Phase 36 golden-path alignment also shipped. The library supports generic outbound channel contracts (SMS, Push, Chat), durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression via canonical `chimeway.delivery.*` signals, and operator traces that link inbound webhooks to journey steps. End-to-end proof lives in `examples/chimeway_demo_host` with 597 tests passing.
+Chimeway shipped **v1.5 Adoption Surface** on 2026-05-29 (audit passed). The milestone delivers installer truth (`mix chimeway.gen.migrations` with golden-diff CI), golden-path integration docs with version alignment gates, journey guide doc-truth, two reference recipes (password-reset support trace; feedback escalation), demo host non-webhook IEx trace path, optional `chimeway_admin` operator trace MVP, and GATE-01 release verification (`mix ci.verify_gates`, `mix verify.example` CI job, MAINTAINING.md pre-ship quartet). Under v1.4, the library supports generic outbound channel contracts, durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression, and operator traces. End-to-end proof lives in `examples/chimeway_demo_host` with **655 tests** passing (`mix ci`).
 
 ## Product Arc
 
 - `v1.3 Workflow Journeys` — durable, explainable multi-step workflows and escalations (shipped 2026-04-30).
 - `v1.4 Channel Feedback Loops` — outbound channels plus inbound receipts/webhooks feeding workflow progression (shipped 2026-05-08).
-- `v1.5 Adoption Surface` — reference flows, integration polish, and operator UX (planned).
+- `v1.5 Adoption Surface` — installer, golden-path docs, reference recipes, demo trace path, operator admin MVP, release gates (shipped 2026-05-29).
 
-## Current Milestone: v1.5 Adoption Surface
+## Current Milestone
 
-**Goal:** Make Chimeway adoptable off the lot — installer truth, golden-path docs, reference recipes, and optional operator trace UI — without expanding core engine scope.
+**None** — v1.5 Adoption Surface shipped 2026-05-29. Run `/gsd-new-milestone` to plan v1.6+.
 
-**Target features:**
+### Shipped v1.5 Features (Validated)
 - `mix chimeway.gen.migrations` (or install task) with idempotent golden-diff verification
 - Golden-path integration doc: fresh host → trigger → trace query → optional webhook feedback
 - Two or more reference recipes (password-reset support trace; feedback escalation workflow)
@@ -57,7 +57,7 @@ Prior context includes:
 - The shipped v1.1 milestone established production-trust behavior across preferences, reliability, observability, and integration documentation.
 - v1.4 shipped multi-channel outbound contracts and inbound feedback loops with E2E proof on a reference Phoenix host.
 - Next value jump is adoption surface: reference flows, integration docs, and operator UX — not more channel matrix expansion.
-- Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — engine strong; installer doc references non-existent Mix task; no shipped operator LiveView; demo host proves webhooks only.
+- Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — **resolved by v1.5** (installer task, golden path, operator UI, demo trace path, release gates).
 
 ## Constraints
 
@@ -95,10 +95,35 @@ Prior context includes:
 | Atomic webhook ingress via Multi+Oban | Prevent orphaned async feedback processing on partial failure | Shipped in v1.4 (Phase 33) |
 | Canonical `chimeway.delivery.*` vocabulary | Align normalization, signals, and trace projection for auditability | Shipped in v1.4 (Phase 34) |
 | Generic outbound channel behaviour | SMS/Push/Chat without vendor lock-in; per-channel render contracts | Shipped in v1.4 (Phase 29) |
-| v1.5 before channel matrix or ecosystem plugins | Engine credible at v1.4 close; adoption friction (installer, golden path, operator UI) is the bottleneck | Assessment 2026-05-28 (thread `2026-05-28-v1.5-milestone-assessment`) |
-| Defer read/unread-driven workflow branching to post-v1.5 | `pending_signals` not populated on `wait_until`; journey guide ahead of engine; READ milestone is narrower glue | Assessment 2026-05-28 |
+| v1.5 before channel matrix or ecosystem plugins | Engine credible at v1.4 close; adoption friction is the bottleneck | Shipped 2026-05-29 (Phases 35-41) |
+| Defer read/unread-driven workflow branching to post-v1.5 | `pending_signals` not populated on `wait_until`; READ milestone is narrower glue | Deferred to v1.6+ READ milestone |
+| GATE-01 scoped doc-contract gates separate from default ci | Fast core feedback + explicit pre-ship quartet | Shipped Phase 41 |
+| verify.example additive subprocess chain | Demo host E2E first, chimeway_admin second | Shipped Phase 41 |
 
 ## Archived Milestone Context
+
+<details>
+<summary>v1.5 Adoption Surface planning context</summary>
+
+### Milestone Scope
+
+Make Chimeway adoptable off the lot: installer truth, golden-path docs, reference recipes, demo trace path, optional operator trace MVP, and release doc-contract gates.
+
+### Delivered Features
+
+- `mix chimeway.gen.migrations` with golden-diff and idempotency CI contracts.
+- Golden-path guide: dependency → migrations → trigger → trace → optional webhook feedback.
+- Journey guide doc-truth rewrite with doc-contract tests.
+- Password-reset support trace and feedback escalation reference recipes.
+- Demo host IEx trace path without provider webhooks.
+- `chimeway_admin` MVP: redacted trace lookup with host auth behaviour.
+- GATE-01: `mix ci.verify_gates`, `verify.example` CI job, MAINTAINING.md pre-ship quartet.
+
+### Validated Requirements Snapshot
+
+- INST-01/02, DOCS-01/02/03, RECP-01/02, DEMO-01, OPER-01/02, GATE-01 — all satisfied.
+
+</details>
 
 <details>
 <summary>v1.4 Channel Feedback Loops planning context</summary>
@@ -189,4 +214,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 — Phase 39 (Demo Host Trace Path) complete; v1.5 in progress*
+*Last updated: 2026-05-29 after v1.5 milestone close*
