@@ -1,9 +1,9 @@
 ---
 phase: 37
 slug: doc-truth-journey-guides
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-28
 ---
 
@@ -39,13 +39,13 @@ created: 2026-05-28
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 37-01-01 | 01 | 1 | DOCS-03 #1 | — | Journey guide uses Notifier `workflow/2` with `wait_until`/`on_outcome`/`stop` | grep | `rg 'wait_until|on_outcome|stop' guides/flows/multi-step-journeys.md` | ❌ W0 | ⬜ pending |
-| 37-01-02 | 01 | 1 | DOCS-03 #1 | — | No aspirational APIs in primary flow | grep | `rg 'Chimeway\.Workflow|stop_conditions|:wait' guides/flows/multi-step-journeys.md` expect 0 | ❌ W0 | ⬜ pending |
-| 37-01-03 | 01 | 1 | DOCS-03 #2 | — | INV-002 deferred callout present | grep | `rg 'Deferred|READ-0|pending_signals' guides/flows/multi-step-journeys.md` | ❌ W0 | ⬜ pending |
-| 37-01-04 | 01 | 1 | DOCS-03 #1 | — | Correct trigger/signal APIs | grep | `rg 'Chimeway\.trigger/3' guides/flows/multi-step-journeys.md`; `rg 'Chimeway\.Trigger\.trigger' guides/flows/` expect 0 | ❌ W0 | ⬜ pending |
-| 37-02-01 | 02 | 2 | DOCS-03 #1 | — | Oban worker paths corrected | grep | `rg 'Chimeway\.Dispatch\.(WorkflowProgressionWorker|SignalRouterWorker)' guides/recipes/oban-integration.md`; `rg 'Workflows\.Workers' guides/` expect 0 | ✅ | ⬜ pending |
-| 37-03-01 | 03 | 3 | DOCS-03 #3 | — | Doc-contract test forbids/requires journey guide strings | unit | `mix test test/chimeway/doc_contract_test.exs` | ❌ W0 | ⬜ pending |
-| 37-03-02 | 03 | 3 | DOCS-03 #3 | — | HexDocs + CI pass | integration | `mix ci.docs && mix ci` | ✅ | ⬜ pending |
+| 37-01-01 | 01 | 1 | DOCS-03 #1 | — | Journey guide uses Notifier `workflow/2` with `wait_until`/`on_outcome`/`stop` | grep | `rg 'wait_until|on_outcome|stop' guides/flows/multi-step-journeys.md` | ✅ | ✅ green |
+| 37-01-02 | 01 | 1 | DOCS-03 #1 | — | No aspirational APIs in primary flow | grep | `rg 'Chimeway\.Workflow|stop_conditions|:wait' guides/flows/multi-step-journeys.md` expect 0 | ✅ | ✅ green |
+| 37-01-03 | 01 | 1 | DOCS-03 #2 | — | INV-002 deferred callout present | grep | `rg 'Deferred|READ-0|pending_signals' guides/flows/multi-step-journeys.md` | ✅ | ✅ green |
+| 37-01-04 | 01 | 1 | DOCS-03 #1 | — | Correct trigger/signal APIs | grep | `rg 'Chimeway\.trigger/3' guides/flows/multi-step-journeys.md`; `rg 'Chimeway\.Trigger\.trigger' guides/flows/` expect 0 | ✅ | ✅ green |
+| 37-02-01 | 02 | 2 | DOCS-03 #1 | — | Oban worker paths corrected | grep | `rg 'Chimeway\.Dispatch\.(WorkflowProgressionWorker|SignalRouterWorker)' guides/recipes/oban-integration.md`; `rg 'Workflows\.Workers' guides/` expect 0 | ✅ | ✅ green |
+| 37-03-01 | 03 | 3 | DOCS-03 #3 | T-37-03-01 | Doc-contract test forbids/requires journey guide strings | unit | `mix test test/chimeway/doc_contract_test.exs` | ✅ | ✅ green |
+| 37-03-02 | 03 | 3 | DOCS-03 #3 | T-37-03-02 | HexDocs + CI pass | integration | `mix ci.docs && mix ci` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -53,9 +53,9 @@ created: 2026-05-28
 
 ## Wave 0 Requirements
 
-- [ ] Journey guide doc-contract describe block in `doc_contract_test.exs` (D-15)
-- [ ] Rewritten `guides/flows/multi-step-journeys.md` (primary deliverable)
-- [ ] Fixed `guides/recipes/oban-integration.md` worker modules and queue guidance
+- [x] Journey guide doc-contract describe block in `doc_contract_test.exs` (D-15)
+- [x] Rewritten `guides/flows/multi-step-journeys.md` (primary deliverable)
+- [x] Fixed `guides/recipes/oban-integration.md` worker modules and queue guidance
 
 Already available:
 
@@ -78,11 +78,20 @@ Already available:
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Verification commands (2026-05-29):**
+
+```bash
+mix test test/chimeway/doc_contract_test.exs   # 18 tests, 0 failures
+mix ci.docs                                      # exit 0
+mix ci                                           # 578 tests, 0 failures
+rg 'Workflows\.Workers' guides/                  # 0 matches
+```
+
+**Approval:** complete — DOCS-03 criteria #1–#3 satisfied; phase ready for `/gsd-verify-work`
