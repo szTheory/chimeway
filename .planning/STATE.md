@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: READ + Adoption Polish
 status: executing
-last_updated: "2026-05-29T18:00:00.000Z"
-last_activity: 2026-05-29 -- Phase 49 plan 49-02 complete
+last_updated: "2026-05-29T19:00:00.000Z"
+last_activity: 2026-05-29 -- Phase 49 plan 49-03 complete (phase complete)
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 33
 ---
 
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 ## Current Position
 
-Phase: 49 (inbox-read-signal) — EXECUTING
-Plan: 2 of 3 complete (next: 49-03)
-Status: Executing Phase 49
-Last activity: 2026-05-29 -- Phase 49 plan 49-02 complete
+Phase: 49 (inbox-read-signal) — COMPLETE
+Plan: 3 of 3 complete
+Status: Phase 49 complete — ready for Phase 50
+Last activity: 2026-05-29 -- Phase 49 plan 49-03 complete (phase complete)
 
 ## Accumulated Context
 
@@ -46,6 +46,8 @@ Last activity: 2026-05-29 -- Phase 49 plan 49-02 complete
 - [48-02]: route_signal/1 unchanged in Phase 48 — population only at enter_waiting/6
 - [48-03]: Journey guide documents cancel_signals with canonical chimeway.notification.read/.seen; READ-02 deferral retained
 - [48-03]: Doc contract forbids "Engine gap today" to prevent READ-01 gap regression
+- [49-03]: READ-02 deferral removed from journey guide; inbox emission documented (D-09)
+- [49-03]: Doc contract requires mark_read/mark_seen strings; forbids deferral phrases via @forbidden_phrases
 - [49-01]: Inbox emits signals on first read/seen transition only; skip emission when tenant unresolved
 - [49-01]: Lifecycle :ok independent of Signal.track/4 result — separate transactions per D-07
 - [49-02]: E2E mark_read path uses public Chimeway.mark_read/3 — no host Signal.track glue (READ-02)
@@ -87,11 +89,11 @@ Items acknowledged and deferred at milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-29T18:00:00.000Z
-Stopped at: Phase 49 plan 49-02 complete
-Resume file: .planning/phases/49-inbox-read-signal/49-03-PLAN.md
+Last session: 2026-05-29T19:00:00.000Z
+Stopped at: Phase 49 complete (3/3 plans)
+Resume file: .planning/phases/50-natural-escalation-demo/50-01-PLAN.md
 
 ## Operator Next Steps
 
-- Execute plan 49-03 — journey guide doc-truth flip + doc_contract_test (D-09)
-- `/gsd-verify-work 48` — conversational UAT for Phase 48 success criteria
+- Execute Phase 50 plan 50-01 — natural escalation demo (DEMO-03/04)
+- `/gsd-verify-work 49` — conversational UAT for Phase 49 success criteria

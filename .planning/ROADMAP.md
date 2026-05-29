@@ -67,7 +67,7 @@
 2. Calling `Chimeway.mark_seen/3` emits a durable signal with documented semantics distinct from or aligned with read
 3. A `:waiting` run whose `pending_signals` includes the inbox-read event resumes to `:active` with a `signal_received` transition visible in operator traces (event name only, no raw payload)
 
-**Plans:** 2/3 plans complete
+**Plans:** 3/3 plans complete
 
 **Wave 1** *(no dependencies)*
 
