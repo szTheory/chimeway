@@ -89,7 +89,10 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 2. Demo host TeamPulse notifiers deliver at least one email through `Chimeway.Adapter.Mailglass` with inspectable traces via `/admin/chimeway`
 3. Recipe and demo align on stable notification keys and Mailglass template identifiers — no module-name coupling in durable identity
 
-**Plans:** TBD
+**Plans:** 0/2 plans complete
+
+**Wave 1 *(no dependencies)*:** 56-01 — Demo host Mailglass proof (DEMO-06: invite delivery + admin trace, journey CI isolated)  
+**Wave 2 *(blocked on Wave 1)*:** 56-02 — Mailglass integration blueprint recipe + ECOS-05 doc-contract
 
 ### Phase 57: Docs & Release Gates
 
@@ -113,7 +116,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 |-------|----------------|--------|-----------|
 | 54. Mailglass Adapter Core | 3/3 | Complete    | 2026-05-29 |
 | 55. Inbound Feedback Bridge | 3/3 | Complete    | 2026-05-29 |
-| 56. Blueprint & Demo Proof | 0/? | Not started | — |
+| 56. Blueprint & Demo Proof | 0/2 | Planned | — |
 | 57. Docs & Release Gates | 0/? | Not started | — |
 
 ---
