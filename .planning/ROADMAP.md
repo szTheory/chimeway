@@ -26,7 +26,7 @@
 - [x] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths (completed 2026-05-29)
 - [x] **Phase 51: Journey & Admin Proof** — READ journey plus all-persona admin traces in CI (completed 2026-05-29)
 - [x] **Phase 52: Doc Truth & Gates** — README/moduledoc fixes and `verify.journeys` expansion (completed 2026-05-29)
-- [ ] **Phase 53: Milestone Close-Out** — Nyquist validation retroactive sign-off + journey test hygiene
+- [x] **Phase 53: Milestone Close-Out** — Nyquist validation retroactive sign-off + journey test hygiene (completed 2026-05-29)
 
 ## Phase Details
 
@@ -186,7 +186,7 @@
 | 50. Natural Escalation Demo | v1.7 | 2/2 | Complete    | 2026-05-29 |
 | 51. Journey & Admin Proof | v1.7 | 2/2 | Complete    | 2026-05-29 |
 | 52. Doc Truth & Gates | v1.7 | 2/2 | Complete    | 2026-05-29 |
-| 53. Milestone Close-Out | v1.7 | 1/2 | In Progress|  |
+| 53. Milestone Close-Out | v1.7 | 2/2 | Complete    | 2026-05-29 |
 
 ### Phase 53: Milestone Close-Out
 
@@ -202,7 +202,7 @@
 2. `mix verify.journeys` passes with zero Phoenix.ConnTest deprecation warnings
 3. Journey test moduledocs accurately describe the JOUR-01..08 nine-test suite layout
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 | Wave | Plans | What it builds |
 |------|-------|----------------|
