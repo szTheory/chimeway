@@ -66,7 +66,7 @@ Each task was committed atomically:
 2. **Task 37-01-02: Trigger, waiting state, and operator inspection (sections 3–5)** - `38aa12e` (docs)
 3. **Task 37-01-03: Signal routing, delivery feedback, and Deferred callout (sections 6–8)** - `708c757` (docs)
 
-**Plan metadata:** `66637e0` (docs: complete plan)
+**Plan metadata:** `0286666` (docs: complete plan)
 
 ## Files Created/Modified
 
