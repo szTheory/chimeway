@@ -22,7 +22,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-**v1.8 in progress (2026-05-29):** Phases 54–55 complete — Mailglass outbound adapter (`Chimeway.Adapters.Mailglass`) and inbound feedback bridge (webhook verify/resolve/normalize via `Chimeway.Webhooks.process/4`, `provider_message_id` correlation, ECOS-04 pipeline integration test). **717 tests** pass (`mix test --warnings-as-errors`). Next: Phase 56 blueprint & demo proof, Phase 57 docs/release gates.
+**v1.8 in progress (2026-05-29):** Phases 54–56 complete — Mailglass outbound adapter, inbound feedback bridge, and ECOS-05 blueprint with DEMO-06 demo host proof (`Chimeway.Adapters.Mailglass` delivery + `/admin/chimeway` trace inspectability). **132 doc-contract + journey/mailglass gates** green. Next: Phase 57 docs & release gates.
 
 Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read/unread workflow glue, journey CI (`mix verify.journeys`), adoption docs, and demo host proof remain the adoption foundation.
 
@@ -311,4 +311,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 — Phase 55 inbound feedback bridge complete (v1.8)*
+*Last updated: 2026-05-29 — Phase 56 blueprint & demo proof complete (v1.8)*
