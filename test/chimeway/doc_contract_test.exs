@@ -240,6 +240,7 @@ defmodule Chimeway.DocContractTest do
       tenant = Regex.scan(~r/tenant_id:/, content) |> length()
 
       assert triggers > 0
+
       assert triggers == idem,
              "expected idempotency_key on every trigger (got #{idem}/#{triggers})"
 
