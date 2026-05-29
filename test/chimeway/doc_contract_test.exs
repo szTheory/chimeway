@@ -407,17 +407,40 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
-    @drift_patterns [
-      "~> 1.0",
-      "1.0.0",
-      ~s({:chimeway, "~> 1.)
-    ]
+    test "forbids stale version drift in consumer docs" do
+      mix_content = File.read!("mix.exs")
+      [_, version] = Regex.run(~r/@version "([^"]+)"/, mix_content)
+      [major, minor, _patch] = String.split(version, ".")
 
-    for path <- @consumer_files, pattern <- @drift_patterns do
-      test "forbids version drift #{pattern} in #{path}" do
-        refute String.contains?(File.read!(unquote(path)), unquote(pattern)),
-               "#{unquote(path)} must not contain version drift pattern #{unquote(pattern)}"
+      stale_patterns = stale_drift_patterns(major, minor)
+
+      for path <- @consumer_files do
+        content = File.read!(path)
+
+        for pattern <- stale_patterns do
+          refute String.contains?(content, pattern),
+                 "#{path} must not contain stale drift pattern #{inspect(pattern)}"
+        end
+
+        refute Regex.match?(~r/\{:chimeway,\s*"~>\s*\d+\.\d+\.\d+"/, content),
+               "#{path} must use ~> MAJOR.MINOR, not a patch-level constraint"
       end
+    end
+  end
+
+  defp stale_drift_patterns("1", "0"),
+    do: ["{:chimeway, \"~> 0.1\"}", "0.1.0", ~s({:chimeway, "~> 0.)]
+
+  defp stale_drift_patterns("0", _minor),
+    do: ["{:chimeway, \"~> 1.0\"}", "1.0.0", ~s({:chimeway, "~> 1.)]
+
+  defp stale_drift_patterns(major, minor) do
+    prev_major = major |> String.to_integer() |> Kernel.-(1)
+
+    if prev_major >= 0 do
+      ["{:chimeway, \"~> #{prev_major}.#{minor}\"}", ~s({:chimeway, "~> #{prev_major}.)]
+    else
+      []
     end
   end
 end
