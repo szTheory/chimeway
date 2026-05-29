@@ -12,6 +12,7 @@ defmodule DemoHostWeb.JourneyTest do
   alias Chimeway.Notifications.Notification
   alias Chimeway.Signals.Signal
   alias Chimeway.Workflows
+  alias Chimeway.Workflows.Progression
   alias Chimeway.Workflows.WorkflowRun
   alias Chimeway.Workflows.WorkflowTransition
 
@@ -132,6 +133,48 @@ defmodule DemoHostWeb.JourneyTest do
 
     current_step = Workflows.get_current_step!(updated_run)
     assert current_step.step_key == "initial_notice"
+  end
+
+  @tag :journey
+  @tag :jour_06
+  test "JOUR-06 unread time-fallback advances to email_escalation", _context do
+    assert {:ok, %{trace: %{delivery_ids: ids}}} = DemoHost.Seeds.escalation_waiting!()
+
+    in_app_delivery =
+      ids
+      |> Enum.map(&Repo.get!(Delivery, &1))
+      |> Enum.find(&(&1.channel == "in_app"))
+
+    refute is_nil(in_app_delivery)
+
+    notification = Repo.get!(Notification, in_app_delivery.notification_id)
+    run = Repo.get!(WorkflowRun, in_app_delivery.workflow_run_id)
+
+    assert run.state == :waiting
+
+    due_at = parse_due_at!(run.status_context["due_at"])
+    past_due_now = DateTime.add(due_at, 1, :second)
+
+    assert {:ok, {:advanced, advanced_run, [next_delivery]}} =
+             Progression.progress_run(run.id, now: past_due_now)
+
+    assert advanced_run.state == :active
+    assert next_delivery.channel == "email"
+
+    email_count =
+      from(d in Delivery,
+        where: d.notification_id == ^notification.id and d.channel == "email"
+      )
+      |> Repo.aggregate(:count)
+
+    assert email_count == 1
+  end
+
+  defp parse_due_at!(iso8601) when is_binary(iso8601) do
+    case DateTime.from_iso8601(iso8601) do
+      {:ok, dt, _offset} -> dt
+      {:error, reason} -> flunk("invalid due_at #{inspect(iso8601)}: #{inspect(reason)}")
+    end
   end
 
   defp drain_oban!(queue) do
