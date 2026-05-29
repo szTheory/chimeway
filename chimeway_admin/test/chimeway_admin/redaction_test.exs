@@ -43,4 +43,15 @@ defmodule ChimewayAdmin.RedactionTest do
              "outcome" => "failed"
            }
   end
+
+  test "safe_timeline_detail allows adapter_module while dropping sensitive keys" do
+    detail = %{
+      "adapter_module" => "Elixir.Chimeway.Adapters.Mailglass",
+      "password" => "secret"
+    }
+
+    assert Redaction.safe_timeline_detail(detail) == %{
+             "adapter_module" => "Elixir.Chimeway.Adapters.Mailglass"
+           }
+  end
 end
