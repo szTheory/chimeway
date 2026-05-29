@@ -10,9 +10,9 @@
 
 ## Active Milestone: v1.5 Adoption Surface
 
-**Status:** Planning complete — ready for Phase 35
-**Phases:** 35–40
-**Requirements:** 12/12 mapped
+**Status:** Complete (2026-05-29)
+**Phases:** 35–41
+**Requirements:** 12/12 complete
 
 ### Overview
 
@@ -151,14 +151,14 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 |-------------|-------|--------|
 | INST-01 | Phase 35 | Complete |
 | INST-02 | Phase 35 | Complete |
-| DOCS-01 | Phase 36 | Pending |
-| DOCS-02 | Phase 36 | Pending |
+| DOCS-01 | Phase 36 | Complete |
+| DOCS-02 | Phase 36 | Complete |
 | DOCS-03 | Phase 37 | Complete |
 | RECP-01 | Phase 38 | Complete |
 | RECP-02 | Phase 38 | Complete |
-| DEMO-01 | Phase 39 | Pending |
-| OPER-01 | Phase 40 | Pending |
-| OPER-02 | Phase 40 | Pending |
+| DEMO-01 | Phase 39 | Complete |
+| OPER-01 | Phase 40 | Complete |
+| OPER-02 | Phase 40 | Complete |
 | GATE-01 | Phase 41 | Complete |
 
 **Coverage:** 12/12 requirements mapped ✓
