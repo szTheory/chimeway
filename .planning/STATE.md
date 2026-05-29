@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: Ready for 37-02-PLAN.md
-stopped_at: Completed 37-01-PLAN.md
-last_updated: "2026-05-29T00:24:53.040Z"
-last_activity: 2026-05-29 -- Completed 37-01-PLAN.md
+status: Ready for 37-03-PLAN.md
+stopped_at: Completed 37-02-PLAN.md
+last_updated: "2026-05-29T00:25:55.626Z"
+last_activity: 2026-05-29
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 29
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-28)
 ## Current Position
 
 Phase: 37 (doc-truth-journey-guides) — EXECUTING
-Plan: 2 of 3 (37-01 complete)
-Status: Ready for 37-02-PLAN.md
-Last activity: 2026-05-29 -- Completed 37-01-PLAN.md
+Plan: 2 of 3 complete (37-02 done)
+Status: Ready for 37-03-PLAN.md
+Last activity: 2026-05-29
 
 ## Accumulated Context
 
@@ -45,6 +45,7 @@ Recent v1.4/v1.5 decisions affecting shipped behavior:
 - [35-02]: Tmp host subprocess tests include Oban dep for path-dep compile; moduledoc includes shortdoc for mix help verify.
 - [35-03]: Golden fixture at `test/fixtures/installer_golden/`; `MIX_INSTALLER_ACCEPT_GOLDEN=1` refresh; path-gated `install_golden_contract` CI job.
 - [37-01]: INV-002 resolved via doc-truth — journey guide uses wait_until primary story; READ-01/READ-02 in Deferred section; forbidden API strings omitted from prose for grep gates.
+- [37-02]: Oban recipe uses Dispatch workers, per-run due_at scheduling as primary, chimeway_workflows queue removed; SignalRouterWorker documents pending_signals matching.
 
 ### Pending Todos
 
@@ -74,8 +75,8 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-29T00:24:53.038Z
-Stopped at: Completed 37-01-PLAN.md
+Last session: 2026-05-29T00:25:55.623Z
+Stopped at: Completed 37-02-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -86,3 +87,4 @@ Resume file: None
 | Phase 35 P01 | 12min | 3 tasks | 33 files |
 | Phase 35 P02 | 10min | 3 tasks | Mix task + integration tests |
 | Phase 35 P03 | 45min | 5 tasks | Golden fixture + CI contracts |
+| Phase 37 P02 | 10min | 2 tasks | 1 files |

@@ -54,7 +54,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Workflow/journey documentation matches engine capabilities so adopters are not misled by aspirational APIs.
 **Depends on:** Phase 36
 **Requirements:** DOCS-03
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 **Success criteria:**
 
