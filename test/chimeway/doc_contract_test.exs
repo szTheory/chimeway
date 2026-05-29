@@ -25,4 +25,65 @@ defmodule Chimeway.DocContractTest do
       end
     end
   end
+
+  @journey_guide "guides/flows/multi-step-journeys.md"
+
+  describe "journey guide doc contract (DOCS-03)" do
+    setup do
+      content = File.read!(@journey_guide)
+      %{content: content}
+    end
+
+    @forbidden_strings ~w(
+      stop_conditions
+      Workflows.Workers
+      Chimeway.Trigger.trigger
+      PT2H
+    )
+
+    @forbidden_phrases [
+      "type: :wait"
+    ]
+
+    for forbidden <- @forbidden_strings do
+      test "forbids #{forbidden} in journey guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "guides/flows/multi-step-journeys.md must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    for phrase <- @forbidden_phrases do
+      test "forbids #{phrase} in journey guide", %{content: content} do
+        refute String.contains?(content, unquote(phrase)),
+               "guides/flows/multi-step-journeys.md must not reference #{unquote(phrase)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in journey guide", %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "guides/flows/multi-step-journeys.md must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      wait_until
+      on_outcome
+      Chimeway.trigger
+      Chimeway.Signal.track
+      Chimeway.Dispatch.WorkflowProgressionWorker
+      Chimeway.Dispatch.SignalRouterWorker
+      pending_signals
+    )
+
+    for required <- @required do
+      test "requires #{required} in journey guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "guides/flows/multi-step-journeys.md must reference #{unquote(required)}"
+      end
+    end
+
+    test "includes Deferred or READ milestone callout", %{content: content} do
+      assert String.match?(content, ~r/Deferred|READ-0/),
+             "journey guide must defer aspirational read-to-cancel behavior"
+    end
+  end
 end
