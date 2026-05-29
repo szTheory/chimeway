@@ -104,5 +104,107 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
         refute Map.has_key?(detail, :api_key)
       end
     end
+
+    describe "webhook callbacks" do
+      @tag :webhook
+      test "verify_webhook accepts valid Postmark Basic auth" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+        headers = MailglassFixtures.postmark_delivery_headers()
+
+        assert :ok = MailglassAdapter.verify_webhook(body, headers, config)
+      end
+
+      @tag :webhook
+      test "verify_webhook rejects invalid Basic auth" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+        headers = [{"authorization", "Basic #{Base.encode64("wrong:creds")}"}]
+
+        assert {:error, :unauthorized} = MailglassAdapter.verify_webhook(body, headers, config)
+      end
+
+      @tag :webhook
+      test "parse_webhook_body returns _mailglass_event for Delivery payload" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+        headers = MailglassFixtures.postmark_delivery_headers()
+
+        assert {:ok, %{"_mailglass_event" => event}} =
+                 MailglassAdapter.parse_webhook_body(body, headers, config)
+
+        assert event.type == :delivered
+        assert event.metadata["message_id"] == "postmark-msg-123"
+      end
+
+      @tag :webhook
+      test "parse_webhook_body rejects engagement-only payloads" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_open_payload())
+        headers = MailglassFixtures.postmark_delivery_headers()
+
+        assert {:error, :unparseable_body} =
+                 MailglassAdapter.parse_webhook_body(body, headers, config)
+      end
+
+      @tag :webhook
+      test "resolve_delivery extracts provider_message_id from Delivery event" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+        headers = MailglassFixtures.postmark_delivery_headers()
+
+        {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
+
+        assert {:ok, %{provider_message_id: "postmark-msg-123"}} =
+                 MailglassAdapter.resolve_delivery(parsed)
+      end
+
+      @tag :webhook
+      test "normalize_feedback maps Delivery to :delivered" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+        headers = MailglassFixtures.postmark_delivery_headers()
+
+        {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
+
+        assert {:ok, %{status: :delivered}} = MailglassAdapter.normalize_feedback(parsed)
+      end
+
+      @tag :webhook
+      test "normalize_feedback maps Bounce to :bounced" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_bounce_payload())
+        headers = MailglassFixtures.postmark_delivery_headers()
+
+        {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
+
+        assert {:ok, %{status: :bounced}} = MailglassAdapter.normalize_feedback(parsed)
+      end
+
+      @tag :webhook
+      test "normalize_feedback returns :error for Open engagement events" do
+        event = %Mailglass.Events.Event{
+          type: :opened,
+          metadata: %{"message_id" => "postmark-msg-open"}
+        }
+
+        parsed = %{"_mailglass_event" => event}
+
+        assert :error = MailglassAdapter.normalize_feedback(parsed)
+      end
+
+      @tag :webhook
+      test "resolve_provider_event_id returns id from event metadata" do
+        config = MailglassFixtures.postmark_webhook_config_keyword()
+        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+        headers = MailglassFixtures.postmark_delivery_headers()
+
+        {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
+
+        assert {:ok, id} = MailglassAdapter.resolve_provider_event_id(parsed)
+        assert is_binary(id) and id != ""
+        assert String.starts_with?(id, "Delivery:")
+      end
+    end
   end
 end
