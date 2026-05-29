@@ -8,7 +8,7 @@
 
 ### Read/Unread Workflow Glue (READ)
 
-- [ ] **READ-01**: Workflow runs entering `wait_until` persist canonical `pending_signals` derived from progress rules (no host glue required)
+- [x] **READ-01**: Workflow runs entering `wait_until` persist canonical `pending_signals` derived from progress rules (no host glue required)
 - [ ] **READ-02**: `Chimeway.mark_read/3` and `mark_seen/3` emit durable signals that route workflow progression through the existing signal router without host glue
 - [ ] **READ-03**: Inbox-read signal early-resume from `:waiting` records an explainable `signal_received` transition in operator traces
 
@@ -66,7 +66,7 @@ Deferred to later milestones. Tracked but not in v1.7 roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| READ-01 | Phase 48 | Pending |
+| READ-01 | Phase 48 | Complete |
 | READ-02 | Phase 49 | Pending |
 | READ-03 | Phase 49 | Pending |
 | DEMO-03 | Phase 50 | Pending |

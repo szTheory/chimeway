@@ -43,7 +43,7 @@
 2. `SignalRouterWorker` can match an injected signal against a waiting run without manual `pending_signals` assignment by the host
 3. Multi-step journey guide no longer documents READ-01 as an engine gap (deferred callout removed or marked shipped)
 
-**Plans:** 3 plans (3 waves)
+**Plans:** 3/3 plans complete
 
 | Wave | Plans | What it builds |
 |------|-------|----------------|
@@ -160,7 +160,7 @@
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete | 2026-05-29 |
+| 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete    | 2026-05-29 |
 | 49. Inbox Read → Signal | v1.7 | 0/TBD | Not started | — |
 | 50. Natural Escalation Demo | v1.7 | 0/TBD | Not started | — |
 | 51. Journey & Admin Proof | v1.7 | 0/TBD | Not started | — |
