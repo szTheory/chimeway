@@ -39,6 +39,7 @@ Chimeway.trigger(MyApp.Notifiers.WelcomeUser, %{user_id: "u1", name: "Ada"},
 ## Documentation
 
 - [Golden Path Guide](guides/introduction/golden-path.md)
+- [Mailglass Integration Guide](guides/introduction/mailglass-integration.md)
 - [Hex Docs](https://hexdocs.pm/chimeway)
 - [Installation Guide](guides/introduction/installation.md)
 - [Getting Started Guide](guides/introduction/getting-started.md)

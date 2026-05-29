@@ -114,10 +114,11 @@ After delivery, search `/admin/chimeway` by recipient identity. The delivery det
 
 ## Out of scope
 
-This blueprint covers notifier authoring, adapter config, and the orchestration vs templating split with demo pointers. A full golden-path Mailglass integration guide, `mix verify.mailglass` CI gate, and demo host inbound webhook route wiring are Phase 57 deliverables — not duplicated here.
+This blueprint covers notifier authoring, adapter config, and the orchestration vs templating split with demo pointers. The full golden-path Mailglass integration guide, `mix verify.mailglass` CI gate, and demo host inbound webhook route wiring are documented in [Mailglass integration](../introduction/mailglass-integration.md) — not duplicated here.
 
 ## Related guides
 
+- [Mailglass integration](../introduction/mailglass-integration.md) — canonical end-to-end adoption path (primary)
 - [Custom adapter](custom-adapter.md) — adapter behaviour and Mailglass stub
 - [Golden Path](../introduction/golden-path.md) — first Chimeway integration
 - [Mention escalation](mention-escalation.md) — workflow recipe pattern with demo host pointers
