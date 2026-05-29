@@ -46,7 +46,8 @@ defmodule Chimeway.DocContractTest do
       "type: :wait",
       "does **not** emit",
       "READ-02 (Phase 49)",
-      "Deferred / Future (READ Milestone)"
+      "Deferred / Future (READ Milestone)",
+      "not inbox-read cancellation"
     ]
 
     for forbidden <- @forbidden_strings do
@@ -98,6 +99,7 @@ defmodule Chimeway.DocContractTest do
 
   @password_reset_recipe "guides/recipes/password-reset-support-trace.md"
   @feedback_recipe "guides/recipes/feedback-escalation-workflow.md"
+  @mention_escalation_recipe "guides/recipes/mention-escalation.md"
 
   @recipe_forbidden_strings ~w(
     stop_conditions
@@ -174,6 +176,68 @@ defmodule Chimeway.DocContractTest do
       test "requires #{required} in feedback escalation recipe", %{content: content} do
         assert String.contains?(content, unquote(required)),
                "feedback escalation recipe must reference #{unquote(required)}"
+      end
+    end
+  end
+
+  describe "mention escalation recipe doc contract (RECP-03 / DEMO-04)" do
+    setup do
+      content = File.read!(@mention_escalation_recipe)
+      %{content: content}
+    end
+
+    @mention_forbidden_strings ~w(
+      stop_conditions
+      Workflows.Workers
+      Chimeway.Trigger.trigger
+      stage_escalation_webhook
+      PendingWebhookAdapter
+      waiting_for_signal
+      chimeway.delivery.succeeded
+    )
+
+    @mention_forbidden_phrases [
+      "not inbox-read cancellation",
+      "Engine gap today"
+    ]
+
+    for forbidden <- @mention_forbidden_strings do
+      test "forbids #{forbidden} in mention escalation recipe", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "mention escalation recipe must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    for phrase <- @mention_forbidden_phrases do
+      test "forbids #{phrase} in mention escalation recipe", %{content: content} do
+        refute String.contains?(content, unquote(phrase)),
+               "mention escalation recipe must not reference #{unquote(phrase)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in mention escalation recipe", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "mention escalation recipe must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Chimeway.trigger
+      Chimeway.mark_read
+      cancel_signals
+      wait_until
+      delay_seconds
+      chimeway.notification.read
+      prior_delivery_terminal_at
+      SignalRouterWorker
+      to_step
+    )
+
+    for required <- @required do
+      test "requires #{required} in mention escalation recipe", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "mention escalation recipe must reference #{unquote(required)}"
       end
     end
   end
