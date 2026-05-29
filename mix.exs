@@ -38,6 +38,7 @@ defmodule Chimeway.MixProject do
       {:jason, "~> 1.4"},
       {:tzdata, "~> 1.1"},
       {:oban, "~> 2.17", optional: true},
+      {:mailglass, "~> 1.3", optional: true},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
