@@ -21,7 +21,7 @@
 
 ### 🚧 v1.7 READ + Adoption Polish (Phases 48–52)
 
-- [ ] **Phase 48: `wait_until` Pending Signals** — Auto-populate `pending_signals` when runs enter time-based waits
+- [x] **Phase 48: `wait_until` Pending Signals** — Auto-populate `pending_signals` when runs enter time-based waits
 - [ ] **Phase 49: Inbox Read → Signal** — `mark_read` / `mark_seen` emit durable signals with explainable early resume
 - [ ] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths
 - [ ] **Phase 51: Journey & Admin Proof** — READ journey plus all-persona admin traces in CI
@@ -49,9 +49,9 @@
 |------|-------|----------------|
 | 1 | 48-01 | `cancel_signals` DSL validation in `normalize_wait_until_rule/1` + notifier contract tests |
 | 2 | 48-02 | `enter_waiting/6` auto-populates `pending_signals` + progression tests + SignalRouterWorker proof |
-| 3 *(blocked on Wave 2)* | 48-03 | Journey guide doc-truth (`cancel_signals` authoring, READ-01 gap removed) + doc contract tests |
+| 3 | 48-03 | Journey guide doc-truth (`cancel_signals` authoring, READ-01 gap removed) + doc contract tests |
 
----
+**Status:** Complete (2026-05-29)
 
 ### Phase 49: Inbox Read → Signal
 
@@ -160,7 +160,7 @@
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 48. `wait_until` Pending Signals | v1.7 | 2/3 | In Progress | — |
+| 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete | 2026-05-29 |
 | 49. Inbox Read → Signal | v1.7 | 0/TBD | Not started | — |
 | 50. Natural Escalation Demo | v1.7 | 0/TBD | Not started | — |
 | 51. Journey & Admin Proof | v1.7 | 0/TBD | Not started | — |
