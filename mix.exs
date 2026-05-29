@@ -70,10 +70,11 @@ defmodule Chimeway.MixProject do
         "cmd mix hex.build --unpack --output /tmp/chimeway_verify && ls /tmp/chimeway_verify"
       ],
       # verify.published: invoked as `mix verify.published <version>` (Mix task)
-      # Post-publish verify: proves the canonical host-mount E2E path (D-11, D-12, D-13).
+      # Pre-ship GATE-01: canonical host-mount E2E + operator admin smoke (D-10, D-11).
       # Run separately from ci.test to preserve fast feedback on core lib tests (Phase 33 D-10).
       "verify.example": [
-        "cmd cd examples/chimeway_demo_host && mix deps.get && mix test"
+        "cmd cd examples/chimeway_demo_host && mix deps.get && mix test",
+        "cmd cd chimeway_admin && mix deps.get && mix test"
       ],
 
       # Installer golden-diff + idempotency contract (path-gated in CI, not default ci)
