@@ -2,8 +2,13 @@ defmodule DemoHost.Notifiers.PaymentReminder do
   @moduledoc """
   TeamPulse payment reminder — Product Manager JTBD.
 
-  Workflow waits for inbound `chimeway.delivery.succeeded` before advancing.
-  Pair with `DemoHost.Seeds.escalation_waiting!/0` and webhook E2E tests.
+  If Morgan does not open the in-app notice within 2 hours, escalate to email.
+  Inbox read (`Chimeway.mark_read/3`) cancels the wait early via
+  `chimeway.notification.read`.
+
+  Pair with `DemoHost.Seeds.escalation_waiting!/0` and JOUR-03 in
+  `journey_test.exs` for the READ-driven path. Webhook / delivery-feedback
+  proof lives in `feedback_pipeline_e2e_test.exs`.
   """
   use Chimeway.Notifier
 
@@ -63,14 +68,20 @@ defmodule DemoHost.Notifiers.PaymentReminder do
            channel: :in_app,
            config: %{
              "progress" => [
-               %{"kind" => "stop", "outcome" => "bounced"}
+               %{
+                 "kind" => "wait_until",
+                 "anchor" => "prior_delivery_terminal_at",
+                 "delay_seconds" => 7200,
+                 "to_step" => "email_escalation",
+                 "cancel_signals" => ["chimeway.notification.read"]
+               }
              ]
            }
          },
          %{
-           step_key: "paid_confirmation",
+           step_key: "email_escalation",
            step_order: 2,
-           channel: :in_app,
+           channel: :email,
            config: %{}
          }
        ]
