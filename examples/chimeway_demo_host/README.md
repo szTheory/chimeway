@@ -96,7 +96,7 @@ Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway
 
 ### Production auth
 
-`DemoHost.AdminAuth` always allows access in `:dev` and `:test`. In `:prod` it returns `{:error, :unauthorized}` unless `ALLOW_DEMO_ADMIN=true` (staging-only escape hatch). Replace with your host's real authorization before exposing admin routes.
+`DemoHost.AdminAuth` always allows access in `:dev` and `:test`. In `:prod` it always returns `{:error, :unauthorized}` — replace with your host's real `ChimewayAdmin.Auth` implementation before exposing admin routes.
 
 ### Out of scope for `chimeway_admin` MVP
 
