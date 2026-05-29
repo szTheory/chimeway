@@ -145,3 +145,54 @@ Enum.map(traces, & &1.reason)
 ```
 
 Both functions require the correct `tenant_id`. Querying a run ID that belongs to another tenant returns `{:error, :not_found}`.
+
+## 6. Delivery-Feedback Signal Routing (Production Path)
+
+The proven production path for delivery outcomes driving workflow progression:
+
+1. Provider webhook → `Chimeway.Webhooks` ingress → `ProcessFeedbackWorker`
+2. Worker records the attempt and calls `Chimeway.Signal.track/4` with canonical event names: `chimeway.delivery.succeeded`, `chimeway.delivery.bounced`, or `chimeway.delivery.failed`
+3. `Chimeway.Dispatch.SignalRouterWorker` (Oban queue `:chimeway_signals`) delegates to `Chimeway.Workflows.route_signal/1`
+4. For waiting runs with matching `pending_signals`, the run resumes; for active runs, `on_outcome` / `stop` rules evaluate on delivery convergence inside `progress_run/2`
+
+Signal signature — tenant first, then actor:
+
+```elixir
+Chimeway.Signal.track(
+  "org_456",
+  "user:123",
+  "chimeway.delivery.succeeded",
+  %{"delivery_id" => delivery_id}
+)
+```
+
+Runnable end-to-end proof lives in the demo host:
+
+- [Feedback pipeline E2E test](../../examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs) — webhook → signal → `route_signal` → trace timeline with `:webhook_received`
+- [Golden path webhook appendix](../introduction/golden-path.md#next-webhook-feedback-loop) — progress and stop paths with `Chimeway.Traces.explain_delivery/1`
+
+## 7. Generic Signal Routing
+
+`Chimeway.Workflows.route_signal/1` matches `:waiting` runs where:
+
+- the signal's `event_name` is in the run's `pending_signals` list
+- `tenant_id` matches the signal
+- the notification's `recipient_identity` matches the signal's `actor_id`
+
+When matched, the run transitions to `:active`, clears `pending_signals`, and records a `signal_received` transition (event name only — no raw payload in trace context).
+
+**Engine gap today:** `enter_waiting/6` does **not** populate `pending_signals` when a run enters a `wait_until` wait. Host applications that need signal-driven early exit must set `pending_signals` on the run explicitly until the READ milestone ships. Generic inbox-read signals do not automatically cancel time-based escalation.
+
+## Deferred / Future (READ Milestone)
+
+Read-to-cancel (inbox read → signal → halt escalation) is **not** supported out of the box in v1.5:
+
+- **READ-01:** Auto-populate `pending_signals` when entering `wait_until` waits
+- **READ-02:** Wire inbox read/seen events to workflow cancellation without host glue
+
+Until READ ships, the primary escalation story remains time-based `wait_until` progression. Do not assume that viewing a notification stops a scheduled email step.
+
+## Next Steps
+
+- [Oban Integration](../recipes/oban-integration.md) — dispatcher config, worker queues, and production scheduling (worker path corrections land in Phase 38 recipes when available)
+- [Golden path](../introduction/golden-path.md) — fresh-host trigger → trace → webhook feedback loop
