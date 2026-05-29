@@ -30,8 +30,15 @@ if Code.ensure_loaded?(Mailglass) do
 
     @user_email_prefix ~r/^user:(.+)$/
 
+    if Mix.env() == :test do
+      @doc false
+      def classify_error_for_test(err), do: classify_mailglass_error(err)
+    end
+
     @impl Chimeway.Adapter
     def deliver(%Chimeway.Delivery{} = delivery, config) do
+      config = merge_simulate_error_config(config)
+
       cond do
         Keyword.get(config, :simulate_error) in [true, :temporary] ->
           {:error, :temporary, %{reason: :simulated}}
@@ -70,6 +77,16 @@ if Code.ensure_loaded?(Mailglass) do
           {:error, err} ->
             classify_mailglass_error(err)
         end
+      end
+    end
+
+    defp merge_simulate_error_config(config) do
+      case Application.get_env(:chimeway, :simulate_mailglass_error) do
+        nil ->
+          config
+
+        simulate when is_atom(simulate) or simulate == true ->
+          Keyword.put_new(config, :simulate_error, simulate)
       end
     end
 

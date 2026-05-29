@@ -92,7 +92,7 @@ defmodule Chimeway.Adapter.ContractTest do
         test "error shape (conditional): deliver/2 returns {:error, class, map} on failure" do
           if simulate_error?() do
             assert {:error, reason_class, detail} =
-                     adapter_module().deliver(sample_delivery(), [])
+                     adapter_module().deliver(sample_delivery(), simulate_error: true)
 
             assert reason_class in [:temporary, :permanent, :bounced],
                    "Expected reason_class in [:temporary, :permanent, :bounced], got: #{inspect(reason_class)}"
