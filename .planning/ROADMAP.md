@@ -25,7 +25,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 
 - [x] **Phase 54: Mailglass Adapter Core** — Outbound delivery through Mailglass with contract-tested adapter behaviour (complete 2026-05-29)
 - [x] **Phase 55: Inbound Feedback Bridge** — Mailglass webhooks normalize into Chimeway outcomes and drive workflow progression (completed 2026-05-29)
-- [ ] **Phase 56: Blueprint & Demo Proof** — Reference recipe plus TeamPulse demo host end-to-end proof
+- [x] **Phase 56: Blueprint & Demo Proof** — Reference recipe plus TeamPulse demo host end-to-end proof (complete 2026-05-29)
 - [ ] **Phase 57: Docs & Release Gates** — Integration guide, doc-contract tests, and `mix verify.mailglass` CI gate
 
 ## Phase Details
@@ -89,7 +89,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 2. Demo host TeamPulse notifiers deliver at least one email through `Chimeway.Adapter.Mailglass` with inspectable traces via `/admin/chimeway`
 3. Recipe and demo align on stable notification keys and Mailglass template identifiers — no module-name coupling in durable identity
 
-**Plans:** 1/2 plans complete
+**Plans:** 2/2 plans complete
 
 **Wave 1 *(no dependencies)*:** 56-01 — Demo host Mailglass proof (DEMO-06: invite delivery + admin trace, journey CI isolated)  
 **Wave 2 *(blocked on Wave 1)*:** 56-02 — Mailglass integration blueprint recipe + ECOS-05 doc-contract
@@ -116,7 +116,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 |-------|----------------|--------|-----------|
 | 54. Mailglass Adapter Core | 3/3 | Complete    | 2026-05-29 |
 | 55. Inbound Feedback Bridge | 3/3 | Complete    | 2026-05-29 |
-| 56. Blueprint & Demo Proof | 1/2 | In Progress | — |
+| 56. Blueprint & Demo Proof | 2/2 | Complete    | 2026-05-29 |
 | 57. Docs & Release Gates | 0/? | Not started | — |
 
 ---
