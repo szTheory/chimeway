@@ -41,6 +41,7 @@ defmodule Chimeway.Dispatch.Executor do
         outcome: attempt_outcome,
         error_class: error_class,
         provider_response: provider_response,
+        provider_message_id: extract_provider_message_id(provider_response),
         # D-20: persist module name as inspect/1 string (no "Elixir." prefix).
         adapter_module: inspect(adapter)
       })
@@ -62,6 +63,15 @@ defmodule Chimeway.Dispatch.Executor do
   defp classify(other) do
     {:rejected, "unknown_classification", {:unknown_adapter_return, other}}
   end
+
+  defp extract_provider_message_id(meta) when is_map(meta) do
+    case Map.get(meta, :provider_message_id) || Map.get(meta, "provider_message_id") do
+      id when is_binary(id) -> id
+      _ -> nil
+    end
+  end
+
+  defp extract_provider_message_id(_), do: nil
 
   # D-17: Per-channel adapter resolution.
   # Resolution order:
