@@ -9,6 +9,9 @@ defmodule ChimewayAdmin.Auth do
   Configure the implementation module:
 
       config :chimeway_admin, auth_module: MyApp.AdminAuth
+
+  Host implementations may inspect context (including delivery_id when
+  provided) to enforce tenancy or per-resource access.
   """
 
   @callback authorize(actor :: term(), action :: atom(), context :: map()) ::

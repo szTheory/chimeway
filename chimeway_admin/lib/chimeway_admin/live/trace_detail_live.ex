@@ -7,6 +7,7 @@ defmodule ChimewayAdmin.Live.TraceDetailLive do
   alias Chimeway.Traces
   alias ChimewayAdmin.Components.TimelineEvent
   alias ChimewayAdmin.Redaction
+  alias ChimewayAdmin.Routes
 
   @impl true
   def mount(%{"delivery_id" => delivery_id}, _session, socket) do
@@ -25,7 +26,7 @@ defmodule ChimewayAdmin.Live.TraceDetailLive do
     <div class="chimeway-admin">
       <h1>Trace not found</h1>
       <p>No delivery exists for ID {@delivery_id}.</p>
-      <a href="/" data-phx-link="redirect" data-phx-link-state="push">Back to search</a>
+      <a href={Routes.search_path()} data-phx-link="redirect" data-phx-link-state="push">Back to search</a>
     </div>
     """
   end
@@ -34,7 +35,7 @@ defmodule ChimewayAdmin.Live.TraceDetailLive do
     ~H"""
     <div class="chimeway-admin">
       <h1>Trace detail</h1>
-      <a href="/" data-phx-link="redirect" data-phx-link-state="push">Back to search</a>
+      <a href={Routes.search_path()} data-phx-link="redirect" data-phx-link-state="push">Back to search</a>
 
       <dl class="chimeway-admin-summary">
         <dt>Status</dt>
@@ -68,7 +69,7 @@ defmodule ChimewayAdmin.Live.TraceDetailLive do
 
   defp format_last_attempt(%{outcome: outcome, error_class: error_class}) do
     parts = [Atom.to_string(outcome)]
-    parts = if error_class, do: parts ++ ["(#{error_class})"], else: parts
+    parts = if error_class, do: parts ++ ["(#{Redaction.safe_error_class(error_class)})"], else: parts
     Enum.join(parts, " ")
   end
 

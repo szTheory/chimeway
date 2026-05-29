@@ -1,5 +1,5 @@
 defmodule ChimewayAdmin.LiveAuthTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ChimewayAdmin.LiveAuth
   alias ChimewayAdmin.TestSupport.DenyAuth
@@ -12,6 +12,8 @@ defmodule ChimewayAdmin.LiveAuthTest do
   end
 
   test "halts and redirects when authorize returns unauthorized" do
+    Application.put_env(:chimeway_admin, :unauthorized_redirect, "/login")
+
     socket =
       %Phoenix.LiveView.Socket{
         assigns: %{__changed__: %{}},
@@ -25,6 +27,22 @@ defmodule ChimewayAdmin.LiveAuthTest do
              LiveAuth.on_mount(:search_traces, %{}, %{"current_actor" => "ops:1"}, socket)
 
     assert {:redirect, redirect} = redirected.redirected
-    assert redirect.to == "/"
+    assert redirect.to == "/login"
+  end
+
+  test "treats unexpected authorize return as unauthorized" do
+    Application.put_env(:chimeway_admin, :auth_module, ChimewayAdmin.TestSupport.UnexpectedAuth)
+
+    socket =
+      %Phoenix.LiveView.Socket{
+        assigns: %{__changed__: %{}},
+        endpoint: ChimewayAdmin.TestSupport.Endpoint,
+        router: ChimewayAdmin.Router,
+        view: ChimewayAdmin.Live.TraceSearchLive,
+        private: %{}
+      }
+
+    assert {:halt, _} =
+             LiveAuth.on_mount(:search_traces, %{}, %{"current_actor" => "ops:1"}, socket)
   end
 end

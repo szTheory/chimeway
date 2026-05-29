@@ -5,7 +5,11 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
   use ChimewayAdmin.Live, :live_view
 
   alias Chimeway.Traces
+  alias ChimewayAdmin.LiveAuth
   alias ChimewayAdmin.Redaction
+  alias ChimewayAdmin.Routes
+
+  @search_limit 50
 
   @impl true
   def mount(_params, _session, socket) do
@@ -21,6 +25,22 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
 
   @impl true
   def handle_event("search", params, socket) do
+    with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :search_traces) do
+      do_search(params, socket)
+    else
+      {:error, socket} -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("open_delivery", %{"delivery_id" => delivery_id}, socket) do
+    with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :search_traces) do
+      {:noreply, push_navigate(socket, to: Routes.delivery_path(delivery_id))}
+    else
+      {:error, socket} -> {:noreply, socket}
+    end
+  end
+
+  defp do_search(params, socket) do
     mode = params["mode"] || socket.assigns.mode
     query = String.trim(params["query"] || "")
     notification_key = String.trim(params["notification_key"] || "")
@@ -31,12 +51,14 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
           []
 
         {"recipient", q} ->
-          opts = [limit: 50]
+          opts = [limit: @search_limit]
           opts = if notification_key != "", do: Keyword.put(opts, :notification_key, notification_key), else: opts
           q |> Traces.find_traces_for_recipient(opts) |> flatten_recipient_results()
 
         {"correlation", q} ->
-          q |> Traces.find_traces_by_correlation_id() |> flatten_correlation_results()
+          q
+          |> Traces.find_traces_by_correlation_id(limit: @search_limit)
+          |> flatten_correlation_results()
 
         _ ->
           []
@@ -50,11 +72,6 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
        results: results,
        searched: true
      )}
-  end
-
-  @impl true
-  def handle_event("open_delivery", %{"delivery_id" => delivery_id}, socket) do
-    {:noreply, push_navigate(socket, to: "/deliveries/#{delivery_id}")}
   end
 
   @impl true
