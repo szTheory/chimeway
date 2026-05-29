@@ -398,6 +398,53 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
     end
   end
 
+  describe "mark_read resumes waiting run (READ-02/03)" do
+    test "mark_read emits signal that resumes waiting run via SignalRouterWorker" do
+      %{
+        notification: notification,
+        workflow_run: workflow_run
+      } = trigger_workflow_with_signals!("read02-mark-read-resume")
+
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: _terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+      assert {:ok, {:noop, waiting_run, :wait_not_due}} =
+               Progression.progress_run(workflow_run.id, [])
+
+      assert waiting_run.state == :waiting
+      assert waiting_run.pending_signals == ["chimeway.notification.read"]
+      assert waiting_run.status_reason == "waiting_for_step_progression"
+
+      assert :ok = Chimeway.mark_read(notification.id, notification.recipient_identity)
+
+      assert [%{args: %{"signal_id" => signal_id}}] =
+               all_enqueued(worker: SignalRouterWorker)
+
+      assert :ok = perform_job(SignalRouterWorker, %{"signal_id" => signal_id})
+
+      resumed_run = Repo.get!(WorkflowRun, workflow_run.id)
+      assert resumed_run.state == :active
+      assert resumed_run.pending_signals == []
+      assert resumed_run.status_reason == "signal_received"
+
+      signal_transitions =
+        list_transitions(workflow_run.id)
+        |> Enum.filter(&(&1.reason == "signal_received"))
+
+      assert length(signal_transitions) == 1
+
+      [signal_transition] = signal_transitions
+      assert signal_transition.context == %{"event_name" => "chimeway.notification.read"}
+      refute Map.has_key?(signal_transition.context, "payload")
+      refute Map.has_key?(signal_transition.context, "notification_id")
+      assert signal_transition.from_state == :waiting
+      assert signal_transition.to_state == :active
+    end
+  end
+
   describe "wait_until rule advancement after due_at elapses (CR-01 regression)" do
     test "past-due wait_until advances the run to the persisted to_step, creates exactly one next-step delivery, and noops on re-entry" do
       %{
