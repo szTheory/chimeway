@@ -87,6 +87,8 @@ If support has a `correlation_id` from application logs:
 Chimeway.Traces.find_traces_by_correlation_id("req-abc-123")
 ```
 
+**Runnable proof in the repo:** The [Demo host trace walkthrough](../../examples/chimeway_demo_host/README.md) runs the same `find_traces_for_recipient/2` and `explain_delivery/1` APIs with `DemoHost.Notifiers.TraceDemo` instead of `MyApp` placeholders — no webhook setup required.
+
 ## Diagnostic branches
 
 Use the fields above in IEx to classify what happened.
