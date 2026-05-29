@@ -4,6 +4,8 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias Chimeway.{Delivery, Repo}
+
   @tag :journey
   @tag :jour_04
   test "JOUR-04 admin search finds seeded invite delivery", %{conn: conn} do
@@ -67,5 +69,44 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
     assert detail =~ "suppressed"
     assert detail =~ "channel_disabled"
     assert detail =~ "teampulse.password_reset"
+  end
+
+  @tag :journey
+  @tag :jour_08
+  test "JOUR-08 admin shows Morgan payment-escalation trace", %{conn: conn} do
+    assert {:ok, %{trace: %{delivery_ids: delivery_ids}}} = DemoHost.Seeds.escalation_waiting!()
+
+    in_app_delivery =
+      delivery_ids
+      |> Enum.map(&Repo.get!(Delivery, &1))
+      |> Enum.find(&(&1.channel == "in_app"))
+
+    refute is_nil(in_app_delivery)
+
+    conn = get(conn, "/admin/chimeway")
+    assert html_response(conn, 200) =~ "Trace search"
+
+    {:ok, view, _html} = live(conn)
+
+    html =
+      view
+      |> form("#trace-search-form", %{
+        "mode" => "recipient",
+        "query" => DemoHost.Seeds.morgan_identity(),
+        "notification_key" => ""
+      })
+      |> render_submit()
+
+    assert html =~ DemoHost.Seeds.morgan_identity()
+
+    {:ok, detail_view, detail_html} =
+      live(conn, "/admin/chimeway/deliveries/#{in_app_delivery.id}")
+
+    assert detail_html =~ "Trace detail"
+
+    detail = render(detail_view)
+    assert detail =~ "teampulse.payment_reminder"
+    assert detail =~ "teampulse-seed-payment-corr"
+    assert detail =~ "workflow waiting" or detail =~ "Workflow waiting"
   end
 end
