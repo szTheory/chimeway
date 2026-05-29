@@ -87,7 +87,7 @@ If support has a `correlation_id` from application logs:
 Chimeway.Traces.find_traces_by_correlation_id("req-abc-123")
 ```
 
-**Runnable proof in the repo:** The [Demo host trace walkthrough](../../examples/chimeway_demo_host/README.md) runs the same `find_traces_for_recipient/2` and `explain_delivery/1` APIs with `DemoHost.Notifiers.TraceDemo` instead of `MyApp` placeholders — no webhook setup required. Optionally use the [operator trace UI](../../examples/chimeway_demo_host/README.md#operator-trace-ui-browser) at `/admin/chimeway` for the same lookup in a browser.
+**Runnable proof in the repo:** The [Demo host trace walkthrough](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/README.md) runs the same `find_traces_for_recipient/2` and `explain_delivery/1` APIs with `DemoHost.Notifiers.TraceDemo` instead of `MyApp` placeholders — no webhook setup required. Optionally use the [operator trace UI](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/README.md#operator-trace-ui-browser) at `/admin/chimeway` for the same lookup in a browser.
 
 ## Diagnostic branches
 
