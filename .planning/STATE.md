@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Ecosystem Integration Blueprints
 status: executing
-last_updated: "2026-05-29T21:15:00Z"
-last_activity: 2026-05-29 — Completed 54-01 (optional mailglass dep + test harness)
+last_updated: "2026-05-29T21:55:00Z"
+last_activity: 2026-05-29 — Completed 54-02 (Mailglass adapter deliver/2)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 8
+  completed_plans: 2
+  percent: 17
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 ## Current Position
 
 Phase: 54 — Mailglass Adapter Core (in progress)
-Plan: 1/3 complete (54-01 done; next 54-02)
+Plan: 2/3 complete (54-02 done; next 54-03)
 Status: Executing
-Last activity: 2026-05-29 — Completed 54-01 optional dep + test harness
+Last activity: 2026-05-29 — Completed 54-02 Mailglass adapter deliver/2
 
 ## Accumulated Context
 
@@ -57,7 +57,9 @@ Last activity: 2026-05-29 — Completed 54-01 optional dep + test harness
 - [v1.8]: Mailglass-only v1.8 scope — Accrue/Threadline/Sigra deferred to v1.9+ (INV-003 resolved)
 - [54-01]: Mailglass test config unconditional in config/test.exs — config loads before dep compile
 - [54-01]: Shim Mailglass.TestRepo/DataCase in Chimeway test/support — not published on hex
-- [54-01]: Defer Adapter.ContractTest to 54-03 while deliver/2 stub returns :not_implemented
+- [54-02]: Recipient email precedence render_data to/email then user: actor_id prefix
+- [54-02]: Hex mailglass needs test/support migration shim — priv wrappers not on hex artifact
+- [54-02]: simulate_error supports :bounced/:suppressed for SuppressedError classifier tests
 
 ### Pending Todos
 
@@ -97,13 +99,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-29T20:43:52.632Z
-Stopped at: Completed 54-01-PLAN.md
+Last session: 2026-05-29T21:55:00Z
+Stopped at: Completed 54-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- `/gsd-execute-phase 54` — run plan 54-02 next (deliver/2 implementation)
+- `/gsd-execute-phase 54` — run plan 54-03 next (contract tests + executor routing)
 - Review: `.planning/phases/54-mailglass-adapter-core/*-PLAN.md`
 - Pre-ship baseline unchanged: `mix verify.journeys` (10 tests) + existing gate quintet
 
@@ -114,3 +116,4 @@ Resume file: None
 | Phase 53 P01 | 12min | 4 tasks | 4 files |
 | Phase 53 P02 | 8 min | 3 tasks | 3 files |
 | Phase 54-mailglass-adapter-core P01 | 15min | 3 tasks | 8 files |
+| Phase 54-mailglass-adapter-core P02 | 25min | 3 tasks | 8 files |
