@@ -18,14 +18,14 @@ Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed wit
 - `v1.4 Channel Feedback Loops` — outbound channels plus inbound receipts/webhooks feeding workflow progression (shipped 2026-05-08).
 - `v1.5 Adoption Surface` — installer, golden-path docs, reference recipes, demo trace path, operator admin MVP, release gates (shipped 2026-05-29).
 - `v1.6 Consumer Journey Proof` — TeamPulse demo, deterministic seeds, journey CI, one-command spin-up (shipped 2026-05-29).
-- `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (in progress).
+- `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (in progress; Phase 48 READ-01 shipped).
 
 ## Current Milestone: v1.7 READ + Adoption Polish
 
 **Goal:** Connect inbox read/unread state to workflow progression and close remaining adoption-evidence gaps in demo, docs, and journeys.
 
 **Target features:**
-- Populate `pending_signals` on `wait_until` workflow transitions (READ-01)
+- ~~Populate `pending_signals` on `wait_until` workflow transitions (READ-01)~~ — **Validated in Phase 48 (2026-05-29)**
 - Inbox `mark_read` / `mark_seen` emits durable signals routing workflow progression without host glue (READ-02)
 - Natural escalation demo — replace staged webhook choreography with READ-driven progression
 - Admin journeys for all personas (Sam suppression, Morgan escalation beyond invite-only JOUR-04)
@@ -263,4 +263,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 — milestone v1.7 READ + Adoption Polish started*
+*Last updated: 2026-05-29 — Phase 48 READ-01 shipped (cancel_signals + pending_signals auto-population)*
