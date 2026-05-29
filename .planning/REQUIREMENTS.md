@@ -25,7 +25,7 @@ Requirements for the Adoption Surface milestone. Each maps to roadmap phases (st
 
 ### Demo Host (DEMO)
 
-- [ ] **DEMO-01**: Demo host documents and demonstrates a non-webhook trace inspection path (IEx, script, or minimal UI) so adopters can validate explainability without standing up provider webhooks
+- [x] **DEMO-01**: Demo host documents and demonstrates a non-webhook trace inspection path (IEx, script, or minimal UI) so adopters can validate explainability without standing up provider webhooks
 
 ### Operator Trace Surface (OPER)
 
@@ -82,7 +82,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOCS-03 | Phase 37 | Complete |
 | RECP-01 | Phase 38 | Complete |
 | RECP-02 | Phase 38 | Complete |
-| DEMO-01 | Phase 39 | Pending |
+| DEMO-01 | Phase 39 | Complete |
 | OPER-01 | Phase 40 | Pending |
 | OPER-02 | Phase 40 | Pending |
 | GATE-01 | Phase 41 | Pending |

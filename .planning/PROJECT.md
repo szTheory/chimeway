@@ -10,7 +10,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.4 Channel Feedback Loops** on 2026-05-08 (re-audited and formally closed 2026-05-28). **v1.5 Phase 37 (Doc Truth & Journey Guides) complete 2026-05-29** — journey guide and Oban recipe match engine APIs; doc-contract test gates journey guide drift (DOCS-03). Phase 35 installer task (`mix chimeway.gen.migrations`) and Phase 36 golden-path version alignment also shipped. The library supports generic outbound channel contracts (SMS, Push, Chat), durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression via canonical `chimeway.delivery.*` signals, and operator traces that link inbound webhooks to journey steps. End-to-end proof lives in `examples/chimeway_demo_host` with 578 tests passing.
+Chimeway shipped **v1.4 Channel Feedback Loops** on 2026-05-08 (re-audited and formally closed 2026-05-28). **v1.5 Phase 39 (Demo Host Trace Path) complete 2026-05-29** — demo host README provides a non-webhook IEx walkthrough for `Chimeway.trigger/3` + `explain_delivery/1`, cross-linked from golden-path as lowest-friction validation (DEMO-01). Phase 37 journey guides, Phase 35 installer task, and Phase 36 golden-path alignment also shipped. The library supports generic outbound channel contracts (SMS, Push, Chat), durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression via canonical `chimeway.delivery.*` signals, and operator traces that link inbound webhooks to journey steps. End-to-end proof lives in `examples/chimeway_demo_host` with 597 tests passing.
 
 ## Product Arc
 
@@ -189,4 +189,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 — Phase 37 (Doc Truth & Journey Guides) complete; v1.5 in progress*
+*Last updated: 2026-05-29 — Phase 39 (Demo Host Trace Path) complete; v1.5 in progress*
