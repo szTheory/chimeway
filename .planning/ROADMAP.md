@@ -69,9 +69,11 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 2. Normalized feedback from Mailglass triggers workflow progression via the existing Signal engine without host glue
 3. Operator traces show webhook-received and outcome-linked transitions for Mailglass feedback events
 
-**Plans:** TBD
+**Plans:** 3 plans (0/3 complete)
 
-### Phase 56: Blueprint & Demo Proof
+**Wave 1 *(no dependencies)*:** 55-01 — Spine extensions (`provider_message_id` + webhook parse seam)  
+**Wave 2 *(blocked on Wave 1)*:** 55-02 — Mailglass adapter webhook callbacks (verify/resolve/normalize/dedup)  
+**Wave 3 *(blocked on Wave 2)*:** 55-03 — Webhook contract tests + ECOS-04 feedback pipeline integration proof
 
 **Goal:** Adopters can copy a published Mailglass + Chimeway reference recipe and see the same behaviour proven on the demo host.
 
@@ -108,7 +110,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 54. Mailglass Adapter Core | 3/3 | Complete    | 2026-05-29 |
-| 55. Inbound Feedback Bridge | 0/? | Not started | — |
+| 55. Inbound Feedback Bridge | 0/3 | Ready to execute | — |
 | 56. Blueprint & Demo Proof | 0/? | Not started | — |
 | 57. Docs & Release Gates | 0/? | Not started | — |
 
