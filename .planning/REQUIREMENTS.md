@@ -29,8 +29,8 @@ Requirements for the Adoption Surface milestone. Each maps to roadmap phases (st
 
 ### Operator Trace Surface (OPER)
 
-- [ ] **OPER-01**: Optional `chimeway_admin` MVP exposes redacted trace lookup by user ID or correlation ID with host-provided auth behaviour
-- [ ] **OPER-02**: Operator trace view links delivery attempts, suppressions, webhook events, and workflow transitions on one timeline (no bell inbox or marketing campaign UI)
+- [x] **OPER-01**: Optional `chimeway_admin` MVP exposes redacted trace lookup by user ID or correlation ID with host-provided auth behaviour
+- [x] **OPER-02**: Operator trace view links delivery attempts, suppressions, webhook events, and workflow transitions on one timeline (no bell inbox or marketing campaign UI)
 
 ### Release & Verification Gates (GATE)
 
@@ -83,8 +83,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RECP-01 | Phase 38 | Complete |
 | RECP-02 | Phase 38 | Complete |
 | DEMO-01 | Phase 39 | Complete |
-| OPER-01 | Phase 40 | Pending |
-| OPER-02 | Phase 40 | Pending |
+| OPER-01 | Phase 40 | Complete |
+| OPER-02 | Phase 40 | Complete |
 | GATE-01 | Phase 41 | Pending |
 
 **Coverage:**

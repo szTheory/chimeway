@@ -97,7 +97,8 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Optional `chimeway_admin` package gives support staff redacted trace lookup without building custom tooling.
 **Depends on:** Phase 39
 **Requirements:** OPER-01, OPER-02
-**Plans:** 0/3 plans complete
+**Plans:** 3/3 plans complete
+**Status:** Complete (2026-05-28)
 
 | Wave | Plans | What it builds |
 |------|-------|----------------|
