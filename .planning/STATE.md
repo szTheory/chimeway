@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: executing
-last_updated: "2026-05-28T21:27:10.852Z"
-last_activity: 2026-05-28
+status: Ready for 37-02-PLAN.md
+stopped_at: Completed 37-01-PLAN.md
+last_updated: "2026-05-29T00:24:53.040Z"
+last_activity: 2026-05-29 -- Completed 37-01-PLAN.md
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
   percent: 29
 ---
 
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 36 — golden-path-version-alignment
+**Current focus:** Phase 37 — doc-truth-journey-guides
 
 ## Current Position
 
-Phase: 37
-Plan: Not started
-Status: Executing Phase 36
-Last activity: 2026-05-28
+Phase: 37 (doc-truth-journey-guides) — EXECUTING
+Plan: 2 of 3 (37-01 complete)
+Status: Ready for 37-02-PLAN.md
+Last activity: 2026-05-29 -- Completed 37-01-PLAN.md
 
 ## Accumulated Context
 
@@ -43,6 +44,7 @@ Recent v1.4/v1.5 decisions affecting shipped behavior:
 - [35-01]: D-05 Option A — infer `{App}.Repo` from host `mix.exs` when `config :chimeway, :repo` unset; 31 templates shipped excluding Oban (D-10).
 - [35-02]: Tmp host subprocess tests include Oban dep for path-dep compile; moduledoc includes shortdoc for mix help verify.
 - [35-03]: Golden fixture at `test/fixtures/installer_golden/`; `MIX_INSTALLER_ACCEPT_GOLDEN=1` refresh; path-gated `install_golden_contract` CI job.
+- [37-01]: INV-002 resolved via doc-truth — journey guide uses wait_until primary story; READ-01/READ-02 in Deferred section; forbidden API strings omitted from prose for grep gates.
 
 ### Pending Todos
 
@@ -57,7 +59,7 @@ None for engine work. Adoption gaps drive v1.5 scope (assessment 2026-05-28).
 | ID | Question | When |
 |----|----------|------|
 | INV-001 | `chimeway_admin` in-tree vs sibling Hex package? | v1.5 plan-phase |
-| INV-002 | Fix journey guide vs implement `pending_signals` on wait? | v1.5 early phase or v1.5.1 READ |
+| INV-002 | Fix journey guide vs implement `pending_signals` on wait? | **Resolved doc-truth** in 37-01; engine glue deferred READ milestone |
 | INV-003 | Mailglass adapter as v1.5 proof vs v1.6 SEED-003 | v1.5 discuss-phase |
 
 ### Roadmap Evolution
@@ -72,15 +74,15 @@ Carried from v1.4 close — see PROJECT.md Out of Scope and assessment thread.
 
 ### Session Continuity
 
-Last session: 2026-05-28T21:27:10.848Z
-Resume file: .planning/phases/37-doc-truth-journey-guides/37-CONTEXT.md
-
-**Planned Phase:** 36 — Golden Path & Version Alignment
+Last session: 2026-05-29T00:24:53.038Z
+Stopped at: Completed 37-01-PLAN.md
+Resume file: None
 
 ## Performance Metrics
 
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
+| Phase 37 P01 | 15min | 3 tasks | Journey guide rewrite |
 | Phase 35 P01 | 12min | 3 tasks | 33 files |
 | Phase 35 P02 | 10min | 3 tasks | Mix task + integration tests |
 | Phase 35 P03 | 45min | 5 tasks | Golden fixture + CI contracts |
