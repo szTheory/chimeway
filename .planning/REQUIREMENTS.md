@@ -16,7 +16,7 @@
 ### Blueprint & Demo (ECOS / DEMO)
 
 - [ ] **ECOS-05**: Published reference recipe documents the Chimeway orchestration vs Mailglass templating split of responsibilities with copy-pasteable notifier and adapter config
-- [ ] **DEMO-06**: Demo host proves Mailglass adapter on at least one TeamPulse notifier end-to-end with operator trace inspectability
+- [x] **DEMO-06**: Demo host proves Mailglass adapter on at least one TeamPulse notifier end-to-end with operator trace inspectability
 
 ### Integration Docs (DOCS)
 
@@ -70,7 +70,7 @@ Deferred to later milestones. Tracked but not in v1.8 roadmap.
 | ECOS-03 | Phase 55 | Complete |
 | ECOS-04 | Phase 55 | Complete |
 | ECOS-05 | Phase 56 | Pending |
-| DEMO-06 | Phase 56 | Pending |
+| DEMO-06 | Phase 56 | Complete |
 | DOCS-06 | Phase 57 | Pending |
 | DOCS-07 | Phase 57 | Pending |
 | GATE-04 | Phase 57 | Pending |

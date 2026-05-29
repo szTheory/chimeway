@@ -1,16 +1,15 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.8
-milestone_name: milestone
+milestone_name: Ecosystem Integration Blueprints
 status: executing
-stopped_at: Phase 56 context gathered (assumptions mode)
-last_updated: "2026-05-29T21:16:16.775Z"
-last_activity: 2026-05-29 -- Phase 56 planning complete
+last_updated: "2026-05-29T21:19:31.901Z"
+last_activity: 2026-05-29
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 50
 ---
 
@@ -21,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 57 — docs & release gates
+**Current focus:** Phase 56 — blueprint-demo-proof
 
 ## Current Position
 
-Phase: 57
-Plan: Not started
+Phase: 56 (blueprint-demo-proof) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-05-29 -- Phase 56 planning complete
+Last activity: 2026-05-29
 
 ## Accumulated Context
 
@@ -63,6 +62,8 @@ Last activity: 2026-05-29 -- Phase 56 planning complete
 - [54-02]: simulate_error supports :bounced/:suppressed for SuppressedError classifier tests
 - [54-03]: ContractTest error shape passes simulate_error: true config when simulate_error?/0
 - [54-03]: Permanent Mailglass errors tested via classify_error_for_test/1 on TemplateError
+- [56-01]: Mailglass adapter registered only in :mailglass test setup — journey suite keeps Logger (D-10)
+- [56-01]: adapter_module whitelisted in admin timeline redaction for operator inspectability
 
 ### Pending Todos
 
@@ -102,14 +103,14 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-29T21:13:03.376Z
-Stopped at: Phase 56 context gathered (assumptions mode)
-Resume file: .planning/phases/56-blueprint-demo-proof/56-CONTEXT.md
+Last session: 2026-05-29T21:19:31.896Z
+Stopped at: Completed 56-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
-- `/gsd-plan-phase 55` or `/gsd-execute-phase 55` — inbound Mailglass webhook bridge (ECOS-03/04)
-- Review: `.planning/phases/54-mailglass-adapter-core/54-03-SUMMARY.md`
+- Execute plan 56-02 — Mailglass integration blueprint recipe + ECOS-05 doc-contract
+- Review: `.planning/phases/56-blueprint-demo-proof/56-01-SUMMARY.md`
 - Pre-ship baseline unchanged: `mix verify.journeys` (10 tests) + existing gate quintet
 
 ## Performance Metrics
@@ -123,3 +124,4 @@ Resume file: .planning/phases/56-blueprint-demo-proof/56-CONTEXT.md
 | Phase 54-mailglass-adapter-core P03 | 12min | 3 tasks | 5 files |
 | Phase 55-inbound-feedback-bridge P02 | 8 | 2 tasks | 3 files |
 | Phase 55-inbound-feedback-bridge P03 | 12min | 2 tasks | 4 files |
+| Phase 56-blueprint-demo-proof P01 | 20min | 3 tasks | 8 files |
