@@ -34,6 +34,25 @@ defmodule Chimeway.WebhooksTest do
     def resolve_provider_event_id(_), do: :none
   end
 
+  defmodule ParseBodyAdapter do
+    @behaviour Chimeway.Adapter
+
+    def deliver(_delivery, _config), do: {:ok, %{}}
+
+    def verify_webhook(_body, [{"signature", "valid"}], _config), do: :ok
+    def verify_webhook(_, _, _config), do: {:error, :unauthorized}
+
+    def parse_webhook_body(_raw_body, _headers, _config), do: {:ok, %{"custom" => true}}
+
+    def resolve_delivery(%{"custom" => true}),
+      do: {:ok, %{provider_message_id: "parsed-msg-id"}}
+
+    def resolve_delivery(_), do: :error
+
+    def normalize_feedback(%{"custom" => true}), do: {:ok, %{status: :delivered}}
+    def normalize_feedback(_), do: :error
+  end
+
   # FailingOnInsertAdapter is used for rollback tests (T-33-ATOMIC).
   # Its normalize_feedback/1 returns {:ok, %{status: :unknown_status}} — a status
   # atom NOT in ~w(delivered bounced failed). This passes the with-chain
@@ -91,6 +110,21 @@ defmodule Chimeway.WebhooksTest do
                Webhooks.process(MockAdapter, "not-json", [{"signature", "valid"}], [])
 
       assert Repo.aggregate(Chimeway.Webhooks.Ingress, :count) == 0
+    end
+
+    test "uses parse_webhook_body/3 when exported instead of Jason.decode" do
+      assert {:ok, %Chimeway.Webhooks.Ingress{} = ingress} =
+               Webhooks.process(ParseBodyAdapter, "not-json", [{"signature", "valid"}], [])
+
+      assert persisted = Repo.get!(Chimeway.Webhooks.Ingress, ingress.id)
+      assert persisted.provider_message_id == "parsed-msg-id"
+      assert persisted.normalized_status == "delivered"
+      assert persisted.ingress_state == :queued
+
+      assert_enqueued(
+        worker: Chimeway.Webhooks.ProcessFeedbackWorker,
+        args: %{"ingress_id" => ingress.id}
+      )
     end
 
     test "returns {:ok, %Ingress{}} on success with provider_message_id and atomically enqueues job" do

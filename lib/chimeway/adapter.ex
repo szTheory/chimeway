@@ -79,8 +79,20 @@ defmodule Chimeway.Adapter do
   """
   @callback resolve_provider_event_id(parsed :: map()) :: {:ok, binary()} | :none
 
+  @doc """
+  Parse a provider-native webhook payload into the shape expected by
+  `resolve_delivery/1` and `normalize_feedback/1`.
+
+  Optional — when omitted, `Chimeway.Webhooks.process/4` decodes JSON via
+  `Jason.decode/1`. Adapters that delegate to provider-specific normalizers
+  (e.g. Mailglass `Provider.normalize/2`) implement this callback instead.
+  """
+  @callback parse_webhook_body(raw_body :: binary(), headers :: list(), config :: keyword()) ::
+              {:ok, map()} | {:error, :unparseable_body}
+
   @optional_callbacks verify_webhook: 3,
                       resolve_delivery: 1,
                       normalize_feedback: 1,
-                      resolve_provider_event_id: 1
+                      resolve_provider_event_id: 1,
+                      parse_webhook_body: 3
 end

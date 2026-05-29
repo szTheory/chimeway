@@ -26,8 +26,10 @@ defmodule Chimeway.Webhooks do
           | {:error, Ecto.Changeset.t()}
           | {:error, term()}
   def process(adapter_module, raw_body, headers, config) do
+    config = Keyword.merge(config, raw_body: raw_body, headers: headers)
+
     with :ok <- adapter_module.verify_webhook(raw_body, headers, config),
-         {:ok, parsed} <- decode_body(raw_body),
+         {:ok, parsed} <- decode_webhook_body(adapter_module, raw_body, headers, config),
          {:ok, delivery_info} <- resolve_delivery(adapter_module, parsed),
          {:ok, feedback_info} <- normalize_feedback(adapter_module, parsed),
          {:ok, provider_event_id} <- extract_provider_event_id(adapter_module, parsed) do
@@ -56,6 +58,18 @@ defmodule Chimeway.Webhooks do
         {:ok, %{ingress: ingress}} -> {:ok, ingress}
         {:error, _step, reason, _changes} -> {:error, reason}
       end
+    end
+  end
+
+  defp decode_webhook_body(adapter_module, raw_body, headers, config) do
+    if function_exported?(adapter_module, :parse_webhook_body, 3) do
+      case adapter_module.parse_webhook_body(raw_body, headers, config) do
+        {:ok, parsed} when is_map(parsed) -> {:ok, parsed}
+        {:error, :unparseable_body} -> {:error, :unparseable_body}
+        _ -> {:error, :unparseable_body}
+      end
+    else
+      decode_body(raw_body)
     end
   end
 
