@@ -22,7 +22,7 @@
 ### 🚧 v1.7 READ + Adoption Polish (Phases 48–52)
 
 - [x] **Phase 48: `wait_until` Pending Signals** — Auto-populate `pending_signals` when runs enter time-based waits
-- [ ] **Phase 49: Inbox Read → Signal** — `mark_read` / `mark_seen` emit durable signals with explainable early resume
+- [x] **Phase 49: Inbox Read → Signal** — `mark_read` / `mark_seen` emit durable signals with explainable early resume (completed 2026-05-29)
 - [ ] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths
 - [ ] **Phase 51: Journey & Admin Proof** — READ journey plus all-persona admin traces in CI
 - [ ] **Phase 52: Doc Truth & Gates** — README/moduledoc fixes and `verify.journeys` expansion
@@ -173,7 +173,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete    | 2026-05-29 |
-| 49. Inbox Read → Signal | v1.7 | 1/3 | In Progress|  |
+| 49. Inbox Read → Signal | v1.7 | 3/3 | Complete    | 2026-05-29 |
 | 50. Natural Escalation Demo | v1.7 | 0/TBD | Not started | — |
 | 51. Journey & Admin Proof | v1.7 | 0/TBD | Not started | — |
 | 52. Doc Truth & Gates | v1.7 | 0/TBD | Not started | — |
