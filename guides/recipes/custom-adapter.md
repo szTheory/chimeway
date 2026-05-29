@@ -76,3 +76,27 @@ end
 ```
 
 Using this macro is the recommended way to ensure your adapter meets Chimeway's production-grade standards.
+
+## Built-in Mailglass adapter (optional)
+
+Chimeway ships an optional Mailglass adapter for hosts that want Mailglass to handle templating, MJML rendering, and Swoosh delivery while Chimeway owns the durable delivery lifecycle.
+
+**Product name vs module:** REQUIREMENTS refer to `Chimeway.Adapter.Mailglass`; the implementation module is `Chimeway.Adapters.Mailglass` (D-07).
+
+Register the adapter per channel and supply a `render_key → mailable` map at runtime:
+
+```elixir
+config :chimeway,
+  channel_adapters: %{"email" => Chimeway.Adapters.Mailglass},
+  channel_adapter_configs: %{
+    "email" => [
+      mailables: %{
+        "teampulse.password_reset.email" => {MyApp.Mailers.PasswordReset, :email}
+      }
+    ]
+  }
+```
+
+Add `{:mailglass, "~> 1.3"}` to your host `mix.exs` (Chimeway lists Mailglass as an optional dependency).
+
+For a full contract-test example including success meta redaction and classified errors, see `test/chimeway/adapters/mailglass_adapter_test.exs`.
