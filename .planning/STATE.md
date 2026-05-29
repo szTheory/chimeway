@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: complete
-stopped_at: Milestone v1.5 closed
-last_updated: "2026-05-29T13:30:00.000Z"
+status: Milestone closed and tagged `v1.5`
+last_updated: "2026-05-29T13:58:13.323Z"
 last_activity: 2026-05-29
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 7
   total_plans: 22
   completed_plans: 22
-  percent: 100
+  percent: 88
 ---
 
 # Project State
@@ -21,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning next milestone (`/gsd-new-milestone`)
+**Current focus:** Phase 42 gap closure (DOCS-02/GATE-01)
 
 ## Current Position
 
@@ -62,6 +61,7 @@ None for v1.5 scope.
 
 - Milestone v1.5 formally closed 2026-05-29 after audit passed (12/12 requirements, 655 tests).
 - Milestone v1.4 formally closed 2026-05-28 after re-audit passed (8/8 requirements, 549 tests).
+- Phase 42 added: Close gap: DOCS-02/GATE-01 — align consumer docs to 1.0.0 and fix doc-contract drift patterns
 
 ### Deferred Items
 
@@ -75,9 +75,9 @@ Tech debt acknowledged at v1.5 close (see `milestones/v1.5-MILESTONE-AUDIT.md`):
 
 ### Session Continuity
 
-Last session: 2026-05-29T13:30:00.000Z
-Stopped at: Milestone v1.5 closed
-Resume file: None
+Last session: 2026-05-29T13:58:13.320Z
+Stopped at: Phase 42 context gathered (assumptions mode)
+Resume file: .planning/phases/42-close-gap-docs-02-gate-01-align-consumer-docs-to-1-0-0-and-f/42-CONTEXT.md
 
 ## Performance Metrics
 
