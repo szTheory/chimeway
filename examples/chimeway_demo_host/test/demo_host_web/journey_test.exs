@@ -5,15 +5,12 @@ defmodule DemoHostWeb.JourneyTest do
   Tagged `:journey` for `mix test --only journey` / `mix verify.journeys`.
   """
   use DemoHostWeb.ConnCase, async: false
-  import Plug.Test
-  import Plug.Conn
   import Ecto.Query, only: [from: 2]
   use Oban.Testing, repo: Chimeway.Repo
 
-  alias Chimeway.{Repo, Traces}
-  alias Chimeway.DeliveryAttempt
+  alias Chimeway.{Delivery, Repo, Traces}
+  alias Chimeway.Notifications.Notification
   alias Chimeway.Signals.Signal
-  alias Chimeway.Webhooks.Ingress
   alias Chimeway.Workflows.WorkflowRun
   alias Chimeway.Workflows.WorkflowTransition
 
@@ -46,30 +43,29 @@ defmodule DemoHostWeb.JourneyTest do
 
   @tag :journey
   @tag :jour_03
-  test "JOUR-03 seeded escalation progresses via webhook", _context do
-    assert {:ok, %{delivery: delivery, run: run}} = DemoHost.Seeds.escalation_waiting!()
+  test "JOUR-03 seeded escalation progresses via mark_read", _context do
+    assert {:ok, %{trace: %{delivery_ids: ids}}} = DemoHost.Seeds.escalation_waiting!()
 
-    body = Jason.encode!(%{"delivery_id" => delivery.id, "status" => "ok"})
+    in_app_delivery =
+      ids
+      |> Enum.map(&Repo.get!(Delivery, &1))
+      |> Enum.find(&(&1.channel == "in_app"))
 
-    conn =
-      conn(:post, "/webhooks/chimeway/echo", body)
-      |> put_req_header("content-type", "application/json")
-      |> put_req_header("signature", "valid")
-      |> DemoHostWeb.Endpoint.call(DemoHostWeb.Endpoint.init([]))
+    refute is_nil(in_app_delivery)
 
-    assert conn.status == 200
-    assert [%Ingress{} = ingress] = Repo.all(Ingress)
-    assert ingress.delivery_id == delivery.id
-    assert ingress.normalized_status == "delivered"
+    notification = Repo.get!(Notification, in_app_delivery.notification_id)
+    run = Repo.get!(WorkflowRun, in_app_delivery.workflow_run_id)
 
-    drain_oban!(:chimeway_delivery)
+    assert run.state == :waiting
+    assert run.pending_signals == ["chimeway.notification.read"]
+    assert run.status_reason == "waiting_for_step_progression"
+
+    assert :ok = Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity())
+
     drain_oban!(:chimeway_signals)
 
-    attempts = Repo.all(DeliveryAttempt)
-    assert Enum.any?(attempts, &(&1.outcome == :succeeded))
-
     signals = Repo.all(Signal)
-    assert Enum.any?(signals, &(&1.event_name == "chimeway.delivery.succeeded"))
+    assert Enum.any?(signals, &(&1.event_name == "chimeway.notification.read"))
 
     updated_run = Repo.get!(WorkflowRun, run.id)
     assert updated_run.state == :active
@@ -82,11 +78,10 @@ defmodule DemoHostWeb.JourneyTest do
         )
       )
 
-    assert signal_received_transition.delivery_id == delivery.id
-
-    {:ok, %{timeline: timeline}} = Traces.explain_delivery(delivery.id)
-    event_atoms = Enum.map(timeline, & &1.event)
-    assert :webhook_received in event_atoms
+    assert signal_received_transition.reason == "signal_received"
+    assert signal_received_transition.context == %{"event_name" => "chimeway.notification.read"}
+    refute Map.has_key?(signal_received_transition.context, "notification_id")
+    refute Map.has_key?(signal_received_transition.context, "payload")
   end
 
   defp drain_oban!(queue) do
