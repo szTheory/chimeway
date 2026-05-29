@@ -64,7 +64,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 
 ---
 
-## Phase 38: Reference Recipes
+## Phase 38: Reference Recipes ✓ 2026-05-28
 
 **Goal:** Adopters get copy-adaptable recipes for the two highest-leverage SaaS notification JTBDs (SEED-002, SEED-004).
 **Depends on:** Phase 37

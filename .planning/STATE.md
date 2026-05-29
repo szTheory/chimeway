@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-28)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 38 — reference-recipes
+**Current focus:** Phase 39 — demo-host-trace-path
 
 ## Current Position
 
