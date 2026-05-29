@@ -79,6 +79,11 @@ defmodule Chimeway.MixProject do
       # Installer golden-diff + idempotency contract (path-gated in CI, not default ci)
       "ci.install_golden": [
         "cmd env MIX_ENV=test mix test test/chimeway/install/golden_diff_test.exs test/chimeway/install/idempotency_test.exs --warnings-as-errors"
+      ],
+
+      # GATE-01 doc-contract + version alignment gates (pre-ship; no Postgres required)
+      "ci.verify_gates": [
+        "cmd env MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --warnings-as-errors"
       ]
     ]
   end
