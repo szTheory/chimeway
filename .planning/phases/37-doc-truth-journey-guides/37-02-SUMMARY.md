@@ -64,7 +64,7 @@ Each task was committed atomically:
 1. **Task 37-02-01: Fix Oban queue and cron configuration section** - `d28a997` (docs)
 2. **Task 37-02-02: Fix Workflow Engine Workers prose and trigger example** - `52ad39f` (docs)
 
-**Plan metadata:** pending (docs: complete plan)
+**Plan metadata:** `0e65717` (docs: complete plan)
 
 ## Files Created/Modified
 
