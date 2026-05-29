@@ -1,5 +1,23 @@
 # Milestones
 
+## v1.6 Consumer Journey Proof
+
+- Status: shipped
+- Date: 2026-05-29
+- Phases: 43–47 (5 phases, 5 plans)
+- Requirements: 9/9 satisfied
+- Git tag: v1.6
+- Tests at close: 647 (`mix ci`) + 86 (`mix ci.verify_gates`) + 11 (`mix verify.example`) + 5 (`mix verify.journeys`)
+- Audit: [milestones/v1.6-MILESTONE-AUDIT.md](milestones/v1.6-MILESTONE-AUDIT.md)
+- Known deferred items at close: 2 dormant seeds + planning artifact debt (see STATE.md Deferred Items)
+- Key accomplishments:
+  - TeamPulse demo domain with invite, password reset, and payment escalation notifiers
+  - Deterministic adopter-copyable `DemoHost.Seeds` + `mix demo.seed`
+  - `mix demo.up` (root) and `mix demo.admin` one-command spin-up with admin URL banner
+  - Journey E2E suite (JOUR-01..05): delivery, suppression, webhook progression, admin trace, demo.up smoke
+  - GATE-02: `mix verify.journeys` CI job + MAINTAINING.md pre-ship quintet
+- Notes: Phases 43–47 implemented outside standard GSD phase dirs; functional verification via journey suite
+
 ## v1.5 Adoption Surface
 
 - Status: shipped

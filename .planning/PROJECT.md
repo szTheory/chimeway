@@ -10,17 +10,29 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.5 Adoption Surface** on 2026-05-29 (audit passed, Phases 35–42). Phase 42 closed DOCS-02/GATE-01 gap regressions: consumer docs aligned to `~> 1.0`, major-aware doc-contract drift patterns, ex_doc cross-package links fixed, pre-ship quartet green. The milestone delivers installer truth (`mix chimeway.gen.migrations` with golden-diff CI), golden-path integration docs with version alignment gates, journey guide doc-truth, two reference recipes (password-reset support trace; feedback escalation), demo host non-webhook IEx trace path, optional `chimeway_admin` operator trace MVP, and GATE-01 release verification (`mix ci.verify_gates`, `mix verify.example` CI job, MAINTAINING.md pre-ship quartet). Under v1.4, the library supports generic outbound channel contracts, durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression, and operator traces. End-to-end proof lives in `examples/chimeway_demo_host` with **647 tests** passing (`mix ci`).
+Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed with planning tech debt, Phases 43–47). The milestone delivers TeamPulse demo domain (invite, password reset, payment escalation notifiers), adopter-copyable `DemoHost.Seeds`, one-command `mix demo.up` / `mix demo.admin` spin-up, journey E2E suite (JOUR-01..05), host-mount admin integration test, and GATE-02 release verification (`mix verify.journeys` CI job, MAINTAINING.md pre-ship quintet). Under v1.5, the library ships installer truth, golden-path docs, reference recipes, demo trace path, operator trace MVP, and GATE-01 quartet. Under v1.4, multi-channel outbound contracts, webhook ingress, and feedback-driven workflow progression are production-ready. End-to-end proof lives in `examples/chimeway_demo_host` with **647+ tests** passing (`mix ci`) plus **5 journey tests** (`mix verify.journeys`).
 
 ## Product Arc
 
 - `v1.3 Workflow Journeys` — durable, explainable multi-step workflows and escalations (shipped 2026-04-30).
 - `v1.4 Channel Feedback Loops` — outbound channels plus inbound receipts/webhooks feeding workflow progression (shipped 2026-05-08).
 - `v1.5 Adoption Surface` — installer, golden-path docs, reference recipes, demo trace path, operator admin MVP, release gates (shipped 2026-05-29).
+- `v1.6 Consumer Journey Proof` — TeamPulse demo, deterministic seeds, journey CI, one-command spin-up (shipped 2026-05-29).
 
 ## Current Milestone
 
-**None** — v1.5 Adoption Surface shipped 2026-05-29. Run `/gsd-new-milestone` to plan v1.6+.
+**None** — v1.6 Consumer Journey Proof shipped 2026-05-29.
+
+**Next:** v1.7 READ — see [milestones/v1.7-REQUIREMENTS.md](.planning/milestones/v1.7-REQUIREMENTS.md).
+
+### Shipped v1.6 Features (Validated)
+
+- TeamPulse demo domain with three persona JTBD notifiers (`teampulse.invite_sent`, `teampulse.password_reset`, `teampulse.payment_reminder`)
+- Deterministic, idempotent `DemoHost.Seeds` + `mix demo.seed` (adopter-copyable public API)
+- `mix demo.up` (root) and `mix demo.admin` (demo host) one-command spin-up with admin URL banner
+- Journey E2E suite: invite delivery, suppression explainability, webhook workflow progression
+- Host-mount `chimeway_admin` integration test through demo host router
+- GATE-02: `mix verify.journeys` CI job + pre-ship quintet in MAINTAINING.md
 
 ### Shipped v1.5 Features (Validated)
 - `mix chimeway.gen.migrations` (or install task) with idempotent golden-diff verification
@@ -58,6 +70,8 @@ Prior context includes:
 - v1.4 shipped multi-channel outbound contracts and inbound feedback loops with E2E proof on a reference Phoenix host.
 - Next value jump is adoption surface: reference flows, integration docs, and operator UX — not more channel matrix expansion.
 - Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — **resolved by v1.5** (installer task, golden path, operator UI, demo trace path, release gates).
+- Adopter assessment (2026-05-29): ~88–90% done post-v1.5 — **resolved by v1.6** (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E).
+- Next value jump: read/unread workflow glue (v1.7 READ) before ecosystem plugins or inbox UI.
 
 ## Constraints
 
@@ -99,8 +113,31 @@ Prior context includes:
 | Defer read/unread-driven workflow branching to post-v1.5 | `pending_signals` not populated on `wait_until`; READ milestone is narrower glue | Deferred to v1.6+ READ milestone |
 | GATE-01 scoped doc-contract gates separate from default ci | Fast core feedback + explicit pre-ship quartet | Shipped Phase 41 |
 | verify.example additive subprocess chain | Demo host E2E first, chimeway_admin second | Shipped Phase 41 |
+| v1.6 journey CI separate from default ci | Fast core feedback; journey proof is explicit pre-ship gate | Shipped v1.6 |
+| DemoHost.Seeds as adopter-copyable API | Seeds use Chimeway.trigger/3, not test fixture inserts | Shipped v1.6 |
+| Defer Playwright for admin smoke | Host-mount ConnTest + LiveViewTest sufficient for JOUR-04 | Shipped v1.6 |
 
 ## Archived Milestone Context
+
+<details>
+<summary>v1.6 Consumer Journey Proof planning context</summary>
+
+### Milestone Scope
+
+Realistic TeamPulse demo domain with deterministic seeds, one-command admin spin-up, and shift-left journey proof in CI.
+
+### Delivered Features
+
+- TeamPulse notifiers (invite, password reset, payment escalation) with stable notification keys.
+- `DemoHost.Seeds` idempotent API + `mix demo.seed` / `mix demo.up` / `mix demo.admin`.
+- Journey E2E suite (JOUR-01..05) + host-mount admin integration test.
+- `mix verify.journeys` CI job + MAINTAINING.md pre-ship quintet.
+
+### Validated Requirements Snapshot
+
+- DEMO-02, SEED-01, CMD-01, JOUR-01..05, GATE-02 — all satisfied.
+
+</details>
 
 <details>
 <summary>v1.5 Adoption Surface planning context</summary>
@@ -214,4 +251,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 after v1.5 milestone close (Phases 35–42)*
+*Last updated: 2026-05-29 after v1.6 milestone close (Phases 43–47)*

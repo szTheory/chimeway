@@ -2,6 +2,52 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.6 — Consumer Journey Proof
+
+**Shipped:** 2026-05-29
+**Phases:** 5 (43–47) | **Plans:** 5 | **Requirements:** 9/9
+
+### What Was Built
+
+- TeamPulse demo domain with three persona JTBD notifiers (invite, password reset, payment escalation).
+- Deterministic adopter-copyable `DemoHost.Seeds` + `mix demo.seed` using `Chimeway.trigger/3`.
+- `mix demo.up` (root) and `mix demo.admin` one-command spin-up with admin URL banner.
+- Journey E2E suite (JOUR-01..05): delivery, suppression, webhook progression, admin trace, demo.up smoke.
+- GATE-02: `mix verify.journeys` CI job + MAINTAINING.md pre-ship quintet.
+
+### What Worked
+
+- Journey tests tagged `:journey` gave a fast, focused CI gate without bloating default `mix ci`.
+- `DemoHost.Seeds` as public API let journey tests and adopters share the same entrypoint.
+- Host-mount ConnTest + LiveViewTest proved admin integration without Playwright overhead.
+- Separate v1.6 milestone kept adoption evidence distinct from v1.5 adoption surface.
+
+### What Was Inefficient
+
+- Phases 43–47 shipped without GSD phase directories — no SUMMARY.md or VERIFICATION.md audit trail.
+- Implementation landed in one burst; retroactive phase scaffolding would improve traceability.
+- Minor doc debt: README webhook contradiction, `demo.up --check` moduledoc drift.
+
+### Patterns Established
+
+- MAINTAINING.md pre-ship **quintet** extends v1.5 quartet with `mix verify.journeys`.
+- `:journey` test tag isolates consumer journey proof for shift-left CI.
+- Root `mix demo.up` orchestrates demo host seed/migrate/start for adopter onboarding.
+
+### Key Lessons
+
+1. Consumer journey proof belongs in CI before READ/workflow glue milestones — closes pre-adopter confidence gap.
+2. Adopter-copyable seeds must use real `Chimeway.trigger/3`, not test fixture inserts.
+3. Milestone close with missing phase artifacts is acceptable when audit + journey tests provide functional evidence.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: v1.6 assessment + implementation on 2026-05-29
+- Notable: 5 journey tests green; pre-ship quintet documented
+
+---
+
 ## Milestone: v1.5 — Adoption Surface
 
 **Shipped:** 2026-05-29 (Phase 42 gap closure completed same day)
@@ -108,6 +154,7 @@
 | v1.3 | 24–28 | Workflow journeys + host signal API |
 | v1.4 | 29–34 | Channel feedback loops + E2E proof host |
 | v1.5 | 35–42 | Adoption surface + doc-contract release gates |
+| v1.6 | 43–47 | Consumer journey proof + shift-left CI |
 
 ### Cumulative Quality
 
@@ -115,6 +162,7 @@
 |-----------|------------------|-------|
 | v1.4 | 549 | `mix ci.test` green at milestone re-audit |
 | v1.5 | 647 | Full `mix ci` green; pre-ship quartet exit 0 |
+| v1.6 | 647 + 5 journeys | Pre-ship quintet documented; journey CI separate job |
 
 ### Top Lessons (Verified Across Milestones)
 

@@ -31,6 +31,11 @@
       "no_auto_new_milestone": true,
       "flag_doc_impl_drift": true
     },
+    "consumer_journey_proof": {
+      "demo_app_path": "examples/chimeway_demo_host",
+      "verify_journeys_in_pre_ship": true,
+      "prefer_liveview_over_playwright": true
+    },
     "discuss_mode": "assumptions",
     "skip_discuss": false,
     "code_review": true,

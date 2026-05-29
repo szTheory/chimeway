@@ -5,6 +5,8 @@ planted: 2026-04-29T15:34:12Z
 planted_during: Milestone v1.3 initialization
 trigger_when: Core workflow and channel semantics are stable enough that production adoption is blocked more by ergonomics, docs, and operator experience than by missing core features.
 scope: medium
+shipped: 2026-05-29 (v1.5 Adoption Surface — baseline installer, docs, recipes, admin MVP, gates)
+extended_by: v1.6 Consumer Journey Proof (TeamPulse seeds, journey CI, mix demo.up)
 ---
 
 # SEED-002: Adoption Surface & Reference Flows
