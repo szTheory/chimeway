@@ -87,7 +87,7 @@ Chimeway emits a durable `chimeway.notification.read` signal. `SignalRouterWorke
 
 If the user never reads the notification, `WorkflowProgressionWorker` advances the run at `due_at` to the `to_step` email channel. See [Oban integration](oban-integration.md) for dispatcher and queue configuration.
 
-Automated proof that email fires only when unread is JOUR-06 (Phase 51) — this recipe documents the pattern; read-cancel does not halt the scheduled worker in Phase 50.
+Automated proof: JOUR-06 under `mix verify.journeys` (read-cancel + time-fallback; two `@tag :jour_06` tests).
 
 ## Runnable proof
 
