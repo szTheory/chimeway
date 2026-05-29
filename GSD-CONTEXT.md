@@ -40,6 +40,15 @@ Follow **`prompts/INTERACTIVE-GSD-NEW-PROJECT.md`** — same repo; includes the 
 | `chimeway-host-app-integration-seam.md` | Host vs library boundaries |
 | `prior-art/SOURCE-CANONICAL.md` | Seven shared `*-deep-research.md` files — read from **`rulestead`** checkout or run `prior-art/sync-from-canonical.sh` |
 
+## Seeds map (`.planning/seeds/`)
+
+| File | Role |
+|------|------|
+| `SEED-001-channel-feedback-loops.md` | v1.4 milestone seeds |
+| `SEED-002-adoption-surface-reference-flows.md` | Reference flow planning |
+| `SEED-003-ecosystem-integrations.md` | Integrations with sztheory libraries (Mailglass, Accrue, Threadline, Sigra) |
+| `SEED-004-personas-and-dx-roadmap.md` | Personas, JTBD, and v1.5+ DX Roadmap |
+
 ## Git
 
 This repo is initialized with **`git`** so GSD’s `init.new-project` check passes (`has_git: true`). If you clone fresh elsewhere, run **`git init`** before the first `/gsd-new-project`.
