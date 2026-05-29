@@ -14,6 +14,22 @@ defmodule ChimewayAdmin.RedactionTest do
     refute String.contains?(result, "alice")
   end
 
+  test "redact_recipient masks opaque identities by default" do
+    result = Redaction.redact_recipient("+15551234567")
+    assert result =~ "***"
+    refute result == "+15551234567"
+  end
+
+  test "redact_recipient masks webhook identities" do
+    assert Redaction.redact_recipient("webhook:https://example.com/hook") =~ "webhook:***"
+  end
+
+  test "safe_error_class masks sensitive error classes" do
+    assert Redaction.safe_error_class("smtp_auth_failed") == "smtp_auth_failed"
+    assert Redaction.safe_error_class("/var/app/secrets/smtp") =~ "***"
+    assert Redaction.safe_error_class("user@host.com/path") =~ "***"
+  end
+
   test "safe_timeline_detail drops sensitive keys" do
     detail = %{
       "reason" => "channel_disabled",

@@ -92,15 +92,33 @@ defmodule Chimeway.Traces do
   @doc """
   Returns all events with the given correlation_id, each with associations preloaded.
 
+  Options:
+  - `limit:` (integer, optional) — maximum number of events returned
+
   Returns `[]` when no events match — never returns an error tuple since
   correlation IDs are user-supplied and may not be unique or present.
   """
   @spec find_traces_by_correlation_id(String.t(), keyword()) :: [Event.t()]
   def find_traces_by_correlation_id(correlation_id, opts \\ []) do
-    events =
-      Repo.all(from(e in Event, where: e.correlation_id == ^correlation_id), opts)
+    limit = Keyword.get(opts, :limit)
+    repo_opts = Keyword.drop(opts, [:limit])
 
-    Repo.preload(events, [notifications: [deliveries: :attempts]], opts)
+    query =
+      from(e in Event,
+        where: e.correlation_id == ^correlation_id,
+        order_by: [desc: e.inserted_at]
+      )
+
+    query =
+      if limit do
+        from(e in query, limit: ^limit)
+      else
+        query
+      end
+
+    events = Repo.all(query, repo_opts)
+
+    Repo.preload(events, [notifications: [deliveries: :attempts]], repo_opts)
   end
 
   @doc """

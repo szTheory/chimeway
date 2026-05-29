@@ -249,6 +249,15 @@ defmodule Chimeway.TracesTest do
       assert [] = Traces.find_traces_by_correlation_id("nonexistent-correlation")
     end
 
+    test "respects limit option" do
+      for _i <- 1..3 do
+        event = insert_event(%{correlation_id: "req-limit"})
+        insert_notification(event)
+      end
+
+      assert length(Traces.find_traces_by_correlation_id("req-limit", limit: 2)) == 2
+    end
+
     test "OPS-01: get_trace and correlation lookup recover the same event identity" do
       # OPS-01: trigger-facing correlation pointers must map to the same durable event identity.
       event = insert_event(%{correlation_id: "req-ops-01-link"})
