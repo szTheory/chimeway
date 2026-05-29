@@ -23,7 +23,7 @@
 
 - [x] **Phase 48: `wait_until` Pending Signals** — Auto-populate `pending_signals` when runs enter time-based waits
 - [x] **Phase 49: Inbox Read → Signal** — `mark_read` / `mark_seen` emit durable signals with explainable early resume (completed 2026-05-29)
-- [ ] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths
+- [x] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths (completed 2026-05-29)
 - [ ] **Phase 51: Journey & Admin Proof** — READ journey plus all-persona admin traces in CI
 - [ ] **Phase 52: Doc Truth & Gates** — README/moduledoc fixes and `verify.journeys` expansion
 
@@ -97,7 +97,7 @@
 2. PM JTBD ("if they don't open in 2 hours, send push/email") is demonstrable via seeds using READ-driven progression
 3. Mention-escalation reference recipe documents read-cancel plus time-based `wait_until` fallback as the canonical pattern
 
-**Plans:** TBD
+**Plans:** 2/2 plans complete
 
 ---
 
@@ -174,7 +174,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete    | 2026-05-29 |
 | 49. Inbox Read → Signal | v1.7 | 3/3 | Complete    | 2026-05-29 |
-| 50. Natural Escalation Demo | v1.7 | 0/TBD | Not started | — |
+| 50. Natural Escalation Demo | v1.7 | 2/2 | Complete    | 2026-05-29 |
 | 51. Journey & Admin Proof | v1.7 | 0/TBD | Not started | — |
 | 52. Doc Truth & Gates | v1.7 | 0/TBD | Not started | — |
 

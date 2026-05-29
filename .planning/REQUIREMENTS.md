@@ -14,8 +14,8 @@
 
 ### Demo Alignment (DEMO)
 
-- [ ] **DEMO-03**: TeamPulse payment escalation demo uses READ-driven progression (no `stage_escalation_webhook/1` or staged webhook choreography)
-- [ ] **DEMO-04**: Mention-escalation reference recipe documents read-cancel plus time-based `wait_until` fallback as the primary PM JTBD path
+- [x] **DEMO-03**: TeamPulse payment escalation demo uses READ-driven progression (no `stage_escalation_webhook/1` or staged webhook choreography)
+- [x] **DEMO-04**: Mention-escalation reference recipe documents read-cancel plus time-based `wait_until` fallback as the primary PM JTBD path
 
 ### Journey Proof (JOUR)
 
@@ -69,8 +69,8 @@ Deferred to later milestones. Tracked but not in v1.7 roadmap.
 | READ-01 | Phase 48 | Complete |
 | READ-02 | Phase 49 | Complete |
 | READ-03 | Phase 49 | Complete |
-| DEMO-03 | Phase 50 | Pending |
-| DEMO-04 | Phase 50 | Pending |
+| DEMO-03 | Phase 50 | Complete |
+| DEMO-04 | Phase 50 | Complete |
 | JOUR-06 | Phase 51 | Pending |
 | JOUR-07 | Phase 51 | Pending |
 | JOUR-08 | Phase 51 | Pending |
