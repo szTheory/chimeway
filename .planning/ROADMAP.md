@@ -25,7 +25,7 @@
 - [x] **Phase 49: Inbox Read → Signal** — `mark_read` / `mark_seen` emit durable signals with explainable early resume (completed 2026-05-29)
 - [x] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths (completed 2026-05-29)
 - [x] **Phase 51: Journey & Admin Proof** — READ journey plus all-persona admin traces in CI (completed 2026-05-29)
-- [ ] **Phase 52: Doc Truth & Gates** — README/moduledoc fixes and `verify.journeys` expansion
+- [x] **Phase 52: Doc Truth & Gates** — README/moduledoc fixes and `verify.journeys` expansion (completed 2026-05-29)
 
 ## Phase Details
 
@@ -137,7 +137,11 @@
 2. `mix demo.up --check` moduledoc matches actual migrate + seed + app.start behavior
 3. `mix verify.journeys` runs JOUR-06..08; MAINTAINING.md pre-ship quintet documents the expanded journey suite
 
-**Plans:** TBD
+**Plans:** 2/2 plans complete
+
+| Wave | Plans | What it builds |
+|------|-------|----------------|
+| 1 | 52-01, 52-02 | DOCS-04/05 demo README + `demo.up` moduledoc; GATE-03 MAINTAINING + mix.exs + PROJECT.md (parallel) |
 
 ---
 
@@ -180,7 +184,7 @@
 | 49. Inbox Read → Signal | v1.7 | 3/3 | Complete    | 2026-05-29 |
 | 50. Natural Escalation Demo | v1.7 | 2/2 | Complete    | 2026-05-29 |
 | 51. Journey & Admin Proof | v1.7 | 2/2 | Complete    | 2026-05-29 |
-| 52. Doc Truth & Gates | v1.7 | 0/TBD | Not started | — |
+| 52. Doc Truth & Gates | v1.7 | 2/2 | Complete    | 2026-05-29 |
 
 ---
 *Roadmap updated: 2026-05-29 — milestone v1.7 READ + Adoption Polish started (Phases 48–52)*

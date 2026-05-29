@@ -25,12 +25,12 @@
 
 ### Adoption Docs (DOCS)
 
-- [ ] **DOCS-04**: Demo host README resolves webhook-path contradiction and unifies TeamPulse vs TraceDemo narrative
-- [ ] **DOCS-05**: `mix demo.up --check` moduledoc accurately describes migrate + seed + app.start behavior
+- [x] **DOCS-04**: Demo host README resolves webhook-path contradiction and unifies TeamPulse vs TraceDemo narrative
+- [x] **DOCS-05**: `mix demo.up --check` moduledoc accurately describes migrate + seed + app.start behavior
 
 ### Release Gates (GATE)
 
-- [ ] **GATE-03**: `mix verify.journeys` covers JOUR-06..08; MAINTAINING.md pre-ship quintet documents READ journey proof
+- [x] **GATE-03**: `mix verify.journeys` covers JOUR-06..08; MAINTAINING.md pre-ship quintet documents READ journey proof
 
 ## Future Requirements
 
@@ -74,9 +74,9 @@ Deferred to later milestones. Tracked but not in v1.7 roadmap.
 | JOUR-06 | Phase 51 | Complete |
 | JOUR-07 | Phase 51 | Complete |
 | JOUR-08 | Phase 51 | Complete |
-| DOCS-04 | Phase 52 | Pending |
-| DOCS-05 | Phase 52 | Pending |
-| GATE-03 | Phase 52 | Pending |
+| DOCS-04 | Phase 52 | Complete |
+| DOCS-05 | Phase 52 | Complete |
+| GATE-03 | Phase 52 | Complete |
 
 **Coverage:**
 - v1.7 requirements: 11 total
