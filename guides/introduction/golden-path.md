@@ -143,6 +143,14 @@ event.notifications |> Enum.flat_map(& &1.deliveries)
 
 Optional: pass `correlation_id: "my-correlation-id"` on trigger, then `Chimeway.Traces.find_traces_by_correlation_id/1` to find related events.
 
+### Validate in the demo host (no webhooks)
+
+After your first `explain_delivery/1` in your host app, the **lowest-friction** way to validate explainability end-to-end is the Chimeway demo host IEx walkthrough — no SendGrid, no provider webhooks.
+
+Follow the [Demo host trace walkthrough](../../examples/chimeway_demo_host/README.md) for a copy-paste IEx session using `Chimeway.trigger/3` and `explain_delivery/1`.
+
+For **webhook-driven workflow progression**, use the [webhook feedback loop](#next-webhook-feedback-loop) appendix instead — the demo host README covers simple delivery explainability only.
+
 ## 7. What's next?
 
 - [Getting Started](getting-started.md) — inbox listing, channels, and read/unread flows
