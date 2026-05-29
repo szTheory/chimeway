@@ -8,10 +8,11 @@ defmodule Chimeway.Workflows.Progression do
   inside one transaction, persisting the decision durably so that:
 
     * `wait_until` rules write the run to `:waiting` with explicit
-      `status_reason: "waiting_for_step_progression"` and a `status_context`
-      map carrying `rule_kind`, `anchor`, `anchor_delivery_id`,
-      `anchor_delivery_status`, `anchor_timestamp`, `due_at`, and `to_step`
-      (D-01/D-13).
+      `status_reason: "waiting_for_step_progression"`, `pending_signals` set
+      from the rule's optional `cancel_signals` list (empty when omitted),
+      and a `status_context` map carrying `rule_kind`, `anchor`,
+      `anchor_delivery_id`, `anchor_delivery_status`, `anchor_timestamp`,
+      `due_at`, and `to_step` (D-01/D-13).
     * `on_outcome` rules append a `workflow_transition` with reason
       `progressed_on_delivery_outcome` and the curated workflow outcome plus
       raw evidence facts (D-12), then advance the workflow run cursor to the
@@ -264,11 +265,14 @@ defmodule Chimeway.Workflows.Progression do
       "to_step" => to_step
     }
 
+    pending_signals = Map.get(rule, "cancel_signals", [])
+
     with {:ok, updated_run} <-
            Workflows.update_run(repo, run, %{
              state: :waiting,
              status_reason: @waiting_reason,
              status_context: status_context,
+             pending_signals: pending_signals,
              last_transition_at: now
            }),
          {:ok, _transition} <-
