@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: READ + Adoption Polish
-status: Awaiting next milestone
-last_updated: "2026-05-29T18:56:12.298Z"
-last_activity: 2026-05-29 — Milestone v1.7 completed and archived
+milestone: v1.8
+milestone_name: Ecosystem Integration Blueprints
+status: planning
+last_updated: "2026-05-29T19:45:12.162Z"
+last_activity: 2026-05-29
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 14
-  completed_plans: 14
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning next milestone (v1.8+)
+**Current focus:** Kick off v1.8 SEED-003 (ecosystem integration blueprints; Mailglass-first per INV-003)
 
 ## Current Position
 
-Phase: Milestone v1.7 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-29 — Milestone v1.7 completed and archived
+Status: Defining requirements
+Last activity: 2026-05-29 — Milestone v1.8 started
 
 ## Accumulated Context
 
@@ -52,6 +52,9 @@ Last activity: 2026-05-29 — Milestone v1.7 completed and archived
 - [49-01]: Lifecycle :ok independent of Signal.track/4 result — separate transactions per D-07
 - [49-02]: E2E mark_read path uses public Chimeway.mark_read/3 — no host Signal.track glue (READ-02)
 - [49-02]: signal_received transition context is event_name only — no payload/notification_id in trace (READ-03)
+- [v1.8-assessment]: Adoption evidence prompt re-run confirms v1.6–v1.7 closed the demo/seeds/journey gap — do not re-milestone Consumer Journey Proof
+- [v1.8-assessment]: Next wedge is v1.8 SEED-003 (ecosystem plugins), then v1.9 INBX — operator demo ≠ end-user bell UI
+- [v1.8-assessment]: Optional fork — pull INBX ahead of full SEED-003 if end-user click-around UX is priority over Mailglass blueprints
 
 ### Pending Todos
 
@@ -65,13 +68,14 @@ None.
 
 | ID | Question | When |
 |----|----------|------|
-| INV-003 | Mailglass adapter as v1.5 proof vs v1.6 SEED-003 | v1.8 discuss-phase |
+| INV-003 | Mailglass-first vs full SEED-003 matrix in v1.8 scope | v1.8 discuss-phase |
 | INV-004 | Playwright vs LiveView ConnTest for admin smoke | Defer until ConnTest flaky |
 
 ### Roadmap Evolution
 
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
-- v1.7 READ + Adoption Polish started 2026-05-29 (Phases 48–52, 11 requirements)
+- v1.8 milestone assessment 2026-05-29 — adoption evidence satisfied; next pick SEED-003 (thread: 2026-05-29-v1.8-milestone-assessment.md)
+- v1.7 READ + Adoption Polish shipped 2026-05-29 (Phases 48–53, 11 requirements)
 - v1.6 Consumer Journey Proof shipped 2026-05-29 (Phases 43–47)
 - v1.5 formally closed 2026-05-29 (Phases 35–42)
 
@@ -95,7 +99,9 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Run `/gsd-new-milestone` and scope **v1.8 SEED-003** (default: Mailglass-first ecosystem blueprint per INV-003)
+- Optional: pull **INBX** forward if end-user bell UI beats full SEED-003 matrix — see `.planning/threads/2026-05-29-v1.8-milestone-assessment.md`
+- Local proof already available: `mix demo.up --serve` → admin search `user:alex@teampulse.test`; pre-ship `mix verify.journeys` (10 tests)
 
 ## Performance Metrics
 

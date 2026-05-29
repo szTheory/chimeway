@@ -8,6 +8,18 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
+## Current Milestone: v1.8 Ecosystem Integration Blueprints
+
+**Goal:** Prove Chimeway composes cleanly with szTheory ecosystem libraries via first-class adapters, reference blueprints, and verified integration docs — Mailglass-only in v1.8 (Accrue, Threadline, Sigra deferred to v1.9+).
+
+**Target features:**
+- `Chimeway.Adapter.Mailglass` — Chimeway orchestrates when/why; Mailglass handles templating, MJML rendering, and Swoosh delivery
+- Inbound feedback bridge — `mailglass_inbound` webhook normalization into Chimeway Signal engine
+- Mailglass reference blueprint + demo host proof on TeamPulse notifiers
+- Integration guide, doc-contract tests, and named verify gate for Mailglass composition
+
+**Included seed:** SEED-003 (Mailglass slice only)
+
 ## Current State
 
 Chimeway shipped **v1.7 READ + Adoption Polish** on 2026-05-29 (audit passed, Phases 48–53). Read/unread workflow glue is complete: `wait_until` auto-populates `pending_signals` (READ-01), inbox `mark_read`/`mark_seen` emit durable signals that resume waiting workflows with explainable traces (READ-02/03), TeamPulse payment escalation uses READ-driven progression without staged webhook choreography (DEMO-03/04), and journey CI proves read-cancel on Sync and Oban paths plus all three SEED-004 admin personas (JOUR-06..08). Adoption docs and release gates align with the expanded **10-test journey suite** (`mix verify.journeys`, JOUR-01..08). The library ships installer truth, golden-path docs, reference recipes, demo trace path, operator trace MVP, and GATE-01/GATE-02/GATE-03 verification. End-to-end proof lives in `examples/chimeway_demo_host` with **695+ tests** passing (`mix test`) plus **10 journey tests** (`mix verify.journeys`).
@@ -22,9 +34,11 @@ Chimeway shipped **v1.7 READ + Adoption Polish** on 2026-05-29 (audit passed, Ph
 
 ## Next Milestone Goals
 
-**Candidate focus (v1.8+):** Ecosystem integration blueprints (SEED-003 — Mailglass, Accrue, Threadline, Sigra), then inbox UI productization (INBX, v1.9).
+**v1.8 in progress:** Mailglass-first ecosystem integration blueprint (SEED-003 slice). Accrue dunning, Threadline telemetry bridge, and Sigra auth flows deferred to v1.9+.
 
-**Explicitly deferred:** Broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell, operator UI projection of inbox-read signals onto delivery timeline (non-blocking audit finding INT-02).
+**Following milestone (v1.9):** Inbox UI productization (INBX) — end-user bell/notification center.
+
+**Explicitly deferred from v1.8:** Accrue/Threadline/Sigra (full SEED-003 matrix), INBX bell UI, broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
 
 ### Shipped v1.7 Features (Validated)
 
@@ -295,4 +309,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 after v1.7 milestone*
+*Last updated: 2026-05-29 — milestone v1.8 Ecosystem Integration Blueprints started*
