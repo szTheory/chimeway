@@ -168,7 +168,7 @@ Chimeway.Signal.track(
 
 Runnable end-to-end proof lives in the demo host:
 
-- [Feedback pipeline E2E test](../../examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs) — webhook → signal → `route_signal` → trace timeline with `:webhook_received`
+- [Feedback pipeline E2E test](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs) — webhook → signal → `route_signal` → trace timeline with `:webhook_received`
 - [Golden path webhook appendix](../introduction/golden-path.md#next-webhook-feedback-loop) — progress and stop paths with `Chimeway.Traces.explain_delivery/1`
 
 ## 7. Generic Signal Routing

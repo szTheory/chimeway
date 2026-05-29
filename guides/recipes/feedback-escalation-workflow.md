@@ -84,7 +84,7 @@ Look for `:webhook_received`, signal-driven resume (run returns to `:active`), o
 
 ## Runnable proof in the repo
 
-- [Feedback pipeline E2E test](../../examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs) — progress and stop describe blocks with real webhook POST + Oban drain  
+- [Feedback pipeline E2E test](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs) — progress and stop describe blocks with real webhook POST + Oban drain  
 - [Golden path webhook appendix](../introduction/golden-path.md#next-webhook-feedback-loop) — outcome summary and links
 
 ## Related guides
