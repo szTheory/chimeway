@@ -2,6 +2,54 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.5 — Adoption Surface
+
+**Shipped:** 2026-05-29 (Phase 42 gap closure completed same day)
+**Phases:** 8 (35–42) | **Plans:** 25 | **Requirements:** 11/11
+
+### What Was Built
+
+- `mix chimeway.gen.migrations` installer with golden-diff CI and idempotency contracts.
+- Golden-path integration guide with doc-contract version alignment gates.
+- Journey guide doc-truth rewrite plus Oban integration recipe and doc-contract tests.
+- Password-reset support trace and feedback escalation reference recipes.
+- Demo host IEx trace path without provider webhooks.
+- Optional `chimeway_admin` operator trace MVP with host auth behaviour.
+- GATE-01 release gates: `mix ci.verify_gates`, `verify.example` CI job, MAINTAINING.md pre-ship quartet.
+- Phase 42 gap closure: `~> 1.0` consumer alignment, major-aware drift patterns, ex_doc link fixes.
+
+### What Worked
+
+- Doc-contract gates caught semver drift immediately after the 1.0.0 bump — Phase 42 was a narrow, fast closure.
+- Reference recipes and demo host IEx path gave adopters multiple proof depths without webhook setup.
+- `verify.example` additive chain proved both demo host E2E and chimeway_admin smoke in one pre-ship command.
+
+### What Was Inefficient
+
+- Initial v1.5 close (Phases 35–41) shipped before Phase 42 caught DOCS-02/GATE-01 regressions — required re-close and tag update.
+- Nyquist validation artifacts still lag on phases 35 and 39 (non-blocking but noisy).
+- MILESTONES.md listed 12 requirements while traceability table had 11 — count mismatch caused confusion at close.
+
+### Patterns Established
+
+- MAINTAINING.md pre-ship quartet (`mix ci`, `mix ci.docs`, `mix ci.verify_gates`, `mix verify.example`) is the release bar.
+- Out-of-package guide links use GitHub absolute URLs, not `../../` paths in Hex docs.
+- Major-aware `stale_drift_patterns/2` keeps doc-contract gates valid across semver bumps.
+
+### Key Lessons
+
+1. Run the full pre-ship quartet before tagging — scoped `ci.verify_gates` alone is insufficient for GATE-01.
+2. Gap-closure phases after audit are cheaper than retro-editing shipped VERIFICATION artifacts.
+3. Milestone close checklist must include Phase 42-style regressions when semver bumps land mid-milestone.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: Phases 35–41 plus Phase 42 gap closure on 2026-05-29
+- Notable: 647 tests green at final close; pre-ship quartet all exit 0
+
+---
+
 ## Milestone: v1.4 — Channel Feedback Loops
 
 **Shipped:** 2026-05-08 (formally closed 2026-05-28 after re-audit)
@@ -59,12 +107,14 @@
 | v1.2 | 17–23 | Delivery orchestration (defer, digest, render, recovery) |
 | v1.3 | 24–28 | Workflow journeys + host signal API |
 | v1.4 | 29–34 | Channel feedback loops + E2E proof host |
+| v1.5 | 35–42 | Adoption surface + doc-contract release gates |
 
 ### Cumulative Quality
 
 | Milestone | Tests (at close) | Notes |
 |-----------|------------------|-------|
 | v1.4 | 549 | `mix ci.test` green at milestone re-audit |
+| v1.5 | 647 | Full `mix ci` green; pre-ship quartet exit 0 |
 
 ### Top Lessons (Verified Across Milestones)
 

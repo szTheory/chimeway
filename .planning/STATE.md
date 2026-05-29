@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Adoption Surface
-status: milestone_complete
-last_updated: 2026-05-29T14:16:19.310Z
-last_activity: 2026-05-29 -- Phase 42 planning complete
+status: Awaiting next milestone
+last_updated: "2026-05-29T14:24:39.542Z"
+last_activity: 2026-05-29 — Milestone v1.5 completed and archived
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 25
   completed_plans: 25
-  percent: 88
-stopped_at: Milestone complete (Phase 42 was final phase)
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +20,13 @@ stopped_at: Milestone complete (Phase 42 was final phase)
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Milestone complete
+**Current focus:** Planning next milestone (`/gsd-new-milestone`)
 
 ## Current Position
 
-Milestone: v1.5 Adoption Surface — **SHIPPED** (2026-05-29)
-Phases: 35–41 (7 phases, 22 plans)
-Status: Milestone complete
-Last activity: 2026-05-29
+Milestone: v1.5 Adoption Surface — **SHIPPED** (2026-05-29, Phases 35–42)
+Status: Awaiting next milestone
+Last activity: 2026-05-29 — v1.5 formally closed after Phase 42 gap closure
 
 ## Accumulated Context
 
@@ -60,25 +58,28 @@ None for v1.5 scope.
 
 ### Roadmap Evolution
 
-- Milestone v1.5 formally closed 2026-05-29 after audit passed (12/12 requirements, 655 tests).
+- Milestone v1.5 formally closed 2026-05-29 after Phase 42 gap closure (11/11 requirements, 647 tests, audit passed).
 - Milestone v1.4 formally closed 2026-05-28 after re-audit passed (8/8 requirements, 549 tests).
 - Phase 42 added: Close gap: DOCS-02/GATE-01 — align consumer docs to 1.0.0 and fix doc-contract drift patterns
 
 ### Deferred Items
 
-Tech debt acknowledged at v1.5 close (see `milestones/v1.5-MILESTONE-AUDIT.md`):
+Items acknowledged at v1.5 close on 2026-05-29:
 
 | Category | Item | Status |
 |----------|------|--------|
-| docs | ex_doc relative-link warnings block `mix ci.docs` | deferred |
+| seed | SEED-003 ecosystem integrations | dormant — v1.6+ |
+| seed | SEED-004 personas & DX roadmap | dormant — partial delivery in v1.5 |
 | nyquist | Phase 35/39 VALIDATION.md frontmatter incomplete | deferred |
 | verify | verify.example Mix 1.19 --shell fix | **resolved** (4ca792f) |
+| docs | ex_doc relative-link warnings block `mix ci.docs` | **resolved** (Phase 42) |
+
+See also `milestones/v1.5-MILESTONE-AUDIT.md` for phase-level tech debt.
 
 ### Session Continuity
 
-Last session: 2026-05-29T13:58:13.320Z
-Stopped at: Phase 42 context gathered (assumptions mode)
-Resume file: .planning/phases/42-close-gap-docs-02-gate-01-align-consumer-docs-to-1-0-0-and-f/42-CONTEXT.md
+Last session: 2026-05-29
+Stopped at: Milestone v1.5 complete — ready for `/gsd-new-milestone`
 
 ## Performance Metrics
 
@@ -89,3 +90,7 @@ Resume file: .planning/phases/42-close-gap-docs-02-gate-01-align-consumer-docs-t
 | Phase 41 P03 | 12min | 3 tasks | verify.example + CI job |
 | Phase 40 | 3 plans | — | chimeway_admin MVP |
 | Phase 35–39 | 16 plans | — | Installer through demo trace |
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

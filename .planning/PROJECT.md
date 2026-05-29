@@ -10,7 +10,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.5 Adoption Surface** on 2026-05-29 (audit passed). Phase 42 closed DOCS-02/GATE-01 gap regressions: consumer docs aligned to `~> 1.0`, major-aware doc-contract drift patterns, ex_doc cross-package links fixed, pre-ship quartet green. The milestone delivers installer truth (`mix chimeway.gen.migrations` with golden-diff CI), golden-path integration docs with version alignment gates, journey guide doc-truth, two reference recipes (password-reset support trace; feedback escalation), demo host non-webhook IEx trace path, optional `chimeway_admin` operator trace MVP, and GATE-01 release verification (`mix ci.verify_gates`, `mix verify.example` CI job, MAINTAINING.md pre-ship quartet). Under v1.4, the library supports generic outbound channel contracts, durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression, and operator traces. End-to-end proof lives in `examples/chimeway_demo_host` with **647 tests** passing (`mix ci`).
+Chimeway shipped **v1.5 Adoption Surface** on 2026-05-29 (audit passed, Phases 35–42). Phase 42 closed DOCS-02/GATE-01 gap regressions: consumer docs aligned to `~> 1.0`, major-aware doc-contract drift patterns, ex_doc cross-package links fixed, pre-ship quartet green. The milestone delivers installer truth (`mix chimeway.gen.migrations` with golden-diff CI), golden-path integration docs with version alignment gates, journey guide doc-truth, two reference recipes (password-reset support trace; feedback escalation), demo host non-webhook IEx trace path, optional `chimeway_admin` operator trace MVP, and GATE-01 release verification (`mix ci.verify_gates`, `mix verify.example` CI job, MAINTAINING.md pre-ship quartet). Under v1.4, the library supports generic outbound channel contracts, durable webhook ingress with atomic `Multi+Oban` handoff, feedback-driven workflow progression, and operator traces. End-to-end proof lives in `examples/chimeway_demo_host` with **647 tests** passing (`mix ci`).
 
 ## Product Arc
 
@@ -214,4 +214,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 after Phase 42 DOCS-02/GATE-01 gap closure*
+*Last updated: 2026-05-29 after v1.5 milestone close (Phases 35–42)*
