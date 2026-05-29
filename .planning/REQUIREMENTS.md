@@ -25,7 +25,7 @@
 
 ### Release Gates (GATE)
 
-- [ ] **GATE-04**: Named verify entrypoint (`mix verify.mailglass` or equivalent) exercises Mailglass integration in CI and is documented in MAINTAINING.md pre-ship checklist
+- [x] **GATE-04**: Named verify entrypoint (`mix verify.mailglass` or equivalent) exercises Mailglass integration in CI and is documented in MAINTAINING.md pre-ship checklist
 
 ## Future Requirements
 
@@ -73,7 +73,7 @@ Deferred to later milestones. Tracked but not in v1.8 roadmap.
 | DEMO-06 | Phase 56 | Complete |
 | DOCS-06 | Phase 57 | Complete |
 | DOCS-07 | Phase 57 | Pending |
-| GATE-04 | Phase 57 | Pending |
+| GATE-04 | Phase 57 | Complete |
 
 **Coverage:**
 - v1.8 requirements: 9 total
