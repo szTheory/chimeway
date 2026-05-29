@@ -20,35 +20,49 @@ Move items from `## [Unreleased]` to a new dated header:
 
 ### 3. Run the full local gate
 
+Run all pre-ship verification commands before tagging or publishing:
+
 ```bash
 mix ci
-```
-
-All lint and test steps must pass before publishing.
-
-### 4. Run the docs gate
-
-```bash
 mix ci.docs
+mix ci.verify_gates
+mix verify.example
 ```
 
-Docs must build without warnings-as-errors failures.
+- `mix ci` — lint + full test suite
+- `mix ci.docs` — HexDocs build with warnings-as-errors
+- `mix ci.verify_gates` — adoption-surface doc-contract and version-alignment gates (GATE-01)
+- `mix verify.example` — demo host webhook E2E + chimeway_admin operator smoke
 
-### 5. Commit the release
+All four must pass before publishing.
+
+### Installer template changes
+
+When modifying any of these paths, also run `mix ci.install_golden` locally before merging:
+
+- `priv/chimeway_migrations/`
+- `lib/mix/tasks/chimeway.gen.migrations.ex`
+- `lib/chimeway/install/`
+- `test/chimeway/install/`
+- `test/fixtures/installer_golden/`
+
+CI runs `install_golden_contract` on every push to `main` and on PRs that touch installer surfaces (path-gated). Do not change that gating behavior.
+
+### 4. Commit the release
 
 ```bash
 git add mix.exs CHANGELOG.md
 git commit -m "chore: release vX.Y.Z"
 ```
 
-### 6. Tag the release
+### 5. Tag the release
 
 ```bash
 git tag vX.Y.Z
 git push origin main --tags
 ```
 
-### 7. Publish to Hex
+### 6. Publish to Hex
 
 ```bash
 mix hex.publish
@@ -56,7 +70,7 @@ mix hex.publish
 
 Follow the prompts. Confirm the package name and version are correct before confirming.
 
-### 8. Verify the release (required)
+### 7. Verify the release (required)
 
 Run the verify trio after publishing:
 
@@ -72,7 +86,7 @@ mix verify.published X.Y.Z
 
 All three must pass before announcing the release.
 
-### 9. Create GitHub Release
+### 8. Create GitHub Release
 
 Go to the GitHub releases page, create a release from the tag `vX.Y.Z`, and paste the relevant CHANGELOG section as the release notes.
 
