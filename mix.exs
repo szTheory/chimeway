@@ -73,8 +73,8 @@ defmodule Chimeway.MixProject do
       # Pre-ship GATE-01: canonical host-mount E2E + operator admin smoke (D-10, D-11).
       # Run separately from ci.test to preserve fast feedback on core lib tests (Phase 33 D-10).
       "verify.example": [
-        "cmd cd examples/chimeway_demo_host && mix deps.get && mix test",
-        "cmd cd chimeway_admin && mix deps.get && mix test"
+        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test",
+        "cmd --shell cd chimeway_admin && mix deps.get && mix test"
       ],
 
       # Installer golden-diff + idempotency contract (path-gated in CI, not default ci)
