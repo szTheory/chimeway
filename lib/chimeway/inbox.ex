@@ -5,8 +5,14 @@ defmodule Chimeway.Inbox do
 
   import Ecto.Query
 
+  alias Chimeway.Delivery
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
+  alias Chimeway.Signal
+  alias Chimeway.Workflows.WorkflowRun
+
+  @read_event "chimeway.notification.read"
+  @seen_event "chimeway.notification.seen"
 
   @spec list_for_recipient(String.t(), keyword()) :: [map()]
   def list_for_recipient(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
@@ -21,12 +27,12 @@ defmodule Chimeway.Inbox do
 
   @spec mark_seen(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
   def mark_seen(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    update_lifecycle_timestamp(notification_id, recipient_identity, :seen_at, at)
+    update_lifecycle_timestamp(notification_id, recipient_identity, :seen_at, at, @seen_event)
   end
 
   @spec mark_read(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
   def mark_read(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    update_lifecycle_timestamp(notification_id, recipient_identity, :read_at, at)
+    update_lifecycle_timestamp(notification_id, recipient_identity, :read_at, at, @read_event)
   end
 
   @spec archive(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
@@ -51,5 +57,67 @@ defmodule Chimeway.Inbox do
       {1, _} -> :ok
       _other -> {:error, :not_found}
     end
+  end
+
+  defp update_lifecycle_timestamp(notification_id, recipient_identity, field, at, event_name) do
+    timestamp = DateTime.truncate(at, :microsecond)
+
+    first_transition_query =
+      Notification
+      |> where([n], n.id == ^notification_id)
+      |> where([n], n.recipient_identity == ^recipient_identity)
+      |> where([n], is_nil(field(n, ^field)))
+
+    case Repo.update_all(first_transition_query, set: [{field, timestamp}, {:updated_at, timestamp}]) do
+      {1, _} ->
+        maybe_emit_inbox_signal(notification_id, recipient_identity, event_name)
+        :ok
+
+      {0, _} ->
+        case Repo.get_by(Notification, id: notification_id, recipient_identity: recipient_identity) do
+          %Notification{} = notification ->
+            if is_nil(Map.get(notification, field)), do: {:error, :not_found}, else: :ok
+
+          nil ->
+            {:error, :not_found}
+        end
+    end
+  end
+
+  defp maybe_emit_inbox_signal(notification_id, recipient_identity, event_name) do
+    case resolve_tenant_id(notification_id) do
+      nil -> :ok
+      tenant_id -> emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name)
+    end
+  end
+
+  defp resolve_tenant_id(notification_id) do
+    workflow_tenant =
+      Repo.one(
+        from wr in WorkflowRun,
+          where: wr.notification_id == ^notification_id,
+          select: wr.tenant_id,
+          limit: 1
+      )
+
+    workflow_tenant ||
+      Repo.one(
+        from d in Delivery,
+          where: d.notification_id == ^notification_id,
+          order_by: [asc: d.inserted_at],
+          select: d.tenant_id,
+          limit: 1
+      )
+  end
+
+  defp emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name) do
+    Signal.track(
+      tenant_id,
+      recipient_identity,
+      event_name,
+      %{"notification_id" => notification_id}
+    )
+
+    :ok
   end
 end
