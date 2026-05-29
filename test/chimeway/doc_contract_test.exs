@@ -43,7 +43,10 @@ defmodule Chimeway.DocContractTest do
     )
 
     @forbidden_phrases [
-      "type: :wait"
+      "type: :wait",
+      "does **not** emit",
+      "READ-02 (Phase 49)",
+      "Deferred / Future (READ Milestone)"
     ]
 
     for forbidden <- @forbidden_strings do
@@ -74,6 +77,10 @@ defmodule Chimeway.DocContractTest do
       Chimeway.Dispatch.SignalRouterWorker
       pending_signals
       cancel_signals
+      Chimeway.mark_read
+      Chimeway.mark_seen
+      chimeway.notification.read
+      chimeway.notification.seen
     )
 
     for required <- @required do
@@ -83,9 +90,9 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
-    test "includes Deferred or READ milestone callout", %{content: content} do
-      assert String.match?(content, ~r/Deferred|READ-0/),
-             "journey guide must defer aspirational read-to-cancel behavior"
+    test "documents inbox lifecycle signal emission (READ-02 shipped)", %{content: content} do
+      assert String.contains?(content, "Chimeway.mark_read")
+      assert String.contains?(content, "chimeway.notification.read")
     end
   end
 
