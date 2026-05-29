@@ -63,7 +63,7 @@ Each task was committed atomically:
 1. **Task 1: mark_read → SignalRouterWorker → resume integration test** - `9f59ed7` (test)
 2. **Task 2: Regression gate** - verification only (no file changes; tests green)
 
-**Plan metadata:** `b75d129` (docs: complete plan)
+**Plan metadata:** `bd82719` (docs: complete plan)
 
 ## Files Created/Modified
 - `test/chimeway/orchestration/workflow_progression_test.exs` - E2E READ-02/03 proof via inbox emission path
