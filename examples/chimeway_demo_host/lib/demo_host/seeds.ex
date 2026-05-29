@@ -9,16 +9,14 @@ defmodule DemoHost.Seeds do
 
   - **Invite** (`:invite`) — successful multi-channel delivery for Alex
   - **Password reset** (`:password_reset`) — email suppressed by preference for Sam
-  - **Payment escalation** (`:escalation_waiting`) — workflow waiting for webhook signal
+  - **Payment escalation** (`:escalation_waiting`) — READ-driven `:waiting` after in-app delivery
 
   Run all scenarios with `DemoHost.Seeds.run/0` or `mix demo.seed`.
   """
 
-  alias Chimeway.{Deliveries, Preferences, Repo, Traces}
+  alias Chimeway.{Preferences, Repo, Traces}
   alias Chimeway.Delivery
   alias Chimeway.Notifications.Notification
-  alias Chimeway.Workflows
-  alias Chimeway.Workflows.WorkflowRun
 
   import Ecto.Query
 
@@ -109,35 +107,21 @@ defmodule DemoHost.Seeds do
   end
 
   @doc """
-  JOUR-03: payment reminder with a delivery awaiting webhook feedback.
+  JOUR-03: payment reminder with READ-driven workflow waiting.
 
-  Uses `Chimeway.trigger/3` for the notification + workflow, then public
-  `Deliveries` / `Workflows` helpers to stage a dispatched delivery and a
-  `:waiting` run keyed on `chimeway.delivery.succeeded`.
+  Uses `Chimeway.trigger/3` only — after in-app delivery succeeds, the engine
+  enters `:waiting` with `pending_signals` from `cancel_signals`. Pair with
+  `Chimeway.mark_read/3` in journey tests for early exit.
   """
   @spec seed_escalation_waiting() :: {:ok, map()} | {:error, term()}
   def seed_escalation_waiting do
-    previous_adapters = Application.get_env(:chimeway, :channel_adapters, %{})
-
-    Application.put_env(:chimeway, :channel_adapters, %{
-      "email" => DemoHost.Adapters.PendingWebhookAdapter
-    })
-
-    result =
-      with {:ok, trigger_result} <-
-             trigger(
-               DemoHost.Notifiers.PaymentReminder,
-               %{email: @morgan_email, invoice_id: "INV-1001"},
-               idempotency_key: @payment_idempotency,
-               correlation_id: "teampulse-seed-payment-corr",
-               tenant_id: @tenant_id
-             ),
-           {:ok, staged} <- stage_escalation_webhook(trigger_result) do
-        {:ok, Map.merge(trigger_result, staged)}
-      end
-
-    Application.put_env(:chimeway, :channel_adapters, previous_adapters)
-    result
+    trigger(
+      DemoHost.Notifiers.PaymentReminder,
+      %{email: @morgan_email, invoice_id: "INV-1001"},
+      idempotency_key: @payment_idempotency,
+      correlation_id: "teampulse-seed-payment-corr",
+      tenant_id: @tenant_id
+    )
   end
 
   @doc "Alias for `seed_escalation_waiting/0` — used by journey tests."
@@ -149,44 +133,6 @@ defmodule DemoHost.Seeds do
     with {:ok, %{trace: %{delivery_ids: [delivery_id | _]}}} <- seed_password_reset(),
          {:ok, explanation} <- Traces.explain_delivery(delivery_id) do
       {:ok, explanation}
-    end
-  end
-
-  defp stage_escalation_webhook(%{trace: %{delivery_ids: delivery_ids}}) do
-    deliveries = Enum.map(delivery_ids, &Repo.get!(Delivery, &1))
-
-    delivery =
-      Enum.find(deliveries, fn d -> d.channel == "email" end) ||
-        raise "expected email delivery from payment reminder trigger"
-
-    run_id =
-      delivery.workflow_run_id ||
-        deliveries
-        |> Enum.find_value(& &1.workflow_run_id) ||
-        raise "expected workflow_run_id on payment reminder deliveries"
-
-    run = Repo.get!(WorkflowRun, run_id)
-
-    with {:ok, dispatched} <-
-           (case delivery.status do
-              :failed -> Deliveries.transition_status(delivery, :dispatched)
-              :dispatched -> {:ok, delivery}
-              other -> {:error, {:unexpected_delivery_status, other}}
-            end),
-         {:ok, waiting_run} <-
-           Workflows.update_run(Repo, run, %{
-             state: :waiting,
-             status_reason: "waiting_for_signal",
-             pending_signals: ["chimeway.delivery.succeeded"]
-           }) do
-      {:ok,
-       %{
-         delivery: dispatched,
-         run: waiting_run,
-         workflow_run_id: waiting_run.id
-       }}
-    else
-      {:error, reason} -> {:error, reason}
     end
   end
 
