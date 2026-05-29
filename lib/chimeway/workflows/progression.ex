@@ -26,8 +26,15 @@ defmodule Chimeway.Workflows.Progression do
 
   All locking happens inside one `Repo.transaction/1`:
 
-    * the workflow run row is locked with `FOR UPDATE` first
-    * the active-step delivery row is then locked with `FOR UPDATE`
+    * For active-step evaluation (on_outcome / wait_until entry / no-rule noops),
+      the workflow run row is locked with `FOR UPDATE` first, then the active-step
+      delivery row is locked with `FOR UPDATE`.
+    * For wait-elapse advancement (a past-due `wait_until` rule transitioning the
+      run from `:waiting` back to `:active` and onto the persisted `to_step`),
+      only the workflow run row is locked. The anchor delivery is already
+      terminal at this point and is read without a row lock; serialization
+      against concurrent `progress_run/2` callers is enforced by the run-row
+      lock alone.
 
   Threats covered:
 
@@ -475,6 +482,9 @@ defmodule Chimeway.Workflows.Progression do
       |> Map.put("reactivated_at", DateTime.to_iso8601(now))
 
     with {:ok, anchor_delivery} <- fetch_anchor_delivery(repo, anchor_delivery_id),
+         %WorkflowStep{} = next_step <-
+           Workflows.fetch_step_by_key(run.workflow_definition_id, to_step_key) ||
+             {:error, :unknown_to_step},
          {:ok, _reactivated_transition} <-
            Workflows.append_transition(repo, %{
              workflow_run_id: run.id,
@@ -486,9 +496,6 @@ defmodule Chimeway.Workflows.Progression do
              context: reactivation_context,
              inserted_at: now
            }),
-         %WorkflowStep{} = next_step <-
-           Workflows.fetch_step_by_key(run.workflow_definition_id, to_step_key) ||
-             {:error, :unknown_to_step},
          {:ok, advanced_run} <-
            Workflows.update_run(repo, run, %{
              state: :active,
@@ -500,7 +507,7 @@ defmodule Chimeway.Workflows.Progression do
                "workflow_outcome" => "wait_elapsed",
                "anchor_delivery_id" => anchor_delivery.id,
                "to_step" => to_step_key,
-               "from_step" => current_step_key(run)
+               "from_step" => current_step_key(repo, run)
              }
            }),
          {:ok, _activated_transition} <-
@@ -513,7 +520,7 @@ defmodule Chimeway.Workflows.Progression do
              context: %{"step_key" => next_step.step_key, "source" => "progression"},
              inserted_at: now
            }),
-         notification = Repo.get!(Notification, anchor_delivery.notification_id),
+         notification = repo.get!(Notification, anchor_delivery.notification_id),
          {:ok, next_delivery} <-
            DeliveryPlanning.plan_next_step_delivery(notification, next_step.channel,
              notification_key: persisted_notification_key(notification),
@@ -525,7 +532,6 @@ defmodule Chimeway.Workflows.Progression do
       {:ok, {:advanced, advanced_run, [next_delivery]}}
     else
       {:error, :unknown_to_step} -> {:noop, run, :unknown_to_step}
-      nil -> {:noop, run, :unknown_to_step}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -537,14 +543,14 @@ defmodule Chimeway.Workflows.Progression do
     end
   end
 
-  defp current_step_key(%WorkflowRun{current_step_id: step_id}) when is_binary(step_id) do
-    case Repo.get(WorkflowStep, step_id) do
+  defp current_step_key(repo, %WorkflowRun{current_step_id: step_id}) when is_binary(step_id) do
+    case repo.get(WorkflowStep, step_id) do
       %WorkflowStep{step_key: step_key} -> step_key
       _ -> nil
     end
   end
 
-  defp current_step_key(_), do: nil
+  defp current_step_key(_repo, _), do: nil
 
   # ---- Internal: row locking + helpers ---------------------------------------
 
