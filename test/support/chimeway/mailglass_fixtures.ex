@@ -40,5 +40,66 @@ if Code.ensure_loaded?(Mailglass) do
         metadata: %{}
       }
     end
+
+    @doc false
+    def postmark_webhook_config do
+      %{basic_auth: {"user", "pass"}}
+    end
+
+    @doc false
+    def postmark_delivery_payload(opts \\ []) do
+      message_id = Keyword.get(opts, :message_id, "postmark-msg-123")
+
+      %{
+        "RecordType" => "Delivery",
+        "MessageID" => message_id,
+        "DeliveredAt" => "2026-05-29T12:00:00Z",
+        "Recipient" => "test@example.com",
+        "Tag" => "chimeway-test"
+      }
+    end
+
+    @doc false
+    def postmark_bounce_payload(opts \\ []) do
+      message_id = Keyword.get(opts, :message_id, "postmark-msg-bounce")
+
+      %{
+        "RecordType" => "Bounce",
+        "TypeCode" => 1,
+        "ID" => 42,
+        "MessageID" => message_id,
+        "BouncedAt" => "2026-05-29T12:01:00Z",
+        "Email" => "bounce@example.com"
+      }
+    end
+
+    @doc false
+    def postmark_open_payload do
+      %{
+        "RecordType" => "Open",
+        "MessageID" => "postmark-msg-open",
+        "ReceivedAt" => "2026-05-29T12:02:00Z",
+        "Recipient" => "test@example.com"
+      }
+    end
+
+    @doc false
+    def postmark_delivery_headers do
+      auth = Base.encode64("user:pass")
+      [{"authorization", "Basic #{auth}"}]
+    end
+
+    @doc false
+    def postmark_webhook_config_keyword do
+      [
+        webhook_provider: :postmark,
+        webhook_provider_config: postmark_webhook_config()
+      ]
+    end
+
+    @doc false
+    def encode_postmark_payload(payload) when is_map(payload) do
+      Jason.encode!(payload)
+    end
   end
 end

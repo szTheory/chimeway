@@ -25,8 +25,17 @@ if Code.ensure_loaded?(Mailglass) do
                 Mailglass.SendError,
                 Mailglass.TemplateError,
                 Mailglass.ConfigError,
-                Mailglass.TenancyError
+                Mailglass.TenancyError,
+                Mailglass.SignatureError,
+                Mailglass.Events.Event,
+                Mailglass.Webhook.Providers.Postmark,
+                Mailglass.Webhook.Providers.SendGrid,
+                Mailglass.Webhook.Providers.Mailgun,
+                Mailglass.Webhook.Providers.SES,
+                Mailglass.Webhook.Providers.Resend
               ]}
+
+    @delivery_relevant_types ~w(delivered sent bounced failed rejected)a
 
     @user_email_prefix ~r/^user:(.+)$/
 
@@ -222,5 +231,173 @@ if Code.ensure_loaded?(Mailglass) do
         pair -> pair
       end)
     end
+
+    @impl Chimeway.Adapter
+    def parse_webhook_body(raw_body, headers, config) when is_binary(raw_body) and is_list(headers) do
+      provider = webhook_provider_module(config)
+
+      case provider.normalize(raw_body, headers) do
+        events when is_list(events) ->
+          case Enum.find(events, &delivery_relevant?/1) do
+            %Mailglass.Events.Event{} = event ->
+              {:ok, %{"_mailglass_event" => event}}
+
+            _ ->
+              {:error, :unparseable_body}
+          end
+
+        _ ->
+          {:error, :unparseable_body}
+      end
+    end
+
+    @impl Chimeway.Adapter
+    def verify_webhook(raw_body, headers, config) when is_binary(raw_body) and is_list(headers) do
+      provider = webhook_provider_module(config)
+      provider_config = webhook_provider_config(config)
+
+      try do
+        provider.verify!(raw_body, headers, provider_config)
+        :ok
+      rescue
+        _e in [Mailglass.SignatureError, Mailglass.ConfigError] ->
+          {:error, :unauthorized}
+      end
+    end
+
+    @impl Chimeway.Adapter
+    def resolve_delivery(%{"_mailglass_event" => %Mailglass.Events.Event{metadata: metadata}})
+        when is_map(metadata) do
+      case message_id_from_metadata(metadata) do
+        id when is_binary(id) and id != "" -> {:ok, %{provider_message_id: id}}
+        _ -> :error
+      end
+    end
+
+    def resolve_delivery(_), do: :error
+
+    @impl Chimeway.Adapter
+    def normalize_feedback(%{"_mailglass_event" => %Mailglass.Events.Event{type: type}}) do
+      case type do
+        t when t in [:delivered, :sent] -> {:ok, %{status: :delivered}}
+        :bounced -> {:ok, %{status: :bounced}}
+        t when t in [:failed, :rejected] -> {:ok, %{status: :failed}}
+        _ -> :error
+      end
+    end
+
+    def normalize_feedback(_), do: :error
+
+    @impl Chimeway.Adapter
+    def resolve_provider_event_id(%{"_mailglass_event" => %Mailglass.Events.Event{metadata: metadata}})
+        when is_map(metadata) do
+      case metadata["provider_event_id"] do
+        id when is_binary(id) and id != "" -> {:ok, id}
+        _ -> :none
+      end
+    end
+
+    def resolve_provider_event_id(_), do: :none
+
+    defp message_id_from_metadata(metadata) do
+      metadata["message_id"] || metadata["provider_message_id"]
+    end
+
+    defp delivery_relevant?(%Mailglass.Events.Event{type: type}) when type in @delivery_relevant_types,
+      do: true
+
+    defp delivery_relevant?(_), do: false
+
+    defp webhook_provider_module(config) do
+      config
+      |> Keyword.get(:webhook_provider, :postmark)
+      |> webhook_provider_atom()
+      |> provider_module()
+    end
+
+    defp webhook_provider_atom(provider) when is_atom(provider), do: provider
+
+    defp webhook_provider_atom(provider) when is_binary(provider) do
+      case String.to_existing_atom(provider) do
+        atom -> atom
+      end
+    rescue
+      ArgumentError -> :postmark
+    end
+
+    defp webhook_provider_atom(_), do: :postmark
+
+    defp provider_module(:postmark), do: Mailglass.Webhook.Providers.Postmark
+    defp provider_module(:sendgrid), do: Mailglass.Webhook.Providers.SendGrid
+    defp provider_module(:mailgun), do: Mailglass.Webhook.Providers.Mailgun
+    defp provider_module(:ses), do: Mailglass.Webhook.Providers.SES
+    defp provider_module(:resend), do: Mailglass.Webhook.Providers.Resend
+    defp provider_module(_), do: Mailglass.Webhook.Providers.Postmark
+
+    defp webhook_provider_config(config) do
+      provider = Keyword.get(config, :webhook_provider, :postmark) |> webhook_provider_atom()
+
+      case Keyword.get(config, :webhook_provider_config) do
+        provider_config when is_map(provider_config) ->
+          provider_config
+
+        _ ->
+          case Application.get_env(:mailglass, :webhook_providers, %{}) do
+            providers when is_map(providers) ->
+              Map.get(providers, provider) ||
+                Map.get(providers, Atom.to_string(provider)) ||
+                default_webhook_provider_config(provider)
+
+            _ ->
+              default_webhook_provider_config(provider)
+          end
+      end
+    end
+
+    defp default_webhook_provider_config(:postmark) do
+      env = Application.get_env(:mailglass, :postmark, [])
+
+      %{
+        basic_auth: env[:basic_auth],
+        ip_allowlist: env[:ip_allowlist] || []
+      }
+    end
+
+    defp default_webhook_provider_config(:sendgrid) do
+      env = Application.get_env(:mailglass, :sendgrid, [])
+
+      %{
+        public_key: env[:public_key],
+        timestamp_tolerance_seconds: env[:timestamp_tolerance_seconds] || 300
+      }
+    end
+
+    defp default_webhook_provider_config(:mailgun) do
+      env = Application.get_env(:mailglass, :mailgun, [])
+
+      %{
+        signing_key: env[:signing_key],
+        timestamp_tolerance_seconds: env[:timestamp_tolerance_seconds] || 28_800,
+        future_skew_seconds: env[:future_skew_seconds] || 300,
+        replay_cache_ttl_seconds: env[:replay_cache_ttl_seconds] || 28_800
+      }
+    end
+
+    defp default_webhook_provider_config(:ses) do
+      env = Application.get_env(:mailglass, :ses, [])
+
+      %{cert_cache_ttl_seconds: env[:cert_cache_ttl_seconds] || 86_400}
+    end
+
+    defp default_webhook_provider_config(:resend) do
+      env = Application.get_env(:mailglass, :resend, [])
+
+      %{
+        secret: env[:secret],
+        timestamp_tolerance_seconds: env[:timestamp_tolerance_seconds] || 300
+      }
+    end
+
+    defp default_webhook_provider_config(_), do: %{}
   end
 end
