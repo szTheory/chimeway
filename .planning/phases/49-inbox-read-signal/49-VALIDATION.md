@@ -2,8 +2,8 @@
 phase: 49
 slug: inbox-read-signal
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-29
 ---
 
@@ -38,13 +38,13 @@ created: 2026-05-29
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 49-01-01 | 01 | 1 | READ-02 | T-49-01 | Tenant resolved from run/delivery on same notification — never caller-supplied | unit | `mix test test/chimeway/inbox_state_transition_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
-| 49-01-02 | 01 | 1 | READ-02 | T-49-02 | First-transition only; re-mark no duplicate signals | unit | same | ❌ W0 | ⬜ pending |
-| 49-01-03 | 01 | 1 | READ-02 | T-49-03 | mark_read does not emit seen signal (INBX-02/03) | unit | same | ✅ | ⬜ pending |
-| 49-02-01 | 02 | 2 | READ-02/03 | T-49-04 | mark_read → worker → waiting run resumes without host Signal.track | integration | `mix test test/chimeway/orchestration/workflow_progression_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
-| 49-02-02 | 02 | 2 | READ-03 | T-49-05 | signal_received transition has event_name only, no payload keys | integration | same | ✅ | ⬜ pending |
-| 49-03-01 | 03 | 3 | D-09 | — | Journey guide documents inbox emission; READ-02 deferral removed | doc contract | `mix ci.verify_gates` | ✅ | ⬜ pending |
-| 49-03-02 | 03 | 3 | READ-02 | — | Doc contract forbids stale deferral phrases | doc contract | same | ✅ | ⬜ pending |
+| 49-01-01 | 01 | 1 | READ-02 | T-49-01 | Tenant resolved from run/delivery on same notification — never caller-supplied | unit | `mix test test/chimeway/inbox_state_transition_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 49-01-02 | 01 | 1 | READ-02 | T-49-02 | First-transition only; re-mark no duplicate signals | unit | same | ❌ W0 | ✅ green |
+| 49-01-03 | 01 | 1 | READ-02 | T-49-03 | mark_read does not emit seen signal (INBX-02/03) | unit | same | ✅ | ✅ green |
+| 49-02-01 | 02 | 2 | READ-02/03 | T-49-04 | mark_read → worker → waiting run resumes without host Signal.track | integration | `mix test test/chimeway/orchestration/workflow_progression_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 49-02-02 | 02 | 2 | READ-03 | T-49-05 | signal_received transition has event_name only, no payload keys | integration | same | ✅ | ✅ green |
+| 49-03-01 | 03 | 3 | D-09 | — | Journey guide documents inbox emission; READ-02 deferral removed | doc contract | `mix ci.verify_gates` | ✅ | ✅ green |
+| 49-03-02 | 03 | 3 | READ-02 | — | Doc contract forbids stale deferral phrases | doc contract | same | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,12 +52,12 @@ created: 2026-05-29
 
 ## Wave 0 Requirements
 
-- [ ] `inbox_state_transition_test.exs` — describe `"inbox signal emission (READ-02)"` with Oban.Testing enqueue assertions
-- [ ] `inbox_state_transition_test.exs` — re-mark idempotency (signal count == 1)
-- [ ] `inbox_state_transition_test.exs` — tenant-unresolved skip (notification-only row, no delivery)
-- [ ] `workflow_progression_test.exs` — describe `"mark_read resumes waiting run (READ-02/03)"` using `Chimeway.mark_read` instead of manual `Signal.track`
-- [ ] `multi-step-journeys.md` — remove READ-02 deferral; document inbox emission path
-- [ ] `doc_contract_test.exs` — replace deferral regex test; add `@required` inbox strings; forbid stale deferral phrases
+- [x] `inbox_state_transition_test.exs` — describe `"inbox signal emission (READ-02)"` with Oban.Testing enqueue assertions
+- [x] `inbox_state_transition_test.exs` — re-mark idempotency (signal count == 1)
+- [x] `inbox_state_transition_test.exs` — tenant-unresolved skip (notification-only row, no delivery)
+- [x] `workflow_progression_test.exs` — describe `"mark_read resumes waiting run (READ-02/03)"` using `Chimeway.mark_read` instead of manual `Signal.track`
+- [x] `multi-step-journeys.md` — remove READ-02 deferral; document inbox emission path
+- [x] `doc_contract_test.exs` — replace deferral regex test; add `@required` inbox strings; forbid stale deferral phrases
 
 ---
 
@@ -73,11 +73,11 @@ All phase behaviors have automated verification.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** retroactive sign-off via plan 53-01 (2026-05-29)
