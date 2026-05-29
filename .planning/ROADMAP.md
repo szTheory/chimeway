@@ -67,7 +67,19 @@
 2. Calling `Chimeway.mark_seen/3` emits a durable signal with documented semantics distinct from or aligned with read
 3. A `:waiting` run whose `pending_signals` includes the inbox-read event resumes to `:active` with a `signal_received` transition visible in operator traces (event name only, no raw payload)
 
-**Plans:** TBD
+**Plans:** 0/3 plans complete
+
+**Wave 1** *(no dependencies)*
+
+| Wave | Plans | What it builds |
+|------|-------|----------------|
+| 1 | 49-01 | Inbox signal emission in `Chimeway.Inbox` + unit tests (READ-02) |
+| 2 | 49-02 | E2E `mark_read` → `SignalRouterWorker` → resume → trace proof (READ-02, READ-03) |
+| 3 | 49-03 | Journey guide doc-truth flip + `doc_contract_test.exs` (D-09) |
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+**Wave 3** *(blocked on Wave 2 completion)*
 
 ---
 
