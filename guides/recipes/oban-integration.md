@@ -37,20 +37,27 @@ Chimeway uses several queues to handle different background tasks. Update your O
 config :my_app, Oban,
   repo: MyApp.Repo,
   plugins: [
-    Oban.Plugins.Pruner,
-    # Configure the ProgressionWorker to run periodically (e.g., every minute)
-    {Oban.Plugins.Cron,
-     crontab: [
-       {"* * * * *", Chimeway.Workflows.Workers.ProgressionWorker}
-     ]}
+    Oban.Plugins.Pruner
+    # Optional fallback: sweep past-due wait_until runs if a scheduled job was missed.
+    # Primary wait advancement uses per-run jobs scheduled at due_at (see below).
+    # {Oban.Plugins.Cron,
+    #  crontab: [
+    #    {"* * * * *", Chimeway.Dispatch.WorkflowProgressionWorker}
+    #  ]}
   ],
   queues: [
     default: 10,
-    chimeway_delivery: [limit: 20],   # For async dispatch of notifications
-    chimeway_signals: [limit: 10],    # For processing workflow signals
-    chimeway_workflows: [limit: 5]    # For general workflow progression tasks (if any)
+    chimeway_delivery: [limit: 20],   # Async dispatch, WorkflowProgressionWorker, webhook feedback
+    chimeway_signals: [limit: 10]     # Chimeway.Dispatch.SignalRouterWorker
+    # No Chimeway worker uses :chimeway_workflows; omit unless you have host-specific jobs.
   ]
 ```
+
+### Wait advancement scheduling
+
+When `dispatcher: Chimeway.Dispatch.Oban` is configured, the engine **automatically enqueues** `Chimeway.Dispatch.WorkflowProgressionWorker` on the `:chimeway_delivery` queue at each waiting run's `due_at`. This is the **primary** model for `wait_until` progression — one scheduled job per run, not a global cron sweep.
+
+Optional cron calling `Chimeway.Workflows.Progression.progress_due_runs/1` (via a thin host wrapper or direct engine call) is a **fallback** for missed schedules or non-Oban recovery — not the primary path. Do not rely on cron alone for wait gates.
 
 ### Workflow Engine Workers
 
