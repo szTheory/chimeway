@@ -1,8 +1,8 @@
 ---
 phase: 37
 name: doc-truth-journey-guides
-status: gaps_found
-score: 15/16
+status: passed
+score: 16/16
 requirements:
   DOCS-03: passed
 verified_at: 2026-05-28
@@ -12,7 +12,7 @@ verified_at: 2026-05-28
 
 **Goal:** Journey/workflow guides match engine capabilities; resolve `stop_conditions` / `pending_signals` drift via doc-truth or explicit deferral (DOCS-03).
 
-**Status:** `gaps_found` — DOCS-03 criteria #1–#3 satisfied; one plan-02 doc-truth gap remains in Oban recipe transactional example (WR-01). Automated gates and primary journey guide are green.
+**Status:** `passed` — DOCS-03 criteria #1–#3 satisfied; all plan must-haves green after gap-closure plan 37-04.
 
 ## Requirements Traceability
 
@@ -58,7 +58,7 @@ verified_at: 2026-05-28
 | Per-run `due_at` scheduling documented as primary model | ✅ |
 | `:chimeway_workflows` queue removed / marked unused | ✅ |
 | `pending_signals` semantics (not stop-conditions fiction) | ✅ |
-| Transactional Multi example matches engine API | ❌ **WR-01** — documents non-existent `multi:` on `Chimeway.trigger/3`; `multi:` belongs on `dispatcher.dispatch/2` per `lib/chimeway/dispatch/oban.ex` |
+| Transactional Multi example matches engine API | ✅ — Pattern A (host Multi → trigger) and Pattern B (`Oban.dispatch/2` with `multi:`) per plan 37-04 |
 
 ### Plan 37-03 — Doc-contract test + validation sign-off
 
@@ -88,25 +88,26 @@ rg 'Workflows\.Workers' guides/                  → 0 matches
 
 ## Score
 
-**15/16 must-have checks passed (94%)**
+**16/16 must-have checks passed (100%)**
 
 - Plan 37-01: 8/8
-- Plan 37-02: 5/6 (WR-01 transactional example)
+- Plan 37-02: 6/6
 - Plan 37-03: 3/3
+- Plan 37-04: gap closure (WR-01, WR-02, WR-03, IN-02)
 
 DOCS-03 requirement: **passed** (all three acceptance criteria met).
 
 ## Gaps Found
 
-| ID | Severity | File | Issue | Blocks DOCS-03? |
-|----|----------|------|-------|-----------------|
-| WR-01 | Warning | `guides/recipes/oban-integration.md:74-94` | Transactional example passes `multi:` to `Chimeway.trigger/3` and claims `{:ok, multi}` return — API does not exist; example would not compile | No (worker-path truth fixed; section predates plan 02 scope) |
-| WR-02 | Warning | `guides/recipes/oban-integration.md:43-46` | Commented cron schedules `WorkflowProgressionWorker` without args; prose correctly cites `progress_due_runs/1` as fallback | No |
-| WR-03 | Info | `guides/flows/multi-step-journeys.md:197` | Stale "Phase 38" deferral on Oban link — recipe already corrected in 37-02 | No |
-| IN-01 | Info | `doc_contract_test.exs` | No automated gates for `oban-integration.md` (deferred to Phase 41 GATE-01) | No |
-| IN-02 | Info | `multi-step-journeys.md:153` | `ProcessFeedbackWorker` unqualified (actual: `Chimeway.Webhooks.ProcessFeedbackWorker`) | No |
+| ID | Severity | File | Issue | Status |
+|----|----------|------|-------|--------|
+| WR-01 | Warning | `guides/recipes/oban-integration.md` | Transactional example passed `multi:` to `Chimeway.trigger/3` | **closed** — plan 37-04 Pattern A/B rewrite |
+| WR-02 | Warning | `guides/recipes/oban-integration.md` | Commented cron lacked `progress_due_runs/1` guidance | **closed** — plan 37-04 cron comment |
+| WR-03 | Info | `guides/flows/multi-step-journeys.md` | Stale Phase 38 Oban deferral | **closed** — plan 37-04 Next Steps update |
+| IN-01 | Info | `doc_contract_test.exs` | No automated gates for `oban-integration.md` | **deferred** — Phase 41 GATE-01 |
+| IN-02 | Info | `multi-step-journeys.md` | Unqualified `ProcessFeedbackWorker` | **closed** — plan 37-04 full module name |
 
-**Recommendation:** Fix WR-01 before adopters copy the transactional pattern; WR-02 and WR-03 are quick doc edits in the same phase files.
+**Recommendation:** Phase complete. IN-01 remains Phase 41 scope.
 
 ## Human Verification (optional UAT)
 
