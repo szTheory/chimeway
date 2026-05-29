@@ -4,7 +4,7 @@ defmodule ChimewayAdmin.Redaction do
   """
 
   @allowed_detail_keys ~w(
-    reason outcome event_name step_key adapter status notification_key channel
+    reason outcome event_name step_key adapter adapter_module status notification_key channel
     workflow_step_key workflow_outcome from_step to_step rule_identity
   )
 
