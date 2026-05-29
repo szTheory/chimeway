@@ -620,6 +620,7 @@ defmodule Chimeway.Notifier do
   # delivery's terminal_at timestamp. Other anchors are reserved for later
   # phases and must fail normalization rather than silently no-op at runtime.
   @progress_wait_anchors ~w(prior_delivery_terminal_at)
+  @max_cancel_signals 10
 
   defp normalize_workflow_progress_rules(rules) do
     rules
@@ -653,31 +654,88 @@ defmodule Chimeway.Notifier do
     do: {:error, {:invalid_progress_rule_shape, other}}
 
   defp normalize_wait_until_rule(%{} = rule) do
-    # `wait_until` rules carry only anchor + delay_seconds + to_step. Mixing in
-    # an `outcome` (or any other key) is rejected so the persisted DSL stays
-    # one rule-shape per kind per D-06/D-08.
-    case extra_keys(rule, ~w(kind anchor delay_seconds to_step)) do
+    # `wait_until` rules carry anchor + delay_seconds + to_step, with optional
+    # `cancel_signals`. Mixing in an `outcome` (or any other key) is rejected so
+    # the persisted DSL stays one rule-shape per kind per D-06/D-08.
+    case extra_keys(rule, ~w(kind anchor delay_seconds to_step cancel_signals)) do
       [] ->
         anchor = Map.get(rule, "anchor", Map.get(rule, :anchor))
         delay_seconds = Map.get(rule, "delay_seconds", Map.get(rule, :delay_seconds))
         to_step = Map.get(rule, "to_step", Map.get(rule, :to_step))
 
+        cancel_signals_raw =
+          cond do
+            Map.has_key?(rule, "cancel_signals") -> Map.get(rule, "cancel_signals")
+            Map.has_key?(rule, :cancel_signals) -> Map.get(rule, :cancel_signals)
+            true -> :unset
+          end
+
         with {:ok, normalized_anchor} <- normalize_progress_anchor(anchor),
              {:ok, normalized_delay} <- normalize_progress_delay_seconds(delay_seconds),
-             {:ok, normalized_to_step} <- normalize_progress_to_step(to_step) do
-          {:ok,
-           %{
-             "kind" => "wait_until",
-             "anchor" => normalized_anchor,
-             "delay_seconds" => normalized_delay,
-             "to_step" => normalized_to_step
-           }}
+             {:ok, normalized_to_step} <- normalize_progress_to_step(to_step),
+             {:ok, normalized_cancel_signals} <- normalize_cancel_signals(cancel_signals_raw) do
+          base = %{
+            "kind" => "wait_until",
+            "anchor" => normalized_anchor,
+            "delay_seconds" => normalized_delay,
+            "to_step" => normalized_to_step
+          }
+
+          output =
+            if normalized_cancel_signals == [] do
+              base
+            else
+              Map.put(base, "cancel_signals", normalized_cancel_signals)
+            end
+
+          {:ok, output}
         end
 
       extra ->
         {:error, {:mixed_rule_shape, extra}}
     end
   end
+
+  defp normalize_cancel_signals(:unset), do: {:ok, []}
+
+  defp normalize_cancel_signals(signals) when is_list(signals) do
+    signals
+    |> Enum.reduce_while({:ok, []}, fn entry, {:ok, acc} ->
+      case normalize_cancel_signal_entry(entry) do
+        {:ok, normalized} -> {:cont, {:ok, [normalized | acc]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, normalized_list} ->
+        normalized_list = normalized_list |> Enum.reverse() |> Enum.uniq()
+
+        if length(normalized_list) > @max_cancel_signals do
+          {:error, {:invalid_cancel_signals, {:too_many, length(normalized_list)}}}
+        else
+          {:ok, normalized_list}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp normalize_cancel_signals(other),
+    do: {:error, {:invalid_cancel_signals, {:not_a_list, other}}}
+
+  defp normalize_cancel_signal_entry(entry) when is_binary(entry) do
+    normalized = String.trim(entry)
+
+    if normalized == "" do
+      {:error, {:invalid_cancel_signals, {:blank_entry, entry}}}
+    else
+      {:ok, normalized}
+    end
+  end
+
+  defp normalize_cancel_signal_entry(entry),
+    do: {:error, {:invalid_cancel_signals, {:invalid_type, entry}}}
 
   defp normalize_on_outcome_rule(%{} = rule) do
     case extra_keys(rule, ~w(kind outcome to_step)) do
