@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Demo.Up do
   ## Usage
 
       mix demo.up              # migrate + seed + print admin URL
-      mix demo.up --check      # CI smoke — seed only, exit 0
+      mix demo.up --check      # CI smoke — migrate + app.start + seed (skip ecto.create), exit 0
       mix demo.up --serve      # migrate + seed + start demo host admin UI
 
   """
