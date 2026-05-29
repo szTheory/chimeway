@@ -99,3 +99,49 @@ Example combining `on_outcome` and `stop` on the same step:
 ### WR-02: `temporary_failure` fires early
 
 `temporary_failure` resolves from the first `:failed` delivery row — before Oban retries complete. If you intend to branch only after retries are exhausted, use `retries_exhausted` instead. See the `Chimeway.Notifier` moduledoc for the full early-fire warning and idempotency guidance when pairing early escalation with retrying primary deliveries.
+
+## 3. Trigger the Journey
+
+When the mention event occurs, trigger the notifier with required tenancy and idempotency options:
+
+```elixir
+{:ok, _result} =
+  Chimeway.trigger(
+    MyApp.Notifiers.MentionEscalation,
+    %{user_id: "user:123", document_id: "doc:789"},
+    idempotency_key: "mention-doc-789-user-123",
+    tenant_id: "org_456"
+  )
+```
+
+Use `Chimeway.trigger/3` — the public entrypoint on the `Chimeway` module. Both `idempotency_key` and `tenant_id` are required.
+
+## 4. How wait_until Works
+
+After the in_app delivery converges to a branchable terminal state, the workflow run enters `:waiting` with:
+
+- `status_reason: "waiting_for_step_progression"`
+- `status_context` carrying `due_at`, `to_step`, anchor delivery metadata (`anchor_delivery_id`, `anchor_timestamp`, and related fields)
+
+The engine computes `due_at` from the anchor timestamp plus `delay_seconds`. When `now >= due_at`, `Chimeway.Workflows.Progression.progress_run/2` advances the run to `to_step` and plans the next delivery.
+
+In production with the Oban dispatcher configured (`config :chimeway, dispatcher: Chimeway.Dispatch.Oban`), Chimeway schedules `Chimeway.Dispatch.WorkflowProgressionWorker` at `due_at` for each waiting run. For tests or non-Oban dispatchers, call `progress_run/2` directly or use the optional `progress_due_runs/1` fallback to sweep past-due runs.
+
+## 5. Inspecting Run State
+
+Use tenant-scoped inspection APIs to answer "where is this journey?" without cross-tenant leakage:
+
+```elixir
+{:ok, run} = Chimeway.Workflows.explain("org_456", workflow_run_id)
+
+run.state           # :waiting | :active | :stopped | :completed
+run.status_reason   # e.g. "waiting_for_step_progression"
+run.pending_signals
+
+{:ok, traces} = Chimeway.Workflows.list_traces("org_456", workflow_run_id)
+
+Enum.map(traces, & &1.reason)
+#=> ["workflow_started", "step_activated", "waiting_for_step_progression", ...]
+```
+
+Both functions require the correct `tenant_id`. Querying a run ID that belongs to another tenant returns `{:error, :not_found}`.
