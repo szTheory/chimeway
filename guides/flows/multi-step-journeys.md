@@ -196,3 +196,4 @@ Until READ ships, the primary escalation story remains time-based `wait_until` p
 
 - [Oban Integration](../recipes/oban-integration.md) — dispatcher config, worker queues, and transactional enqueue patterns (see oban-integration recipe)
 - [Golden path](../introduction/golden-path.md) — fresh-host trigger → trace → webhook feedback loop
+- [Feedback escalation workflow](../recipes/feedback-escalation-workflow.md) — persona walkthrough for delivery-feedback → trace timeline

@@ -86,4 +86,86 @@ defmodule Chimeway.DocContractTest do
              "journey guide must defer aspirational read-to-cancel behavior"
     end
   end
+
+  @password_reset_recipe "guides/recipes/password-reset-support-trace.md"
+  @feedback_recipe "guides/recipes/feedback-escalation-workflow.md"
+
+  @recipe_forbidden_strings ~w(
+    stop_conditions
+    Workflows.Workers
+    Chimeway.Trigger.trigger
+  )
+
+  describe "password reset recipe doc contract (RECP-01)" do
+    setup do
+      content = File.read!(@password_reset_recipe)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in password reset recipe", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "password reset recipe must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in password reset recipe", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "password reset recipe must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Chimeway.trigger
+      find_traces_for_recipient
+      explain_delivery
+      password_reset
+    )
+
+    for required <- @required do
+      test "requires #{required} in password reset recipe", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "password reset recipe must reference #{unquote(required)}"
+      end
+    end
+  end
+
+  describe "feedback escalation recipe doc contract (RECP-02)" do
+    setup do
+      content = File.read!(@feedback_recipe)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in feedback escalation recipe", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "feedback escalation recipe must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in feedback escalation recipe", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "feedback escalation recipe must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Chimeway.trigger
+      Chimeway.Signal.track
+      ProcessFeedbackWorker
+      SignalRouterWorker
+      explain_delivery
+      chimeway.delivery.succeeded
+      webhook_received
+    )
+
+    for required <- @required do
+      test "requires #{required} in feedback escalation recipe", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "feedback escalation recipe must reference #{unquote(required)}"
+      end
+    end
+  end
 end

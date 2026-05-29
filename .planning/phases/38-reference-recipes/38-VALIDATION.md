@@ -38,16 +38,16 @@ created: 2026-05-28
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 38-01-01 | 01 | 1 | RECP-01 | — | Password-reset recipe file created with persona sections | manual | File exists + section checklist | ❌ W0 | ⬜ pending |
-| 38-01-02 | 01 | 1 | RECP-01 | — | Real APIs only in RECP-01 | grep | `rg 'Chimeway\.trigger|find_traces_for_recipient|explain_delivery' guides/recipes/password-reset-support-trace.md` | ❌ W0 | ⬜ pending |
-| 38-01-03 | 01 | 1 | RECP-01 | — | Three diagnostic branches present | grep | `rg 'quiet_hours|retries_exhausted|succeeded' guides/recipes/password-reset-support-trace.md` | ❌ W0 | ⬜ pending |
-| 38-02-01 | 02 | 1 | RECP-02 | — | Feedback escalation recipe created | manual | File exists + progress/stop subsections | ❌ W0 | ⬜ pending |
-| 38-02-02 | 02 | 1 | RECP-02 | — | Webhook → signal → trace chain documented | grep | `rg 'ProcessFeedbackWorker|SignalRouterWorker|chimeway\.delivery' guides/recipes/feedback-escalation-workflow.md` | ❌ W0 | ⬜ pending |
-| 38-02-03 | 02 | 1 | RECP-02 | — | Demo E2E cross-link present | grep | `rg 'feedback_pipeline_e2e_test' guides/recipes/feedback-escalation-workflow.md` | ❌ W0 | ⬜ pending |
-| 38-03-01 | 03 | 2 | RECP-01, RECP-02 | — | Both recipes in mix.exs extras | grep | `rg 'password-reset-support-trace|feedback-escalation-workflow' mix.exs` | ❌ W0 | ⬜ pending |
-| 38-03-02 | 03 | 2 | RECP-01, RECP-02 | — | Golden-path + journey cross-links | grep | `rg 'password-reset-support-trace|feedback-escalation-workflow' guides/introduction/golden-path.md guides/flows/multi-step-journeys.md` | ❌ W0 | ⬜ pending |
-| 38-03-03 | 03 | 2 | RECP-01, RECP-02 | D-15 | Recipe doc-contract tests pass | unit | `mix test test/chimeway/doc_contract_test.exs` | ❌ W0 | ⬜ pending |
-| 38-03-04 | 03 | 2 | RECP-01, RECP-02 | — | HexDocs + CI docs green | integration | `mix ci.docs` | ✅ | ⬜ pending |
+| 38-01-01 | 01 | 1 | RECP-01 | — | Password-reset recipe file created with persona sections | manual | File exists + section checklist | ✅ | ✅ green |
+| 38-01-02 | 01 | 1 | RECP-01 | — | Real APIs only in RECP-01 | grep | `rg 'Chimeway\.trigger|find_traces_for_recipient|explain_delivery' guides/recipes/password-reset-support-trace.md` | ✅ | ✅ green |
+| 38-01-03 | 01 | 1 | RECP-01 | — | Three diagnostic branches present | grep | `rg 'quiet_hours|retries_exhausted|succeeded' guides/recipes/password-reset-support-trace.md` | ✅ | ✅ green |
+| 38-02-01 | 02 | 1 | RECP-02 | — | Feedback escalation recipe created | manual | File exists + progress/stop subsections | ✅ | ✅ green |
+| 38-02-02 | 02 | 1 | RECP-02 | — | Webhook → signal → trace chain documented | grep | `rg 'ProcessFeedbackWorker|SignalRouterWorker|chimeway\.delivery' guides/recipes/feedback-escalation-workflow.md` | ✅ | ✅ green |
+| 38-02-03 | 02 | 1 | RECP-02 | — | Demo E2E cross-link present | grep | `rg 'feedback_pipeline_e2e_test' guides/recipes/feedback-escalation-workflow.md` | ✅ | ✅ green |
+| 38-03-01 | 03 | 2 | RECP-01, RECP-02 | — | Both recipes in mix.exs extras | grep | `rg 'password-reset-support-trace|feedback-escalation-workflow' mix.exs` | ✅ | ✅ green |
+| 38-03-02 | 03 | 2 | RECP-01, RECP-02 | — | Golden-path + journey cross-links | grep | `rg 'password-reset-support-trace|feedback-escalation-workflow' guides/introduction/golden-path.md guides/flows/multi-step-journeys.md` | ✅ | ✅ green |
+| 38-03-03 | 03 | 2 | RECP-01, RECP-02 | D-15 | Recipe doc-contract tests pass | unit | `mix test test/chimeway/doc_contract_test.exs` | ✅ | ✅ green |
+| 38-03-04 | 03 | 2 | RECP-01, RECP-02 | — | HexDocs + CI docs green | integration | `mix ci.docs` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

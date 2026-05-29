@@ -107,6 +107,8 @@ defmodule Chimeway.MixProject do
         "guides/recipes/oban-integration.md",
         "guides/recipes/custom-adapter.md",
         "guides/recipes/tracing-a-notification.md",
+        "guides/recipes/password-reset-support-trace.md",
+        "guides/recipes/feedback-escalation-workflow.md",
         "guides/cheatsheet.cheatmd"
       ],
       groups_extras: [

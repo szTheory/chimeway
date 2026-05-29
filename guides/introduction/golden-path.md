@@ -147,6 +147,8 @@ Optional: pass `correlation_id: "my-correlation-id"` on trigger, then `Chimeway.
 
 - [Getting Started](getting-started.md) — inbox listing, channels, and read/unread flows
 - [Tracing a Notification](../recipes/tracing-a-notification.md) — telemetry, correlation, and diagnosis depth
+- [Password reset support trace](../recipes/password-reset-support-trace.md) — Support Operator JTBD: why didn't the user get the email?
+- [Feedback escalation workflow](../recipes/feedback-escalation-workflow.md) — Product Manager JTBD: webhook-driven workflow progression in the trace
 
 ## Next: webhook feedback loop
 
