@@ -9,144 +9,31 @@
 - ✅ **v1.4** — [Archived roadmap](.planning/milestones/v1.4-ROADMAP.md) · [Audit](.planning/milestones/v1.4-MILESTONE-AUDIT.md) (shipped 2026-05-08, closed 2026-05-28)
 - ✅ **v1.5** — [Archived roadmap](.planning/milestones/v1.5-ROADMAP.md) · [Audit](.planning/milestones/v1.5-MILESTONE-AUDIT.md) (shipped 2026-05-29)
 - ✅ **v1.6** — [Archived roadmap](.planning/milestones/v1.6-ROADMAP.md) · [Audit](.planning/milestones/v1.6-MILESTONE-AUDIT.md) (shipped 2026-05-29)
-- 🚧 **v1.7** — READ + Adoption Polish (Phases 48–53, close-out in progress)
+- ✅ **v1.7** — [Archived roadmap](.planning/milestones/v1.7-ROADMAP.md) · [Audit](.planning/milestones/v1.7-MILESTONE-AUDIT.md) (shipped 2026-05-29)
 
 ## Active Milestone
 
-**v1.7 READ + Adoption Polish** — Connect inbox read/unread state to workflow progression and close adoption-evidence gaps in demo, docs, and journeys.
+None — use `/gsd-new-milestone` to define v1.8+ scope.
 
 ---
 
 ## Phases
 
-### 🚧 v1.7 READ + Adoption Polish (Phases 48–52)
+<details>
+<summary>✅ v1.7 READ + Adoption Polish (Phases 48–53) — SHIPPED 2026-05-29</summary>
 
-- [x] **Phase 48: `wait_until` Pending Signals** — Auto-populate `pending_signals` when runs enter time-based waits
-- [x] **Phase 49: Inbox Read → Signal** — `mark_read` / `mark_seen` emit durable signals with explainable early resume (completed 2026-05-29)
-- [x] **Phase 50: Natural Escalation Demo** — TeamPulse seeds and mention-escalation recipe use READ paths (completed 2026-05-29)
-- [x] **Phase 51: Journey & Admin Proof** — READ journey plus all-persona admin traces in CI (completed 2026-05-29)
-- [x] **Phase 52: Doc Truth & Gates** — README/moduledoc fixes and `verify.journeys` expansion (completed 2026-05-29)
-- [x] **Phase 53: Milestone Close-Out** — Nyquist validation retroactive sign-off + journey test hygiene (completed 2026-05-29)
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 48 | `wait_until` Pending Signals | 3/3 | Complete |
+| 49 | Inbox Read → Signal | 3/3 | Complete |
+| 50 | Natural Escalation Demo | 2/2 | Complete |
+| 51 | Journey & Admin Proof | 2/2 | Complete |
+| 52 | Doc Truth & Gates | 2/2 | Complete |
+| 53 | Milestone Close-Out | 2/2 | Complete |
 
-## Phase Details
+**Requirements:** READ-01..03, DEMO-03/04, JOUR-06..08, DOCS-04/05, GATE-03 — all satisfied (11 requirements).
 
-### Phase 48: `wait_until` Pending Signals
-
-**Goal:** Close READ-01 — workflow runs entering `wait_until` automatically persist canonical `pending_signals` so signal routing works without host glue.
-
-**Depends on:** v1.6 (workflow engine + journey foundation)
-
-**Requirements:** READ-01
-
-**Success Criteria** (what must be TRUE):
-
-1. A workflow run entering `:waiting` via `wait_until` has `pending_signals` populated from progress-rule configuration
-2. `SignalRouterWorker` can match an injected signal against a waiting run without manual `pending_signals` assignment by the host
-3. Multi-step journey guide no longer documents READ-01 as an engine gap (deferred callout removed or marked shipped)
-
-**Plans:** 3/3 plans complete
-
-| Wave | Plans | What it builds |
-|------|-------|----------------|
-| 1 | 48-01 | `cancel_signals` DSL validation in `normalize_wait_until_rule/1` + notifier contract tests |
-| 2 | 48-02 | `enter_waiting/6` auto-populates `pending_signals` + progression tests + SignalRouterWorker proof |
-| 3 | 48-03 | Journey guide doc-truth (`cancel_signals` authoring, READ-01 gap removed) + doc contract tests |
-
-**Status:** Complete (2026-05-29)
-
-### Phase 49: Inbox Read → Signal
-
-**Goal:** Close READ-02 and READ-03 — inbox lifecycle actions emit durable signals that resume waiting workflows with explainable traces.
-
-**Depends on:** Phase 48
-
-**Requirements:** READ-02, READ-03
-
-**Success Criteria** (what must be TRUE):
-
-1. Calling `Chimeway.mark_read/3` on a notification emits a durable signal routed through `SignalRouterWorker`
-2. Calling `Chimeway.mark_seen/3` emits a durable signal with documented semantics distinct from or aligned with read
-3. A `:waiting` run whose `pending_signals` includes the inbox-read event resumes to `:active` with a `signal_received` transition visible in operator traces (event name only, no raw payload)
-
-**Plans:** 3/3 plans complete
-
-**Wave 1** *(no dependencies)*
-
-| Wave | Plans | What it builds |
-|------|-------|----------------|
-| 1 | 49-01 | Inbox signal emission in `Chimeway.Inbox` + unit tests (READ-02) |
-| 2 | 49-02 | E2E `mark_read` → `SignalRouterWorker` → resume → trace proof (READ-02, READ-03) |
-| 3 | 49-03 | Journey guide doc-truth flip + `doc_contract_test.exs` (D-09) |
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
----
-
-### Phase 50: Natural Escalation Demo
-
-**Goal:** Replace staged webhook choreography with READ-driven TeamPulse escalation and update the mention-escalation recipe.
-
-**Depends on:** Phase 49
-
-**Requirements:** DEMO-03, DEMO-04
-
-**Success Criteria** (what must be TRUE):
-
-1. `DemoHost.Seeds` payment-escalation path no longer requires `stage_escalation_webhook/1` or `PendingWebhookAdapter` choreography for the primary demo story
-2. PM JTBD ("if they don't open in 2 hours, send push/email") is demonstrable via seeds using READ-driven progression
-3. Mention-escalation reference recipe documents read-cancel plus time-based `wait_until` fallback as the canonical pattern
-
-**Plans:** 2/2 plans complete
-
----
-
-### Phase 51: Journey & Admin Proof
-
-**Goal:** Extend journey CI to prove READ behavior and cover all three SEED-004 personas in admin traces.
-
-**Depends on:** Phase 50
-
-**Requirements:** JOUR-06, JOUR-07, JOUR-08
-
-**Success Criteria** (what must be TRUE):
-
-1. JOUR-06: seed → delivery → `mark_read` → escalation step does not fire before `wait_until` due_at
-2. JOUR-07: admin search/detail shows Sam password-reset suppression with explainable reason (Support Operator)
-3. JOUR-08: admin search/detail shows Morgan payment-escalation workflow trace (Product Manager)
-
-**Plans:** 2/2 plans complete
-
-| Wave | Plans | What it builds |
-|------|-------|----------------|
-| 1 | 51-01, 51-02 | JOUR-06 read-cancel + time-fallback; JOUR-07/08 admin persona traces (parallel) |
-
----
-
-### Phase 52: Doc Truth & Gates
-
-**Goal:** Close adoption-evidence doc drift and extend release gates for READ journeys.
-
-**Depends on:** Phase 51
-
-**Requirements:** DOCS-04, DOCS-05, GATE-03
-
-**Success Criteria** (what must be TRUE):
-
-1. Demo host README no longer contradicts webhook progression vs TeamPulse escalation; TraceDemo vs TeamPulse narrative is unified
-2. `mix demo.up --check` moduledoc matches actual migrate + seed + app.start behavior
-3. `mix verify.journeys` runs JOUR-06..08; MAINTAINING.md pre-ship quintet documents the expanded journey suite
-
-**Plans:** 2/2 plans complete
-
-| Wave | Plans | What it builds |
-|------|-------|----------------|
-| 1 | 52-01, 52-02 | DOCS-04/05 demo README + `demo.up` moduledoc; GATE-03 MAINTAINING + mix.exs + PROJECT.md (parallel) |
-
----
-
-## Progress
+</details>
 
 <details>
 <summary>✅ v1.6 Consumer Journey Proof (Phases 43–47) — SHIPPED 2026-05-29</summary>
@@ -179,34 +66,5 @@
 
 </details>
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete    | 2026-05-29 |
-| 49. Inbox Read → Signal | v1.7 | 3/3 | Complete    | 2026-05-29 |
-| 50. Natural Escalation Demo | v1.7 | 2/2 | Complete    | 2026-05-29 |
-| 51. Journey & Admin Proof | v1.7 | 2/2 | Complete    | 2026-05-29 |
-| 52. Doc Truth & Gates | v1.7 | 2/2 | Complete    | 2026-05-29 |
-| 53. Milestone Close-Out | v1.7 | 2/2 | Complete    | 2026-05-29 |
-
-### Phase 53: Milestone Close-Out
-
-**Goal:** Close v1.7 milestone audit tech debt — retroactive Nyquist sign-off for Phases 48–51 and demo host journey test hygiene.
-
-**Depends on:** Phase 52
-
-**Requirements:** None (process debt closure; all 11 v1.7 requirements already satisfied)
-
-**Success Criteria** (what must be TRUE):
-
-1. Phases 48–51 `VALIDATION.md` files show `nyquist_compliant: true` with all per-task rows green
-2. `mix verify.journeys` passes with zero Phoenix.ConnTest deprecation warnings
-3. Journey test moduledocs accurately describe the JOUR-01..08 nine-test suite layout
-
-**Plans:** 2/2 plans complete
-
-| Wave | Plans | What it builds |
-|------|-------|----------------|
-| 1 | 53-01, 53-02 | Retroactive Nyquist validation (48–51); ConnCase deprecation fix + moduledoc alignment (parallel) |
-
 ---
-*Roadmap updated: 2026-05-29 — Phase 53 added for v1.7 milestone close-out*
+*Roadmap updated: 2026-05-29 — v1.7 READ + Adoption Polish shipped*

@@ -10,7 +10,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed with planning tech debt, Phases 43–47). Under **v1.7 READ + Adoption Polish**, Phases 48–51 are complete: `wait_until` auto-populates `pending_signals` (READ-01), inbox `mark_read`/`mark_seen` emit durable signals (READ-02/03), TeamPulse payment escalation uses READ-driven progression with mention-escalation recipe (DEMO-03/04), and admin persona journeys prove READ escalation end-to-end (JOUR-06..08). The library ships installer truth, golden-path docs, reference recipes, demo trace path, operator trace MVP, and GATE-01/GATE-02/GATE-03 verification. End-to-end proof lives in `examples/chimeway_demo_host` with **695+ tests** passing (`mix test`) plus **9 journey tests** (`mix verify.journeys`, JOUR-01..08 including READ escalation proof).
+Chimeway shipped **v1.7 READ + Adoption Polish** on 2026-05-29 (audit passed, Phases 48–53). Read/unread workflow glue is complete: `wait_until` auto-populates `pending_signals` (READ-01), inbox `mark_read`/`mark_seen` emit durable signals that resume waiting workflows with explainable traces (READ-02/03), TeamPulse payment escalation uses READ-driven progression without staged webhook choreography (DEMO-03/04), and journey CI proves read-cancel on Sync and Oban paths plus all three SEED-004 admin personas (JOUR-06..08). Adoption docs and release gates align with the expanded **10-test journey suite** (`mix verify.journeys`, JOUR-01..08). The library ships installer truth, golden-path docs, reference recipes, demo trace path, operator trace MVP, and GATE-01/GATE-02/GATE-03 verification. End-to-end proof lives in `examples/chimeway_demo_host` with **695+ tests** passing (`mix test`) plus **10 journey tests** (`mix verify.journeys`).
 
 ## Product Arc
 
@@ -18,23 +18,26 @@ Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed wit
 - `v1.4 Channel Feedback Loops` — outbound channels plus inbound receipts/webhooks feeding workflow progression (shipped 2026-05-08).
 - `v1.5 Adoption Surface` — installer, golden-path docs, reference recipes, demo trace path, operator admin MVP, release gates (shipped 2026-05-29).
 - `v1.6 Consumer Journey Proof` — TeamPulse demo, deterministic seeds, journey CI, one-command spin-up (shipped 2026-05-29).
-- `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (in progress; Phases 48–52 shipped).
+- `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (shipped 2026-05-29).
 
-## Current Milestone: v1.7 READ + Adoption Polish
+## Next Milestone Goals
 
-**Goal:** Connect inbox read/unread state to workflow progression and close remaining adoption-evidence gaps in demo, docs, and journeys.
+**Candidate focus (v1.8+):** Ecosystem integration blueprints (SEED-003 — Mailglass, Accrue, Threadline, Sigra), then inbox UI productization (INBX, v1.9).
 
-**Target features:**
-- ~~Populate `pending_signals` on `wait_until` workflow transitions (READ-01)~~ — **Validated in Phase 48 (2026-05-29)**
-- ~~Inbox `mark_read` / `mark_seen` emits durable signals routing workflow progression without host glue (READ-02)~~ — **Validated in Phase 49 (2026-05-29)**
-- ~~Natural escalation demo — replace staged webhook choreography with READ-driven progression~~ — **Validated in Phase 50 (2026-05-29)**
-- Admin journeys for all personas (Sam suppression, Morgan escalation beyond invite-only JOUR-04)
-- README/doc fixes — webhook path contradiction, TraceDemo vs TeamPulse split, `mix demo.up --check` moduledoc accuracy
-- Journey/demo alignment proving READ behavior end-to-end in CI
+**Explicitly deferred:** Broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell, operator UI projection of inbox-read signals onto delivery timeline (non-blocking audit finding INT-02).
 
-**Included seeds:** SEED-004 (Personas & DX — time/outcome progression), SEED-002 (adoption polish tail)
+### Shipped v1.7 Features (Validated)
 
-**Explicitly deferred this milestone:** SEED-003 ecosystem plugins (v1.8), bell inbox UI / INBX (v1.9), broad channel matrix, Playwright (INV-004)
+- `cancel_signals` DSL on `wait_until` progress rules with declaration-time validation (READ-01)
+- `enter_waiting/6` auto-populates `pending_signals` from progress rules — no host glue
+- Inbox `mark_read`/`mark_seen` emit durable `chimeway.notification.read`/`.seen` signals via `Signal.track/4` (READ-02)
+- Signal-routed early resume from `:waiting` with explainable `signal_received` transition (READ-03)
+- TeamPulse payment escalation demo uses READ-driven progression — no `PendingWebhookAdapter` choreography (DEMO-03)
+- Mention-escalation reference recipe documents read-cancel plus time-based `wait_until` fallback (DEMO-04)
+- JOUR-06 read-cancel proof on Sync and Oban due-worker paths plus time-fallback
+- JOUR-07/08 admin persona traces for Sam suppression and Morgan escalation
+- Demo host README and `mix demo.up` moduledoc aligned to shipped READ behavior (DOCS-04/05)
+- GATE-03: `mix verify.journeys` covers JOUR-01..08 (10 tests); MAINTAINING.md pre-ship quintet updated
 
 ### Shipped v1.6 Features (Validated)
 
@@ -44,7 +47,7 @@ Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed wit
 - Journey E2E suite: invite delivery, suppression explainability, webhook workflow progression
 - Host-mount `chimeway_admin` integration test through demo host router
 - GATE-02: `mix verify.journeys` CI job + pre-ship quintet in MAINTAINING.md (v1.6 foundation, JOUR-01..05)
-- GATE-03: expanded journey suite JOUR-06..08 — READ read-cancel + admin persona traces (v1.7, 9 tests)
+- GATE-03: expanded journey suite JOUR-06..08 — READ read-cancel + admin persona traces (v1.7, 10 tests)
 
 ### Shipped v1.5 Features (Validated)
 - `mix chimeway.gen.migrations` (or install task) with idempotent golden-diff verification
@@ -83,8 +86,8 @@ Prior context includes:
 - Next value jump is adoption surface: reference flows, integration docs, and operator UX — not more channel matrix expansion.
 - Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — **resolved by v1.5** (installer task, golden path, operator UI, demo trace path, release gates).
 - Adopter assessment (2026-05-29): ~88–92% done post-v1.6 — adoption evidence (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E) resolved the pre-adopter confidence gap.
-- v1.7 READ + Adoption Polish started 2026-05-29 — engine glue plus demo/docs/journey tail after v1.6 adoption evidence.
-- Next value jump after v1.7: ecosystem plugins (SEED-003, v1.8) then inbox UI (INBX, v1.9).
+- v1.7 READ + Adoption Polish shipped 2026-05-29 — read/unread workflow glue plus demo/docs/journey tail closed adoption-evidence gaps.
+- Adopter assessment post-v1.7: ~92–95% for embedded-notification scope — READ glue and journey proof credible; next value jump is ecosystem plugins (SEED-003, v1.8) then inbox UI (INBX, v1.9).
 
 ## Constraints
 
@@ -95,7 +98,7 @@ Prior context includes:
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
 - **Scope**: Orchestration and explainability remain higher leverage than broad channel expansion.
-- **Scope**: v1.7 READ should close read/unread workflow glue before UI productization (INBX) or ecosystem plugins (SEED-003).
+- **Scope**: v1.7 READ closed read/unread workflow glue; UI productization (INBX) and ecosystem plugins (SEED-003) remain next milestones.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -123,7 +126,14 @@ Prior context includes:
 | Canonical `chimeway.delivery.*` vocabulary | Align normalization, signals, and trace projection for auditability | Shipped in v1.4 (Phase 34) |
 | Generic outbound channel behaviour | SMS/Push/Chat without vendor lock-in; per-channel render contracts | Shipped in v1.4 (Phase 29) |
 | v1.5 before channel matrix or ecosystem plugins | Engine credible at v1.4 close; adoption friction is the bottleneck | Shipped 2026-05-29 (Phases 35-41) |
-| Defer read/unread-driven workflow branching to v1.7 READ | `pending_signals` not populated on `wait_until`; inbox read does not emit signals | Deferred to v1.7 READ milestone |
+| Defer read/unread-driven workflow branching to v1.7 READ | `pending_signals` not populated on `wait_until`; inbox read does not emit signals | Shipped v1.7 (Phases 48–49) |
+| `cancel_signals` validated at declaration time | Runtime validation would hide notifier authoring errors | Shipped v1.7 Phase 48 (D-06) |
+| `pending_signals` column is sole durable source | Avoid mirroring into status_context for replay consistency | Shipped v1.7 Phase 48 |
+| Inbox signals on first transition only | Idempotent read/seen should not duplicate signal rows | Shipped v1.7 Phase 49 |
+| Lifecycle :ok independent of Signal.track | Separate transactions per D-07 — inbox state must not fail on signal errors | Shipped v1.7 Phase 49 |
+| signal_received context is event_name only | No payload/notification_id in operator trace projection (READ-03) | Shipped v1.7 Phase 49 |
+| READ-driven demo replaces staged webhook seeds | Staged choreography masked engine gap | Shipped v1.7 Phase 50 |
+| JOUR-06 covers Sync + Oban due-worker paths | Single-path proof insufficient for async escalation | Shipped v1.7 Phase 51 |
 | GATE-01 scoped doc-contract gates separate from default ci | Fast core feedback + explicit pre-ship quartet | Shipped Phase 41 |
 | verify.example additive subprocess chain | Demo host E2E first, chimeway_admin second | Shipped Phase 41 |
 | v1.6 journey CI separate from default ci | Fast core feedback; journey proof is explicit pre-ship gate | Shipped v1.6 |
@@ -131,6 +141,27 @@ Prior context includes:
 | Defer Playwright for admin smoke | Host-mount ConnTest + LiveViewTest sufficient for JOUR-04 | Shipped v1.6 |
 
 ## Archived Milestone Context
+
+<details>
+<summary>v1.7 READ + Adoption Polish planning context</summary>
+
+### Milestone Scope
+
+Connect inbox read/unread state to workflow progression and close adoption-evidence gaps in demo, docs, and journeys.
+
+### Delivered Features
+
+- `wait_until` auto-populates `pending_signals` from `cancel_signals` progress rules (READ-01).
+- Inbox `mark_read`/`mark_seen` emit durable signals routing workflow progression (READ-02/03).
+- TeamPulse payment escalation uses READ-driven progression; mention-escalation recipe published (DEMO-03/04).
+- Journey CI: JOUR-06 read-cancel (Sync + Oban), JOUR-07/08 admin persona traces.
+- Doc truth + GATE-03 expanded journey suite (10 tests).
+
+### Validated Requirements Snapshot
+
+- READ-01..03, DEMO-03/04, JOUR-06..08, DOCS-04/05, GATE-03 — all satisfied (11 requirements).
+
+</details>
 
 <details>
 <summary>v1.6 Consumer Journey Proof planning context</summary>
@@ -264,4 +295,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 — Phase 50 complete (READ-driven TeamPulse escalation + mention-escalation recipe)*
+*Last updated: 2026-05-29 after v1.7 milestone*

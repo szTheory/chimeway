@@ -2,6 +2,55 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.7 — READ + Adoption Polish
+
+**Shipped:** 2026-05-29
+**Phases:** 6 (48–53) | **Plans:** 14 | **Requirements:** 11/11
+
+### What Was Built
+
+- `cancel_signals` DSL on `wait_until` with declaration-time validation; `enter_waiting/6` auto-populates `pending_signals` (READ-01).
+- Inbox `mark_read`/`mark_seen` emit durable signals; signal-routed early resume with explainable `signal_received` transition (READ-02/03).
+- TeamPulse payment escalation uses READ-driven progression — no staged webhook choreography (DEMO-03).
+- Mention-escalation reference recipe with read-cancel plus time-based fallback (DEMO-04).
+- JOUR-06 read-cancel on Sync and Oban paths; JOUR-07/08 admin persona traces (Sam, Morgan).
+- Demo README + `mix demo.up` moduledoc aligned; GATE-03 expanded to 10 journey tests (JOUR-01..08).
+- Nyquist retroactive sign-off for Phases 48–51; ConnCase deprecation fix in journey tests.
+
+### What Worked
+
+- READ spine (48 → 49 → 50 → 51) wired cleanly through existing SignalRouterWorker — no new routing substrate.
+- Doc contract tests locked READ-01/02 gap language from regressing in journey guide.
+- Post-audit Phase 53 closed Nyquist metadata and Oban due-worker coverage without feature rework.
+- Milestone audit before close-out caught missing Oban path in JOUR-06 — fixed before ship.
+
+### What Was Inefficient
+
+- Phase 53 inserted after initial audit — close-out phase could have been planned upfront.
+- `mark_seen` emission covered but not exercised in progression E2E (INT-03).
+- Inbox-read `signal_received` may not surface on delivery timeline UI (INT-02) — transition row only.
+
+### Patterns Established
+
+- `cancel_signals` validated at notifier declaration time, not runtime in progression (D-06).
+- `pending_signals` column is sole durable source — not mirrored into status_context.
+- Inbox lifecycle `:ok` independent of `Signal.track/4` result — separate transactions (D-07).
+- `signal_received` transition context is event_name only — no payload in traces (READ-03).
+
+### Key Lessons
+
+1. Staged seed choreography masks engine gaps — demo must exercise real public APIs (`Chimeway.mark_read/3`), not test fixtures.
+2. Journey tests need both Sync and Oban paths for async escalation proof — single-path coverage is insufficient.
+3. Milestone close-out phases pay off when audit finds process debt (Nyquist, test hygiene) separate from feature gaps.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: Phases 48–53 shipped 2026-05-29 (same-day burst)
+- Notable: 10 journey tests green; 11/11 requirements satisfied at audit
+
+---
+
 ## Milestone: v1.6 — Consumer Journey Proof
 
 **Shipped:** 2026-05-29
@@ -155,6 +204,7 @@
 | v1.4 | 29–34 | Channel feedback loops + E2E proof host |
 | v1.5 | 35–42 | Adoption surface + doc-contract release gates |
 | v1.6 | 43–47 | Consumer journey proof + shift-left CI |
+| v1.7 | 48–53 | READ workflow glue + adoption-evidence tail |
 
 ### Cumulative Quality
 
@@ -163,12 +213,31 @@
 | v1.4 | 549 | `mix ci.test` green at milestone re-audit |
 | v1.5 | 647 | Full `mix ci` green; pre-ship quartet exit 0 |
 | v1.6 | 647 + 5 journeys | Pre-ship quintet documented; journey CI separate job |
+| v1.7 | 695+ + 10 journeys | READ spine + expanded persona admin traces |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Explainability stays central — every milestone adds operator-visible linkage for new behavior.
 2. Gap-closure phases are cheaper than silent tech debt at milestone audit time.
 3. Reference host examples pay off when integration seams are host-owned (webhooks, body readers, HMAC).
+
+---
+
+## Milestone-Next Assessment: v1.7 boundary (2026-05-29)
+
+**Band:** ~88–92% (80–89% strong, upper edge) — engine + adoption surface + adoption evidence credible.
+
+**Pick:** v1.7 READ (`pending_signals` on `wait_until` + inbox read→signal). Do **not** re-milestone Consumer Journey Proof — v1.6 shipped TeamPulse demo, seeds, journey CI, and one-command spin-up.
+
+**Adoption evidence clarification:** The realistic demo + seeds + shift-left journey CI wedge is closed. Remaining gaps are narrow polish (README webhook contradiction, admin journeys for all personas, natural escalation demo without seed choreography) — fold into v1.7 close-out.
+
+**Ordering after READ:** v1.8 SEED-003 ecosystem integrations → v1.9 INBX bell UI → maintenance.
+
+**Surprises:** User concern about missing adoption evidence was already addressed by v1.6; staged `DemoHost.Seeds` escalation masks READ engine gap.
+
+**Graduation candidates:** Adoption surface ≠ adoption evidence (permanent); consumer journey proof before READ (validated); staged seed choreography masks engine gaps (fix in v1.7).
+
+Full thread: `.planning/threads/2026-05-29-v1.7-milestone-assessment.md`
 
 ---
 

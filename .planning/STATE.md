@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: READ + Adoption Polish
-status: milestone_complete
-last_updated: 2026-05-29T18:42:06.059Z
-last_activity: 2026-05-29
+status: Awaiting next milestone
+last_updated: "2026-05-29T18:56:12.298Z"
+last_activity: 2026-05-29 — Milestone v1.7 completed and archived
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 14
   completed_plans: 14
-  percent: 83
-stopped_at: Milestone complete (Phase 53 was final phase)
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +20,14 @@ stopped_at: Milestone complete (Phase 53 was final phase)
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Milestone complete
+**Current focus:** Planning next milestone (v1.8+)
 
 ## Current Position
 
-Phase: 53
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-05-29
+Phase: Milestone v1.7 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-29 — Milestone v1.7 completed and archived
 
 ## Accumulated Context
 
@@ -78,16 +77,15 @@ None.
 
 ### Deferred Items
 
-Items acknowledged and deferred at milestone close on 2026-05-29:
+Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 | Category | Item | Status |
 |----------|------|--------|
-| milestone | v1.7 READ — pending_signals + inbox read→workflow | next |
-| polish | Adoption evidence tail — README, admin journeys all personas, natural escalation | v1.7 close-out |
-| seed | SEED-003 ecosystem integrations | v1.8+ |
-| seed | SEED-004 inbox / bell UI remainder | v1.9+ |
+| seed | SEED-003 ecosystem integrations (Mailglass, Accrue, Threadline, Sigra) | v1.8+ |
+| seed | SEED-004 inbox / bell UI remainder (INBX) | v1.9+ |
 | planning | Phases 43–47 GSD artifacts (SUMMARY/VERIFICATION) | optional retroactive |
-| doc | demo host README webhook path contradiction | v1.7 close-out |
+| integration | Inbox-read signal may not project onto delivery timeline UI (INT-02) | v1.8 optional |
+| integration | `mark_seen` progression E2E not covered (INT-03) | v1.8 optional |
 
 ### Session Continuity
 
@@ -97,9 +95,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- `/gsd-execute-phase 53` — Nyquist retroactive sign-off + journey test hygiene
-- Re-run `/gsd-audit-milestone` after Phase 53
-- `/gsd-complete-milestone v1.7` when audit passes clean
+- Start the next milestone with /gsd-new-milestone
 
 ## Performance Metrics
 

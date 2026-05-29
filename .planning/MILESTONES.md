@@ -1,5 +1,36 @@
 # Milestones
 
+## v1.7 READ + Adoption Polish
+
+- Status: shipped
+- Date: 2026-05-29
+- Phases: 48–53 (6 phases, 14 plans, 39 tasks)
+- Requirements: 11/11 satisfied
+- Git tag: v1.7
+- Git range: v1.6..v1.7 (79 commits, 78 files, +10,224 / −216 LOC)
+- Audit: [milestones/v1.7-MILESTONE-AUDIT.md](milestones/v1.7-MILESTONE-AUDIT.md)
+- Known deferred items at close: 2 dormant seeds (see STATE.md Deferred Items)
+- Key accomplishments:
+
+- Optional bounded `cancel_signals` string-list validation on `wait_until` progress rules with strict tagged errors at notifier declaration time
+- `enter_waiting/6` atomically persists `pending_signals` from `wait_until` rule `cancel_signals`, with progression and SignalRouterWorker proofs that signal routing works without host glue
+- Journey guide documents shipped `cancel_signals` DSL and canonical inbox event names; READ-01 engine-gap callout removed and locked by doc contract tests
+- Inbox lifecycle APIs emit durable `chimeway.notification.read` / `.seen` signals on first transition via `Signal.track/4`, with tenant resolution and unit proof for READ-02
+- Integration test proves `Chimeway.mark_read/3` emits a signal that `SignalRouterWorker` routes to resume a `:waiting` run, with `signal_received` transition context showing event name only (READ-02, READ-03)
+- Journey guide documents shipped `mark_read`/`mark_seen` signal emission; doc contract forbids READ-02 deferral language (D-09)
+- TeamPulse payment escalation demo now proves READ-driven workflow progression — no staged webhook choreography.
+- Published mention-escalation recipe with CI doc contract and aligned journey guide intro.
+- JOUR-06 journey tests prove email escalation fires only when unread: mark_read cancels before due_at; past-due progress_run creates exactly one email delivery.
+- Admin LiveView journey tests prove Sam's suppressed password reset and Morgan's payment-escalation workflow are explainable via host-mounted trace search and detail pages.
+- Demo host README and `mix demo.up` moduledoc now match shipped READ-driven TeamPulse escalation and actual `--check` smoke behavior
+- Release-gate documentation aligned to expanded 9-test journey suite (JOUR-01..08, GATE-03)
+- Retroactive Nyquist sign-off for v1.7 phases 48–51 by re-running automated validation commands and marking all VALIDATION.md files compliant
+- ConnCase deprecation fix and JOUR-01..08 moduledoc alignment for clean `mix verify.journeys` output
+
+- Notes: Phase 53 inserted post-audit for Nyquist sign-off and journey test hygiene; 2 dormant seeds deferred to v1.8+
+
+---
+
 ## v1.6 Consumer Journey Proof
 
 - Status: shipped
