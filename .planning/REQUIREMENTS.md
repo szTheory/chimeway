@@ -11,7 +11,7 @@
 - [x] **ECOS-01**: Host can configure `Chimeway.Adapter.Mailglass` as the email delivery adapter and dispatch notifications through Mailglass rendering and Swoosh delivery
 - [x] **ECOS-02**: `Chimeway.Adapter.Mailglass` passes shared `Chimeway.Adapter` contract tests for `deliver/2`, including redacted provider metadata on success and classified errors on failure
 - [x] **ECOS-03**: Mailglass inbound webhook payloads verify, resolve delivery identity, and normalize into canonical Chimeway delivery outcomes via the existing webhook pipeline
-- [ ] **ECOS-04**: Normalized Mailglass feedback drives workflow progression through the existing Signal engine with explainable operator traces
+- [x] **ECOS-04**: Normalized Mailglass feedback drives workflow progression through the existing Signal engine with explainable operator traces
 
 ### Blueprint & Demo (ECOS / DEMO)
 
@@ -68,7 +68,7 @@ Deferred to later milestones. Tracked but not in v1.8 roadmap.
 | ECOS-01 | Phase 54 | Complete |
 | ECOS-02 | Phase 54 | Complete |
 | ECOS-03 | Phase 55 | Complete |
-| ECOS-04 | Phase 55 | Pending |
+| ECOS-04 | Phase 55 | Complete |
 | ECOS-05 | Phase 56 | Pending |
 | DEMO-06 | Phase 56 | Pending |
 | DOCS-06 | Phase 57 | Pending |
