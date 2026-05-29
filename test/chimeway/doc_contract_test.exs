@@ -242,6 +242,50 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @mailglass_blueprint_recipe Path.expand("../../guides/recipes/mailglass-integration-blueprint.md", __DIR__)
+
+  describe "mailglass blueprint recipe doc contract (ECOS-05)" do
+    setup do
+      content = File.read!(@mailglass_blueprint_recipe)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in mailglass blueprint recipe", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "mailglass blueprint recipe must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in mailglass blueprint recipe", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "mailglass blueprint recipe must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Chimeway.Adapters.Mailglass
+      Chimeway.Adapter.Mailglass
+      channel_adapters
+      channel_adapter_configs
+      render_key
+      teampulse.invite_sent
+      teampulse.invite_sent.email
+      DemoHost.Notifiers.InviteSent
+      DemoHost.Mailers.InviteEmail
+      orchestrates
+      templating
+    )
+
+    for required <- @required do
+      test "requires #{required} in mailglass blueprint recipe", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "mailglass blueprint recipe must reference #{unquote(required)}"
+      end
+    end
+  end
+
   @adoption_forbidden_strings ~w(
     stop_conditions
     Workflows.Workers
