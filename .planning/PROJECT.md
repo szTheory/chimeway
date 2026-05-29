@@ -22,7 +22,9 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.7 READ + Adoption Polish** on 2026-05-29 (audit passed, Phases 48–53). Read/unread workflow glue is complete: `wait_until` auto-populates `pending_signals` (READ-01), inbox `mark_read`/`mark_seen` emit durable signals that resume waiting workflows with explainable traces (READ-02/03), TeamPulse payment escalation uses READ-driven progression without staged webhook choreography (DEMO-03/04), and journey CI proves read-cancel on Sync and Oban paths plus all three SEED-004 admin personas (JOUR-06..08). Adoption docs and release gates align with the expanded **10-test journey suite** (`mix verify.journeys`, JOUR-01..08). The library ships installer truth, golden-path docs, reference recipes, demo trace path, operator trace MVP, and GATE-01/GATE-02/GATE-03 verification. End-to-end proof lives in `examples/chimeway_demo_host` with **695+ tests** passing (`mix test`) plus **10 journey tests** (`mix verify.journeys`).
+**v1.8 in progress (2026-05-29):** Phases 54–55 complete — Mailglass outbound adapter (`Chimeway.Adapters.Mailglass`) and inbound feedback bridge (webhook verify/resolve/normalize via `Chimeway.Webhooks.process/4`, `provider_message_id` correlation, ECOS-04 pipeline integration test). **717 tests** pass (`mix test --warnings-as-errors`). Next: Phase 56 blueprint & demo proof, Phase 57 docs/release gates.
+
+Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read/unread workflow glue, journey CI (`mix verify.journeys`), adoption docs, and demo host proof remain the adoption foundation.
 
 ## Product Arc
 
@@ -309,4 +311,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 — milestone v1.8 Ecosystem Integration Blueprints started*
+*Last updated: 2026-05-29 — Phase 55 inbound feedback bridge complete (v1.8)*
