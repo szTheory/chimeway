@@ -187,6 +187,34 @@ When matched, the run transitions to `:active`, clears `pending_signals`, and re
 
 When a run enters `:waiting` via `wait_until`, `enter_waiting/6` auto-populates `pending_signals` from the rule's `cancel_signals` when declared. Host applications no longer need manual `Workflows.update_run/3` calls to set `pending_signals` for `wait_until`-driven waits.
 
+### Inbox Lifecycle Signal Routing
+
+The production path for inbox read/seen driving workflow early exit:
+
+1. Host calls `Chimeway.mark_read/3` or `Chimeway.mark_seen/3` — engine updates lifecycle timestamps on first transition only
+2. On first transition, engine calls `Chimeway.Signal.track/4` internally with canonical event names: `chimeway.notification.read` and `chimeway.notification.seen`
+3. `Chimeway.Dispatch.SignalRouterWorker` (Oban queue `:chimeway_signals`) delegates to `Chimeway.Workflows.route_signal/1`
+4. For `:waiting` runs with matching `pending_signals`, the run resumes to `:active` with a `signal_received` transition
+
+`mark_read` and `mark_seen` emit **distinct** signals — neither auto-emits the other. Re-marking an already-read or already-seen notification returns `:ok` without duplicate signals.
+
+Operator traces record `event_name` only in the `signal_received` transition context; `notification_id` in the signal payload is not copied to transition context.
+
+Signal signature — host calls the public API; the engine emits the durable signal internally:
+
+```elixir
+# Host calls public API — engine emits signal internally
+Chimeway.mark_read(notification_id, "user:123")
+
+# Equivalent durable signal (system-emitted, not host-called):
+Chimeway.Signal.track(
+  tenant_id,
+  "user:123",
+  "chimeway.notification.read",
+  %{"notification_id" => notification_id}
+)
+```
+
 ### Canonical inbox cancel signals
 
 For inbox-driven early exit, declare these canonical event names in `cancel_signals`:
@@ -194,15 +222,7 @@ For inbox-driven early exit, declare these canonical event names in `cancel_sign
 - `chimeway.notification.read` — user explicitly read the notification
 - `chimeway.notification.seen` — user viewed the notification in the inbox
 
-Phase 48 documents these names but does **not** emit them. Wiring `Chimeway.mark_read/3` and `Chimeway.mark_seen/3` to emit durable signals is READ-02 (Phase 49).
-
-## Deferred / Future (READ Milestone)
-
-Inbox read/seen signal emission (READ-02) is not wired in v1.7 Phase 48:
-
-- **READ-02:** Wire inbox read/seen events to workflow cancellation without host glue
-
-Until READ-02 ships, the primary escalation story remains time-based `wait_until` progression. Do not assume that viewing a notification stops a scheduled email step — even when `cancel_signals` is declared, the engine only routes signals that are actually emitted.
+`wait_until` rules declaring `cancel_signals: ["chimeway.notification.read"]` are end-to-end truthful: Phase 48 populates `pending_signals` at `:waiting` entry; inbox lifecycle APIs emit the matching durable signals without host `Signal.track` glue.
 
 ## Next Steps
 
