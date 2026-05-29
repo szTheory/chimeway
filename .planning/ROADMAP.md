@@ -121,7 +121,8 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Doc drift and example breakage are caught before release, not by adopters in production.
 **Depends on:** Phase 40
 **Requirements:** GATE-01
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
+**Status:** Complete (2026-05-29)
 
 | Wave | Plans | What it builds |
 |------|-------|----------------|
@@ -158,7 +159,7 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 | DEMO-01 | Phase 39 | Pending |
 | OPER-01 | Phase 40 | Pending |
 | OPER-02 | Phase 40 | Pending |
-| GATE-01 | Phase 41 | In Progress |
+| GATE-01 | Phase 41 | Complete |
 
 **Coverage:** 12/12 requirements mapped ✓
 

@@ -34,7 +34,7 @@ Requirements for the Adoption Surface milestone. Each maps to roadmap phases (st
 
 ### Release & Verification Gates (GATE)
 
-- [ ] **GATE-01**: Doc-contract checks and `mix verify.example` are part of the release checklist so doc drift is caught before ship
+- [x] **GATE-01**: Doc-contract checks and `mix verify.example` are part of the release checklist so doc drift is caught before ship
 
 ## Future Requirements (v1.6+)
 
@@ -85,7 +85,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEMO-01 | Phase 39 | Complete |
 | OPER-01 | Phase 40 | Complete |
 | OPER-02 | Phase 40 | Complete |
-| GATE-01 | Phase 41 | In Progress |
+| GATE-01 | Phase 41 | Complete |
 
 **Coverage:**
 
