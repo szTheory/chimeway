@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Ecosystem Integration Blueprints
 status: executing
-last_updated: "2026-05-29T21:55:00Z"
-last_activity: 2026-05-29 — Completed 54-02 (Mailglass adapter deliver/2)
+last_updated: "2026-05-29T20:48:22.229Z"
+last_activity: 2026-05-29 — Completed 54-03 contract tests and executor routing
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 17
+  completed_plans: 3
+  percent: 25
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 54 — Mailglass Adapter Core (v1.8 SEED-003 Mailglass-only; INV-003 resolved)
+**Current focus:** Phase 55 — Inbound Feedback Bridge (Phase 54 complete)
 
 ## Current Position
 
-Phase: 54 — Mailglass Adapter Core (in progress)
-Plan: 2/3 complete (54-02 done; next 54-03)
-Status: Executing
-Last activity: 2026-05-29 — Completed 54-02 Mailglass adapter deliver/2
+Phase: 54 — Mailglass Adapter Core (complete)
+Plan: 3/3 complete (54-03 done; next Phase 55)
+Status: Phase complete — ready for Phase 55
+Last activity: 2026-05-29 — Completed 54-03 contract tests and executor routing
 
 ## Accumulated Context
 
@@ -60,6 +60,8 @@ Last activity: 2026-05-29 — Completed 54-02 Mailglass adapter deliver/2
 - [54-02]: Recipient email precedence render_data to/email then user: actor_id prefix
 - [54-02]: Hex mailglass needs test/support migration shim — priv wrappers not on hex artifact
 - [54-02]: simulate_error supports :bounced/:suppressed for SuppressedError classifier tests
+- [54-03]: ContractTest error shape passes simulate_error: true config when simulate_error?/0
+- [54-03]: Permanent Mailglass errors tested via classify_error_for_test/1 on TemplateError
 
 ### Pending Todos
 
@@ -99,14 +101,14 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-29T21:55:00Z
-Stopped at: Completed 54-02-PLAN.md
+Last session: 2026-05-29T20:48:22.225Z
+Stopped at: Completed 54-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- `/gsd-execute-phase 54` — run plan 54-03 next (contract tests + executor routing)
-- Review: `.planning/phases/54-mailglass-adapter-core/*-PLAN.md`
+- `/gsd-plan-phase 55` or `/gsd-execute-phase 55` — inbound Mailglass webhook bridge (ECOS-03/04)
+- Review: `.planning/phases/54-mailglass-adapter-core/54-03-SUMMARY.md`
 - Pre-ship baseline unchanged: `mix verify.journeys` (10 tests) + existing gate quintet
 
 ## Performance Metrics
@@ -117,3 +119,4 @@ Resume file: None
 | Phase 53 P02 | 8 min | 3 tasks | 3 files |
 | Phase 54-mailglass-adapter-core P01 | 15min | 3 tasks | 8 files |
 | Phase 54-mailglass-adapter-core P02 | 25min | 3 tasks | 8 files |
+| Phase 54-mailglass-adapter-core P03 | 12min | 3 tasks | 5 files |
