@@ -18,12 +18,23 @@ Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed wit
 - `v1.4 Channel Feedback Loops` — outbound channels plus inbound receipts/webhooks feeding workflow progression (shipped 2026-05-08).
 - `v1.5 Adoption Surface` — installer, golden-path docs, reference recipes, demo trace path, operator admin MVP, release gates (shipped 2026-05-29).
 - `v1.6 Consumer Journey Proof` — TeamPulse demo, deterministic seeds, journey CI, one-command spin-up (shipped 2026-05-29).
+- `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (in progress).
 
-## Current Milestone
+## Current Milestone: v1.7 READ + Adoption Polish
 
-**None** — v1.6 Consumer Journey Proof shipped 2026-05-29.
+**Goal:** Connect inbox read/unread state to workflow progression and close remaining adoption-evidence gaps in demo, docs, and journeys.
 
-**Next:** v1.7 READ — see [milestones/v1.7-REQUIREMENTS.md](.planning/milestones/v1.7-REQUIREMENTS.md).
+**Target features:**
+- Populate `pending_signals` on `wait_until` workflow transitions (READ-01)
+- Inbox `mark_read` / `mark_seen` emits durable signals routing workflow progression without host glue (READ-02)
+- Natural escalation demo — replace staged webhook choreography with READ-driven progression
+- Admin journeys for all personas (Sam suppression, Morgan escalation beyond invite-only JOUR-04)
+- README/doc fixes — webhook path contradiction, TraceDemo vs TeamPulse split, `mix demo.up --check` moduledoc accuracy
+- Journey/demo alignment proving READ behavior end-to-end in CI
+
+**Included seeds:** SEED-004 (Personas & DX — time/outcome progression), SEED-002 (adoption polish tail)
+
+**Explicitly deferred this milestone:** SEED-003 ecosystem plugins (v1.8), bell inbox UI / INBX (v1.9), broad channel matrix, Playwright (INV-004)
 
 ### Shipped v1.6 Features (Validated)
 
@@ -70,8 +81,9 @@ Prior context includes:
 - v1.4 shipped multi-channel outbound contracts and inbound feedback loops with E2E proof on a reference Phoenix host.
 - Next value jump is adoption surface: reference flows, integration docs, and operator UX — not more channel matrix expansion.
 - Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — **resolved by v1.5** (installer task, golden path, operator UI, demo trace path, release gates).
-- Adopter assessment (2026-05-29): ~88–90% done post-v1.5 — **resolved by v1.6** (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E).
-- Next value jump: read/unread workflow glue (v1.7 READ) before ecosystem plugins or inbox UI.
+- Adopter assessment (2026-05-29): ~88–92% done post-v1.6 — adoption evidence (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E) resolved the pre-adopter confidence gap.
+- v1.7 READ + Adoption Polish started 2026-05-29 — engine glue plus demo/docs/journey tail after v1.6 adoption evidence.
+- Next value jump after v1.7: ecosystem plugins (SEED-003, v1.8) then inbox UI (INBX, v1.9).
 
 ## Constraints
 
@@ -81,8 +93,8 @@ Prior context includes:
 - **Composability**: Channel/provider integrations must use replaceable adapter behaviours — avoid hard vendor lock-in.
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
-- **Scope**: v1.3 should prioritize workflow journeys and escalation semantics over broad channel expansion.
-- **Scope**: The next milestone should stay centered on time/outcome progression before read/unread-driven branching or UI productization.
+- **Scope**: Orchestration and explainability remain higher leverage than broad channel expansion.
+- **Scope**: v1.7 READ should close read/unread workflow glue before UI productization (INBX) or ecosystem plugins (SEED-003).
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -110,7 +122,7 @@ Prior context includes:
 | Canonical `chimeway.delivery.*` vocabulary | Align normalization, signals, and trace projection for auditability | Shipped in v1.4 (Phase 34) |
 | Generic outbound channel behaviour | SMS/Push/Chat without vendor lock-in; per-channel render contracts | Shipped in v1.4 (Phase 29) |
 | v1.5 before channel matrix or ecosystem plugins | Engine credible at v1.4 close; adoption friction is the bottleneck | Shipped 2026-05-29 (Phases 35-41) |
-| Defer read/unread-driven workflow branching to post-v1.5 | `pending_signals` not populated on `wait_until`; READ milestone is narrower glue | Deferred to v1.6+ READ milestone |
+| Defer read/unread-driven workflow branching to v1.7 READ | `pending_signals` not populated on `wait_until`; inbox read does not emit signals | Deferred to v1.7 READ milestone |
 | GATE-01 scoped doc-contract gates separate from default ci | Fast core feedback + explicit pre-ship quartet | Shipped Phase 41 |
 | verify.example additive subprocess chain | Demo host E2E first, chimeway_admin second | Shipped Phase 41 |
 | v1.6 journey CI separate from default ci | Fast core feedback; journey proof is explicit pre-ship gate | Shipped v1.6 |
@@ -251,4 +263,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 after v1.6 milestone close (Phases 43–47)*
+*Last updated: 2026-05-29 — milestone v1.7 READ + Adoption Polish started*

@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: Consumer Journey Proof
-status: Shipped
-last_updated: "2026-05-29T00:00:00.000Z"
-last_activity: 2026-05-29 — v1.6 Consumer Journey Proof milestone closed
+milestone: v1.7
+milestone_name: READ + Adoption Polish
+status: planning
+last_updated: "2026-05-29T15:39:28.232Z"
+last_activity: 2026-05-29
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,12 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning v1.7 READ — read/unread workflow glue
+**Current focus:** v1.7 READ + Adoption Polish — Phases 48–52 (READ engine glue + demo/docs/journey tail)
 
 ## Current Position
 
-Milestone: **v1.6 Consumer Journey Proof — SHIPPED** (2026-05-29)
-Status: Milestone closed; git tag v1.6
+Phase: Not started (Phase 48 next)
+Plan: —
+Status: Roadmap defined — ready for `/gsd-discuss-phase 48` or `/gsd-plan-phase 48`
+Last activity: 2026-05-29 — Milestone v1.7 roadmap created (5 phases, 11 requirements)
 
 ## Accumulated Context
 
@@ -36,6 +38,8 @@ Status: Milestone closed; git tag v1.6
 - [v1.6]: `DemoHost.Seeds` is adopter-copyable public API — not internal test fixture inserts
 - [v1.6]: Defer Playwright; host-mount ConnTest + LiveViewTest sufficient for JOUR-04 (INV-004)
 - [v1.6]: `verify.journeys` separate CI job; not bundled into default `mix ci`
+- [v1.7-assessment]: v1.6 satisfied adoption-evidence foundation — do not re-milestone Consumer Journey Proof
+- [v1.7-assessment]: Staged seed choreography (`stage_escalation_webhook/1`) masks READ engine gap — fix in v1.7 READ + demo polish tail
 
 ### Pending Todos
 
@@ -54,6 +58,7 @@ None.
 
 ### Roadmap Evolution
 
+- v1.7 READ + Adoption Polish started 2026-05-29 (Phases 48–52, 11 requirements)
 - v1.6 Consumer Journey Proof shipped 2026-05-29 (Phases 43–47)
 - v1.5 formally closed 2026-05-29 (Phases 35–42)
 
@@ -64,17 +69,18 @@ Items acknowledged and deferred at milestone close on 2026-05-29:
 | Category | Item | Status |
 |----------|------|--------|
 | milestone | v1.7 READ — pending_signals + inbox read→workflow | next |
+| polish | Adoption evidence tail — README, admin journeys all personas, natural escalation | v1.7 close-out |
 | seed | SEED-003 ecosystem integrations | v1.8+ |
 | seed | SEED-004 inbox / bell UI remainder | v1.9+ |
 | planning | Phases 43–47 GSD artifacts (SUMMARY/VERIFICATION) | optional retroactive |
-| doc | demo host README webhook path contradiction | low |
+| doc | demo host README webhook path contradiction | v1.7 close-out |
 
 ### Session Continuity
 
 Last session: 2026-05-29
-Stopped at: v1.6 milestone close complete
+Stopped at: v1.7 boundary assessment complete
 
 ## Operator Next Steps
 
-- `/gsd-new-milestone` for v1.7 READ
-- Optional: retroactive phase dirs 43–47 for audit trail parity
+- `/gsd-discuss-phase 48` — gather context for `wait_until` pending signals
+- `/gsd-plan-phase 48` — skip discussion, plan Phase 48 directly
