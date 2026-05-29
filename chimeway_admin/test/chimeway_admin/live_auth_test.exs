@@ -5,7 +5,9 @@ defmodule ChimewayAdmin.LiveAuthTest do
   alias ChimewayAdmin.TestSupport.DenyAuth
 
   setup do
+    previous = Application.get_env(:chimeway_admin, :auth_module)
     Application.put_env(:chimeway_admin, :auth_module, DenyAuth)
+    on_exit(fn -> Application.put_env(:chimeway_admin, :auth_module, previous) end)
     :ok
   end
 
