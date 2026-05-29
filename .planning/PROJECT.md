@@ -10,7 +10,7 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
-Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed with planning tech debt, Phases 43–47). Under **v1.7 READ + Adoption Polish**, Phases 48–50 are complete: `wait_until` auto-populates `pending_signals` (READ-01), inbox `mark_read`/`mark_seen` emit durable signals (READ-02/03), and TeamPulse payment escalation uses READ-driven progression with mention-escalation recipe (DEMO-03/04). The library ships installer truth, golden-path docs, reference recipes, demo trace path, operator trace MVP, and GATE-01/GATE-02 verification. End-to-end proof lives in `examples/chimeway_demo_host` with **695+ tests** passing (`mix test`) plus **5 journey tests** (`mix verify.journeys`).
+Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed with planning tech debt, Phases 43–47). Under **v1.7 READ + Adoption Polish**, Phases 48–51 are complete: `wait_until` auto-populates `pending_signals` (READ-01), inbox `mark_read`/`mark_seen` emit durable signals (READ-02/03), TeamPulse payment escalation uses READ-driven progression with mention-escalation recipe (DEMO-03/04), and admin persona journeys prove READ escalation end-to-end (JOUR-06..08). The library ships installer truth, golden-path docs, reference recipes, demo trace path, operator trace MVP, and GATE-01/GATE-02/GATE-03 verification. End-to-end proof lives in `examples/chimeway_demo_host` with **695+ tests** passing (`mix test`) plus **9 journey tests** (`mix verify.journeys`, JOUR-01..08 including READ escalation proof). Phase 52 doc close-out in progress.
 
 ## Product Arc
 
@@ -18,7 +18,7 @@ Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed wit
 - `v1.4 Channel Feedback Loops` — outbound channels plus inbound receipts/webhooks feeding workflow progression (shipped 2026-05-08).
 - `v1.5 Adoption Surface` — installer, golden-path docs, reference recipes, demo trace path, operator admin MVP, release gates (shipped 2026-05-29).
 - `v1.6 Consumer Journey Proof` — TeamPulse demo, deterministic seeds, journey CI, one-command spin-up (shipped 2026-05-29).
-- `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (in progress; Phases 48–50 shipped, Phase 51 next).
+- `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (in progress; Phases 48–51 shipped, Phase 52 doc close-out).
 
 ## Current Milestone: v1.7 READ + Adoption Polish
 
@@ -43,7 +43,8 @@ Chimeway shipped **v1.6 Consumer Journey Proof** on 2026-05-29 (audit passed wit
 - `mix demo.up` (root) and `mix demo.admin` (demo host) one-command spin-up with admin URL banner
 - Journey E2E suite: invite delivery, suppression explainability, webhook workflow progression
 - Host-mount `chimeway_admin` integration test through demo host router
-- GATE-02: `mix verify.journeys` CI job + pre-ship quintet in MAINTAINING.md
+- GATE-02: `mix verify.journeys` CI job + pre-ship quintet in MAINTAINING.md (v1.6 foundation, JOUR-01..05)
+- GATE-03: expanded journey suite JOUR-06..08 — READ read-cancel + admin persona traces (v1.7, 9 tests)
 
 ### Shipped v1.5 Features (Validated)
 - `mix chimeway.gen.migrations` (or install task) with idempotent golden-diff verification
