@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: READ + Adoption Polish
 status: executing
-last_updated: "2026-05-29T16:05:53.875Z"
-last_activity: 2026-05-29 -- Phase 48 planning complete
+last_updated: "2026-05-29T16:32:00.000Z"
+last_activity: 2026-05-29 -- Completed 48-01 cancel_signals DSL validation
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.7 READ + Adoption Polish — Phases 48–52 (READ engine glue + demo/docs/journey tail)
+**Current focus:** Phase 48 — wait-until-pending-signals
 
 ## Current Position
 
-Phase: Not started (Phase 48 next)
-Plan: —
-Status: Ready to execute
-Last activity: 2026-05-29 -- Phase 48 planning complete
+Phase: 48 (wait-until-pending-signals) — EXECUTING
+Plan: 2 of 3
+Status: Ready for 48-02 (enter_waiting pending_signals population)
+Last activity: 2026-05-29 -- Completed 48-01 cancel_signals DSL validation
 
 ## Accumulated Context
 
@@ -40,6 +40,8 @@ Last activity: 2026-05-29 -- Phase 48 planning complete
 - [v1.6]: `verify.journeys` separate CI job; not bundled into default `mix ci`
 - [v1.7-assessment]: v1.6 satisfied adoption-evidence foundation — do not re-milestone Consumer Journey Proof
 - [v1.7-assessment]: Staged seed choreography (`stage_escalation_webhook/1`) masks READ engine gap — fix in v1.7 READ + demo polish tail
+- [48-01]: Omit `cancel_signals` from normalized wait_until output when absent or empty (D-06)
+- [48-01]: Validate cancel_signals at notifier declaration time, not runtime in progression
 
 ### Pending Todos
 
@@ -77,10 +79,10 @@ Items acknowledged and deferred at milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-29T15:59:37.792Z
-Stopped at: Phase 48 context gathered (assumptions mode)
+Last session: 2026-05-29T16:32:00.000Z
+Stopped at: Completed 48-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
-- `/gsd-discuss-phase 48` — gather context for `wait_until` pending signals
-- `/gsd-plan-phase 48` — skip discussion, plan Phase 48 directly
+- `/gsd-execute-phase 48` — continue with 48-02 (enter_waiting pending_signals population)

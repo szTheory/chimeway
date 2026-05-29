@@ -160,7 +160,7 @@
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 48. `wait_until` Pending Signals | v1.7 | 0/3 | Planned | — |
+| 48. `wait_until` Pending Signals | v1.7 | 1/3 | In Progress | — |
 | 49. Inbox Read → Signal | v1.7 | 0/TBD | Not started | — |
 | 50. Natural Escalation Demo | v1.7 | 0/TBD | Not started | — |
 | 51. Journey & Admin Proof | v1.7 | 0/TBD | Not started | — |
