@@ -7,6 +7,35 @@ defmodule Chimeway.Notifier do
   `delayed_fallback_channels/2` lets notifiers mark outbound channels as delayed
   fallback candidates. Returned channels must be a subset of `channels/2` output
   and must never include `:in_app`.
+
+  ## Workflow progress rules — `temporary_failure` early-fire warning
+
+  `temporary_failure` resolves from a `delivery.status == :failed` row. The
+  `:failed` status is **NOT** terminal — `Chimeway.Deliveries`'s
+  `@allowed_transitions` permits `failed: [:dispatched]`, which is the path
+  Oban uses while a delivery is still being retried. A notifier authoring:
+
+      %{"kind" => "on_outcome", "outcome" => "temporary_failure", "to_step" => "email"}
+
+  will therefore fire the destination step on the **FIRST** transient
+  `:failed` row written by `Chimeway.Deliveries.record_attempt/2`, BEFORE any
+  retry has been attempted. The original delivery may still succeed on a
+  later Oban attempt, in which case the host application will see BOTH a
+  successful primary delivery AND the destination-step delivery for the same
+  notification — the duplicate-side-effect outcome the workflow exists to
+  prevent.
+
+  If the intended semantics are "fire after retries are exhausted", use
+  `retries_exhausted` (which resolves only from `:cancelled` +
+  `suppression_reason == "retries_exhausted"` — i.e., a guaranteed-terminal
+  row). If the intended semantics ARE "fire immediately on the first failure
+  so we can try a different channel while the original retries" (a
+  legitimate use case), pair the destination step's notifier with an
+  idempotency key (e.g., `Chimeway.trigger/3`'s `idempotency_key` argument
+  combined with a stable per-notification key in
+  `metadata["notification_key"]`) so the host application can collapse the
+  primary success and the early-fire escalation to one user-visible
+  delivery if both fire.
   """
 
   defmacro __using__(_opts) do
