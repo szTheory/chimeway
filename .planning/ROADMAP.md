@@ -179,7 +179,7 @@
 | 48. `wait_until` Pending Signals | v1.7 | 3/3 | Complete    | 2026-05-29 |
 | 49. Inbox Read → Signal | v1.7 | 3/3 | Complete    | 2026-05-29 |
 | 50. Natural Escalation Demo | v1.7 | 2/2 | Complete    | 2026-05-29 |
-| 51. Journey & Admin Proof | v1.7 | 1/2 | In Progress|  |
+| 51. Journey & Admin Proof | v1.7 | 2/2 | Complete   | 2026-05-29 |
 | 52. Doc Truth & Gates | v1.7 | 0/TBD | Not started | — |
 
 ---

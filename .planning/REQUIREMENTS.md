@@ -19,9 +19,9 @@
 
 ### Journey Proof (JOUR)
 
-- [ ] **JOUR-06**: Journey test proves inbox `mark_read` cancels a scheduled escalation step before `wait_until` due_at
-- [ ] **JOUR-07**: Admin journey test covers Sam password-reset suppression trace (Support Operator persona)
-- [ ] **JOUR-08**: Admin journey test covers Morgan payment-escalation trace (Product Manager persona)
+- [x] **JOUR-06**: Journey test proves inbox `mark_read` cancels a scheduled escalation step before `wait_until` due_at
+- [x] **JOUR-07**: Admin journey test covers Sam password-reset suppression trace (Support Operator persona)
+- [x] **JOUR-08**: Admin journey test covers Morgan payment-escalation trace (Product Manager persona)
 
 ### Adoption Docs (DOCS)
 
@@ -71,9 +71,9 @@ Deferred to later milestones. Tracked but not in v1.7 roadmap.
 | READ-03 | Phase 49 | Complete |
 | DEMO-03 | Phase 50 | Complete |
 | DEMO-04 | Phase 50 | Complete |
-| JOUR-06 | Phase 51 | Pending |
-| JOUR-07 | Phase 51 | Pending |
-| JOUR-08 | Phase 51 | Pending |
+| JOUR-06 | Phase 51 | Complete |
+| JOUR-07 | Phase 51 | Complete |
+| JOUR-08 | Phase 51 | Complete |
 | DOCS-04 | Phase 52 | Pending |
 | DOCS-05 | Phase 52 | Pending |
 | GATE-03 | Phase 52 | Pending |
