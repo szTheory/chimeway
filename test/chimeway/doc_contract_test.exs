@@ -384,4 +384,39 @@ defmodule Chimeway.DocContractTest do
       end
     end
   end
+
+  describe "consumer version alignment (DOCS-02 / GATE-01)" do
+    @consumer_files ~w(
+      README.md
+      guides/introduction/installation.md
+      guides/introduction/golden-path.md
+    )
+
+    test "mix.exs @version aligns with ~> MAJOR.MINOR in consumer docs" do
+      mix_content = File.read!("mix.exs")
+      [_, version] = Regex.run(~r/@version "([^"]+)"/, mix_content)
+      [major, minor, _patch] = String.split(version, ".")
+      expected = "{:chimeway, \"~> #{major}.#{minor}\"}"
+
+      for path <- @consumer_files do
+        content = File.read!(path)
+
+        assert String.contains?(content, expected),
+               "#{path} must include #{expected} aligned with mix.exs @version #{version}"
+      end
+    end
+
+    @drift_patterns [
+      "~> 1.0",
+      "1.0.0",
+      ~s({:chimeway, "~> 1.)
+    ]
+
+    for path <- @consumer_files, pattern <- @drift_patterns do
+      test "forbids version drift #{pattern} in #{path}" do
+        refute String.contains?(File.read!(unquote(path)), unquote(pattern)),
+               "#{unquote(path)} must not contain version drift pattern #{unquote(pattern)}"
+      end
+    end
+  end
 end
