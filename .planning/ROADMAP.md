@@ -75,6 +75,8 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 **Wave 2 *(blocked on Wave 1)*:** 55-02 — Mailglass adapter webhook callbacks (verify/resolve/normalize/dedup)  
 **Wave 3 *(blocked on Wave 2)*:** 55-03 — Webhook contract tests + ECOS-04 feedback pipeline integration proof
 
+### Phase 56: Blueprint & Demo Proof
+
 **Goal:** Adopters can copy a published Mailglass + Chimeway reference recipe and see the same behaviour proven on the demo host.
 
 **Depends on:** Phase 55
