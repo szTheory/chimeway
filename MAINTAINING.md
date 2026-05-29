@@ -28,6 +28,7 @@ mix ci.docs
 mix ci.verify_gates
 mix verify.example
 mix verify.journeys
+mix verify.mailglass
 ```
 
 - `mix ci` — lint + full test suite
@@ -35,8 +36,9 @@ mix verify.journeys
 - `mix ci.verify_gates` — adoption-surface doc-contract and version-alignment gates (GATE-01)
 - `mix verify.example` — demo host webhook E2E + chimeway_admin operator smoke
 - `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
+- `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
 
-All five must pass before publishing.
+All six must pass before publishing.
 
 ### Installer template changes
 
