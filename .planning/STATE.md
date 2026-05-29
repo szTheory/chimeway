@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-05-29T19:45:12.162Z"
 last_activity: 2026-05-29
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Kick off v1.8 SEED-003 (ecosystem integration blueprints; Mailglass-first per INV-003)
+**Current focus:** Phase 54 — Mailglass Adapter Core (v1.8 SEED-003 Mailglass-only; INV-003 resolved)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 54 — Mailglass Adapter Core (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-05-29 — Milestone v1.8 started
+Status: Ready to plan
+Last activity: 2026-05-29 — Milestone v1.8 roadmap approved (4 phases, 9 requirements)
 
 ## Accumulated Context
 
@@ -54,7 +54,7 @@ Last activity: 2026-05-29 — Milestone v1.8 started
 - [49-02]: signal_received transition context is event_name only — no payload/notification_id in trace (READ-03)
 - [v1.8-assessment]: Adoption evidence prompt re-run confirms v1.6–v1.7 closed the demo/seeds/journey gap — do not re-milestone Consumer Journey Proof
 - [v1.8-assessment]: Next wedge is v1.8 SEED-003 (ecosystem plugins), then v1.9 INBX — operator demo ≠ end-user bell UI
-- [v1.8-assessment]: Optional fork — pull INBX ahead of full SEED-003 if end-user click-around UX is priority over Mailglass blueprints
+- [v1.8]: Mailglass-only v1.8 scope — Accrue/Threadline/Sigra deferred to v1.9+ (INV-003 resolved)
 
 ### Pending Todos
 
@@ -68,13 +68,13 @@ None.
 
 | ID | Question | When |
 |----|----------|------|
-| INV-003 | Mailglass-first vs full SEED-003 matrix in v1.8 scope | v1.8 discuss-phase |
+| INV-003 | Mailglass-first vs full SEED-003 matrix in v1.8 scope | **Resolved** — Mailglass-only v1.8 |
 | INV-004 | Playwright vs LiveView ConnTest for admin smoke | Defer until ConnTest flaky |
 
 ### Roadmap Evolution
 
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
-- v1.8 milestone assessment 2026-05-29 — adoption evidence satisfied; next pick SEED-003 (thread: 2026-05-29-v1.8-milestone-assessment.md)
+- v1.8 Ecosystem Integration Blueprints started 2026-05-29 — Phases 54–57, 9 requirements (Mailglass-only)
 - v1.7 READ + Adoption Polish shipped 2026-05-29 (Phases 48–53, 11 requirements)
 - v1.6 Consumer Journey Proof shipped 2026-05-29 (Phases 43–47)
 - v1.5 formally closed 2026-05-29 (Phases 35–42)
@@ -85,7 +85,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 | Category | Item | Status |
 |----------|------|--------|
-| seed | SEED-003 ecosystem integrations (Mailglass, Accrue, Threadline, Sigra) | v1.8+ |
+| seed | SEED-003 Mailglass slice | v1.8 active |
+| seed | SEED-003 remainder (Accrue, Threadline, Sigra) | v1.9+ |
 | seed | SEED-004 inbox / bell UI remainder (INBX) | v1.9+ |
 | planning | Phases 43–47 GSD artifacts (SUMMARY/VERIFICATION) | optional retroactive |
 | integration | Inbox-read signal may not project onto delivery timeline UI (INT-02) | v1.8 optional |
@@ -99,9 +100,9 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Run `/gsd-new-milestone` and scope **v1.8 SEED-003** (default: Mailglass-first ecosystem blueprint per INV-003)
-- Optional: pull **INBX** forward if end-user bell UI beats full SEED-003 matrix — see `.planning/threads/2026-05-29-v1.8-milestone-assessment.md`
-- Local proof already available: `mix demo.up --serve` → admin search `user:alex@teampulse.test`; pre-ship `mix verify.journeys` (10 tests)
+- `/gsd-discuss-phase 54` — gather context for Mailglass adapter core (Mailglass API surface, optional dep packaging)
+- `/gsd-plan-phase 54` — skip discussion, plan Phase 54 directly
+- Pre-ship baseline unchanged: `mix verify.journeys` (10 tests) + existing gate quintet
 
 ## Performance Metrics
 

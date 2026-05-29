@@ -13,58 +13,95 @@
 
 ## Active Milestone
 
-None — use `/gsd-new-milestone` to define v1.8+ scope.
+**v1.8 Ecosystem Integration Blueprints** — Mailglass-first adapter, inbound feedback bridge, reference blueprint, demo proof, and release gates. Accrue/Threadline/Sigra deferred to v1.9+.
 
 ---
+
+## Overview
+
+Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Mailglass adapter: Chimeway owns orchestration (workflows, escalations, deduplication, explainability); Mailglass owns templating, MJML rendering, and Swoosh delivery. Inbound feedback closes the loop into workflow progression. A reference recipe, demo host proof, integration guide, and named verify gate make the composition adoptable off the lot.
 
 ## Phases
 
-<details>
-<summary>✅ v1.7 READ + Adoption Polish (Phases 48–53) — SHIPPED 2026-05-29</summary>
+- [ ] **Phase 54: Mailglass Adapter Core** — Outbound delivery through Mailglass with contract-tested adapter behaviour
+- [ ] **Phase 55: Inbound Feedback Bridge** — Mailglass webhooks normalize into Chimeway outcomes and drive workflow progression
+- [ ] **Phase 56: Blueprint & Demo Proof** — Reference recipe plus TeamPulse demo host end-to-end proof
+- [ ] **Phase 57: Docs & Release Gates** — Integration guide, doc-contract tests, and `mix verify.mailglass` CI gate
 
-| Phase | Name | Plans | Status |
-|-------|------|-------|--------|
-| 48 | `wait_until` Pending Signals | 3/3 | Complete |
-| 49 | Inbox Read → Signal | 3/3 | Complete |
-| 50 | Natural Escalation Demo | 2/2 | Complete |
-| 51 | Journey & Admin Proof | 2/2 | Complete |
-| 52 | Doc Truth & Gates | 2/2 | Complete |
-| 53 | Milestone Close-Out | 2/2 | Complete |
+## Phase Details
 
-**Requirements:** READ-01..03, DEMO-03/04, JOUR-06..08, DOCS-04/05, GATE-03 — all satisfied (11 requirements).
+### Phase 54: Mailglass Adapter Core
 
-</details>
+**Goal:** Host applications can deliver Chimeway email notifications through Mailglass rendering without bypassing Chimeway's durable delivery lifecycle.
 
-<details>
-<summary>✅ v1.6 Consumer Journey Proof (Phases 43–47) — SHIPPED 2026-05-29</summary>
+**Depends on:** v1.7 (durable spine, adapter behaviour, webhook foundation)
 
-| Phase | Name | Status |
-|-------|------|--------|
-| 43 | TeamPulse domain + seeds | Complete |
-| 44 | Demo commands | Complete |
-| 45 | Journey tests (engine paths) | Complete |
-| 46 | Host-mount admin integration | Complete |
-| 47 | CI gates + verify.journeys | Complete |
+**Requirements:** ECOS-01, ECOS-02
 
-**Requirements:** DEMO-02, SEED-01, CMD-01, JOUR-01..05, GATE-02 — all satisfied (9 requirements).
+**Success Criteria** (what must be TRUE):
 
-</details>
+1. A host configuring `:mailglass` (or equivalent) as the Chimeway email adapter can trigger a notifier and observe a successful delivery attempt with Mailglass-rendered content
+2. `Chimeway.Adapter.Mailglass` passes shared adapter contract tests for deliver success, temporary/permanent/bounced error classification, and redacted provider metadata
+3. Adapter config is read at call time via `Application.get_env/3` — no compile-time secrets
 
-<details>
-<summary>✅ v1.5 Adoption Surface (Phases 35–42) — SHIPPED 2026-05-29</summary>
+**Plans:** TBD
 
-| Phase | Name | Plans | Status |
-|-------|------|-------|--------|
-| 35 | Installer Task | 3/3 | Complete |
-| 36 | Golden Path & Version Alignment | 3/3 | Complete |
-| 37 | Doc Truth & Journey Guides | 4/4 | Complete |
-| 38 | Reference Recipes | 3/3 | Complete |
-| 39 | Demo Host Trace Path | 3/3 | Complete |
-| 40 | Operator Trace MVP | 3/3 | Complete |
-| 41 | Release Verification Gates | 3/3 | Complete |
-| 42 | DOCS-02/GATE-01 gap closure (INSERTED) | 3/3 | Complete |
+### Phase 55: Inbound Feedback Bridge
 
-</details>
+**Goal:** Mailglass inbound webhook events feed Chimeway's existing feedback pipeline and resume or terminate workflows with explainable traces.
+
+**Depends on:** Phase 54
+
+**Requirements:** ECOS-03, ECOS-04
+
+**Success Criteria** (what must be TRUE):
+
+1. A signed Mailglass inbound webhook payload verifies, resolves delivery identity, and records a canonical delivery outcome (delivered, bounced, or failed)
+2. Normalized feedback from Mailglass triggers workflow progression via the existing Signal engine without host glue
+3. Operator traces show webhook-received and outcome-linked transitions for Mailglass feedback events
+
+**Plans:** TBD
+
+### Phase 56: Blueprint & Demo Proof
+
+**Goal:** Adopters can copy a published Mailglass + Chimeway reference recipe and see the same behaviour proven on the demo host.
+
+**Depends on:** Phase 55
+
+**Requirements:** ECOS-05, DEMO-06
+
+**Success Criteria** (what must be TRUE):
+
+1. A reference recipe documents notifier authoring, adapter config, and the orchestration vs templating responsibility split with CI doc-contract coverage
+2. Demo host TeamPulse notifiers deliver at least one email through `Chimeway.Adapter.Mailglass` with inspectable traces via `/admin/chimeway`
+3. Recipe and demo align on stable notification keys and Mailglass template identifiers — no module-name coupling in durable identity
+
+**Plans:** TBD
+
+### Phase 57: Docs & Release Gates
+
+**Goal:** Mailglass integration is documented, contract-tested, and gated in the release checklist alongside existing verify entrypoints.
+
+**Depends on:** Phase 56
+
+**Requirements:** DOCS-06, DOCS-07, GATE-04
+
+**Success Criteria** (what must be TRUE):
+
+1. Golden-path integration guide walks a fresh host from dependency → config → trigger → Mailglass delivery → optional inbound feedback
+2. Doc-contract tests fail if guide text regresses to pre-Mailglass assumptions or omits required setup steps
+3. `mix verify.mailglass` (or equivalent named entrypoint) runs in CI and appears in MAINTAINING.md pre-ship checklist without breaking the existing journey/doc gate quintet
+
+**Plans:** TBD
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 54. Mailglass Adapter Core | 0/? | Not started | — |
+| 55. Inbound Feedback Bridge | 0/? | Not started | — |
+| 56. Blueprint & Demo Proof | 0/? | Not started | — |
+| 57. Docs & Release Gates | 0/? | Not started | — |
 
 ---
-*Roadmap updated: 2026-05-29 — v1.7 READ + Adoption Polish shipped*
+*Roadmap updated: 2026-05-29 — milestone v1.8 Ecosystem Integration Blueprints*
