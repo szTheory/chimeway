@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: READ + Adoption Polish
 status: executing
-last_updated: "2026-05-29T16:32:00.000Z"
-last_activity: 2026-05-29 -- Completed 48-01 cancel_signals DSL validation
+last_updated: "2026-05-29T16:15:56.000Z"
+last_activity: 2026-05-29 -- Completed 48-02 enter_waiting pending_signals population
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 ## Current Position
 
 Phase: 48 (wait-until-pending-signals) — EXECUTING
-Plan: 2 of 3
-Status: Ready for 48-02 (enter_waiting pending_signals population)
-Last activity: 2026-05-29 -- Completed 48-01 cancel_signals DSL validation
+Plan: 3 of 3
+Status: Ready for 48-03 (journey guide doc-truth)
+Last activity: 2026-05-29 -- Completed 48-02 enter_waiting pending_signals population
 
 ## Accumulated Context
 
@@ -42,6 +42,8 @@ Last activity: 2026-05-29 -- Completed 48-01 cancel_signals DSL validation
 - [v1.7-assessment]: Staged seed choreography (`stage_escalation_webhook/1`) masks READ engine gap — fix in v1.7 READ + demo polish tail
 - [48-01]: Omit `cancel_signals` from normalized wait_until output when absent or empty (D-06)
 - [48-01]: Validate cancel_signals at notifier declaration time, not runtime in progression
+- [48-02]: Do not mirror cancel_signals into status_context — pending_signals column is sole durable source
+- [48-02]: route_signal/1 unchanged in Phase 48 — population only at enter_waiting/6
 
 ### Pending Todos
 
@@ -79,10 +81,10 @@ Items acknowledged and deferred at milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-29T16:32:00.000Z
-Stopped at: Completed 48-01-PLAN.md
+Last session: 2026-05-29T16:15:56.000Z
+Stopped at: Completed 48-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- `/gsd-execute-phase 48` — continue with 48-02 (enter_waiting pending_signals population)
+- `/gsd-execute-phase 48` — continue with 48-03 (journey guide doc-truth + doc contract tests)
