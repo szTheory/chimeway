@@ -39,13 +39,13 @@ created: 2026-05-29
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 52-01-01 | 01 | 1 | DOCS-04 | — | README Morgan row READ-driven; no webhook drift | grep + manual | `rg "awaiting webhook" examples/chimeway_demo_host/README.md` → empty | ✅ | ⬜ pending |
-| 52-01-02 | 01 | 1 | DOCS-04 | — | Webhook section reframed; TraceDemo supplementary | manual | Read-through checklist in 52-RESEARCH.md §5 | ✅ | ⬜ pending |
-| 52-01-03 | 01 | 1 | DOCS-05 | — | `--check` docs match migrate+seed behavior | grep | `rg "seed only" examples/chimeway_demo_host/README.md lib/mix/tasks/demo.up.ex` → empty | ✅ | ⬜ pending |
-| 52-02-01 | 02 | 1 | GATE-03 | — | MAINTAINING.md JOUR-01..08 / GATE-03 | grep | `rg "JOUR-01..08|GATE-03" MAINTAINING.md` | ✅ | ⬜ pending |
-| 52-02-02 | 02 | 1 | GATE-03 | — | mix.exs comment GATE-03 | grep | `rg "GATE-03" mix.exs` | ✅ | ⬜ pending |
-| 52-02-03 | 02 | 1 | GATE-03 | — | PROJECT.md 9 journey tests | grep | `rg "9 journey" .planning/PROJECT.md` | ✅ | ⬜ pending |
-| 52-*-regression | 01,02 | 1 | GATE-03 | — | Journey suite unchanged | journey | `mix verify.journeys` (9 tests, 0 failures) | ✅ | ⬜ pending |
+| 52-01-01 | 01 | 1 | DOCS-04 | — | README Morgan row READ-driven; no webhook drift | grep + manual | `rg "awaiting webhook" examples/chimeway_demo_host/README.md` → empty | ✅ | ✅ green |
+| 52-01-02 | 01 | 1 | DOCS-04 | — | Webhook section reframed; TraceDemo supplementary | manual | Read-through checklist in 52-RESEARCH.md §5 | ✅ | ✅ green |
+| 52-01-03 | 01 | 1 | DOCS-05 | — | `--check` docs match migrate+seed behavior | grep | `rg "seed only" examples/chimeway_demo_host/README.md lib/mix/tasks/demo.up.ex` → empty | ✅ | ✅ green |
+| 52-02-01 | 02 | 1 | GATE-03 | — | MAINTAINING.md JOUR-01..08 / GATE-03 | grep | `rg "JOUR-01..08|GATE-03" MAINTAINING.md` | ✅ | ✅ green |
+| 52-02-02 | 02 | 1 | GATE-03 | — | mix.exs comment GATE-03 | grep | `rg "GATE-03" mix.exs` | ✅ | ✅ green |
+| 52-02-03 | 02 | 1 | GATE-03 | — | PROJECT.md 10 journey tests | grep | `rg "10 journey" .planning/PROJECT.md` | ✅ | ✅ green |
+| 52-*-regression | 01,02 | 1 | GATE-03 | — | Journey suite unchanged | journey | `mix verify.journeys` (10 tests, 0 failures) | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -75,4 +75,4 @@ Existing infrastructure covers all phase requirements. No new tests, fixtures, o
 - [x] Feedback latency < 10s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** retroactive sign-off via phase 52 verification (2026-05-29)
