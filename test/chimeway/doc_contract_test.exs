@@ -39,6 +39,7 @@ defmodule Chimeway.DocContractTest do
       Workflows.Workers
       Chimeway.Trigger.trigger
       PT2H
+      Engine gap today
     )
 
     @forbidden_phrases [
@@ -72,6 +73,7 @@ defmodule Chimeway.DocContractTest do
       Chimeway.Dispatch.WorkflowProgressionWorker
       Chimeway.Dispatch.SignalRouterWorker
       pending_signals
+      cancel_signals
     )
 
     for required <- @required do
