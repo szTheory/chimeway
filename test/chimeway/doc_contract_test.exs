@@ -289,6 +289,56 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @mailglass_integration_guide Path.expand("../../guides/introduction/mailglass-integration.md", __DIR__)
+
+  describe "mailglass integration guide doc contract (DOCS-06 / DOCS-07)" do
+    setup do
+      content = File.read!(@mailglass_integration_guide)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in mailglass integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "mailglass integration guide must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in mailglass integration guide", %{
+      content: content
+    } do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "mailglass integration guide must not reference fictional Chimeway.Workflow"
+    end
+
+    test "requires Mailglass adapter for email channel (not Logger-only path)", %{content: content} do
+      assert String.contains?(content, "Chimeway.Adapters.Mailglass"),
+             "mailglass integration guide must document Chimeway.Adapters.Mailglass for email delivery"
+    end
+
+    @required ~w(
+      Chimeway.Adapters.Mailglass
+      Chimeway.Adapter.Mailglass
+      channel_adapters
+      channel_adapter_configs
+      render_key
+      Chimeway.Webhooks.process
+      Mailglass.Mailable
+      Chimeway.trigger
+      tenant_id
+      idempotency_key
+      orchestrates
+      templating
+    )
+
+    for required <- @required do
+      test "requires #{required} in mailglass integration guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "mailglass integration guide must reference #{unquote(required)}"
+      end
+    end
+  end
+
   @adoption_forbidden_strings ~w(
     stop_conditions
     Workflows.Workers
