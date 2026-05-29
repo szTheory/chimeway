@@ -25,7 +25,7 @@ mix demo.admin
 |---------|-------|---------|
 | `mix demo.up` | repo root | Migrate + seed + print admin URL |
 | `mix demo.up --serve` | repo root | Above + start Phoenix admin UI |
-| `mix demo.up --check` | repo root | CI smoke — seed only, exit 0 |
+| `mix demo.up --check` | repo root | CI smoke — migrate + app.start + seed (skips `ecto.create` only), exit 0 |
 | `mix demo.seed` | demo host | Idempotent TeamPulse seeds |
 | `mix demo.admin` | demo host | Seed + `mix phx.server` |
 | `mix demo.trace` | demo host | Quick IEx explainability script |
@@ -36,7 +36,9 @@ mix demo.admin
 |---------|----------|----------|
 | Feature Developer | Team invite sent | `DemoHost.Notifiers.InviteSent` |
 | Support Operator | Password reset suppressed | `DemoHost.Notifiers.PasswordReset` |
-| Product Manager | Payment escalation awaiting webhook | `DemoHost.Notifiers.PaymentReminder` |
+| Product Manager | Payment escalation — READ-driven `:waiting` (inbox read cancels; time fallback to email) | `DemoHost.Notifiers.PaymentReminder` |
+
+See the [Mention escalation recipe](../../guides/recipes/mention-escalation.md) for the read-cancel + time-fallback pattern (JOUR-03/06).
 
 Copy `DemoHost.Seeds` patterns into your app — do not copy internal test fixture helpers from `feedback_pipeline_e2e_test.exs`.
 
@@ -59,14 +61,20 @@ iex -S mix
 {:ok, _} = Application.ensure_all_started(:chimeway)
 ```
 
-## Not this path: webhook progression
+## Webhook progression (separate path)
 
-This README proves **explainability on a simple delivery**, not workflow progression after inbound webhooks.
+**TeamPulse Morgan** (persona table above) uses **READ-driven** workflow `:waiting` — see [mention-escalation.md](../../guides/recipes/mention-escalation.md) and JOUR-03/06.
+
+**Webhook-driven progression** is a distinct adoption path — Golden Path webhook appendix and feedback pipeline E2E test.
 
 - For webhook-driven progression, use the [Golden Path webhook appendix](../../guides/introduction/golden-path.md#next-webhook-feedback-loop).
 - The [feedback pipeline E2E test](test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs) is an internal test reference for webhook progression — **do not** copy fixture helpers from that file into your app.
 
-## Trace walkthrough (IEx)
+## Supplementary: TraceDemo IEx walkthrough
+
+**Primary adoption path:** TeamPulse personas via `mix demo.up` / `DemoHost.Seeds` → admin UI with `user:alex@teampulse.test` (Alex, Sam, Morgan scenarios).
+
+**This section:** minimal single-delivery explainability via `TraceDemo` + `mix demo.trace` — no TeamPulse domain setup required.
 
 ### Trigger
 
@@ -130,7 +138,7 @@ cd examples/chimeway_demo_host
 mix phx.server
 ```
 
-Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway), search by recipient (e.g. `user:demo_user_1` from `mix demo.trace`), and open a delivery to inspect the unified timeline.
+Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway), search by recipient — `user:alex@teampulse.test` (TeamPulse seeds) or `user:demo_user_1` (TraceDemo) — and open a delivery to inspect the unified timeline.
 
 ### Production auth
 
