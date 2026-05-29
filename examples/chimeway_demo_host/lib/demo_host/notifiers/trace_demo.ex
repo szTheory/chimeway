@@ -14,6 +14,11 @@ defmodule DemoHost.Notifiers.TraceDemo do
 
   @impl true
   def build(_params, _recipient) do
-    {:ok, %{"headline" => "Trace demo", "body" => "Explainability walkthrough"}}
+    {:ok,
+     %{
+       "headline" => "Trace demo",
+       "body" => "Explainability walkthrough",
+       "primary_action" => %{"label" => "View", "url" => "https://example.com/trace-demo"}
+     }}
   end
 end
