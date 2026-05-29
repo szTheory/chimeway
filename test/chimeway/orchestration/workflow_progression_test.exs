@@ -224,10 +224,12 @@ end
 
 defmodule Chimeway.Orchestration.WorkflowProgressionTest do
   use Chimeway.DataCase, async: false
+  use Oban.Testing, repo: Chimeway.Repo
 
   import Ecto.Query
 
-  alias Chimeway.{Deliveries, Delivery, Repo}
+  alias Chimeway.{Deliveries, Delivery, Repo, Signal}
+  alias Chimeway.Dispatch.SignalRouterWorker
   alias Chimeway.Notifications.Notification
   alias Chimeway.Workflows.{Progression, WorkflowRun, WorkflowStep, WorkflowTransition}
 
@@ -350,6 +352,49 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
 
       assert updated_run.state == :waiting
       assert updated_run.pending_signals == ["chimeway.notification.read"]
+    end
+
+    test "injected signal resumes waiting run via SignalRouterWorker without host update_run glue" do
+      %{
+        notification: notification,
+        workflow_run: workflow_run
+      } = trigger_workflow_with_signals!("read01-signal-router")
+
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: _terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+      assert {:ok, {:noop, waiting_run, :wait_not_due}} =
+               Progression.progress_run(workflow_run.id, [])
+
+      assert waiting_run.state == :waiting
+      assert waiting_run.pending_signals == ["chimeway.notification.read"]
+
+      {:ok, signal} =
+        Signal.track(
+          waiting_run.tenant_id,
+          notification.recipient_identity,
+          "chimeway.notification.read",
+          %{}
+        )
+
+      assert :ok = perform_job(SignalRouterWorker, %{"signal_id" => signal.id})
+
+      resumed_run = Repo.get!(WorkflowRun, workflow_run.id)
+      assert resumed_run.state == :active
+      assert resumed_run.pending_signals == []
+      assert resumed_run.status_reason == "signal_received"
+
+      signal_transitions =
+        list_transitions(workflow_run.id)
+        |> Enum.filter(&(&1.reason == "signal_received"))
+
+      assert length(signal_transitions) == 1
+
+      [signal_transition] = signal_transitions
+      assert signal_transition.context["event_name"] == "chimeway.notification.read"
     end
   end
 
