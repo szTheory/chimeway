@@ -100,3 +100,5 @@ config :chimeway,
 Add `{:mailglass, "~> 1.3"}` to your host `mix.exs` (Chimeway lists Mailglass as an optional dependency).
 
 For a full contract-test example including success meta redaction and classified errors, see `test/chimeway/adapters/mailglass_adapter_test.exs`.
+
+For the full TeamPulse Mailglass blueprint — notifier authoring, adapter config, and orchestration vs templating responsibility split — see [Mailglass integration blueprint](mailglass-integration-blueprint.md).
