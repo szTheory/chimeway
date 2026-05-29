@@ -74,6 +74,78 @@ defmodule ChimewayTest.Notifiers.WorkflowProgression do
   end
 end
 
+defmodule ChimewayTest.Notifiers.WorkflowProgressionWithSignals do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.workflow_progression_with_signals"
+  def version, do: 1
+
+  def recipients(%{user_id: user_id}),
+    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Workflow progression with signals"}}
+
+  def channels(_params, _recipient), do: {:ok, [:in_app]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Workflow progression with signals",
+         "body" => "Workflow progression with signals body",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/wps"},
+         "subject" => "Workflow progression with signals",
+         "html_body" => "<p>Workflow progression with signals</p>",
+         "text_body" => "Workflow progression with signals"
+       },
+       channels: %{
+         in_app: %{render_key: "test.workflow_progression_with_signals.in_app", render_version: 1},
+         email: %{
+           render_key: "test.workflow_progression_with_signals.email",
+           render_version: 1
+         }
+       }
+     }}
+  end
+
+  def workflow(_params, _recipient) do
+    {:ok,
+     %{
+       workflow_key: "test.workflow_progression_with_signals.workflow",
+       workflow_version: 1,
+       steps: [
+         %{
+           step_key: "in_app",
+           step_order: 1,
+           channel: :in_app,
+           config: %{
+             "progress" => [
+               %{
+                 "kind" => "wait_until",
+                 "anchor" => "prior_delivery_terminal_at",
+                 "delay_seconds" => 1800,
+                 "to_step" => "email",
+                 "cancel_signals" => ["chimeway.notification.read"]
+               },
+               %{
+                 "kind" => "on_outcome",
+                 "outcome" => "bounced",
+                 "to_step" => "email"
+               }
+             ]
+           }
+         },
+         %{
+           step_key: "email",
+           step_order: 2,
+           channel: :email,
+           config: %{}
+         }
+       ]
+     }}
+  end
+end
+
 defmodule ChimewayTest.Notifiers.WorkflowTerminal do
   @behaviour Chimeway.Notifier
 
@@ -206,6 +278,7 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
 
       assert updated_run.id == workflow_run.id
       assert updated_run.state == :waiting
+      assert updated_run.pending_signals == []
       assert updated_run.status_reason == "waiting_for_step_progression"
 
       context = updated_run.status_context
@@ -241,6 +314,42 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       assert waiting_transition.delivery_id == terminal_delivery.id
       assert waiting_transition.context["anchor_delivery_id"] == terminal_delivery.id
       assert waiting_transition.context["due_at"] == context["due_at"]
+    end
+  end
+
+  describe "wait_until auto-populates pending_signals (READ-01)" do
+    test "time-only wait_until persists pending_signals == [] on :waiting entry" do
+      %{notification: notification, workflow_run: workflow_run} =
+        trigger_workflow!("read01-time-only")
+
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: _terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+      assert {:ok, {:noop, updated_run, :wait_not_due}} =
+               Progression.progress_run(workflow_run.id, [])
+
+      assert updated_run.state == :waiting
+      assert updated_run.pending_signals == []
+    end
+
+    test "wait_until with cancel_signals persists pending_signals from rule config" do
+      %{notification: notification, workflow_run: workflow_run} =
+        trigger_workflow_with_signals!("read01-cancel-signals")
+
+      pending_delivery = fetch_delivery!(notification.id, "in_app")
+      {:ok, dispatched} = Deliveries.transition_status(pending_delivery, :dispatched)
+
+      {:ok, %{delivery: _terminal_delivery}} =
+        Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+      assert {:ok, {:noop, updated_run, :wait_not_due}} =
+               Progression.progress_run(workflow_run.id, [])
+
+      assert updated_run.state == :waiting
+      assert updated_run.pending_signals == ["chimeway.notification.read"]
     end
   end
 
@@ -623,6 +732,47 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
         ChimewayTest.Notifiers.WorkflowProgression,
         %{user_id: user_id},
         idempotency_key: "wp-#{scenario_tag}-#{System.unique_integer([:positive])}",
+        tenant_id: "acme"
+      )
+
+    notification =
+      Repo.one!(
+        from(n in Notification,
+          where: n.recipient_identity == ^"user:#{user_id}",
+          order_by: [desc: n.inserted_at],
+          limit: 1
+        )
+      )
+
+    workflow_run =
+      Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification.id))
+
+    steps =
+      Repo.all(
+        from(ws in WorkflowStep,
+          where: ws.workflow_definition_id == ^notification.workflow_definition_id,
+          order_by: [asc: ws.step_order]
+        )
+      )
+
+    [in_app_step, email_step] = steps
+
+    %{
+      notification: notification,
+      workflow_run: workflow_run,
+      in_app_step: in_app_step,
+      email_step: email_step
+    }
+  end
+
+  defp trigger_workflow_with_signals!(scenario_tag) do
+    user_id = "wps-#{scenario_tag}-#{System.unique_integer([:positive])}"
+
+    {:ok, _result} =
+      Chimeway.trigger(
+        ChimewayTest.Notifiers.WorkflowProgressionWithSignals,
+        %{user_id: user_id},
+        idempotency_key: "wps-#{scenario_tag}-#{System.unique_integer([:positive])}",
         tenant_id: "acme"
       )
 
