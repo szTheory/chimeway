@@ -97,6 +97,13 @@ Make Chimeway adoptable off the lot: installer truth, golden-path docs, referenc
 **Goal:** Optional `chimeway_admin` package gives support staff redacted trace lookup without building custom tooling.
 **Depends on:** Phase 39
 **Requirements:** OPER-01, OPER-02
+**Plans:** 0/3 plans complete
+
+| Wave | Plans | What it builds |
+|------|-------|----------------|
+| 1 | 40-01 | `chimeway_admin` package, `ChimewayAdmin.Auth`, mountable router |
+| 2 *(blocked on Wave 1)* | 40-02 | Search + detail LiveViews, redaction, `Explanation.timeline` |
+| 3 *(blocked on Wave 2)* | 40-03 | Demo host mount, dev auth stub, golden-path cross-links |
 
 **Success criteria:**
 
