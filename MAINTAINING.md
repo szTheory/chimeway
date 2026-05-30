@@ -29,6 +29,7 @@ mix ci.verify_gates
 mix verify.example
 mix verify.journeys
 mix verify.mailglass
+mix verify.accrue
 ```
 
 - `mix ci` — lint + full test suite
@@ -37,8 +38,13 @@ mix verify.mailglass
 - `mix verify.example` — demo host webhook E2E + chimeway_admin operator smoke
 - `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
 - `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
+- `mix verify.accrue` — Accrue dunning integration gate (GATE-05 Accrue): ECOS-06 lifecycle tests and DEMO-07 demo host proof; requires sibling Accrue checkout — set `ACCRUE_PATH=../accrue/accrue` locally or let CI job check out szTheory/accrue
 
-All six must pass before publishing.
+All seven must pass before publishing.
+
+#### Accrue sibling checkout
+
+Maintainers clone [szTheory/accrue](https://github.com/szTheory/accrue) adjacent to chimeway (convention: `../accrue/accrue` from repo root). CI pins ref `de7a3fef53247619d96a26eea60197d74fd14634` — update when bumping the integration.
 
 ### Installer template changes
 
