@@ -95,13 +95,13 @@ Plans:
 2. Doc-contract tests fail if guide text regresses or omits required Accrue setup steps
 3. `mix verify.accrue` runs in CI and appears in MAINTAINING.md pre-ship checklist without breaking existing journey/mailglass gate sextet
 
-**Plans:** 3/3 plans complete
+**Plans:** 1/3 plans executed
 
 **Wave 1 *(parallel)*:** 60-01 — Golden-path Accrue dunning integration guide (DOCS-08); 60-03 — `mix verify.accrue` + CI job + MAINTAINING update (GATE-05)  
 **Wave 2 *(blocked on Wave 1 guide — 60-01)*:** 60-02 — Accrue guide doc-contract tests (DOCS-09)
 
 Plans:
-- [ ] 60-01-PLAN.md — Golden-path `accrue-dunning-integration.md` + README/blueprint cross-links (DOCS-08)
+- [x] 60-01-PLAN.md — Golden-path `accrue-dunning-integration.md` + README/blueprint cross-links (DOCS-08)
 - [ ] 60-02-PLAN.md — Guide doc-contract describe in `doc_contract_test.exs` (DOCS-09)
 - [ ] 60-03-PLAN.md — `verify_accrue` CI job + MAINTAINING septet (GATE-05 Accrue)
 
@@ -162,7 +162,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 58. Accrue Dunning Core | 3/3 | Complete    | 2026-05-30 |
 | 59. Accrue Blueprint & Demo | 2/2 | Complete    | 2026-05-30 |
-| 60. Accrue Docs & Release Gate | 0/3 | Planned | — |
+| 60. Accrue Docs & Release Gate | 1/3 | In Progress|  |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
 
