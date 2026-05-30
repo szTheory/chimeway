@@ -172,23 +172,33 @@ Example host route (optional demo path `/webhooks/chimeway/mailglass`):
 
 ```elixir
 def create(conn, _params) do
-  raw_body = conn.assigns[:raw_body] || ""
-  headers = Map.new(conn.req_headers)
+  # Pitfall 4 / T-33-RAWBODY: flatten cached iolist chunks to binary before HMAC verify.
+  raw_body =
+    conn.assigns
+    |> Map.get(:raw_body, [])
+    |> Enum.reverse()
+    |> IO.iodata_to_binary()
 
-  case Chimeway.Webhooks.process(
-         "mailglass",
-         conn.params,
-         raw_body,
-         headers: headers
-       ) do
+  headers = conn.req_headers
+  adapter_module = Chimeway.Adapters.Mailglass
+  config = Application.get_env(:my_app, :chimeway_webhook_config, [])
+
+  case Chimeway.Webhooks.process(adapter_module, raw_body, headers, config) do
     {:ok, _ingress} ->
-      send_resp(conn, 200, "")
+      send_resp(conn, 200, "OK")
 
-    {:error, reason} ->
-      send_resp(conn, 422, inspect(reason))
+    {:error, :unauthorized} ->
+      send_resp(conn, 401, "Unauthorized")
+
+    {:error, _other} ->
+      send_resp(conn, 500, "Internal Server Error")
   end
 end
 ```
+
+Hosts using a custom `:body_reader` must cache raw bytes in `conn.assigns[:raw_body]` before parsers consume the body — see `DemoHost.Plugs.CacheBodyReader` and the runnable reference at `examples/chimeway_demo_host/lib/demo_host_web/controllers/webhooks_controller.ex`.
+
+Log error reasons server-side only; never return internal error tuples to the webhook provider (Phase 33 D-03). Hosts MAY use 400 or 422 for observability, but MUST return non-2xx for library errors so providers retry.
 
 The adapter's `verify_webhook/3` validates the provider signature, `resolve_delivery/2` maps the payload to a Chimeway delivery row, and `normalize_feedback/1` converts provider events into canonical delivery outcomes.
 
