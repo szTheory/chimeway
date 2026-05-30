@@ -1,6 +1,6 @@
 # Inbox Integration
 
-This guide is the canonical adoption path for composing Chimeway with the optional [`chimeway_inbox`](../../chimeway_inbox) package. Follow it when you want one credible vertical slice: add Chimeway and the inbox package, configure recipient auth, mount the bell dropdown LiveView, and verify list → mark_read → badge updates.
+This guide is the canonical adoption path for composing Chimeway with the optional `chimeway_inbox` package. Follow it when you want one credible vertical slice: add Chimeway and the inbox package, configure recipient auth, mount the bell dropdown LiveView, and verify list → mark_read → badge updates.
 
 There is no separate inbox blueprint recipe in v1.9 — this guide owns the end-to-end path from dependency to verification.
 
