@@ -46,6 +46,8 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ## Current State
 
+**v1.10 Ecosystem Completions in progress (Phase 65 complete 2026-05-30):** Sigra auth blueprint recipe (ECOS-10) with doc-contract CI coverage; Threadline + Sigra TestRepo bootstrap and seed helpers in demo host; DEMO-09/DEMO-10 proof integration tests (`threadline_telemetry_proof_test`, `sigra_auth_proof_test`). Validation: 10/10 must-haves verified.
+
 **v1.9 Adopter Complete shipped (2026-05-30):** Accrue dunning vertical slice (Phases 58–60) — billing events drive Chimeway dunning workflows with Outcome Signal termination; blueprint recipe, demo proof, golden-path guide, and `mix verify.accrue` gate (ECOS-06/07, DEMO-07, DOCS-08/09, GATE-05 Accrue). Hex release automation via Release Please + 9-lane ci-gate + gated Hex publish (GATE-06, Phase 60.1). INBX inbox UI vertical slice (Phases 61–62) — headless API polish, optional `chimeway_inbox` package, demo mount, integration guide, and `mix verify.inbox` octet (INBX-01/02, DEMO-08, DOCS-08/09 Inbox, GATE-05 Inbox). **264+ doc-contract tests** green; Accrue and inbox verify gates pass.
 
 **v1.8 Ecosystem Integration Blueprints shipped (2026-05-30):** Phases 54–57, 57.1 — Mailglass adapter, inbound feedback bridge, blueprint recipe, demo proof, integration docs, and `mix verify.mailglass` gate.
@@ -418,4 +420,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 — milestone v1.10 Ecosystem Completions started*
+*Last updated: 2026-05-30 — Phase 65 complete (Sigra blueprint + Threadline/Sigra demo proof tests)*
