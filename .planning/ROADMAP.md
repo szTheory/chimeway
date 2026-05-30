@@ -51,6 +51,7 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 **Wave 3 *(blocked on Wave 2)*:** 54-03 — Contract tests + executor routing + recipe doc
 
 **Cross-cutting constraints:**
+
 - Outbound `deliver/2` only — no webhook callbacks (Phase 55)
 - Runtime config only — no compile-time secrets in adapter
 - Dual lifecycle: Chimeway attempts + Mailglass delivery ledger (intentional)
@@ -124,3 +125,18 @@ Prove Chimeway composes with the szTheory ecosystem by shipping a first-class Ma
 
 ---
 *Roadmap updated: 2026-05-29 — milestone v1.8 Ecosystem Integration Blueprints*
+
+### Phase 57.1: Close gap: DOCS-06/07 — fix Mailglass inbound webhook guide example (INSERTED)
+
+**Goal:** Close v1.8 audit partials for DOCS-06/DOCS-07 — fix Section 6 `Chimeway.Webhooks.process/4` example and extend doc-contract to lock webhook call shape.
+**Requirements:** DOCS-06, DOCS-07
+**Depends on:** Phase 57
+**Plans:** 2 plans
+
+Plans:
+
+**Wave 1 *(parallel)*:** 57.1-01 — Fix mailglass integration guide Section 6 webhook example (DOCS-06, WR-01/WR-02/IN-02)  
+**Wave 2 *(blocked on 57.1-01)*:** 57.1-02 — Extend doc-contract with webhook call-shape guards (DOCS-07, IN-01)
+
+- [ ] 57.1-01-PLAN.md — Fix guide Section 6 Webhooks.process/4 example and error responses
+- [ ] 57.1-02-PLAN.md — Extend doc-contract to forbid WR-01/WR-02 regression patterns
