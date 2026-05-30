@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    # Dispatched by release.yml when a Release PR is open but bot pushes skip pull_request CI.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -337,3 +339,35 @@ jobs:
         if: steps.detect.outputs.run == 'true'
         env:
           MIX_ENV: test
+
+  ci-gate:
+    name: ci-gate
+    runs-on: ubuntu-latest
+    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_journeys, verify_mailglass, verify_accrue]
+    if: always()
+    steps:
+      - name: Verify required CI lanes
+        env:
+          LINT: ${{ needs.lint.result }}
+          TEST: ${{ needs.test.result }}
+          VERIFY_GATES: ${{ needs.verify_gates.result }}
+          VERIFY_DOCS: ${{ needs.verify_docs.result }}
+          VERIFY_EXAMPLE: ${{ needs.verify_example.result }}
+          VERIFY_JOURNEYS: ${{ needs.verify_journeys.result }}
+          VERIFY_MAILGLASS: ${{ needs.verify_mailglass.result }}
+          VERIFY_ACCRUE: ${{ needs.verify_accrue.result }}
+        run: |
+          set -euo pipefail
+          failed=0
+          for lane in LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE; do
+            result="${!lane}"
+            if [[ "$result" != "success" ]]; then
+              echo "Required lane $lane: $result"
+              failed=1
+            fi
+          done
+          if [[ "$failed" -ne 0 ]]; then
+            echo "ci-gate failed: one or more required lanes did not succeed."
+            exit 1
+          fi
+          echo "ci-gate passed: all required lanes succeeded."
