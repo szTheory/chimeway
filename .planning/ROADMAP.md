@@ -30,6 +30,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 - [x] **Phase 60.1: Hex Release Pipeline** — Release Please SSOT, ci-gate, automated Hex publish (lattice_stripe pattern)
 - [x] **Phase 61: Inbox Headless + Package** — Core API polish and bootstrap `chimeway_inbox` optional package (completed 2026-05-30)
 - [x] **Phase 62: Inbox Demo, Docs & Gate** — Demo mount, inbox guide, doc-contract, and `mix verify.inbox` release gate
+- [x] **Phase 62.1: Address v1.9 tech debt** — Nyquist validation + REQUIREMENTS traceability (INSERTED) — completed 2026-05-30
 
 ## Phase Details
 
@@ -211,6 +212,21 @@ Plans:
 | 60.1. Hex Release Pipeline | 2/2 | Complete    | 2026-05-30 |
 | 61. Inbox Headless + Package | 3/3 | Complete    | 2026-05-30 |
 | 62. Inbox Demo, Docs & Gate | 3/3 | Complete    | 2026-05-30 |
+| 62.1. Address v1.9 tech debt | 3/3 | Complete | 2026-05-30 |
 
 ---
-*Roadmap updated: 2026-05-30 — Phase 62 complete (inbox demo + guide + verify.inbox gate)*
+*Roadmap updated: 2026-05-30 — Phase 62.1 inserted (v1.9 tech debt closure)*
+
+### Phase 62.1: Address v1.9 tech debt: Nyquist validation + REQUIREMENTS traceability (INSERTED)
+
+**Goal:** Close v1.9 process debt — retroactive Nyquist sign-off for phases 58, 59, 60.1, 61, 62; REQUIREMENTS DOCS-08/09 Accrue traceability sync; 60.1 ci-gate 9-lane prose fix
+**Requirements**: Tech debt from v1.9-MILESTONE-AUDIT (Nyquist partial + REQUIREMENTS drift)
+**Depends on:** Phase 62
+**Plans:** 3 plans
+
+**Wave 1** *(parallel — no file conflicts)*
+
+Plans:
+- [x] 62.1-01-PLAN.md — Accrue Nyquist closure (phases 58, 59) + 58-02-03 Accrue 1.3+ prose fix
+- [x] 62.1-02-PLAN.md — Phase 60.1 Nyquist + 8→9 lane drift + REQUIREMENTS DOCS-08/09 Accrue → Complete
+- [x] 62.1-03-PLAN.md — Inbox Nyquist closure (phases 61, 62)
