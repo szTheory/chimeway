@@ -87,3 +87,14 @@ config :accrue, Accrue.TestRepo,
   hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
   database: "chimeway_accrue_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :threadline, ecto_repos: [Threadline.Test.Repo]
+
+config :threadline, Threadline.Test.Repo,
+  username:
+    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
+      System.get_env("USER") || "postgres",
+  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
+  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
+  database: "chimeway_threadline_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox

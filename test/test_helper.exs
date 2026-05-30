@@ -96,3 +96,43 @@ if Code.ensure_loaded?(Accrue) do
     )
   end
 end
+
+if Code.ensure_loaded?(Threadline) do
+  {:ok, _} = Application.ensure_all_started(:threadline)
+
+  migrations_path =
+    case Path.wildcard(Path.join([__DIR__, "support", "threadline", "migrations", "*.exs"])) do
+      [] ->
+        :threadline
+        |> :code.priv_dir()
+        |> Path.join("repo/migrations")
+
+      _ ->
+        Path.join([__DIR__, "support", "threadline", "migrations"])
+    end
+
+  test_repo_config = Application.get_env(:threadline, Threadline.Test.Repo)
+
+  case Ecto.Adapters.Postgres.storage_up(test_repo_config) do
+    :ok -> :ok
+    {:error, :already_up} -> :ok
+    {:error, reason} -> raise "failed to create Threadline.Test.Repo database: #{inspect(reason)}"
+  end
+
+  Application.put_env(
+    :threadline,
+    Threadline.Test.Repo,
+    Keyword.put(test_repo_config, :pool, DBConnection.ConnectionPool)
+  )
+
+  {:ok, _, _} =
+    Ecto.Migrator.with_repo(Threadline.Test.Repo, fn repo ->
+      Ecto.Migrator.run(repo, migrations_path, :up, all: true, log: false)
+    end)
+
+  Application.put_env(:threadline, Threadline.Test.Repo, test_repo_config)
+
+  {:ok, _pid} = Threadline.Test.Repo.start_link()
+
+  Ecto.Adapters.SQL.Sandbox.mode(Threadline.Test.Repo, :manual)
+end
