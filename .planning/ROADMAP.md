@@ -72,12 +72,12 @@ Plans:
 2. Sensitive token values never appear in Chimeway trace database, telemetry, or operator surfaces — redaction is enforced at the integration boundary
 3. Integration tests prove event → notification → delivery path with `@moduletag :sigra` selective CI
 
-**Plans:** 2/2 plans ready
+**Plans:** 1/2 plans executed
 
 **Wave 1** *(harness + redaction baseline — blocks Wave 2)*
 
 Plans:
-- [ ] 64-01-PLAN.md — Optional sigra dep, selective CI, test harness, `@sensitive_keys` extension (2026-05-30)
+- [x] 64-01-PLAN.md — Optional sigra dep, selective CI, test harness, `@sensitive_keys` extension (2026-05-30)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -121,7 +121,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 63 Threadline Telemetry Bridge | 2/2 | Complete    | 2026-05-30 |
-| 64 Sigra Auth Flows Core | 0/2 | Planned | — |
+| 64 Sigra Auth Flows Core | 1/2 | In Progress|  |
 | 65 Ecosystem Blueprints & Demo | 0/? | Not started | — |
 | 66 Docs & Release Gates | 0/? | Not started | — |
 
