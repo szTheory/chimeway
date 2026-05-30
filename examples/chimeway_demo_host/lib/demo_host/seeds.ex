@@ -30,6 +30,8 @@ defmodule DemoHost.Seeds do
   @invite_idempotency "teampulse-seed-invite-v1"
   @reset_idempotency "teampulse-seed-reset-v1"
   @payment_idempotency "teampulse-seed-payment-v1"
+  @inbox_idempotency_a "teampulse-seed-inbox-v1-a"
+  @inbox_idempotency_b "teampulse-seed-inbox-v1-b"
 
   @doc "Demo tenant id for TeamPulse scenarios."
   def tenant_id, do: @tenant_id
@@ -143,6 +145,53 @@ defmodule DemoHost.Seeds do
     end
   end
 
+  @doc """
+  DEMO-08: Adopter-copyable inbox seed with two unread in_app notifications for Alex.
+
+  Triggers `Chimeway.trigger/3` via `DemoHost.Notifiers.InviteSent` so the bell list
+  has metadata `subject` for assertions. Standalone API; not invoked from `run/0`.
+  """
+  @spec seed_inbox() :: {:ok, map()} | {:error, term()}
+  def seed_inbox do
+    recipient = alex_identity()
+
+    with {:ok, first} <-
+           trigger(
+             DemoHost.Notifiers.InviteSent,
+             %{email: @alex_email, team_name: "Design"},
+             idempotency_key: @inbox_idempotency_a,
+             correlation_id: "teampulse-seed-inbox-a-corr",
+             tenant_id: @tenant_id
+           ),
+         {:ok, second} <-
+           trigger(
+             DemoHost.Notifiers.InviteSent,
+             %{email: @alex_email, team_name: "Product"},
+             idempotency_key: @inbox_idempotency_b,
+             correlation_id: "teampulse-seed-inbox-b-corr",
+             tenant_id: @tenant_id
+           ) do
+      notification_ids =
+        [first, second]
+        |> Enum.flat_map(&notification_ids_for_seed/1)
+        |> Enum.uniq()
+
+      if length(notification_ids) >= 2 do
+        {:ok,
+         %{
+           notification_ids: notification_ids,
+           recipient_identity: recipient,
+           trace: %{
+             first_event_id: first.trace.event_id,
+             second_event_id: second.trace.event_id
+           }
+         }}
+      else
+        {:error, :insufficient_notifications}
+      end
+    end
+  end
+
   @doc "Accrue demo customer email for admin trace search."
   def accrue_demo_email do
     if Code.ensure_loaded?(DemoHost.AccrueSeeds) do
@@ -201,5 +250,13 @@ defmodule DemoHost.Seeds do
       },
       duplicate?: true
     }
+  end
+
+  defp notification_ids_for_seed(%{trace: %{event_id: event_id}}) do
+    from(n in Notification,
+      where: n.event_id == ^event_id and n.recipient_identity == ^alex_identity(),
+      select: n.id
+    )
+    |> Repo.all()
   end
 end
