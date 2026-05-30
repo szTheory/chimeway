@@ -6,6 +6,7 @@ defmodule Chimeway.Inbox do
   import Ecto.Query
 
   alias Chimeway.Delivery
+  alias Chimeway.Inbox.Item
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
   alias Chimeway.Signal
@@ -16,15 +17,11 @@ defmodule Chimeway.Inbox do
 
   @spec list_for_recipient(String.t(), keyword()) :: [Notification.t()] | %{items: [map()], has_more: boolean()}
   def list_for_recipient(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
-    unread_only? = Keyword.get(opts, :unread_only, false)
-    exclude_archived = exclude_archived?(opts)
-
-    Notification
-    |> base_recipient_query(recipient_identity)
-    |> maybe_exclude_archived(exclude_archived)
-    |> maybe_filter_unread(unread_only?)
-    |> order_by(desc: :inserted_at)
-    |> Repo.all()
+    if paginated?(opts) do
+      list_for_recipient_paginated(recipient_identity, opts)
+    else
+      list_for_recipient_legacy(recipient_identity, opts)
+    end
   end
 
   @spec unread_count(String.t(), keyword()) :: non_neg_integer()
@@ -52,6 +49,63 @@ defmodule Chimeway.Inbox do
   @spec archive(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
   def archive(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
     update_lifecycle_timestamp(notification_id, recipient_identity, :archived_at, at)
+  end
+
+  defp list_for_recipient_legacy(recipient_identity, opts) do
+    unread_only? = Keyword.get(opts, :unread_only, false)
+    exclude_archived = exclude_archived?(opts)
+
+    Notification
+    |> base_recipient_query(recipient_identity)
+    |> maybe_exclude_archived(exclude_archived)
+    |> maybe_filter_unread(unread_only?)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  defp list_for_recipient_paginated(recipient_identity, opts) do
+    limit = Keyword.get(opts, :limit, 20)
+    unread_only? = Keyword.get(opts, :unread_only, false)
+    exclude_archived = exclude_archived?(opts)
+
+    query =
+      Notification
+      |> base_recipient_query(recipient_identity)
+      |> maybe_exclude_archived(exclude_archived)
+      |> maybe_filter_unread(unread_only?)
+      |> order_by([notification], desc: notification.inserted_at, desc: notification.id)
+      |> maybe_apply_cursor(opts)
+      |> limit(^limit + 1)
+
+    rows = Repo.all(query)
+    has_more = length(rows) > limit
+    items = rows |> Enum.take(limit) |> Enum.map(&Item.to_map/1)
+
+    %{items: items, has_more: has_more}
+  end
+
+  defp paginated?(opts) do
+    Keyword.has_key?(opts, :limit) or
+      Keyword.has_key?(opts, :before_inserted_at) or
+      Keyword.has_key?(opts, :before_id) or
+      Keyword.get(opts, :paginate) == true
+  end
+
+  defp maybe_apply_cursor(query, opts) do
+    with ts when not is_nil(ts) <- Keyword.get(opts, :before_inserted_at),
+         id when not is_nil(id) <- Keyword.get(opts, :before_id),
+         {:ok, uuid} <- Ecto.UUID.cast(id) do
+      truncated_ts = DateTime.truncate(ts, :microsecond)
+
+      where(
+        query,
+        [notification],
+        notification.inserted_at < ^truncated_ts or
+          (notification.inserted_at == ^truncated_ts and notification.id < ^uuid)
+      )
+    else
+      _ -> query
+    end
   end
 
   defp base_recipient_query(query, recipient_identity) do
