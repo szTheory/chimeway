@@ -18,19 +18,31 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ### Active
 
-- [ ] ECOS-08: Threadline telemetry bridge (v1.10)
-- [ ] ECOS-09: Sigra auth notification flows (v1.10)
+- [ ] ECOS-08: Threadline telemetry bridge
+- [ ] ECOS-09: Sigra auth notification flows core
+- [ ] ECOS-10: Sigra auth reference blueprint
+- [ ] DEMO-09: Threadline demo proof
+- [ ] DEMO-10: Sigra auth demo proof
+- [ ] DOCS-10: Threadline + Sigra integration guides
+- [ ] DOCS-11: Doc-contract tests for Threadline + Sigra guides
+- [ ] GATE-07: `mix verify.threadline` and `mix verify.sigra` CI gates
 - [ ] Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI
 
 ### Out of Scope
 
 - Broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
 
-## Current Milestone: v1.10 (planned)
+## Current Milestone: v1.10 Ecosystem Completions
 
-**Goal:** SEED-003 remainder — Threadline telemetry bridge and Sigra auth notification flows. Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI.
+**Goal:** Complete SEED-003 — Threadline telemetry bridge and Sigra auth notification flows with blueprint, demo proof, integration docs, and verify gates. Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI.
 
-**Start planning:** `/gsd-new-milestone`
+**Target features:**
+- Threadline telemetry reporter sinks Chimeway notification outcomes into Threadline audit ledger (ECOS-08)
+- Sigra auth notification flows — magic link and MFA token dispatch with redacted traces (ECOS-09)
+- Published Sigra auth reference blueprint with doc-contract (ECOS-10)
+- Demo host proofs for Threadline correlation and Sigra auth flows (DEMO-09/10)
+- Golden-path integration guides and doc-contract tests (DOCS-10/11)
+- Named verify entrypoints in CI and MAINTAINING pre-ship checklist (GATE-07)
 
 ## Current State
 
@@ -49,12 +61,13 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (shipped 2026-05-29).
 - `v1.8 Ecosystem Integration Blueprints` — Mailglass-first adapter, inbound feedback bridge, reference recipe, demo proof, integration docs, and verify gate (shipped 2026-05-30).
 - `v1.9 Adopter Complete` — Accrue dunning blueprint, INBX inbox UI package, Hex release automation, verify.accrue/inbox gates (shipped 2026-05-30).
+- `v1.10 Ecosystem Completions` — Threadline telemetry bridge + Sigra auth flows (in progress).
 
 ## Next Milestone Goals
 
-**v1.10 (planned):** SEED-003 remainder — Threadline telemetry bridge (`ECOS-08`), Sigra auth notification flows (`ECOS-09`). Optional polish: INT-02/03, INBX-03 real-time PubSub bell, ADPT-01 greenfield CI.
+**v1.10 Ecosystem Completions (active):** SEED-003 remainder — Threadline telemetry bridge (`ECOS-08`), Sigra auth notification flows (`ECOS-09/10`), demo proofs, integration docs, and verify gates (`DEMO-09/10`, `DOCS-10/11`, `GATE-07`). Optional polish: INT-02/03, INBX-03 real-time PubSub bell, ADPT-01 greenfield CI.
 
-**Explicitly deferred from v1.10 planning until scoped:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
+**Explicitly deferred beyond v1.10:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
 
 ### Shipped v1.9 Features (Validated)
 
@@ -405,4 +418,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 after v1.9 Adopter Complete milestone*
+*Last updated: 2026-05-30 — milestone v1.10 Ecosystem Completions started*

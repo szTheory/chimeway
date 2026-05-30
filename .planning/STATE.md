@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-05-30T13:29:09.746Z"
 last_activity: 2026-05-30
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning next milestone (v1.10 — Threadline/Sigra remainder)
+**Current focus:** v1.10 Ecosystem Completions — Threadline telemetry bridge + Sigra auth flows (Phase 63 next)
 
 ## Current Position
 
@@ -153,9 +153,8 @@ Resume file: .planning/phases/62.1-address-v1-9-tech-debt-nyquist-validation-req
 
 ## Operator Next Steps
 
-- Run `/gsd-new-milestone` to plan v1.10 (Threadline + Sigra)
-- Push to origin → confirm bootstrap Release PR `chore(main): release 1.1.0` ci-gate green → manual merge first release
-- Run post-publish verify trio after Hex 1.1.0 ships: `mix verify.clean`, `mix verify.parity`, `mix verify.published 1.1.0`
+- `/gsd-discuss-phase 63` — gather context for Threadline Telemetry Bridge
+- `/gsd-plan-phase 63` — skip discussion, plan directly
 
 ## Performance Metrics
 
