@@ -23,6 +23,8 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Current State
 
+**Phase 60 Accrue Docs & Release Gate complete (2026-05-30):** Golden-path Accrue dunning integration guide (DOCS-08), doc-contract truth lock (DOCS-09), and `mix verify.accrue` CI gate + MAINTAINING septet (GATE-05 Accrue half). **200 doc-contract tests** green; Accrue verify gate passes with sibling checkout.
+
 **v1.8 Ecosystem Integration Blueprints shipped (2026-05-30):** Phases 54–57, 57.1 — `Chimeway.Adapters.Mailglass` outbound adapter with contract tests (ECOS-01/02), inbound webhook feedback bridge with `provider_message_id` correlation (ECOS-03/04), ECOS-05 reference blueprint with DEMO-06 demo host proof, golden-path integration guide (DOCS-06), doc-contract truth lock (DOCS-07), and `mix verify.mailglass` release gate (GATE-04). **159 doc-contract + journey/mailglass gates** green at audit.
 
 Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read/unread workflow glue, journey CI (`mix verify.journeys`), adoption docs, and demo host proof remain the adoption foundation.
@@ -351,4 +353,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 — milestone v1.9 Adopter Complete started*
+*Last updated: 2026-05-30 — Phase 60 Accrue docs & release gate complete*
