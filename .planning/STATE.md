@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.8
-milestone_name: Ecosystem Integration Blueprints
-status: Awaiting next milestone
-last_updated: "2026-05-30T00:27:15.288Z"
-last_activity: 2026-05-30 — Milestone v1.8 completed and archived
+milestone: v1.9
+milestone_name: Adopter Complete
+status: planning
+last_updated: "2026-05-30T00:33:20.437Z"
+last_activity: 2026-05-30
 progress:
   total_phases: 5
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning next milestone — run `/gsd-new-milestone`
+**Current focus:** Milestone v1.9 Adopter Complete — defining requirements (research skipped; reuse Mailglass + chimeway_admin patterns)
 
 ## Current Position
 
-Phase: Milestone v1.8 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-30 — Milestone v1.8 completed and archived
+Status: Defining requirements
+Last activity: 2026-05-30 — Milestone v1.9 started
 
 ## Accumulated Context
 
@@ -66,7 +66,9 @@ Last activity: 2026-05-30 — Milestone v1.8 completed and archived
 - [56-01]: adapter_module whitelisted in admin timeline redaction for operator inspectability
 - [Phase 57-docs-release-gates]: Guide owns end-to-end Mailglass path; blueprint is focused recipe with reciprocal cross-links — D-02 separation prevents doc drift between introduction guide and blueprint recipe
 - [57.1-01]: Section 6 webhook example mirrors DemoHostWeb.WebhooksController — adapter module first, conn.req_headers list, raw_body iolist flattening, generic 401/500 errors
-- [57.1-02]: Webhook doc-contract uses explicit string list for multi-token forbidden patterns (headers: headers) — ~w sigil splits incorrectly
+- [v1.9]: Research skipped — reuse Mailglass vertical-slice pattern for Accrue; clone chimeway_admin for chimeway_inbox
+- [v1.9]: Accrue-only SEED-003 slice; Threadline/Sigra deferred to v1.10
+- [v1.9]: INBX via optional chimeway_inbox package (not core lib); recipient auth behaviour pluggable like ChimewayAdmin.Auth
 
 ### Pending Todos
 
@@ -86,7 +88,7 @@ None.
 ### Roadmap Evolution
 
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
-- v1.8 Ecosystem Integration Blueprints shipped 2026-05-30 (Phases 54–57, 57.1, 9 requirements)
+- v1.9 Adopter Complete started 2026-05-30 — Phases 58–62, 10 requirements (Accrue dunning + INBX inbox UI)
 - v1.7 READ + Adoption Polish shipped 2026-05-29 (Phases 48–53, 11 requirements)
 - v1.6 Consumer Journey Proof shipped 2026-05-29 (Phases 43–47)
 - v1.5 formally closed 2026-05-29 (Phases 35–42)
@@ -130,7 +132,8 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- `/gsd-discuss-phase 58` — gather context for Accrue Dunning Core
+- Or `/gsd-plan-phase 58` — skip discussion, plan directly
 
 ## Performance Metrics
 

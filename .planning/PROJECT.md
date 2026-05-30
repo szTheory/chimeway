@@ -8,9 +8,18 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
-## Current Milestone
+## Current Milestone: v1.9 Adopter Complete
 
-**None** — v1.8 shipped 2026-05-30. Run `/gsd-new-milestone` to define v1.9 scope.
+**Goal:** Close the last adopter-facing gaps — Accrue dunning blueprint (SEED-003 slice) and end-user inbox UI (SEED-004 INBX) — so Chimeway is adoptable off the lot for all three personas.
+
+**Target features:**
+- Accrue `invoice.payment_failed` → Chimeway dunning workflow → `invoice.paid` termination via Signal engine (ECOS-06)
+- Accrue dunning reference recipe with demo host proof and operator traces (ECOS-07, DEMO-07)
+- Headless inbox API polish: unread count, pagination, stable DTO maps (INBX-01)
+- Optional `chimeway_inbox` package: mountable router, recipient auth behaviour, unstyled bell-dropdown LiveView (INBX-02)
+- Golden-path guides, doc-contract tests, and `mix verify.accrue` / `mix verify.inbox` release gates
+
+**Included seeds:** SEED-003 (Accrue slice only), SEED-004 (INBX slice only)
 
 ## Current State
 
@@ -29,9 +38,9 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 
 ## Next Milestone Goals
 
-**v1.9 (planned):** SEED-003 remainder — Accrue dunning blueprint, Threadline telemetry bridge, Sigra auth notification flows. INBX bell/notification center UI productization.
+**v1.10 (planned):** SEED-003 remainder — Threadline telemetry bridge, Sigra auth notification flows. Optional polish: INT-02/03, ADPT-01 greenfield CI, real-time PubSub bell.
 
-**Explicitly deferred from v1.9 planning until scoped:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell, greenfield `phx.new` CI smoke (ADPT-01).
+**Explicitly deferred from v1.9:** Threadline bridge, Sigra auth blueprints, real-time PubSub bell updates, INT-02/03 polish, ADPT-01, broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
 
 ### Shipped v1.8 Features (Validated)
 
@@ -117,7 +126,7 @@ Prior context includes:
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
 - **Scope**: Orchestration and explainability remain higher leverage than broad channel expansion.
-- **Scope**: v1.8 closed Mailglass slice of SEED-003; Accrue/Threadline/Sigra and INBX remain v1.9+.
+- **Scope**: v1.9 closes Accrue dunning + INBX inbox UI; Threadline/Sigra and optional polish remain v1.10+.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -342,4 +351,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 after v1.8 milestone*
+*Last updated: 2026-05-30 — milestone v1.9 Adopter Complete started*
