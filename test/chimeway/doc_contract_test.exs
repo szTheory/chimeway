@@ -287,6 +287,11 @@ defmodule Chimeway.DocContractTest do
                "mailglass blueprint recipe must reference #{unquote(required)}"
       end
     end
+
+    test "requires reciprocal link to mailglass integration guide", %{content: content} do
+      assert String.contains?(content, "../introduction/mailglass-integration.md"),
+             "mailglass blueprint recipe must link to introduction guide"
+    end
   end
 
   @accrue_blueprint_recipe Path.expand("../../guides/recipes/accrue-dunning-blueprint.md", __DIR__)
@@ -339,6 +344,21 @@ defmodule Chimeway.DocContractTest do
 
       assert String.contains?(content, "state") or String.contains?(content, "Accrue"),
              "accrue dunning blueprint recipe must document billing-state responsibility split"
+    end
+
+    test "requires reciprocal link to accrue dunning integration guide", %{content: content} do
+      assert String.contains?(content, "../introduction/accrue-dunning-integration.md"),
+             "accrue dunning blueprint recipe must link to introduction guide"
+    end
+
+    test "forbids Phase 60 placeholder language in accrue dunning blueprint recipe", %{
+      content: content
+    } do
+      refute Regex.match?(~r/ships in phase 60/i, content),
+             "accrue dunning blueprint recipe must not reference Phase 60 placeholder shipping"
+
+      refute Regex.match?(~r/placeholder/i, content),
+             "accrue dunning blueprint recipe must not reference placeholder shipping language"
     end
   end
 
@@ -447,6 +467,7 @@ defmodule Chimeway.DocContractTest do
       invoice.payment_failed
       invoice.paid
       cancel_signals
+      pending_signals
       workflow/2
       config :accrue
       dunning
@@ -481,6 +502,123 @@ defmodule Chimeway.DocContractTest do
              "accrue dunning integration guide must document Chimeway dependency"
       assert String.contains?(content, "accrue") or String.contains?(content, "Accrue"),
              "accrue dunning integration guide must document Accrue dependency"
+    end
+
+    test "sections appear in golden-path order from dependencies through verification", %{
+      content: content
+    } do
+      headings = [
+        "## 1. Dependencies",
+        "## 2. Database / migrations",
+        "## 3. Runtime config",
+        "## 4. DunningNotifier reference",
+        "## 5. Billing-event triggers",
+        "## 6. Verification"
+      ]
+
+      indices =
+        Enum.map(headings, fn heading ->
+          case :binary.match(content, heading) do
+            {index, _} -> index
+            :nomatch -> flunk("accrue dunning integration guide must include #{heading}")
+          end
+        end)
+
+      assert indices == Enum.sort(indices),
+             "accrue dunning integration guide sections must appear in golden-path order"
+
+      verify_index = Enum.at(indices, -1)
+      verify_section = String.slice(content, verify_index, 800)
+
+      assert String.contains?(verify_section, "mix verify.accrue"),
+             "accrue dunning integration guide verification section must document mix verify.accrue"
+    end
+  end
+
+  @inbox_integration_guide Path.expand("../../guides/introduction/inbox-integration.md", __DIR__)
+
+  describe "inbox integration guide doc contract (DOCS-08 / DOCS-09)" do
+    setup do
+      content = File.read!(@inbox_integration_guide)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in inbox integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "inbox integration guide must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in inbox integration guide",
+         %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "inbox integration guide must not reference fictional Chimeway.Workflow"
+    end
+
+    test "forbids Chimeway.Inbox direct module calls in inbox integration guide",
+         %{content: content} do
+      refute String.contains?(content, "Chimeway.Inbox."),
+             "inbox integration guide must use public Chimeway.* delegates only"
+    end
+
+    @required ~w(
+      ChimewayInbox.Auth
+      chimeway_inbox_routes
+      config :chimeway_inbox
+      auth_module
+      Chimeway.unread_count
+      Chimeway.list_for_recipient
+      Chimeway.mark_read
+      Chimeway.mark_seen
+      BellDropdownLive
+      mix verify.inbox
+      DemoHost.Seeds.seed_inbox
+      /inbox
+    )
+
+    for required <- @required do
+      test "requires #{required} in inbox integration guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "inbox integration guide must reference #{unquote(required)}"
+      end
+    end
+
+    test "requires golden-path section order in inbox integration guide", %{content: content} do
+      headings = [
+        "## 1. Dependencies",
+        "## 2. Database / migrations",
+        "## 3. Runtime config",
+        "## 4. Auth behaviour",
+        "## 5. Router mount",
+        "## 6. Bell UI surface",
+        "## 7. Headless API",
+        "## 8. Verification"
+      ]
+
+      indices =
+        for heading <- headings do
+          case :binary.match(content, heading) do
+            {index, _} -> index
+            :nomatch -> flunk("inbox integration guide must include #{heading}")
+          end
+        end
+
+      assert indices == Enum.sort(indices),
+             "inbox integration guide sections must appear in golden-path order"
+    end
+
+    test "verification section documents mix verify.inbox in inbox integration guide",
+         %{content: content} do
+      verification_index =
+        case :binary.match(content, "## 8. Verification") do
+          {index, _} -> index
+          :nomatch -> flunk("inbox integration guide must include verification section")
+        end
+
+      verification_tail = binary_part(content, verification_index, byte_size(content) - verification_index)
+      assert String.contains?(verification_tail, "mix verify.inbox")
+      assert String.contains?(verification_tail, "seed_inbox")
     end
   end
 
@@ -648,6 +786,9 @@ defmodule Chimeway.DocContractTest do
       idempotency_key
       tenant_id
       golden-path
+      guides/introduction/mailglass-integration.md
+      guides/introduction/accrue-dunning-integration.md
+      guides/introduction/inbox-integration.md
     )
 
     for required <- @required do
@@ -698,6 +839,64 @@ defmodule Chimeway.DocContractTest do
         assert String.contains?(content, unquote(required)),
                "oban integration recipe must reference #{unquote(required)}"
       end
+    end
+  end
+
+  describe "hexdocs extras doc contract" do
+    setup do
+      content = File.read!("mix.exs")
+      %{content: content}
+    end
+
+    @integration_guides ~w(
+      guides/introduction/mailglass-integration.md
+      guides/introduction/accrue-dunning-integration.md
+      guides/introduction/inbox-integration.md
+    )
+
+    for guide <- @integration_guides do
+      test "requires #{guide} in HexDocs extras", %{content: content} do
+        assert String.contains?(content, unquote(guide)),
+               "mix.exs HexDocs extras must include #{unquote(guide)}"
+      end
+    end
+
+    test "lists accrue integration guide after mailglass integration guide in extras", %{
+      content: content
+    } do
+      mailglass_index =
+        case :binary.match(content, "guides/introduction/mailglass-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include mailglass integration guide")
+        end
+
+      accrue_index =
+        case :binary.match(content, "guides/introduction/accrue-dunning-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include accrue dunning integration guide")
+        end
+
+      assert mailglass_index < accrue_index,
+             "HexDocs extras must list mailglass integration guide before accrue dunning integration guide"
+    end
+
+    test "lists inbox integration guide after accrue dunning integration guide in extras", %{
+      content: content
+    } do
+      accrue_index =
+        case :binary.match(content, "guides/introduction/accrue-dunning-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include accrue dunning integration guide")
+        end
+
+      inbox_index =
+        case :binary.match(content, "guides/introduction/inbox-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include inbox integration guide")
+        end
+
+      assert accrue_index < inbox_index,
+             "HexDocs extras must list accrue dunning integration guide before inbox integration guide"
     end
   end
 
