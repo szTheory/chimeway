@@ -1,0 +1,224 @@
+# Manual recovery: publish an already-tagged (or pinned SHA) revision to Hex when
+# automation did not run or needs a one-off retry. Default path is Release Please
+# (`.github/workflows/release.yml`) on merge of the Release PR.
+#
+# Requires repository secret: HEX_API_KEY (Actions secrets).
+
+name: Publish Hex Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag or commit SHA to publish from (e.g. v1.1.0).'
+        required: true
+        type: string
+      release_version:
+        description: 'Expected @version string in mix.exs at that ref (e.g. 1.1.0).'
+        required: true
+        type: string
+      dry_run:
+        description: 'Run mix hex.publish --dry-run instead of publishing.'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-hex-${{ github.event.inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  gate-ci-green:
+    name: Verify CI is green on release ref
+    runs-on: ubuntu-latest
+    outputs:
+      checkout_ref: ${{ steps.validate.outputs.checkout_ref }}
+      sha: ${{ steps.validate.outputs.sha }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      - name: Validate ref and resolve SHA
+        id: validate
+        run: |
+          set -euo pipefail
+          ref="${{ github.event.inputs.tag }}"
+
+          if [[ "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+            git cat-file -e "${ref}^{commit}"
+            echo "checkout_ref=$ref" >> "$GITHUB_OUTPUT"
+            echo "sha=$ref" >> "$GITHUB_OUTPUT"
+          elif git show-ref --verify --quiet "refs/tags/$ref"; then
+            sha="$(git rev-list -n 1 "$ref")"
+            echo "checkout_ref=$ref" >> "$GITHUB_OUTPUT"
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag must be a 40-character commit SHA or an existing git tag" >&2
+            exit 1
+          fi
+
+      - name: Wait for ci-gate on release SHA
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const sha = '${{ steps.validate.outputs.sha }}';
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            const maxAttempts = 10;
+            const waitMs = 30000;
+            let lastRunUrl = '';
+
+            async function ciGateForRun(runId) {
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId,
+                  per_page: 100
+                }
+              );
+              return jobs.find((job) => job.name === 'ci-gate');
+            }
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'ci.yml',
+                head_sha: sha,
+                per_page: 20
+              });
+
+              const runs = data.workflow_runs
+                .filter((run) => run.head_sha === sha)
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              if (runs.length === 0) {
+                core.info(`No ci.yml run yet for ${sha} (${attempt}/${maxAttempts}).`);
+                await sleep(waitMs);
+                continue;
+              }
+
+              lastRunUrl = runs[0].html_url;
+
+              if (runs.some((run) => run.status !== 'completed')) {
+                const inProgress = runs.find((run) => run.status !== 'completed');
+                core.info(
+                  `ci.yml ${inProgress.status} for ${sha} (${attempt}/${maxAttempts}): ${inProgress.html_url}`
+                );
+                await sleep(waitMs);
+                continue;
+              }
+
+              for (const run of runs) {
+                const ciGate = await ciGateForRun(run.id);
+
+                if (!ciGate) {
+                  core.info(`ci-gate job not found in run ${run.html_url}; checking other runs.`);
+                  continue;
+                }
+
+                if (ciGate.conclusion === 'success') {
+                  core.info(`ci-gate succeeded on release SHA ${sha}: ${run.html_url}`);
+                  return;
+                }
+              }
+
+              core.info(
+                `No successful ci-gate yet for ${sha} (${attempt}/${maxAttempts}); waiting for a fresh run.`
+              );
+              await sleep(waitMs);
+            }
+
+            core.setFailed(
+              `Timed out waiting for ci-gate on SHA ${sha} after ${maxAttempts} attempts (~${(maxAttempts * waitMs) / 60000} min). ` +
+              `Last run: ${lastRunUrl || 'none'}`
+            );
+
+  publish:
+    name: Publish to Hex.pm
+    runs-on: ubuntu-latest
+    needs: gate-ci-green
+    env:
+      RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ needs.gate-ci-green.outputs.checkout_ref }}
+
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+
+      - name: Cache library deps
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-library-${{ hashFiles('mix.lock') }}
+
+      - name: Install Hex + Rebar
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+
+      - name: Verify release version in mix.exs
+        run: grep -n "@version \"${RELEASE_VERSION}\"" mix.exs
+
+      - name: Fetch library deps
+        run: mix deps.get
+
+      - name: Compile (warnings as errors)
+        run: mix compile --warnings-as-errors
+
+      - name: Pre-publish gate replay
+        env:
+          MIX_ENV: test
+        run: |
+          mix ci.verify_gates
+          mix ci.docs
+
+      - name: Build Hex package
+        run: mix hex.build
+
+      - name: Skip if version already on Hex
+        id: idempotency
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          if mix hex.info chimeway "${RELEASE_VERSION}" 2>/dev/null | grep -q "Released:"; then
+            echo "Version ${RELEASE_VERSION} of chimeway already on Hex — skipping publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dry run Hex publish
+        if: github.event.inputs.dry_run == 'true' || steps.idempotency.outputs.skip != 'true'
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: mix hex.publish --dry-run --yes
+
+      - name: Publish to Hex
+        if: github.event.inputs.dry_run != 'true' && steps.idempotency.outputs.skip != 'true'
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: mix hex.publish --yes
+
+      - name: Verify version on Hex.pm
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 36); do
+            if curl -fsS "https://hex.pm/api/packages/chimeway/releases/${RELEASE_VERSION}" | grep -q "\"version\""; then
+              echo "Hex.pm lists chimeway ${RELEASE_VERSION}"
+              exit 0
+            fi
+            echo "waiting for Hex index... (${i}/36)"
+            sleep 10
+          done
+          echo "Timed out waiting for https://hex.pm/api/packages/chimeway/releases/${RELEASE_VERSION}"
+          exit 1
