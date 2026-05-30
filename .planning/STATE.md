@@ -11,7 +11,7 @@ progress:
   total_plans: 10
   completed_plans: 10
   percent: 67
-stopped_at: Phase 60.1 complete (2/2) — ready to discuss Phase 61
+stopped_at: Phase 61 UI-SPEC approved
 ---
 
 # Project State
