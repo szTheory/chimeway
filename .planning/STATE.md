@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
 status: executing
-last_updated: "2026-05-30T12:38:18.727Z"
-last_activity: 2026-05-30 -- Phase 62 planning complete
+last_updated: "2026-05-30T13:03:00Z"
+last_activity: 2026-05-30 -- Completed 62-01-PLAN.md (DEMO-08 demo mount + proof)
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 16
-  completed_plans: 13
-  percent: 81
+  completed_plans: 14
+  percent: 88
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 62 — inbox demo, docs & gate
+**Current focus:** Phase 62 — inbox-demo-docs-gate
 
 ## Current Position
 
-Phase: 62
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-30 -- Phase 62 planning complete
+Phase: 62 (inbox-demo-docs-gate) — EXECUTING
+Plan: 2 of 3
+Status: 62-01 complete; ready for 62-02 (guide) or 62-03 (gate)
+Last activity: 2026-05-30 -- Completed 62-01-PLAN.md (DEMO-08 demo mount + proof)
 
 ## Accumulated Context
 
@@ -83,6 +83,9 @@ Last activity: 2026-05-30 -- Phase 62 planning complete
 - [61-03]: Package LiveViewTests mount via test router `live/2` — `live_isolated` on_mount opts insufficient without live_session
 - [61-03]: mark_seen not wired in BellDropdownLive v1.9 — LiveViewTest defers to API/host (D-08 discretion)
 - [61-03]: verify.example includes chimeway_inbox; selective verify.inbox CI deferred Phase 62 GATE-05
+- [62-01]: InboxAuth uses demo_user_email session key — distinct from demo:operator AdminActor (T-62-01)
+- [62-01]: seed_inbox/0 standalone outside run/0; two idempotent InviteSent triggers for mark_read/seen targets
+- [62-01]: DEMO-08 proof via @moduletag :inbox module — journey suite unchanged (D-06)
 
 ### Pending Todos
 
@@ -140,9 +143,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-30T12:34:19.859Z
-Stopped at: Phase 62 context gathered (assumptions mode)
-Resume file: .planning/phases/62-inbox-demo-docs-gate/62-CONTEXT.md
+Last session: 2026-05-30T13:03:00Z
+Stopped at: Completed 62-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -169,3 +172,4 @@ Resume file: .planning/phases/62-inbox-demo-docs-gate/62-CONTEXT.md
 | Phase 58-accrue-dunning-core P01 | 45min | 3 tasks | 9 files |
 | Phase 60.1 hex-release-pipeline P01 | 15min | 4 tasks | 5 files |
 | Phase 61 inbox-headless-package P03 | 20min | 3 tasks | 4 files |
+| Phase 62 inbox-demo-docs-gate P01 | 18min | 3 tasks | 6 files |

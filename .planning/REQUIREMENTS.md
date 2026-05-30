@@ -14,12 +14,12 @@
 ### Demo Proof (DEMO)
 
 - [x] **DEMO-07**: Demo host proves Accrue-driven dunning end-to-end with operator trace inspectability at `/admin/chimeway`
-- [ ] **DEMO-08**: Demo host mounts end-user inbox; journey test proves list → mark_read/seen → badge count
+- [x] **DEMO-08**: Demo host mounts end-user inbox; journey test proves list → mark_read/seen → badge count
 
 ### Inbox UI (INBX)
 
-- [ ] **INBX-01**: Headless inbox API exposes UI-ready queries: `unread_count/1`, paginated `list_for_recipient/2` with `exclude_archived`, stable serializable item maps
-- [ ] **INBX-02**: Optional `chimeway_inbox` package provides mountable router macro, recipient auth behaviour, and unstyled bell-dropdown LiveView
+- [x] **INBX-01**: Headless inbox API exposes UI-ready queries: `unread_count/1`, paginated `list_for_recipient/2` with `exclude_archived`, stable serializable item maps
+- [x] **INBX-02**: Optional `chimeway_inbox` package provides mountable router macro, recipient auth behaviour, and unstyled bell-dropdown LiveView
 
 ### Integration Docs (DOCS)
 
@@ -73,9 +73,9 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 | DOCS-09 (Accrue) | Phase 60 | Pending |
 | GATE-05 (Accrue) | Phase 60 | Complete |
 | GATE-06 | Phase 60.1 | Complete |
-| INBX-01 | Phase 61 | Pending |
-| INBX-02 | Phase 61 | Pending |
-| DEMO-08 | Phase 62 | Pending |
+| INBX-01 | Phase 61 | Complete |
+| INBX-02 | Phase 61 | Complete |
+| DEMO-08 | Phase 62 | Complete |
 | DOCS-08 (Inbox) | Phase 62 | Pending |
 | DOCS-09 (Inbox) | Phase 62 | Pending |
 | GATE-05 (Inbox) | Phase 62 | Pending |
