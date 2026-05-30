@@ -41,7 +41,7 @@ defmodule Chimeway.MixProject do
       {:mailglass, "~> 1.3", optional: true},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
-    ] ++ accrue_deps() ++ threadline_deps()
+    ] ++ accrue_deps() ++ threadline_deps() ++ sigra_deps()
   end
 
   defp accrue_deps do
@@ -64,9 +64,9 @@ defmodule Chimeway.MixProject do
         "credo --strict"
       ],
 
-      # Test lane (mailglass/accrue excluded — run mix verify.* separately, GATE-04/05)
+      # Test lane (mailglass/accrue/threadline/sigra excluded — run mix verify.* separately, GATE-04/05/07)
       "ci.test": [
-        "cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude threadline"
+        "cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude threadline --exclude sigra"
       ],
 
       # Docs gate: fails on undocumented public functions
@@ -146,6 +146,22 @@ defmodule Chimeway.MixProject do
     case System.get_env("THREADLINE_PATH") do
       nil -> {:threadline, "~> 0.7", optional: true, runtime: false}
       path -> {:threadline, path: path, optional: true, runtime: false}
+    end
+  end
+
+  defp sigra_deps do
+    if System.get_env("CHIMEWAY_SKIP_SIGRA_DEP") in ["1", "true"] do
+      []
+    else
+      [sigra_dep()]
+    end
+  end
+
+  defp sigra_dep do
+    # Local dev: SIGRA_PATH=../sigra mix deps.get
+    case System.get_env("SIGRA_PATH") do
+      nil -> {:sigra, "~> 0.3", optional: true, runtime: false, override: true}
+      path -> {:sigra, path: path, optional: true, runtime: false, override: true}
     end
   end
 
