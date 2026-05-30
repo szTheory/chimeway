@@ -109,6 +109,7 @@ None.
 ### Roadmap Evolution
 
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
+- v1.10 Ecosystem Completions started 2026-05-30 — Phases 63–66; 8/8 requirements (Threadline + Sigra SEED-003 remainder)
 - v1.9 Adopter Complete shipped 2026-05-30 — Phases 58–62, 60.1, 62.1; 10/10 requirements (Accrue dunning + INBX inbox UI + Hex automation)
 - v1.7 READ + Adoption Polish shipped 2026-05-29 (Phases 48–53, 11 requirements)
 - v1.6 Consumer Journey Proof shipped 2026-05-29 (Phases 43–47)
