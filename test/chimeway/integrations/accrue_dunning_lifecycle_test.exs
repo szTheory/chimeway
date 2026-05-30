@@ -3,6 +3,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
     @moduledoc false
 
     use Accrue.DataCase, async: false
+    use Oban.Testing, repo: Chimeway.Repo
 
     @moduletag :accrue
 
@@ -11,10 +12,11 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
     alias Accrue.Billing.Subscription
     alias Accrue.Integrations.Chimeway, as: ChimewayDunningEngine
     alias Accrue.TestRepo, as: Repo
+    alias Chimeway.Delivery
     alias Chimeway.Notifications.Notification
     alias Chimeway.Repo, as: ChimewayRepo
     alias Chimeway.Workflows
-    alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun}
+    alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun, WorkflowStep, WorkflowTransition}
 
     describe "invoice.payment_failed starts dunning workflow (ECOS-06 start)" do
       setup do
@@ -95,6 +97,144 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
         assert waiting_run.state == :waiting
         assert waiting_run.status_reason == "waiting_for_step_progression"
         assert waiting_run.pending_signals == ["invoice.paid"]
+      end
+    end
+
+    describe "invoice.paid terminates dunning via Outcome Signal (ECOS-06 terminate)" do
+      setup do
+        previous_dispatcher = Application.get_env(:chimeway, :dispatcher)
+
+        on_exit(fn ->
+          Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
+        end)
+
+        Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+        configure_chimeway_dunning_engine!()
+        configure_chimeway_logger_adapter!()
+
+        customer = insert_customer!()
+        subscription = insert_subscription!(customer)
+        invoice = insert_failed_invoice!(customer, subscription)
+
+        stub_invoice_payment_failed_fetch!(invoice, subscription, customer)
+        stub_invoice_paid_fetch!(invoice, subscription, customer)
+
+        %{
+          customer: customer,
+          subscription: subscription,
+          invoice: invoice
+        }
+      end
+
+      test "invoice_paid via Accrue webhook path resumes waiting run", %{
+        customer: customer,
+        subscription: subscription,
+        invoice: invoice
+      } do
+        %{workflow_run: waiting_run} =
+          start_dunning_and_wait!(invoice, subscription, customer)
+
+        assert waiting_run.state == :waiting
+        assert waiting_run.pending_signals == ["invoice.paid"]
+        assert waiting_run.status_reason == "waiting_for_step_progression"
+
+        due_at = parse_iso8601!(waiting_run.status_context["due_at"])
+        assert DateTime.compare(due_at, DateTime.utc_now()) == :gt
+
+        assert {:ok, _row} = trigger_invoice_paid_event!(invoice, subscription, customer)
+
+        assert %{success: 1} =
+                 Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
+
+        updated_run = ChimewayRepo.get!(WorkflowRun, waiting_run.id)
+        assert updated_run.state == :active
+        assert updated_run.pending_signals == []
+        assert updated_run.status_reason == "signal_received"
+
+        [signal_received_transition] =
+          ChimewayRepo.all(
+            from(wt in WorkflowTransition,
+              where: wt.workflow_run_id == ^waiting_run.id and wt.reason == "signal_received"
+            )
+          )
+
+        assert signal_received_transition.context == %{"event_name" => "invoice.paid"}
+      end
+
+      test "no escalation email delivery after invoice_paid termination", %{
+        customer: customer,
+        subscription: subscription,
+        invoice: invoice
+      } do
+        %{workflow_run: waiting_run} =
+          start_dunning_and_wait!(invoice, subscription, customer)
+
+        assert {:ok, _row} = trigger_invoice_paid_event!(invoice, subscription, customer)
+        assert %{success: 1} = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
+
+        updated_run = ChimewayRepo.get!(WorkflowRun, waiting_run.id)
+
+        escalation_deliveries =
+          ChimewayRepo.all(
+            from(d in Delivery,
+              join: ws in WorkflowStep,
+              on: d.workflow_step_id == ws.id,
+              where:
+                d.workflow_run_id == ^waiting_run.id and ws.step_key == "escalation_email"
+            )
+          )
+
+        assert escalation_deliveries == []
+
+        current_step = Workflows.get_current_step!(updated_run)
+        assert current_step.step_key == "initial_email"
+      end
+
+      test "signal before due_at cancels wait without advancing 48h", %{
+        customer: customer,
+        subscription: subscription,
+        invoice: invoice
+      } do
+        %{workflow_run: waiting_run} =
+          start_dunning_and_wait!(invoice, subscription, customer)
+
+        due_at = parse_iso8601!(waiting_run.status_context["due_at"])
+        assert DateTime.compare(due_at, DateTime.utc_now()) == :gt
+
+        assert {:ok, _row} = trigger_invoice_paid_event!(invoice, subscription, customer)
+        assert %{success: 1} = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
+
+        updated_run = ChimewayRepo.get!(WorkflowRun, waiting_run.id)
+        assert updated_run.state == :active
+        assert updated_run.pending_signals == []
+      end
+
+      test "explain trace includes waiting to signal_received chain", %{
+        customer: customer,
+        subscription: subscription,
+        invoice: invoice
+      } do
+        %{workflow_run: waiting_run} =
+          start_dunning_and_wait!(invoice, subscription, customer)
+
+        assert {:ok, _row} = trigger_invoice_paid_event!(invoice, subscription, customer)
+        assert %{success: 1} = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
+
+        assert {:ok, explain} = Workflows.explain(customer.id, waiting_run.id)
+        assert explain.id == waiting_run.id
+
+        assert {:ok, traces} = Workflows.list_traces(customer.id, waiting_run.id)
+
+        reasons = Enum.map(traces, & &1.reason)
+        assert "waiting_for_step_progression" in reasons
+        assert "signal_received" in reasons
+      end
+    end
+
+    defp parse_iso8601!(value) when is_binary(value) do
+      case DateTime.from_iso8601(value) do
+        {:ok, datetime, _offset} -> datetime
+        other -> raise "invalid iso8601: #{inspect(other)}"
       end
     end
 

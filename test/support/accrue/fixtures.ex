@@ -184,5 +184,111 @@ if Code.ensure_loaded?(Accrue) and not Code.ensure_loaded?(Chimeway.TestSupport.
           raise "expected wait_not_due progression, got: #{inspect(other)}"
       end
     end
+
+    def stub_invoice_paid_fetch!(invoice, subscription, customer) do
+      canonical_invoice = %{
+        "id" => invoice.processor_id,
+        "object" => "invoice",
+        "status" => "paid",
+        "customer" => customer.processor_id,
+        "subscription" => subscription.processor_id,
+        "currency" => invoice.currency || "usd",
+        "amount_due" => 0,
+        "amount_paid" => invoice.total_minor || 2_000,
+        "amount_remaining" => 0,
+        "lines" => %{"object" => "list", "data" => []},
+        "metadata" => %{}
+      }
+
+      :ok =
+        Accrue.Processor.Fake.stub(:retrieve_invoice, fn id, _opts ->
+          if id == invoice.processor_id, do: {:ok, canonical_invoice}, else: {:error, :not_found}
+        end)
+
+      :ok =
+        Accrue.Processor.Fake.stub(:retrieve_subscription, fn id, _opts ->
+          if id == subscription.processor_id do
+            {:ok,
+             %{
+               "id" => subscription.processor_id,
+               "object" => "subscription",
+               "customer" => customer.processor_id,
+               "status" => "active",
+               "cancel_at_period_end" => false,
+               "pause_collection" => nil,
+               "items" => %{"object" => "list", "data" => []},
+               "metadata" => %{},
+               "currency" => invoice.currency || "usd"
+             }}
+          else
+            {:error, :not_found}
+          end
+        end)
+
+      canonical_invoice
+    end
+
+    def trigger_invoice_paid_event!(invoice, subscription, customer) do
+      payload = %{
+        id: invoice.processor_id,
+        customer: customer.processor_id,
+        subscription: subscription.processor_id,
+        status: "paid",
+        amount_paid: invoice.total_minor,
+        currency: invoice.currency
+      }
+
+      Accrue.Test.trigger_event(:invoice_paid, payload)
+    end
+
+    def start_dunning_and_wait!(invoice, subscription, customer) do
+      case trigger_invoice_payment_failed_event!(invoice, subscription, customer) do
+        {:ok, _row} -> :ok
+        other -> raise "expected payment_failed trigger to succeed, got: #{inspect(other)}"
+      end
+
+      [run] = list_dunning_runs!(customer.id)
+      notification = fetch_notification_for_run!(run)
+
+      drain_initial_email_delivery!(notification.id)
+      waiting_run = progress_to_waiting!(run.id)
+
+      %{
+        workflow_run: waiting_run,
+        notification: notification,
+        customer: customer,
+        invoice: invoice,
+        subscription: subscription
+      }
+    end
+
+    defp list_dunning_runs!(tenant_id) do
+      alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun}
+
+      ChimewayRepo.all(
+        from(wr in WorkflowRun,
+          join: wd in WorkflowDefinition,
+          on: wr.workflow_definition_id == wd.id,
+          where: wr.tenant_id == ^tenant_id and wd.workflow_key == "accrue.dunning",
+          order_by: [asc: wr.inserted_at],
+          select: %{
+            id: wr.id,
+            tenant_id: wr.tenant_id,
+            state: wr.state,
+            status_reason: wr.status_reason,
+            pending_signals: wr.pending_signals,
+            status_context: wr.status_context,
+            workflow_key: wd.workflow_key,
+            notification_id: wr.notification_id
+          }
+        )
+      )
+    end
+
+    defp fetch_notification_for_run!(%{notification_id: notification_id}) do
+      alias Chimeway.Notifications.Notification
+
+      ChimewayRepo.get!(Notification, notification_id)
+    end
   end
 end
