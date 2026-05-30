@@ -70,7 +70,7 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 | DEMO-07 | Phase 59 | Complete |
 | DOCS-08 (Accrue) | Phase 60 | Pending |
 | DOCS-09 (Accrue) | Phase 60 | Pending |
-| GATE-05 (Accrue) | Phase 60 | Pending |
+| GATE-05 (Accrue) | Phase 60 | Complete |
 | INBX-01 | Phase 61 | Pending |
 | INBX-02 | Phase 61 | Pending |
 | DEMO-08 | Phase 62 | Pending |
