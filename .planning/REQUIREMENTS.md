@@ -69,8 +69,8 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 | ECOS-06 | Phase 58 | Complete |
 | ECOS-07 | Phase 59 | Complete |
 | DEMO-07 | Phase 59 | Complete |
-| DOCS-08 (Accrue) | Phase 60 | Pending |
-| DOCS-09 (Accrue) | Phase 60 | Pending |
+| DOCS-08 (Accrue) | Phase 60 | Complete |
+| DOCS-09 (Accrue) | Phase 60 | Complete |
 | GATE-05 (Accrue) | Phase 60 | Complete |
 | GATE-06 | Phase 60.1 | Complete |
 | INBX-01 | Phase 61 | Complete |
