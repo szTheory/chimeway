@@ -193,6 +193,7 @@ defmodule Chimeway.MixProject do
         "guides/recipes/custom-adapter.md",
         "guides/recipes/accrue-dunning-blueprint.md",
         "guides/recipes/mailglass-integration-blueprint.md",
+        "guides/recipes/sigra-auth-blueprint.md",
         "guides/recipes/tracing-a-notification.md",
         "guides/recipes/password-reset-support-trace.md",
         "guides/recipes/feedback-escalation-workflow.md",
