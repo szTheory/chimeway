@@ -1,8 +1,8 @@
 ---
 phase: 59
 slug: accrue-blueprint-demo
-status: draft
-nyquist_compliant: false
+status: complete
+nyquist_compliant: true
 wave_0_complete: true
 created: 2026-05-30
 ---
@@ -38,13 +38,13 @@ created: 2026-05-30
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 59-01-01 | 01 | 1 | DEMO-07 | T-59-01 | Demo host Accrue dep optional; journey suite unchanged | config | `mix test --only journey` (demo host) | ✅ | ⬜ pending |
-| 59-01-02 | 01 | 1 | DEMO-07 | T-59-02 | TestRepo bootstrap isolated to `:accrue` tests | integration | `cd examples/chimeway_demo_host && mix test --only accrue` | ❌ W0 | ⬜ pending |
-| 59-01-03 | 01 | 1 | DEMO-07 | T-59-03 | Escalation path via Accrue events only | integration | same | ❌ W0 | ⬜ pending |
-| 59-01-04 | 01 | 1 | DEMO-07 | T-59-04 | Admin trace shows workflow progression | integration | same | ❌ W0 | ⬜ pending |
-| 59-01-05 | 01 | 1 | DEMO-07 | — | `verify.accrue` includes demo host | config | `mix verify.accrue` | ❌ W0 | ⬜ pending |
-| 59-02-01 | 02 | 2 | ECOS-07 | — | Blueprint recipe published with required strings | doc | `mix test test/chimeway/doc_contract_test.exs` | ❌ W0 | ⬜ pending |
-| 59-02-02 | 02 | 2 | ECOS-07 | T-59-05 | No fictional modules in recipe | unit | doc-contract describe | ❌ W0 | ⬜ pending |
+| 59-01-01 | 01 | 1 | DEMO-07 | T-59-01 | Demo host Accrue dep optional; journey suite unchanged | config | `mix test --only journey` (demo host) | ✅ | ✅ green |
+| 59-01-02 | 01 | 1 | DEMO-07 | T-59-02 | TestRepo bootstrap isolated to `:accrue` tests | integration | `cd examples/chimeway_demo_host && mix test --only accrue` | ✅ | ✅ green |
+| 59-01-03 | 01 | 1 | DEMO-07 | T-59-03 | Escalation path via Accrue events only | integration | same | ✅ | ✅ green |
+| 59-01-04 | 01 | 1 | DEMO-07 | T-59-04 | Admin trace shows workflow progression | integration | same | ✅ | ✅ green |
+| 59-01-05 | 01 | 1 | DEMO-07 | — | `verify.accrue` includes demo host | config | `mix verify.accrue` | ✅ | ✅ green |
+| 59-02-01 | 02 | 2 | ECOS-07 | — | Blueprint recipe published with required strings | doc | `mix test test/chimeway/doc_contract_test.exs` | ✅ | ✅ green |
+| 59-02-02 | 02 | 2 | ECOS-07 | T-59-05 | No fictional modules in recipe | unit | doc-contract describe | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -54,13 +54,13 @@ created: 2026-05-30
 
 Existing Phase 58 infrastructure covers Accrue engine proof. Phase 59 Wave 0 = demo host wiring artifacts:
 
-- [ ] `examples/chimeway_demo_host/mix.exs` — optional accrue dep
-- [ ] `examples/chimeway_demo_host/test/test_helper.exs` — Accrue TestRepo bootstrap
-- [ ] `examples/chimeway_demo_host/test/support/accrue_fixtures.ex` — demo-local fixture helpers
-- [ ] `examples/chimeway_demo_host/test/demo_host_web/accrue_dunning_proof_test.exs` — `@moduletag :accrue`
-- [ ] `examples/chimeway_demo_host/lib/demo_host/seeds.ex` — `seed_accrue_dunning/0`
-- [ ] `guides/recipes/accrue-dunning-blueprint.md` — ECOS-07 recipe
-- [ ] `test/chimeway/doc_contract_test.exs` — ECOS-07 describe block
+- [x] `examples/chimeway_demo_host/mix.exs` — optional accrue dep
+- [x] `examples/chimeway_demo_host/test/test_helper.exs` — Accrue TestRepo bootstrap
+- [x] `examples/chimeway_demo_host/test/support/accrue_fixtures.ex` — demo-local fixture helpers
+- [x] `examples/chimeway_demo_host/test/demo_host_web/accrue_dunning_proof_test.exs` — `@moduletag :accrue`
+- [x] `examples/chimeway_demo_host/lib/demo_host/seeds.ex` — `seed_accrue_dunning/0`
+- [x] `guides/recipes/accrue-dunning-blueprint.md` — ECOS-07 recipe
+- [x] `test/chimeway/doc_contract_test.exs` — ECOS-07 describe block
 
 ---
 
@@ -74,11 +74,11 @@ Existing Phase 58 infrastructure covers Accrue engine proof. Phase 59 Wave 0 = d
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-05-30
