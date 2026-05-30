@@ -138,5 +138,5 @@ Plans:
 **Wave 1 *(parallel)*:** 57.1-01 — Fix mailglass integration guide Section 6 webhook example (DOCS-06, WR-01/WR-02/IN-02)  
 **Wave 2 *(blocked on 57.1-01)*:** 57.1-02 — Extend doc-contract with webhook call-shape guards (DOCS-07, IN-01)
 
-- [ ] 57.1-01-PLAN.md — Fix guide Section 6 Webhooks.process/4 example and error responses
-- [ ] 57.1-02-PLAN.md — Extend doc-contract to forbid WR-01/WR-02 regression patterns
+- [x] 57.1-01-PLAN.md — Fix guide Section 6 Webhooks.process/4 example and error responses
+- [x] 57.1-02-PLAN.md — Extend doc-contract to forbid WR-01/WR-02 regression patterns

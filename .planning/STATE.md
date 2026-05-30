@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Ecosystem Integration Blueprints
 status: executing
-last_updated: "2026-05-30T00:13:26.644Z"
-last_activity: 2026-05-30 -- Phase 57.1 planning complete
+last_updated: "2026-05-29T12:00:00Z"
+last_activity: 2026-05-29 -- Phase 57.1 execution complete
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 11
-  percent: 80
+  total_plans: 15
+  completed_plans: 13
+  percent: 87
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 57.1 — close DOCS-06/07 inbound webhook guide gap
+**Current focus:** Phase 57.1 complete — DOCS-06/07 webhook guide gap closed
 
 ## Current Position
 
 Phase: 57.1
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-30 -- Phase 57.1 planning complete
+Plan: 2 of 2 complete
+Status: Complete
+Last activity: 2026-05-29 -- Phase 57.1 execution complete
 
 ## Accumulated Context
 
@@ -65,6 +65,8 @@ Last activity: 2026-05-30 -- Phase 57.1 planning complete
 - [56-01]: Mailglass adapter registered only in :mailglass test setup — journey suite keeps Logger (D-10)
 - [56-01]: adapter_module whitelisted in admin timeline redaction for operator inspectability
 - [Phase 57-docs-release-gates]: Guide owns end-to-end Mailglass path; blueprint is focused recipe with reciprocal cross-links — D-02 separation prevents doc drift between introduction guide and blueprint recipe
+- [57.1-01]: Section 6 webhook example mirrors DemoHostWeb.WebhooksController — adapter module first, conn.req_headers list, raw_body iolist flattening, generic 401/500 errors
+- [57.1-02]: Webhook doc-contract uses explicit string list for multi-token forbidden patterns (headers: headers) — ~w sigil splits incorrectly
 
 ### Pending Todos
 
@@ -111,9 +113,8 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Execute plan 56-02 — Mailglass integration blueprint recipe + ECOS-05 doc-contract
-- Review: `.planning/phases/56-blueprint-demo-proof/56-01-SUMMARY.md`
-- Pre-ship baseline unchanged: `mix verify.journeys` (10 tests) + existing gate quintet
+- v1.8 milestone close-out — run `/gsd-audit-milestone` or `/gsd-complete-milestone`
+- Pre-ship baseline: `mix verify.journeys` + existing gate sextet including `mix verify.mailglass`
 
 ## Performance Metrics
 
