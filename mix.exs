@@ -148,6 +148,7 @@ defmodule Chimeway.MixProject do
         "guides/flows/multi-step-journeys.md",
         "guides/recipes/oban-integration.md",
         "guides/recipes/custom-adapter.md",
+        "guides/recipes/accrue-dunning-blueprint.md",
         "guides/recipes/mailglass-integration-blueprint.md",
         "guides/recipes/tracing-a-notification.md",
         "guides/recipes/password-reset-support-trace.md",
