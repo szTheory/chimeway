@@ -8,7 +8,7 @@
 
 ### Ecosystem — Threadline (ECOS)
 
-- [ ] **ECOS-08**: Optional Threadline telemetry reporter sinks Chimeway notification lifecycle outcomes (suppressed, deferred, dispatched, failed) into Threadline's immutable audit ledger — no host glue beyond config attach
+- [x] **ECOS-08**: Optional Threadline telemetry reporter sinks Chimeway notification lifecycle outcomes (suppressed, deferred, dispatched, failed) into Threadline's immutable audit ledger — no host glue beyond config attach
 
 ### Ecosystem — Sigra Auth (ECOS)
 
@@ -55,7 +55,7 @@ Deferred to later milestones. Tracked but not in v1.10 roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ECOS-08 | Phase 63 | Pending |
+| ECOS-08 | Phase 63 | Complete |
 | ECOS-09 | Phase 64 | Pending |
 | ECOS-10 | Phase 65 | Pending |
 | DEMO-09 | Phase 65 | Pending |
