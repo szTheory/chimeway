@@ -1,4 +1,5 @@
 defmodule DemoHost.Seeds do
+  @compile {:no_warn_undefined, [DemoHost.AccrueSeeds]}
   @moduledoc """
   Deterministic TeamPulse demo data for local exploration and journey tests.
 
@@ -152,13 +153,7 @@ defmodule DemoHost.Seeds do
   end
 
   @doc "Accrue demo recipient identity for admin trace search."
-  def accrue_demo_identity do
-    if Code.ensure_loaded?(DemoHost.AccrueSeeds) do
-      DemoHost.AccrueSeeds.demo_identity()
-    else
-      recipient_identity("accrue.demo@teampulse.test")
-    end
-  end
+  def accrue_demo_identity, do: accrue_demo_email()
 
   @doc "Returns suppression explanation for Sam's password reset seed (JOUR-02)."
   @spec password_reset_explanation() :: {:ok, map()} | {:error, term()}

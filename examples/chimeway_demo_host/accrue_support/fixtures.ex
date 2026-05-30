@@ -1,5 +1,4 @@
-if Code.ensure_loaded?(Accrue) and not Code.ensure_loaded?(DemoHost.AccrueFixtures) do
-  defmodule DemoHost.AccrueFixtures do
+defmodule DemoHost.AccrueFixtures do
     @moduledoc false
 
     import Ecto.Query
@@ -15,9 +14,7 @@ if Code.ensure_loaded?(Accrue) and not Code.ensure_loaded?(DemoHost.AccrueFixtur
 
     def demo_customer_email, do: @demo_customer_email
 
-    def demo_recipient_identity do
-      DemoHost.Seeds.recipient_identity(@demo_customer_email)
-    end
+  def demo_recipient_identity, do: @demo_customer_email
 
     def configure_chimeway_dunning_engine! do
       unless Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
@@ -300,4 +297,3 @@ if Code.ensure_loaded?(Accrue) and not Code.ensure_loaded?(DemoHost.AccrueFixtur
       ChimewayRepo.get!(Notification, notification_id)
     end
   end
-end

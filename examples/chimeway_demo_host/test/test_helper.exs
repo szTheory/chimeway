@@ -58,9 +58,16 @@ if Code.ensure_loaded?(Accrue) do
     end
   end
 
-  {:ok, _} = Application.ensure_all_started(:accrue)
+  migrations_path =
+    case Path.wildcard(Path.expand("../../../test/support/accrue/migrations/*.exs", __DIR__)) do
+      [] ->
+        :accrue
+        |> :code.priv_dir()
+        |> Path.join("repo/migrations")
 
-  migrations_path = Path.expand("../../../test/support/accrue/migrations", __DIR__)
+      _ ->
+        Path.expand("../../../test/support/accrue/migrations", __DIR__)
+    end
 
   test_repo_config = Application.get_env(:accrue, Accrue.TestRepo)
 
@@ -89,5 +96,12 @@ if Code.ensure_loaded?(Accrue) do
 
   if function_exported?(Accrue.Test, :setup_fake_processor, 0) do
     :ok = Accrue.Test.setup_fake_processor()
+  end
+
+  if Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
+    Application.put_env(:accrue, :dunning,
+      engine: Accrue.Integrations.Chimeway,
+      campaign: [enabled: true]
+    )
   end
 end

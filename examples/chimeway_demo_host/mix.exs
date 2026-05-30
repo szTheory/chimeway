@@ -18,8 +18,19 @@ defmodule DemoHost.MixProject do
     [mod: {DemoHost.Application, []}, extra_applications: [:logger]]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test) do
+    ["lib", "test/support"] ++ accrue_test_paths()
+  end
+
   defp elixirc_paths(_), do: ["lib"]
+
+  defp accrue_test_paths do
+    case System.get_env("ACCRUE_PATH") do
+      nil -> []
+      "" -> []
+      _ -> ["accrue_support"]
+    end
+  end
 
   defp deps do
     [
@@ -30,21 +41,19 @@ defmodule DemoHost.MixProject do
       # Even though chimeway declares it optional: true, the path-dep compilation resolves all
       # modules at compile time, so Oban must be present in the host's dep tree.
       {:oban, "~> 2.17"},
-      {:chimeway, path: "../.."},
+      {:chimeway, path: "../..", override: true},
       {:chimeway_admin, path: "../../chimeway_admin"},
       {:mailglass, "~> 1.3"},
-      # Local dev: ACCRUE_PATH=../../accrue/accrue mix deps.get
-      accrue_dep(),
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.0"},
       {:lazy_html, ">= 0.1.0", only: :test}
-    ]
+    ] ++ accrue_deps()
   end
 
-  defp accrue_dep do
+  defp accrue_deps do
     case System.get_env("ACCRUE_PATH") do
-      nil -> {:accrue, "~> 1.2", optional: true, runtime: false, override: true}
-      path -> {:accrue, path: path, optional: true, runtime: false, override: true}
+      nil -> []
+      path -> [{:accrue, path: path, optional: true, runtime: false, override: true}]
     end
   end
 

@@ -39,11 +39,17 @@ defmodule Chimeway.MixProject do
       {:tzdata, "~> 1.1"},
       {:oban, "~> 2.17", optional: true},
       {:mailglass, "~> 1.3", optional: true},
-      # Local dev: ACCRUE_PATH=../accrue/accrue mix deps.get
-      accrue_dep(),
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
-    ]
+    ] ++ accrue_deps()
+  end
+
+  defp accrue_deps do
+    if System.get_env("CHIMEWAY_SKIP_ACCRUE_DEP") in ["1", "true"] do
+      []
+    else
+      [accrue_dep()]
+    end
   end
 
   defp aliases do
@@ -105,12 +111,13 @@ defmodule Chimeway.MixProject do
       "verify.accrue": [
         "deps.compile accrue --force",
         "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors",
-        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only accrue --warnings-as-errors"
+        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile accrue --force && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
       ]
     ]
   end
 
   defp accrue_dep do
+    # Local dev: ACCRUE_PATH=../accrue/accrue mix deps.get
     case System.get_env("ACCRUE_PATH") do
       nil -> {:accrue, "~> 1.2", optional: true, runtime: false}
       path -> {:accrue, path: path, optional: true, runtime: false}
