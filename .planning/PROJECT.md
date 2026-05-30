@@ -8,6 +8,24 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
+## Requirements
+
+Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`. Run `/gsd-new-milestone` to define the next active set.
+
+### Validated
+
+- ✓ v1.9 Adopter Complete — ECOS-06/07, DEMO-07/08, INBX-01/02, DOCS-08/09, GATE-05/06 ([archive](.planning/milestones/v1.9-REQUIREMENTS.md))
+
+### Active
+
+- [ ] ECOS-08: Threadline telemetry bridge (v1.10)
+- [ ] ECOS-09: Sigra auth notification flows (v1.10)
+- [ ] Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI
+
+### Out of Scope
+
+- Broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
+
 ## Current Milestone: v1.10 (planned)
 
 **Goal:** SEED-003 remainder — Threadline telemetry bridge and Sigra auth notification flows. Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI.

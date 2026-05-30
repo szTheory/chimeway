@@ -1,5 +1,5 @@
 {
-  "model_profile": "adaptive",
+  "model_profile": "inherit",
   "commit_docs": true,
   "parallelization": true,
   "search_gitignored": false,
@@ -31,7 +31,9 @@
       "no_auto_new_milestone": true,
       "flag_doc_impl_drift": true,
       "adoption_evidence_lens": true,
-      "run_at_new_milestone": true
+      "run_at_new_milestone": true,
+      "consumer_journey_satisfied_at": "v1.6",
+      "next_wedge_default": "SEED-003"
     },
     "consumer_journey_proof": {
       "demo_app_path": "examples/chimeway_demo_host",
