@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
 status: executing
-last_updated: "2026-05-30T01:57:08.387Z"
+last_updated: "2026-05-30T22:29:00.000Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 58 (accrue-dunning-core) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-30
 
@@ -72,6 +72,9 @@ Last activity: 2026-05-30
 - [58-01]: Accrue optional dep uses runtime: false — manual TestRepo bootstrap; avoid OTP app boot blocking default mix test
 - [58-01]: Accrue test config unconditional in config/test.exs (Mailglass 54-01 precedent); dunning engine pinned in test_helper
 - [58-01]: Runtime Code.compile_file for Accrue.Integrations.Chimeway — dep compile order elides integration module
+- [58-02]: Keep orchestration/2 as {:ok, :immediate} — workflow runs via workflow/2 independently (OQ-2)
+- [58-02]: CHIMEWAY_PATH override in Accrue mix.exs for cross-repo tests against cancel_signals spine
+- [58-02]: cancel_campaign/3 unchanged — invoice.paid signal fix deferred to 58-03 (D-09)
 
 ### Pending Todos
 
@@ -129,13 +132,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-30T02:13:00.000Z
-Stopped at: Completed 58-01-PLAN.md — ready for 58-02
-Resume file: .planning/phases/58-accrue-dunning-core/58-02-PLAN.md
+Last session: 2026-05-30T22:29:00.000Z
+Stopped at: Completed 58-02-PLAN.md — ready for 58-03
+Resume file: .planning/phases/58-accrue-dunning-core/58-03-PLAN.md
 
 ## Operator Next Steps
 
-- `/gsd-execute-phase 58` — run all 3 plans (58-01 → 58-02 → 58-03)
+- `/gsd-execute-phase 58` — run 58-03 (invoice.paid termination proof)
 
 ## Performance Metrics
 
@@ -153,3 +156,5 @@ Resume file: .planning/phases/58-accrue-dunning-core/58-02-PLAN.md
 | Phase 57-docs-release-gates P01 | 8min | 2 tasks | 5 files |
 | Phase 57-docs-release-gates P03 | 12min | 3 tasks | 3 files |
 | Phase 57-docs-release-gates P02 | 6min | 1 tasks | 1 files |
+| Phase 58-accrue-dunning-core P01 | 45min | 3 tasks | 9 files |
+| Phase 58-accrue-dunning-core P02 | 25min | 3 tasks | 5 files |

@@ -46,7 +46,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 2. Subsequent `invoice.paid` emits an Outcome Signal that terminates the active dunning run — no manual host callback wiring
 3. Integration tests prove event → workflow start and event → signal termination paths with `@moduletag :accrue` selective CI
 
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 **Wave 1 *(no dependencies)*:** 58-01 — Optional accrue dep + test harness + event subscription stub  
 **Wave 2 *(blocked on Wave 1)*:** 58-02 — Dunning workflow wiring (`payment_failed` → trigger/start run)  
@@ -145,7 +145,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 58. Accrue Dunning Core | 1/3 | In Progress|  |
+| 58. Accrue Dunning Core | 2/3 | In Progress|  |
 | 59. Accrue Blueprint & Demo | 0/TBD | Not started | — |
 | 60. Accrue Docs & Release Gate | 0/TBD | Not started | — |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
