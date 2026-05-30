@@ -25,7 +25,7 @@ Complete the SEED-003 ecosystem integration matrix by shipping Threadline and Si
 
 ## Phases
 
-- [ ] **Phase 63: Threadline Telemetry Bridge** — Optional `threadline` dep; telemetry reporter sinks notification outcomes into Threadline audit ledger
+- [x] **Phase 63: Threadline Telemetry Bridge** — Optional `threadline` dep; telemetry reporter sinks notification outcomes into Threadline audit ledger (2026-05-30)
 - [ ] **Phase 64: Sigra Auth Flows Core** — Sigra auth events trigger Chimeway notifiers with redacted trace payloads
 - [ ] **Phase 65: Ecosystem Blueprints & Demo** — Sigra auth reference blueprint plus demo host proofs for Threadline and Sigra
 - [ ] **Phase 66: Docs & Release Gates** — Golden-path guides, doc-contract tests, and `mix verify.threadline` / `mix verify.sigra` CI gates
@@ -56,7 +56,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 Plans:
-- [ ] 63-02-PLAN.md — `Chimeway.Telemetry.ThreadlineReporter` + lifecycle → audit row integration proof
+- [x] 63-02-PLAN.md — `Chimeway.Telemetry.ThreadlineReporter` + lifecycle → audit row integration proof (2026-05-30)
 
 ### Phase 64: Sigra Auth Flows Core
 
@@ -110,7 +110,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 63 Threadline Telemetry Bridge | 0/2 | Ready to execute | — |
+| 63 Threadline Telemetry Bridge | 2/2 | Complete | 2026-05-30 |
 | 64 Sigra Auth Flows Core | 0/? | Not started | — |
 | 65 Ecosystem Blueprints & Demo | 0/? | Not started | — |
 | 66 Docs & Release Gates | 0/? | Not started | — |
