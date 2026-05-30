@@ -289,6 +289,59 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @accrue_blueprint_recipe Path.expand("../../guides/recipes/accrue-dunning-blueprint.md", __DIR__)
+
+  describe "accrue dunning blueprint recipe doc contract (ECOS-07)" do
+    setup do
+      content = File.read!(@accrue_blueprint_recipe)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in accrue dunning blueprint recipe", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "accrue dunning blueprint recipe must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in accrue dunning blueprint recipe",
+         %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "accrue dunning blueprint recipe must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Accrue.Integrations.Chimeway
+      invoice.payment_failed
+      invoice.paid
+      cancel_signals
+      workflow/2
+      config :accrue
+      dunning
+      idempotency_key
+      tenant_id
+      orchestrates
+      DemoHost.Seeds.seed_accrue_dunning
+      /admin/chimeway
+    )
+
+    for required <- @required do
+      test "requires #{required} in accrue dunning blueprint recipe", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "accrue dunning blueprint recipe must reference #{unquote(required)}"
+      end
+    end
+
+    test "requires billing-state split language in accrue dunning blueprint recipe", %{
+      content: content
+    } do
+      assert String.contains?(content, "billing")
+
+      assert String.contains?(content, "state") or String.contains?(content, "Accrue"),
+             "accrue dunning blueprint recipe must document billing-state responsibility split"
+    end
+  end
+
   @mailglass_integration_guide Path.expand("../../guides/introduction/mailglass-integration.md", __DIR__)
 
   describe "mailglass integration guide doc contract (DOCS-06 / DOCS-07)" do
