@@ -76,8 +76,8 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 | INBX-01 | Phase 61 | Complete |
 | INBX-02 | Phase 61 | Complete |
 | DEMO-08 | Phase 62 | Complete |
-| DOCS-08 (Inbox) | Phase 62 | Pending |
-| DOCS-09 (Inbox) | Phase 62 | Pending |
+| DOCS-08 (Inbox) | Phase 62 | Complete |
+| DOCS-09 (Inbox) | Phase 62 | Complete |
 | GATE-05 (Inbox) | Phase 62 | Complete |
 
 **Coverage:**
