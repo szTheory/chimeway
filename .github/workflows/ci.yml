@@ -35,6 +35,52 @@ jobs:
       - run: mix ci.lint
       - run: mix ci.audit
 
+  verify_gates:
+    name: Release gate contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-verify-gates-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-verify-gates-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix ci.verify_gates
+
+  verify_docs:
+    name: Docs build gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-verify-docs-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-verify-docs-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix ci.docs
+
   test:
     name: Test (Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }})
     runs-on: ubuntu-latest
