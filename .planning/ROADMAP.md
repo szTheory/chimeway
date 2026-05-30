@@ -186,7 +186,7 @@ Plans:
 2. Golden-path inbox integration guide covers dependency → router mount → auth behaviour → bell UI
 3. Doc-contract tests lock inbox guide truth; `mix verify.inbox` runs in CI and completes MAINTAINING.md pre-ship octet
 
-**Plans:** 3 plans in 2 waves
+**Plans:** 3/3 plans complete
 
 **Wave 1 *(parallel)*:** 62-01 — Demo host inbox mount + journey proof (DEMO-08); 62-03 — `mix verify.inbox` + CI job + MAINTAINING octet (GATE-05)  
 **Wave 2 *(blocked on 62-01)*:** 62-02 — Inbox integration guide + doc-contract tests (DOCS-08/09)
