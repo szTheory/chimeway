@@ -39,6 +39,8 @@ defmodule Chimeway.MixProject do
       {:tzdata, "~> 1.1"},
       {:oban, "~> 2.17", optional: true},
       {:mailglass, "~> 1.3", optional: true},
+      # Local dev: ACCRUE_PATH=../accrue/accrue mix deps.get
+      accrue_dep(),
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
@@ -56,8 +58,8 @@ defmodule Chimeway.MixProject do
         "credo --strict"
       ],
 
-      # Test lane (mailglass excluded — run mix verify.mailglass separately, GATE-04)
-      "ci.test": ["cmd env MIX_ENV=test mix test --exclude mailglass"],
+      # Test lane (mailglass/accrue excluded — run mix verify.* separately, GATE-04/05)
+      "ci.test": ["cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue"],
 
       # Docs gate: fails on undocumented public functions
       "ci.docs": ["docs --warnings-as-errors"],
@@ -97,8 +99,21 @@ defmodule Chimeway.MixProject do
       "verify.mailglass": [
         "cmd env MIX_ENV=test mix test --only mailglass --warnings-as-errors",
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only mailglass --warnings-as-errors"
+      ],
+
+      # v1.9 GATE-05 prep: Accrue dunning integration harness (root tests only; demo host Phase 59)
+      "verify.accrue": [
+        "deps.compile accrue --force",
+        "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors"
       ]
     ]
+  end
+
+  defp accrue_dep do
+    case System.get_env("ACCRUE_PATH") do
+      nil -> {:accrue, "~> 1.2", optional: true}
+      path -> {:accrue, path: path, optional: true}
+    end
   end
 
   defp package do
