@@ -43,6 +43,7 @@ defmodule DemoHost.MixProject do
       {:oban, "~> 2.17"},
       {:chimeway, path: "../..", override: true},
       {:chimeway_admin, path: "../../chimeway_admin"},
+      {:chimeway_inbox, path: "../../chimeway_inbox"},
       {:mailglass, "~> 1.3"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.0"},

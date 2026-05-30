@@ -26,4 +26,11 @@ defmodule DemoHostWeb.Router do
     import ChimewayAdmin.Router
     chimeway_admin_routes()
   end
+
+  scope "/inbox" do
+    pipe_through :browser
+
+    import ChimewayInbox.Router
+    chimeway_inbox_routes()
+  end
 end

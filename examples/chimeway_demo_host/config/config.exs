@@ -14,4 +14,6 @@ config :demo_host, :chimeway_adapter_config, []
 config :chimeway_admin, auth_module: DemoHost.AdminAuth
 config :chimeway_admin, path_prefix: "/admin/chimeway"
 
+config :chimeway_inbox, auth_module: DemoHost.InboxAuth
+
 import_config "#{config_env()}.exs"
