@@ -67,7 +67,7 @@ Each task was committed atomically:
 2. **Task 2: README and HexDocs extras discoverability** - `4ec9acb` (docs)
 3. **Task 3: Add inbox integration guide doc-contract describe** - `f62e729` (test)
 
-**Plan metadata:** pending (docs: complete plan)
+**Plan metadata:** `d5994a9` (docs: complete plan)
 
 ## Files Created/Modified
 
