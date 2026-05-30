@@ -98,7 +98,18 @@ Plans:
 2. Demo host proves Threadline audit correlation for at least one notification lifecycle event with inspectable traces at `/admin/chimeway`
 3. Demo host proves Sigra auth notification flow end-to-end (magic link or MFA token) with operator trace inspectability — journey CI isolated via `@moduletag`
 
-**Plans:** 0 plans
+**Plans:** 3 plans
+
+**Wave 1** *(parallel — no inter-plan file conflicts)*
+
+Plans:
+- [ ] 65-01-PLAN.md — Sigra auth blueprint doc + ECOS-10 doc-contract describe block + mix.exs HexDocs extras
+- [ ] 65-02-PLAN.md — Demo host test_helper Threadline + Sigra bootstrap + seed_threadline_notification/0 + seed_sigra_auth/0
+
+**Wave 2** *(blocked on Plan 65-02 completion)*
+
+Plans:
+- [ ] 65-03-PLAN.md — threadline_telemetry_proof_test.exs (DEMO-09) + sigra_auth_proof_test.exs (DEMO-10)
 
 ### Phase 66: Docs & Release Gates
 
@@ -122,7 +133,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 63 Threadline Telemetry Bridge | 2/2 | Complete    | 2026-05-30 |
 | 64 Sigra Auth Flows Core | 1/2 | In Progress|  |
-| 65 Ecosystem Blueprints & Demo | 0/? | Not started | — |
+| 65 Ecosystem Blueprints & Demo | 0/3 | Not started | — |
 | 66 Docs & Release Gates | 0/? | Not started | — |
 
 ## Requirement Coverage
@@ -141,4 +152,4 @@ Plans:
 **Coverage:** 8/8 requirements mapped ✓
 
 ---
-*Roadmap updated: 2026-05-30 — milestone v1.10 Ecosystem Completions started*
+*Roadmap updated: 2026-05-30 — Phase 65 plans created (3 plans, 2 waves)*
