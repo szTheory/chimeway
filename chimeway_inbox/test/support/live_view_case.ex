@@ -4,7 +4,8 @@ defmodule ChimewayInbox.LiveViewCase do
 
   using do
     quote do
-      use Phoenix.ConnTest, otp_app: :chimeway_inbox
+      import Plug.Conn
+      import Phoenix.ConnTest
       import Phoenix.LiveViewTest
       import ChimewayInbox.TestSupport.Fixtures
 
