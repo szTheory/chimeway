@@ -127,6 +127,39 @@ defmodule DemoHost.Seeds do
   @doc "Alias for `seed_escalation_waiting/0` — used by journey tests."
   def escalation_waiting!, do: seed_escalation_waiting()
 
+  @doc """
+  DEMO-07: Accrue billing-event dunning through Chimeway with Logger email delivery.
+
+  Uses `Accrue.Test.trigger_event/2` for `invoice.payment_failed` — not
+  `Chimeway.trigger/3` host glue. Standalone API; not invoked from `run/0`.
+  """
+  @spec seed_accrue_dunning() :: {:ok, map()} | {:error, term()}
+  def seed_accrue_dunning do
+    if Code.ensure_loaded?(DemoHost.AccrueSeeds) do
+      DemoHost.AccrueSeeds.seed_accrue_dunning()
+    else
+      {:error, :accrue_not_available}
+    end
+  end
+
+  @doc "Accrue demo customer email for admin trace search."
+  def accrue_demo_email do
+    if Code.ensure_loaded?(DemoHost.AccrueSeeds) do
+      DemoHost.AccrueSeeds.demo_email()
+    else
+      "accrue.demo@teampulse.test"
+    end
+  end
+
+  @doc "Accrue demo recipient identity for admin trace search."
+  def accrue_demo_identity do
+    if Code.ensure_loaded?(DemoHost.AccrueSeeds) do
+      DemoHost.AccrueSeeds.demo_identity()
+    else
+      recipient_identity("accrue.demo@teampulse.test")
+    end
+  end
+
   @doc "Returns suppression explanation for Sam's password reset seed (JOUR-02)."
   @spec password_reset_explanation() :: {:ok, map()} | {:error, term()}
   def password_reset_explanation do
