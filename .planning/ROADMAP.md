@@ -25,7 +25,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 ## Phases
 
 - [x] **Phase 58: Accrue Dunning Core** — Optional `accrue` dep; billing events start/stop Chimeway dunning workflows via Signal engine (completed 2026-05-30)
-- [ ] **Phase 59: Accrue Blueprint & Demo** — Reference recipe plus demo host Accrue dunning proof with operator traces
+- [x] **Phase 59: Accrue Blueprint & Demo** — Reference recipe plus demo host Accrue dunning proof with operator traces (completed 2026-05-30)
 - [ ] **Phase 60: Accrue Docs & Release Gate** — Golden-path guide, doc-contract tests, and `mix verify.accrue` CI gate
 - [ ] **Phase 61: Inbox Headless + Package** — Core API polish and bootstrap `chimeway_inbox` optional package
 - [ ] **Phase 62: Inbox Demo, Docs & Gate** — Demo mount, inbox guide, doc-contract, and `mix verify.inbox` release gate
@@ -72,14 +72,14 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 2. Demo host proves Accrue-driven dunning end-to-end — failed payment triggers escalation emails; paid invoice terminates workflow
 3. Operator traces at `/admin/chimeway` show dunning workflow progression and explainable suppression/delivery decisions
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 **Wave 1 *(no dependencies)*:** 59-01 — Demo host Accrue dunning proof (DEMO-07: escalation + admin trace, journey CI isolated)  
 **Wave 2 *(blocked on Wave 1 completion)*:** 59-02 — Accrue dunning blueprint recipe + ECOS-07 doc-contract
 
 Plans:
 - [x] 59-01-PLAN.md — Demo host Accrue dunning proof (`@moduletag :accrue`, `seed_accrue_dunning/0`, admin trace, `verify.accrue` + demo host)
-- [ ] 59-02-PLAN.md — `accrue-dunning-blueprint.md` + ECOS-07 doc-contract
+- [x] 59-02-PLAN.md — `accrue-dunning-blueprint.md` + ECOS-07 doc-contract
 
 ### Phase 60: Accrue Docs & Release Gate
 
@@ -150,7 +150,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 58. Accrue Dunning Core | 3/3 | Complete    | 2026-05-30 |
-| 59. Accrue Blueprint & Demo | 1/2 | In Progress|  |
+| 59. Accrue Blueprint & Demo | 2/2 | Complete   | 2026-05-30 |
 | 60. Accrue Docs & Release Gate | 0/TBD | Not started | — |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |

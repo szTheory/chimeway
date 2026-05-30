@@ -9,7 +9,7 @@
 ### Ecosystem — Accrue Dunning (ECOS)
 
 - [x] **ECOS-06**: Accrue `invoice.payment_failed` starts a Chimeway dunning workflow; `invoice.paid` terminates it via Outcome Signal — no host glue
-- [ ] **ECOS-07**: Published Accrue dunning reference recipe with CI doc-contract coverage (Chimeway orchestrates when/why; Accrue owns billing state)
+- [x] **ECOS-07**: Published Accrue dunning reference recipe with CI doc-contract coverage (Chimeway orchestrates when/why; Accrue owns billing state)
 
 ### Demo Proof (DEMO)
 
@@ -66,7 +66,7 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ECOS-06 | Phase 58 | Complete |
-| ECOS-07 | Phase 59 | Pending |
+| ECOS-07 | Phase 59 | Complete |
 | DEMO-07 | Phase 59 | Pending |
 | DOCS-08 (Accrue) | Phase 60 | Pending |
 | DOCS-09 (Accrue) | Phase 60 | Pending |
