@@ -136,3 +136,56 @@ if Code.ensure_loaded?(Threadline) do
 
   Ecto.Adapters.SQL.Sandbox.mode(Threadline.Test.Repo, :manual)
 end
+
+if Code.ensure_loaded?(Sigra) do
+  if Code.ensure_loaded?(Chimeway) and not Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
+    source =
+      [:sigra]
+      |> Enum.map(&Mix.Project.deps_paths()[&1])
+      |> List.first()
+      |> Path.join("lib/sigra/integrations/chimeway.ex")
+
+    if File.exists?(source) do
+      _ = Code.compile_file(source)
+
+      unless Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
+        raise "failed to compile Sigra.Integrations.Chimeway from #{source}"
+      end
+    end
+  end
+
+  {:ok, _} = Application.ensure_all_started(:sigra)
+
+  migrations_path =
+    case Path.wildcard(Path.join([__DIR__, "support", "sigra", "migrations", "*.exs"])) do
+      [] -> nil
+      _ -> Path.join([__DIR__, "support", "sigra", "migrations"])
+    end
+
+  test_repo_config = Application.get_env(:sigra, Sigra.TestRepo)
+
+  case Ecto.Adapters.Postgres.storage_up(test_repo_config) do
+    :ok -> :ok
+    {:error, :already_up} -> :ok
+    {:error, reason} -> raise "failed to create Sigra.TestRepo database: #{inspect(reason)}"
+  end
+
+  Application.put_env(
+    :sigra,
+    Sigra.TestRepo,
+    Keyword.put(test_repo_config, :pool, DBConnection.ConnectionPool)
+  )
+
+  if migrations_path do
+    {:ok, _, _} =
+      Ecto.Migrator.with_repo(Sigra.TestRepo, fn repo ->
+        Ecto.Migrator.run(repo, migrations_path, :up, all: true, log: false)
+      end)
+  end
+
+  Application.put_env(:sigra, Sigra.TestRepo, test_repo_config)
+
+  {:ok, _pid} = Sigra.TestRepo.start_link()
+
+  Ecto.Adapters.SQL.Sandbox.mode(Sigra.TestRepo, :manual)
+end

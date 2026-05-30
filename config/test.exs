@@ -98,3 +98,19 @@ config :threadline, Threadline.Test.Repo,
   hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
   database: "chimeway_threadline_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox
+
+# Sigra harness config is unconditional (mirrors Accrue/Threadline — config loads before
+# optional dep compile). Integration :chimeway config is set in test fixtures (Wave 64-02).
+config :sigra, ecto_repos: [Sigra.TestRepo]
+config :sigra, repo: Sigra.TestRepo
+config :sigra, :user_schema, Chimeway.TestSupport.Sigra.User
+config :sigra, :user_token_schema, Chimeway.TestSupport.Sigra.UserToken
+
+config :sigra, Sigra.TestRepo,
+  username:
+    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
+      System.get_env("USER") || "postgres",
+  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
+  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
+  database: "chimeway_sigra_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox
