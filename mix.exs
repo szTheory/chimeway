@@ -142,6 +142,7 @@ defmodule Chimeway.MixProject do
         "guides/introduction/installation.md",
         "guides/introduction/golden-path.md",
         "guides/introduction/mailglass-integration.md",
+        "guides/introduction/accrue-dunning-integration.md",
         "guides/flows/trigger-to-delivery.md",
         "guides/flows/policy-and-preferences.md",
         "guides/flows/async-dispatch.md",

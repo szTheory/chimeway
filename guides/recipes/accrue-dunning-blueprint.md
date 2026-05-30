@@ -122,11 +122,11 @@ Demo host uses the Logger email adapter for Accrue lane isolation. For productio
 
 ## Out of scope
 
-This blueprint covers notifier authoring, Accrue engine config, billing-event triggers, and the orchestration vs billing-state split with demo pointers. The full golden-path Accrue integration guide (Phase 60 DOCS-08), guide doc-contract (Phase 60 DOCS-09), and formal `mix verify.accrue` CI job in MAINTAINING (Phase 60 GATE-05) are documented separately — not duplicated here.
+This blueprint covers notifier authoring, Accrue engine config, billing-event triggers, and the orchestration vs billing-state split with demo pointers. The full golden-path Accrue integration guide, guide doc-contract, and formal `mix verify.accrue` CI job in MAINTAINING are documented in [Accrue dunning integration](../introduction/accrue-dunning-integration.md) — not duplicated here.
 
 ## Related guides
 
 - [Mailglass integration blueprint](mailglass-integration-blueprint.md) — optional email delivery via `Chimeway.Adapters.Mailglass` (Phase 58 D-07)
-- Phase 60 Accrue integration guide (DOCS-08) — canonical end-to-end adoption path (placeholder; ships in Phase 60)
+- [Accrue dunning integration](../introduction/accrue-dunning-integration.md) — canonical end-to-end adoption path (primary)
 - [Golden Path](../introduction/golden-path.md) — first Chimeway integration
 - [Mention escalation](mention-escalation.md) — workflow recipe pattern with demo host pointers
