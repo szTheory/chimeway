@@ -1,0 +1,187 @@
+# Merge Release Please PRs after ci-gate succeeds on the release branch.
+# With RELEASE_PLEASE_TOKEN, pull_request CI runs natively; release.yml only
+# workflow_dispatch-dispatches when an open Release PR was not freshly updated.
+
+name: Release PR Auto-Merge
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      head_sha:
+        description: 'Optional PR head SHA to merge (defaults to open release PR head)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  automerge:
+    name: Merge release PR
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'release-please--'))
+    steps:
+      - name: Resolve target SHA and branch
+        id: target
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SHA: ${{ github.event.inputs.head_sha }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${INPUT_SHA:-}" ]; then
+              echo "sha=${INPUT_SHA}" >> "$GITHUB_OUTPUT"
+              echo "branch=release-please--branches--main" >> "$GITHUB_OUTPUT"
+            else
+              pr_json=$(gh pr list \
+                --head release-please--branches--main \
+                --state open \
+                --label "autorelease: pending" \
+                --json headRefOid \
+                -R "${{ github.repository }}")
+              head_oid=$(echo "$pr_json" | jq -r '.[0].headRefOid // empty')
+              if [ -z "$head_oid" ]; then
+                echo "No open release PR to merge." >&2
+                exit 1
+              fi
+              echo "sha=${head_oid}" >> "$GITHUB_OUTPUT"
+              echo "branch=release-please--branches--main" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "sha=${RUN_SHA}" >> "$GITHUB_OUTPUT"
+            echo "branch=${RUN_BRANCH}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify ci-gate succeeded on target SHA
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const sha = '${{ steps.target.outputs.sha }}';
+            const { data } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+              filter: 'all'
+            });
+
+            const ciGateRuns = data.check_runs
+              .filter((run) => run.name === 'ci-gate')
+              .sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+
+            const latest = ciGateRuns[0];
+
+            if (!latest || latest.conclusion !== 'success') {
+              core.setFailed(
+                `Latest ci-gate on ${sha} must succeed before merge (found: ${latest?.conclusion ?? 'missing'}).`
+              );
+              return;
+            }
+
+            core.info(`Latest ci-gate succeeded on ${sha}: ${latest.details_url}`);
+
+      - name: Find and merge release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ steps.target.outputs.branch }}
+          HEAD_SHA: ${{ steps.target.outputs.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          pr_json=$(gh pr list \
+            --head "$HEAD_BRANCH" \
+            --state open \
+            --json number,title,labels,headRefOid \
+            -R "$REPOSITORY")
+
+          count=$(echo "$pr_json" | jq 'length')
+          if [ "$count" -eq 0 ]; then
+            echo "No open PR for head branch $HEAD_BRANCH — already merged or closed."
+            exit 0
+          fi
+
+          pr_number=$(echo "$pr_json" | jq -r '.[0].number')
+          title=$(echo "$pr_json" | jq -r '.[0].title')
+          head_oid=$(echo "$pr_json" | jq -r '.[0].headRefOid')
+          labels=$(echo "$pr_json" | jq -r '.[0].labels[].name' | tr '\n' ' ')
+
+          if [ "$head_oid" != "$HEAD_SHA" ]; then
+            echo "PR #$pr_number head ($head_oid) does not match target SHA ($HEAD_SHA) — skipping stale run."
+            exit 0
+          fi
+
+          if [[ ! "$title" =~ ^chore\(main\):\ release\  ]]; then
+            echo "PR #$pr_number title does not match release PR pattern: $title"
+            exit 1
+          fi
+
+          if ! grep -q 'autorelease: pending' <<<"$labels"; then
+            echo "PR #$pr_number missing autorelease: pending label — skipping."
+            exit 0
+          fi
+
+          latest_ci_gate() {
+            gh api "repos/${REPOSITORY}/commits/${HEAD_SHA}/check-runs" \
+              --jq '[.check_runs[] | select(.name == "ci-gate")] | sort_by(.started_at) | last | .conclusion // "missing"'
+          }
+
+          echo "Merging release PR #$pr_number ($title)"
+          for attempt in $(seq 1 12); do
+            conclusion=$(latest_ci_gate)
+            if [ "$conclusion" != "success" ]; then
+              echo "Latest ci-gate on $HEAD_SHA is $conclusion (attempt ${attempt}/12); waiting 30s..."
+              sleep 30
+              continue
+            fi
+
+            if gh pr merge "$pr_number" --squash -R "$REPOSITORY"; then
+              echo "Merged PR #$pr_number"
+              merge_sha=$(gh pr view "$pr_number" --json mergeCommit -q '.mergeCommit.oid' -R "$REPOSITORY")
+              echo "merge_sha=${merge_sha}" >> "$GITHUB_ENV"
+              echo "merged=true" >> "$GITHUB_ENV"
+              exit 0
+            fi
+
+            if gh pr merge "$pr_number" --squash --admin -R "$REPOSITORY"; then
+              echo "Merged PR #$pr_number with admin override"
+              merge_sha=$(gh pr view "$pr_number" --json mergeCommit -q '.mergeCommit.oid' -R "$REPOSITORY")
+              echo "merge_sha=${merge_sha}" >> "$GITHUB_ENV"
+              echo "merged=true" >> "$GITHUB_ENV"
+              exit 0
+            fi
+
+            echo "Merge blocked (attempt ${attempt}/12); waiting for branch protection to catch up..."
+            sleep 30
+          done
+
+          echo "Failed to merge PR #$pr_number after 12 attempts"
+          exit 1
+
+      - name: Bootstrap CI on merge commit
+        if: env.merged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GITHUB_TOKEN merges do not emit push events. main HEAD is the merge commit
+          # immediately after squash merge, so dispatch CI on main (not a raw SHA ref).
+          gh workflow run ci.yml --ref main -R "${{ github.repository }}"
+          echo "Dispatched CI on main at merge commit ${{ env.merge_sha }}."
+
+      - name: Trigger release workflow after merge
+        if: env.merged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yml -R "${{ github.repository }}"
+          echo "Dispatched Release workflow for tag + Hex publish."
