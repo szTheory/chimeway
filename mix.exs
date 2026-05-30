@@ -111,8 +111,8 @@ defmodule Chimeway.MixProject do
 
   defp accrue_dep do
     case System.get_env("ACCRUE_PATH") do
-      nil -> {:accrue, "~> 1.2", optional: true}
-      path -> {:accrue, path: path, optional: true}
+      nil -> {:accrue, "~> 1.2", optional: true, runtime: false}
+      path -> {:accrue, path: path, optional: true, runtime: false}
     end
   end
 

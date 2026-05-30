@@ -48,3 +48,42 @@ config :mailglass, Mailglass.TestRepo,
   pool_size: 10,
   prepare: :unnamed,
   disconnect_on_error_codes: [:internal_error]
+
+# Accrue harness config is unconditional (mirrors Mailglass — config loads before
+# optional dep compile). verify.accrue recompiles accrue so Accrue.Integrations.Chimeway
+# exists; test_helper pins :dunning engine to that module when loaded (D-12).
+config :ex_cldr, default_backend: Accrue.Cldr
+config :ex_money, default_cldr_backend: Accrue.Cldr
+
+config :accrue, ecto_repos: [Accrue.TestRepo]
+config :accrue, repo: Accrue.TestRepo
+config :accrue, processor: Accrue.Processor.Fake
+config :accrue, :env, :test
+config :accrue, :mailer, Accrue.Mailer.Test
+
+config :accrue, :branding,
+  from_email: "noreply@example.test",
+  support_email: "support@example.test"
+
+config :accrue, :webhook_signing_secrets, %{
+  stripe: ["whsec_test_accrue_harness"],
+  fake: ["whsec_test_accrue_harness"]
+}
+
+config :accrue, :dunning,
+  engine: Accrue.Dunning.Engine.Oban,
+  campaign: [enabled: true]
+
+config :accrue, Oban,
+  repo: Accrue.TestRepo,
+  testing: :manual,
+  queues: [accrue_webhooks: 10, accrue_mailers: 10]
+
+config :accrue, Accrue.TestRepo,
+  username:
+    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
+      System.get_env("USER") || "postgres",
+  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
+  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
+  database: "chimeway_accrue_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox
