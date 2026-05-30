@@ -33,10 +33,19 @@ defmodule DemoHost.MixProject do
       {:chimeway, path: "../.."},
       {:chimeway_admin, path: "../../chimeway_admin"},
       {:mailglass, "~> 1.3"},
+      # Local dev: ACCRUE_PATH=../../accrue/accrue mix deps.get
+      accrue_dep(),
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.0"},
       {:lazy_html, ">= 0.1.0", only: :test}
     ]
+  end
+
+  defp accrue_dep do
+    case System.get_env("ACCRUE_PATH") do
+      nil -> {:accrue, "~> 1.2", optional: true, runtime: false, override: true}
+      path -> {:accrue, path: path, optional: true, runtime: false, override: true}
+    end
   end
 
   defp aliases do

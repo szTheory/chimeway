@@ -101,10 +101,11 @@ defmodule Chimeway.MixProject do
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only mailglass --warnings-as-errors"
       ],
 
-      # v1.9 GATE-05 prep: Accrue dunning integration harness (root tests only; demo host Phase 59)
+      # v1.9 GATE-05 prep: Accrue dunning integration harness (root + demo host :accrue lane)
       "verify.accrue": [
         "deps.compile accrue --force",
-        "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors"
+        "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors",
+        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only accrue --warnings-as-errors"
       ]
     ]
   end
