@@ -41,7 +41,7 @@ defmodule Chimeway.MixProject do
       {:mailglass, "~> 1.3", optional: true},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
-    ] ++ accrue_deps()
+    ] ++ accrue_deps() ++ threadline_deps()
   end
 
   defp accrue_deps do
@@ -65,7 +65,9 @@ defmodule Chimeway.MixProject do
       ],
 
       # Test lane (mailglass/accrue excluded — run mix verify.* separately, GATE-04/05)
-      "ci.test": ["cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue"],
+      "ci.test": [
+        "cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude threadline"
+      ],
 
       # Docs gate: fails on undocumented public functions
       "ci.docs": ["docs --warnings-as-errors"],
@@ -126,8 +128,24 @@ defmodule Chimeway.MixProject do
   defp accrue_dep do
     # Local dev: ACCRUE_PATH=../accrue/accrue mix deps.get
     case System.get_env("ACCRUE_PATH") do
-      nil -> {:accrue, "~> 1.2", optional: true, runtime: false}
+      nil -> {:accrue, "~> 1.3", optional: true, runtime: false}
       path -> {:accrue, path: path, optional: true, runtime: false}
+    end
+  end
+
+  defp threadline_deps do
+    if System.get_env("CHIMEWAY_SKIP_THREADLINE_DEP") in ["1", "true"] do
+      []
+    else
+      [threadline_dep()]
+    end
+  end
+
+  defp threadline_dep do
+    # Local dev: THREADLINE_PATH=../threadline mix deps.get
+    case System.get_env("THREADLINE_PATH") do
+      nil -> {:threadline, "~> 0.7", optional: true, runtime: false}
+      path -> {:threadline, path: path, optional: true, runtime: false}
     end
   end
 
