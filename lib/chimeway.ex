@@ -38,9 +38,21 @@ defmodule Chimeway do
 
   @doc """
   Lists notifications for a recipient, newest first.
+
+  Without pagination opts returns `[ %Notification{} ]`. With `:limit`, cursor opts,
+  or `:paginate, true`, returns `%{items: [dto_map], has_more: boolean}`.
   """
   def list_for_recipient(recipient_identity, opts \\ []) do
     Inbox.list_for_recipient(recipient_identity, opts)
+  end
+
+  @doc """
+  Returns the count of unread notifications for a recipient.
+
+  Honors `:exclude_archived` (default `true`).
+  """
+  def unread_count(recipient_identity, opts \\ []) do
+    Inbox.unread_count(recipient_identity, opts)
   end
 
   @doc """

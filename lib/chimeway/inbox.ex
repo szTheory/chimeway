@@ -14,15 +14,29 @@ defmodule Chimeway.Inbox do
   @read_event "chimeway.notification.read"
   @seen_event "chimeway.notification.seen"
 
-  @spec list_for_recipient(String.t(), keyword()) :: [map()]
+  @spec list_for_recipient(String.t(), keyword()) :: [Notification.t()] | %{items: [map()], has_more: boolean()}
   def list_for_recipient(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
     unread_only? = Keyword.get(opts, :unread_only, false)
+    exclude_archived = exclude_archived?(opts)
 
     Notification
-    |> where([notification], notification.recipient_identity == ^recipient_identity)
+    |> base_recipient_query(recipient_identity)
+    |> maybe_exclude_archived(exclude_archived)
     |> maybe_filter_unread(unread_only?)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
+  end
+
+  @spec unread_count(String.t(), keyword()) :: non_neg_integer()
+  def unread_count(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
+    exclude_archived = exclude_archived?(opts)
+
+    Notification
+    |> base_recipient_query(recipient_identity)
+    |> where([notification], is_nil(notification.read_at))
+    |> maybe_exclude_archived(exclude_archived)
+    |> select([notification], count(notification.id))
+    |> Repo.one!()
   end
 
   @spec mark_seen(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
@@ -39,6 +53,17 @@ defmodule Chimeway.Inbox do
   def archive(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
     update_lifecycle_timestamp(notification_id, recipient_identity, :archived_at, at)
   end
+
+  defp base_recipient_query(query, recipient_identity) do
+    where(query, [notification], notification.recipient_identity == ^recipient_identity)
+  end
+
+  defp exclude_archived?(opts), do: Keyword.get(opts, :exclude_archived, true)
+
+  defp maybe_exclude_archived(query, true),
+    do: where(query, [notification], is_nil(notification.archived_at))
+
+  defp maybe_exclude_archived(query, _false), do: query
 
   defp maybe_filter_unread(query, true),
     do: where(query, [notification], is_nil(notification.read_at))
