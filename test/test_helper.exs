@@ -140,12 +140,24 @@ end
 if Code.ensure_loaded?(Sigra) do
   if Code.ensure_loaded?(Chimeway) and not Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
     source =
-      [:sigra]
-      |> Enum.map(&Mix.Project.deps_paths()[&1])
-      |> List.first()
-      |> Path.join("lib/sigra/integrations/chimeway.ex")
+      case Mix.Project.deps_paths()[:sigra] do
+        nil -> nil
+        path -> Path.join(path, "lib/sigra/integrations/chimeway.ex")
+      end
 
-    if File.exists?(source) do
+    source =
+      cond do
+        is_binary(source) and File.exists?(source) ->
+          source
+
+        env_path = System.get_env("SIGRA_PATH") ->
+          Path.join(env_path, "lib/sigra/integrations/chimeway.ex")
+
+        true ->
+          nil
+      end
+
+    if is_binary(source) and File.exists?(source) do
       _ = Code.compile_file(source)
 
       unless Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
@@ -154,7 +166,14 @@ if Code.ensure_loaded?(Sigra) do
     end
   end
 
-  {:ok, _} = Application.ensure_all_started(:sigra)
+  # Load Sigra modules without starting the OTP app — path sigra with optional
+  # chimeway dep would otherwise circularly start :chimeway during test boot.
+  # Handle the already_loaded case when sigra is a compiled hex dep.
+  case Application.load(:sigra) do
+    :ok -> :ok
+    {:error, {:already_loaded, :sigra}} -> :ok
+    {:error, reason} -> raise "failed to load :sigra: #{inspect(reason)}"
+  end
 
   migrations_path =
     case Path.wildcard(Path.join([__DIR__, "support", "sigra", "migrations", "*.exs"])) do
