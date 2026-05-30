@@ -78,7 +78,7 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 | DEMO-08 | Phase 62 | Complete |
 | DOCS-08 (Inbox) | Phase 62 | Pending |
 | DOCS-09 (Inbox) | Phase 62 | Pending |
-| GATE-05 (Inbox) | Phase 62 | Pending |
+| GATE-05 (Inbox) | Phase 62 | Complete |
 
 **Coverage:**
 - v1.9 requirements: 10 total

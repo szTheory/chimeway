@@ -194,7 +194,7 @@ Plans:
 Plans:
 - [x] 62-01-PLAN.md — Demo host `/inbox` mount + `seed_inbox/0` + `:inbox` proof test (DEMO-08)
 - [ ] 62-02-PLAN.md — `inbox-integration.md` guide + doc-contract describe (DOCS-08/09 Inbox)
-- [ ] 62-03-PLAN.md — `verify_inbox` CI job + MAINTAINING octet + release gate parity (GATE-05 Inbox)
+- [x] 62-03-PLAN.md — `verify_inbox` CI job + MAINTAINING octet + release gate parity (GATE-05 Inbox)
 
 **Cross-cutting constraints:**
 - Demo + documentation + release gate only — no new INBX package API (62-01..03)
@@ -210,7 +210,7 @@ Plans:
 | 60. Accrue Docs & Release Gate | 3/3 | Complete    | 2026-05-30 |
 | 60.1. Hex Release Pipeline | 2/2 | Complete    | 2026-05-30 |
 | 61. Inbox Headless + Package | 3/3 | Complete    | 2026-05-30 |
-| 62. Inbox Demo, Docs & Gate | 1/3 | In Progress | — |
+| 62. Inbox Demo, Docs & Gate | 2/3 | In Progress | — |
 
 ---
 *Roadmap updated: 2026-05-30 — Phase 61 complete (INBX headless API + chimeway_inbox package + LiveViewTest proof)*

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
 status: executing
-last_updated: "2026-05-30T13:03:00Z"
-last_activity: 2026-05-30 -- Completed 62-01-PLAN.md (DEMO-08 demo mount + proof)
+last_updated: "2026-05-30T12:41:09Z"
+last_activity: 2026-05-30 -- Completed 62-03-PLAN.md (GATE-05 Inbox verify gate)
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 16
-  completed_plans: 14
-  percent: 88
+  completed_plans: 15
+  percent: 94
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 62 (inbox-demo-docs-gate) — EXECUTING
-Plan: 2 of 3
-Status: 62-01 complete; ready for 62-02 (guide) or 62-03 (gate)
-Last activity: 2026-05-30 -- Completed 62-01-PLAN.md (DEMO-08 demo mount + proof)
+Plan: 3 of 3 (62-02 remaining)
+Status: 62-01 and 62-03 complete; ready for 62-02 (guide + doc-contract)
+Last activity: 2026-05-30 -- Completed 62-03-PLAN.md (GATE-05 Inbox verify gate)
 
 ## Accumulated Context
 
@@ -86,6 +86,8 @@ Last activity: 2026-05-30 -- Completed 62-01-PLAN.md (DEMO-08 demo mount + proof
 - [62-01]: InboxAuth uses demo_user_email session key — distinct from demo:operator AdminActor (T-62-01)
 - [62-01]: seed_inbox/0 standalone outside run/0; two idempotent InviteSent triggers for mark_read/seen targets
 - [62-01]: DEMO-08 proof via @moduletag :inbox module — journey suite unchanged (D-06)
+- [62-03]: verify.inbox = chimeway_inbox package + demo --only inbox; no ACCRUE_PATH sibling checkout (D-16/D-17)
+- [62-03]: MAINTAINING pre-ship octet (eight verify gates); ci-gate aggregates nine lanes (D-18/D-19)
 
 ### Pending Todos
 
@@ -143,15 +145,15 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-30T13:03:00Z
-Stopped at: Completed 62-01-PLAN.md
+Last session: 2026-05-30T12:41:09Z
+Stopped at: Completed 62-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
 - Push Wave 2 to origin → confirm bootstrap Release PR `chore(main): release 1.1.0` ci-gate green → manual merge first release OR automerge on subsequent releases
 - Run post-publish verify trio after Hex 1.1.0 ships: `mix verify.clean`, `mix verify.parity`, `mix verify.published 1.1.0`
-- Phase 62 (Inbox Demo, Docs & Gate) ready to plan/execute — demo host mount, inbox guide, verify.inbox CI
+- Execute 62-02 — inbox integration guide + doc-contract (DOCS-08/09); Wave 1 gate complete
 
 ## Performance Metrics
 
@@ -173,3 +175,4 @@ Resume file: None
 | Phase 60.1 hex-release-pipeline P01 | 15min | 4 tasks | 5 files |
 | Phase 61 inbox-headless-package P03 | 20min | 3 tasks | 4 files |
 | Phase 62 inbox-demo-docs-gate P01 | 18min | 3 tasks | 6 files |
+| Phase 62 inbox-demo-docs-gate P03 | 3min | 3 tasks | 4 files |
