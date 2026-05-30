@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
-status: ready_to_plan
-last_updated: 2026-05-30T11:23:55.444Z
+status: executing
+last_updated: "2026-05-30T11:42:44.904Z"
 last_activity: 2026-05-30
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 3
-  total_plans: 8
+  total_plans: 10
   completed_plans: 8
-  percent: 60
-stopped_at: Phase 60 complete (3/3) — ready to discuss Phase 61
+  percent: 50
 ---
 
 # Project State
@@ -21,13 +20,13 @@ stopped_at: Phase 60 complete (3/3) — ready to discuss Phase 61
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 61 — inbox headless + package
+**Current focus:** Phase 60.1 — Hex release pipeline (automated publish), then Phase 61 inbox
 
 ## Current Position
 
-Phase: 61
+Phase: 60.1
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-05-30
 
 ## Accumulated Context
@@ -133,9 +132,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-30T11:22:13.983Z
-Stopped at: Completed 60-02-PLAN.md
-Resume file: None
+Last session: 2026-05-30T11:42:44.898Z
+Stopped at: Phase 60.1 context gathered (assumptions mode)
+Resume file: .planning/phases/60.1-hex-release-pipeline/60.1-CONTEXT.md
 
 ## Operator Next Steps
 
