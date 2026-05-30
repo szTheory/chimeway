@@ -14,11 +14,11 @@ defmodule Chimeway.Telemetry do
   |------|-----------|--------------|
   | Event creation | `[:chimeway, :events, :create]` | `notification_key`, `event_id`, `correlation_id` |
   | Delivery planning | `[:chimeway, :deliveries, :plan]` | `notification_key`, `event_id`, `recipient_id` |
-  | Policy evaluation | `[:chimeway, :policy, :evaluate]` | `delivery_id`, `notification_key`, `channel` |
-  | Sync dispatch | `[:chimeway, :dispatch, :sync]` | `delivery_id`, `notification_key`, `channel` |
+  | Policy evaluation | `[:chimeway, :policy, :evaluate]` | `delivery_id`, `notification_key`, `channel`, `suppression_reason`, `planning_reason`, `correlation_id` |
+  | Sync dispatch | `[:chimeway, :dispatch, :sync]` | `delivery_id`, `notification_key`, `channel`, `correlation_id` |
   | Oban enqueue *(optional)* | `[:chimeway, :dispatch, :enqueue]` | `delivery_id`, `notification_key` |
-  | Oban perform *(optional)* | `[:chimeway, :dispatch, :perform]` | `delivery_id`, `notification_key` |
-  | Attempt record | `[:chimeway, :attempts, :record]` | `attempt_id`, `delivery_id`, `outcome` |
+  | Oban perform *(optional)* | `[:chimeway, :dispatch, :perform]` | `delivery_id`, `notification_key`, `correlation_id` |
+  | Attempt record | `[:chimeway, :attempts, :record]` | `attempt_id`, `delivery_id`, `outcome`, `correlation_id` |
 
   The two Oban spans are only emitted when Oban is present in the dependency tree.
 
@@ -29,8 +29,8 @@ defmodule Chimeway.Telemetry do
   template content, provider API responses) from appearing in telemetry handlers.
 
   **Allowed keys:** `notification_key`, `event_id`, `recipient_id`, `channel`,
-  `delivery_id`, `attempt_id`, `outcome`, `suppression_reason`, `correlation_id`,
-  `attempt_number`, `error_class`, `adapter_module`
+  `delivery_id`, `attempt_id`, `outcome`, `suppression_reason`, `planning_reason`,
+  `correlation_id`, `attempt_number`, `error_class`, `adapter_module`
 
   All metadata that call sites pass to `span/3` must be pre-filtered:
 
@@ -79,7 +79,7 @@ defmodule Chimeway.Telemetry do
 
   @allowed_meta_keys ~w(
     notification_key event_id recipient_id channel
-    delivery_id attempt_id outcome suppression_reason correlation_id
+    delivery_id attempt_id outcome suppression_reason planning_reason correlation_id
     attempt_number error_class adapter_module
   )a
 
