@@ -46,7 +46,17 @@ Complete the SEED-003 ecosystem integration matrix by shipping Threadline and Si
 2. Reporter redacts sensitive payload fields — only deterministic outcome metadata crosses the bridge
 3. Integration tests prove at least one notification lifecycle event → Threadline audit row correlation with `@moduletag :threadline` selective CI
 
-**Plans:** 0 plans
+**Plans:** 2 plans
+
+**Wave 1** *(harness + telemetry enrichment — blocks Wave 2)*
+
+Plans:
+- [x] 63-01-PLAN.md — Optional threadline dep, selective CI, test harness, `planning_reason` + `correlation_id` span enrichment (2026-05-30)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+Plans:
+- [ ] 63-02-PLAN.md — `Chimeway.Telemetry.ThreadlineReporter` + lifecycle → audit row integration proof
 
 ### Phase 64: Sigra Auth Flows Core
 
@@ -100,7 +110,7 @@ Complete the SEED-003 ecosystem integration matrix by shipping Threadline and Si
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 63 Threadline Telemetry Bridge | 0/? | Not started | — |
+| 63 Threadline Telemetry Bridge | 0/2 | Ready to execute | — |
 | 64 Sigra Auth Flows Core | 0/? | Not started | — |
 | 65 Ecosystem Blueprints & Demo | 0/? | Not started | — |
 | 66 Docs & Release Gates | 0/? | Not started | — |
