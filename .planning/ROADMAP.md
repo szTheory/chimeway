@@ -72,13 +72,13 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 2. Demo host proves Accrue-driven dunning end-to-end — failed payment triggers escalation emails; paid invoice terminates workflow
 3. Operator traces at `/admin/chimeway` show dunning workflow progression and explainable suppression/delivery decisions
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 **Wave 1 *(no dependencies)*:** 59-01 — Demo host Accrue dunning proof (DEMO-07: escalation + admin trace, journey CI isolated)  
 **Wave 2 *(blocked on Wave 1 completion)*:** 59-02 — Accrue dunning blueprint recipe + ECOS-07 doc-contract
 
 Plans:
-- [ ] 59-01-PLAN.md — Demo host Accrue dunning proof (`@moduletag :accrue`, `seed_accrue_dunning/0`, admin trace, `verify.accrue` + demo host)
+- [x] 59-01-PLAN.md — Demo host Accrue dunning proof (`@moduletag :accrue`, `seed_accrue_dunning/0`, admin trace, `verify.accrue` + demo host)
 - [ ] 59-02-PLAN.md — `accrue-dunning-blueprint.md` + ECOS-07 doc-contract
 
 ### Phase 60: Accrue Docs & Release Gate
@@ -150,7 +150,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 58. Accrue Dunning Core | 3/3 | Complete    | 2026-05-30 |
-| 59. Accrue Blueprint & Demo | 0/2 | Planned | 59-01, 59-02 |
+| 59. Accrue Blueprint & Demo | 1/2 | In Progress|  |
 | 60. Accrue Docs & Release Gate | 0/TBD | Not started | — |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
