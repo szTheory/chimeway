@@ -362,6 +362,68 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @sigra_blueprint_recipe Path.expand("../../guides/recipes/sigra-auth-blueprint.md", __DIR__)
+
+  describe "sigra auth blueprint recipe doc contract (ECOS-10)" do
+    setup do
+      content = File.read!(@sigra_blueprint_recipe)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in sigra auth blueprint recipe", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "sigra auth blueprint recipe must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids raw_token in sigra auth blueprint recipe", %{content: content} do
+      refute String.contains?(content, "raw_token"),
+             "sigra auth blueprint recipe must not expose raw token values"
+    end
+
+    test "forbids raw token (prose form) in sigra auth blueprint recipe", %{content: content} do
+      refute String.contains?(content, "raw token"),
+             "sigra auth blueprint recipe must not expose raw token values (prose form)"
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in sigra auth blueprint recipe",
+         %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "sigra auth blueprint recipe must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Sigra.Integrations.Chimeway
+      sigra.auth.magic_link
+      sigra.auth.confirmation_code
+      Chimeway.trigger
+      idempotency_key
+      tenant_id
+      orchestrates
+      DemoHost.Seeds.seed_sigra
+      /admin/chimeway
+      sigra-auth-integration.md
+    )
+
+    for required <- @required do
+      test "requires #{required} in sigra auth blueprint recipe", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "sigra auth blueprint recipe must reference #{unquote(required)}"
+      end
+    end
+
+    test "requires auth-state split language in sigra auth blueprint recipe", %{content: content} do
+      assert String.contains?(content, "auth state") or String.contains?(content, "auth_state"),
+             "sigra auth blueprint recipe must document auth-state responsibility split"
+    end
+
+    test "requires reciprocal link to sigra auth integration guide", %{content: content} do
+      assert String.contains?(content, "sigra-auth-integration.md"),
+             "sigra auth blueprint recipe must link to Phase 66 introduction guide"
+    end
+  end
+
   @mailglass_integration_guide Path.expand("../../guides/introduction/mailglass-integration.md", __DIR__)
 
   describe "mailglass integration guide doc contract (DOCS-06 / DOCS-07)" do
