@@ -15,9 +15,17 @@ defmodule Chimeway.Trigger do
   If a host application crashes between event-insert commit and the dispatcher being
   called, deliveries from that aborted trigger ARE NOT recovered by a subsequent
   re-fire. Recovery for that scenario is explicitly deferred to a future operability
-  phase. Operators investigating "why wasn't this delivered after a duplicate
+  phase.   Operators investigating "why wasn't this delivered after a duplicate
   trigger?" should look at the original event's deliveries via
   `Chimeway.Traces.get_trace/1`, not at the duplicate.
+
+  ## Payload sanitization (D-08)
+
+  `trigger/3` strips `@sensitive_keys` from persisted event `payload` and from
+  notification `metadata` / `render_assigns`. Auth-flow keys `url`, `code`,
+  `raw_token`, and `magic_link_url` are removed in addition to `password`,
+  `token`, and `secret`. Identifier-only trigger params remain the primary
+  contract for integration boundaries.
   """
 
   require Logger
@@ -33,7 +41,7 @@ defmodule Chimeway.Trigger do
   alias Ecto.Multi
   alias Ecto.UUID
 
-  @sensitive_keys ~w(password token secret)
+  @sensitive_keys ~w(password token secret url code raw_token magic_link_url)
 
   @spec trigger(module(), map(), keyword()) ::
           {:ok, map()} | {:duplicate, struct()} | {:error, term()}
