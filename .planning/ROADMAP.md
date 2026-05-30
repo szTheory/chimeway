@@ -24,7 +24,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 
 ## Phases
 
-- [ ] **Phase 58: Accrue Dunning Core** — Optional `accrue` dep; billing events start/stop Chimeway dunning workflows via Signal engine
+- [x] **Phase 58: Accrue Dunning Core** — Optional `accrue` dep; billing events start/stop Chimeway dunning workflows via Signal engine (completed 2026-05-30)
 - [ ] **Phase 59: Accrue Blueprint & Demo** — Reference recipe plus demo host Accrue dunning proof with operator traces
 - [ ] **Phase 60: Accrue Docs & Release Gate** — Golden-path guide, doc-contract tests, and `mix verify.accrue` CI gate
 - [ ] **Phase 61: Inbox Headless + Package** — Core API polish and bootstrap `chimeway_inbox` optional package
@@ -46,7 +46,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 2. Subsequent `invoice.paid` emits an Outcome Signal that terminates the active dunning run — no manual host callback wiring
 3. Integration tests prove event → workflow start and event → signal termination paths with `@moduletag :accrue` selective CI
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 **Wave 1 *(no dependencies)*:** 58-01 — Optional accrue dep + test harness + event subscription stub  
 **Wave 2 *(blocked on Wave 1)*:** 58-02 — Dunning workflow wiring (`payment_failed` → trigger/start run)  
@@ -145,7 +145,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 58. Accrue Dunning Core | 2/3 | In Progress|  |
+| 58. Accrue Dunning Core | 3/3 | Complete   | 2026-05-30 |
 | 59. Accrue Blueprint & Demo | 0/TBD | Not started | — |
 | 60. Accrue Docs & Release Gate | 0/TBD | Not started | — |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
