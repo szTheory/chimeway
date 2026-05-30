@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
-status: executing
-last_updated: "2026-05-30T12:40:00.000Z"
+status: ready_to_plan
+last_updated: 2026-05-30T11:57:04.066Z
 last_activity: 2026-05-30 -- Phase 60.1-02 complete (Wave 2 automerge + recovery + GATE-06)
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 10
   completed_plans: 10
-  percent: 60
+  percent: 67
+stopped_at: Phase 60.1 complete (2/2) — ready to discuss Phase 61
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 60.1 — hex-release-pipeline
+**Current focus:** Phase 61 — inbox headless + package
 
 ## Current Position
 
-Phase: 60.1 (hex-release-pipeline) — COMPLETE
-Plan: 2 of 2
-Status: Wave 2 complete — GATE-06 satisfied; automerge + recovery workflows live
-Last activity: 2026-05-30 -- Phase 60.1-02 complete (Wave 2 automerge + recovery + GATE-06)
+Phase: 61
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-05-30
 
 ## Accumulated Context
 

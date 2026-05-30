@@ -126,7 +126,7 @@ Plans:
 2. `ci-gate` aggregates lint, test, verify_gates, verify_docs, verify_example, verify_journeys, verify_mailglass, verify_accrue
 3. Hex publish runs only after ci-gate green on release SHA; version appears on hex.pm without manual `mix hex.publish`
 
-**Plans:** 2/2
+**Plans:** 2/2 plans complete
 
 **Wave 1:** 60.1-01 — ci-gate + Release Please config + hardened release.yml  
 **Wave 2:** 60.1-02 — automerge, publish-hex recovery, MAINTAINING, contract tests ✓

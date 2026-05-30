@@ -29,6 +29,7 @@
 ### Release Gates (GATE)
 
 - [x] **GATE-05**: Named verify entrypoints `mix verify.accrue` and `mix verify.inbox` run in CI and appear in MAINTAINING.md pre-ship checklist
+- [x] **GATE-06**: Automated Hex publish on release tag, gated on ci-gate green; Release Please owns version/changelog SSOT
 
 ## Future Requirements
 
@@ -71,6 +72,7 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 | DOCS-08 (Accrue) | Phase 60 | Pending |
 | DOCS-09 (Accrue) | Phase 60 | Pending |
 | GATE-05 (Accrue) | Phase 60 | Complete |
+| GATE-06 | Phase 60.1 | Complete |
 | INBX-01 | Phase 61 | Pending |
 | INBX-02 | Phase 61 | Pending |
 | DEMO-08 | Phase 62 | Pending |
