@@ -83,7 +83,9 @@ defmodule Chimeway.MixProject do
       # Run separately from ci.test to preserve fast feedback on core lib tests (Phase 33 D-10).
       "verify.example": [
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test",
-        "cmd --shell cd chimeway_admin && mix deps.get && mix test"
+        "cmd --shell cd chimeway_admin && mix deps.get && mix test",
+        # chimeway_inbox selective verify.inbox gate lands Phase 62 (GATE-05)
+        "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors"
       ],
 
       # Installer golden-diff + idempotency contract (path-gated in CI, not default ci)
@@ -93,7 +95,7 @@ defmodule Chimeway.MixProject do
 
       # GATE-01 doc-contract + version alignment gates (pre-ship; no Postgres required)
       "ci.verify_gates": [
-        "cmd env MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --warnings-as-errors"
+        "cmd env MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --warnings-as-errors"
       ],
 
       # v1.7 GATE-03: TeamPulse consumer journey proof JOUR-01..08 (10 tests)
