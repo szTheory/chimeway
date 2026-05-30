@@ -2,6 +2,55 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.8 — Ecosystem Integration Blueprints
+
+**Shipped:** 2026-05-30
+**Phases:** 5 (54–57, 57.1) | **Plans:** 13 | **Requirements:** 9/9
+
+### What Was Built
+
+- Optional `mailglass ~> 1.3` packaging with conditional adapter stub and test harness (ECOS-01).
+- Full `Chimeway.Adapters.Mailglass` outbound `deliver/2` with tenancy, error classification, contract tests (ECOS-02).
+- `provider_message_id` spine + Mailglass webhook verify/resolve/normalize/dedup callbacks (ECOS-03).
+- Chimeway-level feedback pipeline proof through worker signals and `webhook_received` traces (ECOS-04).
+- ECOS-05 blueprint recipe + DEMO-06 TeamPulse invite delivery with admin trace proof.
+- DOCS-06 golden-path guide, DOCS-07 doc-contract truth lock, GATE-04 `mix verify.mailglass` sextet.
+- Phase 57.1 closed audit gap: Section 6 webhook example + WR-01/WR-02 doc-contract guards.
+
+### What Worked
+
+- Mailglass-only scope kept v1.8 shippable in one day — deep composition beat broad SEED-003 matrix.
+- Existing webhook/Signal spine (v1.4) absorbed Mailglass inbound without new routing substrate.
+- `@moduletag :mailglass` selective CI isolated Mailglass tests from journey suite cleanly.
+- Post-audit Phase 57.1 closed DOCS-06/07 partials without feature rework — same pattern as v1.7 Phase 53.
+
+### What Was Inefficient
+
+- Nyquist VALIDATION.md metadata lag for Phases 54–57 — implementation complete but draft flags remain.
+- ECOS-04 Mailglass-specific workflow run resume/stop not E2E asserted — signal + trace proven at lib level only.
+- Audit found guide prose drift (demo webhook route vs actual controller wiring) — minor doc debt.
+
+### Patterns Established
+
+- Runtime config only in adapters — no compile-time secrets (Phase 54).
+- Dual lifecycle: Chimeway attempts + Mailglass delivery ledger is intentional (Phase 54).
+- Guide vs blueprint doc separation prevents introduction/recipe drift (Phase 57).
+- Webhook doc-contract uses explicit string lists for multi-word forbidden patterns (Phase 57.1).
+
+### Key Lessons
+
+1. Prove one ecosystem library deeply before expanding the matrix — Mailglass composition is the template for Accrue/Threadline/Sigra.
+2. Doc-contract webhook call-shape guards pay off immediately — audit caught WR-01/WR-02 before adopters copied bad examples.
+3. Close-out decimal phases (57.1) are cheaper than shipping with partial doc requirements.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: Phases 54–57.1 shipped 2026-05-29 (same-day burst)
+- Notable: 77 commits since v1.7; 9/9 requirements satisfied at audit
+
+---
+
 ## Milestone: v1.7 — READ + Adoption Polish
 
 **Shipped:** 2026-05-29
@@ -238,6 +287,22 @@
 **Graduation candidates:** Adoption surface ≠ adoption evidence (permanent); consumer journey proof before READ (validated); staged seed choreography masks engine gaps (fix in v1.7).
 
 Full thread: `.planning/threads/2026-05-29-v1.7-milestone-assessment.md`
+
+---
+
+## Milestone-Next Assessment: v1.8 boundary (2026-05-29)
+
+**Band:** ~92–95% (90–95% near-done) — adoption evidence + READ polish complete for embedded-notification scope.
+
+**Pick:** v1.8 SEED-003 ecosystem integration blueprints (Mailglass-first per INV-003). Do **not** re-milestone Consumer Journey Proof — TeamPulse demo, `DemoHost.Seeds`, and `mix verify.journeys` (10 tests) already satisfy the adoption-evidence prompt.
+
+**Adoption evidence clarification:** Re-pasting the adoption-evidence prompt after v1.7 means **INBX / SEED-003**, not a new demo milestone. Operator admin UI (`/admin/chimeway`) ≠ end-user bell UI (v1.9).
+
+**Ordering after v1.8:** v1.9 INBX bell UI → narrow adoption-evidence v2 (greenfield install CI) → external adopter outreach.
+
+**Graduation candidates:** Three-layer pattern permanent (v1.5 surface ≠ v1.6 evidence ≠ v1.7 READ); operator demo ≠ end-user product demo.
+
+Full thread: `.planning/threads/2026-05-29-v1.8-milestone-assessment.md`
 
 ---
 

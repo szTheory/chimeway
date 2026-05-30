@@ -8,21 +8,13 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
-## Current Milestone: v1.8 Ecosystem Integration Blueprints
+## Current Milestone
 
-**Goal:** Prove Chimeway composes cleanly with szTheory ecosystem libraries via first-class adapters, reference blueprints, and verified integration docs — Mailglass-only in v1.8 (Accrue, Threadline, Sigra deferred to v1.9+).
-
-**Target features:**
-- `Chimeway.Adapter.Mailglass` — Chimeway orchestrates when/why; Mailglass handles templating, MJML rendering, and Swoosh delivery
-- Inbound feedback bridge — `mailglass_inbound` webhook normalization into Chimeway Signal engine
-- Mailglass reference blueprint + demo host proof on TeamPulse notifiers
-- Integration guide, doc-contract tests, and named verify gate for Mailglass composition
-
-**Included seed:** SEED-003 (Mailglass slice only)
+**None** — v1.8 shipped 2026-05-30. Run `/gsd-new-milestone` to define v1.9 scope.
 
 ## Current State
 
-**v1.8 complete (2026-05-29):** Phases 54–57 shipped — Mailglass outbound adapter, inbound feedback bridge, ECOS-05 blueprint with DEMO-06 demo host proof, golden-path integration guide (DOCS-06), doc-contract truth lock (DOCS-07), and `mix verify.mailglass` release gate (GATE-04). **152 doc-contract + journey/mailglass gates** green.
+**v1.8 Ecosystem Integration Blueprints shipped (2026-05-30):** Phases 54–57, 57.1 — `Chimeway.Adapters.Mailglass` outbound adapter with contract tests (ECOS-01/02), inbound webhook feedback bridge with `provider_message_id` correlation (ECOS-03/04), ECOS-05 reference blueprint with DEMO-06 demo host proof, golden-path integration guide (DOCS-06), doc-contract truth lock (DOCS-07), and `mix verify.mailglass` release gate (GATE-04). **159 doc-contract + journey/mailglass gates** green at audit.
 
 Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read/unread workflow glue, journey CI (`mix verify.journeys`), adoption docs, and demo host proof remain the adoption foundation.
 
@@ -33,14 +25,25 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.5 Adoption Surface` — installer, golden-path docs, reference recipes, demo trace path, operator admin MVP, release gates (shipped 2026-05-29).
 - `v1.6 Consumer Journey Proof` — TeamPulse demo, deterministic seeds, journey CI, one-command spin-up (shipped 2026-05-29).
 - `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (shipped 2026-05-29).
+- `v1.8 Ecosystem Integration Blueprints` — Mailglass-first adapter, inbound feedback bridge, reference recipe, demo proof, integration docs, and verify gate (shipped 2026-05-30).
 
 ## Next Milestone Goals
 
-**v1.8 in progress:** Mailglass-first ecosystem integration blueprint (SEED-003 slice). Accrue dunning, Threadline telemetry bridge, and Sigra auth flows deferred to v1.9+.
+**v1.9 (planned):** SEED-003 remainder — Accrue dunning blueprint, Threadline telemetry bridge, Sigra auth notification flows. INBX bell/notification center UI productization.
 
-**Following milestone (v1.9):** Inbox UI productization (INBX) — end-user bell/notification center.
+**Explicitly deferred from v1.9 planning until scoped:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell, greenfield `phx.new` CI smoke (ADPT-01).
 
-**Explicitly deferred from v1.8:** Accrue/Threadline/Sigra (full SEED-003 matrix), INBX bell UI, broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
+### Shipped v1.8 Features (Validated)
+
+- `Chimeway.Adapters.Mailglass` optional dep with runtime config, outbound `deliver/2`, tenancy stamp, error classification, redacted success meta (ECOS-01)
+- Shared `Chimeway.Adapter.ContractTest` coverage for Mailglass including simulate_error and executor email routing (ECOS-02)
+- `provider_message_id` on attempt rows + adapter-native webhook parse seam (ECOS-03 spine)
+- Mailglass webhook verify/resolve/normalize/dedup callbacks mapping Anymail events to `:delivered/:bounced/:failed` (ECOS-03/04)
+- ECOS-05 reference blueprint with doc-contract truth lock — Chimeway orchestrates when/why, Mailglass handles templating
+- DEMO-06: TeamPulse invite email through Mailglass with `/admin/chimeway` operator trace proof
+- DOCS-06 golden-path integration guide (dependency → config → trigger → delivery → inbound feedback)
+- DOCS-07 doc-contract locks guide truth including webhook call-shape guards (Phase 57.1)
+- GATE-04: `mix verify.mailglass` CI job + MAINTAINING pre-ship sextet
 
 ### Shipped v1.7 Features (Validated)
 
@@ -102,8 +105,8 @@ Prior context includes:
 - Next value jump is adoption surface: reference flows, integration docs, and operator UX — not more channel matrix expansion.
 - Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — **resolved by v1.5** (installer task, golden path, operator UI, demo trace path, release gates).
 - Adopter assessment (2026-05-29): ~88–92% done post-v1.6 — adoption evidence (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E) resolved the pre-adopter confidence gap.
-- v1.7 READ + Adoption Polish shipped 2026-05-29 — read/unread workflow glue plus demo/docs/journey tail closed adoption-evidence gaps.
-- Adopter assessment post-v1.7: ~92–95% for embedded-notification scope — READ glue and journey proof credible; next value jump is ecosystem plugins (SEED-003, v1.8) then inbox UI (INBX, v1.9).
+- v1.8 Ecosystem Integration Blueprints shipped 2026-05-30 — Mailglass adapter, inbound feedback bridge, blueprint recipe, demo proof, integration docs, verify gate.
+- Adopter assessment post-v1.8: ~94–96% for embedded-notification scope — ecosystem Mailglass composition proven; next value jump is SEED-003 remainder + INBX (v1.9).
 
 ## Constraints
 
@@ -114,7 +117,7 @@ Prior context includes:
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
 - **Scope**: Orchestration and explainability remain higher leverage than broad channel expansion.
-- **Scope**: v1.7 READ closed read/unread workflow glue; UI productization (INBX) and ecosystem plugins (SEED-003) remain next milestones.
+- **Scope**: v1.8 closed Mailglass slice of SEED-003; Accrue/Threadline/Sigra and INBX remain v1.9+.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -155,8 +158,36 @@ Prior context includes:
 | v1.6 journey CI separate from default ci | Fast core feedback; journey proof is explicit pre-ship gate | Shipped v1.6 |
 | DemoHost.Seeds as adopter-copyable API | Seeds use Chimeway.trigger/3, not test fixture inserts | Shipped v1.6 |
 | Defer Playwright for admin smoke | Host-mount ConnTest + LiveViewTest sufficient for JOUR-04 | Shipped v1.6 |
+| Mailglass-only v1.8 scope | Accrue/Threadline/Sigra deferred — prove one ecosystem composition deeply first | Shipped v1.8 |
+| Runtime config only in Mailglass adapter | No compile-time secrets; config read at call time via Application.get_env/3 | Shipped v1.8 Phase 54 |
+| Dual lifecycle Chimeway attempts + Mailglass ledger | Intentional — Chimeway owns orchestration explainability | Shipped v1.8 Phase 54 |
+| Mailglass test config unconditional in config/test.exs | Config loads before dep compile | Shipped v1.8 Phase 54 |
+| Journey suite keeps Logger adapter; Mailglass isolated | `@moduletag :mailglass` selective CI — no journey regression | Shipped v1.8 Phase 56 |
+| Guide vs blueprint doc separation | Introduction guide owns end-to-end path; blueprint is focused recipe | Shipped v1.8 Phase 57 |
+| Webhook doc-contract explicit string list for multi-token patterns | ~w sigil splits multi-word forbidden patterns incorrectly | Shipped v1.8 Phase 57.1 |
 
 ## Archived Milestone Context
+
+<details>
+<summary>v1.8 Ecosystem Integration Blueprints planning context</summary>
+
+### Milestone Scope
+
+Prove Chimeway composes with szTheory ecosystem via first-class Mailglass adapter, inbound feedback bridge, reference blueprint, demo proof, and release gates.
+
+### Delivered Features
+
+- `Chimeway.Adapters.Mailglass` outbound delivery with contract tests (ECOS-01/02).
+- Inbound webhook pipeline with `provider_message_id` correlation and Signal-driven progression (ECOS-03/04).
+- ECOS-05 blueprint recipe + DEMO-06 demo host Mailglass proof.
+- DOCS-06/07 integration guide with doc-contract truth lock; Phase 57.1 closed webhook example gap.
+- GATE-04: `mix verify.mailglass` + MAINTAINING pre-ship sextet.
+
+### Validated Requirements Snapshot
+
+- ECOS-01..05, DEMO-06, DOCS-06/07, GATE-04 — all satisfied (9 requirements).
+
+</details>
 
 <details>
 <summary>v1.7 READ + Adoption Polish planning context</summary>
@@ -311,4 +342,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 — Phase 56 blueprint & demo proof complete (v1.8)*
+*Last updated: 2026-05-30 after v1.8 milestone*

@@ -1,5 +1,35 @@
 # Milestones
 
+## v1.8 Ecosystem Integration Blueprints
+
+- Status: shipped
+- Date: 2026-05-30
+- Phases: 54–57, 57.1 (5 phases, 13 plans, 29 tasks)
+- Requirements: 9/9 satisfied
+- Git tag: v1.8
+- Git range: v1.7..v1.8 (77 commits, 263 files, +10,244 / −84 LOC)
+- Audit: [milestones/v1.8-MILESTONE-AUDIT.md](milestones/v1.8-MILESTONE-AUDIT.md) (tech_debt — no blockers)
+- Known deferred items at close: 2 dormant seeds + Nyquist metadata lag (see STATE.md Deferred Items)
+- Key accomplishments:
+
+- Optional mailglass ~> 1.3 packaging with conditional adapter stub and Fake/TestRepo test infrastructure for downstream deliver/2 work
+- Full Mailglass.Outbound deliver/2 with mailable resolution, tenancy stamp, error classification, and redacted success meta
+- ECOS-02 proof: Mailglass adapter passes shared ContractTest with simulate_error, classification matrix for all three error classes, and executor email routing to Chimeway.Adapters.Mailglass
+- Outbound attempt rows now store provider_message_id for webhook correlation, and the webhook ingest boundary supports optional adapter-native body parsing with raw_body/headers config threading
+- Mailglass adapter webhook callbacks delegate Postmark verify/normalize to Mailglass.Webhook.Provider and map Anymail delivery events into Chimeway's :delivered/:bounced/:failed feedback vocabulary
+- Webhook contract macros gate Mailglass verify/resolve/normalize/dedup tests, and a Chimeway-level integration test proves outbound provider_message_id correlation through worker signals and webhook_received trace entries
+- TeamPulse invite email delivers through Chimeway.Adapters.Mailglass with operator trace proof at /admin/chimeway, without breaking the 10-test journey CI gate
+- ECOS-05 reference blueprint with CI doc-contract truth lock — Chimeway orchestrates when/why, Mailglass handles templating, stable teampulse.invite_sent keys aligned with demo host
+- DOCS-06 introduction guide publishing Chimeway+Mailglass adoption from dependencies through optional inbound feedback, with HexDocs and README discoverability
+- DOCS-07 CI truth lock on the Mailglass integration guide with D-09 required phrases, recipe forbidden strings, and Mailglass adapter email-path guard
+- GATE-04 named `mix verify.mailglass` entrypoint with fast ci.test exclusion, dedicated CI job, and MAINTAINING pre-ship sextet closing Phase 54 WR-03 deferral
+- Section 6 Mailglass inbound webhook example now matches Chimeway.Webhooks.process/4 with adapter module, raw_body binary, header list, and safe error responses
+- Doc-contract now forbids WR-01/WR-02 webhook regression patterns and requires adapter-module-first Webhooks.process/4 call shape
+
+- Notes: Phase 57.1 inserted post-audit to close DOCS-06/07 webhook guide gap; Accrue/Threadline/Sigra deferred to v1.9+
+
+---
+
 ## v1.7 READ + Adoption Polish
 
 - Status: shipped

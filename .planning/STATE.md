@@ -2,32 +2,32 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Ecosystem Integration Blueprints
-status: executing
-last_updated: "2026-05-29T12:00:00Z"
-last_activity: 2026-05-29 -- Phase 57.1 execution complete
+status: Awaiting next milestone
+last_updated: "2026-05-30T00:27:15.288Z"
+last_activity: 2026-05-30 — Milestone v1.8 completed and archived
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 15
+  completed_phases: 5
+  total_plans: 13
   completed_plans: 13
-  percent: 87
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-29)
+See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 57.1 complete — DOCS-06/07 webhook guide gap closed
+**Current focus:** Planning next milestone — run `/gsd-new-milestone`
 
 ## Current Position
 
-Phase: 57.1
-Plan: 2 of 2 complete
-Status: Complete
-Last activity: 2026-05-29 -- Phase 57.1 execution complete
+Phase: Milestone v1.8 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-30 — Milestone v1.8 completed and archived
 
 ## Accumulated Context
 
@@ -86,7 +86,7 @@ None.
 ### Roadmap Evolution
 
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
-- v1.8 Ecosystem Integration Blueprints started 2026-05-29 — Phases 54–57, 9 requirements (Mailglass-only)
+- v1.8 Ecosystem Integration Blueprints shipped 2026-05-30 (Phases 54–57, 57.1, 9 requirements)
 - v1.7 READ + Adoption Polish shipped 2026-05-29 (Phases 48–53, 11 requirements)
 - v1.6 Consumer Journey Proof shipped 2026-05-29 (Phases 43–47)
 - v1.5 formally closed 2026-05-29 (Phases 35–42)
@@ -94,16 +94,33 @@ None.
 
 ### Deferred Items
 
+Items acknowledged and deferred at v1.8 milestone close on 2026-05-30:
+
+| Category | Item | Status |
+|----------|------|--------|
+| seed | SEED-003-ecosystem-integrations (Accrue, Threadline, Sigra remainder) | v1.9+ |
+| seed | SEED-004-personas-and-dx-roadmap (INBX bell UI remainder) | v1.9+ |
+| nyquist | Phases 54–57 VALIDATION.md metadata lag | optional retroactive |
+| integration | Inbox-read signal may not project onto delivery timeline UI (INT-02) | optional polish |
+| integration | `mark_seen` progression E2E not covered (INT-03) | optional polish |
+| integration | Mailglass-specific workflow run resume/stop not E2E asserted (ECOS-04) | tech debt |
+| planning | Phases 43–47 GSD artifacts (SUMMARY/VERIFICATION) | optional retroactive |
+
+<details>
+<summary>v1.7 deferred items (superseded)</summary>
+
 Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 | Category | Item | Status |
 |----------|------|--------|
-| seed | SEED-003 Mailglass slice | v1.8 active |
+| seed | SEED-003 Mailglass slice | **shipped v1.8** |
 | seed | SEED-003 remainder (Accrue, Threadline, Sigra) | v1.9+ |
 | seed | SEED-004 inbox / bell UI remainder (INBX) | v1.9+ |
 | planning | Phases 43–47 GSD artifacts (SUMMARY/VERIFICATION) | optional retroactive |
-| integration | Inbox-read signal may not project onto delivery timeline UI (INT-02) | v1.8 optional |
-| integration | `mark_seen` progression E2E not covered (INT-03) | v1.8 optional |
+| integration | Inbox-read signal may not project onto delivery timeline UI (INT-02) | optional polish |
+| integration | `mark_seen` progression E2E not covered (INT-03) | optional polish |
+
+</details>
 
 ### Session Continuity
 
@@ -113,8 +130,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- v1.8 milestone close-out — run `/gsd-audit-milestone` or `/gsd-complete-milestone`
-- Pre-ship baseline: `mix verify.journeys` + existing gate sextet including `mix verify.mailglass`
+- Start the next milestone with /gsd-new-milestone
 
 ## Performance Metrics
 
