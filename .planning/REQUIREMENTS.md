@@ -13,12 +13,12 @@
 ### Ecosystem — Sigra Auth (ECOS)
 
 - [ ] **ECOS-09**: Sigra auth events (magic link, MFA token dispatch) trigger Chimeway notifiers with redacted trace payloads — sensitive tokens never persisted in Chimeway trace database
-- [ ] **ECOS-10**: Published Sigra auth notification reference blueprint with CI doc-contract coverage (Chimeway orchestrates when/why; Sigra owns auth state)
+- [x] **ECOS-10**: Published Sigra auth notification reference blueprint with CI doc-contract coverage (Chimeway orchestrates when/why; Sigra owns auth state)
 
 ### Demo Proof (DEMO)
 
-- [ ] **DEMO-09**: Demo host proves Threadline audit correlation for at least one notification lifecycle event with operator inspectability at `/admin/chimeway`
-- [ ] **DEMO-10**: Demo host proves Sigra auth notification flow end-to-end (magic link or MFA token dispatch) with operator trace inspectability
+- [x] **DEMO-09**: Demo host proves Threadline audit correlation for at least one notification lifecycle event with operator inspectability at `/admin/chimeway`
+- [x] **DEMO-10**: Demo host proves Sigra auth notification flow end-to-end (magic link or MFA token dispatch) with operator trace inspectability
 
 ### Integration Docs (DOCS)
 
@@ -57,9 +57,9 @@ Deferred to later milestones. Tracked but not in v1.10 roadmap.
 |-------------|-------|--------|
 | ECOS-08 | Phase 63 | Complete |
 | ECOS-09 | Phase 64 | Pending |
-| ECOS-10 | Phase 65 | Pending |
-| DEMO-09 | Phase 65 | Pending |
-| DEMO-10 | Phase 65 | Pending |
+| ECOS-10 | Phase 65 | Complete |
+| DEMO-09 | Phase 65 | Complete |
+| DEMO-10 | Phase 65 | Complete |
 | DOCS-10 | Phase 66 | Pending |
 | DOCS-11 | Phase 66 | Pending |
 | GATE-07 | Phase 66 | Pending |

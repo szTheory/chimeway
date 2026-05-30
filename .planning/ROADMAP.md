@@ -133,7 +133,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 63 Threadline Telemetry Bridge | 2/2 | Complete    | 2026-05-30 |
 | 64 Sigra Auth Flows Core | 1/2 | In Progress|  |
-| 65 Ecosystem Blueprints & Demo | 3/3 | Complete   | 2026-05-30 |
+| 65 Ecosystem Blueprints & Demo | 3/3 | Complete    | 2026-05-30 |
 | 66 Docs & Release Gates | 0/? | Not started | — |
 
 ## Requirement Coverage
