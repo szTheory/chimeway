@@ -186,10 +186,20 @@ Plans:
 2. Golden-path inbox integration guide covers dependency → router mount → auth behaviour → bell UI
 3. Doc-contract tests lock inbox guide truth; `mix verify.inbox` runs in CI and completes MAINTAINING.md pre-ship octet
 
-**Plans:** TBD
+**Plans:** 3 plans in 2 waves
 
 **Wave 1 *(parallel)*:** 62-01 — Demo host inbox mount + journey proof (DEMO-08); 62-03 — `mix verify.inbox` + CI job + MAINTAINING octet (GATE-05)  
 **Wave 2 *(blocked on 62-01)*:** 62-02 — Inbox integration guide + doc-contract tests (DOCS-08/09)
+
+Plans:
+- [ ] 62-01-PLAN.md — Demo host `/inbox` mount + `seed_inbox/0` + `:inbox` proof test (DEMO-08)
+- [ ] 62-02-PLAN.md — `inbox-integration.md` guide + doc-contract describe (DOCS-08/09 Inbox)
+- [ ] 62-03-PLAN.md — `verify_inbox` CI job + MAINTAINING octet + release gate parity (GATE-05 Inbox)
+
+**Cross-cutting constraints:**
+- Demo + documentation + release gate only — no new INBX package API (62-01..03)
+- Guide verification cites runnable demo artifacts from 62-01 (62-02 blocked on 62-01)
+- In-repo path deps only — no sibling checkout unlike Accrue gate (62-03)
 
 ## Progress
 
@@ -199,8 +209,8 @@ Plans:
 | 59. Accrue Blueprint & Demo | 2/2 | Complete    | 2026-05-30 |
 | 60. Accrue Docs & Release Gate | 3/3 | Complete    | 2026-05-30 |
 | 60.1. Hex Release Pipeline | 2/2 | Complete    | 2026-05-30 |
-| 61. Inbox Headless + Package | 3/3 | Complete   | 2026-05-30 |
-| 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
+| 61. Inbox Headless + Package | 3/3 | Complete    | 2026-05-30 |
+| 62. Inbox Demo, Docs & Gate | 0/3 | Planned | — |
 
 ---
 *Roadmap updated: 2026-05-30 — Phase 61 complete (INBX headless API + chimeway_inbox package + LiveViewTest proof)*
