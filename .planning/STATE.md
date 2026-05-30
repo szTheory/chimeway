@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
-status: Defining requirements
-last_updated: "2026-05-30T01:12:17.335Z"
-last_activity: 2026-05-30 — Milestone v1.9 started
+status: executing
+last_updated: "2026-05-30T01:57:08.387Z"
+last_activity: 2026-05-30
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Milestone v1.9 Adopter Complete — defining requirements (research skipped; reuse Mailglass + chimeway_admin patterns)
+**Current focus:** Phase 58 — accrue-dunning-core
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-05-30 — Milestone v1.9 started
+Phase: 58 (accrue-dunning-core) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-30
 
 ## Accumulated Context
 
@@ -69,6 +69,9 @@ Last activity: 2026-05-30 — Milestone v1.9 started
 - [v1.9]: Research skipped — reuse Mailglass vertical-slice pattern for Accrue; clone chimeway_admin for chimeway_inbox
 - [v1.9]: Accrue-only SEED-003 slice; Threadline/Sigra deferred to v1.10
 - [v1.9]: INBX via optional chimeway_inbox package (not core lib); recipient auth behaviour pluggable like ChimewayAdmin.Auth
+- [58-01]: Accrue optional dep uses runtime: false — manual TestRepo bootstrap; avoid OTP app boot blocking default mix test
+- [58-01]: Accrue test config unconditional in config/test.exs (Mailglass 54-01 precedent); dunning engine pinned in test_helper
+- [58-01]: Runtime Code.compile_file for Accrue.Integrations.Chimeway — dep compile order elides integration module
 
 ### Pending Todos
 
@@ -126,14 +129,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-30T01:12:17.330Z
-Stopped at: Phase 58 context gathered (assumptions mode)
-Resume file: .planning/phases/58-accrue-dunning-core/58-CONTEXT.md
+Last session: 2026-05-30T02:13:00.000Z
+Stopped at: Completed 58-01-PLAN.md — ready for 58-02
+Resume file: .planning/phases/58-accrue-dunning-core/58-02-PLAN.md
 
 ## Operator Next Steps
 
-- `/gsd-discuss-phase 58` — gather context for Accrue Dunning Core
-- Or `/gsd-plan-phase 58` — skip discussion, plan directly
+- `/gsd-execute-phase 58` — run all 3 plans (58-01 → 58-02 → 58-03)
 
 ## Performance Metrics
 
