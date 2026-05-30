@@ -13,7 +13,7 @@
 
 ### Demo Proof (DEMO)
 
-- [ ] **DEMO-07**: Demo host proves Accrue-driven dunning end-to-end with operator trace inspectability at `/admin/chimeway`
+- [x] **DEMO-07**: Demo host proves Accrue-driven dunning end-to-end with operator trace inspectability at `/admin/chimeway`
 - [ ] **DEMO-08**: Demo host mounts end-user inbox; journey test proves list → mark_read/seen → badge count
 
 ### Inbox UI (INBX)
@@ -67,7 +67,7 @@ Deferred to later milestones. Tracked but not in v1.9 roadmap.
 |-------------|-------|--------|
 | ECOS-06 | Phase 58 | Complete |
 | ECOS-07 | Phase 59 | Complete |
-| DEMO-07 | Phase 59 | Pending |
+| DEMO-07 | Phase 59 | Complete |
 | DOCS-08 (Accrue) | Phase 60 | Pending |
 | DOCS-09 (Accrue) | Phase 60 | Pending |
 | GATE-05 (Accrue) | Phase 60 | Pending |
