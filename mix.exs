@@ -84,7 +84,6 @@ defmodule Chimeway.MixProject do
       "verify.example": [
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test",
         "cmd --shell cd chimeway_admin && mix deps.get && mix test",
-        # chimeway_inbox selective verify.inbox gate lands Phase 62 (GATE-05)
         "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors"
       ],
 
@@ -114,6 +113,12 @@ defmodule Chimeway.MixProject do
         "deps.compile accrue --force",
         "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors",
         "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile accrue --force && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
+      ],
+
+      # v1.9 GATE-05 Inbox: chimeway_inbox package + demo host DEMO-08 :inbox proof
+      "verify.inbox": [
+        "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors",
+        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only inbox --warnings-as-errors"
       ]
     ]
   end
