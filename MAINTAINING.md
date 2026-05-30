@@ -4,23 +4,48 @@ This document is for maintainers cutting releases.
 
 ## Release Runbook
 
-Follow these steps in order for every release:
+### Default path (automated)
 
-### 1. Bump version
+Release Please owns version and changelog SSOT on `main`. Do **not** manually edit `@version` or move CHANGELOG sections on `main` for routine releases.
 
-Edit `mix.exs` and update `@version "X.Y.Z"` to the new version.
+1. **Merge conventional commits to `main`** — Release Please opens or updates a Release PR titled `chore(main): release X.Y.Z` on branch `release-please--branches--main`.
+2. **Confirm ci-gate green on the Release PR head SHA** — Actions → CI workflow → verify the `ci-gate` job succeeded on the PR head commit.
+3. **Automerge (Wave 2+)** — When ci-gate is green, `release-pr-automerge.yml` merges the Release PR automatically. For the bootstrap **1.1.0** release (first after Hex 1.0.0), manual merge is acceptable until automerge is proven.
+4. **On merge** — `release.yml` creates the GitHub Release + `v*` tag, runs `gate-ci-green` on the release SHA, then `publish-hex` publishes to Hex with `HEX_API_KEY`.
+5. **Post-publish verify trio (required locally):**
 
-### 2. Update CHANGELOG.md
-
-Move items from `## [Unreleased]` to a new dated header:
-
+```bash
+mix verify.clean
+mix verify.parity
+mix verify.published X.Y.Z
 ```
-## [X.Y.Z] - YYYY-MM-DD
-```
 
-### 3. Run the full local gate
+- `verify.clean` — confirms no uncommitted files remain after publish prep
+- `verify.parity` — confirms the published file list matches the `files:` whitelist in `mix.exs`
+- `verify.published X.Y.Z` — polls hex.pm to confirm the version is accessible
 
-Run all pre-ship verification commands before tagging or publishing:
+All three must pass before announcing the release.
+
+### Recovery path (exception)
+
+Use only when automation failed **after** ci-gate was green on the target SHA:
+
+1. GitHub Actions → **Publish Hex Recovery** (`publish-hex.yml`)
+2. Dispatch with `tag` (git tag or 40-char SHA) and `release_version` (expected `@version` string)
+3. Optional `dry_run: true` to validate without publishing
+
+Do **not** run `mix hex.publish` on a maintainer laptop as the default publish step.
+
+### Secrets
+
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `HEX_API_KEY` | Yes | Hex publish in `release.yml` and recovery workflow |
+| `RELEASE_PLEASE_TOKEN` | Optional | Fine-grained PAT if Release PR native CI is flaky; `release.yml` falls back to `GITHUB_TOKEN` |
+
+### Pre-ship local commands
+
+Run all seven before opening or merging release-related changes:
 
 ```bash
 mix ci
@@ -34,13 +59,15 @@ mix verify.accrue
 
 - `mix ci` — lint + full test suite
 - `mix ci.docs` — HexDocs build with warnings-as-errors
-- `mix ci.verify_gates` — adoption-surface doc-contract and version-alignment gates (GATE-01)
+- `mix ci.verify_gates` — adoption-surface doc-contract and release gate parity (GATE-01 + GATE-06)
 - `mix verify.example` — demo host webhook E2E + chimeway_admin operator smoke
 - `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
 - `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
 - `mix verify.accrue` — Accrue dunning integration gate (GATE-05 Accrue): ECOS-06 lifecycle tests and DEMO-07 demo host proof; requires sibling Accrue checkout — set `ACCRUE_PATH=../accrue/accrue` locally or let CI job check out szTheory/accrue
 
 All seven must pass before publishing.
+
+These seven local commands map to ci-gate lanes plus publish replay — not seven identical CI job names.
 
 #### Accrue sibling checkout
 
@@ -58,47 +85,9 @@ When modifying any of these paths, also run `mix ci.install_golden` locally befo
 
 CI runs `install_golden_contract` on every push to `main` and on PRs that touch installer surfaces (path-gated). Do not change that gating behavior.
 
-### 4. Commit the release
+### Bootstrap note
 
-```bash
-git add mix.exs CHANGELOG.md
-git commit -m "chore: release vX.Y.Z"
-```
-
-### 5. Tag the release
-
-```bash
-git tag vX.Y.Z
-git push origin main --tags
-```
-
-### 6. Publish to Hex
-
-```bash
-mix hex.publish
-```
-
-Follow the prompts. Confirm the package name and version are correct before confirming.
-
-### 7. Verify the release (required)
-
-Run the verify trio after publishing:
-
-```bash
-mix verify.clean
-mix verify.parity
-mix verify.published X.Y.Z
-```
-
-- `verify.clean` — confirms no uncommitted files remain after publish prep
-- `verify.parity` — confirms the published file list matches the `files:` whitelist in `mix.exs`
-- `verify.published X.Y.Z` — polls hex.pm to confirm the version is accessible
-
-All three must pass before announcing the release.
-
-### 8. Create GitHub Release
-
-Go to the GitHub releases page, create a release from the tag `vX.Y.Z`, and paste the relevant CHANGELOG section as the release notes.
+First automated release after Hex **1.0.0** targets **1.1.0**. Push all unpushed `main` commits before the first Release Please run so the bootstrap PR includes v1.5–v1.9 surface.
 
 ## Refreshing GitHub Actions SHAs
 
@@ -110,4 +99,4 @@ gh api /repos/erlef/setup-beam/git/ref/tags/v1 --jq '.object.sha'
 gh api /repos/actions/cache/git/ref/tags/v4 --jq '.object.sha'
 ```
 
-Update each `uses:` reference in `ci.yml` and `docs.yml` with the new SHAs.
+Update each `uses:` reference in `ci.yml` and `release.yml` with the new SHAs.
