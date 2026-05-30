@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
-status: Ready to execute
-last_updated: "2026-05-30T18:00:00.000Z"
-last_activity: 2026-05-30
+status: Awaiting next milestone
+last_updated: "2026-05-30T20:30:00.000Z"
+last_activity: 2026-05-30 — Milestone v1.9 completed and archived
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 19
-  completed_plans: 19
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.9 milestone complete — optional `/gsd-audit-milestone` or `/gsd-complete-milestone`
+**Current focus:** Planning next milestone (v1.10 — Threadline/Sigra remainder)
 
 ## Current Position
 
-Phase: 62.1 (complete)
+Phase: Milestone v1.9 complete
 Plan: —
-Status: Phase 62.1 verified — 3/3 plans complete
-Last activity: 2026-05-30
+Status: Awaiting next milestone — run `/gsd-new-milestone`
+Last activity: 2026-05-30 — v1.9 Adopter Complete shipped and archived
 
 ## Accumulated Context
 
@@ -109,7 +109,7 @@ None.
 ### Roadmap Evolution
 
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
-- v1.9 Adopter Complete started 2026-05-30 — Phases 58–62, 10 requirements (Accrue dunning + INBX inbox UI)
+- v1.9 Adopter Complete shipped 2026-05-30 — Phases 58–62, 60.1, 62.1; 10/10 requirements (Accrue dunning + INBX inbox UI + Hex automation)
 - v1.7 READ + Adoption Polish shipped 2026-05-29 (Phases 48–53, 11 requirements)
 - v1.6 Consumer Journey Proof shipped 2026-05-29 (Phases 43–47)
 - v1.5 formally closed 2026-05-29 (Phases 35–42)
@@ -118,20 +118,19 @@ None.
 
 ### Deferred Items
 
-Items acknowledged and deferred at v1.8 milestone close on 2026-05-30:
+Items acknowledged and deferred at v1.9 milestone close on 2026-05-30:
 
 | Category | Item | Status |
 |----------|------|--------|
-| seed | SEED-003-ecosystem-integrations (Accrue, Threadline, Sigra remainder) | v1.9+ |
-| seed | SEED-004-personas-and-dx-roadmap (INBX bell UI remainder) | v1.9+ |
-| nyquist | Phases 54–57 VALIDATION.md metadata lag | optional retroactive |
+| seed | SEED-003-ecosystem-integrations (Threadline, Sigra remainder) | v1.10 |
+| seed | SEED-004-personas-and-dx-roadmap (INBX-03 PubSub bell, optional polish) | v1.10+ |
 | integration | Inbox-read signal may not project onto delivery timeline UI (INT-02) | optional polish |
 | integration | `mark_seen` progression E2E not covered (INT-03) | optional polish |
-| integration | Mailglass-specific workflow run resume/stop not E2E asserted (ECOS-04) | tech debt |
-| planning | Phases 43–47 GSD artifacts (SUMMARY/VERIFICATION) | optional retroactive |
+| integration | mark_seen not wired in BellDropdownLive v1.9 — API proof only | v1.10+ |
+| release | First automated Hex 1.1.0 publish pending push + bootstrap Release PR merge | operational |
 
 <details>
-<summary>v1.7 deferred items (superseded)</summary>
+<summary>v1.8 deferred items (superseded)</summary>
 
 Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
@@ -154,8 +153,8 @@ Resume file: .planning/phases/62.1-address-v1-9-tech-debt-nyquist-validation-req
 
 ## Operator Next Steps
 
-- Phase 62 complete — run phase verification / milestone assessment for v1.9 Adopter Complete
-- Push to origin → confirm bootstrap Release PR `chore(main): release 1.1.0` ci-gate green → manual merge first release OR automerge on subsequent releases
+- Run `/gsd-new-milestone` to plan v1.10 (Threadline + Sigra)
+- Push to origin → confirm bootstrap Release PR `chore(main): release 1.1.0` ci-gate green → manual merge first release
 - Run post-publish verify trio after Hex 1.1.0 ships: `mix verify.clean`, `mix verify.parity`, `mix verify.published 1.1.0`
 
 ## Performance Metrics

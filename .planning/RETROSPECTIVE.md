@@ -2,6 +2,56 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.9 — Adopter Complete
+
+**Shipped:** 2026-05-30
+**Phases:** 7 (58–62, 60.1, 62.1) | **Plans:** 19 | **Requirements:** 10/10
+
+### What Was Built
+
+- Accrue dunning vertical slice: billing events → workflow start → Outcome Signal termination (ECOS-06).
+- Accrue blueprint recipe + demo host proof + golden-path guide + `mix verify.accrue` gate (ECOS-07, DEMO-07, DOCS-08/09, GATE-05 Accrue).
+- Release Please + 9-lane ci-gate + gated Hex publish (GATE-06).
+- Headless inbox API polish on core Chimeway (INBX-01).
+- Optional `chimeway_inbox` Phoenix package with bell-dropdown LiveView (INBX-02).
+- Demo host inbox mount, integration guide, and `mix verify.inbox` octet (DEMO-08, DOCS-08/09 Inbox, GATE-05 Inbox).
+- Phase 62.1 closed Nyquist validation + REQUIREMENTS traceability drift.
+
+### What Worked
+
+- Mailglass vertical-slice pattern cloned cleanly for Accrue — workflow + Signal integration, not adapter seam.
+- `chimeway_admin` mount pattern reused for `chimeway_inbox` — optional Phoenix package keeps core Phoenix-free.
+- Parallel Accrue (58–60) and Inbox (61–62) spines after Phase 58 Wave 1 maximized throughput.
+- Post-audit Phase 62.1 closed Nyquist + REQUIREMENTS drift without feature rework — same pattern as v1.7 Phase 53 and v1.8 Phase 57.1.
+- `@moduletag :accrue` and `@moduletag :inbox` selective CI lanes isolate sibling-checkout and package tests.
+
+### What Was Inefficient
+
+- Pre-close audit found Nyquist partial + REQUIREMENTS drift — 62.1 inserted instead of planned upfront.
+- First automated Hex 1.1.0 publish blocked on unpushed commits + bootstrap Release PR merge — structural GATE-06 done, operational step pending.
+- `mark_seen` not wired in BellDropdownLive — API proof only; INT-03 deferred.
+
+### Patterns Established
+
+- Accrue optional dep uses `runtime: false` + manual TestRepo bootstrap (Phase 58).
+- Inbox guide uses public `Chimeway.*` delegates only — doc-contract forbids `Chimeway.Inbox.*` (Phase 62).
+- MAINTAINING pre-ship octet (8 verify gates) + ci-gate 9 lanes — Accrue sibling checkout vs inbox in-repo path deps.
+- Release Please automerge requires ci-gate + title + label gate (Phase 60.1).
+
+### Key Lessons
+
+1. Clone proven vertical-slice pattern (Mailglass → Accrue → Inbox) — deep composition beats broad matrix.
+2. Close-out decimal phases (62.1) are cheaper than shipping with process debt — budget them or run audit before feature freeze.
+3. Optional Phoenix packages (`chimeway_admin`, `chimeway_inbox`) scale adopter UX without bloating core.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: Phases 58–62.1 shipped 2026-05-29 → 2026-05-30 (~1 day burst)
+- Notable: 105 commits since v1.8; 10/10 requirements satisfied at audit
+
+---
+
 ## Milestone: v1.8 — Ecosystem Integration Blueprints
 
 **Shipped:** 2026-05-30

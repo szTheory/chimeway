@@ -8,24 +8,17 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
-## Current Milestone: v1.9 Adopter Complete
+## Current Milestone: v1.10 (planned)
 
-**Goal:** Close the last adopter-facing gaps — Accrue dunning blueprint (SEED-003 slice) and end-user inbox UI (SEED-004 INBX) — so Chimeway is adoptable off the lot for all three personas.
+**Goal:** SEED-003 remainder — Threadline telemetry bridge and Sigra auth notification flows. Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI.
 
-**Target features:**
-- Accrue `invoice.payment_failed` → Chimeway dunning workflow → `invoice.paid` termination via Signal engine (ECOS-06)
-- Accrue dunning reference recipe with demo host proof and operator traces (ECOS-07, DEMO-07)
-- Headless inbox API polish: unread count, pagination, stable DTO maps (INBX-01)
-- Optional `chimeway_inbox` package: mountable router, recipient auth behaviour, unstyled bell-dropdown LiveView (INBX-02)
-- Golden-path guides, doc-contract tests, and `mix verify.accrue` / `mix verify.inbox` release gates
-
-**Included seeds:** SEED-003 (Accrue slice only), SEED-004 (INBX slice only)
+**Start planning:** `/gsd-new-milestone`
 
 ## Current State
 
-**Phase 60 Accrue Docs & Release Gate complete (2026-05-30):** Golden-path Accrue dunning integration guide (DOCS-08), doc-contract truth lock (DOCS-09), and `mix verify.accrue` CI gate + MAINTAINING septet (GATE-05 Accrue half). **200 doc-contract tests** green; Accrue verify gate passes with sibling checkout.
+**v1.9 Adopter Complete shipped (2026-05-30):** Accrue dunning vertical slice (Phases 58–60) — billing events drive Chimeway dunning workflows with Outcome Signal termination; blueprint recipe, demo proof, golden-path guide, and `mix verify.accrue` gate (ECOS-06/07, DEMO-07, DOCS-08/09, GATE-05 Accrue). Hex release automation via Release Please + 9-lane ci-gate + gated Hex publish (GATE-06, Phase 60.1). INBX inbox UI vertical slice (Phases 61–62) — headless API polish, optional `chimeway_inbox` package, demo mount, integration guide, and `mix verify.inbox` octet (INBX-01/02, DEMO-08, DOCS-08/09 Inbox, GATE-05 Inbox). **264+ doc-contract tests** green; Accrue and inbox verify gates pass.
 
-**v1.8 Ecosystem Integration Blueprints shipped (2026-05-30):** Phases 54–57, 57.1 — `Chimeway.Adapters.Mailglass` outbound adapter with contract tests (ECOS-01/02), inbound webhook feedback bridge with `provider_message_id` correlation (ECOS-03/04), ECOS-05 reference blueprint with DEMO-06 demo host proof, golden-path integration guide (DOCS-06), doc-contract truth lock (DOCS-07), and `mix verify.mailglass` release gate (GATE-04). **159 doc-contract + journey/mailglass gates** green at audit.
+**v1.8 Ecosystem Integration Blueprints shipped (2026-05-30):** Phases 54–57, 57.1 — Mailglass adapter, inbound feedback bridge, blueprint recipe, demo proof, integration docs, and `mix verify.mailglass` gate.
 
 Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read/unread workflow glue, journey CI (`mix verify.journeys`), adoption docs, and demo host proof remain the adoption foundation.
 
@@ -37,12 +30,27 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.6 Consumer Journey Proof` — TeamPulse demo, deterministic seeds, journey CI, one-command spin-up (shipped 2026-05-29).
 - `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (shipped 2026-05-29).
 - `v1.8 Ecosystem Integration Blueprints` — Mailglass-first adapter, inbound feedback bridge, reference recipe, demo proof, integration docs, and verify gate (shipped 2026-05-30).
+- `v1.9 Adopter Complete` — Accrue dunning blueprint, INBX inbox UI package, Hex release automation, verify.accrue/inbox gates (shipped 2026-05-30).
 
 ## Next Milestone Goals
 
-**v1.10 (planned):** SEED-003 remainder — Threadline telemetry bridge, Sigra auth notification flows. Optional polish: INT-02/03, ADPT-01 greenfield CI, real-time PubSub bell.
+**v1.10 (planned):** SEED-003 remainder — Threadline telemetry bridge (`ECOS-08`), Sigra auth notification flows (`ECOS-09`). Optional polish: INT-02/03, INBX-03 real-time PubSub bell, ADPT-01 greenfield CI.
 
-**Explicitly deferred from v1.9:** Threadline bridge, Sigra auth blueprints, real-time PubSub bell updates, INT-02/03 polish, ADPT-01, broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
+**Explicitly deferred from v1.10 planning until scoped:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
+
+### Shipped v1.9 Features (Validated)
+
+- Accrue `invoice.payment_failed` starts multi-step dunning workflow; `invoice.paid` terminates via Outcome Signal — no host glue (ECOS-06)
+- Accrue dunning reference blueprint with doc-contract truth lock and billing-state split language (ECOS-07)
+- Demo host Accrue dunning proof with operator traces at `/admin/chimeway` (DEMO-07)
+- Golden-path Accrue integration guide with doc-contract tests (DOCS-08/09 Accrue)
+- `mix verify.accrue` CI gate + MAINTAINING pre-ship septet (GATE-05 Accrue)
+- Release Please SSOT, 9-lane ci-gate, automerge + recovery publish path (GATE-06)
+- Headless inbox API: `unread_count/1`, paginated `list_for_recipient/2`, stable DTO maps (INBX-01)
+- Optional `chimeway_inbox` package: Auth behaviour, router macro, bell-dropdown LiveView (INBX-02)
+- Demo host `/inbox` mount with journey proof for list → mark_read → badge (DEMO-08)
+- Inbox integration guide with doc-contract tests (DOCS-08/09 Inbox)
+- `mix verify.inbox` CI gate + MAINTAINING pre-ship octet (GATE-05 Inbox)
 
 ### Shipped v1.8 Features (Validated)
 
@@ -116,8 +124,8 @@ Prior context includes:
 - Next value jump is adoption surface: reference flows, integration docs, and operator UX — not more channel matrix expansion.
 - Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — **resolved by v1.5** (installer task, golden path, operator UI, demo trace path, release gates).
 - Adopter assessment (2026-05-29): ~88–92% done post-v1.6 — adoption evidence (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E) resolved the pre-adopter confidence gap.
-- v1.8 Ecosystem Integration Blueprints shipped 2026-05-30 — Mailglass adapter, inbound feedback bridge, blueprint recipe, demo proof, integration docs, verify gate.
-- Adopter assessment post-v1.8: ~94–96% for embedded-notification scope — ecosystem Mailglass composition proven; next value jump is SEED-003 remainder + INBX (v1.9).
+- v1.9 Adopter Complete shipped 2026-05-30 — Accrue dunning + INBX inbox UI + Hex release automation; all three SEED-004 personas now have adoptable paths.
+- Adopter assessment post-v1.9: ~98% for embedded-notification scope — Accrue composition and end-user inbox UI proven; next wedge is Threadline/Sigra (v1.10).
 
 ## Constraints
 
@@ -128,7 +136,7 @@ Prior context includes:
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
 - **Scope**: Orchestration and explainability remain higher leverage than broad channel expansion.
-- **Scope**: v1.9 closes Accrue dunning + INBX inbox UI; Threadline/Sigra and optional polish remain v1.10+.
+- **Scope**: v1.9 shipped Accrue dunning + INBX inbox UI + Hex automation; v1.10 scopes Threadline/Sigra remainder.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -176,8 +184,34 @@ Prior context includes:
 | Journey suite keeps Logger adapter; Mailglass isolated | `@moduletag :mailglass` selective CI — no journey regression | Shipped v1.8 Phase 56 |
 | Guide vs blueprint doc separation | Introduction guide owns end-to-end path; blueprint is focused recipe | Shipped v1.8 Phase 57 |
 | Webhook doc-contract explicit string list for multi-token patterns | ~w sigil splits multi-word forbidden patterns incorrectly | Shipped v1.8 Phase 57.1 |
+| Accrue-only v1.9 SEED-003 slice | Mailglass vertical-slice pattern reusable; prove billing composition before Threadline/Sigra | Shipped v1.9 |
+| Optional `chimeway_inbox` Phoenix package | Core `lib/chimeway` stays Phoenix-free; clone chimeway_admin mount pattern | Shipped v1.9 Phase 61 |
+| Accrue runtime: false + manual TestRepo bootstrap | Avoid OTP app boot blocking default mix test (Mailglass 54-01 precedent) | Shipped v1.9 Phase 58 |
+| Release Please + ci-gate before Hex publish | lattice_stripe pattern; no manual mix hex.publish | Shipped v1.9 Phase 60.1 |
+| MAINTAINING pre-ship octet (8 verify gates) | Accrue + inbox gates complete the adopter verify surface | Shipped v1.9 Phase 62 |
 
 ## Archived Milestone Context
+
+<details>
+<summary>v1.9 Adopter Complete planning context</summary>
+
+### Milestone Scope
+
+Close last adopter-facing gaps: Accrue dunning blueprint (SEED-003 slice) and end-user inbox UI (SEED-004 INBX slice), plus Hex release automation.
+
+### Delivered Features
+
+- Accrue billing events drive dunning workflow lifecycle with Outcome Signal termination (ECOS-06).
+- Accrue blueprint recipe + demo host proof + golden-path guide + verify.accrue gate (ECOS-07, DEMO-07, DOCS-08/09, GATE-05).
+- Release Please + ci-gate + gated Hex publish (GATE-06).
+- Headless inbox API + chimeway_inbox package + demo mount + guide + verify.inbox gate (INBX-01/02, DEMO-08, DOCS-08/09, GATE-05 Inbox).
+- Phase 62.1 Nyquist + REQUIREMENTS traceability closure.
+
+### Validated Requirements Snapshot
+
+- ECOS-06/07, DEMO-07/08, INBX-01/02, DOCS-08/09, GATE-05/06 — all satisfied (10 requirements).
+
+</details>
 
 <details>
 <summary>v1.8 Ecosystem Integration Blueprints planning context</summary>
@@ -353,4 +387,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 — Phase 60 Accrue docs & release gate complete*
+*Last updated: 2026-05-30 after v1.9 Adopter Complete milestone*

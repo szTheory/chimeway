@@ -1,5 +1,31 @@
 # Milestones
 
+## v1.9 Adopter Complete
+
+- Status: shipped
+- Date: 2026-05-30
+- Phases: 58–62, 60.1, 62.1 (7 phases, 19 plans)
+- Requirements: 10/10 satisfied
+- Git tag: v1.9
+- Git range: v1.8..v1.9 (105 commits, 124 files, +13,279 / −188 LOC)
+- Audit: [milestones/v1.9-MILESTONE-AUDIT.md](milestones/v1.9-MILESTONE-AUDIT.md) (passed)
+- Known deferred items at close: 2 dormant seeds — SEED-003/004 remainder → v1.10 (see STATE.md Deferred Items)
+- Key accomplishments:
+
+- Accrue `invoice.payment_failed` → multi-step dunning workflow with `invoice.paid` Outcome Signal termination — no host glue (ECOS-06)
+- Accrue dunning blueprint recipe with doc-contract truth lock and demo host proof at `/admin/chimeway` (ECOS-07, DEMO-07)
+- Golden-path Accrue integration guide, doc-contract tests, and `mix verify.accrue` CI gate + MAINTAINING septet (DOCS-08/09, GATE-05 Accrue)
+- Release Please + 9-lane ci-gate + automated Hex publish path gated on ci-gate green (GATE-06)
+- Headless inbox API: `unread_count/1`, keyset-paginated `list_for_recipient/2`, stable DTO maps (INBX-01)
+- Optional `chimeway_inbox` package: recipient auth behaviour, router macro, unstyled bell-dropdown LiveView (INBX-02)
+- Demo host `/inbox` mount with `seed_inbox/0` and selective `:inbox` journey proof (DEMO-08)
+- Inbox integration guide, doc-contract tests, and `mix verify.inbox` + MAINTAINING octet (DOCS-08/09 Inbox, GATE-05 Inbox)
+- Phase 62.1 closed Nyquist validation + REQUIREMENTS traceability drift from pre-close audit
+
+- Notes: Accrue-only SEED-003 slice + INBX SEED-004 slice; Threadline/Sigra deferred to v1.10; first automated Hex 1.1.0 publish pending push + bootstrap Release PR merge
+
+---
+
 ## v1.8 Ecosystem Integration Blueprints
 
 - Status: shipped
