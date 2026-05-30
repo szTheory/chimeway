@@ -24,7 +24,7 @@
 ### Integration Docs (DOCS)
 
 - [x] **DOCS-08**: Golden-path integration guides cover Accrue dunning setup and inbox UI mount (dependencies → config → proof)
-- [ ] **DOCS-09**: Doc-contract tests lock Accrue and inbox integration guide truth and forbid regressions
+- [x] **DOCS-09**: Doc-contract tests lock Accrue and inbox integration guide truth and forbid regressions
 
 ### Release Gates (GATE)
 
