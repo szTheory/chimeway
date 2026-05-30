@@ -145,7 +145,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 58. Accrue Dunning Core | 3/3 | Complete   | 2026-05-30 |
+| 58. Accrue Dunning Core | 3/3 | Complete    | 2026-05-30 |
 | 59. Accrue Blueprint & Demo | 0/TBD | Not started | — |
 | 60. Accrue Docs & Release Gate | 0/TBD | Not started | — |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
