@@ -28,7 +28,7 @@
 
 ### Release Gates (GATE)
 
-- [ ] **GATE-05**: Named verify entrypoints `mix verify.accrue` and `mix verify.inbox` run in CI and appear in MAINTAINING.md pre-ship checklist
+- [x] **GATE-05**: Named verify entrypoints `mix verify.accrue` and `mix verify.inbox` run in CI and appear in MAINTAINING.md pre-ship checklist
 
 ## Future Requirements
 

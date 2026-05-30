@@ -162,7 +162,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 58. Accrue Dunning Core | 3/3 | Complete    | 2026-05-30 |
 | 59. Accrue Blueprint & Demo | 2/2 | Complete    | 2026-05-30 |
-| 60. Accrue Docs & Release Gate | 3/3 | Complete   | 2026-05-30 |
+| 60. Accrue Docs & Release Gate | 3/3 | Complete    | 2026-05-30 |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
 
