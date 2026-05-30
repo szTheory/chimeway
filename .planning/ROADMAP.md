@@ -27,6 +27,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 - [x] **Phase 58: Accrue Dunning Core** — Optional `accrue` dep; billing events start/stop Chimeway dunning workflows via Signal engine (completed 2026-05-30)
 - [x] **Phase 59: Accrue Blueprint & Demo** — Reference recipe plus demo host Accrue dunning proof with operator traces (completed 2026-05-30)
 - [x] **Phase 60: Accrue Docs & Release Gate** — Golden-path guide, doc-contract tests, and `mix verify.accrue` CI gate (completed 2026-05-30)
+- [ ] **Phase 60.1: Hex Release Pipeline** — Release Please SSOT, ci-gate, automated Hex publish (lattice_stripe pattern)
 - [ ] **Phase 61: Inbox Headless + Package** — Core API polish and bootstrap `chimeway_inbox` optional package
 - [ ] **Phase 62: Inbox Demo, Docs & Gate** — Demo mount, inbox guide, doc-contract, and `mix verify.inbox` release gate
 
@@ -111,6 +112,35 @@ Plans:
 - Guide vs blueprint separation — introduction owns path, recipe owns copy-paste sections (60-01)
 - Sibling Accrue checkout required for CI and local `mix verify.accrue` (60-03)
 
+### Phase 60.1: Hex Release Pipeline
+
+**Goal:** Unreleased work since Hex 1.0.0 ships automatically — Release Please owns version/changelog; CI gates block publish until all verify lanes pass.
+
+**Depends on:** Phase 60 (pre-ship septet + release gate parity contracts)
+
+**Requirements:** GATE-06
+
+**Success Criteria** (what must be TRUE):
+
+1. Release Please opens version PRs from conventional commits; manifest SSOT starts at 1.0.0
+2. `ci-gate` aggregates lint, test, verify_gates, verify_docs, verify_example, verify_journeys, verify_mailglass, verify_accrue
+3. Hex publish runs only after ci-gate green on release SHA; version appears on hex.pm without manual `mix hex.publish`
+
+**Plans:** 2/2
+
+**Wave 1:** 60.1-01 — ci-gate + Release Please config + hardened release.yml  
+**Wave 2 *(blocked on 60.1-01)*:** 60.1-02 — automerge, publish-hex recovery, MAINTAINING, contract tests
+
+**Cross-cutting constraints:**
+
+- Copy from `~/projects/lattice_stripe` workflows — no second YAML encyclopedia in planning docs
+- First target release **1.1.0** (additive since 1.0.0); inbox phases 61–62 unchanged
+- Push unpushed `main` commits before first automated release PR
+
+Plans:
+- [x] 60.1-01-PLAN.md — ci-gate (8 lanes), release-please JSON, gate-ci-green publish path ✓
+- [ ] 60.1-02-PLAN.md — automerge, recovery workflow, runbook, release contract extension
+
 ### Phase 61: Inbox Headless + Package
 
 **Goal:** Headless inbox API is UI-ready and an optional `chimeway_inbox` package provides mountable bell-dropdown LiveView components for end-user JTBD.
@@ -163,8 +193,9 @@ Plans:
 | 58. Accrue Dunning Core | 3/3 | Complete    | 2026-05-30 |
 | 59. Accrue Blueprint & Demo | 2/2 | Complete    | 2026-05-30 |
 | 60. Accrue Docs & Release Gate | 3/3 | Complete    | 2026-05-30 |
+| 60.1. Hex Release Pipeline | 1/2 | In Progress | — |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
 
 ---
-*Roadmap updated: 2026-05-30 — milestone v1.9 Adopter Complete*
+*Roadmap updated: 2026-05-30 — Phase 60.1-01 Wave 1 complete*

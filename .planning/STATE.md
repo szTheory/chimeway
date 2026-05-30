@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
 status: executing
-last_updated: "2026-05-30T11:51:20.814Z"
-last_activity: 2026-05-30 -- Phase 60.1 planning complete
+last_updated: "2026-05-30T12:15:00.000Z"
+last_activity: 2026-05-30 -- Phase 60.1-01 complete (Wave 1 ci-gate + release hardening)
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
-  percent: 50
+  completed_plans: 9
+  percent: 55
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 60.1 — Hex release pipeline (automated publish), then Phase 61 inbox
+**Current focus:** Phase 60.1 — hex-release-pipeline
 
 ## Current Position
 
-Phase: 60.1
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-30 -- Phase 60.1 planning complete
+Phase: 60.1 (hex-release-pipeline) — EXECUTING
+Plan: 2 of 2
+Status: Wave 1 complete; ready for 60.1-02 (automerge + recovery)
+Last activity: 2026-05-30 -- Phase 60.1-01 complete (Wave 1 ci-gate + release hardening)
 
 ## Accumulated Context
 
@@ -69,6 +69,9 @@ Last activity: 2026-05-30 -- Phase 60.1 planning complete
 - [v1.9]: Research skipped — reuse Mailglass vertical-slice pattern for Accrue; clone chimeway_admin for chimeway_inbox
 - [v1.9]: Accrue-only SEED-003 slice; Threadline/Sigra deferred to v1.10
 - [v1.9]: INBX via optional chimeway_inbox package (not core lib); recipient auth behaviour pluggable like ChimewayAdmin.Auth
+- [60.1-01]: ci-gate aggregates 8 lanes; install_golden_contract stays outside needs
+- [60.1-01]: Release Please manifest SSOT at 1.0.0; first automated bump targets 1.1.0
+- [60.1-01]: Wave 1 manual merge of bootstrap Release PR; automerge deferred to 60.1-02
 - [58-01]: Accrue optional dep uses runtime: false — manual TestRepo bootstrap; avoid OTP app boot blocking default mix test
 - [58-01]: Accrue test config unconditional in config/test.exs (Mailglass 54-01 precedent); dunning engine pinned in test_helper
 - [58-01]: Runtime Code.compile_file for Accrue.Integrations.Chimeway — dep compile order elides integration module
@@ -138,7 +141,8 @@ Resume file: .planning/phases/60.1-hex-release-pipeline/60.1-CONTEXT.md
 
 ## Operator Next Steps
 
-- `/gsd-execute-phase 58` — run 58-03 (invoice.paid termination proof)
+- Push Wave 1 to origin → wait for Release Please PR `chore(main): release 1.1.0` → confirm ci-gate green → manual merge
+- `/gsd-execute-phase 60.1` — run 60.1-02 (automerge, publish-hex recovery, MAINTAINING, contract tests)
 
 ## Performance Metrics
 
@@ -157,4 +161,4 @@ Resume file: .planning/phases/60.1-hex-release-pipeline/60.1-CONTEXT.md
 | Phase 57-docs-release-gates P03 | 12min | 3 tasks | 3 files |
 | Phase 57-docs-release-gates P02 | 6min | 1 tasks | 1 files |
 | Phase 58-accrue-dunning-core P01 | 45min | 3 tasks | 9 files |
-| Phase 58-accrue-dunning-core P02 | 25min | 3 tasks | 5 files |
+| Phase 60.1 hex-release-pipeline P01 | 15min | 4 tasks | 5 files |
