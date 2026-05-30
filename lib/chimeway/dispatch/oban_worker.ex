@@ -126,6 +126,7 @@ if Code.ensure_loaded?(Oban) do
             delivery_id: delivery.id,
             channel: delivery.channel,
             notification_key: Map.get(delivery.metadata || %{}, "notification_key"),
+            correlation_id: Map.get(delivery.metadata || %{}, "correlation_id"),
             attempt: attempt,
             max_attempts: max_attempts
           }),

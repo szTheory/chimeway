@@ -146,10 +146,95 @@ defmodule Chimeway.TelemetryIntegrationTest do
         attempt_id: "aid",
         outcome: :succeeded,
         suppression_reason: "disabled",
+        planning_reason: "quiet_hours",
         correlation_id: "req-1"
       }
 
       assert Telemetry.safe_meta(allowed) == allowed
+    end
+
+    test "retains planning_reason while stripping PII (D-08)" do
+      assert %{planning_reason: "digest_rule"} =
+               Telemetry.safe_meta(%{
+                 planning_reason: "digest_rule",
+                 email: "secret@example.com"
+               })
+    end
+  end
+
+  describe "planning_reason redaction (D-08)" do
+    alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Policy, Repo}
+    alias Chimeway.Policy.Settings
+
+    setup do
+      test_pid = self()
+      handler_id = :"chimeway_planning_reason_#{System.unique_integer()}"
+
+      :telemetry.attach(
+        handler_id,
+        [:chimeway, :policy, :evaluate, :stop],
+        fn _event, _measurements, metadata, _config ->
+          send(test_pid, {:policy_evaluate_stop, metadata})
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
+      {:ok, event} =
+        %Event{}
+        |> Event.changeset(%{
+          notification_key: "policy.quiet_hours",
+          notification_version: 1,
+          idempotency_key: "planning-reason-#{System.unique_integer()}",
+          payload: %{}
+        })
+        |> Repo.insert()
+
+      {:ok, notification} =
+        %Notification{}
+        |> Notification.changeset(%{
+          event_id: event.id,
+          recipient_identity: "user-policy-quiet-hours-telem",
+          recipient_type: "user",
+          metadata: %{"correlation_id" => "test-corr-planning-reason"}
+        })
+        |> Repo.insert()
+
+      {:ok, delivery} =
+        %Delivery{}
+        |> Delivery.changeset(%{
+          notification_id: notification.id,
+          channel: "in_app",
+          status: :pending,
+          tenant_id: "default",
+          actor_id: "system",
+          metadata: %{
+            "notification_key" => "policy.quiet_hours",
+            "correlation_id" => "test-corr-planning-reason"
+          }
+        })
+        |> Repo.insert()
+
+      assert {:ok, _} =
+               Settings.upsert_settings(%{
+                 recipient_id: "user-policy-quiet-hours-telem",
+                 quiet_hours_start_minute: 22 * 60,
+                 quiet_hours_end_minute: 8 * 60,
+                 time_zone: "America/New_York"
+               })
+
+      %{delivery: delivery}
+    end
+
+    test "defer policy span stop meta includes planning_reason without PII", %{delivery: delivery} do
+      assert {:defer, _decision} =
+               Policy.evaluate(delivery, evaluation_time: ~U[2026-01-15 03:30:00Z])
+
+      assert_receive {:policy_evaluate_stop, meta}, 500
+      assert meta.planning_reason == "quiet_hours"
+      refute Map.has_key?(meta, :email)
+      refute Map.has_key?(meta, :body)
     end
   end
 
@@ -304,12 +389,14 @@ defmodule Chimeway.TelemetryIntegrationTest do
       assert meta.notification_key == "test_support_notifier"
       assert meta.delivery_id != nil
       assert meta.channel == "in_app"
+      assert String.starts_with?(meta.correlation_id, "test-corr-")
 
       # 4. dispatch:sync
       assert_receive {:telemetry_event, [:chimeway, :dispatch, :sync, :stop], meta}, 500
       assert meta.notification_key == "test_support_notifier"
       assert meta.delivery_id != nil
       assert meta.channel == "in_app"
+      assert String.starts_with?(meta.correlation_id, "test-corr-")
 
       # 5. attempts:record
       assert_receive {:telemetry_event, [:chimeway, :attempts, :record, :stop], meta}, 500
@@ -318,9 +405,7 @@ defmodule Chimeway.TelemetryIntegrationTest do
       assert meta.channel == "in_app"
       assert meta.attempt_id != nil
       assert meta.outcome == :succeeded
-
-      # Redaction check: correlation_id should NOT appear in attempts:record
-      refute Map.has_key?(meta, :correlation_id)
+      assert String.starts_with?(meta.correlation_id, "test-corr-")
     end
   end
 end

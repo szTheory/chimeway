@@ -47,7 +47,8 @@ defmodule Chimeway.Policy do
         delivery_id: delivery.id,
         channel: delivery.channel,
         notification_key: Map.get(delivery.metadata || %{}, "notification_key"),
-        category: delivery_category(delivery)
+        category: delivery_category(delivery),
+        correlation_id: Map.get(delivery.metadata || %{}, "correlation_id")
       }),
       fn ->
         check_read_state = Keyword.get(opts, :check_read_state, false)

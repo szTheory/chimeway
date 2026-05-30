@@ -88,7 +88,8 @@ defmodule Chimeway.Dispatch.Sync do
       Telemetry.safe_meta(%{
         delivery_id: delivery.id,
         channel: delivery.channel,
-        notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+        notification_key: Map.get(delivery.metadata || %{}, "notification_key"),
+        correlation_id: Map.get(delivery.metadata || %{}, "correlation_id")
       }),
       fn ->
         # D-22: do_dispatch/1 now returns {result, adapter_module} so the stop-meta

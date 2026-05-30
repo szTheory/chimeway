@@ -987,7 +987,8 @@ defmodule Chimeway.Deliveries do
       Telemetry.safe_meta(%{
         delivery_id: delivery.id,
         channel: delivery.channel,
-        notification_key: Map.get(delivery.metadata || %{}, "notification_key")
+        notification_key: Map.get(delivery.metadata || %{}, "notification_key"),
+        correlation_id: Map.get(delivery.metadata || %{}, "correlation_id")
       }),
       fn ->
         result = do_record_attempt(delivery, attrs)
