@@ -1,5 +1,11 @@
 defmodule DemoHost.Seeds do
-  @compile {:no_warn_undefined, [DemoHost.AccrueSeeds]}
+  @compile {:no_warn_undefined,
+            [
+              DemoHost.AccrueSeeds,
+              Sigra.Integrations.Chimeway,
+              Sigra.Integrations.Chimeway.MagicLinkNotifier,
+              Sigra.Integrations.Chimeway.PendingDelivery
+            ]}
   @moduledoc """
   Deterministic TeamPulse demo data for local exploration and journey tests.
 
@@ -192,6 +198,107 @@ defmodule DemoHost.Seeds do
     end
   end
 
+  @doc """
+  DEMO-09: Threadline audit correlation for notification lifecycle with reporter attached.
+
+  Triggers `Chimeway.trigger/3` via `DemoHost.Notifiers.InviteSent` while a
+  `Chimeway.Telemetry.ThreadlineReporter` is attached by the caller's test setup.
+  Standalone API; not invoked from `run/0`. Caller must attach ThreadlineReporter in setup.
+
+  Returns `{:ok, %{recipient_identity: ..., trace: %{delivery_ids: [...], correlation_id: ...}}}`.
+  """
+  @spec seed_threadline_notification() :: {:ok, map()} | {:error, term()}
+  def seed_threadline_notification do
+    if Code.ensure_loaded?(Chimeway.Telemetry.ThreadlineReporter) do
+      recipient = alex_identity()
+      correlation_id = "teampulse-seed-threadline-corr-#{System.unique_integer([:positive])}"
+
+      case Chimeway.trigger(
+             DemoHost.Notifiers.InviteSent,
+             %{email: @alex_email, team_name: "Threadline Demo"},
+             idempotency_key: "teampulse-seed-threadline-v1-#{System.unique_integer([:positive])}",
+             correlation_id: correlation_id,
+             tenant_id: @tenant_id
+           ) do
+        {:ok, result} ->
+          event_id = result.trace.event_id
+          delivery_ids = delivery_ids_for_event(event_id)
+
+          {:ok,
+           %{
+             recipient_identity: recipient,
+             trace: %{delivery_ids: delivery_ids, correlation_id: correlation_id}
+           }}
+
+        {:duplicate, _event} ->
+          {:error, :duplicate_seed}
+
+        {:error, _} = err ->
+          err
+      end
+    else
+      {:error, :threadline_not_available}
+    end
+  end
+
+  @doc """
+  DEMO-10: Sigra auth → Chimeway durable delivery with operator trace inspectability.
+
+  Triggers `sigra.auth.magic_link` via Chimeway using the Sigra integration module's
+  notifier directly. Standalone API; not invoked from `run/0`. Caller must configure
+  Sigra integration (enabled: true) and Chimeway adapter in setup.
+
+  Returns `{:ok, %{recipient_identity: ..., trace: %{delivery_ids: [...], correlation_id: ...}}}`.
+  Never exposes `raw_token` or `url` in the returned map.
+  """
+  @spec seed_sigra_auth() :: {:ok, map()} | {:error, term()}
+  def seed_sigra_auth do
+    if Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
+      idempotency_key = "teampulse-seed-sigra-magic-link-#{System.unique_integer([:positive])}"
+      correlation_id = "teampulse-seed-sigra-corr-#{System.unique_integer([:positive])}"
+
+      # Pre-populate PendingDelivery so MagicLinkNotifier.rendering/2 can pop the URL at render time.
+      # The URL itself is discarded — only identifier fields reach the Chimeway trace.
+      :ok =
+        Sigra.Integrations.Chimeway.PendingDelivery.put(idempotency_key, %{
+          url: "https://example.test/demo-auth/#{idempotency_key}"
+        })
+
+      trigger_params = %{
+        "idempotency_key" => idempotency_key,
+        "user_id" => @alex_email,
+        "email" => @alex_email,
+        "kind" => "magic_link"
+      }
+
+      trigger_opts = [
+        idempotency_key: idempotency_key,
+        tenant_id: @tenant_id,
+        correlation_id: correlation_id
+      ]
+
+      case Chimeway.trigger(Sigra.Integrations.Chimeway.MagicLinkNotifier, trigger_params, trigger_opts) do
+        {:ok, result} ->
+          event_id = result.trace.event_id
+          delivery_ids = delivery_ids_for_event(event_id)
+
+          {:ok,
+           %{
+             recipient_identity: @alex_email,
+             trace: %{delivery_ids: delivery_ids, correlation_id: correlation_id}
+           }}
+
+        {:duplicate, _event} ->
+          {:error, :duplicate_seed}
+
+        {:error, _} = err ->
+          err
+      end
+    else
+      {:error, :sigra_not_available}
+    end
+  end
+
   @doc "Accrue demo customer email for admin trace search."
   def accrue_demo_email do
     if Code.ensure_loaded?(DemoHost.AccrueSeeds) do
@@ -256,6 +363,16 @@ defmodule DemoHost.Seeds do
     from(n in Notification,
       where: n.event_id == ^event_id and n.recipient_identity == ^alex_identity(),
       select: n.id
+    )
+    |> Repo.all()
+  end
+
+  defp delivery_ids_for_event(event_id) do
+    from(d in Delivery,
+      join: n in Notification,
+      on: d.notification_id == n.id,
+      where: n.event_id == ^event_id,
+      select: d.id
     )
     |> Repo.all()
   end
