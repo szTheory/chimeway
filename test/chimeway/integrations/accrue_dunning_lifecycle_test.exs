@@ -79,7 +79,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
         assert length(list_dunning_runs!(customer.id)) == 1
       end
 
-      test "wait_until sets pending_signals after initial email delivery", %{
+      test "wait_until enters waiting; invoice.paid Signal terminates via route_signal", %{
         customer: customer,
         subscription: subscription,
         invoice: invoice
@@ -96,7 +96,8 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
 
         assert waiting_run.state == :waiting
         assert waiting_run.status_reason == "waiting_for_step_progression"
-        assert waiting_run.pending_signals == ["invoice.paid"]
+        assert waiting_run.pending_signals == []
+        assert waiting_run.status_context["rule_kind"] == "wait_until"
       end
     end
 
@@ -135,7 +136,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
           start_dunning_and_wait!(invoice, subscription, customer)
 
         assert waiting_run.state == :waiting
-        assert waiting_run.pending_signals == ["invoice.paid"]
+        assert waiting_run.pending_signals == []
         assert waiting_run.status_reason == "waiting_for_step_progression"
 
         due_at = parse_iso8601!(waiting_run.status_context["due_at"])

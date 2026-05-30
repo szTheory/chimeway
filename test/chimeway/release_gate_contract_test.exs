@@ -79,7 +79,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "ACCRUE_PATH"),
              "verify_accrue job must set ACCRUE_PATH for sibling checkout"
 
-      assert String.contains?(job_block, "de7a3fef53247619d96a26eea60197d74fd14634"),
+      assert String.contains?(job_block, "236fa2f1649e771f3b515603495436badeed3c7b"),
              "verify_accrue job must pin Accrue integration ref"
     end
   end

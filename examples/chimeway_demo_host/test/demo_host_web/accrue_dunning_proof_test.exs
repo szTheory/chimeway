@@ -52,7 +52,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
 
       run = Repo.get!(WorkflowRun, result.workflow_run_id)
       assert run.state == :waiting
-      assert run.pending_signals == ["invoice.paid"]
+      assert run.pending_signals == []
       assert result.workflow_key == "accrue.dunning"
 
       delivery = Repo.get!(Delivery, hd(result.trace.delivery_ids))
@@ -71,7 +71,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
       %{workflow_run: waiting_run} = start_dunning_and_wait!(invoice, subscription, customer)
 
       assert waiting_run.state == :waiting
-      assert waiting_run.pending_signals == ["invoice.paid"]
+      assert waiting_run.pending_signals == []
 
       assert {:ok, _row} = trigger_invoice_paid_event!(invoice, subscription, customer)
       assert %{success: 1} = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)

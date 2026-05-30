@@ -125,7 +125,18 @@ Plans:
 2. Doc-contract tests fail if guide text regresses to pre-integration assumptions or omits required setup steps
 3. `mix verify.threadline` and `mix verify.sigra` run in CI and appear in MAINTAINING.md pre-ship checklist without breaking the existing verify octet
 
-**Plans:** 0 plans
+**Plans:** 3 plans
+
+**Wave 1** *(parallel — no inter-plan file conflicts)*
+
+Plans:
+- [ ] 66-01-PLAN.md — Threadline integration guide (DOCS-10) + Sigra auth integration guide (DOCS-10)
+- [ ] 66-02-PLAN.md — mix verify aliases + CI jobs + MAINTAINING.md + release gate contract test (GATE-07)
+
+**Wave 2** *(blocked on Plan 66-01 completion)*
+
+Plans:
+- [ ] 66-03-PLAN.md — Doc-contract describe blocks for both guides + hexdocs extras ordering tests (DOCS-11)
 
 ## Progress
 
@@ -134,7 +145,7 @@ Plans:
 | 63 Threadline Telemetry Bridge | 2/2 | Complete    | 2026-05-30 |
 | 64 Sigra Auth Flows Core | 1/2 | In Progress|  |
 | 65 Ecosystem Blueprints & Demo | 3/3 | Complete    | 2026-05-30 |
-| 66 Docs & Release Gates | 0/? | Not started | — |
+| 66 Docs & Release Gates | 0/3 | Not started | — |
 
 ## Requirement Coverage
 
@@ -152,4 +163,4 @@ Plans:
 **Coverage:** 8/8 requirements mapped ✓
 
 ---
-*Roadmap updated: 2026-05-30 — Phase 65 plans created (3 plans, 2 waves)*
+*Roadmap updated: 2026-05-30 — Phase 66 plans created (3 plans, 2 waves)*

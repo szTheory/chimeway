@@ -319,7 +319,8 @@ defmodule Chimeway.DocContractTest do
       Accrue.Integrations.Chimeway
       invoice.payment_failed
       invoice.paid
-      cancel_signals
+      cancel_campaign
+      Chimeway.Signal.track
       workflow/2
       config :accrue
       dunning
@@ -528,8 +529,8 @@ defmodule Chimeway.DocContractTest do
       Accrue.Integrations.Chimeway
       invoice.payment_failed
       invoice.paid
-      cancel_signals
-      pending_signals
+      cancel_campaign
+      Chimeway.Signal.track
       workflow/2
       config :accrue
       dunning

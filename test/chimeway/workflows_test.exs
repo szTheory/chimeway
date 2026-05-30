@@ -260,6 +260,44 @@ defmodule Chimeway.WorkflowsTest do
       unchanged_run = Repo.get!(WorkflowRun, run.id)
       assert unchanged_run.state == :active
     end
+
+    test "resumes a wait_until waiting run with empty pending_signals (Accrue Outcome Signal path)" do
+      run =
+        insert_workflow_run!(%{
+          pending_signals: [],
+          status_reason: "waiting_for_step_progression",
+          status_context: %{
+            "rule_kind" => "wait_until",
+            "to_step" => "escalation_email"
+          }
+        })
+
+      signal = insert_signal!(%{event_name: "invoice.paid"})
+
+      assert {:ok, results} = Workflows.route_signal(signal)
+
+      updated_run = Repo.get!(WorkflowRun, run.id)
+      assert updated_run.state == :active
+      assert updated_run.pending_signals == []
+      assert updated_run.status_reason == "signal_received"
+      assert Map.has_key?(results, {:run_updated, run.id})
+    end
+
+    test "does not resume a waiting run with empty pending_signals when status_context is not wait_until" do
+      run =
+        insert_workflow_run!(%{
+          pending_signals: [],
+          status_reason: "waiting_for_signal",
+          status_context: %{"rule_kind" => "outcome_branch"}
+        })
+
+      signal = insert_signal!(%{event_name: "invoice.paid"})
+
+      assert {:ok, _results} = Workflows.route_signal(signal)
+
+      unchanged_run = Repo.get!(WorkflowRun, run.id)
+      assert unchanged_run.state == :waiting
+    end
   end
 
   describe "route_signal/1 — transition traces" do

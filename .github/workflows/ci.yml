@@ -272,7 +272,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: szTheory/accrue
-          ref: de7a3fef53247619d96a26eea60197d74fd14634
+          ref: 236fa2f1649e771f3b515603495436badeed3c7b
           path: accrue/accrue
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:

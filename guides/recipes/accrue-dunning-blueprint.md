@@ -2,7 +2,7 @@
 
 ## Who this is for
 
-**Feature Developer (DunningNotifier authoring):** Your JTBD is "author a bundled `Chimeway.Notifier` with a multi-step dunning workflow" — implement `workflow/2` with 48h escalation, `cancel_signals: ["invoice.paid"]`, and stable `notification_key` / render keys while Accrue resolves billing domain models to recipients.
+**Feature Developer (DunningNotifier authoring):** Your JTBD is "author a bundled `Chimeway.Notifier` with a multi-step dunning workflow" — implement `workflow/2` with 48h escalation and stable `notification_key` / render keys while Accrue resolves billing domain models to recipients.
 
 **Adopter (Accrue engine config):** Your JTBD is "wire Accrue billing events into Chimeway dunning without host callback glue" — subscribe to `invoice.payment_failed` and `invoice.paid`, set `config :accrue, dunning: [engine: Accrue.Integrations.Chimeway]`, and let Accrue start or terminate campaigns through the engine adapter.
 
@@ -46,8 +46,7 @@ def workflow(_params, _recipient) do
                "kind" => "wait_until",
                "anchor" => "prior_delivery_terminal_at",
                "delay_seconds" => 172_800,
-               "to_step" => "escalation_email",
-               "cancel_signals" => ["invoice.paid"]
+               "to_step" => "escalation_email"
              }
            ]
          }
@@ -63,7 +62,9 @@ def workflow(_params, _recipient) do
 end
 ```
 
-**Escalation shape (SEED-003):** Email 1 delivers immediately → workflow enters `:waiting` with `pending_signals: ["invoice.paid"]` for up to 48h → Email 2 fires only if no Outcome Signal arrives.
+**Escalation shape (SEED-003):** Email 1 delivers immediately → workflow enters `:waiting` on the `wait_until` step for up to 48h → Email 2 fires only if no Outcome Signal arrives.
+
+**Termination (Accrue 1.3+):** `cancel_campaign/3` emits `Chimeway.Signal.track/4` with `event_name: "invoice.paid"`. Chimeway `Workflows.route_signal/1` resumes the waiting run — no rule-config `cancel_signals` on the `wait_until` step.
 
 **Trigger options:** When Accrue starts a campaign, the engine calls `Chimeway.trigger/3` with `idempotency_key` and `tenant_id` (customer id) — both required for durable deduplication and tenant-scoped traces.
 
@@ -110,7 +111,7 @@ Accrue.Test.trigger_event(:invoice_paid, %{
 })
 ```
 
-The `invoice.paid` signal satisfies `cancel_signals` on the active `wait_until` step — no host callback route required.
+The `invoice.paid` Outcome Signal routes to the waiting run via `Workflows.route_signal/1` — no host callback route required.
 
 ## Runnable demo
 

@@ -26,19 +26,19 @@ end
 
 defp accrue_dep do
   case System.get_env("ACCRUE_PATH") do
-    nil -> {:accrue, "~> 1.2", optional: true}
+    nil -> {:accrue, "~> 1.3", optional: true}
     path -> {:accrue, path: path, runtime: false}
   end
 end
 ```
 
-For local development and integration proof, check out the Accrue repo as a sibling and point `ACCRUE_PATH` at it — the `Accrue.Integrations.Chimeway` engine module lives in the Accrue repo, not in the hex-only artifact:
+For local development and integration proof, check out the Accrue repo as a sibling and point `ACCRUE_PATH` at it — the `Accrue.Integrations.Chimeway` engine module is conditionally compiled in the Accrue package and may require a sibling checkout or `Code.compile_file/1` bootstrap in test harnesses:
 
 ```bash
 ACCRUE_PATH=../accrue/accrue mix deps.get
 ```
 
-When the integration module is published to hex, `{:accrue, "~> 1.2"}` is sufficient for production adopters. Local proof and CI still require the sibling checkout for `Accrue.Integrations.Chimeway`.
+Production adopters use `{:accrue, "~> 1.3"}` from Hex. Local proof and CI still use a sibling checkout pinned to the integration ref documented in `MAINTAINING.md`.
 
 ## 2. Database / migrations
 
@@ -83,8 +83,10 @@ def notification_key, do: "accrue.dunning"
 `workflow/2` defines a two-step dunning journey:
 
 1. **Email 1 (`initial_email`)** — delivers immediately.
-2. **48h wait** — workflow enters `:waiting` with `cancel_signals: ["invoice.paid"]` on the `wait_until` progress rule.
+2. **48h wait** — workflow enters `:waiting` on the `wait_until` progress rule (`status_context["rule_kind"] == "wait_until"`).
 3. **Email 2 (`escalation_email`)** — fires only if no Outcome Signal arrives within 48 hours.
+
+Accrue 1.3+ does **not** declare `cancel_signals` on the `wait_until` rule. Termination is via `cancel_campaign/3` emitting an Outcome Signal — see §5.
 
 When Accrue starts a campaign, the engine passes `idempotency_key` (campaign-scoped deduplication) and `tenant_id` (customer id) to `Chimeway.trigger/3` — both required for durable traces and tenant-scoped operator search.
 
@@ -99,7 +101,7 @@ Production hosts subscribe to Accrue webhooks or internal event buses — **do n
 | `invoice.payment_failed` | Starts dunning — engine calls `start_campaign/3` → `Chimeway.trigger/3` with `DunningNotifier` |
 | `invoice.paid` | Terminates active wait via Outcome Signal — `cancel_campaign/3` → `Chimeway.Signal.track/4` with `event_name: "invoice.paid"` |
 
-The `invoice.paid` signal satisfies `cancel_signals` on the active `wait_until` step — no host callback route required.
+The `invoice.paid` Outcome Signal routes to waiting runs on the `wait_until` step via `Workflows.route_signal/1` — no host callback route required.
 
 Local and test proof uses `Accrue.Test.trigger_event/2`:
 

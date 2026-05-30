@@ -372,7 +372,11 @@ defmodule Chimeway.Workflows do
 
   @doc """
   Routes an incoming signal to all waiting workflow runs for the same tenant
-  whose `pending_signals` list contains the signal's `event_name`.
+  that match either:
+
+    * `pending_signals` contains the signal's `event_name` (READ-01 / journey path), or
+    * `pending_signals` is empty and `status_context["rule_kind"]` is `"wait_until"`
+      (Accrue 1.3 Outcome Signal termination without rule-config `cancel_signals`).
 
   For each matched run the function:
     1. Transitions the run from `:waiting` to `:active` and clears `pending_signals`.
@@ -433,7 +437,7 @@ defmodule Chimeway.Workflows do
   # Finds all WorkflowRun rows that are:
   #   - owned by the given tenant and actor_id (cross-tenant isolation, T-27-03, T-27-07-01)
   #   - currently in the :waiting state
-  #   - have the given event_name present in their pending_signals array
+  #   - match pending_signals OR empty pending_signals on a wait_until step
   defp find_runs_waiting_for_signal(tenant_id, actor_id, event_name) do
     Repo.all(
       from(wr in WorkflowRun,
@@ -443,7 +447,9 @@ defmodule Chimeway.Workflows do
           wr.tenant_id == ^tenant_id and
             n.recipient_identity == ^actor_id and
             wr.state == :waiting and
-            ^event_name in wr.pending_signals,
+            (^event_name in wr.pending_signals or
+               (wr.pending_signals == [] and
+                  fragment("?->>'rule_kind' = 'wait_until'", wr.status_context))),
         lock: "FOR UPDATE",
         select: wr
       )

@@ -73,7 +73,7 @@ These eight local commands map to ci-gate lanes plus publish replay — not eigh
 
 #### Accrue sibling checkout
 
-Maintainers clone [szTheory/accrue](https://github.com/szTheory/accrue) adjacent to chimeway (convention: `../accrue/accrue` from repo root). CI pins ref `de7a3fef53247619d96a26eea60197d74fd14634` — update when bumping the integration.
+Maintainers clone [szTheory/accrue](https://github.com/szTheory/accrue) adjacent to chimeway (convention: `../accrue/accrue` from repo root). CI pins ref `236fa2f1649e771f3b515603495436badeed3c7b` (`accrue-v1.3.0`) — update when bumping the integration.
 
 ### Installer template changes
 

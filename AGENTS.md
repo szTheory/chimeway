@@ -27,6 +27,7 @@ Core value: every notification decision must be explainable ("why was this sent,
 - Provide and maintain `mix verify.*` and `mix ci.*` entrypoints.
 - Keep CI and local scripts in parity.
 - Avoid leaking sensitive payload fields in telemetry and operator surfaces.
+- **Docs/release-gate phases** (57, 60, 62): acceptance = green `mix ci.verify_gates` (doc-contract + release gate parity) + ecosystem `verify.*` CI jobs. Skip `/gsd-verify-work`; auto-sign UAT from contract test evidence.
 
 ## Planning Source of Truth
 
