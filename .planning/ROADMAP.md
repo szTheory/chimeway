@@ -155,11 +155,16 @@ Plans:
 2. `chimeway_inbox` optional package exposes router macro, recipient auth behaviour, and unstyled bell-dropdown LiveView (modeled on `chimeway_admin`)
 3. Package tests prove list → mark_read/seen from LiveView handlers without host glue beyond auth behaviour
 
-**Plans:** TBD
+**Plans:** 1/3 plans executed
 
 **Wave 1 *(no dependencies)*:** 61-01 — Headless inbox API polish (INBX-01: unread_count, pagination, DTO maps)  
 **Wave 2 *(blocked on Wave 1)*:** 61-02 — Bootstrap `chimeway_inbox` package (router, auth behaviour, bell LiveView)  
 **Wave 3 *(blocked on Wave 2)*:** 61-03 — Package LiveViewTest coverage (INBX-02)
+
+Plans:
+- [x] 61-01-PLAN.md — unread_count, paginated list_for_recipient/2, DTO maps (INBX-01)
+- [ ] 61-02-PLAN.md — chimeway_inbox package: Auth, LiveAuth, Router, BellDropdownLive (INBX-02)
+- [ ] 61-03-PLAN.md — LiveViewTest list → mark_read → badge; verify.example lane (INBX-02)
 
 **Cross-cutting constraints:**
 
@@ -194,7 +199,7 @@ Plans:
 | 59. Accrue Blueprint & Demo | 2/2 | Complete    | 2026-05-30 |
 | 60. Accrue Docs & Release Gate | 3/3 | Complete    | 2026-05-30 |
 | 60.1. Hex Release Pipeline | 2/2 | Complete    | 2026-05-30 |
-| 61. Inbox Headless + Package | 0/TBD | Not started | — |
+| 61. Inbox Headless + Package | 1/3 | In Progress|  |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
 
 ---
