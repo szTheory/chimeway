@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
-status: executing
-last_updated: "2026-05-30T20:00:00.000Z"
-last_activity: 2026-05-30 -- Phase 61 complete (INBX-02 LiveViewTest proof)
+status: planning
+last_updated: "2026-05-30T12:34:19.863Z"
+last_activity: 2026-05-30
 progress:
   total_phases: 6
   completed_phases: 5
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 62 — inbox-demo-docs-gate
+**Current focus:** Phase 62 — inbox demo, docs & gate
 
 ## Current Position
 
-Phase: 62 (inbox-demo-docs-gate) — READY
-Plan: 0 of TBD
-Status: Phase 61 complete; ready for Phase 62 (demo mount, guide, verify.inbox)
-Last activity: 2026-05-30 -- Phase 61 plan 03 complete (LiveViewTest INBX-02 proof)
+Phase: 62
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-05-30
 
 ## Accumulated Context
 
@@ -140,9 +140,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-30T20:00:00.000Z
-Stopped at: Phase 61 complete — ready for Phase 62
-Resume file: .planning/phases/62-inbox-demo-docs-gate/ (TBD)
+Last session: 2026-05-30T12:34:19.859Z
+Stopped at: Phase 62 context gathered (assumptions mode)
+Resume file: .planning/phases/62-inbox-demo-docs-gate/62-CONTEXT.md
 
 ## Operator Next Steps
 
