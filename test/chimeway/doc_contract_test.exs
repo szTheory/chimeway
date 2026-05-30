@@ -416,6 +416,74 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @accrue_integration_guide Path.expand("../../guides/introduction/accrue-dunning-integration.md", __DIR__)
+
+  describe "accrue dunning integration guide doc contract (DOCS-08 / DOCS-09)" do
+    setup do
+      content = File.read!(@accrue_integration_guide)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in accrue dunning integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "accrue dunning integration guide must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in accrue dunning integration guide",
+         %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "accrue dunning integration guide must not reference fictional Chimeway.Workflow"
+    end
+
+    test "forbids payment_recovered in accrue dunning integration guide", %{content: content} do
+      refute String.contains?(content, "payment_recovered"),
+             "accrue dunning integration guide must use canonical invoice.paid Outcome Signal naming"
+    end
+
+    @required ~w(
+      Accrue.Integrations.Chimeway
+      invoice.payment_failed
+      invoice.paid
+      cancel_signals
+      workflow/2
+      config :accrue
+      dunning
+      idempotency_key
+      tenant_id
+      orchestrates
+      mix verify.accrue
+      DemoHost.Seeds.seed_accrue_dunning
+      /admin/chimeway
+      ACCRUE_PATH
+    )
+
+    for required <- @required do
+      test "requires #{required} in accrue dunning integration guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "accrue dunning integration guide must reference #{unquote(required)}"
+      end
+    end
+
+    test "requires billing-state split language in accrue dunning integration guide", %{
+      content: content
+    } do
+      assert String.contains?(content, "billing")
+      assert String.contains?(content, "state") or String.contains?(content, "Accrue"),
+             "accrue dunning integration guide must document billing-state responsibility split"
+    end
+
+    test "requires dependencies section coverage in accrue dunning integration guide", %{
+      content: content
+    } do
+      assert String.contains?(content, "chimeway") or String.contains?(content, "Chimeway"),
+             "accrue dunning integration guide must document Chimeway dependency"
+      assert String.contains?(content, "accrue") or String.contains?(content, "Accrue"),
+             "accrue dunning integration guide must document Accrue dependency"
+    end
+  end
+
   @adoption_forbidden_strings ~w(
     stop_conditions
     Workflows.Workers
