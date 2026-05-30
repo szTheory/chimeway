@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
 status: executing
-last_updated: "2026-05-30T18:00:00.000Z"
-last_activity: 2026-05-30 -- Phase 61 plan 02 complete (chimeway_inbox package)
+last_updated: "2026-05-30T20:00:00.000Z"
+last_activity: 2026-05-30 -- Phase 61 complete (INBX-02 LiveViewTest proof)
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 12
-  percent: 92
+  completed_plans: 13
+  percent: 83
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 61 — inbox-headless-package
+**Current focus:** Phase 62 — inbox-demo-docs-gate
 
 ## Current Position
 
-Phase: 61 (inbox-headless-package) — EXECUTING
-Plan: 3 of 3
-Status: Plan 61-02 complete; ready for 61-03 (LiveViewTest coverage)
-Last activity: 2026-05-30 -- Phase 61 plan 02 complete (chimeway_inbox package)
+Phase: 62 (inbox-demo-docs-gate) — READY
+Plan: 0 of TBD
+Status: Phase 61 complete; ready for Phase 62 (demo mount, guide, verify.inbox)
+Last activity: 2026-05-30 -- Phase 61 plan 03 complete (LiveViewTest INBX-02 proof)
 
 ## Accumulated Context
 
@@ -80,7 +80,9 @@ Last activity: 2026-05-30 -- Phase 61 plan 02 complete (chimeway_inbox package)
 - [58-01]: Runtime Code.compile_file for Accrue.Integrations.Chimeway — dep compile order elides integration module
 - [58-02]: Keep orchestration/2 as {:ok, :immediate} — workflow runs via workflow/2 independently (OQ-2)
 - [58-02]: CHIMEWAY_PATH override in Accrue mix.exs for cross-repo tests against cancel_signals spine
-- [58-02]: cancel_campaign/3 unchanged — invoice.paid signal fix deferred to 58-03 (D-09)
+- [61-03]: Package LiveViewTests mount via test router `live/2` — `live_isolated` on_mount opts insufficient without live_session
+- [61-03]: mark_seen not wired in BellDropdownLive v1.9 — LiveViewTest defers to API/host (D-08 discretion)
+- [61-03]: verify.example includes chimeway_inbox; selective verify.inbox CI deferred Phase 62 GATE-05
 
 ### Pending Todos
 
@@ -138,15 +140,15 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-05-30T12:09:00.793Z
-Stopped at: Phase 61 context gathered (assumptions mode)
-Resume file: .planning/phases/61-inbox-headless-package/61-CONTEXT.md
+Last session: 2026-05-30T20:00:00.000Z
+Stopped at: Phase 61 complete — ready for Phase 62
+Resume file: .planning/phases/62-inbox-demo-docs-gate/ (TBD)
 
 ## Operator Next Steps
 
 - Push Wave 2 to origin → confirm bootstrap Release PR `chore(main): release 1.1.0` ci-gate green → manual merge first release OR automerge on subsequent releases
 - Run post-publish verify trio after Hex 1.1.0 ships: `mix verify.clean`, `mix verify.parity`, `mix verify.published 1.1.0`
-- Phase 61 (Inbox Headless + Package) ready to plan/execute
+- Phase 62 (Inbox Demo, Docs & Gate) ready to plan/execute — demo host mount, inbox guide, verify.inbox CI
 
 ## Performance Metrics
 
@@ -166,4 +168,4 @@ Resume file: .planning/phases/61-inbox-headless-package/61-CONTEXT.md
 | Phase 57-docs-release-gates P02 | 6min | 1 tasks | 1 files |
 | Phase 58-accrue-dunning-core P01 | 45min | 3 tasks | 9 files |
 | Phase 60.1 hex-release-pipeline P01 | 15min | 4 tasks | 5 files |
-| Phase 60.1 hex-release-pipeline P02 | 20min | 4 tasks | 4 files |
+| Phase 61 inbox-headless-package P03 | 20min | 3 tasks | 4 files |

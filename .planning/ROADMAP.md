@@ -28,7 +28,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 - [x] **Phase 59: Accrue Blueprint & Demo** — Reference recipe plus demo host Accrue dunning proof with operator traces (completed 2026-05-30)
 - [x] **Phase 60: Accrue Docs & Release Gate** — Golden-path guide, doc-contract tests, and `mix verify.accrue` CI gate (completed 2026-05-30)
 - [x] **Phase 60.1: Hex Release Pipeline** — Release Please SSOT, ci-gate, automated Hex publish (lattice_stripe pattern)
-- [ ] **Phase 61: Inbox Headless + Package** — Core API polish and bootstrap `chimeway_inbox` optional package
+- [x] **Phase 61: Inbox Headless + Package** — Core API polish and bootstrap `chimeway_inbox` optional package (completed 2026-05-30)
 - [ ] **Phase 62: Inbox Demo, Docs & Gate** — Demo mount, inbox guide, doc-contract, and `mix verify.inbox` release gate
 
 ## Phase Details
@@ -155,7 +155,7 @@ Plans:
 2. `chimeway_inbox` optional package exposes router macro, recipient auth behaviour, and unstyled bell-dropdown LiveView (modeled on `chimeway_admin`)
 3. Package tests prove list → mark_read/seen from LiveView handlers without host glue beyond auth behaviour
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 **Wave 1 *(no dependencies)*:** 61-01 — Headless inbox API polish (INBX-01: unread_count, pagination, DTO maps)  
 **Wave 2 *(blocked on Wave 1)*:** 61-02 — Bootstrap `chimeway_inbox` package (router, auth behaviour, bell LiveView)  
@@ -164,7 +164,7 @@ Plans:
 Plans:
 - [x] 61-01-PLAN.md — unread_count, paginated list_for_recipient/2, DTO maps (INBX-01)
 - [x] 61-02-PLAN.md — chimeway_inbox package: Auth, LiveAuth, Router, BellDropdownLive (INBX-02)
-- [ ] 61-03-PLAN.md — LiveViewTest list → mark_read → badge; verify.example lane (INBX-02)
+- [x] 61-03-PLAN.md — LiveViewTest list → mark_read → badge; verify.example lane (INBX-02) ✓
 
 **Cross-cutting constraints:**
 
@@ -199,8 +199,8 @@ Plans:
 | 59. Accrue Blueprint & Demo | 2/2 | Complete    | 2026-05-30 |
 | 60. Accrue Docs & Release Gate | 3/3 | Complete    | 2026-05-30 |
 | 60.1. Hex Release Pipeline | 2/2 | Complete    | 2026-05-30 |
-| 61. Inbox Headless + Package | 1/3 | In Progress|  |
+| 61. Inbox Headless + Package | 3/3 | Complete   | 2026-05-30 |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
 
 ---
-*Roadmap updated: 2026-05-30 — Phase 60.1 complete (Wave 2 automerge + recovery + GATE-06 contracts)*
+*Roadmap updated: 2026-05-30 — Phase 61 complete (INBX headless API + chimeway_inbox package + LiveViewTest proof)*
