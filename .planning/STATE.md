@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Adopter Complete
 status: executing
-last_updated: "2026-05-30T12:15:00.000Z"
-last_activity: 2026-05-30 -- Phase 60.1-01 complete (Wave 1 ci-gate + release hardening)
+last_updated: "2026-05-30T12:40:00.000Z"
+last_activity: 2026-05-30 -- Phase 60.1-02 complete (Wave 2 automerge + recovery + GATE-06)
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
-  percent: 55
+  completed_plans: 10
+  percent: 60
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 60.1 (hex-release-pipeline) — EXECUTING
+Phase: 60.1 (hex-release-pipeline) — COMPLETE
 Plan: 2 of 2
-Status: Wave 1 complete; ready for 60.1-02 (automerge + recovery)
-Last activity: 2026-05-30 -- Phase 60.1-01 complete (Wave 1 ci-gate + release hardening)
+Status: Wave 2 complete — GATE-06 satisfied; automerge + recovery workflows live
+Last activity: 2026-05-30 -- Phase 60.1-02 complete (Wave 2 automerge + recovery + GATE-06)
 
 ## Accumulated Context
 
@@ -72,6 +72,9 @@ Last activity: 2026-05-30 -- Phase 60.1-01 complete (Wave 1 ci-gate + release ha
 - [60.1-01]: ci-gate aggregates 8 lanes; install_golden_contract stays outside needs
 - [60.1-01]: Release Please manifest SSOT at 1.0.0; first automated bump targets 1.1.0
 - [60.1-01]: Wave 1 manual merge of bootstrap Release PR; automerge deferred to 60.1-02
+- [60.1-02]: Automerge requires ci-gate success + title `chore(main): release` + `autorelease: pending` label
+- [60.1-02]: publish-hex recovery gates on ci-gate poll only — no lattice lint bypass (D-60.1-10)
+- [60.1-02]: MAINTAINING Release Please default; recovery via publish-hex.yml dispatch only
 - [58-01]: Accrue optional dep uses runtime: false — manual TestRepo bootstrap; avoid OTP app boot blocking default mix test
 - [58-01]: Accrue test config unconditional in config/test.exs (Mailglass 54-01 precedent); dunning engine pinned in test_helper
 - [58-01]: Runtime Code.compile_file for Accrue.Integrations.Chimeway — dep compile order elides integration module
@@ -141,8 +144,9 @@ Resume file: .planning/phases/60.1-hex-release-pipeline/60.1-CONTEXT.md
 
 ## Operator Next Steps
 
-- Push Wave 1 to origin → wait for Release Please PR `chore(main): release 1.1.0` → confirm ci-gate green → manual merge
-- `/gsd-execute-phase 60.1` — run 60.1-02 (automerge, publish-hex recovery, MAINTAINING, contract tests)
+- Push Wave 2 to origin → confirm bootstrap Release PR `chore(main): release 1.1.0` ci-gate green → manual merge first release OR automerge on subsequent releases
+- Run post-publish verify trio after Hex 1.1.0 ships: `mix verify.clean`, `mix verify.parity`, `mix verify.published 1.1.0`
+- Phase 61 (Inbox Headless + Package) ready to plan/execute
 
 ## Performance Metrics
 
@@ -162,3 +166,4 @@ Resume file: .planning/phases/60.1-hex-release-pipeline/60.1-CONTEXT.md
 | Phase 57-docs-release-gates P02 | 6min | 1 tasks | 1 files |
 | Phase 58-accrue-dunning-core P01 | 45min | 3 tasks | 9 files |
 | Phase 60.1 hex-release-pipeline P01 | 15min | 4 tasks | 5 files |
+| Phase 60.1 hex-release-pipeline P02 | 20min | 4 tasks | 4 files |

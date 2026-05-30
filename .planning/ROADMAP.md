@@ -27,7 +27,7 @@ Close the last adopter-facing gaps so Chimeway is adoptable off the lot for all 
 - [x] **Phase 58: Accrue Dunning Core** — Optional `accrue` dep; billing events start/stop Chimeway dunning workflows via Signal engine (completed 2026-05-30)
 - [x] **Phase 59: Accrue Blueprint & Demo** — Reference recipe plus demo host Accrue dunning proof with operator traces (completed 2026-05-30)
 - [x] **Phase 60: Accrue Docs & Release Gate** — Golden-path guide, doc-contract tests, and `mix verify.accrue` CI gate (completed 2026-05-30)
-- [ ] **Phase 60.1: Hex Release Pipeline** — Release Please SSOT, ci-gate, automated Hex publish (lattice_stripe pattern)
+- [x] **Phase 60.1: Hex Release Pipeline** — Release Please SSOT, ci-gate, automated Hex publish (lattice_stripe pattern)
 - [ ] **Phase 61: Inbox Headless + Package** — Core API polish and bootstrap `chimeway_inbox` optional package
 - [ ] **Phase 62: Inbox Demo, Docs & Gate** — Demo mount, inbox guide, doc-contract, and `mix verify.inbox` release gate
 
@@ -129,7 +129,7 @@ Plans:
 **Plans:** 2/2
 
 **Wave 1:** 60.1-01 — ci-gate + Release Please config + hardened release.yml  
-**Wave 2 *(blocked on 60.1-01)*:** 60.1-02 — automerge, publish-hex recovery, MAINTAINING, contract tests
+**Wave 2:** 60.1-02 — automerge, publish-hex recovery, MAINTAINING, contract tests ✓
 
 **Cross-cutting constraints:**
 
@@ -139,7 +139,7 @@ Plans:
 
 Plans:
 - [x] 60.1-01-PLAN.md — ci-gate (8 lanes), release-please JSON, gate-ci-green publish path ✓
-- [ ] 60.1-02-PLAN.md — automerge, recovery workflow, runbook, release contract extension
+- [x] 60.1-02-PLAN.md — automerge, recovery workflow, runbook, release contract extension ✓
 
 ### Phase 61: Inbox Headless + Package
 
@@ -193,9 +193,9 @@ Plans:
 | 58. Accrue Dunning Core | 3/3 | Complete    | 2026-05-30 |
 | 59. Accrue Blueprint & Demo | 2/2 | Complete    | 2026-05-30 |
 | 60. Accrue Docs & Release Gate | 3/3 | Complete    | 2026-05-30 |
-| 60.1. Hex Release Pipeline | 1/2 | In Progress | — |
+| 60.1. Hex Release Pipeline | 2/2 | Complete    | 2026-05-30 |
 | 61. Inbox Headless + Package | 0/TBD | Not started | — |
 | 62. Inbox Demo, Docs & Gate | 0/TBD | Not started | — |
 
 ---
-*Roadmap updated: 2026-05-30 — Phase 60.1-01 Wave 1 complete*
+*Roadmap updated: 2026-05-30 — Phase 60.1 complete (Wave 2 automerge + recovery + GATE-06 contracts)*
