@@ -316,6 +316,29 @@ defmodule Chimeway.DocContractTest do
              "mailglass integration guide must document Chimeway.Adapters.Mailglass for email delivery"
     end
 
+    @mailglass_webhook_forbidden [
+      ~s(process("mailglass"),
+      "conn.params",
+      "headers: headers",
+      "inspect(reason)",
+      "Map.new(conn.req_headers)"
+    ]
+
+    for forbidden <- @mailglass_webhook_forbidden do
+      test "forbids #{forbidden} in mailglass integration guide webhook example", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "mailglass integration guide must not reference #{unquote(forbidden)} in webhook example"
+      end
+    end
+
+    test "requires adapter module as first Webhooks.process/4 argument", %{content: content} do
+      assert Regex.match?(
+               ~r/Chimeway\.Webhooks\.process\(\s*(?:adapter_module|Chimeway\.Adapters\.Mailglass)/,
+               content
+             ),
+             "mailglass integration guide must call Webhooks.process with adapter module, not string literal"
+    end
+
     @required ~w(
       Chimeway.Adapters.Mailglass
       Chimeway.Adapter.Mailglass
@@ -323,6 +346,7 @@ defmodule Chimeway.DocContractTest do
       channel_adapter_configs
       render_key
       Chimeway.Webhooks.process
+      conn.req_headers
       Mailglass.Mailable
       Chimeway.trigger
       tenant_id
