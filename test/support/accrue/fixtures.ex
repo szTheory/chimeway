@@ -2,8 +2,14 @@ if Code.ensure_loaded?(Accrue) and not Code.ensure_loaded?(Chimeway.TestSupport.
   defmodule Chimeway.TestSupport.AccrueFixtures do
     @moduledoc false
 
+    import Ecto.Query
+
     alias Accrue.Billing.{Customer, Invoice, Subscription}
     alias Accrue.TestRepo, as: Repo
+    alias Chimeway.Deliveries
+    alias Chimeway.Delivery
+    alias Chimeway.Repo, as: ChimewayRepo
+    alias Chimeway.Workflows.Progression
 
     def configure_chimeway_dunning_engine! do
       unless Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
@@ -127,6 +133,56 @@ if Code.ensure_loaded?(Accrue) and not Code.ensure_loaded?(Chimeway.TestSupport.
         end)
 
       canonical
+    end
+
+    def trigger_invoice_payment_failed_event!(invoice, subscription, customer) do
+      payload = %{
+        id: invoice.processor_id,
+        customer: customer.processor_id,
+        subscription: subscription.processor_id,
+        amount_due: invoice.amount_due_minor,
+        currency: invoice.currency
+      }
+
+      Accrue.Test.trigger_event(:invoice_payment_failed, payload)
+    end
+
+    def drain_initial_email_delivery!(notification_id) do
+      delivery =
+        ChimewayRepo.one!(
+          from(d in Delivery,
+            where: d.notification_id == ^notification_id and d.channel == "email"
+          )
+        )
+
+      case delivery.status do
+        status when status in [:succeeded, :suppressed, :cancelled, :digested] ->
+          delivery
+
+        :dispatched ->
+          {:ok, %{delivery: terminal_delivery}} =
+            Deliveries.record_attempt(delivery, %{outcome: :succeeded})
+
+          terminal_delivery
+
+        _ ->
+          {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+
+          {:ok, %{delivery: terminal_delivery}} =
+            Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+
+          terminal_delivery
+      end
+    end
+
+    def progress_to_waiting!(workflow_run_id) do
+      case Progression.progress_run(workflow_run_id, []) do
+        {:ok, {:noop, run, :wait_not_due}} ->
+          run
+
+        other ->
+          raise "expected wait_not_due progression, got: #{inspect(other)}"
+      end
     end
   end
 end
