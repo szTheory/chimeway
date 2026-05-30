@@ -48,13 +48,35 @@ defmodule DemoHost.MixProject do
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.0"},
       {:lazy_html, ">= 0.1.0", only: :test}
-    ] ++ accrue_deps()
+    ] ++ accrue_deps() ++ threadline_deps() ++ sigra_deps()
   end
 
   defp accrue_deps do
     case System.get_env("ACCRUE_PATH") do
       nil -> []
       path -> [{:accrue, path: path, optional: true, runtime: false, override: true}]
+    end
+  end
+
+  defp threadline_deps do
+    if System.get_env("CHIMEWAY_SKIP_THREADLINE_DEP") in ["1", "true"] do
+      []
+    else
+      case System.get_env("THREADLINE_PATH") do
+        nil -> [{:threadline, "~> 0.7", runtime: false}]
+        path -> [{:threadline, path: path, runtime: false}]
+      end
+    end
+  end
+
+  defp sigra_deps do
+    if System.get_env("CHIMEWAY_SKIP_SIGRA_DEP") in ["1", "true"] do
+      []
+    else
+      case System.get_env("SIGRA_PATH") do
+        nil -> [{:sigra, "~> 0.3", runtime: false, override: true}]
+        path -> [{:sigra, path: path, runtime: false, override: true}]
+      end
     end
   end
 

@@ -89,3 +89,34 @@ config :accrue, Accrue.TestRepo,
   hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
   database: "chimeway_demo_accrue_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox
+
+# Threadline harness config is unconditional (mirrors Mailglass/Accrue pattern —
+# config loads before optional dep compile; Code.ensure_loaded? in test_helper handles absence).
+config :threadline, ecto_repos: [Threadline.Test.Repo]
+
+config :threadline, Threadline.Test.Repo,
+  username:
+    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
+      System.get_env("USER") || "postgres",
+  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
+  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
+  database: "chimeway_demo_threadline_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 10,
+  prepare: :unnamed
+
+# Sigra harness config is unconditional (mirrors Threadline/Mailglass/Accrue pattern).
+# Integration :chimeway config is set per test in setup (proof test sets enabled: true).
+config :sigra, ecto_repos: [Sigra.TestRepo]
+config :sigra, repo: Sigra.TestRepo
+
+config :sigra, Sigra.TestRepo,
+  username:
+    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
+      System.get_env("USER") || "postgres",
+  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
+  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
+  database: "chimeway_demo_sigra_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 10,
+  prepare: :unnamed
