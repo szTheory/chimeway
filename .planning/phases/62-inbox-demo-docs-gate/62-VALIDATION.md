@@ -1,8 +1,8 @@
 ---
 phase: 62
 slug: inbox-demo-docs-gate
-status: draft
-nyquist_compliant: false
+status: complete
+nyquist_compliant: true
 wave_0_complete: true
 created: 2026-05-30
 ---
@@ -38,11 +38,11 @@ created: 2026-05-30
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 62-01-01 | 01 | 1 | DEMO-08 | T-62-01 | Inbox auth resolves end-user recipient, not operator actor | integration | `cd examples/chimeway_demo_host && mix test --only inbox --warnings-as-errors` | ❌ W0 | ⬜ pending |
-| 62-02-01 | 02 | 2 | DOCS-08 | T-62-02 | Guide cites public Chimeway API delegates only | doc | `mix ci.docs` + guide grep | ❌ W0 | ⬜ pending |
-| 62-02-02 | 02 | 2 | DOCS-09 | T-62-03 | Doc-contract locks guide required strings | unit | `mix test test/chimeway/doc_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
-| 62-03-01 | 03 | 1 | GATE-05 | T-62-04 | CI runs verify.inbox without sibling checkout | integration | `verify_inbox` CI job + release gate parity contract | ❌ W0 | ⬜ pending |
-| 62-03-02 | 03 | 1 | GATE-05 | — | MAINTAINING lists eight gates | doc | `release gate parity doc contract (GATE-05)` | ✅ | ⬜ pending |
+| 62-01-01 | 01 | 1 | DEMO-08 | T-62-01 | Inbox auth resolves end-user recipient, not operator actor | integration | `cd examples/chimeway_demo_host && mix test --only inbox --warnings-as-errors` | ✅ | ✅ green |
+| 62-02-01 | 02 | 2 | DOCS-08 | T-62-02 | Guide cites public Chimeway API delegates only | doc | `mix ci.docs` + guide grep | ✅ | ✅ green |
+| 62-02-02 | 02 | 2 | DOCS-09 | T-62-03 | Doc-contract locks guide required strings | unit | `mix test test/chimeway/doc_contract_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 62-03-01 | 03 | 1 | GATE-05 | T-62-04 | CI runs verify.inbox without sibling checkout | integration | `verify_inbox` CI job + release gate parity contract | ✅ | ✅ green |
+| 62-03-02 | 03 | 1 | GATE-05 | — | MAINTAINING lists eight gates | doc | `release gate parity doc contract (GATE-05)` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -76,11 +76,11 @@ Prose readability remains a code-review concern, not a release gate.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-05-30
