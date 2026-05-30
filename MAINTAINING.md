@@ -45,7 +45,7 @@ Do **not** run `mix hex.publish` on a maintainer laptop as the default publish s
 
 ### Pre-ship local commands
 
-Run all seven before opening or merging release-related changes:
+Run all eight before opening or merging release-related changes:
 
 ```bash
 mix ci
@@ -55,6 +55,7 @@ mix verify.example
 mix verify.journeys
 mix verify.mailglass
 mix verify.accrue
+mix verify.inbox
 ```
 
 - `mix ci` — lint + full test suite
@@ -64,10 +65,11 @@ mix verify.accrue
 - `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
 - `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
 - `mix verify.accrue` — Accrue dunning integration gate (GATE-05 Accrue): ECOS-06 lifecycle tests and DEMO-07 demo host proof; requires sibling Accrue checkout — set `ACCRUE_PATH=../accrue/accrue` locally or let CI job check out szTheory/accrue
+- `mix verify.inbox` — Inbox integration gate (GATE-05 Inbox): chimeway_inbox package tests and DEMO-08 demo host :inbox proof; in-repo path deps only — no sibling checkout
 
-All seven must pass before publishing.
+All eight must pass before publishing.
 
-These seven local commands map to ci-gate lanes plus publish replay — not seven identical CI job names.
+These eight local commands map to ci-gate lanes plus publish replay — not eight identical CI job names.
 
 #### Accrue sibling checkout
 
