@@ -210,5 +210,3 @@ if Code.ensure_loaded?(Sigra) do
 
   Ecto.Adapters.SQL.Sandbox.mode(Sigra.TestRepo, :manual)
 end
-.mode(Sigra.TestRepo, :manual)
-end

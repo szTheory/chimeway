@@ -203,6 +203,37 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "verify-lane test-count floor (WARNING-2)" do
+    test "each verify lane declares at least its expected integration-test count" do
+      sigra_root = count_tests([
+        "test/chimeway/integrations/sigra_auth_harness_test.exs",
+        "test/chimeway/integrations/sigra_auth_lifecycle_test.exs"
+      ])
+      sigra_demo = count_tests(["examples/chimeway_demo_host/test/demo_host_web/sigra_auth_proof_test.exs"])
+      accrue = count_tests([
+        "test/chimeway/integrations/accrue_dunning_harness_test.exs",
+        "test/chimeway/integrations/accrue_dunning_lifecycle_test.exs"
+      ])
+      threadline = count_tests([
+        "test/chimeway/integrations/threadline_telemetry_harness_test.exs",
+        "test/chimeway/integrations/threadline_telemetry_lifecycle_test.exs"
+      ])
+
+      assert sigra_root >= 5, "sigra root lane must have >= 5 integration tests (found #{sigra_root})"
+      assert sigra_demo >= 2, "sigra demo-host lane must have >= 2 integration tests (found #{sigra_demo})"
+      assert accrue >= 11, "accrue lane must have >= 11 integration tests (found #{accrue})"
+      assert threadline >= 7, "threadline lane must have >= 7 integration tests (found #{threadline})"
+    end
+  end
+
+  defp count_tests(files) do
+    Enum.reduce(files, 0, fn file, acc ->
+      content = File.read!(file)
+      count = Regex.scan(~r/^\s*test "/m, content) |> length()
+      acc + count
+    end)
+  end
+
   defp extract_pre_ship_block(maintaining) do
     ~r/```bash\n(.*?)```/s
     |> Regex.scan(maintaining)
