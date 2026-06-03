@@ -26,7 +26,7 @@ Complete the SEED-003 ecosystem integration matrix by shipping Threadline and Si
 ## Phases
 
 - [x] **Phase 63: Threadline Telemetry Bridge** — Optional `threadline` dep; telemetry reporter sinks notification outcomes into Threadline audit ledger (2026-05-30)
-- [ ] **Phase 64: Sigra Auth Flows Core** — Sigra auth events trigger Chimeway notifiers with redacted trace payloads
+- [x] **Phase 64: Sigra Auth Flows Core** — Sigra auth events trigger Chimeway notifiers with redacted trace payloads (completed 2026-06-03)
 - [x] **Phase 65: Ecosystem Blueprints & Demo** — Sigra auth reference blueprint plus demo host proofs for Threadline and Sigra (completed 2026-05-30)
 - [x] **Phase 66: Docs & Release Gates** — Golden-path guides, doc-contract tests, and `mix verify.threadline` / `mix verify.sigra` CI gates (completed 2026-06-03)
 - [ ] **Phase 67: Close ECOS-09** — Repin Sigra CI SHA, harden verify lanes against the vacuous-pass footgun, fix the guide, verify Phase 64 (from v1.10 audit)
@@ -87,7 +87,7 @@ Plans:
 
 Plans:
 
-- [ ] 64-02-PLAN.md — `Sigra.Integrations.Chimeway` + magic link & confirmation notifiers + lifecycle redaction proof (2026-05-30)
+- [x] 64-02-PLAN.md — `Sigra.Integrations.Chimeway` + magic link & confirmation notifiers + lifecycle redaction proof (2026-05-30)
 
 ### Phase 65: Ecosystem Blueprints & Demo
 
@@ -152,7 +152,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 63 Threadline Telemetry Bridge | 2/2 | Complete    | 2026-05-30 |
-| 64 Sigra Auth Flows Core | 1/2 | In Progress|  |
+| 64 Sigra Auth Flows Core | 2/2 | Complete    | 2026-06-03 |
 | 65 Ecosystem Blueprints & Demo | 3/3 | Complete    | 2026-05-30 |
 | 66 Docs & Release Gates | 3/3 | Complete    | 2026-06-03 |
 | 67 Close ECOS-09 | 1/3 | In Progress|  |
@@ -187,7 +187,7 @@ Plans:
 1. `verify_sigra` CI pins a `szTheory/sigra` SHA that contains `lib/sigra/integrations/chimeway.ex`; `mix verify.sigra` exercises the real ECOS-09 lifecycle (≥ expected integration test count) and fails loud if the integration module is absent
 2. Vacuous-pass guard closed symmetrically across sigra + accrue + threadline: `test_helper.exs` raises on a missing integration file (not silent-skip); the always-running harness test hard-asserts `Code.ensure_loaded?(Partner.Integrations.Chimeway)` + `function_exported?(Chimeway, :trigger, 3)`; `release_gate_contract_test.exs` floor-asserts each lane's test count
 3. `guides/introduction/sigra-auth-integration.md` shows the correct `Chimeway.trigger/3` shape (notifier module first arg); doc-contract now catches the wrong shape (forbid string-first-arg + `params:` option)
-4. Phase 64 has `64-VERIFICATION.md` proving ECOS-09 E2E; `64-02-SUMMARY.md` committed; ROADMAP/REQUIREMENTS reconciled (ECOS-09 → Complete); the four draft `*-VALIDATION.md` Nyquist contracts closed out
+4. Phase 64 has `64-VERIFICATION.md` proving ECOS-09 E2E; `64-02-SUMMARY.md` committed; ROADMAP/REQUIREMENTS reconciled (ECOS-09 → Complete); Phase 64 `64-VALIDATION.md` closed out (`nyquist_compliant: true`); Phases 63/65/66 VALIDATION drafts tracked as deferred Nyquist debt (owner: next milestone planning; trigger: their respective phase re-verification)
 
 **Plans:** 1/3 plans executed
 
