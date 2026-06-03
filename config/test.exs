@@ -19,10 +19,14 @@ repo_config =
 
 config :chimeway, Chimeway.Repo, repo_config
 
-config :chimeway, Oban,
-  repo: Chimeway.Repo,
-  testing: :manual,
-  queues: [chimeway_delivery: 10, chimeway_signals: 5]
+if System.get_env("CHIMEWAY_SKIP_OBAN") in ["1", "true"] do
+  config :chimeway, Oban, nil
+else
+  config :chimeway, Oban,
+    repo: Chimeway.Repo,
+    testing: :manual,
+    queues: [chimeway_delivery: 10, chimeway_signals: 5]
+end
 
 config :logger, level: :warning
 

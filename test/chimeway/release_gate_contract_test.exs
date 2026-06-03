@@ -86,6 +86,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 	                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
 	                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP") and
 	                      String.contains?(job_block, "CHIMEWAY_SKIP_ACCRUE_DEP") and
+	                      String.contains?(job_block, "CHIMEWAY_SKIP_OBAN") and
 	                      String.contains?(job_block, "PGUSER: postgres") and
 	                      String.contains?(job_block, "POSTGRES_USER: postgres") and
 	                      String.contains?(job_block, "Prepare root test database") and
