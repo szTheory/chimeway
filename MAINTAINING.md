@@ -45,7 +45,7 @@ Do **not** run `mix hex.publish` on a maintainer laptop as the default publish s
 
 ### Pre-ship local commands
 
-Run all eight before opening or merging release-related changes:
+Run all ten before opening or merging release-related changes:
 
 ```bash
 mix ci
@@ -56,6 +56,8 @@ mix verify.journeys
 mix verify.mailglass
 mix verify.accrue
 mix verify.inbox
+mix verify.threadline
+mix verify.sigra
 ```
 
 - `mix ci` — lint + full test suite
@@ -66,14 +68,22 @@ mix verify.inbox
 - `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
 - `mix verify.accrue` — Accrue dunning integration gate (GATE-05 Accrue): ECOS-06 lifecycle tests and DEMO-07 demo host proof; requires sibling Accrue checkout — set `ACCRUE_PATH=../accrue/accrue` locally or let CI job check out szTheory/accrue
 - `mix verify.inbox` — Inbox integration gate (GATE-05 Inbox): chimeway_inbox package tests and DEMO-08 demo host :inbox proof; in-repo path deps only — no sibling checkout
+- `mix verify.threadline` — Threadline telemetry integration gate (GATE-07): Threadline reporter lifecycle proof and demo host audit correlation; requires sibling Threadline checkout — set `THREADLINE_PATH=../threadline/threadline` locally or let CI job check out szTheory/threadline
+- `mix verify.sigra` — Sigra auth integration gate (GATE-07): Sigra auth notification lifecycle proof and demo host auth flow; requires sibling Sigra checkout — set `SIGRA_PATH=../sigra/sigra` locally or let CI job check out szTheory/sigra
 
-All eight must pass before publishing.
+All ten must pass before publishing.
 
-These eight local commands map to ci-gate lanes plus publish replay — not eight identical CI job names.
+These ten local commands map to ci-gate lanes plus publish replay — not ten identical CI job names.
 
-#### Accrue sibling checkout
+#### Sibling repo checkouts
 
-Maintainers clone [szTheory/accrue](https://github.com/szTheory/accrue) adjacent to chimeway (convention: `../accrue/accrue` from repo root). CI pins ref `236fa2f1649e771f3b515603495436badeed3c7b` (`accrue-v1.3.0`) — update when bumping the integration.
+Maintainers clone the integration sibling repos adjacent to chimeway and point the matching `*_PATH` env var at each before running its verify gate:
+
+- [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins ref `236fa2f1649e771f3b515603495436badeed3c7b` (`accrue-v1.3.0`).
+- [szTheory/threadline](https://github.com/szTheory/threadline) — convention `../threadline/threadline` from repo root (`THREADLINE_PATH`). CI pins ref `46375fafc4df30fc916244ee4a21b7cae01f1ddc`.
+- [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `b186f03ccc5bbc9416f495df3e5dd0bec2f814a4`.
+
+Update the pinned refs when bumping an integration.
 
 ### Installer template changes
 
