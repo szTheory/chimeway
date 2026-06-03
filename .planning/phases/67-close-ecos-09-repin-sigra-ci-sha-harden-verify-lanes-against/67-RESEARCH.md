@@ -412,16 +412,18 @@ end
 | A3 | `szTheory/sigra@62ceb46a` contains the integration file on the remote | D-01, Environment | If the SHA is wrong, repin still leaves the lane vacuous. CITED from audit 4-stream research; confirm at merge (could not fetch remote this session). |
 | A4 | Floor counts (sigra 5/2, accrue 11, threadline 7) stay stable | Coordinate 4, D-02c | Floors set too high break on legitimate additions; use `>=` not `==`. Counts are VERIFIED at current HEAD via grep. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact public export to assert in the sigra harness (`trigger/3` vs `dispatch_*`)?**
    - What we know: `Chimeway.trigger/3` exists (`trigger.ex:46`); the lifecycle test calls `SigraChimeway.dispatch_magic_link_after_request/3` + `dispatch_confirmation_after_generate/3`.
    - What's unclear: whether `Sigra.Integrations.Chimeway` itself exports a `trigger/3`.
    - Recommendation: grep the pinned `deps/sigra/lib/sigra/integrations/chimeway.ex` during planning; assert `dispatch_magic_link_after_request/3` (confirmed to exist) OR confirm `trigger/3` before using the CONTEXT's literal wording.
+   - **(RESOLVED):** the verified export is `dispatch_magic_link_after_request/3` (NOT `trigger/3`, which lives on `Chimeway`). The harness hard-asserts `function_exported?(Sigra.Integrations.Chimeway, :dispatch_magic_link_after_request, 3)` per the plans (closes A1).
 
 2. **Static count vs runtime count for the floor (D-02c)?**
    - What we know: `release_gate_contract_test.exs` is a fast static-contract test; counting executed tests there isn't natural.
    - Recommendation: combine — harness module-load hard-assert (catches compiled-to-0) + a static `test "` regex floor per lane file. Belt and suspenders, both cheap.
+   - **(RESOLVED):** the plans implement the combined floor — the always-running harness hard-asserts integration-module load (catches the compiled-to-0 case) AND `release_gate_contract_test.exs` adds a static per-lane `test "` count floor (sigra >=5 root / >=2 demo, accrue >=11, threadline >=7, all `>=`).
 
 ## Sources
 
