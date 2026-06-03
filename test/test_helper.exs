@@ -46,6 +46,8 @@ if Code.ensure_loaded?(Accrue) do
       unless Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
         raise "failed to compile Accrue.Integrations.Chimeway from #{source}"
       end
+    else
+      raise "Accrue is loaded but its integration source is missing — verify_accrue is pinned to a SHA without lib/accrue/integrations/chimeway.ex"
     end
   end
 
@@ -207,4 +209,6 @@ if Code.ensure_loaded?(Sigra) do
   {:ok, _pid} = Sigra.TestRepo.start_link()
 
   Ecto.Adapters.SQL.Sandbox.mode(Sigra.TestRepo, :manual)
+end
+.mode(Sigra.TestRepo, :manual)
 end

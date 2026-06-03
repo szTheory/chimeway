@@ -404,7 +404,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: szTheory/sigra
-          ref: b186f03ccc5bbc9416f495df3e5dd0bec2f814a4
+          ref: 62ceb46a38c4e617f6c06d874ecb12e1ab19d97c
           path: sigra/sigra
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
