@@ -685,6 +685,143 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @threadline_integration_guide Path.expand("../../guides/introduction/threadline-integration.md", __DIR__)
+
+  describe "threadline integration guide doc contract (DOCS-10)" do
+    setup do
+      content = File.read!(@threadline_integration_guide)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in threadline integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "threadline integration guide must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in threadline integration guide",
+         %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "threadline integration guide must not reference fictional Chimeway.Workflow"
+    end
+
+    @required ~w(
+      Chimeway.Telemetry.ThreadlineReporter
+      attach/0
+      config\ :chimeway
+      correlation_id
+      notification_suppressed
+      DemoHost.Seeds.seed_threadline_notification
+      /admin/chimeway
+      mix\ verify.threadline
+    )
+
+    for required <- @required do
+      test "requires #{required} in threadline integration guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "threadline integration guide must reference #{unquote(required)}"
+      end
+    end
+
+    test "sections appear in golden-path order from dependencies through verification", %{
+      content: content
+    } do
+      headings = [
+        "## 1. Dependencies",
+        "## 2. Attach reporter",
+        "## 3. What gets recorded",
+        "## 4. Verification"
+      ]
+
+      indices =
+        for heading <- headings do
+          case :binary.match(content, heading) do
+            {index, _} -> index
+            :nomatch -> flunk("threadline integration guide must include #{heading}")
+          end
+        end
+
+      assert indices == Enum.sort(indices),
+             "threadline integration guide sections must appear in golden-path order"
+    end
+  end
+
+  @sigra_integration_guide Path.expand("../../guides/introduction/sigra-auth-integration.md", __DIR__)
+
+  describe "sigra auth integration guide doc contract (DOCS-10)" do
+    setup do
+      content = File.read!(@sigra_integration_guide)
+      %{content: content}
+    end
+
+    for forbidden <- @recipe_forbidden_strings do
+      test "forbids #{forbidden} in sigra auth integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "sigra auth integration guide must not reference #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids Chimeway.Workflow module (not Workflows) in sigra auth integration guide",
+         %{content: content} do
+      refute Regex.match?(~r/Chimeway\.Workflow(?![s])/, content),
+             "sigra auth integration guide must not reference fictional Chimeway.Workflow"
+    end
+
+    @sigra_forbidden ~w(:raw_token :magic_link_url)
+
+    for forbidden <- @sigra_forbidden do
+      test "forbids #{forbidden} in sigra auth integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "sigra auth integration guide must not reference #{unquote(forbidden)} in code examples"
+      end
+    end
+
+    @required ~w(
+      Sigra.Integrations.Chimeway
+      sigra.auth.magic_link
+      sigra.auth.confirmation_code
+      Chimeway.trigger
+      idempotency_key
+      tenant_id
+      DemoHost.Seeds.seed_sigra
+      /admin/chimeway
+      mix\ verify.sigra
+      SIGRA_PATH
+      orchestrates
+    )
+
+    for required <- @required do
+      test "requires #{required} in sigra auth integration guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "sigra auth integration guide must reference #{unquote(required)}"
+      end
+    end
+
+    test "sections appear in golden-path order from dependencies through verification", %{
+      content: content
+    } do
+      headings = [
+        "## 1. Dependencies",
+        "## 2. Integration seam",
+        "## 3. Notifier reference",
+        "## 4. Auth event triggers",
+        "## 5. Verification"
+      ]
+
+      indices =
+        for heading <- headings do
+          case :binary.match(content, heading) do
+            {index, _} -> index
+            :nomatch -> flunk("sigra auth integration guide must include #{heading}")
+          end
+        end
+
+      assert indices == Enum.sort(indices),
+             "sigra auth integration guide sections must appear in golden-path order"
+    end
+  end
+
   @adoption_forbidden_strings ~w(
     stop_conditions
     Workflows.Workers
@@ -915,6 +1052,8 @@ defmodule Chimeway.DocContractTest do
       guides/introduction/mailglass-integration.md
       guides/introduction/accrue-dunning-integration.md
       guides/introduction/inbox-integration.md
+      guides/introduction/threadline-integration.md
+      guides/introduction/sigra-auth-integration.md
     )
 
     for guide <- @integration_guides do
@@ -960,6 +1099,44 @@ defmodule Chimeway.DocContractTest do
 
       assert accrue_index < inbox_index,
              "HexDocs extras must list accrue dunning integration guide before inbox integration guide"
+    end
+
+    test "lists threadline integration guide after inbox integration guide in extras", %{
+      content: content
+    } do
+      inbox_index =
+        case :binary.match(content, "guides/introduction/inbox-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include inbox integration guide")
+        end
+
+      threadline_index =
+        case :binary.match(content, "guides/introduction/threadline-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include threadline integration guide")
+        end
+
+      assert inbox_index < threadline_index,
+             "HexDocs extras must list inbox integration guide before threadline integration guide"
+    end
+
+    test "lists sigra integration guide after threadline integration guide in extras", %{
+      content: content
+    } do
+      threadline_index =
+        case :binary.match(content, "guides/introduction/threadline-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include threadline integration guide")
+        end
+
+      sigra_index =
+        case :binary.match(content, "guides/introduction/sigra-auth-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include sigra integration guide")
+        end
+
+      assert threadline_index < sigra_index,
+             "HexDocs extras must list threadline integration guide before sigra integration guide"
     end
   end
 
