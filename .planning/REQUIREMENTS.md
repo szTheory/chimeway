@@ -22,12 +22,12 @@
 
 ### Integration Docs (DOCS)
 
-- [ ] **DOCS-10**: Golden-path integration guides cover Threadline telemetry bridge setup and Sigra auth notification mount (dependencies → config → trigger → proof)
-- [ ] **DOCS-11**: Doc-contract tests lock Threadline and Sigra integration guide truth and forbid regressions
+- [x] **DOCS-10**: Golden-path integration guides cover Threadline telemetry bridge setup and Sigra auth notification mount (dependencies → config → trigger → proof)
+- [x] **DOCS-11**: Doc-contract tests lock Threadline and Sigra integration guide truth and forbid regressions
 
 ### Release Gates (GATE)
 
-- [ ] **GATE-07**: Named verify entrypoints `mix verify.threadline` and `mix verify.sigra` run in CI and appear in MAINTAINING.md pre-ship checklist
+- [x] **GATE-07**: Named verify entrypoints `mix verify.threadline` and `mix verify.sigra` run in CI and appear in MAINTAINING.md pre-ship checklist
 
 ## Future Requirements
 
@@ -60,9 +60,9 @@ Deferred to later milestones. Tracked but not in v1.10 roadmap.
 | ECOS-10 | Phase 65 | Complete |
 | DEMO-09 | Phase 65 | Complete |
 | DEMO-10 | Phase 65 | Complete |
-| DOCS-10 | Phase 66 | Pending |
-| DOCS-11 | Phase 66 | Pending |
-| GATE-07 | Phase 66 | Pending |
+| DOCS-10 | Phase 66 | Complete |
+| DOCS-11 | Phase 66 | Complete |
+| GATE-07 | Phase 66 | Complete |
 
 **Coverage:**
 - v1.10 requirements: 8 total
