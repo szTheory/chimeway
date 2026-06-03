@@ -82,10 +82,13 @@ defmodule Chimeway.ReleaseGateContractTest do
                    (String.contains?(
                       job_block,
                       "test/chimeway/integrations/sigra_auth_lifecycle_test.exs"
-                    ) and
-                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
-                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP")),
-                 "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
+	                    ) and
+	                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
+	                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP") and
+	                      String.contains?(job_block, "Prepare root test database") and
+	                      String.contains?(job_block, "timeout 120s mix ecto.create") and
+	                      String.contains?(job_block, "timeout 180s mix test")),
+	                 "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
         else
           assert String.contains?(job_block, unquote(command)),
                  "#{unquote(job_id)} job must run #{unquote(command)}"
