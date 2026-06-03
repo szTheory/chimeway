@@ -173,6 +173,7 @@ defmodule Chimeway.MixProject do
 
   defp sigra_dep do
     # Local dev: SIGRA_PATH=../sigra mix deps.get
+    # override: true resolves ecto 3.12 vs 3.11 diamond; inert for adopters (optional transitives not pulled)
     case System.get_env("SIGRA_PATH") do
       nil -> {:sigra, "~> 0.3", optional: true, runtime: false, override: true}
       path -> {:sigra, path: path, optional: true, runtime: false, override: true}

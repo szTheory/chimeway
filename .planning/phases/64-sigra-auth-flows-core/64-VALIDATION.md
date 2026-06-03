@@ -1,9 +1,9 @@
 ---
 phase: 64
 slug: sigra-auth-flows-core
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: closed
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-30
 ---
 
@@ -38,13 +38,13 @@ created: 2026-05-30
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 64-01-01 | 01 | 1 | ECOS-09 | T-64-01 | Optional sigra dep compiles without Sigra | compile | `mix compile --warnings-as-errors` | ⬜ | ⬜ pending |
-| 64-01-02 | 01 | 1 | ECOS-09 | T-64-02 | Sigra tests excluded from default CI | unit | `mix ci.test --warnings-as-errors` | ⬜ | ⬜ pending |
-| 64-01-03 | 01 | 1 | ECOS-09 | T-64-03 | Harness bootstrap + config round-trip | integration | `mix test test/chimeway/integrations/sigra_auth_harness_test.exs --only sigra` | ❌ W0 | ⬜ pending |
-| 64-01-04 | 01 | 1 | ECOS-09 | T-64-04 | `@sensitive_keys` strips url/code/raw_token | unit | `mix test test/chimeway/trigger_test.exs --warnings-as-errors` | ⬜ | ⬜ pending |
-| 64-02-01 | 02 | 2 | ECOS-09 | T-64-05 | Magic link trigger → delivery attempt + trace | integration | `mix test test/chimeway/integrations/sigra_auth_lifecycle_test.exs --only sigra` | ❌ W0 | ⬜ pending |
-| 64-02-02 | 02 | 2 | ECOS-09 | T-64-06 | Confirmation code trigger → delivery + trace | integration | same | ❌ W0 | ⬜ pending |
-| 64-02-03 | 02 | 2 | ECOS-09 | T-64-07 | No raw token/code/URL in trace surfaces | integration | same + telemetry PII refute | ❌ W0 | ⬜ pending |
+| 64-01-01 | 01 | 1 | ECOS-09 | T-64-01 | Optional sigra dep compiles without Sigra | compile | `mix compile --warnings-as-errors` | ✅ | ✅ green |
+| 64-01-02 | 01 | 1 | ECOS-09 | T-64-02 | Sigra tests excluded from default CI | unit | `mix ci.test --warnings-as-errors` | ✅ | ✅ green |
+| 64-01-03 | 01 | 1 | ECOS-09 | T-64-03 | Harness bootstrap + config round-trip | integration | `mix test test/chimeway/integrations/sigra_auth_harness_test.exs --only sigra` | ✅ | ✅ green |
+| 64-01-04 | 01 | 1 | ECOS-09 | T-64-04 | `@sensitive_keys` strips url/code/raw_token | unit | `mix test test/chimeway/trigger_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 64-02-01 | 02 | 2 | ECOS-09 | T-64-05 | Magic link trigger → delivery attempt + trace | integration | `mix test test/chimeway/integrations/sigra_auth_lifecycle_test.exs --only sigra` | ✅ | ✅ green |
+| 64-02-02 | 02 | 2 | ECOS-09 | T-64-06 | Confirmation code trigger → delivery + trace | integration | same | ✅ | ✅ green |
+| 64-02-03 | 02 | 2 | ECOS-09 | T-64-07 | No raw token/code/URL in trace surfaces | integration | same + telemetry PII refute | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,14 +52,14 @@ created: 2026-05-30
 
 ## Wave 0 Requirements
 
-- [ ] `mix.exs` — optional `{:sigra, "~> 0.3", optional: true}`, `ci.test` exclude `:sigra`
-- [ ] `config/test.exs` — Sigra.TestRepo + schema config
-- [ ] `test/test_helper.exs` — conditional Sigra bootstrap
-- [ ] `test/support/sigra/*` — repo, schemas, migrations, fixtures, data_case
-- [ ] `test/chimeway/integrations/sigra_auth_harness_test.exs` — Wave 64-01 stub
-- [ ] `lib/chimeway/trigger.ex` — extend `@sensitive_keys`
-- [ ] `../sigra/lib/sigra/integrations/chimeway.ex` — integration + notifiers
-- [ ] `test/chimeway/integrations/sigra_auth_lifecycle_test.exs` — Wave 64-02 E2E
+- [x] `mix.exs` — optional `{:sigra, "~> 0.3", optional: true}`, `ci.test` exclude `:sigra`
+- [x] `config/test.exs` — Sigra.TestRepo + schema config
+- [x] `test/test_helper.exs` — conditional Sigra bootstrap
+- [x] `test/support/sigra/*` — repo, schemas, migrations, fixtures, data_case
+- [x] `test/chimeway/integrations/sigra_auth_harness_test.exs` — Wave 64-01 stub
+- [x] `lib/chimeway/trigger.ex` — extend `@sensitive_keys`
+- [x] `../sigra/lib/sigra/integrations/chimeway.ex` — integration + notifiers
+- [x] `test/chimeway/integrations/sigra_auth_lifecycle_test.exs` — Wave 64-02 E2E
 
 ---
 
@@ -76,7 +76,7 @@ created: 2026-05-30
 
 ## Validation Sign-Off
 
-- [ ] All Wave 0 files exist
-- [ ] `mix test --only sigra --warnings-as-errors` green
-- [ ] `mix ci.test` green (sigra excluded)
-- [ ] Redaction assertions pass for both flows
+- [x] All Wave 0 files exist
+- [x] `mix test --only sigra --warnings-as-errors` green
+- [x] `mix ci.test` green (sigra excluded)
+- [x] Redaction assertions pass for both flows
