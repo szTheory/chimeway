@@ -1,4 +1,23 @@
 ExUnit.start()
+
+if System.get_env("CHIMEWAY_MANUAL_REPO_START") in ["1", "true"] do
+  Logger.configure(level: :warning)
+
+  Enum.each([:crypto, :logger, :telemetry, :ecto_sql, :postgrex], fn app ->
+    case Application.ensure_all_started(app) do
+      {:ok, _} -> :ok
+      {:error, {:already_started, _}} -> :ok
+      {:error, reason} -> raise "failed to start #{inspect(app)} for manual repo proof: #{inspect(reason)}"
+    end
+  end)
+
+  case Chimeway.Repo.start_link() do
+    {:ok, _pid} -> :ok
+    {:error, {:already_started, _pid}} -> :ok
+    {:error, reason} -> raise "failed to start Chimeway.Repo for manual repo proof: #{inspect(reason)}"
+  end
+end
+
 Ecto.Adapters.SQL.Sandbox.mode(Chimeway.Repo, :manual)
 
 if Code.ensure_loaded?(Mailglass) do

@@ -436,8 +436,9 @@ jobs:
           timeout 600s mix ecto.create
           timeout 300s mix ecto.migrate
       - name: Run root Sigra proof lane
-        run: timeout 300s mix test --no-compile test/chimeway/integrations/sigra_auth_harness_test.exs test/chimeway/integrations/sigra_auth_lifecycle_test.exs --only sigra --warnings-as-errors --trace
+        run: timeout 300s mix test --no-start --no-compile test/chimeway/integrations/sigra_auth_harness_test.exs test/chimeway/integrations/sigra_auth_lifecycle_test.exs --only sigra --warnings-as-errors --trace
         env:
+          CHIMEWAY_MANUAL_REPO_START: "1"
           CHIMEWAY_SKIP_OBAN: "1"
       - name: Run demo-host Sigra proof lane
         run: |
