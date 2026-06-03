@@ -46,7 +46,7 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ## Current State
 
-**v1.10 Ecosystem Completions in progress (Phase 65 complete 2026-05-30):** Sigra auth blueprint recipe (ECOS-10) with doc-contract CI coverage; Threadline + Sigra TestRepo bootstrap and seed helpers in demo host; DEMO-09/DEMO-10 proof integration tests (`threadline_telemetry_proof_test`, `sigra_auth_proof_test`). Validation: 10/10 must-haves verified.
+**v1.10 Ecosystem Completions complete (Phase 66 complete 2026-06-03):** Threadline & Sigra golden-path integration guides (DOCS-10) with copy-paste-correct dependency snippets matching canonical `mix.exs`; doc-contract describe blocks locking both guides as truth (DOCS-11); `mix verify.threadline` / `mix verify.sigra` release gates wired into mix aliases, an 11-lane ci-gate with pinned sibling-repo SHAs, and the 10-command MAINTAINING pre-ship checklist (GATE-07). Validation: 3/3 success criteria verified; 330 doc-contract + release-gate tests green. Earlier in v1.10: Phase 65 — Sigra auth blueprint recipe (ECOS-10), Threadline + Sigra TestRepo bootstrap/seed helpers, DEMO-09/DEMO-10 proof integration tests.
 
 **v1.9 Adopter Complete shipped (2026-05-30):** Accrue dunning vertical slice (Phases 58–60) — billing events drive Chimeway dunning workflows with Outcome Signal termination; blueprint recipe, demo proof, golden-path guide, and `mix verify.accrue` gate (ECOS-06/07, DEMO-07, DOCS-08/09, GATE-05 Accrue). Hex release automation via Release Please + 9-lane ci-gate + gated Hex publish (GATE-06, Phase 60.1). INBX inbox UI vertical slice (Phases 61–62) — headless API polish, optional `chimeway_inbox` package, demo mount, integration guide, and `mix verify.inbox` octet (INBX-01/02, DEMO-08, DOCS-08/09 Inbox, GATE-05 Inbox). **264+ doc-contract tests** green; Accrue and inbox verify gates pass.
 
@@ -420,4 +420,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 — Phase 65 complete (Sigra blueprint + Threadline/Sigra demo proof tests)*
+*Last updated: 2026-06-03 — Phase 66 complete (Threadline/Sigra golden-path guides, doc-contract gates, verify.threadline/verify.sigra release gates); v1.10 Ecosystem Completions all phases done*
