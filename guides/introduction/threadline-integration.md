@@ -24,8 +24,8 @@ end
 
 defp threadline_dep do
   case System.get_env("THREADLINE_PATH") do
-    nil -> {:threadline, "~> 0.7", optional: true}
-    path -> {:threadline, path: path, runtime: false}
+    nil -> {:threadline, "~> 0.7", optional: true, runtime: false}
+    path -> {:threadline, path: path, optional: true, runtime: false}
   end
 end
 ```
@@ -36,7 +36,7 @@ For local development and integration proof, check out the Threadline repo as a 
 THREADLINE_PATH=../threadline mix deps.get
 ```
 
-Production adopters use `{:threadline, "~> 0.7"}` from Hex. Local proof and CI use a sibling checkout pinned to the integration ref documented in `MAINTAINING.md`.
+Production adopters use `{:threadline, "~> 0.7", optional: true, runtime: false}` from Hex. Local proof and CI use a sibling checkout pinned to the integration ref documented in `MAINTAINING.md`.
 
 ## 2. Attach reporter
 
@@ -90,7 +90,7 @@ DemoHost.Seeds.seed_threadline_notification/0
 Then run the named proof command:
 
 ```bash
-THREADLINE_PATH=../threadline/threadline mix verify.threadline
+THREADLINE_PATH=../threadline mix verify.threadline
 ```
 
 This exercises the Chimeway-root lifecycle proof and the demo host telemetry proof. After seeding, search `/admin/chimeway` for the notification's operator trace and confirm the matching Threadline audit row is linked by `correlation_id`.

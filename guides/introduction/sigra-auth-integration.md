@@ -24,8 +24,8 @@ end
 
 defp sigra_dep do
   case System.get_env("SIGRA_PATH") do
-    nil -> {:sigra, "~> 0.3", optional: true}
-    path -> {:sigra, path: path, runtime: false}
+    nil -> {:sigra, "~> 0.3", optional: true, runtime: false}
+    path -> {:sigra, path: path, optional: true, runtime: false}
   end
 end
 ```
@@ -36,7 +36,7 @@ For local development and integration proof, check out the Sigra repo as a sibli
 SIGRA_PATH=../sigra mix deps.get
 ```
 
-Production adopters use `{:sigra, "~> 0.3", optional: true}` from Hex. Local proof and CI use a sibling checkout pinned to the integration ref documented in `MAINTAINING.md`.
+Production adopters use `{:sigra, "~> 0.3", optional: true, runtime: false}` from Hex. Local proof and CI use a sibling checkout pinned to the integration ref documented in `MAINTAINING.md`.
 
 ## 2. Integration seam
 
