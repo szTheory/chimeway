@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Ecosystem Completions
-status: milestone_complete
-last_updated: 2026-06-03T00:21:29.555Z
-last_activity: 2026-06-02 -- Phase 66 execution started
+status: executing
+last_updated: "2026-06-03T01:38:35.473Z"
+last_activity: 2026-06-03 -- Phase 67 planning complete
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 10
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 13
   completed_plans: 10
-  percent: 75
-stopped_at: Milestone complete (Phase 66 was final phase)
+  percent: 77
 ---
 
 # Project State
@@ -21,14 +20,14 @@ stopped_at: Milestone complete (Phase 66 was final phase)
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Milestone complete
+**Current focus:** Milestone v1.10 gap closure — Phase 67 (close ECOS-09)
 
 ## Current Position
 
-Phase: 66
+Phase: 67
 Plan: Not started
-Status: Milestone complete
-Last activity: 2026-06-03
+Status: Ready to execute
+Last activity: 2026-06-03 -- Phase 67 planning complete
 
 ## Accumulated Context
 
@@ -122,6 +121,7 @@ None.
 - v1.5 formally closed 2026-05-29 (Phases 35–42)
 - 57.1 inserted after 57: Close gap: DOCS-06/07 — fix Mailglass inbound webhook guide example (URGENT)
 - Phase 62.1 inserted after Phase 62: Address v1.9 tech debt: Nyquist validation + REQUIREMENTS traceability (URGENT)
+- Phase 67 added: Close ECOS-09: repin Sigra CI SHA, harden verify lanes against vacuous pass, fix guide, verify Phase 64 (from v1.10 milestone audit)
 
 ### Deferred Items
 

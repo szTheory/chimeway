@@ -52,11 +52,13 @@ Complete the SEED-003 ecosystem integration matrix by shipping Threadline and Si
 **Wave 1** *(harness + telemetry enrichment — blocks Wave 2)*
 
 Plans:
+
 - [x] 63-01-PLAN.md — Optional threadline dep, selective CI, test harness, `planning_reason` + `correlation_id` span enrichment (2026-05-30)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
 Plans:
+
 - [x] 63-02-PLAN.md — `Chimeway.Telemetry.ThreadlineReporter` + lifecycle → audit row integration proof (2026-05-30)
 
 ### Phase 64: Sigra Auth Flows Core
@@ -78,11 +80,13 @@ Plans:
 **Wave 1** *(harness + redaction baseline — blocks Wave 2)*
 
 Plans:
+
 - [x] 64-01-PLAN.md — Optional sigra dep, selective CI, test harness, `@sensitive_keys` extension (2026-05-30)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
 Plans:
+
 - [ ] 64-02-PLAN.md — `Sigra.Integrations.Chimeway` + magic link & confirmation notifiers + lifecycle redaction proof (2026-05-30)
 
 ### Phase 65: Ecosystem Blueprints & Demo
@@ -104,12 +108,14 @@ Plans:
 **Wave 1** *(parallel — no inter-plan file conflicts)*
 
 Plans:
+
 - [x] 65-01-PLAN.md — Sigra auth blueprint doc + ECOS-10 doc-contract describe block + mix.exs HexDocs extras
 - [x] 65-02-PLAN.md — Demo host test_helper Threadline + Sigra bootstrap + seed_threadline_notification/0 + seed_sigra_auth/0
 
 **Wave 2** *(blocked on Plan 65-02 completion)*
 
 Plans:
+
 - [x] 65-03-PLAN.md — threadline_telemetry_proof_test.exs (DEMO-09) + sigra_auth_proof_test.exs (DEMO-10)
 
 ### Phase 66: Docs & Release Gates
@@ -131,12 +137,14 @@ Plans:
 **Wave 1** *(parallel — no inter-plan file conflicts)*
 
 Plans:
+
 - [x] 66-01-PLAN.md — Threadline integration guide (DOCS-10) + Sigra auth integration guide (DOCS-10)
 - [x] 66-02-PLAN.md — mix verify aliases + CI jobs + MAINTAINING.md + release gate contract test (GATE-07)
 
 **Wave 2** *(blocked on Plan 66-01 completion)*
 
 Plans:
+
 - [x] 66-03-PLAN.md — Doc-contract describe blocks for both guides + hexdocs extras ordering tests (DOCS-11)
 
 ## Progress
@@ -184,8 +192,13 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 67-01-PLAN.md — Repin Sigra CI SHA (62ceb46a) + close the vacuous-pass footgun: raise-loud test_helper, harden sigra/accrue/threadline harness guards (per-direction), per-lane test-count floor (D-01, D-02a/b/c)
 - [ ] 67-02-PLAN.md — Fix the Sigra golden-path guide trigger example + WR-2 fenced arity; strengthen the doc-contract to catch the wrong shape (D-03, D-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 67-03-PLAN.md — Clean-CI verify.sigra proof, 64-VERIFICATION.md, commit 64-02-SUMMARY, reconcile ROADMAP/REQUIREMENTS, close Nyquist + override comment (D-05, D-06)
 
 ---
