@@ -158,7 +158,8 @@ if Code.ensure_loaded?(Threadline) do
   Ecto.Adapters.SQL.Sandbox.mode(Threadline.Test.Repo, :manual)
 end
 
-if Code.ensure_loaded?(Sigra) do
+if Code.ensure_loaded?(Sigra) or
+     (System.get_env("CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") in ["1", "true"]) do
   if Code.ensure_loaded?(Chimeway) and not Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
     source =
       case Mix.Project.deps_paths()[:sigra] do
