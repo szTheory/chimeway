@@ -16,6 +16,11 @@ if Code.ensure_loaded?(Sigra) do
         assert function_exported?(Sigra.Auth, :request_magic_link, 3)
       end
 
+      test "Sigra integration module loaded exports dispatch_magic_link_after_request/3" do
+        assert Code.ensure_loaded?(Sigra.Integrations.Chimeway)
+        assert function_exported?(Sigra.Integrations.Chimeway, :dispatch_magic_link_after_request, 3)
+      end
+
       test "TestRepo reachable after insert_user!/0" do
         insert_user!()
 

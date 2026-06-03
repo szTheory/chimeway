@@ -24,6 +24,11 @@ if Code.ensure_loaded?(Threadline) do
         assert function_exported?(Threadline, :record_action, 2)
       end
 
+      test "Chimeway reporter module loaded exports attach/0" do
+        assert Code.ensure_loaded?(Chimeway.Telemetry.ThreadlineReporter)
+        assert function_exported?(Chimeway.Telemetry.ThreadlineReporter, :attach, 0)
+      end
+
       test "TestRepo reachable after setup cleanup" do
         assert ThreadlineRepo.aggregate(AuditAction, :count) == 0
       end
