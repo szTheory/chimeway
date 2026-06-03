@@ -12,7 +12,7 @@
 
 ### Ecosystem — Sigra Auth (ECOS)
 
-- [ ] **ECOS-09**: Sigra auth events (magic link, MFA token dispatch) trigger Chimeway notifiers with redacted trace payloads — sensitive tokens never persisted in Chimeway trace database
+- [x] **ECOS-09**: Sigra auth events (magic link, MFA token dispatch) trigger Chimeway notifiers with redacted trace payloads — sensitive tokens never persisted in Chimeway trace database
 - [x] **ECOS-10**: Published Sigra auth notification reference blueprint with CI doc-contract coverage (Chimeway orchestrates when/why; Sigra owns auth state)
 
 ### Demo Proof (DEMO)
@@ -56,7 +56,7 @@ Deferred to later milestones. Tracked but not in v1.10 roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ECOS-08 | Phase 63 | Complete |
-| ECOS-09 | Phase 64 | Pending |
+| ECOS-09 | Phase 64 | Complete |
 | ECOS-10 | Phase 65 | Complete |
 | DEMO-09 | Phase 65 | Complete |
 | DEMO-10 | Phase 65 | Complete |

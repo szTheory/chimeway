@@ -155,7 +155,7 @@ Plans:
 | 64 Sigra Auth Flows Core | 1/2 | In Progress|  |
 | 65 Ecosystem Blueprints & Demo | 3/3 | Complete    | 2026-05-30 |
 | 66 Docs & Release Gates | 3/3 | Complete    | 2026-06-03 |
-| 67 Close ECOS-09 | 0/3 | Planned | |
+| 67 Close ECOS-09 | 1/3 | In Progress|  |
 
 ## Requirement Coverage
 
@@ -189,12 +189,12 @@ Plans:
 3. `guides/introduction/sigra-auth-integration.md` shows the correct `Chimeway.trigger/3` shape (notifier module first arg); doc-contract now catches the wrong shape (forbid string-first-arg + `params:` option)
 4. Phase 64 has `64-VERIFICATION.md` proving ECOS-09 E2E; `64-02-SUMMARY.md` committed; ROADMAP/REQUIREMENTS reconciled (ECOS-09 → Complete); the four draft `*-VALIDATION.md` Nyquist contracts closed out
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 67-01-PLAN.md — Repin Sigra CI SHA (62ceb46a) + close the vacuous-pass footgun: raise-loud test_helper, harden sigra/accrue/threadline harness guards (per-direction), per-lane test-count floor (D-01, D-02a/b/c)
+- [x] 67-01-PLAN.md — Repin Sigra CI SHA (62ceb46a) + close the vacuous-pass footgun: raise-loud test_helper, harden sigra/accrue/threadline harness guards (per-direction), per-lane test-count floor (D-01, D-02a/b/c)
 - [ ] 67-02-PLAN.md — Fix the Sigra golden-path guide trigger example + WR-2 fenced arity; strengthen the doc-contract to catch the wrong shape (D-03, D-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
