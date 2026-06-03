@@ -425,13 +425,13 @@ jobs:
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - name: Run root Sigra proof lane
-        run: mix test --no-compile --only sigra --warnings-as-errors --trace
+        run: mix test --no-compile test/chimeway/integrations/sigra_auth_harness_test.exs test/chimeway/integrations/sigra_auth_lifecycle_test.exs --only sigra --warnings-as-errors --trace
       - name: Run demo-host Sigra proof lane
         run: |
           cd examples/chimeway_demo_host
           mix deps.get
           mix deps.compile
-          mix test --no-compile --only sigra --warnings-as-errors --trace
+          mix test --no-compile test/demo_host_web/sigra_auth_proof_test.exs --only sigra --warnings-as-errors --trace
         env:
           CHIMEWAY_SKIP_THREADLINE_DEP: "1"
           CHIMEWAY_PATH: ../..

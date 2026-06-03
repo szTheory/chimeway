@@ -81,8 +81,9 @@ defmodule Chimeway.ReleaseGateContractTest do
           assert String.contains?(job_block, unquote(command)) or
                    (String.contains?(
                       job_block,
-                      "mix test --no-compile --only sigra --warnings-as-errors --trace"
+                      "test/chimeway/integrations/sigra_auth_lifecycle_test.exs"
                     ) and
+                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
                       String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP")),
                  "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
         else
