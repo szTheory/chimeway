@@ -28,7 +28,7 @@ Complete the SEED-003 ecosystem integration matrix by shipping Threadline and Si
 - [x] **Phase 63: Threadline Telemetry Bridge** — Optional `threadline` dep; telemetry reporter sinks notification outcomes into Threadline audit ledger (2026-05-30)
 - [ ] **Phase 64: Sigra Auth Flows Core** — Sigra auth events trigger Chimeway notifiers with redacted trace payloads
 - [x] **Phase 65: Ecosystem Blueprints & Demo** — Sigra auth reference blueprint plus demo host proofs for Threadline and Sigra (completed 2026-05-30)
-- [ ] **Phase 66: Docs & Release Gates** — Golden-path guides, doc-contract tests, and `mix verify.threadline` / `mix verify.sigra` CI gates
+- [x] **Phase 66: Docs & Release Gates** — Golden-path guides, doc-contract tests, and `mix verify.threadline` / `mix verify.sigra` CI gates (completed 2026-06-03)
 
 ## Phase Details
 
@@ -125,7 +125,7 @@ Plans:
 2. Doc-contract tests fail if guide text regresses to pre-integration assumptions or omits required setup steps
 3. `mix verify.threadline` and `mix verify.sigra` run in CI and appear in MAINTAINING.md pre-ship checklist without breaking the existing verify octet
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 **Wave 1** *(parallel — no inter-plan file conflicts)*
 
@@ -136,7 +136,7 @@ Plans:
 **Wave 2** *(blocked on Plan 66-01 completion)*
 
 Plans:
-- [ ] 66-03-PLAN.md — Doc-contract describe blocks for both guides + hexdocs extras ordering tests (DOCS-11)
+- [x] 66-03-PLAN.md — Doc-contract describe blocks for both guides + hexdocs extras ordering tests (DOCS-11)
 
 ## Progress
 
@@ -145,7 +145,7 @@ Plans:
 | 63 Threadline Telemetry Bridge | 2/2 | Complete    | 2026-05-30 |
 | 64 Sigra Auth Flows Core | 1/2 | In Progress|  |
 | 65 Ecosystem Blueprints & Demo | 3/3 | Complete    | 2026-05-30 |
-| 66 Docs & Release Gates | 2/3 | In Progress|  |
+| 66 Docs & Release Gates | 3/3 | Complete   | 2026-06-03 |
 
 ## Requirement Coverage
 
