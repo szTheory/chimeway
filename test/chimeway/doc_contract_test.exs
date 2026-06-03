@@ -777,6 +777,20 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
+    @sigra_invalid_patterns ["Chimeway.trigger(\"", "params:"]
+
+    for forbidden <- @sigra_invalid_patterns do
+      test "forbids invalid trigger shape #{forbidden} in sigra auth integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "sigra auth integration guide must not reference invalid shape #{unquote(forbidden)}"
+      end
+    end
+
+    test "requires trigger example to pass a *Notifier module as first argument", %{content: content} do
+      assert Regex.match?(~r/Chimeway\.trigger\(\s*Sigra\.Integrations\.Chimeway\.\w*Notifier/, content),
+             "sigra auth integration guide must pass a Notifier module as first argument to Chimeway.trigger"
+    end
+
     @required ~w(
       Sigra.Integrations.Chimeway
       sigra.auth.magic_link
@@ -784,7 +798,7 @@ defmodule Chimeway.DocContractTest do
       Chimeway.trigger
       idempotency_key
       tenant_id
-      DemoHost.Seeds.seed_sigra
+      DemoHost.Seeds.seed_sigra_auth
       /admin/chimeway
       mix\ verify.sigra
       SIGRA_PATH
