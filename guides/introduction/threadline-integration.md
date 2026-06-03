@@ -84,7 +84,7 @@ Each audit action carries only deterministic outcome metadata (the outcome reaso
 Seed the demo host Threadline scenario to exercise the bridge end-to-end:
 
 ```elixir
-DemoHost.Seeds.seed_threadline_notification/0
+DemoHost.Seeds.seed_threadline_notification()
 ```
 
 Then run the named proof command:

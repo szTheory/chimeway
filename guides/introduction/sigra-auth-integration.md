@@ -63,10 +63,10 @@ The notifier `build/2` callback resolves the magic link URL and the confirmation
 Sigra auth events drive the triggers. On a successful `Sigra.Auth.request_magic_link/3` (existing user, not rate-limited), the integration calls `Chimeway.trigger/3`; the same happens when a confirmation code is generated. Each call passes a stable `idempotency_key` (so retried auth events deduplicate) and `tenant_id` (the user id, for tenant-scoped operator search):
 
 ```elixir
-Chimeway.trigger("sigra.auth.magic_link", recipient,
+Chimeway.trigger(Sigra.Integrations.Chimeway.MagicLinkNotifier, %{user_id: user_id, email: email},
   idempotency_key: "sigra.magic_link:#{user_id}:#{token_inserted_at}",
   tenant_id: user_id,
-  params: %{user_id: user_id, email: email}
+  correlation_id: correlation_id
 )
 ```
 
@@ -81,7 +81,7 @@ The trigger params carry only identifiers. The notifier reconstructs the raw tok
 Seed the demo host Sigra auth scenario to exercise both flows end-to-end:
 
 ```elixir
-DemoHost.Seeds.seed_sigra_auth/0
+DemoHost.Seeds.seed_sigra_auth()
 ```
 
 Then run the named proof command:
