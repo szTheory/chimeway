@@ -127,14 +127,14 @@ defmodule Chimeway.MixProject do
       "verify.threadline": [
         "deps.compile threadline --force",
         "cmd env MIX_ENV=test mix test --only threadline --warnings-as-errors",
-        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=../../../threadline/threadline CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=../../../threadline/threadline CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=../../../threadline/threadline CHIMEWAY_PATH=../.. mix deps.compile threadline --force && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=../../../threadline/threadline CHIMEWAY_PATH=../.. mix test --only threadline --warnings-as-errors"
+        "cmd --shell threadline_path=${THREADLINE_PATH:-../threadline/threadline}; threadline_path=$(cd \"$threadline_path\" && pwd); cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=\"$threadline_path\" CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=\"$threadline_path\" CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=\"$threadline_path\" CHIMEWAY_PATH=../.. mix deps.compile threadline --force && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=\"$threadline_path\" CHIMEWAY_PATH=../.. mix test --only threadline --warnings-as-errors"
       ],
 
       # v1.10 GATE-07 Sigra: auth notification proof (root + demo host :sigra lane)
       "verify.sigra": [
         "deps.compile sigra --force",
         "cmd env MIX_ENV=test mix test --only sigra --warnings-as-errors",
-        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=../../../sigra/sigra CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=../../../sigra/sigra CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=../../../sigra/sigra CHIMEWAY_PATH=../.. mix deps.compile sigra --force && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=../../../sigra/sigra CHIMEWAY_PATH=../.. mix test --only sigra --warnings-as-errors"
+        "cmd --shell sigra_path=${SIGRA_PATH:-../sigra/sigra}; sigra_path=$(cd \"$sigra_path\" && pwd); cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.compile sigra --force && env CHIMEWAY_SKIP_THREADLINE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix test --only sigra --warnings-as-errors"
       ]
     ]
   end
