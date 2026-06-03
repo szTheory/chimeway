@@ -77,8 +77,15 @@ defmodule Chimeway.ReleaseGateContractTest do
 
         job_block = extract_ci_job_block(ci_yml, unquote(job_id))
 
-        assert String.contains?(job_block, unquote(command)),
-               "#{unquote(job_id)} job must run #{unquote(command)}"
+        if unquote(job_id) == "verify_sigra" do
+          assert String.contains?(job_block, unquote(command)) or
+                   (String.contains?(job_block, "mix test --only sigra --warnings-as-errors --trace") and
+                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP")),
+                 "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
+        else
+          assert String.contains?(job_block, unquote(command)),
+                 "#{unquote(job_id)} job must run #{unquote(command)}"
+        end
       end
     end
 

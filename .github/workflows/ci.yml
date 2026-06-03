@@ -424,7 +424,18 @@ jobs:
           mix deps.get
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
-      - run: mix verify.sigra
+      - name: Run root Sigra proof lane
+        run: mix test --only sigra --warnings-as-errors --trace
+      - name: Run demo-host Sigra proof lane
+        run: |
+          cd examples/chimeway_demo_host
+          mix deps.get
+          mix deps.compile
+          mix test --only sigra --warnings-as-errors --trace
+        env:
+          CHIMEWAY_SKIP_THREADLINE_DEP: "1"
+          CHIMEWAY_PATH: ../..
+          SIGRA_PATH: ${{ github.workspace }}/sigra/sigra
 
   install_golden_contract:
     name: Installer golden + idempotency contract
