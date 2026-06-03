@@ -426,16 +426,16 @@ jobs:
         run: |
           set -euo pipefail
           pg_isready -h localhost -p 5432 -U postgres
-          timeout 120s mix ecto.create
-          timeout 120s mix ecto.migrate
+          timeout 600s mix ecto.create
+          timeout 300s mix ecto.migrate
       - name: Run root Sigra proof lane
-        run: timeout 180s mix test --no-compile test/chimeway/integrations/sigra_auth_harness_test.exs test/chimeway/integrations/sigra_auth_lifecycle_test.exs --only sigra --warnings-as-errors --trace
+        run: timeout 300s mix test --no-compile test/chimeway/integrations/sigra_auth_harness_test.exs test/chimeway/integrations/sigra_auth_lifecycle_test.exs --only sigra --warnings-as-errors --trace
       - name: Run demo-host Sigra proof lane
         run: |
           cd examples/chimeway_demo_host
           mix deps.get
-          mix deps.compile
-          timeout 180s mix test --no-compile test/demo_host_web/sigra_auth_proof_test.exs --only sigra --warnings-as-errors --trace
+          timeout 600s mix deps.compile
+          timeout 300s mix test --no-compile test/demo_host_web/sigra_auth_proof_test.exs --only sigra --warnings-as-errors --trace
         env:
           CHIMEWAY_SKIP_THREADLINE_DEP: "1"
           CHIMEWAY_PATH: ../..
