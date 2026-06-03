@@ -398,6 +398,11 @@ jobs:
     env:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGHOST: localhost
       SIGRA_PATH: ${{ github.workspace }}/sigra/sigra
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
