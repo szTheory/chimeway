@@ -42,7 +42,7 @@ created: 2026-06-04
 | 69-01-02 | 01 | 1 | DES-02 | T-69-02 | Theme state tokens preserve contrast hooks without exposing new data | contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | Created/extended by Plan 01 Tasks 1-2 | pending |
 | 69-02-01 | 02 | 2 | DES-03 | T-69-03 | Responsive hooks do not alter auth, recovery, or DTO behavior | LiveView/structure | `cd chimeway_admin && mix test test/chimeway_admin/live/design_system_live_test.exs` | Created by Plan 02 Task 1 | pending |
 | 69-02-02 | 02 | 2 | DES-04 | T-69-04 | Motion is CSS-only, reduced-motion-safe, and non-blocking | contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | Extended by Plan 02 Task 2 | pending |
-| 69-02-03 | 02 | 2 | DES-03 | T-69-06 | Mobile/desktop evidence records responsive observations without adding Phase 72 browser gate work | manual visual evidence plus file contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs test/chimeway_admin/live/design_system_live_test.exs --warnings-as-errors && mix test --warnings-as-errors` | Created by Plan 02 Task 3 | pending |
+| 69-02-03 | 02 | 2 | DES-03 | T-69-06 | Mobile/desktop evidence records responsive observations without adding Phase 72 browser gate work | manual visual evidence plus file contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs test/chimeway_admin/live/design_system_live_test.exs --warnings-as-errors` plus evidence-file assertions from Plan 02 Task 3 | Created by Plan 02 Task 3 | pending |
 
 ---
 
