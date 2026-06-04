@@ -385,12 +385,13 @@ end
 | A2 | Page-specific responsive patches are more likely to drift than shared primitive fixes. | Anti-Patterns, Common Pitfalls | Planner may create too many page-local tasks. |
 | A3 | Motion polish can slow keyboard-heavy workflows if transition scope grows. | Common Pitfalls | Planner may allow decorative animation beyond DES-04. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should Phase 69 persist screenshot artifacts, or only document screenshot-ready commands?**
    - What we know: Context requires mobile/desktop visual evidence compatibility but defers the permanent browser smoke gate to Phase 72. [VERIFIED: 69-CONTEXT.md]
-   - What's unclear: Whether planner should create committed screenshots or a local evidence note. [ASSUMED]
-   - Recommendation: Capture evidence during execution, but do not commit large binary screenshots unless an existing project convention requires it. [ASSUMED]
+   - Resolution: Phase 69 should create a lightweight `.planning/phases/69-console-design-system/69-EVIDENCE.md` evidence note with manual visual observations for the required 390px mobile and 1280px desktop admin surfaces. [VERIFIED: 69-CONTEXT.md]
+   - Screenshot posture: The evidence note may include optional screenshot references if screenshots are captured locally, but Phase 69 should not commit binary screenshots unless an existing project convention for committed visual artifacts is found in project-local planning or test artifacts. [ASSUMED]
+   - Boundary: This keeps Phase 69 compatible with later browser-smoke work while leaving durable screenshot automation, `mix verify.admin`, and browser gate composition to Phase 72. [VERIFIED: 69-CONTEXT.md]
 
 ## Environment Availability
 
@@ -423,10 +424,10 @@ end
 
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|--------------|
-| DES-01 | CSS exposes required token families and shared primitives consume semantic tokens. | unit/contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | no, Wave 0 |
-| DES-02 | Light/dark/system theme hooks and contrast-state token branches exist. | unit/contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | no, Wave 0 |
-| DES-03 | Core pages render shared responsive hooks for shell, nav, forms, rows, tables, summaries, copy IDs, metrics, and headers. | LiveView/structure | `cd chimeway_admin && mix test test/chimeway_admin/live/design_system_live_test.exs` | no, Wave 0 |
-| DES-04 | CSS includes purposeful transition tokens and reduced-motion override. | unit/contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | no, Wave 0 |
+| DES-01 | CSS exposes required token families and shared primitives consume semantic tokens. | unit/contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | created by Plan 01 Task 1 |
+| DES-02 | Light/dark/system theme hooks and contrast-state token branches exist. | unit/contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | created/extended by Plan 01 Tasks 1-2 |
+| DES-03 | Core pages render shared responsive hooks for shell, nav, forms, rows, tables, summaries, copy IDs, metrics, and headers. | LiveView/structure | `cd chimeway_admin && mix test test/chimeway_admin/live/design_system_live_test.exs` | created by Plan 02 Task 1 |
+| DES-04 | CSS includes purposeful transition tokens and reduced-motion override. | unit/contract | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs` | created/extended by Plan 01 Task 2 and Plan 02 Task 2 |
 
 ### Sampling Rate
 
@@ -434,11 +435,12 @@ end
 - **Per wave merge:** `cd chimeway_admin && mix test`. [VERIFIED: current package tests]
 - **Phase gate:** `cd chimeway_admin && mix test`; optionally capture mobile/desktop visual evidence locally without adding Phase 72 gate composition. [VERIFIED: 69-CONTEXT.md]
 
-### Wave 0 Gaps
+### Planned Test And Evidence Creation
 
-- [ ] `chimeway_admin/test/chimeway_admin/design_system_test.exs` - covers DES-01, DES-02, DES-04. [ASSUMED]
-- [ ] `chimeway_admin/test/chimeway_admin/live/design_system_live_test.exs` - covers DES-03 rendered shell/component hooks. [ASSUMED]
-- [ ] Optional local screenshot/evidence command or note - supports DES-03 success criterion without creating `mix verify.admin`. [ASSUMED]
+- No separate Wave 0 is required. Test files and the evidence note are created in-place by the planned tasks. [VERIFIED: 69-01-PLAN.md] [VERIFIED: 69-02-PLAN.md]
+- `chimeway_admin/test/chimeway_admin/design_system_test.exs` is created by Plan 01 Task 1 and extended by Plan 01 Task 2 / Plan 02 Task 2 for DES-01, DES-02, DES-03 CSS hooks, and DES-04. [VERIFIED: 69-01-PLAN.md] [VERIFIED: 69-02-PLAN.md]
+- `chimeway_admin/test/chimeway_admin/live/design_system_live_test.exs` is created by Plan 02 Task 1 for DES-03 rendered shell/component hooks. [VERIFIED: 69-02-PLAN.md]
+- `.planning/phases/69-console-design-system/69-EVIDENCE.md` is created by Plan 02 Task 3 for DES-03 390px and 1280px manual responsive observations without creating `mix verify.admin`. [VERIFIED: 69-02-PLAN.md]
 
 ## Security Domain
 
