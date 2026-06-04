@@ -1,9 +1,33 @@
+---
+id: SEED-003
+status: implemented
+planted: 2026-04-29T15:34:12Z
+planted_during: Milestone v1.3 initialization
+trigger_when: Ecosystem composition becomes the next adoption wedge after core journeys, channel feedback, and adoption surfaces are stable.
+scope: large
+shipped_by: v1.8-v1.10
+implemented:
+  - v1.8 Mailglass adapter, inbound feedback bridge, blueprint, demo proof, docs, and verify gate
+  - v1.9 Accrue dunning blueprint, demo proof, docs, and verify gate
+  - v1.10 Threadline telemetry bridge, Sigra auth flows, demo proofs, docs, and verify gates
+---
+
 # Ecosystem Integrations (High-Value Wins)
 
 **Domain:** Interoperability with sztheory ecosystem libraries
-**Status:** Seed / Future Roadmap
+**Status:** Implemented by v1.10
 
 Chimeway's architecture is deeply decoupled, making it a perfect orchestration engine that can compose with other specialized libraries in the ecosystem. Rather than building everything in-house, Chimeway should provide first-class adapters, blueprints, and telemetry bridges for the following high-value integrations:
+
+## Outcome
+
+This seed is implemented across v1.8-v1.10:
+
+- v1.8 shipped the Mailglass adapter, inbound feedback bridge, blueprint, demo proof, integration guide, doc-contracts, and `mix verify.mailglass`.
+- v1.9 shipped the Accrue dunning workflow blueprint, demo proof, integration guide, doc-contracts, and `mix verify.accrue`.
+- v1.10 shipped the Threadline telemetry bridge and Sigra auth notification flows with blueprints, demo proofs, integration guides, doc-contracts, and `mix verify.threadline` / `mix verify.sigra`.
+
+Remaining ecosystem ideas should be captured as new focused seeds rather than reopening this broad matrix seed.
 
 ## 1. Mailglass (Transactional Email)
 *What it is:* A transactional email framework for Phoenix composable on Swoosh, complete with a LiveView dev/admin preview.

@@ -1,13 +1,38 @@
+---
+id: SEED-004
+status: deferred
+planted: 2026-04-29T15:34:12Z
+planted_during: Milestone v1.3 initialization
+trigger_when: Adoption, operator experience, or persona-specific DX becomes the next highest-leverage milestone theme.
+scope: large
+shipped_by: v1.5-v1.9
+remaining:
+  - INT-02 inbox-read signal projection onto delivery timeline UI
+  - INT-03 mark_seen progression E2E and BellDropdownLive mark_seen wiring
+  - INBX-03 real-time PubSub bell badge updates
+  - ADPT-01 greenfield phx.new plus Hex dependency install smoke in CI
+---
+
 # Personas, JTBD & DX Roadmap (v1.5+)
 
 **Domain:** Product Strategy, User Experience, and Developer Experience
-**Status:** Seed / Context Preservation
+**Status:** Deferred after v1.9 persona/DX foundation
 
 ## Core Product Philosophy
 **"Explainable & Local-First"**
 Chimeway is embedded infrastructure. It lives inside the host app's PostgreSQL database and uses Oban for transactional, durable processing.
 - **Local-First Data Ownership:** No syncing user data to a 3rd party. The host app is the source of truth.
 - **Total Explainability:** Every decision (send, fail, defer, suppress, digest) is recorded as a trace. Operators can answer exactly *why* something happened.
+
+## Outcome / Remaining Work
+
+The persona and DX foundation shipped across v1.5-v1.9:
+
+- Feature Developer path: installer, golden-path docs, reference recipes, demo seeds, and copyable integration guides.
+- Support Operator path: optional admin surface, trace inspection, demo host proof, and explainable lifecycle records.
+- Product Manager path: workflow journeys, channel feedback, read-cancel progression, Accrue dunning, and inbox UI foundations.
+
+Remaining optional polish is deferred beyond v1.10: INT-02, INT-03, INBX-03, and ADPT-01.
 
 ## Personas & Jobs-To-Be-Done (JTBD)
 

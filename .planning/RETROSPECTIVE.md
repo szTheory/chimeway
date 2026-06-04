@@ -2,6 +2,54 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.10 — Ecosystem Completions
+
+**Shipped:** 2026-06-04
+**Phases:** 5 (63-67) | **Plans:** 13 | **Requirements:** 8/8
+
+### What Was Built
+
+- Threadline telemetry bridge: Chimeway lifecycle outcomes sink into Threadline `audit_actions` with redacted metadata and correlation IDs (ECOS-08).
+- Sigra auth notification flows: magic-link/auth events dispatch Chimeway notifiers with trace redaction and clean-CI binding proof (ECOS-09).
+- Sigra auth blueprint plus demo host proofs for Threadline audit correlation and Sigra auth notification inspectability (ECOS-10, DEMO-09/10).
+- Threadline and Sigra golden-path guides, doc-contract truth locks, and HexDocs extras ordering (DOCS-10/11).
+- `mix verify.threadline` and `mix verify.sigra` gates in CI, release-gate contracts, and MAINTAINING pre-ship checklist (GATE-07).
+- Phase 67 closed the ECOS-09 audit gap with Sigra SHA repin, zero-test guardrails, guide API correction, and CI proof run `26925122158` / job `79433504716`.
+
+### What Worked
+
+- The Mailglass/Accrue vertical-slice pattern transferred cleanly to Threadline and Sigra: optional dep, selective CI, demo proof, guide, doc-contract, verify gate.
+- Milestone audit caught a real clean-CI gap before close; Phase 67 closed it without vendoring partner-owned code into Chimeway.
+- Release-gate contract tests became more valuable once they asserted per-lane test-count floors, not just command presence.
+- Phase-directory archival keeps active planning small while preserving full execution history under `milestones/v1.10-phases/`.
+
+### What Was Inefficient
+
+- Phase 64 originally verified against a local gitignored Sigra checkout; the CI pin lag made the first Sigra gate vacuous.
+- Validation metadata for some earlier v1.10 phases lagged behind implementation and had to be reconciled during close-out.
+- Guide API shape drift survived substring-only doc-contract coverage until Phase 67 added negative guards.
+
+### Patterns Established
+
+- Partner integrations should fail loud when sibling checkout files are missing; silent `Code.ensure_loaded?` skips are release-gate bugs.
+- Partner-owned modules plus pinned SHAs are acceptable when the gate proves the module exists and executes nonzero tests.
+- Doc-contracts for guides need both positive required strings and negative invalid-shape guards.
+- Clean-CI proof IDs belong in verification artifacts when local path deps and sibling checkouts are involved.
+
+### Key Lessons
+
+1. A green verify lane is not enough if the lane can skip to zero tests; every optional integration gate needs a count floor.
+2. Copy-paste docs need API-shape contracts, not just topic coverage.
+3. Closing the ecosystem matrix across multiple milestones worked because each slice shipped full adoption proof, not just an adapter.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: Phases 63-67 shipped 2026-05-30 -> 2026-06-04
+- Notable: 107 commits since v1.9; 8/8 requirements satisfied after Phase 67 audit closure
+
+---
+
 ## Milestone: v1.9 — Adopter Complete
 
 **Shipped:** 2026-05-30

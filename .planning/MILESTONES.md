@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.10 Ecosystem Completions
+
+- Status: shipped
+- Date: 2026-06-04
+- Phases: 63-67 (5 phases, 13 plans)
+- Requirements: 8/8 satisfied
+- Git tag: v1.10
+- Git range: v1.9..v1.10 (107 commits, 245 files, +15,594 / -6,826 LOC)
+- Audit: [milestones/v1.10-MILESTONE-AUDIT.md](milestones/v1.10-MILESTONE-AUDIT.md) (passed after Phase 67 closure)
+- Key accomplishments:
+
+- Threadline telemetry reporter bridges Chimeway lifecycle outcomes into Threadline `audit_actions` with redacted metadata and correlation IDs (ECOS-08)
+- Sigra auth notification flows dispatch Chimeway notifiers for magic-link/auth events with sensitive-token redaction at the trace boundary (ECOS-09)
+- Sigra auth reference blueprint plus demo host proofs cover Threadline audit correlation and Sigra auth notification trace inspectability (ECOS-10, DEMO-09/10)
+- Threadline and Sigra golden-path guides are locked by doc-contract tests and published in HexDocs extras (DOCS-10/11)
+- `mix verify.threadline` and `mix verify.sigra` are wired into CI, release-gate contracts, and the MAINTAINING pre-ship checklist (GATE-07)
+- Phase 67 closed the ECOS-09 audit gap: Sigra CI repinned to `62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`, vacuous-pass guards added, guide API shape fixed, and clean-CI proof captured in run `26925122158` / job `79433504716`
+
+- Notes: SEED-003 ecosystem matrix is complete across v1.8-v1.10. Optional polish remains in SEED-004: INT-02/03, INBX-03, ADPT-01.
+
+---
+
 ## v1.9 Adopter Complete
 
 - Status: shipped

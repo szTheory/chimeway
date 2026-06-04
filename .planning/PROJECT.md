@@ -14,29 +14,23 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ### Validated
 
+- ✓ v1.10 Ecosystem Completions — ECOS-08/09/10, DEMO-09/10, DOCS-10/11, GATE-07 ([archive](.planning/milestones/v1.10-REQUIREMENTS.md))
 - ✓ v1.9 Adopter Complete — ECOS-06/07, DEMO-07/08, INBX-01/02, DOCS-08/09, GATE-05/06 ([archive](.planning/milestones/v1.9-REQUIREMENTS.md))
 
 ### Active
 
-- [ ] ECOS-08: Threadline telemetry bridge
-- [ ] ECOS-09: Sigra auth notification flows core
-- [ ] ECOS-10: Sigra auth reference blueprint
-- [ ] DEMO-09: Threadline demo proof
-- [ ] DEMO-10: Sigra auth demo proof
-- [ ] DOCS-10: Threadline + Sigra integration guides
-- [ ] DOCS-11: Doc-contract tests for Threadline + Sigra guides
-- [ ] GATE-07: `mix verify.threadline` and `mix verify.sigra` CI gates
-- [ ] Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI
+- [ ] Define the next milestone requirements with `$gsd-new-milestone`
+- [ ] Optional polish candidates: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI
 
 ### Out of Scope
 
 - Broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
 
-## Current Milestone: v1.10 Ecosystem Completions
+## Latest Shipped Milestone: v1.10 Ecosystem Completions
 
-**Goal:** Complete SEED-003 — Threadline telemetry bridge and Sigra auth notification flows with blueprint, demo proof, integration docs, and verify gates. Optional polish: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI.
+**Shipped:** 2026-06-04
 
-**Target features:**
+**Delivered:**
 - Threadline telemetry reporter sinks Chimeway notification outcomes into Threadline audit ledger (ECOS-08)
 - Sigra auth notification flows — magic link and MFA token dispatch with redacted traces (ECOS-09)
 - Published Sigra auth reference blueprint with doc-contract (ECOS-10)
@@ -46,7 +40,7 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ## Current State
 
-**v1.10 Ecosystem Completions complete (Phase 66 complete 2026-06-03):** Threadline & Sigra golden-path integration guides (DOCS-10) with copy-paste-correct dependency snippets matching canonical `mix.exs`; doc-contract describe blocks locking both guides as truth (DOCS-11); `mix verify.threadline` / `mix verify.sigra` release gates wired into mix aliases, an 11-lane ci-gate with pinned sibling-repo SHAs, and the 10-command MAINTAINING pre-ship checklist (GATE-07). Validation: 3/3 success criteria verified; 330 doc-contract + release-gate tests green. Earlier in v1.10: Phase 65 — Sigra auth blueprint recipe (ECOS-10), Threadline + Sigra TestRepo bootstrap/seed helpers, DEMO-09/DEMO-10 proof integration tests.
+**v1.10 Ecosystem Completions shipped (2026-06-04):** Threadline telemetry reporter + audit-ledger proof (ECOS-08), Sigra auth notification flows with redacted traces and clean-CI binding proof (ECOS-09), Sigra auth blueprint and demo host proofs (ECOS-10, DEMO-09/10), Threadline/Sigra integration guides with doc-contract truth locks (DOCS-10/11), and `mix verify.threadline` / `mix verify.sigra` gates in CI + MAINTAINING (GATE-07). Phase 67 closed the audit gap by repinning Sigra CI to `szTheory/sigra@62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`, adding vacuous-pass guards, fixing the Sigra guide API shape, and recording CI proof run `26925122158` / job `79433504716`.
 
 **v1.9 Adopter Complete shipped (2026-05-30):** Accrue dunning vertical slice (Phases 58–60) — billing events drive Chimeway dunning workflows with Outcome Signal termination; blueprint recipe, demo proof, golden-path guide, and `mix verify.accrue` gate (ECOS-06/07, DEMO-07, DOCS-08/09, GATE-05 Accrue). Hex release automation via Release Please + 9-lane ci-gate + gated Hex publish (GATE-06, Phase 60.1). INBX inbox UI vertical slice (Phases 61–62) — headless API polish, optional `chimeway_inbox` package, demo mount, integration guide, and `mix verify.inbox` octet (INBX-01/02, DEMO-08, DOCS-08/09 Inbox, GATE-05 Inbox). **264+ doc-contract tests** green; Accrue and inbox verify gates pass.
 
@@ -63,13 +57,23 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.7 READ + Adoption Polish` — read/unread workflow glue, natural escalation demo, adoption-evidence tail (shipped 2026-05-29).
 - `v1.8 Ecosystem Integration Blueprints` — Mailglass-first adapter, inbound feedback bridge, reference recipe, demo proof, integration docs, and verify gate (shipped 2026-05-30).
 - `v1.9 Adopter Complete` — Accrue dunning blueprint, INBX inbox UI package, Hex release automation, verify.accrue/inbox gates (shipped 2026-05-30).
-- `v1.10 Ecosystem Completions` — Threadline telemetry bridge + Sigra auth flows (in progress).
+- `v1.10 Ecosystem Completions` — Threadline telemetry bridge + Sigra auth flows (shipped 2026-06-04).
 
 ## Next Milestone Goals
 
-**v1.10 Ecosystem Completions (active):** SEED-003 remainder — Threadline telemetry bridge (`ECOS-08`), Sigra auth notification flows (`ECOS-09/10`), demo proofs, integration docs, and verify gates (`DEMO-09/10`, `DOCS-10/11`, `GATE-07`). Optional polish: INT-02/03, INBX-03 real-time PubSub bell, ADPT-01 greenfield CI.
+**Next milestone not yet defined:** Run `$gsd-new-milestone` to choose the next requirements set. Candidate optional polish remains INT-02/03, INBX-03 real-time PubSub bell, and ADPT-01 greenfield CI.
 
-**Explicitly deferred beyond v1.10:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
+**Explicitly deferred:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
+
+### Shipped v1.10 Features (Validated)
+
+- Threadline telemetry reporter bridges Chimeway lifecycle outcomes into Threadline `audit_actions` with redacted metadata and correlation IDs (ECOS-08)
+- Sigra auth events dispatch Chimeway notifiers for magic-link/auth flows with sensitive-token redaction at the integration boundary (ECOS-09)
+- Sigra auth reference blueprint documents notifier authoring, event wiring, and Chimeway-vs-Sigra responsibility split with doc-contract truth lock (ECOS-10)
+- Demo host proves Threadline audit correlation and Sigra auth notification flow with operator trace inspectability (DEMO-09/10)
+- Threadline and Sigra golden-path guides are locked by doc-contract tests and listed in HexDocs extras (DOCS-10/11)
+- `mix verify.threadline` and `mix verify.sigra` run in CI, are counted by release-gate contracts, and appear in the MAINTAINING pre-ship checklist (GATE-07)
+- Phase 67 closed the ECOS-09 audit gap with clean-CI proof, partner SHA repin, and vacuous-pass guards
 
 ### Shipped v1.9 Features (Validated)
 
@@ -158,7 +162,7 @@ Prior context includes:
 - Adopter assessment (2026-05-28): ~82% done for embedded-notification scope — **resolved by v1.5** (installer task, golden path, operator UI, demo trace path, release gates).
 - Adopter assessment (2026-05-29): ~88–92% done post-v1.6 — adoption evidence (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E) resolved the pre-adopter confidence gap.
 - v1.9 Adopter Complete shipped 2026-05-30 — Accrue dunning + INBX inbox UI + Hex release automation; all three SEED-004 personas now have adoptable paths.
-- Adopter assessment post-v1.9: ~98% for embedded-notification scope — Accrue composition and end-user inbox UI proven; next wedge is Threadline/Sigra (v1.10).
+- Adopter assessment post-v1.9: ~98% for embedded-notification scope — Accrue composition and end-user inbox UI proven; Threadline/Sigra completed that ecosystem wedge in v1.10.
 
 ## Constraints
 
@@ -169,7 +173,7 @@ Prior context includes:
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
 - **Scope**: Orchestration and explainability remain higher leverage than broad channel expansion.
-- **Scope**: v1.9 shipped Accrue dunning + INBX inbox UI + Hex automation; v1.10 scopes Threadline/Sigra remainder.
+- **Scope**: v1.9 shipped Accrue dunning + INBX inbox UI + Hex automation; v1.10 shipped the Threadline/Sigra remainder.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
 
 ## Key Decisions
@@ -218,6 +222,9 @@ Prior context includes:
 | Guide vs blueprint doc separation | Introduction guide owns end-to-end path; blueprint is focused recipe | Shipped v1.8 Phase 57 |
 | Webhook doc-contract explicit string list for multi-token patterns | ~w sigil splits multi-word forbidden patterns incorrectly | Shipped v1.8 Phase 57.1 |
 | Accrue-only v1.9 SEED-003 slice | Mailglass vertical-slice pattern reusable; prove billing composition before Threadline/Sigra | Shipped v1.9 |
+| Threadline/Sigra complete SEED-003 in v1.10 | After Mailglass and Accrue, finish ecosystem matrix with audit bridge + auth flows, docs, demo proof, and named gates | Shipped v1.10 |
+| Partner-owned Sigra integration module + pinned SHA | Keep integration in Sigra repo per Accrue precedent; Chimeway CI pins to a SHA containing `Sigra.Integrations.Chimeway` | Shipped v1.10 Phase 67 |
+| Verify lanes must fail loud on zero-test partner integrations | Release gates now assert module/function presence and per-lane test-count floors | Shipped v1.10 Phase 67 |
 | Optional `chimeway_inbox` Phoenix package | Core `lib/chimeway` stays Phoenix-free; clone chimeway_admin mount pattern | Shipped v1.9 Phase 61 |
 | Accrue runtime: false + manual TestRepo bootstrap | Avoid OTP app boot blocking default mix test (Mailglass 54-01 precedent) | Shipped v1.9 Phase 58 |
 | Release Please + ci-gate before Hex publish | lattice_stripe pattern; no manual mix hex.publish | Shipped v1.9 Phase 60.1 |
@@ -420,4 +427,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-03 — Phase 66 complete (Threadline/Sigra golden-path guides, doc-contract gates, verify.threadline/verify.sigra release gates); v1.10 Ecosystem Completions all phases done*
+*Last updated: 2026-06-04 after v1.10 milestone completion*
