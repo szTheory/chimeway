@@ -24,7 +24,7 @@ defmodule ChimewayAdmin.Live.FeedLive do
           |> Keyword.put(:recipient_id, recipient_id)
           |> Chimeway.admin_feed()
 
-    {:noreply, assign(socket, query: recipient_id, rows: rows, searched: true)}
+    {:noreply, assign(socket, query: "", rows: rows, searched: true)}
   end
 
   @impl true

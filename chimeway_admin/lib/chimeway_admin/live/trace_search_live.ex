@@ -52,7 +52,12 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
 
         {"recipient", q} ->
           opts = [limit: @search_limit]
-          opts = if notification_key != "", do: Keyword.put(opts, :notification_key, notification_key), else: opts
+
+          opts =
+            if notification_key != "",
+              do: Keyword.put(opts, :notification_key, notification_key),
+              else: opts
+
           q |> Traces.find_traces_for_recipient(opts) |> flatten_recipient_results()
 
         {"correlation", q} ->
@@ -67,7 +72,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
     {:noreply,
      assign(socket,
        mode: mode,
-       query: query,
+       query: "",
        notification_key: notification_key,
        results: results,
        searched: true
@@ -77,40 +82,55 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="chimeway-admin">
-      <h1>Trace search</h1>
+    <.admin_shell
+      title="Trace Lookup"
+      active={:traces}
+      description="Search by recipient or correlation ID, then open the delivery timeline that explains the outcome."
+    >
+      <.card>
+        <form phx-submit="search" id="trace-search-form" class="cw-search-form">
+          <.select
+            label="Mode"
+            name="mode"
+            value={@mode}
+            options={[{"Recipient ID", "recipient"}, {"Correlation ID", "correlation"}]}
+          />
+          <.text_input label="Query" name="query" value={@query} required />
+          <.text_input
+            :if={@mode == "recipient"}
+            label="Notification key"
+            name="notification_key"
+            value={@notification_key}
+            hint="Optional"
+          />
+          <.button type="submit" variant={:primary}>Search traces</.button>
+        </form>
+      </.card>
 
-      <form phx-submit="search" id="trace-search-form">
-        <label>
-          Mode
-          <select name="mode" value={@mode}>
-            <option value="recipient" selected={@mode == "recipient"}>Recipient ID</option>
-            <option value="correlation" selected={@mode == "correlation"}>Correlation ID</option>
-          </select>
-        </label>
-        <label>
-          Query
-          <input type="text" name="query" value={@query} required />
-        </label>
-        <label :if={@mode == "recipient"}>
-          Notification key (optional)
-          <input type="text" name="notification_key" value={@notification_key} />
-        </label>
-        <button type="submit">Search</button>
-      </form>
+      <.card>
+        <.empty_state
+          :if={@searched and @results == []}
+          title="No deliveries found"
+          body="Try a full recipient identity, correlation ID, or remove the notification key filter."
+        />
 
-      <p :if={@searched and @results == []}>No deliveries found.</p>
-
-      <ul :if={@results != []} id="trace-results">
-        <%= for row <- @results do %>
-          <li>
-            <button type="button" phx-click="open_delivery" phx-value-delivery_id={row.delivery_id}>
-              {row.notification_key} — {row.channel} — {row.status} — {row.redacted_recipient}
-            </button>
-          </li>
-        <% end %>
-      </ul>
-    </div>
+        <div class="cw-list" :if={@results != []} id="trace-results">
+          <button
+            :for={row <- @results}
+            type="button"
+            class="cw-row-link cw-row-link--button"
+            phx-click="open_delivery"
+            phx-value-delivery_id={row.delivery_id}
+          >
+            <div>
+              <strong>{row.notification_key}</strong>
+              <span>{row.redacted_recipient} · {row.channel}</span>
+            </div>
+            <.status_badge status={row.status} />
+          </button>
+        </div>
+      </.card>
+    </.admin_shell>
     """
   end
 
