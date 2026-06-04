@@ -9,7 +9,7 @@
 
 - [ ] **ADMIN-01**: Operator can land on `/admin/chimeway` and immediately choose the right path for health, trace investigation, recipient feed debugging, definitions, or recovery.
 - [ ] **ADMIN-02**: Operator can move through command center, traces, detail, feed, definitions, health, and recovery screens with consistent navigation, labels, and page hierarchy.
-- [ ] **ADMIN-03**: Operator-facing docs and demo copy accurately describe the current admin pages and no longer overclaim or mark shipped pages as out of scope.
+- [x] **ADMIN-03**: Operator-facing docs and demo copy accurately describe the current admin pages and no longer overclaim or mark shipped pages as out of scope.
 
 ### Design System and Accessibility
 
@@ -65,7 +65,7 @@
 |-------------|-------|--------|
 | ADMIN-01 | Phase 68 | Pending |
 | ADMIN-02 | Phase 68 | Pending |
-| ADMIN-03 | Phase 68 | Pending |
+| ADMIN-03 | Phase 68 | Complete |
 | DES-01 | Phase 69 | Pending |
 | DES-02 | Phase 69 | Pending |
 | DES-03 | Phase 69 | Pending |
