@@ -60,6 +60,10 @@ Each task was committed atomically:
 2. **Task 2: Assert Command Center hierarchy and sidebar labels in LiveView tests** - `b5bd5c9` (test)
 3. **Task 3: Extend demo-host mounted admin proof for landing and navigation truth** - `2606a9b` (test)
 
+Additional verification fix:
+
+- **Sandbox ownership for DB-backed isolated LiveView mounts** - `d455ff7` (fix)
+
 **Plan metadata:** pending in metadata commit.
 
 ## Files Created/Modified
@@ -88,9 +92,17 @@ Each task was committed atomically:
 - **Verification:** `cd chimeway_admin && mix test test/chimeway_admin/live/trace_search_live_test.exs --warnings-as-errors` passed.
 - **Committed in:** `b5bd5c9`
 
+**2. [Rule 3 - Blocking] Started sandbox owner for DB-backed isolated LiveView tests**
+- **Found during:** Post-summary review of Task 2 verification reproducibility
+- **Issue:** The new dashboard and pillar-page isolated LiveView tests exercise DB-backed admin read models. The working tree had an uncommitted sandbox owner setup, so tests passed locally but the committed state alone would not own `Chimeway.Repo` for those mounts.
+- **Fix:** Committed the sandbox owner setup in `ChimewayAdmin.LiveViewCase` and stopped it during cleanup.
+- **Files modified:** `chimeway_admin/test/support/live_view_case.ex`
+- **Verification:** Re-ran the package route and LiveView tests after committing the helper fix.
+- **Committed in:** `d455ff7`
+
 ---
 
-**Total deviations:** 1 auto-fixed (Rule 3 blocking verification failure).
+**Total deviations:** 2 auto-fixed (Rule 3 blocking verification failures).
 **Impact on plan:** Verification-only support fix; no product behavior or scope expansion.
 
 ## Issues Encountered
