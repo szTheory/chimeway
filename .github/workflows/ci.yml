@@ -449,6 +449,7 @@ jobs:
           cd examples/chimeway_demo_host
           mix deps.get
           timeout 600s mix deps.compile
+          timeout 300s mix compile
           timeout 300s mix test --no-compile test/demo_host_web/sigra_auth_proof_test.exs --only sigra --warnings-as-errors --trace
         env:
           CHIMEWAY_SKIP_THREADLINE_DEP: "1"

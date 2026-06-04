@@ -139,7 +139,7 @@ defmodule Chimeway.MixProject do
       # v1.10 GATE-07 Sigra: auth notification proof (root + demo host :sigra lane)
       "verify.sigra": [
         "cmd env MIX_ENV=test mix test --only sigra --warnings-as-errors",
-        "cmd --shell sigra_path=${SIGRA_PATH:-../sigra/sigra}; sigra_path=$(cd \"$sigra_path\" && pwd); cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix test --only sigra --warnings-as-errors"
+        "cmd --shell sigra_path=${SIGRA_PATH:-../sigra/sigra}; sigra_path=$(cd \"$sigra_path\" && pwd); cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix test --only sigra --warnings-as-errors"
       ]
     ]
   end

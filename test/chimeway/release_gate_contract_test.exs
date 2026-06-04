@@ -98,6 +98,7 @@ defmodule Chimeway.ReleaseGateContractTest do
                       String.contains?(job_block, "timeout 300s elixir $(") and
                       String.contains?(job_block, "find _build/test/lib") and
                       String.contains?(job_block, "timeout 600s mix deps.compile") and
+                      String.contains?(job_block, "timeout 300s mix compile") and
                       String.contains?(job_block, "timeout 300s mix test")),
                  "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
         else
