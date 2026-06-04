@@ -78,10 +78,10 @@ defmodule Chimeway.ReleaseGateContractTest do
         job_block = extract_ci_job_block(ci_yml, unquote(job_id))
 
         if unquote(job_id) == "verify_sigra" do
-          assert String.contains?(job_block, unquote(command)) or
-                   (String.contains?(
-                      job_block,
-                      "test/chimeway/integrations/sigra_auth_lifecycle_test.exs"
+	          assert String.contains?(job_block, unquote(command)) or
+	                   (String.contains?(
+	                      job_block,
+	                      "test/support/sigra/ci_proof_runner.exs"
 	                    ) and
 	                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
 	                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP") and
@@ -93,8 +93,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 	                      String.contains?(job_block, "POSTGRES_USER: postgres") and
 	                      String.contains?(job_block, "Prepare root test database") and
 	                      String.contains?(job_block, "timeout 600s mix ecto.create") and
-	                      String.contains?(job_block, "mix run --no-start --no-compile") and
-	                      String.contains?(job_block, "ExUnit.run()") and
+	                      String.contains?(job_block, "mix run --no-start --no-compile test/support/sigra/ci_proof_runner.exs") and
 	                      String.contains?(job_block, "timeout 600s mix deps.compile") and
 	                      String.contains?(job_block, "timeout 300s mix test")),
 	                 "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
