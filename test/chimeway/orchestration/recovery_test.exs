@@ -394,8 +394,9 @@ defmodule Chimeway.Orchestration.RecoveryTest do
                  reason: "tenant_scoped"
                )
 
-      assert recovery.event.id == event.id
+      assert recovery.event == nil
       assert recovery.deliveries == []
+      refute inspect(recovery) =~ event.id
       refute_received {:dispatch, _, _}
     end
 
@@ -672,7 +673,8 @@ defmodule Chimeway.Orchestration.RecoveryTest do
                  reason: "wrong_tenant"
                )
 
-      assert result.delivery.id == delivery.id
+      assert result.delivery == nil
+      refute inspect(result) =~ delivery.id
       reloaded = Repo.get!(Delivery, delivery.id)
       refute Map.has_key?(reloaded.metadata || %{}, "recovered_at")
       refute_received {:dispatch_delivery, _, _}

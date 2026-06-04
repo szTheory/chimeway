@@ -123,12 +123,10 @@ defmodule Chimeway.Deliveries do
 
     {updated_count, _rows} = Repo.update_all(recovery_query, [])
 
-    updated_delivery = get_delivery!(delivery_id)
-
-    if updated_count == 1 do
-      {:ok, updated_delivery}
-    else
-      {:noop, updated_delivery}
+    case {updated_count, tenant_id} do
+      {1, _tenant_id} -> {:ok, get_delivery!(delivery_id)}
+      {0, nil} -> {:noop, get_delivery!(delivery_id)}
+      {0, _scoped_tenant_id} -> {:noop, nil}
     end
   end
 
@@ -202,13 +200,15 @@ defmodule Chimeway.Deliveries do
 
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
-    event = Repo.get!(Event, event_id)
     dispatcher = configured_dispatcher()
+    tenant_id = scoped_tenant_id(opts)
 
     recoverable_event_ids =
       opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
 
     if event_id in recoverable_event_ids do
+      event = Repo.get!(Event, event_id)
+
       notifications =
         Repo.all(
           from(n in Notification,
@@ -244,7 +244,7 @@ defmodule Chimeway.Deliveries do
     else
       {:noop,
        %{
-         event: event,
+         event: recoverable_noop_event(event_id, tenant_id),
          deliveries: [],
          recovery: recovery_metadata(source, reason, now, opts)
        }}
@@ -878,6 +878,17 @@ defmodule Chimeway.Deliveries do
       recovery: recovery_metadata(source, reason, now, opts)
     }
   end
+
+  defp recovery_delivery_result(nil, source, reason, now, dispatch_state, opts) do
+    %{
+      delivery: nil,
+      dispatch: dispatch_state,
+      recovery: recovery_metadata(source, reason, now, opts)
+    }
+  end
+
+  defp recoverable_noop_event(event_id, nil), do: Repo.get!(Event, event_id)
+  defp recoverable_noop_event(_event_id, _scoped_tenant_id), do: nil
 
   defp recovery_metadata(source, reason, recovered_at, opts) do
     %{
