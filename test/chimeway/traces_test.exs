@@ -1034,7 +1034,14 @@ defmodule Chimeway.TracesTest do
                  now: recovered_at,
                  older_than: 0,
                  source: "ops_console",
-                 reason: "worker_missed"
+                 reason: "worker_missed",
+                 actor_ref: "ops:1",
+                 confirmation_marker: "operator_confirmed_recovery",
+                 session: %{"token" => "raw-session-token"},
+                 params: %{"auth_code" => "raw-auth-code"},
+                 payload: %{"secret" => "raw-payload-secret"},
+                 provider_response: %{"authorization" => "Bearer raw"},
+                 recipient_email: "alex@example.test"
                )
 
       assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(recovered.id)
@@ -1047,9 +1054,18 @@ defmodule Chimeway.TracesTest do
       assert DateTime.compare(timeline_recovered_at, recovered_at) == :eq
       assert recovery_detail.recovery_source == "ops_console"
       assert recovery_detail.recovery_reason == "worker_missed"
+      assert recovery_detail.recovery_actor_ref == "ops:1"
+      assert recovery_detail.recovery_confirmation_marker == "operator_confirmed_recovery"
       assert DateTime.compare(recovery_detail.recovered_at, recovered_at) == :eq
       refute Map.has_key?(recovery_detail, :payload)
       refute Map.has_key?(recovery_detail, :provider_response)
+
+      rendered_detail = inspect(recovery_detail)
+      refute rendered_detail =~ "raw-session-token"
+      refute rendered_detail =~ "raw-auth-code"
+      refute rendered_detail =~ "raw-payload-secret"
+      refute rendered_detail =~ "Bearer raw"
+      refute rendered_detail =~ "alex@example.test"
     end
 
     test "aggregate_outcomes groups counts by notification_key, channel, and lifecycle bucket" do

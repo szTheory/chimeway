@@ -365,6 +365,8 @@ defmodule Chimeway.Traces do
             detail: %{
               recovery_source: recovery_fields.recovery_source,
               recovery_reason: recovery_fields.recovery_reason,
+              recovery_actor_ref: recovery_fields.recovery_actor_ref,
+              recovery_confirmation_marker: recovery_fields.recovery_confirmation_marker,
               recovered_at: recovery_fields.recovered_at
             }
           }
@@ -460,6 +462,8 @@ defmodule Chimeway.Traces do
     %{
       recovery_source: metadata_string(metadata, "recovery_source"),
       recovery_reason: metadata_string(metadata, "recovery_reason"),
+      recovery_actor_ref: metadata_string(metadata, "recovery_actor_ref"),
+      recovery_confirmation_marker: metadata_string(metadata, "recovery_confirmation_marker"),
       recovered_at: metadata_datetime(metadata, "recovered_at")
     }
   end

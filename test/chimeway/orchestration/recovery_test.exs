@@ -527,13 +527,19 @@ defmodule Chimeway.Orchestration.RecoveryTest do
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
-                 reason: "worker_missed"
+                 reason: "worker_missed",
+                 actor_ref: "ops:1",
+                 confirmation_marker: "operator_confirmed_recovery",
+                 session: %{"token" => "raw-session-token"},
+                 params: %{"auth_code" => "raw-auth-code"}
                )
 
       assert recovery.delivery.id == delivery.id
       assert recovery.delivery.status == :dispatched
       assert recovery.recovery.source == "ops_console"
       assert recovery.recovery.reason == "worker_missed"
+      assert recovery.recovery.actor_ref == "ops:1"
+      assert recovery.recovery.confirmation_marker == "operator_confirmed_recovery"
       assert recovery.recovery.recovered_at == ~U[2026-01-15 12:30:00.000000Z]
       delivery_id = delivery.id
       assert_receive {:dispatch_delivery, ^delivery_id, dispatch_opts}
@@ -543,18 +549,29 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       recovered = Repo.get!(Delivery, delivery.id)
       assert recovered.metadata["recovery_source"] == "ops_console"
       assert recovered.metadata["recovery_reason"] == "worker_missed"
+      assert recovered.metadata["recovery_actor_ref"] == "ops:1"
+      assert recovered.metadata["recovery_confirmation_marker"] == "operator_confirmed_recovery"
       assert recovered.metadata["recovered_at"] == "2026-01-15T12:30:00.000000Z"
+      refute inspect(recovered.metadata) =~ "raw-session-token"
+      refute inspect(recovered.metadata) =~ "raw-auth-code"
 
       assert {:noop, duplicate} =
                Deliveries.recover_delivery(delivery.id,
                  now: ~U[2026-01-15 12:31:00Z],
                  older_than: 60,
                  source: "ops_console",
-                 reason: "second_try"
+                 reason: "second_try",
+                 actor_ref: "ops:2",
+                 confirmation_marker: "second_confirmed"
                )
 
       assert duplicate.delivery.id == delivery.id
       assert duplicate.delivery.status == :dispatched
+      assert duplicate.delivery.metadata["recovery_actor_ref"] == "ops:1"
+
+      assert duplicate.delivery.metadata["recovery_confirmation_marker"] ==
+               "operator_confirmed_recovery"
+
       refute_receive {:dispatch_delivery, ^delivery_id, _}, 50
     end
 

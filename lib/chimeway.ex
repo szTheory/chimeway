@@ -24,6 +24,11 @@ defmodule Chimeway do
 
   @doc """
   Recovers a persisted event whose notifications exist but dispatch never planned deliveries.
+
+  Safe operator evidence may be supplied with `:source`, `:reason`,
+  `:actor_ref`, and `:confirmation_marker`. Raw session, params, payload,
+  provider body, token, authorization, and PII values are ignored by the core
+  recovery metadata path.
   """
   def recover_event(event_id, opts \\ []) do
     Deliveries.recover_event(event_id, opts)
@@ -31,6 +36,11 @@ defmodule Chimeway do
 
   @doc """
   Recovers a persisted delivery by re-driving the canonical row through the configured dispatcher.
+
+  Safe operator evidence may be supplied with `:source`, `:reason`,
+  `:actor_ref`, and `:confirmation_marker`. Raw session, params, payload,
+  provider body, token, authorization, and PII values are ignored by the core
+  recovery metadata path.
   """
   def recover_delivery(delivery_id, opts \\ []) do
     Deliveries.recover_delivery(delivery_id, opts)
