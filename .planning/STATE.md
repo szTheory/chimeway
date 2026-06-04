@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Operator Console Polish & Hardening
 status: planning
-last_updated: "2026-06-04T15:04:45.885Z"
+last_updated: "2026-06-04T15:22:41.481Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 5
@@ -159,9 +159,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-06-04T15:04:45.879Z
-Stopped at: Phase 70 context gathered (assumptions mode)
-Resume file: .planning/phases/70-recovery-auth-and-tenancy-hardening/70-CONTEXT.md
+Last session: 2026-06-04T15:22:41.475Z
+Stopped at: Phase 70 UI-SPEC approved
+Resume file: .planning/phases/70-recovery-auth-and-tenancy-hardening/70-UI-SPEC.md
 
 ## Operator Next Steps
 
