@@ -9,6 +9,7 @@ requires:
 provides:
   - Centralized admin lifecycle label presenter
   - Provider-accepted versus delivered rendered-copy distinction
+  - Delivered feedback recognition for trace signal timeline facts
   - Definitions DB-inferred persisted-history copy contract
 affects: [phase-71, phase-72, chimeway_admin, operator-copy]
 tech-stack:
@@ -52,11 +53,13 @@ completed: 2026-06-04
 - Added `ChimewayAdmin.Components.Status.lifecycle_label/1` with tests for Sent, Provider accepted, Delivered, Suppressed, Retryable failure, and Terminal failure.
 - Updated Dashboard and Trace Detail to render conservative lifecycle copy without changing core delivery atoms.
 - Updated Definitions copy and tests to require persisted-history wording and forbid code-registry/source-skew/module-discovery claims.
+- Added a follow-up presenter fix so existing trace timeline `signal_event_name` facts can prove Delivered.
 
 ## Task Commits
 
 1. **Task 71-02-01: Centralize Lifecycle Status Labels** - `0280057` (feat/test)
 2. **Task 71-02-02: Lock Definitions DB-Inferred Copy** - `6a04e85` (test)
+3. **Review fix: Recognize signal delivery feedback** - `32f133a` (fix)
 
 ## Files Created/Modified
 
@@ -75,10 +78,18 @@ completed: 2026-06-04
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
 
-**Total deviations:** 0 auto-fixed.
-**Impact on plan:** No scope creep.
+**1. [Rule 1 - Bug] Delivered feedback presenter missed actual trace timeline key**
+- **Found during:** Required code review gate after Task 71-02-02
+- **Issue:** `lifecycle_label/1` checked `event_name`, but `Chimeway.Traces` emits delivered signal facts as `signal_event_name` in webhook timeline details.
+- **Fix:** Recognize `signal_event_name` and atom/string delivered status/outcome markers; added status component regression assertion.
+- **Files modified:** `chimeway_admin/lib/chimeway_admin/components/status.ex`, `chimeway_admin/test/chimeway_admin/components/status_test.exs`
+- **Verification:** Phase gate rerun passed.
+- **Committed in:** `32f133a`
+
+**Total deviations:** 1 auto-fixed (1 bug).
+**Impact on plan:** Required for EXPL-01 correctness; no scope creep.
 
 ## Issues Encountered
 
@@ -92,6 +103,7 @@ None - plan executed exactly as written.
 - `rg "Durable notification keys and versions inferred from persisted Chimeway events and deliveries|Definitions seen in this app" ...` - matched required copy.
 - `rg -i "code registry|source skew|source-code skew|notifier module discovery|module inventory|loaded modules|source code scan" chimeway_admin/lib/chimeway_admin/live/definitions_live.ex; test $? -ne 0` - passed; no forbidden claims.
 - Phase gate: `cd chimeway_admin && mix test test/chimeway_admin/components/status_test.exs test/chimeway_admin/live/definitions_live_test.exs test/chimeway_admin/live/trace_search_live_test.exs --warnings-as-errors && cd .. && mix test test/chimeway/admin_test.exs test/chimeway/traces_test.exs --warnings-as-errors && cd chimeway_admin && mix test --warnings-as-errors` - passed, 13 + 52 + 51 tests.
+- Post-review fix gate rerun: same phase gate passed after `32f133a`, 13 + 52 + 51 tests.
 
 ## User Setup Required
 
