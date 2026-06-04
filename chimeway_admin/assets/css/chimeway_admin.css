@@ -1,0 +1,3 @@
+/* Source copy for the packaged stylesheet.
+   The shipped asset lives at priv/static/chimeway_admin.css. */
+@import "../../priv/static/chimeway_admin.css";
