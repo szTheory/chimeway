@@ -31,6 +31,26 @@ defmodule ChimewayAdmin.Routes do
   def search_path, do: path("/")
 
   @doc false
+  @spec traces_path() :: String.t()
+  def traces_path, do: path("/traces")
+
+  @doc false
+  @spec feed_path() :: String.t()
+  def feed_path, do: path("/feed")
+
+  @doc false
+  @spec definitions_path() :: String.t()
+  def definitions_path, do: path("/definitions")
+
+  @doc false
+  @spec health_path() :: String.t()
+  def health_path, do: path("/health")
+
+  @doc false
+  @spec recovery_path() :: String.t()
+  def recovery_path, do: path("/recovery")
+
+  @doc false
   @spec delivery_path(String.t()) :: String.t()
   def delivery_path(delivery_id), do: path("/deliveries/#{delivery_id}")
 end
