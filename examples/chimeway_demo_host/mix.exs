@@ -36,6 +36,7 @@ defmodule DemoHost.MixProject do
     [
       {:phoenix, "~> 1.7"},
       {:plug, "~> 1.16"},
+      {:plug_cowboy, "~> 2.7"},
       {:jason, "~> 1.4"},
       # Oban is required by chimeway's optional workers (e.g. SignalRouterWorker, ProcessFeedbackWorker).
       # Even though chimeway declares it optional: true, the path-dep compilation resolves all

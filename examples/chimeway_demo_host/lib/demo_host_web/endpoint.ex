@@ -7,26 +7,47 @@ defmodule DemoHostWeb.Endpoint do
     signing_salt: "demo-host-session"
   ]
 
-  socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]]
+  socket("/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]])
 
-  plug Plug.RequestId
-  plug Plug.Telemetry, event_prefix: [:demo_host, :endpoint]
+  plug(Plug.RequestId)
+  plug(Plug.Telemetry, event_prefix: [:demo_host, :endpoint])
+
+  plug(Plug.Static,
+    at: "/chimeway_admin",
+    from: {:chimeway_admin, "priv/static"},
+    gzip: false,
+    only: ~w(chimeway_admin.css)
+  )
+
+  plug(Plug.Static,
+    at: "/phoenix",
+    from: {:phoenix, "priv/static"},
+    gzip: false,
+    only: ~w(phoenix.min.js)
+  )
+
+  plug(Plug.Static,
+    at: "/phoenix_live_view",
+    from: {:phoenix_live_view, "priv/static"},
+    gzip: false,
+    only: ~w(phoenix_live_view.min.js)
+  )
 
   # CRITICAL (Phase 33 D-13 / T-33-RAWBODY): the body_reader MFA caches raw bytes
   # in conn.assigns[:raw_body] BEFORE Jason consumes the body. Webhook signature
   # verification MUST run on the exact raw bytes the provider signed; without
   # this :body_reader the raw bytes are unrecoverable after JSON parsing.
   # Canonical pattern from hexdocs.pm/plug/Plug.Parsers.html.
-  plug Plug.Parsers,
+  plug(Plug.Parsers,
     parsers: [:urlencoded, :json],
     pass: ["text/*"],
     body_reader: {DemoHost.Plugs.CacheBodyReader, :read_body, []},
     json_decoder: Jason
+  )
 
-  plug Plug.MethodOverride
-  plug Plug.Head
-  plug Plug.Session, @session_options
+  plug(Plug.MethodOverride)
+  plug(Plug.Head)
+  plug(Plug.Session, @session_options)
 
-  plug DemoHostWeb.Router
+  plug(DemoHostWeb.Router)
 end

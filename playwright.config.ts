@@ -43,7 +43,11 @@ export default defineConfig({
       `cd examples/chimeway_demo_host && env ${demoEnv} mix deps.get && ` +
       `(env ${demoEnv} mix ecto.create --quiet || true) && ` +
       `env ${demoEnv} mix ecto.migrate --quiet && ` +
-      `env ${demoEnv} mix run -e "DemoHost.Seeds.run()" && ` +
-      `env ${demoEnv} PHX_SERVER=true mix phx.server`
+      `env ${demoEnv} mix run --no-start --no-halt -e '` +
+      `endpoint_config = Application.get_env(:demo_host, DemoHostWeb.Endpoint) |> Keyword.put(:server, true); ` +
+      `Application.put_env(:demo_host, DemoHostWeb.Endpoint, endpoint_config); ` +
+      `{:ok, _} = Application.ensure_all_started(:demo_host); ` +
+      `DemoHost.Seeds.run(); ` +
+      `Process.sleep(:infinity)'`
   }
 });

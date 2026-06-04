@@ -2,6 +2,7 @@ import Config
 
 config :demo_host, DemoHostWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
+  check_origin: ["//127.0.0.1:4002", "//localhost:4002"],
   server: false
 
 # Chimeway core config required when running as a standalone example app.

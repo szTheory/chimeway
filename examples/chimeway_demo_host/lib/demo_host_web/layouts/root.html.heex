@@ -3,7 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={Plug.CSRFProtection.get_csrf_token()} />
     <title>Chimeway Demo Host</title>
+    <link rel="stylesheet" href={ChimewayAdmin.Assets.css_path()} />
+    <script defer src="/phoenix/phoenix.min.js">
+    </script>
+    <script defer src="/phoenix_live_view/phoenix_live_view.min.js">
+    </script>
+    <script defer>
+      window.addEventListener("DOMContentLoaded", () => {
+        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        const liveSocket = new window.LiveView.LiveSocket("/live", window.Phoenix.Socket, {
+          params: { _csrf_token: csrfToken }
+        });
+        liveSocket.connect();
+        window.liveSocket = liveSocket;
+      });
+    </script>
   </head>
   <body>
     {@inner_content}

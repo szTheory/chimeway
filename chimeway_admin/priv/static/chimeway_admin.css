@@ -638,6 +638,12 @@
     color: var(--cw-control-disabled-fg);
   }
 
+  @media (max-width: 900px) {
+    .cw-search-form {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .cw-list {
     display: grid;
     gap: var(--cw-space-sm);
