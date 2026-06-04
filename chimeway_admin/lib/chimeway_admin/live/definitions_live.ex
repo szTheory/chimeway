@@ -1,6 +1,6 @@
 defmodule ChimewayAdmin.Live.DefinitionsLive do
   @moduledoc """
-  Persisted notification definition registry.
+  Persisted notification definition history.
   """
   use ChimewayAdmin.Live, :live_view
 
@@ -18,11 +18,22 @@ defmodule ChimewayAdmin.Live.DefinitionsLive do
     <.admin_shell
       title="Definitions"
       active={:definitions}
-      description="Read-mostly registry of durable notification keys, versions, channels, and persisted usage."
+      description="Durable notification keys and versions inferred from persisted Chimeway events and deliveries."
     >
       <.card>
+        <div class="cw-section-heading">
+          <div>
+            <h2>Definitions seen in this app</h2>
+            <p>Durable notification keys and versions inferred from persisted Chimeway events and deliveries.</p>
+          </div>
+        </div>
+        <.empty_state
+          :if={@definitions == []}
+          title="No definitions seen"
+          body="Persisted notification keys and versions will appear after Chimeway records events or deliveries."
+        />
         <div class="cw-table-wrap">
-          <table class="cw-table">
+          <table :if={@definitions != []} class="cw-table">
             <thead>
               <tr>
                 <th>Notification key</th>
