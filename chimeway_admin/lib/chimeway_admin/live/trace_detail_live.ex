@@ -23,45 +23,70 @@ defmodule ChimewayAdmin.Live.TraceDetailLive do
   @impl true
   def render(%{not_found: true} = assigns) do
     ~H"""
-    <div class="chimeway-admin">
-      <h1>Trace not found</h1>
-      <p>No delivery exists for ID {@delivery_id}.</p>
-      <a href={Routes.search_path()} data-phx-link="redirect" data-phx-link-state="push">Back to search</a>
-    </div>
+    <.admin_shell title="Trace not found" active={:traces}>
+      <.empty_state title="No delivery exists" body={"No delivery exists for ID #{@delivery_id}."} tone={:warning} />
+      <.link_button navigate={Routes.traces_path()}>Back to Trace Lookup</.link_button>
+    </.admin_shell>
     """
   end
 
   def render(assigns) do
     ~H"""
-    <div class="chimeway-admin">
-      <h1>Trace detail</h1>
-      <a href={Routes.search_path()} data-phx-link="redirect" data-phx-link-state="push">Back to search</a>
+    <.admin_shell
+      title="Trace Detail"
+      active={:traces}
+      description="A redacted, chronological explanation of one delivery row."
+    >
+      <:actions>
+        <.link_button navigate={Routes.traces_path()} variant={:ghost}>Back to Trace Lookup</.link_button>
+      </:actions>
 
-      <dl class="chimeway-admin-summary">
-        <dt>Status</dt>
-        <dd>{@explanation.status}</dd>
-        <dt>Suppression reason</dt>
-        <dd>{@explanation.suppression_reason || "—"}</dd>
-        <dt>Planning reason</dt>
-        <dd>{@explanation.planning_reason || "—"}</dd>
-        <dt>Correlation ID</dt>
-        <dd>{@explanation.correlation_id || "—"}</dd>
-        <dt>Notification key</dt>
-        <dd>{@explanation.notification_key}</dd>
-        <dt>Channel</dt>
-        <dd>{@explanation.channel}</dd>
-        <dt>Recipient</dt>
-        <dd>{Redaction.redact_recipient(@explanation.recipient_id)}</dd>
-        <dt>Last attempt</dt>
-        <dd>{format_last_attempt(@explanation.last_attempt)}</dd>
-      </dl>
+      <section class="cw-detail-hero">
+        <div>
+          <p class="cw-eyebrow">Current state</p>
+          <h2><.status_badge status={@explanation} /></h2>
+        </div>
+        <div class="cw-detail-hero__ids">
+          <.copyable_id label="delivery" value={@explanation.delivery_id} />
+          <.copyable_id label="event" value={@explanation.event_id} />
+          <.copyable_id label="corr" value={@explanation.correlation_id || "—"} />
+        </div>
+      </section>
 
-      <TimelineEvent.timeline timeline={@explanation.timeline} />
+      <section class="cw-grid cw-grid--two">
+        <.card>
+          <h2>Why</h2>
+          <dl class="cw-summary-list">
+            <dt>Suppression reason</dt>
+            <dd>{@explanation.suppression_reason || "—"}</dd>
+            <dt>Planning reason</dt>
+            <dd>{@explanation.planning_reason || "—"}</dd>
+            <dt>Last attempt</dt>
+            <dd>{format_last_attempt(@explanation.last_attempt)}</dd>
+            <dt>Next eligible</dt>
+            <dd>{format_at(@explanation.next_eligible_at)}</dd>
+          </dl>
+        </.card>
 
-      <footer>
-        <p>Trace lookup only — bell inbox, campaigns, and health dashboards are out of scope.</p>
-      </footer>
-    </div>
+        <.card>
+          <h2>What</h2>
+          <dl class="cw-summary-list">
+            <dt>Notification key</dt>
+            <dd><code>{@explanation.notification_key}</code></dd>
+            <dt>Channel</dt>
+            <dd>{@explanation.channel}</dd>
+            <dt>Recipient</dt>
+            <dd>{Redaction.redact_recipient(@explanation.recipient_id)}</dd>
+            <dt>Render identity</dt>
+            <dd>{render_identity(@explanation)}</dd>
+          </dl>
+        </.card>
+      </section>
+
+      <.card>
+        <TimelineEvent.timeline timeline={@explanation.timeline} />
+      </.card>
+    </.admin_shell>
     """
   end
 
@@ -69,9 +94,19 @@ defmodule ChimewayAdmin.Live.TraceDetailLive do
 
   defp format_last_attempt(%{outcome: outcome, error_class: error_class}) do
     parts = [Atom.to_string(outcome)]
-    parts = if error_class, do: parts ++ ["(#{Redaction.safe_error_class(error_class)})"], else: parts
+
+    parts =
+      if error_class, do: parts ++ ["(#{Redaction.safe_error_class(error_class)})"], else: parts
+
     Enum.join(parts, " ")
   end
 
   defp format_last_attempt(_), do: "—"
+
+  defp format_at(nil), do: "—"
+  defp format_at(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
+
+  defp render_identity(%{render_key: nil}), do: "—"
+  defp render_identity(%{render_key: key, render_version: nil}), do: key
+  defp render_identity(%{render_key: key, render_version: version}), do: "#{key} v#{version}"
 end

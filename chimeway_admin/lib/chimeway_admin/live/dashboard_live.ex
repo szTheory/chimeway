@@ -30,7 +30,7 @@ defmodule ChimewayAdmin.Live.DashboardLive do
       </section>
 
       <section class="cw-metric-grid" aria-label="Delivery status overview">
-        <.metric label="Sent" value={metric(@snapshot.outcomes, "succeeded")} tone={:success} />
+        <.metric label="Provider accepted" value={metric(@snapshot.outcomes, "succeeded")} tone={:success} />
         <.metric label="Suppressed" value={metric(@snapshot.outcomes, "suppressed")} tone={:warning} />
         <.metric label="Failed" value={metric(@snapshot.outcomes, "failed")} tone={:danger} />
         <.metric label="Recoverable" value={length(@snapshot.recovery_candidates)} tone={:info} />
