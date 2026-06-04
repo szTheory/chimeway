@@ -19,7 +19,7 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ### Active
 
-- [ ] v1.11 Operator Console Polish & Hardening — command center IA, Chimeway design system, recovery/auth/tenancy hardening, redaction contracts, admin docs, and `mix verify.admin`
+- [ ] v1.11 Operator Console Polish & Hardening — command center IA, Chimeway design system, completed recovery/auth/tenancy hardening, redaction contracts, admin docs, and `mix verify.admin`
 
 ### Out of Scope
 
@@ -49,7 +49,9 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ## Current State
 
-**v1.11 Phase 68 Admin Truth Alignment complete (2026-06-04):** The shipped `chimeway_admin` route map, demo copy, route helpers, and LiveView/host-mounted tests now align around the real seven-page operator console: Command Center, Trace Lookup, Trace Detail, Feed Debug, Definitions, Health, and Recovery. Phase 69 is the current focus: formalize the console design system before safety, redaction, docs, and browser-smoke hardening.
+**v1.11 Phase 70 Recovery, Auth, and Tenancy Hardening complete (2026-06-04):** Recovery submit now re-authorizes with tenant/resource/candidate context, requires explicit confirmation, persists allowlisted core evidence, handles stale/duplicate/scoped noops without side effects or cross-tenant row leaks, and passed clean code review plus responsive visual UAT. Phase 71 is the current focus: lock redaction and explainability contracts at DTO and rendered-HTML boundaries.
+
+**v1.11 Phase 68 Admin Truth Alignment complete (2026-06-04):** The shipped `chimeway_admin` route map, demo copy, route helpers, and LiveView/host-mounted tests now align around the real seven-page operator console: Command Center, Trace Lookup, Trace Detail, Feed Debug, Definitions, Health, and Recovery.
 
 **v1.11 Operator Console Polish & Hardening active (2026-06-04):** The milestone hardens the already-emerging `chimeway_admin` command center as a production operator surface. It includes SEED-004 persona/JTBD and SEED-002 adoption-surface context. Scope is deliberately not a generic CRUD admin or SaaS control plane; it is an embedded, host-authenticated LiveView console for explaining notification outcomes and taking safe recovery actions.
 
@@ -453,4 +455,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-04 after v1.11 milestone initialization*
+*Last updated: 2026-06-04 after Phase 70 completion*
