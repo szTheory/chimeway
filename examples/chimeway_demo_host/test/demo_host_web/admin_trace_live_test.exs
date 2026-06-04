@@ -51,7 +51,7 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
       })
       |> render_submit()
 
-    assert html =~ DemoHost.Seeds.alex_identity()
+    assert_redacted_recipient(html, DemoHost.Seeds.alex_identity())
 
     delivery_id =
       Enum.find(delivery_ids, &String.contains?(html, &1)) ||
@@ -82,7 +82,7 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
       })
       |> render_submit()
 
-    assert html =~ DemoHost.Seeds.sam_identity()
+    assert_redacted_recipient(html, DemoHost.Seeds.sam_identity())
 
     delivery_id =
       Enum.find(delivery_ids, &String.contains?(html, &1)) ||
@@ -123,7 +123,7 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
       })
       |> render_submit()
 
-    assert html =~ DemoHost.Seeds.morgan_identity()
+    assert_redacted_recipient(html, DemoHost.Seeds.morgan_identity())
 
     {:ok, detail_view, detail_html} =
       live(conn, "/admin/chimeway/deliveries/#{in_app_delivery.id}")
@@ -134,5 +134,10 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
     assert detail =~ "teampulse.payment_reminder"
     assert detail =~ "teampulse-seed-payment-corr"
     assert detail =~ "workflow waiting" or detail =~ "Workflow waiting"
+  end
+
+  defp assert_redacted_recipient(html, recipient_id) do
+    assert html =~ ChimewayAdmin.Redaction.redact_recipient(recipient_id)
+    refute html =~ recipient_id
   end
 end
