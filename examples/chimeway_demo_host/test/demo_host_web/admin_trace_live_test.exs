@@ -13,12 +13,32 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
   alias Chimeway.{Delivery, Repo}
 
   @tag :journey
+  @tag :admin_truth
+  test "admin command center exposes shipped operator paths", %{conn: conn} do
+    conn = get(conn, "/admin/chimeway")
+    assert html_response(conn, 200) =~ "Command Center"
+
+    {:ok, view, html} = live(conn)
+
+    assert html =~ "Open Trace Lookup"
+    assert html =~ "Trace Lookup"
+    assert html =~ "Feed Debug"
+    assert html =~ "Definitions"
+    assert html =~ "Health"
+    assert html =~ "Recovery"
+
+    rendered = render(view)
+    assert rendered =~ "Command Center"
+    assert rendered =~ "Open Trace Lookup"
+  end
+
+  @tag :journey
   @tag :jour_04
   test "JOUR-04 admin search finds seeded invite delivery", %{conn: conn} do
     assert {:ok, %{trace: %{delivery_ids: delivery_ids}}} = DemoHost.Seeds.seed_invite()
 
-    conn = get(conn, "/admin/chimeway")
-    assert html_response(conn, 200) =~ "Trace search"
+    conn = get(conn, "/admin/chimeway/traces")
+    assert html_response(conn, 200) =~ "Trace Lookup"
 
     {:ok, view, _html} = live(conn)
 
@@ -38,7 +58,7 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
         flunk("expected search results to include a seeded delivery id")
 
     {:ok, detail_view, detail_html} = live(conn, "/admin/chimeway/deliveries/#{delivery_id}")
-    assert detail_html =~ "Trace detail"
+    assert detail_html =~ "Trace Detail"
     assert render(detail_view) =~ "teampulse.invite_sent"
     assert render(detail_view) =~ "teampulse-seed-invite-corr"
   end
@@ -48,8 +68,8 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
   test "JOUR-07 admin shows Sam password-reset suppression", %{conn: conn} do
     assert {:ok, %{trace: %{delivery_ids: delivery_ids}}} = DemoHost.Seeds.seed_password_reset()
 
-    conn = get(conn, "/admin/chimeway")
-    assert html_response(conn, 200) =~ "Trace search"
+    conn = get(conn, "/admin/chimeway/traces")
+    assert html_response(conn, 200) =~ "Trace Lookup"
 
     {:ok, view, _html} = live(conn)
 
@@ -69,7 +89,7 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
         flunk("expected search results to include a seeded delivery id")
 
     {:ok, detail_view, detail_html} = live(conn, "/admin/chimeway/deliveries/#{delivery_id}")
-    assert detail_html =~ "Trace detail"
+    assert detail_html =~ "Trace Detail"
 
     detail = render(detail_view)
     assert detail =~ "suppressed"
@@ -89,8 +109,8 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
 
     refute is_nil(in_app_delivery)
 
-    conn = get(conn, "/admin/chimeway")
-    assert html_response(conn, 200) =~ "Trace search"
+    conn = get(conn, "/admin/chimeway/traces")
+    assert html_response(conn, 200) =~ "Trace Lookup"
 
     {:ok, view, _html} = live(conn)
 
@@ -108,7 +128,7 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
     {:ok, detail_view, detail_html} =
       live(conn, "/admin/chimeway/deliveries/#{in_app_delivery.id}")
 
-    assert detail_html =~ "Trace detail"
+    assert detail_html =~ "Trace Detail"
 
     detail = render(detail_view)
     assert detail =~ "teampulse.payment_reminder"
