@@ -13,10 +13,10 @@
 
 ### Design System and Accessibility
 
-- [ ] **DES-01**: Admin UI uses scoped Chimeway design tokens for color, spacing, typography, status, radius, shadow, focus, z-index, and motion.
-- [ ] **DES-02**: Admin UI supports light, dark, and system theme behavior with accessible contrast and no broken hover, focus, or active states.
-- [ ] **DES-03**: Admin UI remains usable on mobile and desktop, with no overlapping text or unstable layout shifts in core operator flows.
-- [ ] **DES-04**: Admin UI uses purposeful, reduced-motion-safe microinteractions for state changes without slowing keyboard-heavy workflows.
+- [x] **DES-01**: Admin UI uses scoped Chimeway design tokens for color, spacing, typography, status, radius, shadow, focus, z-index, and motion.
+- [x] **DES-02**: Admin UI supports light, dark, and system theme behavior with accessible contrast and no broken hover, focus, or active states.
+- [x] **DES-03**: Admin UI remains usable on mobile and desktop, with no overlapping text or unstable layout shifts in core operator flows.
+- [x] **DES-04**: Admin UI uses purposeful, reduced-motion-safe microinteractions for state changes without slowing keyboard-heavy workflows.
 
 ### Safety, Tenancy, and Recovery
 
@@ -66,10 +66,10 @@
 | ADMIN-01 | Phase 68 | Complete |
 | ADMIN-02 | Phase 68 | Complete |
 | ADMIN-03 | Phase 68 | Complete |
-| DES-01 | Phase 69 | Pending |
-| DES-02 | Phase 69 | Pending |
-| DES-03 | Phase 69 | Pending |
-| DES-04 | Phase 69 | Pending |
+| DES-01 | Phase 69 | Complete |
+| DES-02 | Phase 69 | Complete |
+| DES-03 | Phase 69 | Complete |
+| DES-04 | Phase 69 | Complete |
 | SAFE-01 | Phase 70 | Pending |
 | SAFE-02 | Phase 70 | Pending |
 | SAFE-03 | Phase 70 | Pending |
