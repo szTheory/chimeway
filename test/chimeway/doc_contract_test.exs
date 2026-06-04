@@ -242,6 +242,49 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @demo_host_readme "examples/chimeway_demo_host/README.md"
+
+  describe "demo-host admin console doc contract (ADMIN-03)" do
+    setup do
+      content = File.read!(@demo_host_readme)
+      %{content: content}
+    end
+
+    @admin_required_strings [
+      "Command Center",
+      "Trace Lookup",
+      "Trace Detail",
+      "Feed Debug",
+      "Definitions",
+      "Health",
+      "Recovery",
+      "/admin/chimeway"
+    ]
+
+    for required <- @admin_required_strings do
+      test "requires #{required} in demo-host admin copy", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "examples/chimeway_demo_host/README.md must reference #{unquote(required)}"
+      end
+    end
+
+    @admin_forbidden_strings [
+      "trace lookup only",
+      "health aggregates dashboard",
+      "notification definitions registry",
+      "skew detection",
+      "code-registry",
+      "end-user inbox surface"
+    ]
+
+    for forbidden <- @admin_forbidden_strings do
+      test "forbids #{forbidden} in demo-host admin copy", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "examples/chimeway_demo_host/README.md must not reintroduce stale admin claim: #{unquote(forbidden)}"
+      end
+    end
+  end
+
   @mailglass_blueprint_recipe Path.expand("../../guides/recipes/mailglass-integration-blueprint.md", __DIR__)
 
   describe "mailglass blueprint recipe doc contract (ECOS-05)" do
