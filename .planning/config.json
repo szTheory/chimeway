@@ -61,12 +61,12 @@
   "resolve_model_ids": "omit",
   "mode": "yolo",
   "granularity": "coarse",
-  "runtime": "cursor",
+  "runtime": "codex",
   "model_profile_overrides": {
-    "cursor": {
-      "opus": "composer-2.5",
-      "sonnet": "composer-2.5",
-      "haiku": "composer-2.5"
+    "codex": {
+      "opus": "gpt-5.5",
+      "sonnet": "gpt-5.4",
+      "haiku": "gpt-5.4-mini"
     }
   }
 }
