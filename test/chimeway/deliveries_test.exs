@@ -700,14 +700,41 @@ defmodule Chimeway.DeliveriesTest do
                  now: recovered_at,
                  older_than: 60,
                  source: "operator_console",
-                 reason: "dispatch_stuck"
+                 reason: "dispatch_stuck",
+                 actor_ref: "ops:1",
+                 confirmation_marker: "operator_confirmed_recovery",
+                 session: %{"token" => "raw-session-token"},
+                 params: %{"auth_code" => "raw-auth-code"},
+                 payload: %{"secret" => "raw-payload-secret"},
+                 provider_body: %{"authorization" => "Bearer raw"},
+                 token: "raw-token",
+                 authorization: "Bearer raw",
+                 recipient_email: "alex@example.test"
                )
 
       assert recovered_delivery.id == delivery.id
       assert recovered_delivery.metadata["notification_key"] == "ops.recovery.delivery"
       assert recovered_delivery.metadata["recovery_source"] == "operator_console"
       assert recovered_delivery.metadata["recovery_reason"] == "dispatch_stuck"
+      assert recovered_delivery.metadata["recovery_actor_ref"] == "ops:1"
+
+      assert recovered_delivery.metadata["recovery_confirmation_marker"] ==
+               "operator_confirmed_recovery"
+
       assert recovered_delivery.metadata["recovered_at"] == "2026-04-28T18:00:00.000000Z"
+
+      forbidden = inspect(recovered_delivery.metadata)
+      refute forbidden =~ "raw-session-token"
+      refute forbidden =~ "raw-auth-code"
+      refute forbidden =~ "raw-payload-secret"
+      refute forbidden =~ "Bearer raw"
+      refute forbidden =~ "raw-token"
+      refute forbidden =~ "alex@example.test"
+      refute Map.has_key?(recovered_delivery.metadata, "session")
+      refute Map.has_key?(recovered_delivery.metadata, "params")
+      refute Map.has_key?(recovered_delivery.metadata, "payload")
+      refute Map.has_key?(recovered_delivery.metadata, "provider_body")
+      refute Map.has_key?(recovered_delivery.metadata, "authorization")
     end
 
     test "begin_recovery/2 returns {:noop, delivery} after recovery metadata already exists" do
@@ -726,7 +753,9 @@ defmodule Chimeway.DeliveriesTest do
                  now: recovered_at,
                  older_than: 60,
                  source: "operator_console",
-                 reason: "dispatch_stuck"
+                 reason: "dispatch_stuck",
+                 actor_ref: "ops:first",
+                 confirmation_marker: "first_confirmed"
                )
 
       assert {:noop, noop_delivery} =
@@ -734,12 +763,16 @@ defmodule Chimeway.DeliveriesTest do
                  now: ~U[2026-04-28 18:01:00Z],
                  older_than: 60,
                  source: "operator_console",
-                 reason: "dispatch_stuck"
+                 reason: "second_try",
+                 actor_ref: "ops:second",
+                 confirmation_marker: "second_confirmed"
                )
 
       assert noop_delivery.id == delivery.id
       assert noop_delivery.metadata["recovery_source"] == "operator_console"
       assert noop_delivery.metadata["recovery_reason"] == "dispatch_stuck"
+      assert noop_delivery.metadata["recovery_actor_ref"] == "ops:first"
+      assert noop_delivery.metadata["recovery_confirmation_marker"] == "first_confirmed"
       assert noop_delivery.metadata["recovered_at"] == "2026-04-28T18:00:00.000000Z"
       assert recovered_delivery.metadata == noop_delivery.metadata
     end

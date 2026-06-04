@@ -91,7 +91,7 @@ defmodule Chimeway.Deliveries do
     cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
-    recovered_at = iso8601_utc_usec(now)
+    metadata_patch = recovery_metadata_patch(source, reason, now, opts)
 
     recovery_query =
       from(d in Delivery,
@@ -102,23 +102,9 @@ defmodule Chimeway.Deliveries do
           set: [
             metadata:
               fragment(
-                """
-                jsonb_set(
-                  jsonb_set(
-                    jsonb_set(COALESCE(?, '{}'::jsonb), '{recovery_source}', to_jsonb(?::text), true),
-                    '{recovery_reason}',
-                    to_jsonb(?::text),
-                    true
-                  ),
-                  '{recovered_at}',
-                  to_jsonb(?::text),
-                  true
-                )
-                """,
+                "COALESCE(?, '{}'::jsonb) || ?::jsonb",
                 d.metadata,
-                ^source,
-                ^reason,
-                ^recovered_at
+                ^metadata_patch
               ),
             updated_at: ^now
           ]
@@ -169,10 +155,12 @@ defmodule Chimeway.Deliveries do
       {:ok, _claimed_delivery} ->
         case dispatcher.dispatch_delivery(delivery_id, pre_planned: true, post_commit: true) do
           {:ok, dispatched_delivery} ->
-            {:ok, recovery_delivery_result(dispatched_delivery, source, reason, now, :dispatched)}
+            {:ok,
+             recovery_delivery_result(dispatched_delivery, source, reason, now, :dispatched, opts)}
 
           {:skip, skipped_delivery} ->
-            {:noop, recovery_delivery_result(skipped_delivery, source, reason, now, :skipped)}
+            {:noop,
+             recovery_delivery_result(skipped_delivery, source, reason, now, :skipped, opts)}
 
           {:error, reason_term} ->
             compensate_failed_recovery_claim(delivery_id, now, older_than)
@@ -180,7 +168,7 @@ defmodule Chimeway.Deliveries do
         end
 
       {:noop, existing_delivery} ->
-        {:noop, recovery_delivery_result(existing_delivery, source, reason, now, :noop)}
+        {:noop, recovery_delivery_result(existing_delivery, source, reason, now, :noop, opts)}
     end
   end
 
@@ -234,13 +222,13 @@ defmodule Chimeway.Deliveries do
         deliveries =
           deliveries_or_results
           |> dispatched_deliveries()
-          |> stamp_recovery_metadata(source, reason, now)
+          |> stamp_recovery_metadata(source, reason, now, opts)
 
         {:ok,
          %{
            event: event,
            deliveries: deliveries,
-           recovery: recovery_metadata(source, reason, now)
+           recovery: recovery_metadata(source, reason, now, opts)
          }}
       end
     else
@@ -248,7 +236,7 @@ defmodule Chimeway.Deliveries do
        %{
          event: event,
          deliveries: [],
-         recovery: recovery_metadata(source, reason, now)
+         recovery: recovery_metadata(source, reason, now, opts)
        }}
     end
   end
@@ -852,20 +840,25 @@ defmodule Chimeway.Deliveries do
     Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
   end
 
-  defp recovery_delivery_result(%Delivery{} = delivery, source, reason, now, dispatch_state) do
+  defp recovery_delivery_result(%Delivery{} = delivery, source, reason, now, dispatch_state, opts) do
     %{
       delivery: delivery,
       dispatch: dispatch_state,
-      recovery: recovery_metadata(source, reason, now)
+      recovery: recovery_metadata(source, reason, now, opts)
     }
   end
 
-  defp recovery_metadata(source, reason, recovered_at) do
+  defp recovery_metadata(source, reason, recovered_at, opts) do
     %{
       source: source,
       reason: reason,
       recovered_at: recovered_at
     }
+    |> maybe_put(:actor_ref, normalize_optional_recovery_value(Keyword.get(opts, :actor_ref)))
+    |> maybe_put(
+      :confirmation_marker,
+      normalize_optional_recovery_value(Keyword.get(opts, :confirmation_marker))
+    )
   end
 
   defp compensate_failed_recovery_claim(delivery_id, now, older_than) do
@@ -880,7 +873,7 @@ defmodule Chimeway.Deliveries do
           set: [
             metadata:
               fragment(
-                "(COALESCE(?, '{}'::jsonb) - 'recovery_source' - 'recovery_reason' - 'recovered_at')",
+                "(COALESCE(?, '{}'::jsonb) - 'recovery_source' - 'recovery_reason' - 'recovered_at' - 'recovery_actor_ref' - 'recovery_confirmation_marker')",
                 d.metadata
               ),
             updated_at: ^recoverable_updated_at
@@ -901,9 +894,9 @@ defmodule Chimeway.Deliveries do
     end)
   end
 
-  defp stamp_recovery_metadata(deliveries, source, reason, now) do
+  defp stamp_recovery_metadata(deliveries, source, reason, now, opts) do
     delivery_ids = Enum.map(deliveries, & &1.id)
-    recovered_at = iso8601_utc_usec(now)
+    metadata_patch = recovery_metadata_patch(source, reason, now, opts)
 
     if delivery_ids != [] do
       Repo.update_all(
@@ -913,23 +906,9 @@ defmodule Chimeway.Deliveries do
             set: [
               metadata:
                 fragment(
-                  """
-                  jsonb_set(
-                    jsonb_set(
-                      jsonb_set(COALESCE(?, '{}'::jsonb), '{recovery_source}', to_jsonb(?::text), true),
-                      '{recovery_reason}',
-                      to_jsonb(?::text),
-                      true
-                    ),
-                    '{recovered_at}',
-                    to_jsonb(?::text),
-                    true
-                  )
-                  """,
+                  "COALESCE(?, '{}'::jsonb) || ?::jsonb",
                   d.metadata,
-                  ^source,
-                  ^reason,
-                  ^recovered_at
+                  ^metadata_patch
                 ),
               updated_at: ^now
             ]
@@ -943,6 +922,41 @@ defmodule Chimeway.Deliveries do
       from(d in Delivery, where: d.id in ^delivery_ids, order_by: [asc: d.channel, asc: d.id])
     )
   end
+
+  defp recovery_metadata_patch(source, reason, now, opts) do
+    %{
+      "recovery_source" => source,
+      "recovery_reason" => reason,
+      "recovered_at" => iso8601_utc_usec(now)
+    }
+    |> maybe_put(
+      "recovery_actor_ref",
+      normalize_optional_recovery_value(Keyword.get(opts, :actor_ref))
+    )
+    |> maybe_put(
+      "recovery_confirmation_marker",
+      normalize_optional_recovery_value(Keyword.get(opts, :confirmation_marker))
+    )
+  end
+
+  defp normalize_optional_recovery_value(nil), do: nil
+
+  defp normalize_optional_recovery_value(value) when is_binary(value) do
+    value
+    |> String.trim()
+    |> case do
+      "" -> nil
+      value -> value
+    end
+  end
+
+  defp normalize_optional_recovery_value(value) when is_atom(value),
+    do: value |> Atom.to_string() |> normalize_optional_recovery_value()
+
+  defp normalize_optional_recovery_value(value) when is_integer(value),
+    do: Integer.to_string(value)
+
+  defp normalize_optional_recovery_value(_value), do: nil
 
   defp iso8601_utc_usec(nil), do: nil
 
