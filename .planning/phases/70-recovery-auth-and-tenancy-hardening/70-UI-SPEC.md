@@ -1,10 +1,11 @@
 ---
 phase: 70
 slug: recovery-auth-and-tenancy-hardening
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-04
+reviewed_at: 2026-06-04
 ---
 
 # Phase 70 — UI Design Contract
@@ -94,6 +95,7 @@ Source: Phase 69 UI-SPEC color contract, REQUIREMENTS SAFE-02/SAFE-03, and curre
 | Surface | Contract |
 |---------|----------|
 | Recovery page structure | Preserve the existing two-panel flow: `Eligible work` list on the left/top and `Confirm recovery` review form on the right/below. Mobile stacks panels in that order. |
+| Visual priority | Primary visual anchor is the selected candidate review panel once a row is chosen; before selection, the eligible recovery list is the first-priority scanning surface. |
 | Candidate selection | Candidate rows remain buttons, not links. Selecting a row must set a visible selected state, populate the review panel, and clear stale prior result messaging. |
 | Tenant scope | When a host-provided tenant scope is active, show one compact read-only scope label near the page heading or recovery list. Copy: `Tenant scope: {tenant_id}`. If no tenant scope is provided, omit the label; do not invent tenant membership UI. |
 | Confirmation | Recovery requires deliberate confirmation beyond row selection. Use the required `Recovery reason` field plus a required confirmation marker such as a checkbox or exact text input. The submit button remains disabled until the confirmation marker is satisfied. |
@@ -165,11 +167,11 @@ No third-party registry vetting is required because this Phoenix LiveView packag
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS with non-blocking focal-point recommendation addressed
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-06-04
