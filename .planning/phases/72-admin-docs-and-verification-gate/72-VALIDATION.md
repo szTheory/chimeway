@@ -1,9 +1,9 @@
 ---
 phase: 72
 slug: admin-docs-and-verification-gate
-status: draft
+status: complete
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-06-04
 ---
 
@@ -39,9 +39,9 @@ created: 2026-06-04
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 72-01-docs | 01 | 1 | DOCS-12 | T-72-01 / T-72-02 | Integration guide documents fail-closed auth, redaction, host-owned tenancy/session context, and recovery permissions without exposing payload/provider secrets. | doc contract | `mix test test/chimeway/doc_contract_test.exs --warnings-as-errors` | W0 | pending |
-| 72-02-smoke | 02 | 1 | SMOKE-01 | T-72-04 / T-72-05 | Browser smoke proves the mounted admin console is nonblank, styled by packaged CSS, navigable across core pages, and minimally usable without asserting sensitive data. | Playwright | `npm ci && npx playwright install chromium && npx playwright test test/browser/admin_smoke.spec.ts` | W0 | pending |
-| 72-03-gate | 03 | 2 | GATE-08 | T-72-03 | `mix verify.admin` runs admin-specific tests and cannot drift from CI/release-gate parity. | mix alias + contract | `mix verify.admin` | W0 | pending |
+| 72-01-docs | 01 | 1 | DOCS-12 | T-72-01 / T-72-02 | Integration guide documents fail-closed auth, redaction, host-owned tenancy/session context, and recovery permissions without exposing payload/provider secrets. | doc contract | `mix test test/chimeway/doc_contract_test.exs --warnings-as-errors` | W0 | green |
+| 72-02-smoke | 02 | 1 | SMOKE-01 | T-72-04 / T-72-05 | Browser smoke proves the mounted admin console is nonblank, styled by packaged CSS, navigable across core pages, and minimally usable without asserting sensitive data. | Playwright | `npm ci && npx playwright install chromium && npx playwright test test/browser/admin_smoke.spec.ts` | W0 | green |
+| 72-03-gate | 03 | 2 | GATE-08 | T-72-03 | `mix verify.admin` runs admin-specific tests and cannot drift from CI/release-gate parity. | mix alias + contract | `mix verify.admin` | W0 | green |
 
 *Status: pending · green · red · flaky*
 
@@ -49,10 +49,10 @@ created: 2026-06-04
 
 ## Wave 0 Requirements
 
-- [ ] `test/chimeway/doc_contract_test.exs` — root doc-contract coverage for DOCS-12 admin integration guide claims.
-- [ ] `playwright.config.ts` — browser smoke configuration for demo-host mounted admin route.
-- [ ] `test/browser/admin_smoke.spec.ts` — Playwright smoke coverage for SMOKE-01.
-- [ ] `package.json` or equivalent npm metadata — pins `@playwright/test` and exposes a repeatable smoke command.
+- [x] `test/chimeway/doc_contract_test.exs` — root doc-contract coverage for DOCS-12 admin integration guide claims.
+- [x] `playwright.config.ts` — browser smoke configuration for demo-host mounted admin route.
+- [x] `test/browser/admin_smoke.spec.ts` — Playwright smoke coverage for SMOKE-01.
+- [x] `package.json` or equivalent npm metadata — pins `@playwright/test` and exposes a repeatable smoke command.
 
 ---
 
@@ -73,4 +73,4 @@ created: 2026-06-04
 - [x] Feedback latency target is defined with a browser-install exception.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** pending
+**Approval:** complete

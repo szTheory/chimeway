@@ -338,6 +338,51 @@
 
 ---
 
+## Milestone: v1.11 — Operator Console Polish & Hardening
+
+**Shipped:** 2026-06-04
+**Phases:** 5 (68–72) | **Plans:** 12 | **Requirements:** 18/18
+
+### What Was Built
+
+- Seven-page embedded operator console truth across route helpers, demo copy, docs, isolated LiveView tests, and host-mounted tests.
+- Scoped Chimeway admin design system with packaged tokens, light/dark/system themes, responsive primitives, long-content protections, and reduced-motion-safe interactions.
+- Action-bearing recovery hardening: event-time authorization, tenant scope, explicit confirmation, stale/noop handling, and durable allowlisted operator evidence.
+- Redaction and explainability contracts for admin DTOs and rendered HTML, including lifecycle labels and DB-inferred Definitions history.
+- Canonical admin integration guide, doc contracts, `mix verify.admin`, `verify_admin` CI lane, release-gate parity, and Playwright Chromium smoke.
+
+### What Worked
+
+- Treating admin UI polish and safety as one milestone kept recovery UX, auth, tenancy, redaction, docs, and verification aligned.
+- Browser smoke landed only after LiveView and CSS contracts existed, keeping Phase 69 lightweight and Phase 72 responsible for durable real-browser proof.
+- Milestone audit caught stale process artifacts before archive; closing them inline avoided carrying noisy tech debt into v1.12 planning.
+
+### What Was Inefficient
+
+- Phase 69 summaries initially lacked `requirements-completed` frontmatter, which made the audit need manual reconciliation.
+- Phase 72 verification existed in plan summaries but not in a phase-level `72-VERIFICATION.md`, blocking close until the artifact was written.
+- Running `mix ci.verify_gates` concurrently with `mix verify.admin` exhausted local PostgreSQL connections; milestone-close verification should run those gates sequentially.
+
+### Patterns Established
+
+- Admin docs are canonical adopter setup surface; demo-host README is supporting proof copy.
+- Admin UI contracts should test CSS tokens and rendered LiveView structure before adding browser automation.
+- New verify gates must update root alias, CI lane, ci-gate aggregation, release-gate contracts, and MAINTAINING together.
+
+### Key Lessons
+
+1. Phase-level verification artifacts are release artifacts, not optional summaries.
+2. Requirements, summary metadata, and verification reports need to agree before milestone audit.
+3. Browser smoke is most useful as a final mounted-console proof after lower-level contracts have already narrowed the failure surface.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: multiple phase waves plus closeout audit repair
+- Notable: v1.11 close passed `mix verify.admin` and sequential `mix ci.verify_gates` before archive
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -352,6 +397,10 @@
 | v1.5 | 35–42 | Adoption surface + doc-contract release gates |
 | v1.6 | 43–47 | Consumer journey proof + shift-left CI |
 | v1.7 | 48–53 | READ workflow glue + adoption-evidence tail |
+| v1.8 | 54–57.1 | Mailglass ecosystem blueprint + verify gate |
+| v1.9 | 58–62.1 | Accrue dunning + INBX + Hex release automation |
+| v1.10 | 63–67 | Threadline/Sigra ecosystem completions |
+| v1.11 | 68–72 | Operator console polish, safety, redaction, and admin gate |
 
 ### Cumulative Quality
 
@@ -361,6 +410,7 @@
 | v1.5 | 647 | Full `mix ci` green; pre-ship quartet exit 0 |
 | v1.6 | 647 + 5 journeys | Pre-ship quintet documented; journey CI separate job |
 | v1.7 | 695+ + 10 journeys | READ spine + expanded persona admin traces |
+| v1.11 | 404 release-gate tests + admin gate | `mix ci.verify_gates` green; `mix verify.admin` green with browser smoke |
 
 ### Top Lessons (Verified Across Milestones)
 

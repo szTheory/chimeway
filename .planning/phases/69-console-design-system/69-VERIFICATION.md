@@ -12,8 +12,10 @@ updated: 2026-06-04T22:15:51Z
 
 | Check | Command / CI lane | Result |
 |-------|-------------------|--------|
-| DES-01 scoped packaged design tokens, typography, status tones, framework-free CSS, theme states, contrast samples, responsive hooks, and reduced motion contracts | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs --warnings-as-errors` | pass - 7 tests, 0 failures |
+| DES-01 scoped packaged design tokens, typography, status tones, framework-free CSS, responsive hooks, and motion tokens | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs --warnings-as-errors` | pass - 7 tests, 0 failures |
+| DES-02 light, dark, and system theme-state contracts plus sampled accessible contrast coverage | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs --warnings-as-errors` | pass - 7 tests, 0 failures |
 | DES-03 seven-page scoped admin shell, sidebar labels, active nav item, shared flow hooks, and Trace Detail hook source coverage | `cd chimeway_admin && mix test test/chimeway_admin/live/design_system_live_test.exs --warnings-as-errors` | pass - 4 tests, 0 failures |
+| DES-04 CSS-only interaction and reduced-motion contracts | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs --warnings-as-errors` | pass - 7 tests, 0 failures |
 | Focused Phase 69 design-system gate | `cd chimeway_admin && mix test test/chimeway_admin/design_system_test.exs test/chimeway_admin/live/design_system_live_test.exs --warnings-as-errors` | pass - 11 tests, 0 failures |
 | Full packaged admin suite remains green | `cd chimeway_admin && mix test --warnings-as-errors` | pass - 51 tests, 0 failures |
 | Screenshot-ready responsive evidence artifact covers required 390px and 1280px surfaces and PASS/FAIL observation categories | `test -f .planning/phases/69-console-design-system/69-EVIDENCE.md && grep ...` evidence assertion command from Plan 69-02 Task 3 | pass |

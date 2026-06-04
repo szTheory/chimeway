@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.11 Operator Console Polish & Hardening (Shipped: 2026-06-04)
+
+**Phases completed:** 5 phases, 12 plans, 21 tasks
+
+**Key accomplishments:**
+
+- Demo-host admin copy now describes the shipped seven-page embedded operator console, backed by a root doc contract.
+- Route, isolated LiveView, and demo-host mounted tests now lock the shipped admin route map and operator hierarchy.
+- Shared admin context with tenant-scoped read DTOs and enriched host authorization context
+- Recovery LiveView now requires deliberate confirmation, re-authorizes recovery submits, and renders scoped stale/noop UI
+- Core recovery now persists allowlisted operator evidence, preserves duplicate noop evidence, and projects safe trace facts only
+- Admin DTO and rendered LiveView privacy contracts now prove sensitive payload/render/provider/session values stay out of operator surfaces while masked facts remain useful.
+- Admin lifecycle copy now distinguishes provider acceptance from delivered feedback, and Definitions copy is locked to persisted DB-inferred history.
+- Canonical admin console integration guide with HexDocs registration and DOCS-12 contract coverage
+- Playwright Chromium smoke proves the mounted admin console is nonblank, styled, navigable, form-usable, responsive, and redacted
+- `mix verify.admin` is now the local and CI gate for the mounted admin console
+
+---
+
 ## v1.10 Ecosystem Completions
 
 - Status: shipped
