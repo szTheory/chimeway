@@ -6,7 +6,7 @@ This guide is the canonical adoption path for composing Chimeway with [Threadlin
 
 **Chimeway orchestrates the when and why:** durable notification lifecycle, suppression and preference gates, idempotency, explainability, and operator traces you can search at `/admin/chimeway`.
 
-**Threadline owns audit ledger:** immutable, append-only event records. Chimeway does not write to Threadline directly — the `Chimeway.Telemetry.ThreadlineReporter` listens to Chimeway lifecycle telemetry and records the outcome as a semantic audit action. Threadline emits and persists the audit row; Chimeway does not mutate Threadline records.
+**Threadline owns audit ledger:** immutable, append-only event records. Chimeway does not write to Threadline directly — the Threadline reporter listens to Chimeway lifecycle telemetry and records the outcome as a semantic audit action. Threadline emits and persists the audit row; Chimeway does not mutate Threadline records.
 
 This integration is **not** a `Chimeway.Adapter` delivery seam — it is a `:telemetry` handler bridge only.
 
@@ -54,7 +54,7 @@ def start(_type, _args) do
 end
 ```
 
-`Chimeway.Telemetry.ThreadlineReporter.attach/0` is idempotent — calling it more than once is safe. Then configure the reporter with the Threadline repo and the actor that owns the audit rows:
+The Threadline reporter attach call is idempotent — calling it more than once is safe. Then configure the reporter with the Threadline repo and the actor that owns the audit rows:
 
 ```elixir
 config :chimeway, :threadline_reporter,

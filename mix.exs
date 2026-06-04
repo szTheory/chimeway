@@ -205,6 +205,7 @@ defmodule Chimeway.MixProject do
         "guides/introduction/golden-path.md",
         "guides/introduction/mailglass-integration.md",
         "guides/introduction/accrue-dunning-integration.md",
+        "guides/introduction/admin-console-integration.md",
         "guides/introduction/inbox-integration.md",
         "guides/introduction/threadline-integration.md",
         "guides/introduction/sigra-auth-integration.md",
