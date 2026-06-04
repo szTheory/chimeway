@@ -5,6 +5,12 @@ defmodule ChimewayAdmin.Auth do
   Actions:
   - `:search_traces` — trace search/index LiveView
   - `:view_trace` — trace detail LiveView
+  - `:view_feed` — operator feed debug LiveView
+  - `:view_definitions` — persisted definitions registry LiveView
+  - `:view_health` — outcome and operability health LiveView
+  - `:list_recovery_candidates` — recovery queue LiveView
+  - `:recover_delivery` — recover one eligible delivery
+  - `:recover_event` — recover one eligible event
 
   Configure the implementation module:
 

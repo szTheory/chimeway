@@ -12,11 +12,28 @@ defmodule ChimewayAdmin.LiveAuth do
   import Phoenix.LiveView
 
   alias ChimewayAdmin.Auth
+  alias ChimewayAdmin.Context
 
-  def on_mount(action, _params, session, socket) when action in [:search_traces, :view_trace] do
-    case authorize(action, session, socket) do
+  @actions [
+    :search_traces,
+    :view_trace,
+    :view_feed,
+    :view_definitions,
+    :view_health,
+    :list_recovery_candidates,
+    :recover_delivery,
+    :recover_event
+  ]
+
+  def on_mount(action, params, session, socket) when action in @actions do
+    admin_context = Context.from(params, session, socket)
+
+    case authorize(action, admin_context, %{}) do
       :ok ->
-        {:cont, assign(socket, :chimeway_admin_session, session)}
+        {:cont,
+         socket
+         |> assign(:chimeway_admin_context, admin_context)
+         |> assign(:chimeway_admin_session, session)}
 
       {:error, _} ->
         {:halt, redirect(socket, to: unauthorized_redirect())}
@@ -28,12 +45,14 @@ defmodule ChimewayAdmin.LiveAuth do
 
   Returns `{:ok, socket}` or `{:error, redirected_socket}`.
   """
-  @spec ensure_authorized(Phoenix.LiveView.Socket.t(), atom()) ::
+  @spec ensure_authorized(Phoenix.LiveView.Socket.t(), atom(), map()) ::
           {:ok, Phoenix.LiveView.Socket.t()} | {:error, Phoenix.LiveView.Socket.t()}
-  def ensure_authorized(socket, action) when action in [:search_traces, :view_trace] do
-    session = Map.get(socket.assigns, :chimeway_admin_session, %{})
+  def ensure_authorized(socket, action, extra_context \\ %{}) when action in @actions do
+    admin_context =
+      Map.get(socket.assigns, :chimeway_admin_context) ||
+        Context.from(%{}, Map.get(socket.assigns, :chimeway_admin_session, %{}), socket)
 
-    case authorize(action, session, socket) do
+    case authorize(action, admin_context, extra_context) do
       :ok ->
         {:ok, socket}
 
@@ -42,14 +61,10 @@ defmodule ChimewayAdmin.LiveAuth do
     end
   end
 
-  defp authorize(action, session, socket) do
+  defp authorize(action, admin_context, extra_context) do
     auth_module = Auth.auth_module()
-    actor = socket.assigns[:current_actor] || session["current_actor"]
-
-    context = %{
-      live_view: socket.view,
-      session: session
-    }
+    actor = admin_context.actor
+    context = Context.authorize_context(admin_context, action, extra_context)
 
     case auth_module.authorize(actor, action, context) do
       :ok ->

@@ -5,6 +5,8 @@ defmodule DemoHostWeb.Plugs.AdminActor do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    put_session(conn, "current_actor", "demo:operator")
+    conn
+    |> put_session("current_actor", "demo:operator")
+    |> put_session("chimeway_admin_tenant_id", "demo-tenant")
   end
 end
