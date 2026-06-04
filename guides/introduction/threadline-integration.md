@@ -54,7 +54,7 @@ def start(_type, _args) do
 end
 ```
 
-The Threadline reporter attach call is idempotent — calling it more than once is safe. Then configure the reporter with the Threadline repo and the actor that owns the audit rows:
+The Threadline reporter `attach/0` call is idempotent — calling it more than once is safe. Then configure the reporter with the Threadline repo and the actor that owns the audit rows:
 
 ```elixir
 config :chimeway, :threadline_reporter,

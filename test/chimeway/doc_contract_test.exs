@@ -243,6 +243,7 @@ defmodule Chimeway.DocContractTest do
   end
 
   @demo_host_readme "examples/chimeway_demo_host/README.md"
+  @admin_integration_guide "guides/introduction/admin-console-integration.md"
 
   describe "demo-host admin console doc contract (ADMIN-03)" do
     setup do
@@ -282,6 +283,92 @@ defmodule Chimeway.DocContractTest do
         refute String.contains?(content, unquote(forbidden)),
                "examples/chimeway_demo_host/README.md must not reintroduce stale admin claim: #{unquote(forbidden)}"
       end
+    end
+  end
+
+  describe "admin integration guide doc contract (DOCS-12)" do
+    setup do
+      content = File.read!(@admin_integration_guide)
+      %{content: content}
+    end
+
+    @admin_guide_required_strings [
+      "Command Center",
+      "Trace Lookup",
+      "Trace Detail",
+      "Feed Debug",
+      "Definitions",
+      "Health",
+      "Recovery",
+      "/admin/chimeway",
+      "/admin/chimeway/traces",
+      "/admin/chimeway/feed",
+      "/admin/chimeway/definitions",
+      "/admin/chimeway/health",
+      "/admin/chimeway/recovery",
+      "/admin/chimeway/deliveries/",
+      "chimeway_admin_routes()",
+      "Plug.Static",
+      "ChimewayAdmin.Assets.css_path()",
+      "/chimeway_admin/chimeway_admin.css",
+      "config :chimeway_admin, auth_module: MyApp.AdminAuth",
+      "ChimewayAdmin.Auth",
+      "authorize/3",
+      "{:error, :unauthorized}",
+      "current_actor",
+      "chimeway_admin_tenant_id",
+      "path_prefix",
+      ":list_recovery_candidates",
+      ":recover_delivery",
+      ":recover_event",
+      "raw payloads",
+      "render data",
+      "provider bodies",
+      "tokens",
+      "secrets",
+      "auth codes",
+      "full recipient PII",
+      "mix verify.admin"
+    ]
+
+    for required <- @admin_guide_required_strings do
+      test "requires #{required} in admin integration guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "admin integration guide must reference #{unquote(required)}"
+      end
+    end
+
+    @admin_guide_forbidden_strings [
+      "trace lookup only",
+      "code-registry",
+      "code registry",
+      "source-code skew",
+      "source skew",
+      "module inventory",
+      "loaded modules",
+      "provider raw body inspection",
+      "generic CRUD",
+      "template editing",
+      "provider configuration UI",
+      "arbitrary bulk recovery",
+      "cohort analytics"
+    ]
+
+    for forbidden <- @admin_guide_forbidden_strings do
+      test "forbids #{forbidden} in admin integration guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "admin integration guide must not reintroduce stale or unsafe admin claim: #{unquote(forbidden)}"
+      end
+    end
+
+    test "documents fail-closed production auth", %{content: content} do
+      assert String.contains?(content, "Production setup must fail closed")
+      assert String.contains?(content, "Production must not use permissive demo auth")
+    end
+
+    test "documents host-owned tenant and role policy", %{content: content} do
+      assert String.contains?(content, "does not validate tenant membership or roles")
+      assert String.contains?(content, "tenant membership, role policy, and per-resource access")
     end
   end
 
@@ -1108,6 +1195,7 @@ defmodule Chimeway.DocContractTest do
     @integration_guides ~w(
       guides/introduction/mailglass-integration.md
       guides/introduction/accrue-dunning-integration.md
+      guides/introduction/admin-console-integration.md
       guides/introduction/inbox-integration.md
       guides/introduction/threadline-integration.md
       guides/introduction/sigra-auth-integration.md
@@ -1139,7 +1227,7 @@ defmodule Chimeway.DocContractTest do
              "HexDocs extras must list mailglass integration guide before accrue dunning integration guide"
     end
 
-    test "lists inbox integration guide after accrue dunning integration guide in extras", %{
+    test "lists admin integration guide after accrue dunning integration guide in extras", %{
       content: content
     } do
       accrue_index =
@@ -1148,14 +1236,33 @@ defmodule Chimeway.DocContractTest do
           :nomatch -> flunk("mix.exs extras must include accrue dunning integration guide")
         end
 
+      admin_index =
+        case :binary.match(content, "guides/introduction/admin-console-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include admin integration guide")
+        end
+
+      assert accrue_index < admin_index,
+             "HexDocs extras must list accrue dunning integration guide before admin integration guide"
+    end
+
+    test "lists inbox integration guide after admin integration guide in extras", %{
+      content: content
+    } do
+      admin_index =
+        case :binary.match(content, "guides/introduction/admin-console-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include admin integration guide")
+        end
+
       inbox_index =
         case :binary.match(content, "guides/introduction/inbox-integration.md") do
           {index, _} -> index
           :nomatch -> flunk("mix.exs extras must include inbox integration guide")
         end
 
-      assert accrue_index < inbox_index,
-             "HexDocs extras must list accrue dunning integration guide before inbox integration guide"
+      assert admin_index < inbox_index,
+             "HexDocs extras must list admin integration guide before inbox integration guide"
     end
 
     test "lists threadline integration guide after inbox integration guide in extras", %{
