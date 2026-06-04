@@ -129,24 +129,36 @@ mix demo.trace
 
 Or: `mix run priv/scripts/trace_demo.exs`
 
-## Operator trace UI (browser)
+## Embedded operator console (browser)
 
-Visual trace lookup complements the IEx walkthrough above (Phase 39). Requires trace data from `mix demo.trace` or the IEx trigger section.
+The embedded admin console at `/admin/chimeway` is a multi-page operator surface for notification explainability and recovery workflows. It complements the IEx walkthrough above and uses trace data from TeamPulse seeds, `mix demo.trace`, or the IEx trigger section.
 
 ```bash
 cd examples/chimeway_demo_host
 mix phx.server
 ```
 
-Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway), search by recipient — `user:alex@teampulse.test` (TeamPulse seeds) or `user:demo_user_1` (TraceDemo) — and open a delivery to inspect the unified timeline.
+Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway) to start at the Command Center. The console includes:
+
+| Page | Purpose |
+|------|---------|
+| Command Center | Landing page with Trace Lookup as the primary operator action and secondary paths to Health, Recovery, Definitions, and Feed Debug. |
+| Trace Lookup | Search by recipient identity or correlation ID, for example `user:alex@teampulse.test` (TeamPulse seeds) or `user:demo_user_1` (TraceDemo). |
+| Trace Detail | Inspect one delivery's unified lifecycle timeline. |
+| Feed Debug | Inspect recipient notification lifecycle rows for operator debugging. |
+| Definitions | Review DB-inferred durable notification key/version usage, channels, and persisted activity. |
+| Health | Review lifecycle outcome totals and recent problem deliveries. |
+| Recovery | Inspect eligible recovery candidates before action-bearing follow-up. |
+
+Use Trace Lookup to open a delivery and inspect the unified timeline.
 
 ### Production auth
 
 `DemoHost.AdminAuth` always allows access in `:dev` and `:test`. In `:prod` it always returns `{:error, :unauthorized}` — replace with your host's real `ChimewayAdmin.Auth` implementation before exposing admin routes.
 
-### Out of scope for `chimeway_admin` MVP
+### Current admin boundaries
 
-Bell inbox, marketing/campaign tooling, health aggregates dashboard, notification definitions registry, and `aggregate_outcomes/1` charts are **not** included — trace lookup only.
+`chimeway_admin` is not generic CRUD over Chimeway tables, not template editing or provider configuration UI, not the end-user inbox product surface, not cohort analytics, and not arbitrary bulk resend/delete recovery.
 
 ## Related guides
 
