@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "smoke:admin": "playwright test test/browser/admin_smoke.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0"
+  }
+}
