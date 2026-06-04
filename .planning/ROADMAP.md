@@ -43,6 +43,12 @@
 
 **Requirements:** DES-01, DES-02, DES-03, DES-04
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 69-01-PLAN.md - Scoped token, theme-state, contrast, and reduced-motion contracts
+- [ ] 69-02-PLAN.md - Responsive shared primitives, rendered LiveView contracts, and screenshot-ready evidence
+
 **Success Criteria:**
 1. Admin CSS exposes a reusable token scale for theme, spacing, status, focus, surfaces, and motion.
 2. Light, dark, and system themes have accessible contrast and coherent hover/focus/active states.
