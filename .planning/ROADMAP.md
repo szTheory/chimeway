@@ -29,7 +29,7 @@ Complete the SEED-003 ecosystem integration matrix by shipping Threadline and Si
 - [x] **Phase 64: Sigra Auth Flows Core** — Sigra auth events trigger Chimeway notifiers with redacted trace payloads (completed 2026-06-03)
 - [x] **Phase 65: Ecosystem Blueprints & Demo** — Sigra auth reference blueprint plus demo host proofs for Threadline and Sigra (completed 2026-05-30)
 - [x] **Phase 66: Docs & Release Gates** — Golden-path guides, doc-contract tests, and `mix verify.threadline` / `mix verify.sigra` CI gates (completed 2026-06-03)
-- [ ] **Phase 67: Close ECOS-09** — Repin Sigra CI SHA, harden verify lanes against the vacuous-pass footgun, fix the guide, verify Phase 64 (from v1.10 audit)
+- [x] **Phase 67: Close ECOS-09** — Repin Sigra CI SHA, harden verify lanes against the vacuous-pass footgun, fix the guide, verify Phase 64 (completed 2026-06-04)
 
 ## Phase Details
 
@@ -75,7 +75,7 @@ Plans:
 2. Sensitive token values never appear in Chimeway trace database, telemetry, or operator surfaces — redaction is enforced at the integration boundary
 3. Integration tests prove event → notification → delivery path with `@moduletag :sigra` selective CI
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 **Wave 1** *(harness + redaction baseline — blocks Wave 2)*
 
@@ -155,7 +155,7 @@ Plans:
 | 64 Sigra Auth Flows Core | 2/2 | Complete    | 2026-06-03 |
 | 65 Ecosystem Blueprints & Demo | 3/3 | Complete    | 2026-05-30 |
 | 66 Docs & Release Gates | 3/3 | Complete    | 2026-06-03 |
-| 67 Close ECOS-09 | 1/3 | In Progress|  |
+| 67 Close ECOS-09 | 3/3 | Complete    | 2026-06-04 |
 
 ## Requirement Coverage
 
@@ -176,7 +176,7 @@ Plans:
 
 **Goal:** Sigra auth notification flow (ECOS-09) is proven end-to-end in clean CI — not just against a local gitignored dep — and the vacuous-pass gate footgun that hid the gap can never silently recur.
 
-**Requirements:** ECOS-09 (primary, unsatisfied); restores DEMO-10, DOCS-10, GATE-07 from partial → satisfied
+**Requirements:** ECOS-09 (primary, satisfied); restored DEMO-10, DOCS-10, GATE-07 from partial → satisfied
 
 **Depends on:** Phase 66
 
@@ -189,17 +189,17 @@ Plans:
 3. `guides/introduction/sigra-auth-integration.md` shows the correct `Chimeway.trigger/3` shape (notifier module first arg); doc-contract now catches the wrong shape (forbid string-first-arg + `params:` option)
 4. Phase 64 has `64-VERIFICATION.md` proving ECOS-09 E2E; `64-02-SUMMARY.md` committed; ROADMAP/REQUIREMENTS reconciled (ECOS-09 → Complete); Phase 64 `64-VALIDATION.md` closed out (`nyquist_compliant: true`); Phases 63/65/66 VALIDATION drafts tracked as deferred Nyquist debt (owner: next milestone planning; trigger: their respective phase re-verification)
 
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
 
 - [x] 67-01-PLAN.md — Repin Sigra CI SHA (62ceb46a) + close the vacuous-pass footgun: raise-loud test_helper, harden sigra/accrue/threadline harness guards (per-direction), per-lane test-count floor (D-01, D-02a/b/c)
-- [ ] 67-02-PLAN.md — Fix the Sigra golden-path guide trigger example + WR-2 fenced arity; strengthen the doc-contract to catch the wrong shape (D-03, D-04)
+- [x] 67-02-PLAN.md — Fix the Sigra golden-path guide trigger example + WR-2 fenced arity; strengthen the doc-contract to catch the wrong shape (D-03, D-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 67-03-PLAN.md — Clean-CI verify.sigra proof, 64-VERIFICATION.md, commit 64-02-SUMMARY, reconcile ROADMAP/REQUIREMENTS, close Nyquist + override comment (D-05, D-06)
+- [x] 67-03-PLAN.md — Clean-CI verify.sigra proof, 64-VERIFICATION.md, commit 64-02-SUMMARY, reconcile ROADMAP/REQUIREMENTS, close Nyquist + override comment (D-05, D-06)
 
 ---
-*Roadmap updated: 2026-06-03 — Phase 67 planned (3 plans, 2 waves) from v1.10 milestone audit (ECOS-09 closure)*
+*Roadmap updated: 2026-06-04 — Phase 67 complete; ECOS-09 clean-CI binding proof captured in CI run 26925122158 / job 79433504716*

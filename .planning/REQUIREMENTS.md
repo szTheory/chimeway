@@ -71,4 +71,4 @@ Deferred to later milestones. Tracked but not in v1.10 roadmap.
 
 ---
 *Requirements defined: 2026-05-30*  
-*Last updated: 2026-05-30 after milestone v1.10 roadmap creation*
+*Last updated: 2026-06-04 after Phase 67 ECOS-09 clean-CI proof*
