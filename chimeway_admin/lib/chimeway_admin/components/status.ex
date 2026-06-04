@@ -115,11 +115,13 @@ defmodule ChimewayAdmin.Components.Status do
     Enum.any?(timeline, fn entry ->
       detail = Map.get(entry, :detail) || Map.get(entry, "detail") || %{}
       event_name = Map.get(detail, :event_name) || Map.get(detail, "event_name")
+      signal_event_name = Map.get(detail, :signal_event_name) || Map.get(detail, "signal_event_name")
       status = Map.get(detail, :status) || Map.get(detail, "status")
       outcome = Map.get(detail, :outcome) || Map.get(detail, "outcome")
 
-      event_name in ["chimeway.delivery.delivered", "delivered"] or status == "delivered" or
-        outcome == "delivered"
+      event_name in ["chimeway.delivery.delivered", "delivered"] or
+        signal_event_name in ["chimeway.delivery.delivered", "delivered"] or
+        status in [:delivered, "delivered"] or outcome in [:delivered, "delivered"]
     end)
   end
 

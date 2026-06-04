@@ -27,6 +27,17 @@ defmodule ChimewayAdmin.Components.StatusTest do
                    %{event: :webhook_received, detail: %{event_name: "chimeway.delivery.delivered"}}
                  ]
                })
+
+      assert %{label: "Delivered"} =
+               Status.lifecycle_label(%{
+                 status: :succeeded,
+                 timeline: [
+                   %{
+                     event: :webhook_received,
+                     detail: %{signal_event_name: "chimeway.delivery.delivered"}
+                   }
+                 ]
+               })
     end
 
     test "labels suppressed deliveries as Suppressed" do
