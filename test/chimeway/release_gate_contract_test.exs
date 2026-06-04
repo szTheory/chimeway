@@ -78,25 +78,26 @@ defmodule Chimeway.ReleaseGateContractTest do
         job_block = extract_ci_job_block(ci_yml, unquote(job_id))
 
         if unquote(job_id) == "verify_sigra" do
-	          assert String.contains?(job_block, unquote(command)) or
-	                   (String.contains?(
-	                      job_block,
-	                      "test/support/sigra/ci_proof_runner.exs"
-	                    ) and
-	                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
-	                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP") and
-	                      String.contains?(job_block, "CHIMEWAY_SKIP_ACCRUE_DEP") and
-	                      String.contains?(job_block, "CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") and
-	                      String.contains?(job_block, "CHIMEWAY_MANUAL_REPO_START") and
-	                      String.contains?(job_block, "CHIMEWAY_SKIP_OBAN") and
-	                      String.contains?(job_block, "PGUSER: postgres") and
-	                      String.contains?(job_block, "POSTGRES_USER: postgres") and
-	                      String.contains?(job_block, "Prepare root test database") and
-	                      String.contains?(job_block, "timeout 600s mix ecto.create") and
-	                      String.contains?(job_block, "mix run --no-start --no-compile test/support/sigra/ci_proof_runner.exs") and
-	                      String.contains?(job_block, "timeout 600s mix deps.compile") and
-	                      String.contains?(job_block, "timeout 300s mix test")),
-	                 "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
+          assert String.contains?(job_block, unquote(command)) or
+                   (String.contains?(
+                      job_block,
+                      "test/support/sigra/ci_proof_runner.exs"
+                    ) and
+                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
+                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP") and
+                      String.contains?(job_block, "CHIMEWAY_SKIP_ACCRUE_DEP") and
+                      String.contains?(job_block, "CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") and
+                      String.contains?(job_block, "CHIMEWAY_MANUAL_REPO_START") and
+                      String.contains?(job_block, "CHIMEWAY_SKIP_OBAN") and
+                      String.contains?(job_block, "PGUSER: postgres") and
+                      String.contains?(job_block, "POSTGRES_USER: postgres") and
+                      String.contains?(job_block, "Prepare root test database") and
+                      String.contains?(job_block, "timeout 600s mix ecto.create") and
+                      String.contains?(job_block, "timeout 300s elixir $(") and
+                      String.contains?(job_block, "find _build/test/lib") and
+                      String.contains?(job_block, "timeout 600s mix deps.compile") and
+                      String.contains?(job_block, "timeout 300s mix test")),
+                 "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
         else
           assert String.contains?(job_block, unquote(command)),
                  "#{unquote(job_id)} job must run #{unquote(command)}"
@@ -227,24 +228,37 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   describe "verify-lane test-count floor (WARNING-2)" do
     test "each verify lane declares at least its expected integration-test count" do
-      sigra_root = count_tests([
-        "test/chimeway/integrations/sigra_auth_harness_test.exs",
-        "test/chimeway/integrations/sigra_auth_lifecycle_test.exs"
-      ])
-      sigra_demo = count_tests(["examples/chimeway_demo_host/test/demo_host_web/sigra_auth_proof_test.exs"])
-      accrue = count_tests([
-        "test/chimeway/integrations/accrue_dunning_harness_test.exs",
-        "test/chimeway/integrations/accrue_dunning_lifecycle_test.exs"
-      ])
-      threadline = count_tests([
-        "test/chimeway/integrations/threadline_telemetry_harness_test.exs",
-        "test/chimeway/integrations/threadline_telemetry_lifecycle_test.exs"
-      ])
+      sigra_root =
+        count_tests([
+          "test/chimeway/integrations/sigra_auth_harness_test.exs",
+          "test/chimeway/integrations/sigra_auth_lifecycle_test.exs"
+        ])
 
-      assert sigra_root >= 5, "sigra root lane must have >= 5 integration tests (found #{sigra_root})"
-      assert sigra_demo >= 2, "sigra demo-host lane must have >= 2 integration tests (found #{sigra_demo})"
+      sigra_demo =
+        count_tests(["examples/chimeway_demo_host/test/demo_host_web/sigra_auth_proof_test.exs"])
+
+      accrue =
+        count_tests([
+          "test/chimeway/integrations/accrue_dunning_harness_test.exs",
+          "test/chimeway/integrations/accrue_dunning_lifecycle_test.exs"
+        ])
+
+      threadline =
+        count_tests([
+          "test/chimeway/integrations/threadline_telemetry_harness_test.exs",
+          "test/chimeway/integrations/threadline_telemetry_lifecycle_test.exs"
+        ])
+
+      assert sigra_root >= 5,
+             "sigra root lane must have >= 5 integration tests (found #{sigra_root})"
+
+      assert sigra_demo >= 2,
+             "sigra demo-host lane must have >= 2 integration tests (found #{sigra_demo})"
+
       assert accrue >= 11, "accrue lane must have >= 11 integration tests (found #{accrue})"
-      assert threadline >= 7, "threadline lane must have >= 7 integration tests (found #{threadline})"
+
+      assert threadline >= 7,
+             "threadline lane must have >= 7 integration tests (found #{threadline})"
     end
   end
 

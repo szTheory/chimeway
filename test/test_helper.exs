@@ -1,26 +1,38 @@
 ExUnit.start()
 
+sigra_ci_proof? = System.get_env("CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") in ["1", "true"]
+
 if System.get_env("CHIMEWAY_MANUAL_REPO_START") in ["1", "true"] do
   Logger.configure(level: :warning)
 
-  Enum.each([:crypto, :logger, :telemetry, :ecto_sql, :postgrex], fn app ->
+  Enum.each([:crypto, :logger, :telemetry, :ecto_sql, :postgrex, :plug_crypto], fn app ->
     case Application.ensure_all_started(app) do
-      {:ok, _} -> :ok
-      {:error, {:already_started, _}} -> :ok
-      {:error, reason} -> raise "failed to start #{inspect(app)} for manual repo proof: #{inspect(reason)}"
+      {:ok, _} ->
+        :ok
+
+      {:error, {:already_started, _}} ->
+        :ok
+
+      {:error, reason} ->
+        raise "failed to start #{inspect(app)} for manual repo proof: #{inspect(reason)}"
     end
   end)
 
   case Chimeway.Repo.start_link() do
-    {:ok, _pid} -> :ok
-    {:error, {:already_started, _pid}} -> :ok
-    {:error, reason} -> raise "failed to start Chimeway.Repo for manual repo proof: #{inspect(reason)}"
+    {:ok, _pid} ->
+      :ok
+
+    {:error, {:already_started, _pid}} ->
+      :ok
+
+    {:error, reason} ->
+      raise "failed to start Chimeway.Repo for manual repo proof: #{inspect(reason)}"
   end
 end
 
 Ecto.Adapters.SQL.Sandbox.mode(Chimeway.Repo, :manual)
 
-if Code.ensure_loaded?(Mailglass) do
+if Code.ensure_loaded?(Mailglass) and not sigra_ci_proof? do
   {:ok, _} = Application.ensure_all_started(:mailglass)
 
   migrations_path = Path.join([__DIR__, "support", "mailglass", "migrations"])
@@ -51,7 +63,7 @@ if Code.ensure_loaded?(Mailglass) do
   Ecto.Adapters.SQL.Sandbox.mode(Mailglass.TestRepo, :manual)
 end
 
-if Code.ensure_loaded?(Accrue) do
+if Code.ensure_loaded?(Accrue) and not sigra_ci_proof? do
   if Code.ensure_loaded?(Chimeway) and not Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
     source =
       [:accrue]
@@ -118,7 +130,7 @@ if Code.ensure_loaded?(Accrue) do
   end
 end
 
-if Code.ensure_loaded?(Threadline) do
+if Code.ensure_loaded?(Threadline) and not sigra_ci_proof? do
   {:ok, _} = Application.ensure_all_started(:threadline)
 
   migrations_path =
@@ -159,21 +171,26 @@ if Code.ensure_loaded?(Threadline) do
 end
 
 if Code.ensure_loaded?(Sigra) or
-     (System.get_env("CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") in ["1", "true"]) do
+     System.get_env("CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") in ["1", "true"] do
   if Code.ensure_loaded?(Chimeway) and not Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
     source =
-      case Mix.Project.deps_paths()[:sigra] do
-        nil -> nil
-        path -> Path.join(path, "lib/sigra/integrations/chimeway.ex")
+      case System.get_env("SIGRA_PATH") do
+        nil ->
+          if Process.whereis(Mix.ProjectStack) do
+            case Mix.Project.deps_paths()[:sigra] do
+              nil -> nil
+              path -> Path.join(path, "lib/sigra/integrations/chimeway.ex")
+            end
+          end
+
+        path ->
+          Path.join(path, "lib/sigra/integrations/chimeway.ex")
       end
 
     source =
       cond do
         is_binary(source) and File.exists?(source) ->
           source
-
-        env_path = System.get_env("SIGRA_PATH") ->
-          Path.join(env_path, "lib/sigra/integrations/chimeway.ex")
 
         true ->
           nil

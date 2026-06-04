@@ -436,7 +436,10 @@ jobs:
           timeout 600s mix ecto.create
           timeout 300s mix ecto.migrate
       - name: Run root Sigra proof lane
-        run: timeout 300s mix run --no-start --no-compile test/support/sigra/ci_proof_runner.exs
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 300s elixir $(find _build/test/lib -type d -name ebin -print | sed 's/^/-pa /') test/support/sigra/ci_proof_runner.exs
         env:
           CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP: "1"
           CHIMEWAY_MANUAL_REPO_START: "1"
