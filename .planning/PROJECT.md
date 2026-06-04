@@ -49,7 +49,9 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ## Current State
 
-**v1.11 Operator Console Polish & Hardening active (2026-06-04):** The next milestone reconciles the already-emerging `chimeway_admin` command center into planning, then hardens it as a production operator surface. It includes SEED-004 persona/JTBD and SEED-002 adoption-surface context. Scope is deliberately not a generic CRUD admin or SaaS control plane; it is an embedded, host-authenticated LiveView console for explaining notification outcomes and taking safe recovery actions.
+**v1.11 Phase 68 Admin Truth Alignment complete (2026-06-04):** The shipped `chimeway_admin` route map, demo copy, route helpers, and LiveView/host-mounted tests now align around the real seven-page operator console: Command Center, Trace Lookup, Trace Detail, Feed Debug, Definitions, Health, and Recovery. Phase 69 is the current focus: formalize the console design system before safety, redaction, docs, and browser-smoke hardening.
+
+**v1.11 Operator Console Polish & Hardening active (2026-06-04):** The milestone hardens the already-emerging `chimeway_admin` command center as a production operator surface. It includes SEED-004 persona/JTBD and SEED-002 adoption-surface context. Scope is deliberately not a generic CRUD admin or SaaS control plane; it is an embedded, host-authenticated LiveView console for explaining notification outcomes and taking safe recovery actions.
 
 **v1.10 Ecosystem Completions shipped (2026-06-04):** Threadline telemetry reporter + audit-ledger proof (ECOS-08), Sigra auth notification flows with redacted traces and clean-CI binding proof (ECOS-09), Sigra auth blueprint and demo host proofs (ECOS-10, DEMO-09/10), Threadline/Sigra integration guides with doc-contract truth locks (DOCS-10/11), and `mix verify.threadline` / `mix verify.sigra` gates in CI + MAINTAINING (GATE-07). Phase 67 closed the audit gap by repinning Sigra CI to `szTheory/sigra@62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`, adding vacuous-pass guards, fixing the Sigra guide API shape, and recording CI proof run `26925122158` / job `79433504716`.
 
