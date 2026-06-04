@@ -3,6 +3,9 @@ defmodule ChimewayAdmin.Live.DesignSystemLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias Chimeway.Events.Event
+  alias Chimeway.Repo
+
   @sidebar_labels [
     "Command Center",
     "Trace Lookup",
@@ -60,13 +63,33 @@ defmodule ChimewayAdmin.Live.DesignSystemLiveTest do
     end
   end
 
-  test "shared flow hooks are present across rendered pages and trace detail source", %{conn: conn} do
-    dashboard = conn |> mount_page(ChimewayAdmin.Live.DashboardLive, :search_traces) |> Floki.parse_document!()
-    trace_search = conn |> mount_page(ChimewayAdmin.Live.TraceSearchLive, :search_traces) |> Floki.parse_document!()
+  test "shared flow hooks are present across rendered pages and trace detail source", %{
+    conn: conn
+  } do
+    dashboard =
+      conn
+      |> mount_page(ChimewayAdmin.Live.DashboardLive, :search_traces)
+      |> Floki.parse_document!()
+
+    trace_search =
+      conn
+      |> mount_page(ChimewayAdmin.Live.TraceSearchLive, :search_traces)
+      |> Floki.parse_document!()
+
     feed = conn |> mount_page(ChimewayAdmin.Live.FeedLive, :view_feed) |> Floki.parse_document!()
-    definitions = conn |> mount_page(ChimewayAdmin.Live.DefinitionsLive, :view_definitions) |> Floki.parse_document!()
-    health = conn |> mount_page(ChimewayAdmin.Live.HealthLive, :view_health) |> Floki.parse_document!()
-    recovery = conn |> mount_page(ChimewayAdmin.Live.RecoveryLive, :list_recovery_candidates) |> Floki.parse_document!()
+
+    definitions =
+      conn
+      |> mount_page(ChimewayAdmin.Live.DefinitionsLive, :view_definitions)
+      |> Floki.parse_document!()
+
+    health =
+      conn |> mount_page(ChimewayAdmin.Live.HealthLive, :view_health) |> Floki.parse_document!()
+
+    recovery =
+      conn
+      |> mount_page(ChimewayAdmin.Live.RecoveryLive, :list_recovery_candidates)
+      |> Floki.parse_document!()
 
     assert_one(trace_search, "#trace-search-form.cw-search-form")
     assert_one(feed, "#feed-search-form.cw-search-form")
@@ -83,6 +106,22 @@ defmodule ChimewayAdmin.Live.DesignSystemLiveTest do
     for hook <- ["cw-detail-hero", "cw-detail-hero__ids", "cw-summary-list", "cw-copy-id"] do
       assert trace_detail_source =~ hook
     end
+  end
+
+  test "dashboard renders fallback for definitions without delivery channels", %{conn: conn} do
+    %Event{}
+    |> Event.changeset(%{
+      notification_key: "dashboard.no_channels",
+      notification_version: 1,
+      idempotency_key: "dashboard-no-channels-#{System.unique_integer([:positive])}",
+      payload: %{}
+    })
+    |> Repo.insert!()
+
+    html = mount_page(conn, ChimewayAdmin.Live.DashboardLive, :search_traces)
+
+    assert html =~ "dashboard.no_channels"
+    assert html =~ "no deliveries"
   end
 
   defp mount_page(conn, {:route, path, _title}) do

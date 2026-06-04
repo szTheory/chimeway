@@ -85,13 +85,16 @@ defmodule ChimewayAdmin.Live.DashboardLive do
         <div class="cw-definition-strip">
           <div :for={definition <- @snapshot.definitions} class="cw-definition-chip">
             <strong>{definition.notification_key}</strong>
-            <span>v{definition.notification_version} · {Enum.join(definition.channels, ", ") || "no deliveries"}</span>
+            <span>v{definition.notification_version} · {channel_summary(definition.channels)}</span>
           </div>
         </div>
       </.card>
     </.admin_shell>
     """
   end
+
+  defp channel_summary([]), do: "no deliveries"
+  defp channel_summary(channels), do: Enum.join(channels, ", ")
 
   attr(:row, :map, required: true)
 

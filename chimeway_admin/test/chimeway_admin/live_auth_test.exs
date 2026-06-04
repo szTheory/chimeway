@@ -1,6 +1,8 @@
 defmodule ChimewayAdmin.LiveAuthTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias ChimewayAdmin.LiveAuth
   alias ChimewayAdmin.TestSupport.DenyAuth
 
@@ -44,6 +46,44 @@ defmodule ChimewayAdmin.LiveAuthTest do
 
     assert {:halt, _} =
              LiveAuth.on_mount(:search_traces, %{}, %{"current_actor" => "ops:1"}, socket)
+  end
+
+  test "does not log secret-bearing unexpected authorize returns" do
+    defmodule SecretUnexpectedAuth do
+      @behaviour ChimewayAdmin.Auth
+
+      @impl true
+      def authorize(_actor, _action, _context) do
+        {:error, %{session: %{"token" => "secret-token"}, authorization: "Bearer secret"}}
+      end
+    end
+
+    Application.put_env(:chimeway_admin, :auth_module, SecretUnexpectedAuth)
+
+    socket =
+      %Phoenix.LiveView.Socket{
+        assigns: %{__changed__: %{}},
+        endpoint: ChimewayAdmin.TestSupport.Endpoint,
+        router: ChimewayAdmin.Router,
+        view: ChimewayAdmin.Live.TraceSearchLive,
+        private: %{}
+      }
+
+    log =
+      capture_log(fn ->
+        assert {:halt, _} =
+                 LiveAuth.on_mount(
+                   :search_traces,
+                   %{},
+                   %{"current_actor" => "ops:1", "token" => "session-secret"},
+                   socket
+                 )
+      end)
+
+    assert log =~ "returned an unexpected value"
+    refute log =~ "secret-token"
+    refute log =~ "Bearer secret"
+    refute log =~ "session-secret"
   end
 
   test "passes route params into authorization context" do
@@ -203,6 +243,7 @@ defmodule ChimewayAdmin.LiveAuthTest do
 
     assert opts[:source] == "chimeway_admin"
     assert opts[:reason] == "retry now"
+    assert opts[:tenant_id] == "tenant-a"
     assert opts[:actor_ref] == "ops-1"
     assert opts[:confirmation_marker] == "CONFIRM"
     refute Keyword.has_key?(opts, :params)

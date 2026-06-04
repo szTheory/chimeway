@@ -33,18 +33,22 @@ defmodule Chimeway.Deliveries do
 
     cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
 
-    Repo.all(
-      from(e in Event,
-        join: n in Notification,
-        on: n.event_id == e.id,
-        left_join: d in Delivery,
-        on: d.notification_id == n.id,
-        where: e.updated_at <= ^cutoff,
-        group_by: e.id,
-        having: count(d.id) == 0,
-        order_by: [asc: e.updated_at, asc: e.inserted_at]
+    if scoped_tenant_id(opts) do
+      []
+    else
+      Repo.all(
+        from(e in Event,
+          join: n in Notification,
+          on: n.event_id == e.id,
+          left_join: d in Delivery,
+          on: d.notification_id == n.id,
+          where: e.updated_at <= ^cutoff,
+          group_by: e.id,
+          having: count(d.id) == 0,
+          order_by: [asc: e.updated_at, asc: e.inserted_at]
+        )
       )
-    )
+    end
   end
 
   @doc """
@@ -59,15 +63,19 @@ defmodule Chimeway.Deliveries do
       |> normalize_datetime!()
 
     cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
+    tenant_id = scoped_tenant_id(opts)
 
-    Repo.all(
+    query =
       from(d in Delivery,
         where:
           d.status == :pending and d.orchestration_state == :ready and d.updated_at <= ^cutoff and
             fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
         order_by: [asc: d.updated_at, asc: d.inserted_at]
       )
-    )
+
+    query
+    |> maybe_scope_delivery_tenant(tenant_id)
+    |> Repo.all()
   end
 
   @doc """
@@ -92,6 +100,7 @@ defmodule Chimeway.Deliveries do
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
     metadata_patch = recovery_metadata_patch(source, reason, now, opts)
+    tenant_id = scoped_tenant_id(opts)
 
     recovery_query =
       from(d in Delivery,
@@ -110,6 +119,7 @@ defmodule Chimeway.Deliveries do
           ]
         ]
       )
+      |> maybe_scope_delivery_tenant(tenant_id)
 
     {updated_count, _rows} = Repo.update_all(recovery_query, [])
 
@@ -327,6 +337,27 @@ defmodule Chimeway.Deliveries do
 
   defp normalize_tenant_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
   defp normalize_tenant_id(value), do: {:error, {:invalid_tenant_id, value}}
+
+  defp scoped_tenant_id(opts) do
+    case Keyword.get(opts, :tenant_id) do
+      value when is_binary(value) ->
+        value
+        |> String.trim()
+        |> case do
+          "" -> nil
+          value -> value
+        end
+
+      _value ->
+        nil
+    end
+  end
+
+  defp maybe_scope_delivery_tenant(query, nil), do: query
+
+  defp maybe_scope_delivery_tenant(query, tenant_id) do
+    from(d in query, where: d.tenant_id == ^tenant_id)
+  end
 
   defp normalize_actor_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
   defp normalize_actor_id(value), do: {:error, {:invalid_actor_id, value}}

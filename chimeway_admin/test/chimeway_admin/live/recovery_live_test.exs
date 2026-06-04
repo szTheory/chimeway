@@ -110,6 +110,7 @@ defmodule ChimewayAdmin.Live.RecoveryLiveTest do
     reloaded = Repo.get!(Chimeway.Delivery, delivery.id)
     assert reloaded.metadata["recovery_source"] == "chimeway_admin"
     assert reloaded.metadata["recovery_reason"] == "operator checked row"
+    assert reloaded.tenant_id == "tenant-a"
   end
 
   test "noop recovery shows approved stale copy, clears selection, and refreshes scoped candidates",

@@ -91,6 +91,7 @@ defmodule ChimewayAdmin.Context do
     [
       source: "chimeway_admin",
       reason: normalize_value(reason),
+      tenant_id: Map.get(context || %{}, :tenant_id),
       actor_ref: actor_ref(context),
       confirmation_marker: normalize_value(confirmation_marker)
     ]
@@ -105,6 +106,8 @@ defmodule ChimewayAdmin.Context do
 
   defp session_value(map, key) when is_map(map), do: normalize_value(Map.get(map, key))
   defp session_value(_map, _key), do: nil
+
+  defp normalize_value(nil), do: nil
 
   defp normalize_value(value) when is_binary(value) do
     value

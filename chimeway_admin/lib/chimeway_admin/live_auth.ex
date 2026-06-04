@@ -77,12 +77,22 @@ defmodule ChimewayAdmin.LiveAuth do
         require Logger
 
         Logger.warning(
-          "ChimewayAdmin.Auth.authorize/3 returned unexpected #{inspect(other)}; treating as unauthorized"
+          "ChimewayAdmin.Auth.authorize/3 returned an unexpected value; treating as unauthorized",
+          action: action,
+          auth_module: inspect(auth_module),
+          return_type: unexpected_return_type(other)
         )
 
         {:error, :unauthorized}
     end
   end
+
+  defp unexpected_return_type(value) when is_tuple(value), do: :tuple
+  defp unexpected_return_type(value) when is_map(value), do: :map
+  defp unexpected_return_type(value) when is_list(value), do: :list
+  defp unexpected_return_type(value) when is_atom(value), do: :atom
+  defp unexpected_return_type(value) when is_binary(value), do: :binary
+  defp unexpected_return_type(_value), do: :other
 
   defp unauthorized_redirect do
     Application.get_env(:chimeway_admin, :unauthorized_redirect, "/")

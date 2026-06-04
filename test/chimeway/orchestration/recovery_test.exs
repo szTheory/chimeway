@@ -373,6 +373,32 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       refute_received {:dispatch, _, _}
     end
 
+    test "tenant-scoped event recovery noops without durable tenant proof" do
+      %{event: event} =
+        DispatchHelpers.create_notification(
+          notification_key: "test.recovery.event_cross_tenant",
+          recipient_identity: "user:recovery-event-cross-tenant"
+        )
+
+      event =
+        event
+        |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+        |> Repo.update!()
+
+      assert {:noop, recovery} =
+               Deliveries.recover_event(event.id,
+                 tenant_id: "tenant-a",
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "tenant_scoped"
+               )
+
+      assert recovery.event.id == event.id
+      assert recovery.deliveries == []
+      refute_received {:dispatch, _, _}
+    end
+
     test "replays persisted digest orchestration and keeps recovered deliveries digest_held" do
       assert {:ok, trigger_result} =
                Chimeway.Trigger.trigger(
@@ -621,6 +647,35 @@ defmodule Chimeway.Orchestration.RecoveryTest do
         |> Enum.map(& &1.id)
 
       assert delivery.id in recoverable_ids
+    end
+
+    test "tenant-scoped delivery recovery noops without stamping or dispatching other tenants" do
+      %{delivery: delivery} =
+        DispatchHelpers.create_pending_delivery(
+          notification_key: "test.recovery.delivery_cross_tenant",
+          recipient_identity: "user:recovery-cross-tenant",
+          channel: :email,
+          tenant_id: "tenant-b"
+        )
+
+      delivery =
+        delivery
+        |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+        |> Repo.update!()
+
+      assert {:noop, result} =
+               Deliveries.recover_delivery(delivery.id,
+                 tenant_id: "tenant-a",
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "wrong_tenant"
+               )
+
+      assert result.delivery.id == delivery.id
+      reloaded = Repo.get!(Delivery, delivery.id)
+      refute Map.has_key?(reloaded.metadata || %{}, "recovered_at")
+      refute_received {:dispatch_delivery, _, _}
     end
 
     test "normalizes dispatcher skip and terminal/deferred rows into explicit noop results" do
