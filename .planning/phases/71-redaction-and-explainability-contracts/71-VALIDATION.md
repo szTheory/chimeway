@@ -3,8 +3,9 @@ phase: 71
 slug: redaction-and-explainability-contracts
 status: draft
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-06-04
+updated: 2026-06-04
 ---
 
 # Phase 71 - Validation Strategy
@@ -17,7 +18,7 @@ created: 2026-06-04
 |----------|-------|
 | **Framework** | ExUnit, Ecto SQL Sandbox, Phoenix LiveViewTest |
 | **Config file** | Root `mix.exs`; admin package `chimeway_admin/mix.exs` |
-| **Quick run command** | `mix test test/chimeway/admin_test.exs --warnings-as-errors && cd chimeway_admin && mix test test/chimeway_admin/redaction_test.exs test/chimeway_admin/live/trace_search_live_test.exs test/chimeway_admin/live/recovery_live_test.exs --warnings-as-errors` |
+| **Quick run command** | `mix test test/chimeway/admin_test.exs --warnings-as-errors && cd chimeway_admin && mix test test/chimeway_admin/live/privacy_leak_live_test.exs test/chimeway_admin/components/status_test.exs test/chimeway_admin/live/definitions_live_test.exs test/chimeway_admin/live/trace_search_live_test.exs test/chimeway_admin/live/recovery_live_test.exs --warnings-as-errors` |
 | **Full suite command** | `mix ci.test && cd chimeway_admin && mix test --warnings-as-errors` |
 | **Estimated runtime** | ~90-180 seconds targeted; full suite depends on local DB state |
 
@@ -32,17 +33,17 @@ created: 2026-06-04
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 71-01-01 | 01 | 1 | PRIV-02 | T-71-01 | Admin DTO maps expose exact stable fields and omit payload/render/provider/session/token/secret/auth-code/full-PII values. | ExUnit integration | `mix test test/chimeway/admin_test.exs --warnings-as-errors` | yes | pending |
-| 71-01-02 | 01 | 1 | PRIV-01 | T-71-02 | Dashboard, trace detail, feed, recovery, and definitions rendered HTML omit seeded sensitive values while preserving masked/explainable operator facts. | LiveView render | `cd chimeway_admin && mix test test/chimeway_admin/live/trace_search_live_test.exs test/chimeway_admin/live/recovery_live_test.exs --warnings-as-errors` plus new focused LiveView tests | partial | pending |
-| 71-02-01 | 02 | 2 | EXPL-01 | T-71-03 | Operator labels distinguish provider accepted, delivered, suppressed, retryable failure, and terminal failure without changing durable core status atoms. | Component/presenter + LiveView render | `cd chimeway_admin && mix test test/chimeway_admin/components/status_test.exs test/chimeway_admin/live/trace_search_live_test.exs --warnings-as-errors` | missing | pending |
-| 71-02-02 | 02 | 2 | EXPL-02 | T-71-04 | Definitions rendered copy describes DB-inferred persisted history and forbids registry/skew/module-discovery/source-code claims. | LiveView render | `cd chimeway_admin && mix test test/chimeway_admin/live/definitions_live_test.exs test/chimeway_admin/live/trace_search_live_test.exs --warnings-as-errors` | partial | pending |
+| 71-01-01 | 01 | 1 | PRIV-02 | T-71-01 | Admin DTO maps expose exact stable fields and omit payload/render/provider/session/token/secret/auth-code/full-PII values. | ExUnit integration | `mix test test/chimeway/admin_test.exs --warnings-as-errors` | yes | covered |
+| 71-01-02 | 01 | 1 | PRIV-01 | T-71-02 | Dashboard, trace detail, feed, recovery, and definitions rendered HTML omit seeded sensitive values while preserving masked/explainable operator facts. | LiveView render | `cd chimeway_admin && mix test test/chimeway_admin/live/privacy_leak_live_test.exs test/chimeway_admin/live/trace_search_live_test.exs test/chimeway_admin/live/recovery_live_test.exs --warnings-as-errors` | yes | covered |
+| 71-02-01 | 02 | 2 | EXPL-01 | T-71-03 | Operator labels distinguish provider accepted, delivered, suppressed, retryable failure, and terminal failure without changing durable core status atoms. | Component/presenter + LiveView render | `cd chimeway_admin && mix test test/chimeway_admin/components/status_test.exs test/chimeway_admin/live/trace_search_live_test.exs --warnings-as-errors` | yes | covered |
+| 71-02-02 | 02 | 2 | EXPL-02 | T-71-04 | Definitions rendered copy describes DB-inferred persisted history and forbids registry/skew/module-discovery/source-code claims. | LiveView render | `cd chimeway_admin && mix test test/chimeway_admin/live/definitions_live_test.exs test/chimeway_admin/live/trace_search_live_test.exs --warnings-as-errors` | yes | covered |
 
 ## Wave 0 Requirements
 
-- [ ] `test/chimeway/admin_test.exs` - exact allowlist helper coverage for command center, recent problem deliveries, definitions, feed, recovery candidates, and outcome totals.
-- [ ] `chimeway_admin/test/chimeway_admin/live/*_test.exs` - rendered leak fixtures for dashboard, trace detail, feed, recovery, and definitions.
-- [ ] `chimeway_admin/test/chimeway_admin/components/status_test.exs` or equivalent - status presenter contract for provider accepted, delivered, suppressed, retryable failure, and terminal failure.
-- [ ] `chimeway_admin/test/chimeway_admin/live/definitions_live_test.exs` or equivalent - DB-inferred copy and forbidden overclaim assertions.
+- [x] `test/chimeway/admin_test.exs` - exact allowlist helper coverage for command center, recent problem deliveries, definitions, feed, recovery candidates, and outcome totals.
+- [x] `chimeway_admin/test/chimeway_admin/live/privacy_leak_live_test.exs` - rendered leak fixtures for dashboard, trace detail, feed, recovery, and definitions.
+- [x] `chimeway_admin/test/chimeway_admin/components/status_test.exs` - status presenter contract for provider accepted, delivered, suppressed, retryable failure, and terminal failure.
+- [x] `chimeway_admin/test/chimeway_admin/live/definitions_live_test.exs` - DB-inferred copy and forbidden overclaim assertions.
 
 ## Manual-Only Verifications
 
@@ -66,4 +67,20 @@ All phase behaviors have automated verification. Manual UAT remains useful for o
 - [x] Feedback latency target is under 180 seconds for targeted runs.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** pending
+**Approval:** automated validation approved 2026-06-04
+
+## Validation Audit 2026-06-04
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+Phase 71 was audited after execution against the plan summaries, validation map, and current test files. The earlier `pending`, `partial`, and `missing` entries were stale: all four task requirements now have automated coverage in committed test files.
+
+Verification evidence:
+
+- `mix test test/chimeway/admin_test.exs --warnings-as-errors` - passed, 6 tests.
+- `cd chimeway_admin && mix test test/chimeway_admin/components/status_test.exs test/chimeway_admin/live/definitions_live_test.exs test/chimeway_admin/live/privacy_leak_live_test.exs test/chimeway_admin/live/trace_search_live_test.exs test/chimeway_admin/live/recovery_live_test.exs --warnings-as-errors` - passed, 24 tests.
+- `mix test test/chimeway/admin_test.exs test/chimeway/traces_test.exs --warnings-as-errors && cd chimeway_admin && mix test --warnings-as-errors` - passed, 52 root tests plus 51 admin tests.
