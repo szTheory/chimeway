@@ -452,6 +452,7 @@ jobs:
           timeout 300s mix test --no-compile test/demo_host_web/sigra_auth_proof_test.exs --only sigra --warnings-as-errors --trace
         env:
           CHIMEWAY_SKIP_THREADLINE_DEP: "1"
+          CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP: "1"
           CHIMEWAY_PATH: ../..
           SIGRA_PATH: ${{ github.workspace }}/sigra/sigra
 
