@@ -27,10 +27,10 @@
 
 ### Redaction and Explainability
 
-- [ ] **PRIV-01**: Rendered admin HTML does not expose raw payloads, render data, provider bodies, tokens, secrets, auth codes, or full recipient PII.
-- [ ] **PRIV-02**: Admin DTOs expose only stable, explainable fields needed for operator decisions.
-- [ ] **EXPL-01**: Trace/detail/status language distinguishes sent, provider accepted, delivered, suppressed, retryable failure, and terminal failure.
-- [ ] **EXPL-02**: Definitions screen clearly communicates DB-inferred definition/version history and does not overclaim code-registry skew detection unless implemented.
+- [x] **PRIV-01**: Rendered admin HTML does not expose raw payloads, render data, provider bodies, tokens, secrets, auth codes, or full recipient PII.
+- [x] **PRIV-02**: Admin DTOs expose only stable, explainable fields needed for operator decisions.
+- [x] **EXPL-01**: Trace/detail/status language distinguishes sent, provider accepted, delivered, suppressed, retryable failure, and terminal failure.
+- [x] **EXPL-02**: Definitions screen clearly communicates DB-inferred definition/version history and does not overclaim code-registry skew detection unless implemented.
 
 ### Documentation and Verification
 
@@ -74,10 +74,10 @@
 | SAFE-02 | Phase 70 | Complete |
 | SAFE-03 | Phase 70 | Complete |
 | SAFE-04 | Phase 70 | Complete |
-| PRIV-01 | Phase 71 | Pending |
-| PRIV-02 | Phase 71 | Pending |
-| EXPL-01 | Phase 71 | Pending |
-| EXPL-02 | Phase 71 | Pending |
+| PRIV-01 | Phase 71 | Complete |
+| PRIV-02 | Phase 71 | Complete |
+| EXPL-01 | Phase 71 | Complete |
+| EXPL-02 | Phase 71 | Complete |
 | DOCS-12 | Phase 72 | Pending |
 | GATE-08 | Phase 72 | Pending |
 | SMOKE-01 | Phase 72 | Pending |
