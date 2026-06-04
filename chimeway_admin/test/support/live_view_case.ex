@@ -4,7 +4,8 @@ defmodule ChimewayAdmin.LiveViewCase do
 
   using do
     quote do
-      use Phoenix.ConnTest, otp_app: :chimeway_admin
+      import Plug.Conn
+      import Phoenix.ConnTest
       import Phoenix.LiveViewTest
 
       @endpoint ChimewayAdmin.TestSupport.Endpoint
