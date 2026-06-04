@@ -45,12 +45,13 @@ Do **not** run `mix hex.publish` on a maintainer laptop as the default publish s
 
 ### Pre-ship local commands
 
-Run all ten before opening or merging release-related changes:
+Run all eleven before opening or merging release-related changes:
 
 ```bash
 mix ci
 mix ci.docs
 mix ci.verify_gates
+mix verify.admin
 mix verify.example
 mix verify.journeys
 mix verify.mailglass
@@ -63,6 +64,7 @@ mix verify.sigra
 - `mix ci` — lint + full test suite
 - `mix ci.docs` — HexDocs build with warnings-as-errors
 - `mix ci.verify_gates` — adoption-surface doc-contract and release gate parity (GATE-01 + GATE-06)
+- `mix verify.admin` — admin integration gate for GATE-08 and SMOKE-01 covering root admin read-model tests, full chimeway_admin package tests, demo-host mounted admin coverage, and Playwright Chromium smoke against /admin/chimeway
 - `mix verify.example` — demo host webhook E2E + chimeway_admin operator smoke
 - `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
 - `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
@@ -71,9 +73,9 @@ mix verify.sigra
 - `mix verify.threadline` — Threadline telemetry integration gate (GATE-07): Threadline reporter lifecycle proof and demo host audit correlation; requires sibling Threadline checkout — set `THREADLINE_PATH=../threadline/threadline` locally or let CI job check out szTheory/threadline
 - `mix verify.sigra` — Sigra auth integration gate (GATE-07): Sigra auth notification lifecycle proof and demo host auth flow; requires sibling Sigra checkout — set `SIGRA_PATH=../sigra/sigra` locally or let CI job check out szTheory/sigra
 
-All ten must pass before publishing.
+All eleven must pass before publishing.
 
-These ten local commands map to ci-gate lanes plus publish replay — not ten identical CI job names.
+These eleven local commands map to ci-gate lanes plus publish replay — not eleven identical CI job names.
 
 #### Sibling repo checkouts
 

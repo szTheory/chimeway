@@ -9,7 +9,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   @release_yml ".github/workflows/release.yml"
   @manifest ".release-please-manifest.json"
   @publish_hex_yml ".github/workflows/publish-hex.yml"
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin)
 
   @pre_ship_verify_commands [
     {"verify.example", "verify_example", "mix verify.example"},
@@ -18,7 +18,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     {"verify.accrue", "verify_accrue", "mix verify.accrue"},
     {"verify.inbox", "verify_inbox", "mix verify.inbox"},
     {"verify.threadline", "verify_threadline", "mix verify.threadline"},
-    {"verify.sigra", "verify_sigra", "mix verify.sigra"}
+    {"verify.sigra", "verify_sigra", "mix verify.sigra"},
+    {"verify.admin", "verify_admin", "mix verify.admin"}
   ]
 
   describe "release gate parity doc contract (GATE-05)" do
@@ -43,9 +44,9 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
-    test "MAINTAINING documents ten-gate pre-ship requirement", %{maintaining: maintaining} do
-      assert Regex.match?(~r/All ten must pass/i, maintaining),
-             "MAINTAINING.md must state all ten verify gates must pass before publishing"
+    test "MAINTAINING documents eleven-gate pre-ship requirement", %{maintaining: maintaining} do
+      assert Regex.match?(~r/All eleven must pass/i, maintaining),
+             "MAINTAINING.md must state all eleven verify gates must pass before publishing"
     end
 
     test "MAINTAINING documents ACCRUE_PATH sibling checkout", %{maintaining: maintaining} do
@@ -169,7 +170,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "mix ci.docs")
     end
 
-    test "ci-gate aggregates 11 required lanes", %{ci_yml: ci_yml} do
+    test "ci-gate aggregates 12 required lanes", %{ci_yml: ci_yml} do
       needs = extract_ci_gate_needs(ci_yml)
 
       for lane <- @ci_gate_lanes do

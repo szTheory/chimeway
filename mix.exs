@@ -140,6 +140,16 @@ defmodule Chimeway.MixProject do
       "verify.sigra": [
         "cmd env MIX_ENV=test mix test --only sigra --warnings-as-errors",
         "cmd --shell sigra_path=${SIGRA_PATH:-../sigra/sigra}; sigra_path=$(cd \"$sigra_path\" && pwd); cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix test --only sigra --warnings-as-errors"
+      ],
+
+      # Phase 72 GATE-08: mounted admin package, demo-host, and browser smoke gate.
+      "verify.admin": [
+        "cmd env MIX_ENV=test mix test test/chimeway/admin_test.exs --warnings-as-errors",
+        "cmd --shell cd chimeway_admin && mix deps.get && mix test --warnings-as-errors",
+        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_SIGRA_DEP=1 MIX_ENV=test mix deps.get && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_SIGRA_DEP=1 MIX_ENV=test mix test test/demo_host_web/admin_trace_live_test.exs --warnings-as-errors",
+        "cmd npm ci",
+        "cmd npx playwright install --with-deps chromium",
+        "cmd npx playwright test test/browser/admin_smoke.spec.ts"
       ]
     ]
   end

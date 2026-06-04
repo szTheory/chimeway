@@ -458,6 +458,49 @@ jobs:
           CHIMEWAY_PATH: ../..
           SIGRA_PATH: ${{ github.workspace }}/sigra/sigra
 
+  verify_admin:
+    name: Admin integration gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-verify-admin-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-verify-admin-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix verify.admin
+
   install_golden_contract:
     name: Installer golden + idempotency contract
     runs-on: ubuntu-latest
@@ -507,7 +550,7 @@ jobs:
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra]
+    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, verify_admin]
     if: always()
     steps:
       - name: Verify required CI lanes
@@ -523,10 +566,11 @@ jobs:
           VERIFY_INBOX: ${{ needs.verify_inbox.result }}
           VERIFY_THREADLINE: ${{ needs.verify_threadline.result }}
           VERIFY_SIGRA: ${{ needs.verify_sigra.result }}
+          VERIFY_ADMIN: ${{ needs.verify_admin.result }}
         run: |
           set -euo pipefail
           failed=0
-          for lane in LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA; do
+          for lane in LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA VERIFY_ADMIN; do
             result="${!lane}"
             if [[ "$result" != "success" ]]; then
               echo "Required lane $lane: $result"
