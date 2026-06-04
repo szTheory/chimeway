@@ -21,8 +21,8 @@
 ### Safety, Tenancy, and Recovery
 
 - [ ] **SAFE-01**: Recovery actions re-authorize the actor for the specific action and resource context at event time.
-- [ ] **SAFE-02**: Recovery handles stale or no-longer-eligible candidates without duplicate or misleading actions.
-- [ ] **SAFE-03**: Recovery UI requires explicit confirmation and records durable evidence through core recovery APIs.
+- [x] **SAFE-02**: Recovery handles stale or no-longer-eligible candidates without duplicate or misleading actions.
+- [x] **SAFE-03**: Recovery UI requires explicit confirmation and records durable evidence through core recovery APIs.
 - [ ] **SAFE-04**: Admin read models and LiveViews support tenant-scoped operation through host-provided auth/session/query context.
 
 ### Redaction and Explainability
@@ -71,8 +71,8 @@
 | DES-03 | Phase 69 | Complete |
 | DES-04 | Phase 69 | Complete |
 | SAFE-01 | Phase 70 | Pending |
-| SAFE-02 | Phase 70 | Pending |
-| SAFE-03 | Phase 70 | Pending |
+| SAFE-02 | Phase 70 | Complete |
+| SAFE-03 | Phase 70 | Complete |
 | SAFE-04 | Phase 70 | Pending |
 | PRIV-01 | Phase 71 | Pending |
 | PRIV-02 | Phase 71 | Pending |
