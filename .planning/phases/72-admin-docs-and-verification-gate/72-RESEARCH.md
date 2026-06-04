@@ -392,17 +392,19 @@ end
 | A2 | Playwright `webServer` with a readiness URL/timeout is the cleanest demo-host startup strategy. | Common Pitfalls | Planner may choose a shell-managed server instead. |
 | A3 | CI should use `actions/setup-node` for Playwright because no Node setup action exists in current CI. | Architecture Patterns | Planner may need to pin the action SHA to match repo policy before implementation. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where should Playwright files live?**
    - What we know: No existing root `package.json` or Playwright config existed before this research. [VERIFIED: codebase grep]
    - What's unclear: The repo has no established JS test directory convention. [VERIFIED: codebase grep]
    - Recommendation: Use root `test/browser/admin_smoke.spec.ts` plus root `playwright.config.ts` so `mix verify.admin` can run from the repo root. [ASSUMED]
+   - **RESOLVED:** Phase 72 plans use root `playwright.config.ts`, root `package.json`/`package-lock.json`, and `test/browser/admin_smoke.spec.ts`. This keeps the browser smoke callable from root `mix verify.admin` and CI without a nested JavaScript project.
 
 2. **Should `verify.admin` include `npm ci` and browser install every local run?**
    - What we know: Playwright requires browser binaries, and official docs provide install commands. [CITED: https://playwright.dev/docs/browsers]
    - What's unclear: Whether maintainers prefer faster local reruns or fully self-contained gates. [ASSUMED]
    - Recommendation: Make the alias self-contained first; optimize later if it becomes slow. [ASSUMED]
+   - **RESOLVED:** Phase 72 plans make `mix verify.admin` self-contained by including `npm ci`, `npx playwright install --with-deps chromium`, and `npx playwright test test/browser/admin_smoke.spec.ts`. This favors local/CI parity and repeatability for GATE-08/SMOKE-01 over faster warm reruns.
 
 ## Environment Availability
 

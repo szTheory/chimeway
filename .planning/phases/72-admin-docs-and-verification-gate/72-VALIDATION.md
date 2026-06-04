@@ -28,7 +28,8 @@ created: 2026-06-04
 ## Sampling Rate
 
 - **After every task commit:** Run the narrow command named by the task (`mix test <file>`, package-scoped `mix test`, or Playwright smoke for browser work).
-- **After every plan wave:** Run `mix verify.admin`.
+- **After Wave 1:** Run the targeted commands created by Plans 72-01 and 72-02: `mix docs --warnings-as-errors`, `MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --warnings-as-errors`, `mix ci.verify_gates`, `npm ci`, `npx playwright install chromium`, and `npx playwright test test/browser/admin_smoke.spec.ts`.
+- **After Wave 2:** Run `mix verify.admin` after Plan 72-03 creates the alias and CI/release parity wiring.
 - **Before `$gsd-verify-work`:** `mix verify.admin` and CI parity checks must be green.
 - **Max feedback latency:** 180 seconds for non-browser tasks; browser smoke may exceed this when Playwright browsers are installed.
 
@@ -38,9 +39,9 @@ created: 2026-06-04
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 72-01-docs | 01 | 1 | DOCS-12 | T-72-01 / T-72-02 | Integration guide documents fail-closed auth, redaction, host-owned tenancy/session context, and recovery permissions without exposing payload/provider secrets. | doc contract | `mix test test/chimeway/doc_contracts/admin_integration_guide_contract_test.exs` | W0 | pending |
-| 72-02-gate | 02 | 1 | GATE-08 | T-72-03 | `mix verify.admin` runs admin-specific tests and cannot drift from CI/release-gate parity. | mix alias + contract | `mix verify.admin` | W0 | pending |
-| 72-03-smoke | 03 | 2 | SMOKE-01 | T-72-04 / T-72-05 | Browser smoke proves the mounted admin console is nonblank, styled by packaged CSS, navigable across core pages, and minimally usable without asserting sensitive data. | Playwright | `npx playwright test test/browser/admin_smoke.spec.ts` | W0 | pending |
+| 72-01-docs | 01 | 1 | DOCS-12 | T-72-01 / T-72-02 | Integration guide documents fail-closed auth, redaction, host-owned tenancy/session context, and recovery permissions without exposing payload/provider secrets. | doc contract | `mix test test/chimeway/doc_contract_test.exs --warnings-as-errors` | W0 | pending |
+| 72-02-smoke | 02 | 1 | SMOKE-01 | T-72-04 / T-72-05 | Browser smoke proves the mounted admin console is nonblank, styled by packaged CSS, navigable across core pages, and minimally usable without asserting sensitive data. | Playwright | `npm ci && npx playwright install chromium && npx playwright test test/browser/admin_smoke.spec.ts` | W0 | pending |
+| 72-03-gate | 03 | 2 | GATE-08 | T-72-03 | `mix verify.admin` runs admin-specific tests and cannot drift from CI/release-gate parity. | mix alias + contract | `mix verify.admin` | W0 | pending |
 
 *Status: pending · green · red · flaky*
 
@@ -48,7 +49,7 @@ created: 2026-06-04
 
 ## Wave 0 Requirements
 
-- [ ] `test/chimeway/doc_contracts/admin_integration_guide_contract_test.exs` — doc-contract coverage for DOCS-12.
+- [ ] `test/chimeway/doc_contract_test.exs` — root doc-contract coverage for DOCS-12 admin integration guide claims.
 - [ ] `playwright.config.ts` — browser smoke configuration for demo-host mounted admin route.
 - [ ] `test/browser/admin_smoke.spec.ts` — Playwright smoke coverage for SMOKE-01.
 - [ ] `package.json` or equivalent npm metadata — pins `@playwright/test` and exposes a repeatable smoke command.
