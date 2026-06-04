@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.10
-milestone_name: Ecosystem Completions
-status: Awaiting next milestone
-last_updated: "2026-06-04T06:28:22.564Z"
-last_activity: 2026-06-04 — Milestone v1.10 completed and archived
+milestone: v1.11
+milestone_name: Operator Console Polish & Hardening
+status: planning
+last_updated: "2026-06-04T07:21:39.078Z"
+last_activity: 2026-06-04
 progress:
   total_phases: 5
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-04)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Awaiting next milestone definition after v1.10 archive.
+**Current focus:** v1.11 Operator Console Polish & Hardening — Phase 68 Admin Truth Alignment.
 
 ## Current Position
 
-Phase: Milestone v1.10 complete
+Phase: 68 — Admin Truth Alignment
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-04 — Milestone v1.10 completed and archived
+Status: Ready to plan
+Last activity: 2026-06-04 — Milestone v1.11 roadmap initialized
 
 ## Accumulated Context
 
@@ -97,6 +97,9 @@ Last activity: 2026-06-04 — Milestone v1.10 completed and archived
 - [63-02]: Action-only bridge audit rows proven via AuditAction query; timeline strict filter returns no capture changes
 - [Phase ?]: Doc Contract Enforcement: added positive assertion and negative exclusions to enforce the valid shape of Chimeway.trigger/3 calls in guides to guarantee accurate copy-paste code snippets for adopters.
 - [67-03]: Binding ECOS-09 proof is CI run 26925122158 / Sigra job 79433504716 with root 6 tests and demo 2 tests passing against szTheory/sigra@62ceb46a.
+- [v1.11]: Operator console milestone includes SEED-004 and SEED-002; scope is embedded admin explainability, not generic CRUD or SaaS control plane.
+- [v1.11]: UI polish ships with safety contracts because recovery is action-bearing; auth, tenancy, redaction, docs, and verification are milestone scope.
+- [v1.11]: Keep `chimeway_admin` optional and host-mounted; core owns redacted DTO read models and recovery APIs.
 
 ### Pending Todos
 

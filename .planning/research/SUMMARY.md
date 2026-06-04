@@ -1,61 +1,58 @@
-# Research Summary: Chimeway Milestone v1.4 - Channel Feedback Loops
+# Research Summary: v1.11 Operator Console Polish & Hardening
 
-**Domain:** Embedded notification workflow orchestration (Channel & Feedback Expansion)
-**Researched:** 2026-04-30
-**Overall confidence:** HIGH
+**Date:** 2026-06-04
+**Milestone:** v1.11 Operator Console Polish & Hardening
 
-## Executive Summary
+## Scope Thesis
 
-Chimeway established a durable workflow engine in v1.3. The next major leverage point is enabling those multi-step journeys to interact with a broader set of channels (SMS, Push, Chat) and to react to asynchronous provider feedback (receipts, bounces, callbacks). Until now, Chimeway operated primarily in a "fire-and-forget" model post-dispatch (except for synchronous failure or Oban retry convergence). Provider callbacks represent true terminal state.
+Chimeway's admin surface should be an embedded Phoenix operator console for explainable notification delivery, not a generic model-admin, SaaS control plane, or campaign-management UI. The primary job is to help a support operator answer what happened, why it happened, and what safe recovery action is available.
 
-Research shows the Elixir ecosystem has fragmented but capable libraries for these channels (e.g., `pigeon` for push, `twilio_elixir` for SMS, `slack_elixir` for chat). Rather than hardcoding these libraries, Chimeway must maintain its adapter-seam philosophy, allowing host apps to plug in their preferred clients while Chimeway standardizes the inbound webhook normalization and state convergence. 
+## Personas and Jobs
 
-By ingesting webhooks as signals into the v1.3 Workflow Engine, Chimeway can drive outcome-based progression (e.g., escalate to SMS if the Email bounces, or mark the journey completed if a Push is opened/delivered).
+- **Support Operator:** explain a recipient complaint, inspect suppression/failure reasons, and retry or recover only when safe.
+- **Feature Developer:** confirm a notifier key/version, route, policy, and adapter behaved as authored.
+- **SRE/On-call:** understand whether failures are isolated, provider/channel-specific, retryable, or systemic.
+- **Product/Compliance Admin:** inspect preferences, suppression, and lifecycle outcomes without exposing sensitive payloads.
 
-## Key Findings
+## Recommended Patterns
 
-**Stack:** Continue using Elixir/Ecto/Oban with replaceable Adapter Behaviors; add an inbound normalized webhook parsing layer.
-**Architecture:** Expose an ingest/webhook seam that normalizes vendor payloads into canonical Chimeway outcomes, then emits these as workflow signals.
-**Critical pitfall:** Hard-coupling the library to specific vendor SDKs (like Twilio or Slack) instead of standardizing the adapter contract. 
+- Use a host-mounted LiveView router macro, following Phoenix LiveDashboard and Oban Web ergonomics.
+- Keep `chimeway_admin` optional; core `chimeway` owns durable read models and recovery APIs.
+- Use explicit Ecto query projections/DTO maps for admin data; never pass raw schemas or payload blobs to UI.
+- Use filter-first investigation: recipient, notification key/version, tenant, channel, status, suppression reason, provider, correlation ID, idempotency key, and time range.
+- Make the detail page an explanation timeline: event, notification resolution, policy/preference checks, suppression/dedupe, delivery creation, attempts, provider outcomes, and recovery evidence.
+- Make recovery narrow and local to eligible rows; re-authorize mutating LiveView events and require confirmation.
+- Use scoped design tokens for Chimeway admin CSS, with light/dark/system support and WCAG AA contrast targets.
+- Use subtle, purposeful CSS transitions for hover/focus/state changes; respect `prefers-reduced-motion`.
 
-## Implications for Roadmap
+## Patterns to Avoid
 
-Based on research, suggested phase structure:
+- Generic CRUD over Chimeway tables as the primary UI.
+- `forward`-based LiveView mounting when relying on `live_session` and `on_mount`.
+- Core package Phoenix/LiveView dependency creep.
+- Raw payload, render data, provider body, token, secret, auth code, or full PII rendering.
+- Mount-only authorization for recovery actions.
+- Bulk resend/delete as an early default.
+- Dashboard-only metrics without direct drilldown to affected records.
+- External control-plane assumptions or SaaS-style export requirements.
 
-1. **[Phase] Outbound Channel Contracts** - Define adapter behaviors and channel-specific render contracts for SMS, Push, and Chat.
-   - Addresses: Need for non-email messaging without vendor lock-in.
-   - Avoids: Hard-coupling to `twilio_elixir` or `pigeon`.
+## Recommended Milestone Shape
 
-2. **[Phase] Inbound Feedback Normalization** - Implement a canonical webhook ingestion layer that translates vendor payloads to Chimeway delivery outcomes.
-   - Addresses: Closing the loop on asynchronous delivery state (receipts, bounces, clicks).
-   - Avoids: Exposing raw vendor payloads in the core workflow spine.
+v1.11 should reconcile the already-implemented admin console into durable planning artifacts, then harden it across five dimensions:
 
-3. **[Phase] Feedback-Driven Progression** - Connect the normalized inbound feedback into the workflow signal spine to trigger next steps or escalations.
-   - Addresses: Outcome-based escalation based on true delivery state rather than just dispatch success.
-   - Avoids: Split-brain state where the delivery row says "delivered" but the workflow engine is unaware.
+1. **Truth alignment:** docs, route map, and requirements match the real multi-page console.
+2. **UI/IA polish:** command center, navigation, themes, components, accessibility, and microcopy become a coherent Chimeway design system.
+3. **Safety contracts:** recovery, auth, tenancy, stale-state handling, and action evidence are proved.
+4. **Privacy contracts:** redaction is tested at DTO and rendered-HTML boundaries.
+5. **Verification:** admin docs, doc contracts, `mix verify.admin`, CI parity, and browser smoke make the operator console shippable.
 
-4. **[Phase] Operator Traces & Audit** - Expand timeline traces to show provider callbacks and the resulting workflow transitions.
-   - Addresses: Explainability for asynchronous provider feedback.
+## Sources and Evidence
 
-**Phase ordering rationale:**
-- Outbound channel contracts must exist first so that deliveries have a channel context.
-- Inbound feedback normalization builds the bridge from the outside world back to the delivery row.
-- Feedback-driven progression links the updated delivery row back to the workflow engine.
-- Operator traces seal the explainability loop.
-
-**Research flags for phases:**
-- Feedback Normalization: Needs deeper research during planning on how to securely ingest webhooks across different host app router setups (Plug vs Phoenix).
-- Feedback-Driven Progression: Carefully map delivery status convergence with the v1.3 Signal router.
-
-## Confidence Assessment
-
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Stack | HIGH | Relying on host apps for SDKs aligns perfectly with existing Swoosh architecture. |
-| Features | HIGH | Outcomes mapped perfectly to SEED-001 requirements. |
-| Architecture | HIGH | Reuses v1.3 Signal architecture heavily. |
-| Pitfalls | HIGH | Known pain points from webhook ingestion are standard web dev concerns. |
-
-## Gaps to Address
-
-- Whether Read/unread-driven branching is entirely out of scope for v1.4, or if basic read-receipt webhooks should trigger a state change. Current recommendation is to stick to delivery terminal states (bounced, delivered, failed) first.
+- Phoenix LiveDashboard: mountable embedded dashboard, telemetry metrics, custom pages, and host auth model.
+- Phoenix LiveView: direct live routes and `on_mount` auth boundaries; avoid `forward` for LiveView sessions.
+- Oban Web: app-hosted operational dashboard with action-bearing job controls.
+- Ecto: explicit query projections and structured read models.
+- Plug.Static: dependency assets served from application tuples.
+- Django Admin, ActiveAdmin, Laravel Nova/Horizon/Telescope, Sidekiq Web: filters, stateful operations, and the risks of generic admin/action sprawl.
+- Sentry, Datadog, Courier, Knock, Postmark: investigation timelines, facets, delivery-state ambiguity, and provider-status language.
+- WCAG 2.2, MDN `prefers-color-scheme`, and motion guidance from Emil Kowalski: contrast, focus, reduced motion, fast purposeful animations, and system theme support.

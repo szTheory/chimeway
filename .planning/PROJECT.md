@@ -19,12 +19,11 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ### Active
 
-- [ ] Define the next milestone requirements with `$gsd-new-milestone`
-- [ ] Optional polish candidates: INT-02/03, INBX-03 PubSub bell, ADPT-01 greenfield CI
+- [ ] v1.11 Operator Console Polish & Hardening — command center IA, Chimeway design system, recovery/auth/tenancy hardening, redaction contracts, admin docs, and `mix verify.admin`
 
 ### Out of Scope
 
-- Broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
+- Broad channel matrix, generic CRUD admin, full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
 
 ## Latest Shipped Milestone: v1.10 Ecosystem Completions
 
@@ -38,7 +37,19 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 - Golden-path integration guides and doc-contract tests (DOCS-10/11)
 - Named verify entrypoints in CI and MAINTAINING pre-ship checklist (GATE-07)
 
+## Current Milestone: v1.11 Operator Console Polish & Hardening
+
+**Goal:** Make Chimeway's embedded admin surface a coherent, branded, accessible, safe operator console for explainable notification debugging and recovery.
+
+**Target features:**
+- Command-center IA and route/documentation truth alignment for the multi-page admin console.
+- Scoped Chimeway admin design system with high-quality light/dark/system themes, responsive layouts, accessible focus/contrast, and restrained motion.
+- Recovery, auth, tenancy, and redaction contracts for action-bearing operator workflows.
+- Canonical admin integration guide, doc contracts, `mix verify.admin`, CI parity, and browser smoke.
+
 ## Current State
+
+**v1.11 Operator Console Polish & Hardening active (2026-06-04):** The next milestone reconciles the already-emerging `chimeway_admin` command center into planning, then hardens it as a production operator surface. It includes SEED-004 persona/JTBD and SEED-002 adoption-surface context. Scope is deliberately not a generic CRUD admin or SaaS control plane; it is an embedded, host-authenticated LiveView console for explaining notification outcomes and taking safe recovery actions.
 
 **v1.10 Ecosystem Completions shipped (2026-06-04):** Threadline telemetry reporter + audit-ledger proof (ECOS-08), Sigra auth notification flows with redacted traces and clean-CI binding proof (ECOS-09), Sigra auth blueprint and demo host proofs (ECOS-10, DEMO-09/10), Threadline/Sigra integration guides with doc-contract truth locks (DOCS-10/11), and `mix verify.threadline` / `mix verify.sigra` gates in CI + MAINTAINING (GATE-07). Phase 67 closed the audit gap by repinning Sigra CI to `szTheory/sigra@62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`, adding vacuous-pass guards, fixing the Sigra guide API shape, and recording CI proof run `26925122158` / job `79433504716`.
 
@@ -58,12 +69,20 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.8 Ecosystem Integration Blueprints` — Mailglass-first adapter, inbound feedback bridge, reference recipe, demo proof, integration docs, and verify gate (shipped 2026-05-30).
 - `v1.9 Adopter Complete` — Accrue dunning blueprint, INBX inbox UI package, Hex release automation, verify.accrue/inbox gates (shipped 2026-05-30).
 - `v1.10 Ecosystem Completions` — Threadline telemetry bridge + Sigra auth flows (shipped 2026-06-04).
+- `v1.11 Operator Console Polish & Hardening` — embedded admin command center, design system, safety/privacy contracts, and admin verify gate (active).
 
 ## Next Milestone Goals
 
-**Next milestone not yet defined:** Run `$gsd-new-milestone` to choose the next requirements set. Candidate optional polish remains INT-02/03, INBX-03 real-time PubSub bell, and ADPT-01 greenfield CI.
+**v1.11 active:** Polish and harden the optional `chimeway_admin` operator console around support-operator, feature-developer, and SRE jobs-to-be-done.
 
-**Explicitly deferred:** broad channel matrix, Playwright admin smoke (INV-004), full TeamPulse SaaS shell.
+**Core goals:**
+- Make the command center the clear default path into health, trace investigation, feed debug, definitions, and recovery.
+- Formalize a Chimeway admin design system with accessible dark/light/system theming.
+- Prove recovery actions are re-authorized, tenant-scoped, stale-safe, confirmed, and durable.
+- Lock redaction at DTO and rendered-HTML boundaries.
+- Ship admin docs, doc-contract tests, `mix verify.admin`, CI parity, and browser smoke.
+
+**Explicitly deferred:** broad channel matrix, full TeamPulse SaaS shell, generic CRUD admin, template editing, provider configuration UI, visual workflow editor, arbitrary bulk recovery, cross-app SaaS console, cohort analytics.
 
 ### Shipped v1.10 Features (Validated)
 
@@ -163,6 +182,7 @@ Prior context includes:
 - Adopter assessment (2026-05-29): ~88–92% done post-v1.6 — adoption evidence (TeamPulse demo, seeds, `mix demo.up`, `mix verify.journeys`, host-mount admin E2E) resolved the pre-adopter confidence gap.
 - v1.9 Adopter Complete shipped 2026-05-30 — Accrue dunning + INBX inbox UI + Hex release automation; all three SEED-004 personas now have adoptable paths.
 - Adopter assessment post-v1.9: ~98% for embedded-notification scope — Accrue composition and end-user inbox UI proven; Threadline/Sigra completed that ecosystem wedge in v1.10.
+- v1.11 Operator Console Polish & Hardening applies SEED-004 and SEED-002 to the operator surface now that `chimeway_admin` has grown beyond trace MVP into command center, feed, definitions, health, and recovery pages.
 
 ## Constraints
 
@@ -172,6 +192,7 @@ Prior context includes:
 - **Composability**: Channel/provider integrations must use replaceable adapter behaviours — avoid hard vendor lock-in.
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
+- **Admin UI**: `chimeway_admin` remains an optional, host-mounted LiveView package; core stays Phoenix-free and owns redacted read models/recovery APIs.
 - **Scope**: Orchestration and explainability remain higher leverage than broad channel expansion.
 - **Scope**: v1.9 shipped Accrue dunning + INBX inbox UI + Hex automation; v1.10 shipped the Threadline/Sigra remainder.
 - **Compatibility**: Version baseline should track active Phoenix/Elixir LTS norms in sibling repositories.
@@ -229,6 +250,9 @@ Prior context includes:
 | Accrue runtime: false + manual TestRepo bootstrap | Avoid OTP app boot blocking default mix test (Mailglass 54-01 precedent) | Shipped v1.9 Phase 58 |
 | Release Please + ci-gate before Hex publish | lattice_stripe pattern; no manual mix hex.publish | Shipped v1.9 Phase 60.1 |
 | MAINTAINING pre-ship octet (8 verify gates) | Accrue + inbox gates complete the adopter verify surface | Shipped v1.9 Phase 62 |
+| v1.11 admin milestone pairs UI polish with safety contracts | Recovery is action-bearing, so visual polish must ship with auth, tenancy, redaction, docs, and verification | Active v1.11 |
+| Keep `chimeway_admin` as optional LiveView package | Matches LiveDashboard/Oban Web ergonomics and keeps core Phoenix-free | Active v1.11 |
+| Admin UI is process explainability, not table CRUD | Operators need to answer what happened and why, not edit raw lifecycle rows | Active v1.11 |
 
 ## Archived Milestone Context
 
@@ -427,4 +451,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-04 after v1.10 milestone completion*
+*Last updated: 2026-06-04 after v1.11 milestone initialization*
