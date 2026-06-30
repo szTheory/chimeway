@@ -3,6 +3,22 @@ defmodule Chimeway.MigrationContractTest do
 
   alias Chimeway.Repo
 
+  test "public migration assertions are explicitly labeled" do
+    labeled_tests =
+      __MODULE__.__info__(:functions)
+      |> Keyword.keys()
+      |> Enum.map(&Atom.to_string/1)
+      |> Enum.filter(&String.starts_with?(&1, "test "))
+      |> Enum.reject(&String.contains?(&1, "public migration assertions are explicitly labeled"))
+      |> Enum.filter(fn name ->
+        String.contains?(name, "legacy") or
+          String.contains?(name, "public-schema compatibility")
+      end)
+
+    assert length(labeled_tests) >= 2,
+           "current public-schema checks must be named as legacy compatibility proof"
+  end
+
   test "events and notifications tables exist with required named indexes" do
     assert regclass("chimeway_events")
     assert regclass("chimeway_notifications")
