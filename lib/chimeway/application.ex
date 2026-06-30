@@ -8,6 +8,7 @@ defmodule Chimeway.Application do
   @impl true
   def start(_type, _args) do
     validate_channel_render_modules!()
+    Chimeway.Storage.validate_prefix!()
 
     children =
       [
