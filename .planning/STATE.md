@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
-status: Ready to discuss/plan
-stopped_at: Phase 73 context gathered (advisor research)
-last_updated: "2026-06-30T16:43:47.037Z"
-last_activity: 2026-06-30 — Milestone v1.13 initialized
+status: executing
+stopped_at: Completed 73-01-PLAN.md
+last_updated: "2026-06-30T18:45:18.136Z"
+last_activity: 2026-06-30
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 73 — Storage Prefix Contract
+**Current focus:** Phase 73 — storage-prefix-contract
 
 ## Current Position
 
-Phase: 73 — Storage Prefix Contract
-Plan: —
-Status: Ready to discuss/plan
-Last activity: 2026-06-30 — Milestone v1.13 initialized
+Phase: 73 (storage-prefix-contract) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-30
 
 ## Accumulated Context
 
@@ -105,6 +105,9 @@ Last activity: 2026-06-30 — Milestone v1.13 initialized
 - [v1.13]: Existing public-schema installs remain supported through explicit legacy mode and no silent migration.
 - [v1.13]: Copied host migrations should generate explicit prefixes instead of requiring `mix ecto.migrate --prefix`.
 - [v1.13]: Dynamic per-tenant database prefixes are out of scope for this storage-isolation milestone.
+- [Phase 73-01]: Missing storage prefix config is invalid and represented as rejected value :missing — Runtime missing config must not silently default to either public or chimeway schema mode.
+- [Phase 73-01]: Runtime storage prefix config accepts only "chimeway" and false — Dynamic prefixes and the string "public" are rejected to keep public-schema compatibility explicit via prefix: false.
+- [Phase 73-01]: repo_opts/1 uses Keyword.put_new/3 to preserve explicit caller prefix probes — The helper centralizes static storage config without creating a public per-tenant database prefix API.
 
 ### Pending Todos
 
@@ -164,13 +167,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-06-30T16:43:47.025Z
-Stopped at: Phase 73 context gathered (advisor research)
-Resume file: .planning/phases/73-storage-prefix-contract/73-CONTEXT.md
+Last session: 2026-06-30T18:44:56.132Z
+Stopped at: Completed 73-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Execute Phase 73 Plan 02.
 
 ## Performance Metrics
 
@@ -203,3 +206,4 @@ Resume file: .planning/phases/73-storage-prefix-contract/73-CONTEXT.md
 | Phase 68 P01 | 5 min | 2 tasks | 2 files |
 | Phase 68 P02 | 4 min | 3 tasks | 5 files |
 | Phase 70 P03 | 2 min | 2 tasks | 6 files |
+| Phase 73 P01 | 5 min | 2 tasks | 4 files |

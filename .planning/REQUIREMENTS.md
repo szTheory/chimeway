@@ -7,10 +7,10 @@
 
 ### Storage Prefix Contract
 
-- [ ] **PFX-01**: Host apps can configure Chimeway storage with `prefix: "chimeway"` for default new installs or `prefix: false` for explicit public-schema legacy mode.
-- [ ] **PFX-02**: Chimeway validates prefix config early and fails with actionable errors for unsupported prefix values.
-- [ ] **PFX-03**: Chimeway exposes one internal repo-option helper or equivalent contract so runtime code does not hand-roll prefix logic.
-- [ ] **PFX-04**: Existing public-schema installs remain supported without silent migration or changed runtime behavior when configured for legacy mode.
+- [x] **PFX-01**: Host apps can configure Chimeway storage with `prefix: "chimeway"` for default new installs or `prefix: false` for explicit public-schema legacy mode.
+- [x] **PFX-02**: Chimeway validates prefix config early and fails with actionable errors for unsupported prefix values.
+- [x] **PFX-03**: Chimeway exposes one internal repo-option helper or equivalent contract so runtime code does not hand-roll prefix logic.
+- [x] **PFX-04**: Existing public-schema installs remain supported without silent migration or changed runtime behavior when configured for legacy mode.
 
 ### Migration Generation
 
@@ -66,10 +66,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PFX-01 | Phase 73 | Pending |
-| PFX-02 | Phase 73 | Pending |
-| PFX-03 | Phase 73 | Pending |
-| PFX-04 | Phase 73 | Pending |
+| PFX-01 | Phase 73 | Complete |
+| PFX-02 | Phase 73 | Complete |
+| PFX-03 | Phase 73 | Complete |
+| PFX-04 | Phase 73 | Complete |
 | MIG-01 | Phase 74 | Pending |
 | MIG-02 | Phase 74 | Pending |
 | MIG-03 | Phase 74 | Pending |
