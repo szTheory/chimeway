@@ -71,6 +71,62 @@ defmodule Chimeway.Install.MigrationsTest do
     refute result =~ "Chimeway.Repo.Migrations"
   end
 
+  describe "render_template/3" do
+    test "rewrites namespace and renders chimeway prefix sentinel" do
+      content = """
+      defmodule Chimeway.Repo.Migrations.CreateChimewayEvents do
+        use Ecto.Migration
+
+        @chimeway_prefix __CHIMEWAY_PREFIX__
+      end
+      """
+
+      result =
+        Migrations.render_template(
+          content,
+          "InstallerHost.Repo.Migrations",
+          :chimeway
+        )
+
+      assert result =~ "InstallerHost.Repo.Migrations.CreateChimewayEvents"
+      assert result =~ ~s(@chimeway_prefix "chimeway")
+      refute result =~ "__CHIMEWAY_PREFIX__"
+      refute result =~ "Chimeway.Repo.Migrations"
+    end
+
+    test "renders public prefix sentinel without runtime prefix config influence" do
+      previous = Application.fetch_env(:chimeway, :prefix)
+
+      on_exit(fn ->
+        case previous do
+          {:ok, value} -> Application.put_env(:chimeway, :prefix, value)
+          :error -> Application.delete_env(:chimeway, :prefix)
+        end
+      end)
+
+      Application.put_env(:chimeway, :prefix, "chimeway")
+
+      content = """
+      defmodule Chimeway.Repo.Migrations.CreateChimewayEvents do
+        use Ecto.Migration
+
+        @chimeway_prefix __CHIMEWAY_PREFIX__
+      end
+      """
+
+      result =
+        Migrations.render_template(
+          content,
+          "InstallerHost.Repo.Migrations",
+          :public
+        )
+
+      assert result =~ "@chimeway_prefix false"
+      refute result =~ ~s(@chimeway_prefix "chimeway")
+      refute result =~ "__CHIMEWAY_PREFIX__"
+    end
+  end
+
   test "host_migrations_prefix/1 derives host migrations module string" do
     assert Migrations.host_migrations_prefix(InstallerHost.Repo) ==
              "InstallerHost.Repo.Migrations"
@@ -285,27 +341,39 @@ defmodule Chimeway.Install.MigrationsTest do
   end
 
   describe "mix chimeway.gen.migrations subprocess" do
-    test "CLI generates 31 migrations via app.config path" do
+    test "accepted generation prefix modes exit successfully via app.config path" do
       tmp = scaffold_tmp_host!(include_config: true)
 
-      assert {_output, 0} =
-               System.cmd("mix", ["deps.get"],
-                 cd: tmp,
-                 stderr_to_stdout: true,
-                 env: [{"MIX_ENV", "dev"}]
-               )
+      install_deps!(tmp)
 
-      assert {_output, exit} =
-               System.cmd("mix", ["chimeway.gen.migrations"],
-                 cd: tmp,
-                 stderr_to_stdout: true,
-                 env: [{"MIX_ENV", "dev"}]
-               )
-
-      assert exit == 0
+      for args <- [
+            ["chimeway.gen.migrations"],
+            ["chimeway.gen.migrations", "--prefix", "chimeway"],
+            ["chimeway.gen.migrations", "--prefix", "public"]
+          ] do
+        assert {_output, 0} = run_mix(tmp, args)
+      end
 
       migrations_dir = Path.join(tmp, "priv/repo/migrations")
       assert length(File.ls!(migrations_dir)) == 31
+    end
+
+    test "invalid generation prefix inputs fail with actionable accepted flags" do
+      tmp = scaffold_tmp_host!(include_config: true)
+
+      install_deps!(tmp)
+
+      for args <- [
+            ["chimeway.gen.migrations", "--prefix", "tenant_a"],
+            ["chimeway.gen.migrations", "--tenant", "tenant_a"],
+            ["chimeway.gen.migrations", "tenant_a"]
+          ] do
+        {output, exit} = run_mix(tmp, args)
+
+        assert exit != 0
+        assert output =~ "mix chimeway.gen.migrations --prefix chimeway"
+        assert output =~ "mix chimeway.gen.migrations --prefix public"
+      end
     end
   end
 
@@ -361,6 +429,23 @@ defmodule Chimeway.Install.MigrationsTest do
     on_exit(fn -> File.rm_rf!(tmp) end)
 
     tmp
+  end
+
+  defp install_deps!(tmp) do
+    assert {_output, 0} =
+             System.cmd("mix", ["deps.get"],
+               cd: tmp,
+               stderr_to_stdout: true,
+               env: [{"MIX_ENV", "dev"}]
+             )
+  end
+
+  defp run_mix(tmp, args) do
+    System.cmd("mix", args,
+      cd: tmp,
+      stderr_to_stdout: true,
+      env: [{"MIX_ENV", "dev"}]
+    )
   end
 
   defp restore_repo_env do
