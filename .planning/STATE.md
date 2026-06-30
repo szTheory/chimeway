@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
 status: executing
-stopped_at: Completed 73-01-PLAN.md
-last_updated: "2026-06-30T18:54:58.277Z"
+stopped_at: Completed 73-03-PLAN.md; 73-02 remains incomplete
+last_updated: "2026-06-30T18:55:32Z"
 last_activity: 2026-06-30
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
   completed_plans: 2
-  percent: 0
+  percent: 67
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 
 Phase: 73 (storage-prefix-contract) — EXECUTING
 Plan: 2 of 3
-Status: Ready to execute
+Status: Ready to execute 73-02; 73-03 complete
 Last activity: 2026-06-30
 
 ## Accumulated Context
@@ -108,6 +108,8 @@ Last activity: 2026-06-30
 - [Phase 73-01]: Missing storage prefix config is invalid and represented as rejected value :missing — Runtime missing config must not silently default to either public or chimeway schema mode.
 - [Phase 73-01]: Runtime storage prefix config accepts only "chimeway" and false — Dynamic prefixes and the string "public" are rejected to keep public-schema compatibility explicit via prefix: false.
 - [Phase 73-01]: repo_opts/1 uses Keyword.put_new/3 to preserve explicit caller prefix probes — The helper centralizes static storage config without creating a public per-tenant database prefix API.
+- [Phase 73-03]: Public docs show `prefix: "chimeway"` for new isolated Chimeway schema installs and `prefix: false` only for existing public-schema legacy installs.
+- [Phase 73-03]: `prefix: false` keeps existing public/unprefixed Chimeway tables and does not move data; current public migration contract remains legacy compatibility proof.
 
 ### Pending Todos
 
@@ -167,8 +169,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-06-30T18:54:58.273Z
-Stopped at: Completed 73-01-PLAN.md
+Last session: 2026-06-30T18:55:32Z
+Stopped at: Completed 73-03-PLAN.md; 73-02 remains incomplete
 Resume file: None
 
 ## Operator Next Steps
@@ -207,3 +209,4 @@ Resume file: None
 | Phase 68 P02 | 4 min | 3 tasks | 5 files |
 | Phase 70 P03 | 2 min | 2 tasks | 6 files |
 | Phase 73 P01 | 5 min | 2 tasks | 4 files |
+| Phase 73 P03 | 6 min | 2 tasks | 5 files |
