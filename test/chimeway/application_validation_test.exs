@@ -13,6 +13,52 @@ defmodule Chimeway.ApplicationValidationTest do
 
   use ExUnit.Case, async: false
 
+  describe "start/2 storage prefix validation" do
+    test "raises ConfigError for unsupported storage prefix values" do
+      original_prefix = Application.fetch_env(:chimeway, :prefix)
+      original_channels = Application.fetch_env(:chimeway, :channel_render_modules)
+
+      Application.put_env(:chimeway, :prefix, "public")
+      Application.put_env(:chimeway, :channel_render_modules, %{})
+
+      on_exit(fn ->
+        restore_env(:prefix, original_prefix)
+        restore_env(:channel_render_modules, original_channels)
+      end)
+
+      error =
+        assert_raise Chimeway.ConfigError, fn ->
+          Chimeway.Application.start(:normal, [])
+        end
+
+      assert error.type == :invalid_prefix
+      assert error.key == :prefix
+      assert error.value == "public"
+    end
+
+    test "raises ConfigError when storage prefix config is missing" do
+      original_prefix = Application.fetch_env(:chimeway, :prefix)
+      original_channels = Application.fetch_env(:chimeway, :channel_render_modules)
+
+      Application.delete_env(:chimeway, :prefix)
+      Application.put_env(:chimeway, :channel_render_modules, %{})
+
+      on_exit(fn ->
+        restore_env(:prefix, original_prefix)
+        restore_env(:channel_render_modules, original_channels)
+      end)
+
+      error =
+        assert_raise Chimeway.ConfigError, fn ->
+          Chimeway.Application.start(:normal, [])
+        end
+
+      assert error.type == :invalid_prefix
+      assert error.key == :prefix
+      assert error.value == :missing
+    end
+  end
+
   describe "validate_channel_render_modules!/0" do
     test "raises ArgumentError for non-existent module (D-13)" do
       original = Application.get_env(:chimeway, :channel_render_modules)
@@ -94,5 +140,13 @@ defmodule Chimeway.ApplicationValidationTest do
         :erlang.apply(Chimeway.Application, :validate_channel_render_modules!, [])
       end
     end
+  end
+
+  defp restore_env(key, {:ok, value}) do
+    Application.put_env(:chimeway, key, value)
+  end
+
+  defp restore_env(key, :error) do
+    Application.delete_env(:chimeway, key)
   end
 end
