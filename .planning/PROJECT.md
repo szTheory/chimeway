@@ -54,6 +54,8 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ## Current State
 
+**v1.13 Phase 73 Storage Prefix Contract complete (2026-06-30):** Chimeway now has a validated static storage-prefix contract before migration/runtime changes: runtime config accepts `prefix: "chimeway"` or explicit public legacy mode with `prefix: false`, invalid or missing values fail early with structured `Chimeway.ConfigError`, `Chimeway.Storage.repo_opts/1` centralizes repo prefix options, and README/installation/golden-path docs state that public legacy mode does not move data automatically. Phase 74 is next for prefixed migration generation.
+
 **v1.13 Storage Isolation and Upgrade Path active (2026-06-30):** The current milestone focuses on database host-respect and upgrade safety. New installs should use a dedicated `chimeway` Postgres schema by default; existing public-schema installs must remain supported through explicit legacy mode and must not be silently migrated. Scope is static per-install prefix support, not dynamic per-tenant database prefixes.
 
 **v1.11 Operator Console Polish & Hardening shipped (2026-06-04):** The optional `chimeway_admin` surface is now a coherent host-mounted operator console with seven-page route truth, scoped design tokens and themes, recovery/auth/tenancy hardening, redacted DTO/rendered-HTML contracts, a canonical integration guide, browser smoke, `mix verify.admin`, CI parity, and a passed milestone audit.
@@ -480,4 +482,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-30 after v1.13 milestone initialization*
+*Last updated: 2026-06-30 after Phase 73 storage prefix contract verification*
