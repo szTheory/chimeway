@@ -28,7 +28,7 @@
 
 ### Upgrade and Compatibility
 
-- [ ] **UPG-01**: Existing public-schema installs have an explicit compatibility path that does not move data automatically.
+- [x] **UPG-01**: Existing public-schema installs have an explicit compatibility path that does not move data automatically.
 - [ ] **UPG-02**: Documentation includes an optional manual move guide for teams that choose to move `public.chimeway_*` tables into the `chimeway` schema.
 - [ ] **UPG-03**: Rollback and failure-mode guidance is documented clearly enough that operators know when the library can help and when the move is a manual database operation.
 
@@ -78,7 +78,7 @@
 | RUN-02 | Phase 75 | Pending |
 | RUN-03 | Phase 75 | Pending |
 | RUN-04 | Phase 75 | Pending |
-| UPG-01 | Phase 73 | Pending |
+| UPG-01 | Phase 73 | Complete |
 | UPG-02 | Phase 76 | Pending |
 | UPG-03 | Phase 76 | Pending |
 | DOCS-01 | Phase 76 | Pending |
