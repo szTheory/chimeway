@@ -59,6 +59,21 @@ config :chimeway, Chimeway.Repo,
 
 At runtime, Chimeway queries through `Chimeway.Repo`. Configure it to use the **same database** where your host migrations created the `chimeway_*` tables — not a separate database unless you intentionally run Chimeway on its own Postgres instance.
 
+Also choose the runtime storage prefix explicitly. New installs should use the new isolated Chimeway schema:
+
+```elixir
+config :chimeway, prefix: "chimeway"
+```
+
+Use `prefix: false` only for an existing public-schema legacy install whose
+Chimeway tables already live in public:
+
+```elixir
+config :chimeway, prefix: false
+```
+
+That legacy mode keeps using the existing unprefixed tables and does not move data.
+
 For supervisor setup, add `{Chimeway.Application, []}` to your application children per [Installation §4](installation.md#4-add-to-supervision-tree). See [Installation §3–§4](installation.md#3-configuration) for the full `application.ex` pattern.
 
 ## 4. Define a minimal :in_app notifier

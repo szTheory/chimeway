@@ -49,6 +49,21 @@ config :chimeway,
 
 Replace `MyApp.Repo` with the actual name of your application's Repo module.
 
+Choose the runtime storage prefix explicitly. New installs should use the new isolated Chimeway schema:
+
+```elixir
+config :chimeway, prefix: "chimeway"
+```
+
+Use `prefix: false` only for an existing public-schema legacy install whose
+Chimeway tables already live in public:
+
+```elixir
+config :chimeway, prefix: false
+```
+
+That legacy mode keeps using the existing unprefixed tables and does not move data.
+
 At runtime, Chimeway queries through `Chimeway.Repo`. Configure it to use the same database where your host migrations created the `chimeway_*` tables — see [Golden Path §3](golden-path.md#3-configure-chimeway) for the full shared-database setup.
 
 ## 4. Add to Supervision Tree
