@@ -2,8 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
-status: planning
-last_updated: "2026-06-30T15:51:22.801Z"
+status: Ready to discuss/plan
+stopped_at: Phase 73 context gathered (advisor research)
+last_updated: "2026-06-30T16:43:47.037Z"
 last_activity: 2026-06-30 — Milestone v1.13 initialized
 progress:
   total_phases: 4
@@ -163,9 +164,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-06-04T21:03:54.233Z
-Stopped at: Phase 72 UI-SPEC approved
-Resume file: .planning/phases/72-admin-docs-and-verification-gate/72-UI-SPEC.md
+Last session: 2026-06-30T16:43:47.025Z
+Stopped at: Phase 73 context gathered (advisor research)
+Resume file: .planning/phases/73-storage-prefix-contract/73-CONTEXT.md
 
 ## Operator Next Steps
 
