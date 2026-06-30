@@ -520,9 +520,9 @@ This copy is recommended by phase context and should be locked with doc-contract
 
 All claims in this research were verified from local files, command output, phase context, or official documentation. No `[ASSUMED]` claims are used.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **None blocking.**
+1. **RESOLVED: None blocking; exact helper names are implementation-local.**
    - What we know: Phase context locks the public API shape, helper boundary, error shape, phase deferrals, and tests to add. [VERIFIED: .planning/phases/73-storage-prefix-contract/73-CONTEXT.md]
    - What's unclear: Exact function names beyond `Chimeway.Storage.repo_opts/1` are implementation-local. [VERIFIED: .planning/phases/73-storage-prefix-contract/73-CONTEXT.md]
    - Recommendation: Keep names boring and follow the context unless a compile conflict appears. [VERIFIED: .planning/phases/73-storage-prefix-contract/73-CONTEXT.md]
