@@ -372,7 +372,10 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
-  @mailglass_blueprint_recipe Path.expand("../../guides/recipes/mailglass-integration-blueprint.md", __DIR__)
+  @mailglass_blueprint_recipe Path.expand(
+                                "../../guides/recipes/mailglass-integration-blueprint.md",
+                                __DIR__
+                              )
 
   describe "mailglass blueprint recipe doc contract (ECOS-05)" do
     setup do
@@ -424,7 +427,10 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
-  @accrue_blueprint_recipe Path.expand("../../guides/recipes/accrue-dunning-blueprint.md", __DIR__)
+  @accrue_blueprint_recipe Path.expand(
+                             "../../guides/recipes/accrue-dunning-blueprint.md",
+                             __DIR__
+                           )
 
   describe "accrue dunning blueprint recipe doc contract (ECOS-07)" do
     setup do
@@ -555,7 +561,10 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
-  @mailglass_integration_guide Path.expand("../../guides/introduction/mailglass-integration.md", __DIR__)
+  @mailglass_integration_guide Path.expand(
+                                 "../../guides/introduction/mailglass-integration.md",
+                                 __DIR__
+                               )
 
   describe "mailglass integration guide doc contract (DOCS-06 / DOCS-07)" do
     setup do
@@ -577,7 +586,9 @@ defmodule Chimeway.DocContractTest do
              "mailglass integration guide must not reference fictional Chimeway.Workflow"
     end
 
-    test "requires Mailglass adapter for email channel (not Logger-only path)", %{content: content} do
+    test "requires Mailglass adapter for email channel (not Logger-only path)", %{
+      content: content
+    } do
       assert String.contains?(content, "Chimeway.Adapters.Mailglass"),
              "mailglass integration guide must document Chimeway.Adapters.Mailglass for email delivery"
     end
@@ -591,7 +602,9 @@ defmodule Chimeway.DocContractTest do
     ]
 
     for forbidden <- @mailglass_webhook_forbidden do
-      test "forbids #{forbidden} in mailglass integration guide webhook example", %{content: content} do
+      test "forbids #{forbidden} in mailglass integration guide webhook example", %{
+        content: content
+      } do
         refute String.contains?(content, unquote(forbidden)),
                "mailglass integration guide must not reference #{unquote(forbidden)} in webhook example"
       end
@@ -629,7 +642,10 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
-  @accrue_integration_guide Path.expand("../../guides/introduction/accrue-dunning-integration.md", __DIR__)
+  @accrue_integration_guide Path.expand(
+                              "../../guides/introduction/accrue-dunning-integration.md",
+                              __DIR__
+                            )
 
   describe "accrue dunning integration guide doc contract (DOCS-08 / DOCS-09)" do
     setup do
@@ -684,6 +700,7 @@ defmodule Chimeway.DocContractTest do
       content: content
     } do
       assert String.contains?(content, "billing")
+
       assert String.contains?(content, "state") or String.contains?(content, "Accrue"),
              "accrue dunning integration guide must document billing-state responsibility split"
     end
@@ -693,6 +710,7 @@ defmodule Chimeway.DocContractTest do
     } do
       assert String.contains?(content, "chimeway") or String.contains?(content, "Chimeway"),
              "accrue dunning integration guide must document Chimeway dependency"
+
       assert String.contains?(content, "accrue") or String.contains?(content, "Accrue"),
              "accrue dunning integration guide must document Accrue dependency"
     end
@@ -809,13 +827,18 @@ defmodule Chimeway.DocContractTest do
           :nomatch -> flunk("inbox integration guide must include verification section")
         end
 
-      verification_tail = binary_part(content, verification_index, byte_size(content) - verification_index)
+      verification_tail =
+        binary_part(content, verification_index, byte_size(content) - verification_index)
+
       assert String.contains?(verification_tail, "mix verify.inbox")
       assert String.contains?(verification_tail, "seed_inbox")
     end
   end
 
-  @threadline_integration_guide Path.expand("../../guides/introduction/threadline-integration.md", __DIR__)
+  @threadline_integration_guide Path.expand(
+                                  "../../guides/introduction/threadline-integration.md",
+                                  __DIR__
+                                )
 
   describe "threadline integration guide doc contract (DOCS-10)" do
     setup do
@@ -877,7 +900,10 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
-  @sigra_integration_guide Path.expand("../../guides/introduction/sigra-auth-integration.md", __DIR__)
+  @sigra_integration_guide Path.expand(
+                             "../../guides/introduction/sigra-auth-integration.md",
+                             __DIR__
+                           )
 
   describe "sigra auth integration guide doc contract (DOCS-10)" do
     setup do
@@ -910,14 +936,21 @@ defmodule Chimeway.DocContractTest do
     @sigra_invalid_patterns ["Chimeway.trigger(\"", "params:"]
 
     for forbidden <- @sigra_invalid_patterns do
-      test "forbids invalid trigger shape #{forbidden} in sigra auth integration guide", %{content: content} do
+      test "forbids invalid trigger shape #{forbidden} in sigra auth integration guide", %{
+        content: content
+      } do
         refute String.contains?(content, unquote(forbidden)),
                "sigra auth integration guide must not reference invalid shape #{unquote(forbidden)}"
       end
     end
 
-    test "requires trigger example to pass a *Notifier module as first argument", %{content: content} do
-      assert Regex.match?(~r/Chimeway\.trigger\(\s*Sigra\.Integrations\.Chimeway\.\w*Notifier/, content),
+    test "requires trigger example to pass a *Notifier module as first argument", %{
+      content: content
+    } do
+      assert Regex.match?(
+               ~r/Chimeway\.trigger\(\s*Sigra\.Integrations\.Chimeway\.\w*Notifier/,
+               content
+             ),
              "sigra auth integration guide must pass a Notifier module as first argument to Chimeway.trigger"
     end
 
@@ -977,6 +1010,24 @@ defmodule Chimeway.DocContractTest do
   @adoption_forbidden_phrases_installation ["mix chimeway.install"]
   @adoption_forbidden_phrases_readme ["mix chimeway.install"]
 
+  @storage_prefix_required_strings [
+    "prefix: \"chimeway\"",
+    "prefix: false",
+    "new isolated Chimeway schema",
+    "existing public-schema legacy install",
+    "unprefixed tables",
+    "does not move data"
+  ]
+
+  @storage_prefix_forbidden_phrases [
+    "--prefix",
+    "automatic data move",
+    "automatically move",
+    "automatic public-to-chimeway",
+    "Oban prefix",
+    "oban prefix"
+  ]
+
   @golden_path_guide "guides/introduction/golden-path.md"
 
   describe "golden path doc contract (DOCS-01 / GATE-01)" do
@@ -994,6 +1045,15 @@ defmodule Chimeway.DocContractTest do
 
     for phrase <- @adoption_forbidden_phrases_golden_path do
       test "forbids #{phrase} in golden path guide", %{content: content} do
+        refute String.contains?(content, unquote(phrase)),
+               "golden path guide must not reference #{unquote(phrase)}"
+      end
+    end
+
+    for phrase <- @storage_prefix_forbidden_phrases do
+      test "forbids storage prefix drift phrase #{phrase} in golden path guide", %{
+        content: content
+      } do
         refute String.contains?(content, unquote(phrase)),
                "golden path guide must not reference #{unquote(phrase)}"
       end
@@ -1024,6 +1084,15 @@ defmodule Chimeway.DocContractTest do
 
     for required <- @required do
       test "requires #{required} in golden path guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "golden path guide must reference #{unquote(required)}"
+      end
+    end
+
+    for required <- @storage_prefix_required_strings do
+      test "requires storage prefix phrase #{required} in golden path guide", %{
+        content: content
+      } do
         assert String.contains?(content, unquote(required)),
                "golden path guide must reference #{unquote(required)}"
       end
@@ -1068,6 +1137,15 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
+    for phrase <- @storage_prefix_forbidden_phrases do
+      test "forbids storage prefix drift phrase #{phrase} in installation guide", %{
+        content: content
+      } do
+        refute String.contains?(content, unquote(phrase)),
+               "installation guide must not reference #{unquote(phrase)}"
+      end
+    end
+
     test "forbids identity: in installation guide", %{content: content} do
       refute String.contains?(content, "identity:"),
              "installation guide must not reference identity:"
@@ -1092,6 +1170,15 @@ defmodule Chimeway.DocContractTest do
                "installation guide must reference #{unquote(required)}"
       end
     end
+
+    for required <- @storage_prefix_required_strings do
+      test "requires storage prefix phrase #{required} in installation guide", %{
+        content: content
+      } do
+        assert String.contains?(content, unquote(required)),
+               "installation guide must reference #{unquote(required)}"
+      end
+    end
   end
 
   describe "README install doc contract (GATE-01)" do
@@ -1109,6 +1196,13 @@ defmodule Chimeway.DocContractTest do
 
     for phrase <- @adoption_forbidden_phrases_readme do
       test "forbids #{phrase} in README", %{content: content} do
+        refute String.contains?(content, unquote(phrase)),
+               "README must not reference #{unquote(phrase)}"
+      end
+    end
+
+    for phrase <- @storage_prefix_forbidden_phrases do
+      test "forbids storage prefix drift phrase #{phrase} in README", %{content: content} do
         refute String.contains?(content, unquote(phrase)),
                "README must not reference #{unquote(phrase)}"
       end
@@ -1137,6 +1231,13 @@ defmodule Chimeway.DocContractTest do
 
     for required <- @required do
       test "requires #{required} in README", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "README must reference #{unquote(required)}"
+      end
+    end
+
+    for required <- @storage_prefix_required_strings do
+      test "requires storage prefix phrase #{required} in README", %{content: content} do
         assert String.contains?(content, unquote(required)),
                "README must reference #{unquote(required)}"
       end
