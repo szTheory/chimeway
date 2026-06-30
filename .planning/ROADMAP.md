@@ -50,12 +50,12 @@
 
 **Depends on:** Phase 73
 
-**Plans:** 10 plans
+**Plans:** 1/10 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 74-01-PLAN.md — CLI/core generation-mode contract
+- [x] 74-01-PLAN.md — CLI/core generation-mode contract
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
