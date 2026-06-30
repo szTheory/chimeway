@@ -49,6 +49,20 @@
 
 **Depends on:** Phase 73
 
+**Plans:** 10 plans
+
+Plans:
+- [ ] 74-01-PLAN.md — CLI/core generation-mode contract
+- [ ] 74-02-PLAN.md — templates 001-005 helper conversion
+- [ ] 74-03-PLAN.md — templates 006-010 helper/raw SQL conversion
+- [ ] 74-04-PLAN.md — templates 011-015 helper conversion
+- [ ] 74-05-PLAN.md — templates 016-020 helper conversion
+- [ ] 74-06-PLAN.md — templates 021-025 helper conversion
+- [ ] 74-07-PLAN.md — templates 026-030 helper/raw SQL conversion
+- [ ] 74-08-PLAN.md — template 031 helper conversion
+- [ ] 74-09-PLAN.md — dual fixture and idempotency proof
+- [ ] 74-10-PLAN.md — static, DB, verify, and CI parity proof
+
 **Success Criteria:**
 1. `mix chimeway.gen.migrations` emits default migrations that create/use the `chimeway` schema.
 2. Tables, indexes, references, alters, drops, and raw SQL in generated migrations are explicitly qualified for the selected prefix.

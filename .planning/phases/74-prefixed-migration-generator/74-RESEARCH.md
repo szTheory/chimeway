@@ -462,7 +462,7 @@ The helper should not accept arbitrary user input; Phase 74 only supports the fi
 | Migration prefixing | Broad string rewrite over generated files | Ecto `table/index/references` `:prefix` options via local helpers | Ecto's migration DSL already supports PostgreSQL schema prefixes; string rewrites can miss SQL, comments, atoms, or names. [CITED: https://hexdocs.pm/ecto_sql/3.13.5/Ecto.Migration.html] |
 | Raw SQL parsing | General SQL parser or unbounded identifier quoting | Whitelisted relation helper for known Chimeway table names | The current raw SQL surface is limited to three templates and fixed Chimeway relations. [VERIFIED: `rg -n "execute\\(" priv/chimeway_migrations`] |
 | Public compatibility | Runtime `"public"` prefix mode | Generator `--prefix public` emits bare operations; runtime remains `prefix: false` | Phase 73 and Phase 74 separate generator compatibility sugar from runtime config. [VERIFIED: .planning/phases/73-storage-prefix-contract/73-CONTEXT.md] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md] |
-| Schema rollback | `DROP SCHEMA ... CASCADE` | No schema drop or `DROP SCHEMA IF EXISTS chimeway RESTRICT` only after DB proof | `RESTRICT` refuses to drop non-empty schemas; `CASCADE` may remove dependent objects. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html] |
+| Schema rollback | `DROP SCHEMA ... CASCADE` | Omit generated schema-drop SQL and verify rollback of Chimeway-owned objects in the DB contract | `CASCADE` may remove dependent objects, and Phase 74 does not need generated schema cleanup to prove table/index/reference rollback. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-10-PLAN.md] |
 
 **Key insight:** Ecto solves migration helper prefixing, but it cannot solve raw SQL qualification or generation-mode determinism; those must be authored into the copied templates and proved in generated output. [CITED: https://hexdocs.pm/ecto_sql/3.13.5/Ecto.Migration.html] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md]
 
@@ -512,7 +512,7 @@ Phase 74 is a migration-generation phase, but it must not move existing producti
 
 **What goes wrong:** A rollback removes a host-owned object placed in the `chimeway` schema. [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md]  
 **Why it happens:** `DROP SCHEMA ... CASCADE` removes objects contained in the schema and dependent objects. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html]  
-**How to avoid:** Prefer no schema drop, or only `DROP SCHEMA IF EXISTS chimeway RESTRICT` after DB proof and after all Chimeway-owned tables are down. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md]  
+**How to avoid:** Omit generated schema-drop SQL and prove rollback of Chimeway-owned objects in the DB contract. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-10-PLAN.md]
 **Warning signs:** Generated files contain `DROP SCHEMA` with `CASCADE`. [VERIFIED: D-12]
 
 ### Pitfall 6: Golden Fixtures Drift By Mode
@@ -611,17 +611,13 @@ end
 |---|-------|---------|---------------|
 | - | None | - | All material implementation claims are verified from project files, command output, or cited official docs. [VERIFIED: research sources listed below] |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should prefixed rollback drop the empty `chimeway` schema with `RESTRICT`, or leave schema cleanup manual?**
-   - What we know: Phase 74 forbids `CASCADE` and allows manual cleanup or `RESTRICT`-only if practical. [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md]
-   - What's unclear: Whether the first migration's `down` should run `DROP SCHEMA IF EXISTS chimeway RESTRICT` after all Chimeway tables are removed, or omit schema drop entirely. [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md]
-   - Recommendation: Prefer no `CASCADE`; if the planner includes schema drop, require a DB contract that proves `RESTRICT` behavior and no host-owned object removal. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html]
+1. **Rollback schema cleanup decision:** RESOLVED - generated Phase 74 migrations should not emit schema-drop SQL. D-12 remains satisfied by omitting `DROP SCHEMA` entirely in generated output; `DROP SCHEMA ... CASCADE` is forbidden, and `RESTRICT` cleanup is not part of the executable plan because no generated schema drop is needed to prove rollback of Chimeway-owned objects. The DB contract must verify rollback behavior for Chimeway-owned objects and static contracts must forbid destructive schema cleanup in generated output. [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-10-PLAN.md] [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html]
 
-2. **Should the prefixed DB contract live in the existing migration contract file or a new installer migration contract file?**
-   - What we know: Existing public assertions live in `test/chimeway/migration_contract_test.exs`, and installer golden/idempotency contracts live under `test/chimeway/install/`. [VERIFIED: test/chimeway/migration_contract_test.exs] [VERIFIED: test/chimeway/install/golden_diff_test.exs]
-   - What's unclear: The final file boundary for generated prefixed DB proof. [VERIFIED: current repo scan]
-   - Recommendation: Put generated-output static/golden/idempotency tests under `test/chimeway/install/`; keep DB object assertions in `test/chimeway/migration_contract_test.exs` or a new `test/chimeway/install/generated_migration_contract_test.exs` if setup isolation would otherwise muddy the legacy public tests. [VERIFIED: existing test layout]
+2. **DB proof file boundary:** RESOLVED - generated database migration proof lives in `test/chimeway/migration_contract_test.exs`. Static generated-output proof lives in `test/chimeway/install/prefix_contract_test.exs`; golden and idempotency contracts remain under `test/chimeway/install/`. Plan 74-10 extends `test/chimeway/migration_contract_test.exs` to run both generated fixture roots through normal `Ecto.Migrator` execution: default prefixed output must create and roll back objects under the `chimeway` schema without a migration-runner prefix flag, and generated `--prefix public` output must create and roll back unprefixed/public objects. [VERIFIED: test/chimeway/migration_contract_test.exs] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-10-PLAN.md]
+
+No unresolved research questions remain for Phase 74 planning. [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-01-PLAN.md] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-10-PLAN.md]
 
 ## Environment Availability
 
@@ -693,7 +689,7 @@ end
 |---------|--------|---------------------|
 | SQL injection through prefix or relation name | Tampering | Only accept fixed generator prefixes `chimeway` and `public`, and qualify raw SQL through known Chimeway relation helpers. [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md] |
 | Accidental writes to public schema in default mode | Tampering | Static generated-output scan plus DB contract that verifies objects under `chimeway` and not accidental reliance on `search_path`. [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md] |
-| Destructive rollback removes host-owned objects | Tampering / Denial of Service | Forbid `DROP SCHEMA ... CASCADE`; use no schema drop or `RESTRICT` with DB proof. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md] |
+| Destructive rollback removes host-owned objects | Tampering / Denial of Service | Forbid `DROP SCHEMA ... CASCADE`; omit generated schema-drop SQL and verify object rollback in DB proof. [CITED: https://www.postgresql.org/docs/15/sql-dropschema.html] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-10-PLAN.md] |
 | Sensitive payload exposure in generated/operator surfaces | Information Disclosure | Phase 74 should not add telemetry/operator surfaces; keep generated migration output structural and avoid payload inspection. [VERIFIED: AGENTS.md] [VERIFIED: .planning/phases/74-prefixed-migration-generator/74-CONTEXT.md] |
 
 ## Sources
