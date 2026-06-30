@@ -59,6 +59,38 @@ defmodule Chimeway.ApplicationValidationTest do
     end
   end
 
+  describe "storage prefix config acceptance" do
+    test "normal test config explicitly accepts public-schema mode" do
+      original_prefix = Application.fetch_env(:chimeway, :prefix)
+
+      on_exit(fn ->
+        restore_env(:prefix, original_prefix)
+      end)
+
+      assert Application.get_env(:chimeway, :prefix) == false
+      assert Chimeway.Storage.validate_prefix!() == false
+    end
+
+    test "deleting prefix config remains invalid for storage validation" do
+      original_prefix = Application.fetch_env(:chimeway, :prefix)
+
+      Application.delete_env(:chimeway, :prefix)
+
+      on_exit(fn ->
+        restore_env(:prefix, original_prefix)
+      end)
+
+      error =
+        assert_raise Chimeway.ConfigError, fn ->
+          Chimeway.Storage.validate_prefix!()
+        end
+
+      assert error.type == :invalid_prefix
+      assert error.key == :prefix
+      assert error.value == :missing
+    end
+  end
+
   describe "validate_channel_render_modules!/0" do
     test "raises ArgumentError for non-existent module (D-13)" do
       original = Application.get_env(:chimeway, :channel_render_modules)
