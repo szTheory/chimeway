@@ -35,6 +35,7 @@
 **Requirements:** PFX-01, PFX-02, PFX-03, PFX-04, UPG-01
 
 **Success Criteria:**
+
 1. Host apps can configure `config :chimeway, prefix: "chimeway"` for default schema-isolated installs and `prefix: false` for public-schema legacy mode.
 2. Invalid prefix config fails early with actionable errors.
 3. Core code has one internal repo-option/prefix helper or equivalent contract that later phases can use consistently.
@@ -52,7 +53,12 @@
 **Plans:** 10 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 74-01-PLAN.md — CLI/core generation-mode contract
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 74-02-PLAN.md — templates 001-005 helper conversion
 - [ ] 74-03-PLAN.md — templates 006-010 helper/raw SQL conversion
 - [ ] 74-04-PLAN.md — templates 011-015 helper conversion
@@ -60,10 +66,21 @@ Plans:
 - [ ] 74-06-PLAN.md — templates 021-025 helper conversion
 - [ ] 74-07-PLAN.md — templates 026-030 helper/raw SQL conversion
 - [ ] 74-08-PLAN.md — template 031 helper conversion
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 74-09-PLAN.md — dual fixture and idempotency proof
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 74-10-PLAN.md — static, DB, verify, and CI parity proof
 
+**Cross-cutting constraints:**
+
+- Public generated output remains legacy unprefixed migration code.
+
 **Success Criteria:**
+
 1. `mix chimeway.gen.migrations` emits default migrations that create/use the `chimeway` schema.
 2. Tables, indexes, references, alters, drops, and raw SQL in generated migrations are explicitly qualified for the selected prefix.
 3. Public/legacy generation remains available and produces unprefixed migrations.
@@ -79,6 +96,7 @@ Plans:
 **Depends on:** Phases 73-74
 
 **Success Criteria:**
+
 1. Trigger fanout persists events, notifications, deliveries, and attempts into the configured prefix.
 2. Idempotency, duplicate detection, traces, explainability, inbox, admin, and recovery queries do not accidentally read from `public` when prefix mode is enabled.
 3. Workflow progression, signal routing, digests, policy/preferences, webhook ingress, dispatch workers, and string-source `insert_all` calls propagate prefix options.
@@ -94,6 +112,7 @@ Plans:
 **Depends on:** Phase 75
 
 **Success Criteria:**
+
 1. README, install docs, golden path, troubleshooting, and Oban guide explain the default `chimeway` schema and explicit public mode.
 2. Docs clearly state that Oban's prefix is separate from Chimeway's table prefix.
 3. Upgrade docs provide a no-silent-migration public compatibility path plus an optional manual move guide and rollback/failure notes.
