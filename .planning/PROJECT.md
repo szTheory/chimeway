@@ -20,11 +20,12 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ### Active
 
-- [ ] Next milestone requirements — define with `/gsd-new-milestone`
+- [ ] v1.13 Storage Isolation and Upgrade Path — static Chimeway DB schema/prefix support, prefixed migration generation, runtime prefix propagation, public-schema compatibility, docs, and demo proof
 
 ### Out of Scope
 
 - Broad channel matrix, generic CRUD admin, full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
+- Dynamic per-tenant database prefixes — this milestone supports one static Chimeway storage prefix per host app config, not prefix-per-request tenancy
 
 ## Latest Shipped Milestone: v1.11 Operator Console Polish & Hardening
 
@@ -39,11 +40,21 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 
 ## Current Milestone
 
-No active milestone. Next step: run `/gsd-new-milestone` to define the next requirements set.
+**v1.13 Storage Isolation and Upgrade Path**
 
-**Potential seeds:** remaining SEED-004 optional polish such as INBX-03 PubSub bell updates, richer Oban/provider operator views, adopter install smoke, or other backlog surfaced during milestone planning.
+**Goal:** Make Chimeway a respectful guest in host PostgreSQL databases by defaulting new installs to a dedicated `chimeway` schema while preserving explicit public-schema compatibility.
+
+**Target features:**
+- Validated static storage prefix config: `prefix: "chimeway"` by default, `prefix: false` for explicit public/legacy mode.
+- Prefixed migration generation with deterministic copied host migrations, schema creation, qualified raw SQL, updated golden fixtures, and legacy generation.
+- Runtime prefix propagation across trigger, deliveries, attempts, workflows, digests, policies, inbox, signals, webhooks, traces, admin, and recovery paths.
+- Prefix documentation, upgrade/move guidance, Oban-prefix caveats, demo-host proof, and release-gate/doc-contract coverage.
+
+**Source context:** `.planning/research/v1.12-quality-readiness/PG-SCHEMA-ISOLATION-DECISION.md` and `.planning/research/v1.12-quality-readiness/SYNTHESIS-ROADMAP.md`.
 
 ## Current State
+
+**v1.13 Storage Isolation and Upgrade Path active (2026-06-30):** The current milestone focuses on database host-respect and upgrade safety. New installs should use a dedicated `chimeway` Postgres schema by default; existing public-schema installs must remain supported through explicit legacy mode and must not be silently migrated. Scope is static per-install prefix support, not dynamic per-tenant database prefixes.
 
 **v1.11 Operator Console Polish & Hardening shipped (2026-06-04):** The optional `chimeway_admin` surface is now a coherent host-mounted operator console with seven-page route truth, scoped design tokens and themes, recovery/auth/tenancy hardening, redacted DTO/rendered-HTML contracts, a canonical integration guide, browser smoke, `mix verify.admin`, CI parity, and a passed milestone audit.
 
@@ -72,17 +83,20 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.9 Adopter Complete` — Accrue dunning blueprint, INBX inbox UI package, Hex release automation, verify.accrue/inbox gates (shipped 2026-05-30).
 - `v1.10 Ecosystem Completions` — Threadline telemetry bridge + Sigra auth flows (shipped 2026-06-04).
 - `v1.11 Operator Console Polish & Hardening` — embedded admin command center, design system, safety/privacy contracts, and admin verify gate (shipped 2026-06-04).
+- `v1.12 Quality Readiness Audit` — planning-only audit pass that identified storage isolation, release/package truth, CI/DX, README, tenant, privacy, and reliability seams (2026-06-30).
+- `v1.13 Storage Isolation and Upgrade Path` — active milestone to implement Chimeway-owned Postgres schema support and upgrade-safe public compatibility.
 
 ## Next Milestone Goals
 
-**Next milestone:** Define the next requirements set with `/gsd-new-milestone`.
+**Current milestone:** v1.13 Storage Isolation and Upgrade Path
 
 **Core goals:**
-- Choose the highest-leverage remaining adopter/operator wedge.
-- Preserve local-first host ownership boundaries.
-- Keep explainability, redaction, and named verify gates as release criteria.
+- Default new Chimeway-owned tables to a dedicated `chimeway` Postgres schema.
+- Preserve explicit public-schema compatibility for existing installs.
+- Thread prefix behavior through installer, migrations, runtime DB calls, Oban/testing guidance, docs, demo proof, and release gates.
+- Keep the scope boring and static: one configured Chimeway prefix per host install.
 
-**Explicitly deferred:** broad channel matrix, full TeamPulse SaaS shell, generic CRUD admin, template editing, provider configuration UI, visual workflow editor, arbitrary bulk recovery, cross-app SaaS console, cohort analytics.
+**Explicitly deferred:** dynamic per-tenant database prefixes, automatic production data moves, CI/DX optimization, README/package truth cleanup beyond prefix-specific docs, broader tenant spine redesign, broad channel matrix, full TeamPulse SaaS shell, generic CRUD admin, template editing, provider configuration UI, visual workflow editor, arbitrary bulk recovery, cross-app SaaS console, cohort analytics.
 
 ### Shipped v1.10 Features (Validated)
 
@@ -192,12 +206,14 @@ Prior context includes:
 - v1.9 Adopter Complete shipped 2026-05-30 — Accrue dunning + INBX inbox UI + Hex release automation; all three SEED-004 personas now have adoptable paths.
 - Adopter assessment post-v1.9: ~98% for embedded-notification scope — Accrue composition and end-user inbox UI proven; Threadline/Sigra completed that ecosystem wedge in v1.10.
 - v1.11 Operator Console Polish & Hardening shipped the optional admin console polish/hardening wedge: command center, design system, safe recovery, redaction/explainability contracts, docs, browser smoke, and `mix verify.admin`.
+- v1.12 quality-readiness research identified database/schema ownership as the highest-leverage architectural cleanup before more adoption polish or ecosystem breadth.
 
 ## Constraints
 
 - **Tech Stack**: Elixir/Phoenix/Ecto-first with Oban and Swoosh integration seams — align with existing ecosystem strengths.
 - **Architecture**: Stable notification keys (for example, `comment.created`) must be persisted as durable identity — avoid module-name coupling in data.
 - **Data Ownership**: Host app database is source of truth for events, inbox state, deliveries, attempts, deferrals, and digest batches — no hosted control plane.
+- **Database Hygiene**: Chimeway-owned tables should live in a dedicated Postgres schema for new installs; public-schema use is an explicit compatibility mode.
 - **Composability**: Channel/provider integrations must use replaceable adapter behaviours — avoid hard vendor lock-in.
 - **Operability**: Redacted, queryable traces must exist for support and debugging — explainability is core value, not optional polish.
 - **Quality Bar**: Named `mix verify.*` and `mix ci.*` workflows, compile warnings as errors, and documented release checks are mandatory.
@@ -262,6 +278,10 @@ Prior context includes:
 | v1.11 admin milestone pairs UI polish with safety contracts | Recovery is action-bearing, so visual polish must ship with auth, tenancy, redaction, docs, and verification | Active v1.11 |
 | Keep `chimeway_admin` as optional LiveView package | Matches LiveDashboard/Oban Web ergonomics and keeps core Phoenix-free | Active v1.11 |
 | Admin UI is process explainability, not table CRUD | Operators need to answer what happened and why, not edit raw lifecycle rows | Active v1.11 |
+| Default new installs to a `chimeway` Postgres schema | Host apps should not get public-schema table sprawl from an embedded infrastructure library | Active v1.13 |
+| Preserve public-schema installs through explicit legacy mode | Existing users must not be silently migrated or forced through unsafe data moves | Active v1.13 |
+| Use generated explicit prefixes in copied migrations | Host migrations stay deterministic and do not require `mix ecto.migrate --prefix` migration-history surprises | Active v1.13 |
+| Do not build dynamic per-tenant DB prefixes in v1.13 | Chimeway already has tenant identity in domain data; prefix-per-tenant would multiply worker, Oban, uniqueness, and recovery failure modes | Active v1.13 |
 
 ## Archived Milestone Context
 
@@ -460,4 +480,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-04 after v1.11 milestone completion*
+*Last updated: 2026-06-30 after v1.13 milestone initialization*

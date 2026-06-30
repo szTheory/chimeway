@@ -1,33 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.11
-milestone_name: Operator Console Polish & Hardening
-status: Awaiting next milestone
-last_updated: "2026-06-04T22:26:06.604Z"
-last_activity: 2026-06-04 — Milestone v1.11 completed and archived
+milestone: v1.13
+milestone_name: Storage Isolation and Upgrade Path
+status: planning
+last_updated: "2026-06-30T15:51:22.801Z"
+last_activity: 2026-06-30 — Milestone v1.13 initialized
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-04)
+See: .planning/PROJECT.md (updated 2026-06-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Next milestone planning
+**Current focus:** Phase 73 — Storage Prefix Contract
 
 ## Current Position
 
-Phase: Milestone v1.11 complete
+Phase: 73 — Storage Prefix Contract
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-04 — Milestone v1.11 completed and archived
+Status: Ready to discuss/plan
+Last activity: 2026-06-30 — Milestone v1.13 initialized
 
 ## Accumulated Context
 
@@ -100,6 +100,10 @@ Last activity: 2026-06-04 — Milestone v1.11 completed and archived
 - [v1.11]: Operator console milestone includes SEED-004 and SEED-002; scope is embedded admin explainability, not generic CRUD or SaaS control plane.
 - [v1.11]: UI polish ships with safety contracts because recovery is action-bearing; auth, tenancy, redaction, docs, and verification are milestone scope.
 - [v1.11]: Keep `chimeway_admin` optional and host-mounted; core owns redacted DTO read models and recovery APIs.
+- [v1.13]: New Chimeway installs default to a dedicated `chimeway` Postgres schema for Chimeway-owned tables.
+- [v1.13]: Existing public-schema installs remain supported through explicit legacy mode and no silent migration.
+- [v1.13]: Copied host migrations should generate explicit prefixes instead of requiring `mix ecto.migrate --prefix`.
+- [v1.13]: Dynamic per-tenant database prefixes are out of scope for this storage-isolation milestone.
 
 ### Pending Todos
 
