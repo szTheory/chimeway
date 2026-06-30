@@ -19,7 +19,7 @@ defmodule Chimeway.MigrationContractTest do
            "current public-schema checks must be named as legacy compatibility proof"
   end
 
-  test "events and notifications tables exist with required named indexes" do
+  test "legacy public-schema compatibility keeps events and notifications tables with required named indexes" do
     assert regclass("chimeway_events")
     assert regclass("chimeway_notifications")
 
@@ -29,7 +29,7 @@ defmodule Chimeway.MigrationContractTest do
     assert regclass("chimeway_notifications_inbox_read_inserted_index")
   end
 
-  test "phase 27 state spine tables and columns exist" do
+  test "legacy public-schema compatibility keeps phase 27 state spine tables and columns" do
     assert regclass("chimeway_signals")
 
     assert workflow_runs_column("tenant_id") == {false, "character varying"}
