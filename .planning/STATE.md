@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
 status: executing
-stopped_at: Completed 73-03-PLAN.md; 73-02 remains incomplete
-last_updated: "2026-06-30T18:55:32Z"
+stopped_at: Completed 73-02-PLAN.md; Phase 73 complete
+last_updated: "2026-06-30T19:07:55.883Z"
 last_activity: 2026-06-30
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 25
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 
 ## Current Position
 
-Phase: 73 (storage-prefix-contract) — EXECUTING
-Plan: 2 of 3
-Status: Ready to execute 73-02; 73-03 complete
+Phase: 73 (storage-prefix-contract) — COMPLETE
+Plan: 3 of 3
+Status: Phase 73 complete; ready for Phase 74 planning
 Last activity: 2026-06-30
 
 ## Accumulated Context
@@ -110,6 +110,8 @@ Last activity: 2026-06-30
 - [Phase 73-01]: repo_opts/1 uses Keyword.put_new/3 to preserve explicit caller prefix probes — The helper centralizes static storage config without creating a public per-tenant database prefix API.
 - [Phase 73-03]: Public docs show `prefix: "chimeway"` for new isolated Chimeway schema installs and `prefix: false` only for existing public-schema legacy installs.
 - [Phase 73-03]: `prefix: false` keeps existing public/unprefixed Chimeway tables and does not move data; current public migration contract remains legacy compatibility proof.
+- [Phase 73-02]: Application boot validates storage prefix config before constructing Repo or Oban child specs — invalid storage-prefix config now fails before supervised storage or job children are built.
+- [Phase 73-02]: This repository's current public-schema runtime is explicit via prefix: false instead of missing config — missing prefix config remains invalid while existing public-schema behavior stays supported explicitly.
 
 ### Pending Todos
 
@@ -169,13 +171,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-06-30T18:55:32Z
-Stopped at: Completed 73-03-PLAN.md; 73-02 remains incomplete
+Last session: 2026-06-30T19:07:31.462Z
+Stopped at: Completed 73-02-PLAN.md; Phase 73 complete
 Resume file: None
 
 ## Operator Next Steps
 
-- Execute Phase 73 Plan 02.
+- Plan Phase 74.
 
 ## Performance Metrics
 
@@ -210,3 +212,4 @@ Resume file: None
 | Phase 70 P03 | 2 min | 2 tasks | 6 files |
 | Phase 73 P01 | 5 min | 2 tasks | 4 files |
 | Phase 73 P03 | 6 min | 2 tasks | 5 files |
+| Phase 73 P02 | 10 min | 2 tasks | 3 files |
