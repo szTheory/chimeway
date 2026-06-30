@@ -7,6 +7,8 @@ defmodule Mix.Tasks.Chimeway.Gen.Migrations do
   ## Usage
 
       mix chimeway.gen.migrations
+      mix chimeway.gen.migrations --prefix chimeway
+      mix chimeway.gen.migrations --prefix public
 
   Copies 31 migration templates from `priv/chimeway_migrations/` (Oban excluded).
   See `guides/recipes/oban-integration.md` for Oban setup (D-10).
@@ -28,17 +30,28 @@ defmodule Mix.Tasks.Chimeway.Gen.Migrations do
 
   @shortdoc "Copy Chimeway migration templates into the host priv/repo/migrations"
 
+  @switches [prefix: :string]
+
+  @usage """
+  Usage:
+
+      mix chimeway.gen.migrations
+      mix chimeway.gen.migrations --prefix chimeway
+      mix chimeway.gen.migrations --prefix public
+
+  Accepted flags:
+
+      --prefix chimeway   Generate migrations for the dedicated chimeway schema.
+      --prefix public     Generate legacy unprefixed/public-schema migrations.
+  """
+
   @impl Mix.Task
   def run(argv) do
     Mix.Task.run("app.config")
 
-    {_opts, rest, invalid} = OptionParser.parse(argv, strict: [])
+    prefix = parse_generation_prefix!(argv)
 
-    if rest != [] or invalid != [] do
-      Mix.raise("Installation blocked: unexpected args for chimeway.gen.migrations")
-    end
-
-    case Chimeway.Install.Migrations.run([]) do
+    case Chimeway.Install.Migrations.run(prefix: prefix) do
       :ok ->
         :ok
 
@@ -62,5 +75,63 @@ defmodule Mix.Tasks.Chimeway.Gen.Migrations do
         declares `app: :my_app` so the installer can infer `MyApp.Repo`.
         """)
     end
+  end
+
+  defp parse_generation_prefix!(argv) do
+    case OptionParser.parse(argv, strict: @switches) do
+      {opts, [], []} ->
+        normalize_prefix_option!(Keyword.get_values(opts, :prefix))
+
+      {_opts, rest, invalid} ->
+        details =
+          [format_rest(rest), format_invalid(invalid)]
+          |> Enum.reject(&(&1 == ""))
+          |> Enum.join("; ")
+
+        raise_usage!("unsupported arguments#{format_details(details)}")
+    end
+  end
+
+  defp normalize_prefix_option!([]), do: :chimeway
+  defp normalize_prefix_option!(["chimeway"]), do: :chimeway
+  defp normalize_prefix_option!(["public"]), do: :public
+
+  defp normalize_prefix_option!([prefix]) do
+    raise_usage!("unsupported --prefix value #{inspect(prefix)}")
+  end
+
+  defp normalize_prefix_option!(prefixes) do
+    raise_usage!("pass --prefix at most once, got #{inspect(prefixes)}")
+  end
+
+  defp format_rest([]), do: ""
+  defp format_rest(rest), do: "unexpected positional arguments #{inspect(rest)}"
+
+  defp format_invalid([]), do: ""
+
+  defp format_invalid(invalid) do
+    invalid =
+      invalid
+      |> Enum.map(fn {switch, value} ->
+        if value do
+          "#{switch} #{value}"
+        else
+          switch
+        end
+      end)
+      |> Enum.join(", ")
+
+    "unknown options #{invalid}"
+  end
+
+  defp format_details(""), do: ""
+  defp format_details(details), do: ": #{details}"
+
+  defp raise_usage!(reason) do
+    Mix.raise("""
+    Installation blocked: #{reason}
+
+    #{@usage}
+    """)
   end
 end

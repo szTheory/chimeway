@@ -38,6 +38,7 @@ defmodule Chimeway.Install.Migrations do
   @template_dir "chimeway_migrations"
   @migrations_dir Path.join(["priv", "repo", "migrations"])
   @source_namespace "Chimeway.Repo.Migrations"
+  @prefix_sentinel "__CHIMEWAY_PREFIX__"
 
   @doc """
   Returns `[{order, slug, template_path}]` sorted by order prefix.
@@ -57,12 +58,14 @@ defmodule Chimeway.Install.Migrations do
 
     * `:repo` — override host repo module (defaults to resolved config or mix.exs inference)
     * `:io` — IO device for progress output (defaults to `Mix.shell()`)
+    * `:prefix` — generation mode, either `:chimeway` or `:public` (defaults to `:chimeway`)
 
   Returns `:ok` on success, `{:error, :repo_missing}` when the host repo cannot be resolved,
   or `{:error, :umbrella_root}` when run from an umbrella root without explicit repo config.
   """
   def run(opts \\ []) do
     io = Keyword.get(opts, :io, Mix.shell())
+    generation_prefix = opts |> Keyword.get(:prefix, :chimeway) |> normalize_generation_prefix!()
 
     with {:ok, repo} <- resolve_repo(Keyword.get(opts, :repo)) do
       host_prefix = host_migrations_prefix(repo)
@@ -79,7 +82,12 @@ defmodule Chimeway.Install.Migrations do
           nil ->
             ts = timestamp_for_index(base_ts, index)
             dest = Path.join(@migrations_dir, "#{ts}_#{slug}.exs")
-            content = template_path |> File.read!() |> rewrite_namespace(host_prefix)
+
+            content =
+              template_path
+              |> File.read!()
+              |> render_template(host_prefix, generation_prefix)
+
             File.write!(dest, content)
             io.info("created #{dest}")
 
@@ -149,6 +157,22 @@ defmodule Chimeway.Install.Migrations do
   def rewrite_namespace(content, host_prefix)
       when is_binary(content) and is_binary(host_prefix) do
     String.replace(content, @source_namespace, host_prefix)
+  end
+
+  @doc """
+  Renders one migration template for a host migration namespace and generation mode.
+
+  This composes host namespace rewriting with the explicit Chimeway prefix sentinel.
+  It deliberately does not rewrite relation names; template helper conversion owns
+  that prefixing behavior.
+  """
+  def render_template(content, host_prefix, generation_prefix)
+      when is_binary(content) and is_binary(host_prefix) do
+    generation_prefix = normalize_generation_prefix!(generation_prefix)
+
+    content
+    |> rewrite_namespace(host_prefix)
+    |> String.replace(@prefix_sentinel, prefix_attribute(generation_prefix))
   end
 
   @doc """
@@ -224,6 +248,18 @@ defmodule Chimeway.Install.Migrations do
   end
 
   defp validate_repo!(_), do: {:error, :repo_missing}
+
+  defp normalize_generation_prefix!(:chimeway), do: :chimeway
+  defp normalize_generation_prefix!(:public), do: :public
+
+  defp normalize_generation_prefix!(prefix) do
+    raise ArgumentError,
+          "unsupported Chimeway migration generation prefix #{inspect(prefix)}; " <>
+            "expected :chimeway or :public"
+  end
+
+  defp prefix_attribute(:chimeway), do: ~s("chimeway")
+  defp prefix_attribute(:public), do: "false"
 
   defp infer_repo_from_mix_exs do
     mix_exs = Path.join(File.cwd!(), "mix.exs")
