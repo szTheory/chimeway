@@ -21,6 +21,7 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 ### Active
 
 - [ ] v1.13 Storage Isolation and Upgrade Path — static Chimeway DB schema/prefix support, prefixed migration generation, runtime prefix propagation, public-schema compatibility, docs, and demo proof
+  - Validated in Phase 75: RUN-01, RUN-02, RUN-03, and RUN-04 runtime prefix propagation requirements
 
 ### Out of Scope
 
@@ -53,6 +54,8 @@ Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`
 **Source context:** `.planning/research/v1.12-quality-readiness/PG-SCHEMA-ISOLATION-DECISION.md` and `.planning/research/v1.12-quality-readiness/SYNTHESIS-ROADMAP.md`.
 
 ## Current State
+
+**v1.13 Phase 75 Runtime Prefix Propagation complete (2026-07-01):** Runtime reads and writes now honor the configured Chimeway storage prefix across trigger fanout, idempotency, traces, inbox, admin, recovery, workflow progression, signal routing, digests, policies/preferences, webhooks, dispatch workers, and public legacy mode. The focused `mix verify.runtime_prefix` gate, broad `mix ci.test`, install golden verifier, validation refresh, security audit, and phase verifier are green. Phase 76 is next for prefix docs, demo proof, and release-gate parity.
 
 **v1.13 Phase 73 Storage Prefix Contract complete (2026-06-30):** Chimeway now has a validated static storage-prefix contract before migration/runtime changes: runtime config accepts `prefix: "chimeway"` or explicit public legacy mode with `prefix: false`, invalid or missing values fail early with structured `Chimeway.ConfigError`, `Chimeway.Storage.repo_opts/1` centralizes repo prefix options, and README/installation/golden-path docs state that public legacy mode does not move data automatically. Phase 74 is next for prefixed migration generation.
 
@@ -482,4 +485,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-30 after Phase 73 storage prefix contract verification*
+*Last updated: 2026-07-01 after Phase 75 runtime prefix propagation verification*
