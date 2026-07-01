@@ -95,7 +95,7 @@ end
 
 defmodule Chimeway.RuntimePrefixIntegrationTest do
   use Chimeway.PrefixedRuntimeCase
-  use Oban.Testing, repo: Chimeway.Repo
+  use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
 
   import Chimeway.Test.DispatchHelpers,
     only: [create_notification: 1, create_pending_delivery: 1]

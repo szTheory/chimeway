@@ -173,7 +173,7 @@ if Code.ensure_loaded?(Oban) do
 
           if duplicate_ids != [] do
             from(enqueued in Job, where: enqueued.id in ^duplicate_ids)
-            |> Repo.delete_all()
+            |> Repo.delete_all(oban_job_repo_opts())
           end
 
           {:ok, keep}
@@ -194,7 +194,13 @@ if Code.ensure_loaded?(Oban) do
             job.state in ["available", "scheduled", "executing", "retryable"],
         order_by: [asc: job.inserted_at, asc: job.id]
       )
-      |> Repo.all()
+      |> Repo.all(oban_job_repo_opts())
+    end
+
+    defp oban_job_repo_opts do
+      Oban
+      |> Oban.config()
+      |> Oban.Repo.default_options()
     end
   end
 end
