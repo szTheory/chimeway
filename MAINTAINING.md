@@ -89,13 +89,17 @@ Update the pinned refs when bumping an integration.
 
 ### Installer template changes
 
-When modifying any of these paths, also run `mix ci.install_golden` locally before merging:
+When modifying any of these paths, also run `mix verify.install_golden` locally before merging. `mix ci.install_golden` delegates to the same proof for CI parity.
 
 - `priv/chimeway_migrations/`
 - `lib/mix/tasks/chimeway.gen.migrations.ex`
 - `lib/chimeway/install/`
 - `test/chimeway/install/`
-- `test/fixtures/installer_golden/`
+- `test/chimeway/migration_contract_test.exs`
+- `test/fixtures/installer_golden_prefixed/`
+- `test/fixtures/installer_golden_public/`
+
+The installer proof covers committed golden fixtures, second-run idempotency, static prefix qualification, and database execution/rollback for generated prefixed and public migrations. It requires a reachable PostgreSQL test database; CI provisions PostgreSQL 15 for the path-gated `install_golden_contract` job.
 
 CI runs `install_golden_contract` on every push to `main` and on PRs that touch installer surfaces (path-gated). Do not change that gating behavior.
 

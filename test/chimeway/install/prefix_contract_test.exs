@@ -119,7 +119,9 @@ defmodule Chimeway.Install.PrefixContractTest do
   defp extract_ci_job_block(ci_yml, job_id) do
     case Regex.run(
            ~r/\n  #{Regex.escape(job_id)}:\n(?<block>.*?)(?=\n  [a-zA-Z0-9_-]+:\n|\z)/s,
-           ci_yml, capture: ["block"]) do
+           ci_yml,
+           capture: ["block"]
+         ) do
       [block] -> block
       _ -> flunk("Could not extract #{job_id} job from ci.yml")
     end

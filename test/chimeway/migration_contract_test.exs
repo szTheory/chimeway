@@ -70,13 +70,13 @@ defmodule Chimeway.MigrationContractTest do
       with_generated_database(generated_mode, fn repo, migrations_path ->
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
-        migrated = Ecto.Migrator.run(repo, migrations_path, :up, all: true, log: false)
+        migrated = run_fixture_migrations(repo, migrations_path, :up)
         assert length(migrated) == 31
         assert_migration_versions!(repo, 31)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
 
-        rolled_back = Ecto.Migrator.run(repo, migrations_path, :down, all: true, log: false)
+        rolled_back = run_fixture_migrations(repo, migrations_path, :down)
         assert length(rolled_back) == 31
         assert_migration_versions!(repo, 0)
         refute_chimeway_objects!(repo, generated_mode.schema)
@@ -252,6 +252,20 @@ defmodule Chimeway.MigrationContractTest do
       refute Regex.match?(~r/\bCASCADE\b/i, content),
              "#{path} must not generate destructive CASCADE cleanup"
     end)
+  end
+
+  defp run_fixture_migrations(repo, migrations_path, direction) when direction in [:up, :down] do
+    parent = self()
+    ref = make_ref()
+
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      result = Ecto.Migrator.run(repo, migrations_path, direction, all: true, log: false)
+      send(parent, {ref, result})
+    end)
+
+    receive do
+      {^ref, result} -> result
+    end
   end
 
   defp assert_generated_objects!(repo, schema) do
