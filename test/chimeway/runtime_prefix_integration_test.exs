@@ -120,7 +120,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   import Chimeway.Test.DispatchHelpers,
     only: [create_notification: 1, create_pending_delivery: 1]
 
-  alias Chimeway.{Deliveries, Preferences, Repo, Signal, Traces}
+  alias Chimeway.{Admin, Deliveries, Delivery, Preferences, Repo, Signal, Traces}
   alias Chimeway.Dispatch.{DeferredResumeWorker, DigestFlushWorker, ObanWorker}
   alias Chimeway.Digests.{Accumulation, DigestBucket}
   alias Chimeway.Events.Event
@@ -129,6 +129,11 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   alias Chimeway.Policy.Settings
   alias Chimeway.Signals.Signal, as: PersistedSignal
   alias Chimeway.Webhooks.ProcessFeedbackWorker
+
+  @operator_forbidden_keys ~w(
+    payload render_assigns render_data provider_response provider_body metadata session params
+    token secret auth_code authorization
+  )a
 
   setup do
     previous_adapter = Application.fetch_env(:chimeway, :adapter)
@@ -175,8 +180,10 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   end
 
   @tag :runtime_prefix_operator
-  test "operator and inbox APIs reload durable rows from the runtime prefix" do
+  test "operator, admin, inbox, trace, and recovery APIs reload durable rows from the runtime prefix" do
     recipient_id = unique_recipient("operator")
+    now = ~U[2026-01-15 12:30:00.000000Z]
+    old = ~U[2026-01-15 11:00:00.000000Z]
 
     assert {:ok, %{event: event}} =
              Chimeway.trigger(
@@ -194,9 +201,160 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert {:ok, %Event{notifications: [_notification]}} = Traces.get_trace(event.id)
 
-    assert_prefixed_only("chimeway_events", 1)
-    assert_prefixed_only("chimeway_notifications", 1)
-    assert_prefixed_only("chimeway_deliveries", 2)
+    problem =
+      create_pending_delivery(
+        notification_key: "test.runtime_prefix.admin.problem",
+        recipient_identity: recipient_id,
+        channel: :email
+      )
+
+    problem_delivery =
+      problem.delivery
+      |> update_delivery!(tenant_id: "acme", inserted_at: old, updated_at: old)
+      |> then(fn delivery ->
+        {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+
+        {:ok, %{delivery: failed}} =
+          Deliveries.record_attempt(dispatched, %{
+            outcome: :failed,
+            error_class: "temporary",
+            provider_response: %{"token" => "provider-token"}
+          })
+
+        failed
+      end)
+
+    recovery_candidate =
+      create_pending_delivery(
+        notification_key: "test.runtime_prefix.admin.recovery_candidate",
+        recipient_identity: recipient_id,
+        channel: :in_app
+      )
+
+    recovery_candidate_delivery =
+      update_delivery!(recovery_candidate.delivery,
+        tenant_id: "acme",
+        inserted_at: old,
+        updated_at: old
+      )
+
+    begin_candidate =
+      create_pending_delivery(
+        notification_key: "test.runtime_prefix.recovery.begin",
+        recipient_identity: unique_recipient("recovery-begin"),
+        channel: :email
+      )
+
+    begin_candidate_delivery =
+      update_delivery!(begin_candidate.delivery,
+        tenant_id: "acme",
+        inserted_at: old,
+        updated_at: old
+      )
+
+    assert {:ok, claimed_delivery} =
+             Deliveries.begin_recovery(begin_candidate_delivery.id,
+               now: now,
+               older_than: 60,
+               source: "runtime_prefix_operator",
+               reason: "begin_recovery_probe",
+               actor_ref: "ops:runtime-prefix"
+             )
+
+    assert claimed_delivery.metadata["recovery_source"] == "runtime_prefix_operator"
+    assert claimed_delivery.metadata["recovery_reason"] == "begin_recovery_probe"
+    assert claimed_delivery.metadata["recovery_actor_ref"] == "ops:runtime-prefix"
+
+    delivery_recovery =
+      create_pending_delivery(
+        notification_key: "test.runtime_prefix.recovery.delivery",
+        recipient_identity: unique_recipient("recovery-delivery"),
+        channel: :email
+      )
+
+    delivery_recovery_candidate =
+      update_delivery!(delivery_recovery.delivery,
+        tenant_id: "acme",
+        inserted_at: old,
+        updated_at: old
+      )
+
+    assert {:ok, recovered_delivery} =
+             Deliveries.recover_delivery(delivery_recovery_candidate.id,
+               now: now,
+               older_than: 60,
+               source: "runtime_prefix_operator",
+               reason: "recover_delivery_probe",
+               actor_ref: "ops:runtime-prefix",
+               confirmation_marker: "operator_confirmed_recovery"
+             )
+
+    assert recovered_delivery.delivery.status == :succeeded
+    assert recovered_delivery.recovery.source == "runtime_prefix_operator"
+
+    event_recovery =
+      create_notification(
+        notification_key: "test.runtime_prefix.recovery.event",
+        recipient_identity: unique_recipient("recovery-event")
+      )
+
+    event_recovery.event
+    |> update_timestamps!(inserted_at: old, updated_at: old)
+
+    event_recovery.notification
+    |> update_timestamps!(inserted_at: old, updated_at: old)
+
+    assert {:ok, recovered_event} =
+             Deliveries.recover_event(event_recovery.event.id,
+               now: now,
+               older_than: 60,
+               source: "runtime_prefix_operator",
+               reason: "recover_event_probe"
+             )
+
+    assert recovered_event.event.id == event_recovery.event.id
+
+    assert Enum.map(recovered_event.deliveries, & &1.channel) |> Enum.sort() == [
+             "email",
+             "in_app",
+             "sms_custom"
+           ]
+
+    admin_opts = [tenant_id: "acme", recipient_id: recipient_id, now: now, older_than: 60]
+
+    command_center = Admin.command_center(Keyword.put(admin_opts, :limit, 8))
+    recent_problems = Admin.recent_problem_deliveries(admin_opts)
+    definitions = Admin.definitions(admin_opts)
+    feed_rows = Admin.feed(admin_opts)
+    recovery_candidates = Admin.recovery_candidates(admin_opts)
+    outcome_totals = Admin.outcome_totals(admin_opts)
+
+    assert command_center.outcomes["failed"] >= 1
+    assert Enum.any?(recent_problems, &(&1.delivery_id == problem_delivery.id))
+    assert Enum.any?(definitions, &(&1.notification_key == "test.runtime_prefix"))
+    assert Enum.any?(feed_rows, &(&1.notification_id == notification_id and &1.state == "read"))
+
+    assert Enum.any?(recovery_candidates, fn candidate ->
+             candidate.type == "delivery" and candidate.id == recovery_candidate_delivery.id
+           end)
+
+    assert outcome_totals["failed"] >= 1
+    assert outcome_totals["pending"] >= 1
+
+    [
+      command_center,
+      recent_problems,
+      definitions,
+      feed_rows,
+      recovery_candidates,
+      outcome_totals
+    ]
+    |> assert_no_operator_forbidden_keys()
+
+    assert_prefixed_only("chimeway_events")
+    assert_prefixed_only("chimeway_notifications")
+    assert_prefixed_only("chimeway_deliveries")
+    assert public_count("chimeway_delivery_attempts") == 0
   end
 
   @tag :runtime_prefix_oban_boundary
@@ -487,6 +645,39 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
   defp unique_recipient(label),
     do: "user:runtime-prefix:#{label}:#{System.unique_integer([:positive])}"
+
+  defp update_delivery!(%Delivery{} = delivery, attrs) do
+    delivery
+    |> Ecto.Changeset.change(attrs)
+    |> Repo.update!()
+  end
+
+  defp update_timestamps!(struct, attrs) do
+    struct
+    |> Ecto.Changeset.change(attrs)
+    |> Repo.update!()
+  end
+
+  defp assert_no_operator_forbidden_keys(term) do
+    term
+    |> collect_keys()
+    |> Enum.each(fn key ->
+      refute key in @operator_forbidden_keys
+    end)
+  end
+
+  defp collect_keys(%_struct{}), do: []
+
+  defp collect_keys(term) when is_map(term) do
+    Enum.flat_map(term, fn {key, value} -> [normalize_key(key) | collect_keys(value)] end)
+  end
+
+  defp collect_keys(term) when is_list(term), do: Enum.flat_map(term, &collect_keys/1)
+  defp collect_keys(_term), do: []
+
+  defp normalize_key(key) when is_atom(key), do: key
+  defp normalize_key(key) when is_binary(key), do: String.to_atom(key)
+  defp normalize_key(key), do: key
 
   defp restore_env(key, {:ok, value}), do: Application.put_env(:chimeway, key, value)
   defp restore_env(key, :error), do: Application.delete_env(:chimeway, key)
