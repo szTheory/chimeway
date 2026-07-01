@@ -445,12 +445,10 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     signal_args = %{"signal_id" => signal.id}
     assert_durable_id_args(signal_args, "signal_id")
 
-    assert_enqueued(
-      worker: SignalRouterWorker,
-      args: signal_args
-    )
+    assert [signal_job] = all_enqueued(worker: SignalRouterWorker)
+    assert signal_job.args == signal_args
 
-    assert :ok = SignalRouterWorker.perform(%Oban.Job{args: signal_args})
+    assert :ok = SignalRouterWorker.perform(%Oban.Job{args: signal_job.args})
 
     resumed_run = Repo.get!(WorkflowRun, workflow_run.id)
     assert resumed_run.state == :active
