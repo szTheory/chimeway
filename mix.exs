@@ -100,6 +100,9 @@ defmodule Chimeway.MixProject do
       "verify.install_golden": [
         "cmd env CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/install/golden_diff_test.exs test/chimeway/install/idempotency_test.exs test/chimeway/install/prefix_contract_test.exs test/chimeway/migration_contract_test.exs --warnings-as-errors"
       ],
+      "verify.runtime_prefix": [
+        "cmd env MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors"
+      ],
       "ci.install_golden": ["verify.install_golden"],
 
       # GATE-01 doc-contract + version alignment gates (pre-ship; no Postgres required)
