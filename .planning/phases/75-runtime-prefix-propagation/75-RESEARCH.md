@@ -452,17 +452,17 @@ All claims in this research were verified from project files, installed dependen
 |---|-------|---------|---------------|
 | - | None | - | - |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact prefixed runtime harness shape**
-   - What we know: Phase 75 requires non-async prefixed runtime proof using real Postgres and generated migrations or an equivalent normal migrate path. [VERIFIED: 75-CONTEXT.md]
-   - What's unclear: whether implementation will prefer a temporary database with temporary `Chimeway.Repo` reconfiguration or a serialized `chimeway` schema inside the existing test DB. [VERIFIED: codebase grep]
-   - Recommendation: plan Wave 0 to build `PrefixedRuntimeCase`; choose temporary database if restarting/reconfiguring `Chimeway.Repo` is reliable, otherwise use serialized schema setup with explicit cleanup. [VERIFIED: 75-CONTEXT.md]
+1. **Exact prefixed runtime harness shape - resolved**
+   - Chosen shape: Plan 75-01 builds `Chimeway.PrefixedRuntimeCase` as a serialized, non-async ExUnit case template inside the existing test database. It uses `Chimeway.Repo` as the repo under test, sets `Application.put_env(:chimeway, :prefix, "chimeway")` only around prefixed runtime tests, restores the prior `:prefix` value on exit, and prepares the `chimeway` schema through the Phase 74 generated prefixed fixture migrations or an equivalent normal migrate path. [VERIFIED: 75-CONTEXT.md]
+   - Rejected harness shape: do not use a temporary database or temporary repo module reconfiguration as the planned harness. Those options would weaken the requirement that prefixed runtime proof exercise `Chimeway.Repo` itself per D-15 and D-17. [VERIFIED: 75-CONTEXT.md]
+   - Plan alignment: 75-01 Task 1 owns only `test/support/prefixed_runtime_case.ex` and verifies it through an existing compile/smoke test; 75-01 Task 3 creates `test/chimeway/runtime_prefix_integration_test.exs` and owns the first runtime integration-file verify. [VERIFIED: 75-01-PLAN.md]
 
-2. **Named phase gate**
-   - What we know: Phase 75 may add `mix verify.runtime_prefix` if kept focused, while Phase 76 owns broad gate composition. [VERIFIED: 75-CONTEXT.md]
-   - What's unclear: whether the planner wants a named alias in this phase or only direct test commands. [VERIFIED: 75-CONTEXT.md]
-   - Recommendation: add `mix verify.runtime_prefix` for developer ergonomics and keep it limited to unit guardrails plus the prefixed runtime integration suite. [VERIFIED: AGENTS.md]
+2. **Named phase gate - resolved**
+   - Chosen gate: Plan 75-07 adds `mix verify.runtime_prefix` after runtime implementation plans complete. The alias is limited to `test/chimeway/repo_prefix_test.exs` plus `test/chimeway/runtime_prefix_integration_test.exs` per D-19. [VERIFIED: 75-CONTEXT.md]
+   - Wave ownership: `mix verify.runtime_prefix` is not a Wave 0 artifact. Wave 0 creates the harness, repo guardrails, integration suite, and narrow runtime tags; Plan 75-07 owns the named alias and final gate evidence. [VERIFIED: 75-VALIDATION.md]
+   - Tag strategy: task-level verifies use narrow tags such as `:runtime_prefix_oban_boundary`, `:runtime_prefix_workflow_signal`, `:runtime_prefix_digest`, `:runtime_prefix_webhook`, `:runtime_prefix_preferences`, and `:runtime_prefix_policy_eval`. The full runtime-prefix file and named alias are reserved for final gate ownership after dependent tasks complete. [VERIFIED: 75-01-PLAN.md]
 
 ## Environment Availability
 
@@ -515,7 +515,7 @@ All claims in this research were verified from project files, installed dependen
 - [ ] `test/support/prefixed_runtime_case.ex` - serialized prefix env and DB/schema/migration setup for prefixed runtime integration tests. [VERIFIED: 75-CONTEXT.md]
 - [ ] `test/chimeway/runtime_prefix_integration_test.exs` - covers RUN-01 through RUN-04 with real flows. [VERIFIED: REQUIREMENTS.md]
 - [ ] Direct `Oban.Job` test cleanup audit - ensure prefixed runtime tests and any shared cleanup do not query the Oban job table through Chimeway storage defaults. [VERIFIED: codebase grep]
-- [ ] Optional `mix verify.runtime_prefix` alias - focused local gate for Phase 75 only. [VERIFIED: 75-CONTEXT.md]
+- [ ] Plan 75-07 `mix verify.runtime_prefix` alias - focused local gate for Phase 75 only, created after the runtime implementation plans complete. [VERIFIED: 75-CONTEXT.md]
 
 ## Security Domain
 
@@ -572,7 +572,7 @@ All claims in this research were verified from project files, installed dependen
 - Standard stack: HIGH - package versions, local tool versions, and project constraints were verified from local commands and files. [VERIFIED: mix deps]
 - Architecture: HIGH - runtime hotspots and dependency prefix behavior were verified from codebase grep and installed dependency source. [VERIFIED: codebase grep] [VERIFIED: deps/ecto] [VERIFIED: deps/oban]
 - Pitfalls: HIGH - pitfalls are derived from locked Phase 75 decisions plus confirmed current code paths. [VERIFIED: 75-CONTEXT.md] [VERIFIED: codebase grep]
-- Validation: MEDIUM - existing test infrastructure is verified, while exact new prefixed runtime harness shape remains a planning choice. [VERIFIED: codebase grep]
+- Validation: HIGH - existing test infrastructure is verified, and the planned prefixed runtime harness shape is resolved as serialized `Chimeway.Repo` proof inside the existing test database. [VERIFIED: 75-CONTEXT.md] [VERIFIED: 75-01-PLAN.md]
 
 **Research date:** 2026-07-01  
 **Valid until:** 2026-07-31 for project-local planning; re-check Ecto/Oban docs and dependency versions if planning starts after that date.

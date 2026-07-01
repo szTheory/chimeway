@@ -1,10 +1,11 @@
 ---
 phase: 75
 slug: runtime-prefix-propagation
-status: draft
+status: revised
 nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-01
+revised: 2026-07-01
 ---
 
 # Phase 75 - Validation Strategy
@@ -19,17 +20,18 @@ created: 2026-07-01
 |----------|-------|
 | **Framework** | ExUnit with Ecto SQL Sandbox and PostgreSQL |
 | **Config file** | `config/test.exs`, `test/support/conn_case.ex`, `test/support/data_case.ex` |
-| **Quick run command** | `MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors` |
-| **Full suite command** | `mix ci.test && mix verify.install_golden && mix verify.runtime_prefix` |
-| **Estimated runtime** | ~180 seconds |
+| **Wave 0 quick run command** | `MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors` |
+| **Final suite command** | `mix verify.runtime_prefix && mix ci.test && mix verify.install_golden` |
+| **Estimated runtime** | ~180 seconds for focused prefix checks; broader CI can exceed that at the final gate |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs --warnings-as-errors` once Wave 0 creates the file; before that, run the smallest touched test file with `--warnings-as-errors`.
-- **After every plan wave:** Run `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors`.
-- **Before `/gsd:verify-work`:** `mix ci.test`, `mix verify.install_golden`, and `mix verify.runtime_prefix` must be green.
+- **After every task commit:** Run the task-owned automated command listed below; no task-level command should require a future task's file or future tag behavior.
+- **After Wave 0:** Run `MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors` and confirm any RED failures are implementation-contract failures, not harness setup or compile failures.
+- **After implementation waves:** Run the newly green tag for the completed plan plus its existing public-mode focused tests.
+- **Final Phase 75 gate:** Plan 75-07 owns `mix verify.runtime_prefix`, then `mix ci.test`, then `mix verify.install_golden`.
 - **Max feedback latency:** 180 seconds for focused prefix checks; broader CI can run as the final phase gate.
 
 ---
@@ -38,14 +40,23 @@ created: 2026-07-01
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 75-01-01 | 01 | 0 | RUN-01, RUN-02, RUN-03, RUN-04 | T-75-01 | Prefix test harness creates and tears down isolated `chimeway` schema without leaking app env into public-mode tests | integration harness | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors` | no - W0 | pending |
-| 75-01-02 | 01 | 0 | RUN-01, RUN-02, RUN-03 | T-75-02 | `Repo.default_options/1` delegates to `Chimeway.Storage.repo_opts/1`, preserves explicit `prefix:` probes, and routes string-source `insert_all` | unit | `MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs --warnings-as-errors` | no - W0 | pending |
-| 75-02-01 | 02 | 1 | RUN-01, RUN-02 | T-75-01 | Trigger, duplicate idempotency, lifecycle, traces, and explainability read/write configured schema and not accidental `public` | integration | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors` | no - W0 | pending |
-| 75-03-01 | 03 | 1 | RUN-04 | T-75-03 | Inbox, admin, trace, and recovery preserve tenant filters and redaction while using configured prefix | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs test/chimeway/inbox_integration_test.exs test/chimeway/orchestration/recovery_test.exs --warnings-as-errors` | no - W0 | pending |
-| 75-04-01 | 04 | 2 | RUN-03 | T-75-02 | Workflow progression, signal routing, digest, webhook ingress, dispatch workers, and direct `Oban.Job` paths use the correct storage/job prefixes | integration | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors` | no - W0 | pending |
-| 75-05-01 | 05 | 2 | RUN-01, RUN-02, RUN-03, RUN-04 | T-75-01 / T-75-02 / T-75-03 | Focused alias and final gates prove prefixed mode and legacy public mode both remain green | CI alias | `mix verify.runtime_prefix && mix ci.test && mix verify.install_golden` | no - W0 | pending |
+| 75-01-01 | 01 | 0 | RUN-01, RUN-02, RUN-03, RUN-04 | T-75-01 / T-75-02 | Prefix test harness creates and tears down isolated `chimeway` schema without leaking app env into public-mode tests | support compile smoke | `MIX_ENV=test mix test test/chimeway/storage_test.exs --warnings-as-errors` | no - created by task | pending |
+| 75-01-02 | 01 | 0 | RUN-01, RUN-02, RUN-03 | T-75-02 | `Repo.default_options/1` guardrails delegate to `Chimeway.Storage.repo_opts/1`, preserve explicit `prefix:` probes, and reject broad wrapper/API prefix shapes | unit | `MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs --warnings-as-errors` | no - created by task | pending |
+| 75-01-03 | 01 | 0 | RUN-01, RUN-02, RUN-03, RUN-04 | T-75-01 / T-75-03 | Runtime integration suite defines narrow tags for trigger, operator, Oban boundary, workflow/signal, digest, webhook, preferences, policy evaluation, and public mode | integration scaffold | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --warnings-as-errors` | no - created by task | pending |
+| 75-02-01 | 02 | 1 | RUN-01, RUN-02, RUN-03 | T-75-04 | Repo defaults apply configured storage prefix to normal operations while transaction options remain unprefixed | unit | `MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-02-02 | 02 | 1 | RUN-01, RUN-02 | T-75-05 / T-75-06 | Trigger fanout, string-source `insert_all`, and duplicate idempotency use configured storage without public API prefix options | integration + regression | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_trigger --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/trigger_pipeline_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-03-01 | 03 | 2 | RUN-02, RUN-04 | T-75-07 | Admin and trace option filtering preserves tenant/redaction behavior and explicit prefix probes while delegating prefix mapping to Storage | focused public tests | `MIX_ENV=test mix test test/chimeway/admin_test.exs test/chimeway/traces_test.exs --warnings-as-errors` | yes - existing | pending |
+| 75-03-02 | 03 | 2 | RUN-04 | T-75-08 / T-75-09 | Inbox, admin, trace, and recovery surfaces route through configured storage while preserving tenant predicates and redaction | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_operator --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/inbox_integration_test.exs test/chimeway/inbox_state_transition_test.exs test/chimeway/orchestration/recovery_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-04-01 | 04 | 2 | RUN-03 | T-75-10 | Direct `Oban.Job` reads/deletes use Oban's job-table prefix domain while Chimeway-owned rows use configured storage | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/dispatch/oban_test.exs --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_oban_boundary --warnings-as-errors` | yes - 75-01 | pending |
+| 75-04-02 | 04 | 2 | RUN-03 | T-75-11 | Workflow progression, signal routing, and worker reloads use durable IDs and configured Chimeway storage | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_workflow_signal --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/orchestration/workflow_progression_test.exs test/chimeway/signal_test.exs test/chimeway/dispatch/signal_router_worker_test.exs test/chimeway/dispatch/workflow_progression_worker_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-06-01 | 06 | 2 | RUN-03 | T-75-19 | Preferences and policy settings read/write configured storage without exposing prefix arguments on domain APIs | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_preferences --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/preferences_test.exs test/chimeway/policy_settings_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-06-02 | 06 | 2 | RUN-03 | T-75-20 / T-75-21 | Policy evaluation reloads configured storage and preserves suppression explainability with payload-safe telemetry | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_policy_eval --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/policy_test.exs test/chimeway/policy/delayed_fallback_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-05-01 | 05 | 3 | RUN-03 | T-75-16 / T-75-18 | Digest rules, buckets, memberships, emission, and bulk operations use configured storage while job args remain durable-ID based | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_digest --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/digests/accumulation_test.exs test/chimeway/digests/emission_test.exs test/chimeway/digests/flush_scheduling_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-05-02 | 05 | 3 | RUN-03 | T-75-17 | Webhook ingress and feedback worker reload durable ingress IDs from configured storage without payload-bearing diagnostics | integration + focused public tests | `MIX_ENV=test mix test test/chimeway/runtime_prefix_integration_test.exs --only runtime_prefix_webhook --warnings-as-errors`<br>`MIX_ENV=test mix test test/chimeway/webhooks/ingress_test.exs test/chimeway/webhooks/process_feedback_worker_test.exs --warnings-as-errors` | yes - 75-01 | pending |
+| 75-07-01 | 07 | 4 | RUN-01, RUN-02, RUN-03, RUN-04 | T-75-13 / T-75-15 | Focused `mix verify.runtime_prefix` alias covers only Phase 75 runtime-prefix proof files and preserves existing verify aliases | CI alias | `mix verify.runtime_prefix` | no - created by task | pending |
+| 75-07-02 | 07 | 4 | RUN-01, RUN-02, RUN-03, RUN-04 | T-75-13 / T-75-14 / T-75-15 | Final phase gate proves runtime prefix behavior, public legacy compatibility, and generated migration proof | final gate | `mix verify.runtime_prefix`<br>`mix ci.test`<br>`mix verify.install_golden` | yes - 75-07-01 | pending |
 
-*Status: pending, green, red, flaky*
+*Status values: pending, green, red, flaky*
 
 ---
 
@@ -53,8 +64,13 @@ created: 2026-07-01
 
 - [ ] `test/support/prefixed_runtime_case.ex` - serialized prefix env and DB/schema/migration setup for prefixed runtime integration tests.
 - [ ] `test/chimeway/repo_prefix_test.exs` - unit guardrails for `Repo.default_options/1`, `Storage.repo_opts/1`, explicit prefix override preservation, and string-source `insert_all` routing proof.
-- [ ] `test/chimeway/runtime_prefix_integration_test.exs` - prefixed runtime integration proof for RUN-01 through RUN-04.
-- [ ] `mix verify.runtime_prefix` - focused local gate for the Wave 0 guardrails and prefixed runtime integration suite.
+- [ ] `test/chimeway/runtime_prefix_integration_test.exs` - prefixed runtime integration proof for RUN-01 through RUN-04 with narrow task-owned tags.
+
+## Final Gate Ownership
+
+- [ ] Plan 75-07 creates `mix verify.runtime_prefix`.
+- [ ] Plan 75-07 runs `mix verify.runtime_prefix`, `mix ci.test`, and `mix verify.install_golden`.
+- [ ] `mix verify.runtime_prefix` remains focused on `test/chimeway/repo_prefix_test.exs` and `test/chimeway/runtime_prefix_integration_test.exs`; Phase 76 owns broader docs/demo/release-gate parity.
 
 ---
 
@@ -68,7 +84,10 @@ created: 2026-07-01
 
 ## Validation Sign-Off
 
-- [x] All tasks have automated verify commands or Wave 0 dependencies.
+- [x] All 15 tasks have automated verify commands.
+- [x] Task-level verifies do not reference files before the owning or prior task creates them.
+- [x] Async/runtime tags are narrow enough that Plans 75-04 and 75-05 verify only behavior owned by the current task or prior completed tasks.
+- [x] Plan 75-07 owns `mix verify.runtime_prefix`; Wave 0 does not.
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify.
 - [x] Wave 0 covers all missing references.
 - [x] No watch-mode flags.
