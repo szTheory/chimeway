@@ -95,6 +95,31 @@ Plans:
 
 **Depends on:** Phases 73-74
 
+**Plans:** 7 plans
+
+Plans:
+**Wave 0**
+
+- [ ] 75-01-PLAN.md — Prefixed runtime test harness and guardrails
+
+**Wave 1** *(blocked on Wave 0 completion)*
+
+- [ ] 75-02-PLAN.md — Repo defaults and trigger fanout propagation
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 75-03-PLAN.md — Operator, inbox, trace, and recovery surfaces
+- [ ] 75-04-PLAN.md — Workflow, signal, worker, and Oban boundary
+- [ ] 75-06-PLAN.md — Policy and preference propagation
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 75-05-PLAN.md — Digest and webhook propagation
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 75-07-PLAN.md — Focused runtime-prefix gate and final verification
+
 **Success Criteria:**
 
 1. Trigger fanout persists events, notifications, deliveries, and attempts into the configured prefix.
