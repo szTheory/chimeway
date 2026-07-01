@@ -5,15 +5,15 @@ milestone_name: Storage Isolation and Upgrade Path
 current_phase: 75
 current_phase_name: Runtime Prefix Propagation
 status: executing
-stopped_at: Completed 75-03-PLAN.md
-last_updated: "2026-07-01T18:31:58.243Z"
+stopped_at: Completed 75-04-PLAN.md
+last_updated: "2026-07-01T18:41:59.385Z"
 last_activity: 2026-07-01
-last_activity_desc: Completed 75-02-PLAN.md
+last_activity_desc: Completed 75-04-PLAN.md
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 20
-  completed_plans: 16
+  completed_plans: 17
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 ## Current Position
 
 Phase: 75 (Runtime Prefix Propagation) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
-Last activity: 2026-07-01 — Completed 75-02-PLAN.md
+Last activity: 2026-07-01 — Completed 75-04-PLAN.md
 
 ## Accumulated Context
 
@@ -188,6 +188,9 @@ status: complete
 - [Phase 75-03]: Admin and trace context helpers strip domain/query options, then delegate storage prefix handling to Chimeway.Storage.repo_opts/1. — Keeps D-04 local filtering while preserving D-02 explicit prefix probe precedence.
 - [Phase 75-03]: Trace explanation helper queries reuse caller repo opts so explicit diagnostic prefix probes stay coherent across nested timeline lookups. — Prevents nested workflow and digest explanation reads from drifting away from the caller-selected diagnostic prefix.
 - [Phase 75-03]: Inbox and recovery public APIs required no prefix arguments or additional manual repo opts; Repo.default_options/1 covered the tested paths. — Maintains D-03/D-21 configure-once runtime behavior and avoids exposing Ecto prefix terms to ordinary APIs.
+- [Phase 75-04]: Direct Oban.Job duplicate-collapse queries use Oban-derived repo opts, keeping Oban job-table routing separate from Chimeway storage prefix routing.
+- [Phase 75-04]: Prefixed runtime Oban testing helpers explicitly target the public Oban job table, matching current Oban config and D-13.
+- [Phase 75-04]: Workflow, signal, ObanWorker, and DeferredResumeWorker paths required no manual prefix opts or job-arg changes; durable ID reloads are covered by Repo defaults.
 
 ## Performance
 
@@ -482,8 +485,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-01T18:31:20.178Z
-Stopped at: Completed 75-03-PLAN.md
+Last session: 2026-07-01T18:41:41.626Z
+Stopped at: Completed 75-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -534,3 +537,4 @@ Resume file: None
 | Phase 74 P10 | 25 min | 1 tasks | 6 files |
 | Phase 75 P02 | 5 min | 2 tasks | 3 files |
 | Phase 75 P03 | 4 min | 2 tasks | 3 files |
+| Phase 75 P04 | 5 min | 2 tasks | 3 files |
