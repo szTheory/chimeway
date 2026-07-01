@@ -14,10 +14,10 @@
 
 ### Migration Generation
 
-- [ ] **MIG-01**: `mix chimeway.gen.migrations` defaults to generating migrations for a dedicated `chimeway` schema.
-- [ ] **MIG-02**: Generated prefixed migrations create the schema when needed and apply explicit prefixes to Chimeway tables, indexes, references, alters, drops, and raw SQL.
-- [ ] **MIG-03**: The installer supports explicit public/legacy generation, such as `--prefix public` or equivalent, and emits unprefixed migrations for existing public-schema users.
-- [ ] **MIG-04**: Golden fixture, idempotency, and migration contract tests prove prefixed and public generation are deterministic and reversible where practical.
+- [x] **MIG-01**: `mix chimeway.gen.migrations` defaults to generating migrations for a dedicated `chimeway` schema.
+- [x] **MIG-02**: Generated prefixed migrations create the schema when needed and apply explicit prefixes to Chimeway tables, indexes, references, alters, drops, and raw SQL.
+- [x] **MIG-03**: The installer supports explicit public/legacy generation, such as `--prefix public` or equivalent, and emits unprefixed migrations for existing public-schema users.
+- [x] **MIG-04**: Golden fixture, idempotency, and migration contract tests prove prefixed and public generation are deterministic and reversible where practical.
 
 ### Runtime Prefix Propagation
 
@@ -70,10 +70,10 @@
 | PFX-02 | Phase 73 | Complete |
 | PFX-03 | Phase 73 | Complete |
 | PFX-04 | Phase 73 | Complete |
-| MIG-01 | Phase 74 | Pending |
-| MIG-02 | Phase 74 | Pending |
-| MIG-03 | Phase 74 | Pending |
-| MIG-04 | Phase 74 | Pending |
+| MIG-01 | Phase 74 | Complete |
+| MIG-02 | Phase 74 | Complete |
+| MIG-03 | Phase 74 | Complete |
+| MIG-04 | Phase 74 | Complete |
 | RUN-01 | Phase 75 | Pending |
 | RUN-02 | Phase 75 | Pending |
 | RUN-03 | Phase 75 | Pending |
@@ -87,6 +87,7 @@
 | GATE-01 | Phase 76 | Pending |
 
 **Coverage:**
+
 - v1.13 requirements: 19 total
 - Mapped to phases: 19
 - Unmapped: 0

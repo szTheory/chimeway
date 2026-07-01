@@ -50,7 +50,7 @@
 
 **Depends on:** Phase 73
 
-**Plans:** 8/10 plans executed
+**Plans:** 10/10 plans complete
 
 Plans:
 **Wave 1**
