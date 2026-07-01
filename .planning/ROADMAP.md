@@ -95,7 +95,7 @@ Plans:
 
 **Depends on:** Phases 73-74
 
-**Plans:** 2/7 plans executed
+**Plans:** 3/7 plans executed
 
 Plans:
 **Wave 0**
@@ -108,7 +108,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 75-03-PLAN.md — Operator, inbox, trace, and recovery surfaces
+- [x] 75-03-PLAN.md — Operator, inbox, trace, and recovery surfaces
 - [ ] 75-04-PLAN.md — Workflow, signal, worker, and Oban boundary
 - [ ] 75-06-PLAN.md — Policy and preference propagation
 

@@ -5,15 +5,15 @@ milestone_name: Storage Isolation and Upgrade Path
 current_phase: 75
 current_phase_name: Runtime Prefix Propagation
 status: executing
-stopped_at: Phase 75 context gathered (assumptions mode)
-last_updated: "2026-07-01T18:22:28.561Z"
+stopped_at: Completed 75-03-PLAN.md
+last_updated: "2026-07-01T18:31:58.243Z"
 last_activity: 2026-07-01
 last_activity_desc: Completed 75-02-PLAN.md
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 16
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 ## Current Position
 
 Phase: 75 (Runtime Prefix Propagation) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-07-01 — Completed 75-02-PLAN.md
 
@@ -184,6 +184,10 @@ status: complete
 # Phase 74 Plan 03: Early Helper and Attempt-History SQL Conversion Summary
 
 **Migrations 006-010 now render schema-aware alters, preference tables, delivery orchestration indexes, and fixed-helper attempt-history SQL.**
+
+- [Phase 75-03]: Admin and trace context helpers strip domain/query options, then delegate storage prefix handling to Chimeway.Storage.repo_opts/1. — Keeps D-04 local filtering while preserving D-02 explicit prefix probe precedence.
+- [Phase 75-03]: Trace explanation helper queries reuse caller repo opts so explicit diagnostic prefix probes stay coherent across nested timeline lookups. — Prevents nested workflow and digest explanation reads from drifting away from the caller-selected diagnostic prefix.
+- [Phase 75-03]: Inbox and recovery public APIs required no prefix arguments or additional manual repo opts; Repo.default_options/1 covered the tested paths. — Maintains D-03/D-21 configure-once runtime behavior and avoids exposing Ecto prefix terms to ordinary APIs.
 
 ## Performance
 
@@ -415,6 +419,7 @@ Ready for 74-04. The next wave-2 template batch can continue applying the same h
 ---
 *Phase: 74-prefixed-migration-generator*
 *Completed: 2026-06-30*
+
 - [75-02]: Chimeway.Repo.default_options(:transaction) stays [] while normal operations delegate to Chimeway.Storage.repo_opts/1.
 - [75-02]: Trigger fanout required no public prefix opts or job-arg prefix propagation; Ecto repo defaults cover event, string-source notification insert_all, delivery planning, and attempts.
 - [75-02]: Trigger duplicate idempotency accepts both chimeway_events_idempotency_key_index and PostgreSQL cloned-table chimeway_events_idempotency_key_idx constraint names.
@@ -477,8 +482,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-01T18:22:28.554Z
-Stopped at: Completed 75-02-PLAN.md
+Last session: 2026-07-01T18:31:20.178Z
+Stopped at: Completed 75-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -528,3 +533,4 @@ Resume file: None
 | Phase 74 P09 | 35 min | 2 tasks | 6 logical paths plus generated fixtures |
 | Phase 74 P10 | 25 min | 1 tasks | 6 files |
 | Phase 75 P02 | 5 min | 2 tasks | 3 files |
+| Phase 75 P03 | 4 min | 2 tasks | 3 files |
