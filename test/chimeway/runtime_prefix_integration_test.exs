@@ -390,8 +390,12 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     assert public_count("oban_jobs") == 2
     assert prefixed_count("oban_jobs") == 0
 
-    assert Enum.all?(all_enqueued(worker: ObanWorker), fn %{args: args} ->
-             Map.keys(args) == ["delivery_id"]
+    oban_worker_jobs = all_enqueued(worker: ObanWorker)
+
+    assert length(oban_worker_jobs) == 2
+
+    assert Enum.all?(oban_worker_jobs, fn %{args: args} ->
+             map_size(args) == 1 and is_binary(args["delivery_id"])
            end)
   end
 
@@ -418,6 +422,19 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     assert waiting_run.state == :waiting
     assert waiting_run.pending_signals == ["chimeway.notification.read"]
 
+    assert {:ok, %{event: other_event}} =
+             Chimeway.trigger(
+               ChimewayTest.Notifiers.RuntimePrefixWorkflow,
+               %{recipient_id: recipient_id},
+               idempotency_key: unique_key("workflow-other-tenant"),
+               tenant_id: "globex"
+             )
+
+    other_notification = fetch_notification_for_event!(other_event.id)
+    other_run = fetch_workflow_run!(other_notification.id)
+
+    assert Repo.get!(WorkflowRun, other_run.id).state == :waiting
+
     assert {:ok, signal} =
              Signal.track("acme", recipient_id, "chimeway.notification.read", %{
                "recipient_id" => recipient_id
@@ -440,6 +457,10 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     assert resumed_run.pending_signals == []
     assert resumed_run.status_reason == "signal_received"
 
+    isolated_run = Repo.get!(WorkflowRun, other_run.id)
+    assert isolated_run.state == :waiting
+    assert isolated_run.pending_signals == ["chimeway.notification.read"]
+
     signal_transitions =
       workflow_transitions(workflow_run.id)
       |> Enum.filter(&(&1.reason == "signal_received"))
@@ -450,6 +471,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     due_recipient_id = unique_recipient("workflow-due")
 
+    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+
     assert {:ok, _result} =
              Chimeway.trigger(
                ChimewayTest.Notifiers.RuntimePrefixWorkflow,
@@ -458,8 +481,19 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
              )
 
     due_notification = fetch_notification!(due_recipient_id)
-    due_run = due_notification.id |> fetch_workflow_run!() |> Repo.reload!()
+    due_run = fetch_workflow_run!(due_notification.id)
+
+    assert [%{args: %{"delivery_id" => first_delivery_id}}] = all_enqueued(worker: ObanWorker)
+    assert :ok = perform_job(ObanWorker, %{"delivery_id" => first_delivery_id})
+
+    due_run = Repo.reload!(due_run)
     assert due_run.state == :waiting
+
+    progression_jobs = all_enqueued(worker: WorkflowProgressionWorker)
+
+    assert Enum.any?(progression_jobs, fn %{args: args} ->
+             args == %{"workflow_run_id" => due_run.id}
+           end)
 
     due_at = DateTime.utc_now() |> DateTime.add(-1, :second) |> DateTime.truncate(:microsecond)
 
@@ -754,6 +788,10 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
         limit: 1
       )
     )
+  end
+
+  defp fetch_notification_for_event!(event_id) do
+    Repo.one!(from(n in Notification, where: n.event_id == ^event_id))
   end
 
   defp fetch_workflow_run!(notification_id) do
