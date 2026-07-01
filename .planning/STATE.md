@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
-current_phase: 75
-current_phase_name: Runtime Prefix Propagation
+current_phase: 76
+current_phase_name: Prefix Docs, Demo, and Gates
 status: verifying
 stopped_at: Completed 75-08-PLAN.md
-last_updated: "2026-07-01T20:49:23.968Z"
+last_updated: "2026-07-01T22:46:20.740Z"
 last_activity: 2026-07-01
-last_activity_desc: Completed 75-08 gap closure
+last_activity_desc: Phase 75 complete, transitioned to Phase 76
 progress:
   total_phases: 4
   completed_phases: 3
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 75 — Runtime Prefix Propagation
+**Current focus:** Phase 76 — Prefix Docs, Demo, and Gates
 
 ## Current Position
 
-Phase: 75 (Runtime Prefix Propagation) — PLANNED
-Plan: 8 of 8
+Phase: 76 — Prefix Docs, Demo, and Gates
+Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-07-01 — Completed 75-08 gap closure
+Last activity: 2026-07-01 — Phase 75 complete, transitioned to Phase 76
 
 ## Accumulated Context
 
