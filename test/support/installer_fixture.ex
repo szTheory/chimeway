@@ -53,17 +53,6 @@ defmodule Chimeway.Test.InstallerFixture do
   def golden_dir(:public), do: Path.join(@fixtures_dir, "installer_golden_public")
 
   @doc """
-  Returns true when a committed golden fixture exists for a generation mode.
-  """
-  @spec golden_fixture?(atom()) :: boolean()
-  def golden_fixture?(mode) do
-    mode
-    |> golden_dir()
-    |> Path.join("STDOUT.txt")
-    |> File.exists?()
-  end
-
-  @doc """
   Returns a map of relative migration path → file contents.
   """
   @spec snapshot_migrations_tree!(Path.t()) :: %{String.t() => String.t()}

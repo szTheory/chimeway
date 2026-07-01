@@ -54,20 +54,15 @@ defmodule Chimeway.Install.GoldenDiffTest do
         assert_chimeway_migration_markers!(tree)
         assert_mode_shape!(context.golden_mode, tree)
 
-        cond do
-          InstallerFixture.accept_golden_refresh?() ->
-            InstallerFixture.write_golden!(context.golden_mode, tree, stdout)
+        if InstallerFixture.accept_golden_refresh?() do
+          InstallerFixture.write_golden!(context.golden_mode, tree, stdout)
+        else
+          InstallerFixture.assert_tree_equal(
+            tree,
+            InstallerFixture.load_golden_tree(context.golden_mode)
+          )
 
-          InstallerFixture.golden_fixture?(context.golden_mode) ->
-            InstallerFixture.assert_tree_equal(
-              tree,
-              InstallerFixture.load_golden_tree(context.golden_mode)
-            )
-
-            assert stdout == InstallerFixture.load_golden_stdout(context.golden_mode)
-
-          true ->
-            :ok
+          assert stdout == InstallerFixture.load_golden_stdout(context.golden_mode)
         end
       after
         File.rm_rf!(root)
