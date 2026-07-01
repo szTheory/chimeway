@@ -5,16 +5,16 @@ milestone_name: Storage Isolation and Upgrade Path
 current_phase: 75
 current_phase_name: Runtime Prefix Propagation
 status: executing
-stopped_at: Completed 75-04-PLAN.md
-last_updated: "2026-07-01T18:41:59.385Z"
+stopped_at: Completed 75-05-PLAN.md
+last_updated: "2026-07-01T19:46:23.684Z"
 last_activity: 2026-07-01
-last_activity_desc: Completed 75-04-PLAN.md
+last_activity_desc: Completed 75-05-PLAN.md
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 20
-  completed_plans: 17
-  percent: 50
+  completed_plans: 19
+  percent: 95
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 ## Current Position
 
 Phase: 75 (Runtime Prefix Propagation) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
-Last activity: 2026-07-01 — Completed 75-04-PLAN.md
+Last activity: 2026-07-01 — Completed 75-05-PLAN.md
 
 ## Accumulated Context
 
@@ -191,6 +191,9 @@ status: complete
 - [Phase 75-04]: Direct Oban.Job duplicate-collapse queries use Oban-derived repo opts, keeping Oban job-table routing separate from Chimeway storage prefix routing.
 - [Phase 75-04]: Prefixed runtime Oban testing helpers explicitly target the public Oban job table, matching current Oban config and D-13.
 - [Phase 75-04]: Workflow, signal, ObanWorker, and DeferredResumeWorker paths required no manual prefix opts or job-arg changes; durable ID reloads are covered by Repo defaults.
+- [Phase 75-05]: Digest and webhook production paths required no operation-level Storage.repo_opts/1 exceptions; Repo.default_options/1 covers the audited operations.
+- [Phase 75-05]: The digest runtime proof must transition the fixture delivery to :digest_held before accumulation, matching the production digest contract.
+- [Phase 75-05]: The webhook runtime proof must enter through Webhooks.process/4 and assert ProcessFeedbackWorker args remain ingress_id-only.
 
 ## Performance
 
@@ -485,8 +488,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-01T18:41:41.626Z
-Stopped at: Completed 75-04-PLAN.md
+Last session: 2026-07-01T19:46:23.555Z
+Stopped at: Completed 75-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -538,3 +541,4 @@ Resume file: None
 | Phase 75 P02 | 5 min | 2 tasks | 3 files |
 | Phase 75 P03 | 4 min | 2 tasks | 3 files |
 | Phase 75 P04 | 5 min | 2 tasks | 3 files |
+| Phase 75-runtime-prefix-propagation P05 | 6 min | 2 tasks | 1 files |

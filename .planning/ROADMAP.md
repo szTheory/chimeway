@@ -95,7 +95,7 @@ Plans:
 
 **Depends on:** Phases 73-74
 
-**Plans:** 5/7 plans executed
+**Plans:** 6/7 plans executed
 
 Plans:
 **Wave 0**
@@ -114,7 +114,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 75-05-PLAN.md — Digest and webhook propagation
+- [x] 75-05-PLAN.md — Digest and webhook propagation
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
