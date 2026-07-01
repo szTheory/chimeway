@@ -73,7 +73,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 74-10-PLAN.md — static, DB, verify, and CI parity proof
+- [x] 74-10-PLAN.md — static, DB, verify, and CI parity proof
 
 **Cross-cutting constraints:**
 
