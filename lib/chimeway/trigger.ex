@@ -79,13 +79,12 @@ defmodule Chimeway.Trigger do
           Multi.new()
           |> Multi.insert(
             :event,
-            Event.changeset(%Event{}, %{
-              notification_key: notifier.notification_key(),
-              notification_version: notifier.version(),
-              idempotency_key: idempotency_key,
-              payload: sanitize_payload(params),
-              correlation_id: correlation_id
-            })
+            event_changeset(
+              notifier,
+              idempotency_key,
+              params,
+              correlation_id
+            )
           )
           |> Multi.run(:notifications, fn repo, %{event: event} ->
             insert_notifications(repo, notifier, params, event, normalized_recipients, tenant_id)
@@ -154,6 +153,19 @@ defmodule Chimeway.Trigger do
   end
 
   defp validate_tenant_id(_tenant_id), do: {:error, :invalid_tenant_id}
+
+  defp event_changeset(notifier, idempotency_key, params, correlation_id) do
+    Event.changeset(%Event{}, %{
+      notification_key: notifier.notification_key(),
+      notification_version: notifier.version(),
+      idempotency_key: idempotency_key,
+      payload: sanitize_payload(params),
+      correlation_id: correlation_id
+    })
+    |> Ecto.Changeset.unique_constraint(:idempotency_key,
+      name: :chimeway_events_idempotency_key_idx
+    )
+  end
 
   defp insert_notifications(repo, notifier, params, event, recipients, tenant_id) do
     with {:ok, notifications} <- notifications_attrs(repo, notifier, params, event, recipients) do
@@ -259,7 +271,9 @@ defmodule Chimeway.Trigger do
         opts[:constraint] == :unique and
           opts[:constraint_name] in [
             :chimeway_events_idempotency_key_index,
-            "chimeway_events_idempotency_key_index"
+            "chimeway_events_idempotency_key_index",
+            :chimeway_events_idempotency_key_idx,
+            "chimeway_events_idempotency_key_idx"
           ]
 
       _ ->
