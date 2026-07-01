@@ -2,13 +2,15 @@
 defmodule Chimeway.Repo.Migrations.CreateChimewayDigestBuckets do
   use Ecto.Migration
 
+  @chimeway_prefix __CHIMEWAY_PREFIX__
+
   def change do
-    create table(:chimeway_digest_buckets, primary_key: false) do
+    create chimeway_table(:chimeway_digest_buckets, primary_key: false) do
       add(:id, :uuid, primary_key: true, default: fragment("gen_random_uuid()"))
 
       add(
         :digest_rule_id,
-        references(:chimeway_digest_rules, type: :uuid, on_delete: :delete_all),
+        chimeway_references(:chimeway_digest_rules, type: :uuid, on_delete: :delete_all),
         null: false
       )
 
@@ -29,7 +31,7 @@ defmodule Chimeway.Repo.Migrations.CreateChimewayDigestBuckets do
     end
 
     create(
-      unique_index(
+      chimeway_unique_index(
         :chimeway_digest_buckets,
         [
           :digest_rule_id,
@@ -38,10 +40,36 @@ defmodule Chimeway.Repo.Migrations.CreateChimewayDigestBuckets do
           :grouping_value,
           :window_starts_at,
           :window_ends_at
-        ], name: :chimeway_digest_buckets_identity_index)
+        ],
+        name: :chimeway_digest_buckets_identity_index
+      )
     )
 
-    create(index(:chimeway_digest_buckets, [:digest_rule_id]))
-    create(index(:chimeway_digest_buckets, [:recipient_id]))
+    create(chimeway_index(:chimeway_digest_buckets, [:digest_rule_id]))
+    create(chimeway_index(:chimeway_digest_buckets, [:recipient_id]))
+  end
+
+  defp chimeway_prefix_opts(opts \\ []) do
+    if @chimeway_prefix do
+      Keyword.put_new(opts, :prefix, @chimeway_prefix)
+    else
+      opts
+    end
+  end
+
+  defp chimeway_table(name, opts \\ []) do
+    table(name, chimeway_prefix_opts(opts))
+  end
+
+  defp chimeway_index(table_name, columns, opts \\ []) do
+    index(table_name, columns, chimeway_prefix_opts(opts))
+  end
+
+  defp chimeway_unique_index(table_name, columns, opts \\ []) do
+    unique_index(table_name, columns, chimeway_prefix_opts(opts))
+  end
+
+  defp chimeway_references(table_name, opts \\ []) do
+    references(table_name, chimeway_prefix_opts(opts))
   end
 end
