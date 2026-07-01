@@ -197,6 +197,7 @@ status: complete
 - [Phase 75-08]: Admin and recovery prefixed proof uses ordinary API arguments and relies on Repo.default_options/1 rather than passing prefix options.
 - [Phase 75-08]: Signal and workflow worker proof uses durable ID args only: signal_id and workflow_run_id.
 - [Phase 75-08]: RuntimePrefixWorkflow fixture includes email render fields so due wait progression can create the next-step email delivery.
+- [Phase 75-08]: Worker runtime-prefix proof asserts exact queued args and performs from queued args for SignalRouterWorker and WorkflowProgressionWorker.
 
 ## Performance
 

@@ -30,6 +30,7 @@ key-decisions:
   - "[75-08]: Admin and recovery prefixed proof uses ordinary API arguments and relies on Repo.default_options/1 rather than passing prefix options."
   - "[75-08]: Signal and workflow worker proof uses durable ID args only: signal_id and workflow_run_id."
   - "[75-08]: RuntimePrefixWorkflow fixture now includes email render fields so due wait progression can create the next-step email delivery."
+  - "[75-08]: Worker proof asserts exact queued args and performs from queued args for ObanWorker, SignalRouterWorker, and WorkflowProgressionWorker."
 patterns-established:
   - "Gap-closure runtime-prefix tests should execute the runtime path, not only assert enqueue or source wiring."
   - "Worker-prefix proof asserts both durable-ID-only args and prefixed-only row placement for the rows the worker reads or writes."
@@ -57,6 +58,7 @@ status: complete
 - Added prefixed recovery execution proof for `Deliveries.begin_recovery/2`, `Deliveries.recover_delivery/2`, and `Deliveries.recover_event/2`.
 - Expanded `:runtime_prefix_workflow_signal` to execute `SignalRouterWorker.perform/1` with `signal_id` and `WorkflowProgressionWorker.perform/1` with `workflow_run_id`.
 - Asserted worker-created workflow transitions, signal rows, workflow runs, and next-step email deliveries remain prefixed-only with no public fallback.
+- Hardened the worker proof so queued job args are exact and durable-ID-only, including same-recipient cross-tenant signal isolation.
 
 ## Task Commits
 
@@ -64,6 +66,9 @@ Each task was committed atomically:
 
 1. **Task 1: Expand prefixed admin and recovery execution coverage** - `b28f6d3` (test)
 2. **Task 2: Execute signal routing and workflow progression under prefix mode** - `d579ac1` (test)
+3. **Review fix: Harden runtime prefix worker proofs** - `7a5bf84` (test)
+4. **Review fix: Assert exact signal router job args** - `9be6b5a` (test)
+5. **Review fix: Assert exact workflow progression job args** - `0ed1d63` (test)
 
 ## Files Created/Modified
 
@@ -75,6 +80,7 @@ Each task was committed atomically:
 - Kept runtime-prefix proof at the focused integration layer; no production prefix API, worker arg, transaction option, process state, or Oban prefix coupling was added.
 - Used durable worker IDs only: `signal_id` for signal routing and `workflow_run_id` for due workflow progression.
 - Fixed the runtime workflow test fixture to render email safely because the due progression proof now advances into the email step.
+- Closed code-review test-reliability warnings by proving exact queued args and by performing workers from the queued args instead of hand-built replacements.
 
 ## Verification
 
@@ -87,12 +93,14 @@ Each task was committed atomically:
 - PASS: `mix format --check-formatted test/chimeway/runtime_prefix_integration_test.exs`
 - PASS: Source assertions found all required Admin, recovery, SignalRouterWorker, and WorkflowProgressionWorker calls in the focused runtime-prefix test file.
 - PASS: Source scan found no ordinary Chimeway/Admin/recovery public API call passing `prefix:`.
+- PASS: Phase 75 scoped code review completed clean in `.planning/phases/75-runtime-prefix-propagation/75-REVIEW.md` (0 findings).
 
 ## TDD Gate Compliance
 
 - The plan tasks were marked `tdd="true"`, but this was a gap-closure proof over existing implementation.
 - The work added executable assertions and test fixture support only; no separate RED production-failure commit was created.
 - GREEN evidence is captured by task commits `b28f6d3` and `d579ac1` plus the focused and broad gates above.
+- Review-hardening evidence is captured by commits `7a5bf84`, `9be6b5a`, and `0ed1d63`.
 
 ## Deviations from Plan
 
@@ -115,6 +123,7 @@ Each task was committed atomically:
 
 - `mix ci.test` and `mix verify.install_golden` emitted existing non-failing `Threadline.Export.CleanupTask` SQL Sandbox ownership logs. Both commands exited 0.
 - The broad suite emitted the existing ExUnit fixture-pattern notice for installer golden migration fixture files, then completed green.
+- Initial code review reported test-proof gaps around vacuous job assertions, tenant isolation, and hand-built worker args. Follow-up commits hardened those assertions and the final review is clean.
 
 ## Known Stubs
 
@@ -134,7 +143,7 @@ Phase 75 is ready for phase-level verification and completion. The focused `mix 
 
 ## Self-Check: PASSED
 
-- Found task commits: `b28f6d3` and `d579ac1`.
+- Found task commits: `b28f6d3`, `d579ac1`, `7a5bf84`, `9be6b5a`, and `0ed1d63`.
 - Found summary file path: `.planning/phases/75-runtime-prefix-propagation/75-08-SUMMARY.md`.
 - Verified all plan-level commands exit 0: focused operator tag, admin/recovery regressions, focused workflow/signal tag, `mix verify.runtime_prefix`, `mix ci.test`, and `mix verify.install_golden`.
 - Verified source assertions for Admin read models, recovery execution APIs, signal router worker execution, workflow progression worker execution, and durable-ID-only worker args.
