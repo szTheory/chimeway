@@ -56,7 +56,10 @@ defmodule ChimewayTest.Notifiers.RuntimePrefixWorkflow do
        assigns: %{
          "headline" => "Runtime workflow",
          "body" => "Runtime workflow body",
-         "primary_action" => %{"label" => "Open", "url" => "https://example.test/workflow"}
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/workflow"},
+         "subject" => "Runtime workflow",
+         "html_body" => "<p>Runtime workflow body</p>",
+         "text_body" => "Runtime workflow body"
        },
        channels: %{
          in_app: %{render_key: "test.runtime_prefix.workflow.in_app", render_version: 1},
@@ -120,8 +123,18 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   import Chimeway.Test.DispatchHelpers,
     only: [create_notification: 1, create_pending_delivery: 1]
 
+  import Ecto.Query
+
   alias Chimeway.{Admin, Deliveries, Delivery, Preferences, Repo, Signal, Traces}
-  alias Chimeway.Dispatch.{DeferredResumeWorker, DigestFlushWorker, ObanWorker}
+
+  alias Chimeway.Dispatch.{
+    DeferredResumeWorker,
+    DigestFlushWorker,
+    ObanWorker,
+    SignalRouterWorker,
+    WorkflowProgressionWorker
+  }
+
   alias Chimeway.Digests.{Accumulation, DigestBucket}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -129,6 +142,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   alias Chimeway.Policy.Settings
   alias Chimeway.Signals.Signal, as: PersistedSignal
   alias Chimeway.Webhooks.ProcessFeedbackWorker
+  alias Chimeway.Workflows.{WorkflowRun, WorkflowTransition}
 
   @operator_forbidden_keys ~w(
     payload render_assigns render_data provider_response provider_body metadata session params
@@ -397,17 +411,91 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     assert_prefixed_only("chimeway_deliveries", 1)
     assert_prefixed_only("chimeway_workflow_runs", 1)
 
+    notification = fetch_notification!(recipient_id)
+    workflow_run = fetch_workflow_run!(notification.id)
+    waiting_run = Repo.get!(WorkflowRun, workflow_run.id)
+
+    assert waiting_run.state == :waiting
+    assert waiting_run.pending_signals == ["chimeway.notification.read"]
+
     assert {:ok, signal} =
-             Signal.track("default", recipient_id, "chimeway.notification.read", %{
+             Signal.track("acme", recipient_id, "chimeway.notification.read", %{
                "recipient_id" => recipient_id
              })
 
     assert_prefixed_only("chimeway_signals", 1)
 
+    signal_args = %{"signal_id" => signal.id}
+    assert_durable_id_args(signal_args, "signal_id")
+
     assert_enqueued(
-      worker: Chimeway.Dispatch.SignalRouterWorker,
-      args: %{"signal_id" => signal.id}
+      worker: SignalRouterWorker,
+      args: signal_args
     )
+
+    assert :ok = SignalRouterWorker.perform(%Oban.Job{args: signal_args})
+
+    resumed_run = Repo.get!(WorkflowRun, workflow_run.id)
+    assert resumed_run.state == :active
+    assert resumed_run.pending_signals == []
+    assert resumed_run.status_reason == "signal_received"
+
+    signal_transitions =
+      workflow_transitions(workflow_run.id)
+      |> Enum.filter(&(&1.reason == "signal_received"))
+
+    assert length(signal_transitions) == 1
+    [signal_transition] = signal_transitions
+    assert signal_transition.context == %{"event_name" => "chimeway.notification.read"}
+
+    due_recipient_id = unique_recipient("workflow-due")
+
+    assert {:ok, _result} =
+             Chimeway.trigger(
+               ChimewayTest.Notifiers.RuntimePrefixWorkflow,
+               %{recipient_id: due_recipient_id},
+               trigger_opts("workflow-due")
+             )
+
+    due_notification = fetch_notification!(due_recipient_id)
+    due_run = due_notification.id |> fetch_workflow_run!() |> Repo.reload!()
+    assert due_run.state == :waiting
+
+    due_at = DateTime.utc_now() |> DateTime.add(-1, :second) |> DateTime.truncate(:microsecond)
+
+    due_run =
+      due_run
+      |> Ecto.Changeset.change(
+        status_context: Map.put(due_run.status_context, "due_at", DateTime.to_iso8601(due_at))
+      )
+      |> Repo.update!()
+
+    progression_args = %{"workflow_run_id" => due_run.id}
+    assert_durable_id_args(progression_args, "workflow_run_id")
+
+    assert :ok = WorkflowProgressionWorker.perform(%Oban.Job{args: progression_args})
+
+    advanced_run = Repo.get!(WorkflowRun, due_run.id)
+    email_delivery = fetch_delivery!(due_notification.id, "email")
+
+    assert advanced_run.state == :active
+    assert advanced_run.status_reason == "progressed_on_delivery_outcome"
+    assert email_delivery.workflow_run_id == due_run.id
+
+    due_transitions = workflow_transitions(due_run.id)
+
+    assert Enum.any?(due_transitions, &(&1.reason == "reactivated_from_wait"))
+
+    assert Enum.any?(due_transitions, fn transition ->
+             transition.reason == "step_activated" and transition.context["step_key"] == "email"
+           end)
+
+    assert_prefixed_only("chimeway_events")
+    assert_prefixed_only("chimeway_notifications")
+    assert_prefixed_only("chimeway_deliveries")
+    assert_prefixed_only("chimeway_signals")
+    assert_prefixed_only("chimeway_workflow_runs")
+    assert_prefixed_only("chimeway_workflow_transitions")
   end
 
   @tag :runtime_prefix_dispatch_worker
@@ -656,6 +744,42 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     struct
     |> Ecto.Changeset.change(attrs)
     |> Repo.update!()
+  end
+
+  defp fetch_notification!(recipient_id) do
+    Repo.one!(
+      from(n in Notification,
+        where: n.recipient_identity == ^recipient_id,
+        order_by: [desc: n.inserted_at],
+        limit: 1
+      )
+    )
+  end
+
+  defp fetch_workflow_run!(notification_id) do
+    Repo.one!(from(wr in WorkflowRun, where: wr.notification_id == ^notification_id))
+  end
+
+  defp fetch_delivery!(notification_id, channel) do
+    Repo.one!(
+      from(d in Delivery,
+        where: d.notification_id == ^notification_id and d.channel == ^channel
+      )
+    )
+  end
+
+  defp workflow_transitions(workflow_run_id) do
+    Repo.all(
+      from(wt in WorkflowTransition,
+        where: wt.workflow_run_id == ^workflow_run_id,
+        order_by: [asc: wt.inserted_at]
+      )
+    )
+  end
+
+  defp assert_durable_id_args(args, key) do
+    assert Map.keys(args) == [key]
+    assert is_binary(Map.fetch!(args, key))
   end
 
   defp assert_no_operator_forbidden_keys(term) do
