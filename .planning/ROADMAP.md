@@ -69,7 +69,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 74-09-PLAN.md — dual fixture and idempotency proof
+- [x] 74-09-PLAN.md — dual fixture and idempotency proof
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
