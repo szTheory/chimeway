@@ -50,7 +50,7 @@
 
 **Depends on:** Phase 73
 
-**Plans:** 3/10 plans executed
+**Plans:** 6/10 plans executed
 
 Plans:
 **Wave 1**
@@ -61,9 +61,9 @@ Plans:
 
 - [x] 74-02-PLAN.md — templates 001-005 helper conversion
 - [x] 74-03-PLAN.md — templates 006-010 helper/raw SQL conversion
-- [ ] 74-04-PLAN.md — templates 011-015 helper conversion
-- [ ] 74-05-PLAN.md — templates 016-020 helper conversion
-- [ ] 74-06-PLAN.md — templates 021-025 helper conversion
+- [x] 74-04-PLAN.md — templates 011-015 helper conversion
+- [x] 74-05-PLAN.md — templates 016-020 helper conversion
+- [x] 74-06-PLAN.md — templates 021-025 helper conversion
 - [ ] 74-07-PLAN.md — templates 026-030 helper/raw SQL conversion
 - [ ] 74-08-PLAN.md — template 031 helper conversion
 
