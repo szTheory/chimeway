@@ -95,7 +95,7 @@ Plans:
 
 **Depends on:** Phases 73-74
 
-**Plans:** 1/7 plans executed
+**Plans:** 2/7 plans executed
 
 Plans:
 **Wave 0**
@@ -104,7 +104,7 @@ Plans:
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
-- [ ] 75-02-PLAN.md — Repo defaults and trigger fanout propagation
+- [x] 75-02-PLAN.md — Repo defaults and trigger fanout propagation
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

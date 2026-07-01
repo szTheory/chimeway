@@ -6,14 +6,14 @@ current_phase: 75
 current_phase_name: Runtime Prefix Propagation
 status: executing
 stopped_at: Phase 75 context gathered (assumptions mode)
-last_updated: "2026-07-01T17:52:20.168Z"
+last_updated: "2026-07-01T18:22:28.561Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 75 execution started
+last_activity_desc: Completed 75-02-PLAN.md
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 20
-  completed_plans: 13
+  completed_plans: 15
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 ## Current Position
 
 Phase: 75 (Runtime Prefix Propagation) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 75
-Last activity: 2026-07-01 — Phase 75 execution started
+Plan: 2 of 7
+Status: Ready to execute
+Last activity: 2026-07-01 — Completed 75-02-PLAN.md
 
 ## Accumulated Context
 
@@ -415,6 +415,9 @@ Ready for 74-04. The next wave-2 template batch can continue applying the same h
 ---
 *Phase: 74-prefixed-migration-generator*
 *Completed: 2026-06-30*
+- [75-02]: Chimeway.Repo.default_options(:transaction) stays [] while normal operations delegate to Chimeway.Storage.repo_opts/1.
+- [75-02]: Trigger fanout required no public prefix opts or job-arg prefix propagation; Ecto repo defaults cover event, string-source notification insert_all, delivery planning, and attempts.
+- [75-02]: Trigger duplicate idempotency accepts both chimeway_events_idempotency_key_index and PostgreSQL cloned-table chimeway_events_idempotency_key_idx constraint names.
 
 ### Pending Todos
 
@@ -474,9 +477,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-01T15:32:02.978Z
-Stopped at: Phase 75 context gathered (assumptions mode)
-Resume file: .planning/phases/75-runtime-prefix-propagation/75-CONTEXT.md
+Last session: 2026-07-01T18:22:28.554Z
+Stopped at: Completed 75-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -524,3 +527,4 @@ Resume file: .planning/phases/75-runtime-prefix-propagation/75-CONTEXT.md
 | Phase 74 P08 | 15 min | 1 tasks | 2 files |
 | Phase 74 P09 | 35 min | 2 tasks | 6 logical paths plus generated fixtures |
 | Phase 74 P10 | 25 min | 1 tasks | 6 files |
+| Phase 75 P02 | 5 min | 2 tasks | 3 files |
