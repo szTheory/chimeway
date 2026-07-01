@@ -2,11 +2,29 @@
 defmodule Chimeway.Repo.Migrations.AddCorrelationIdToChimewayEvents do
   use Ecto.Migration
 
+  @chimeway_prefix __CHIMEWAY_PREFIX__
+
   def change do
-    alter table(:chimeway_events) do
-      add :correlation_id, :string, null: true
+    alter chimeway_table(:chimeway_events) do
+      add(:correlation_id, :string, null: true)
     end
 
-    create index(:chimeway_events, [:correlation_id])
+    create(chimeway_index(:chimeway_events, [:correlation_id]))
+  end
+
+  defp chimeway_prefix_opts(opts \\ []) do
+    if @chimeway_prefix do
+      Keyword.put_new(opts, :prefix, @chimeway_prefix)
+    else
+      opts
+    end
+  end
+
+  defp chimeway_table(name, opts \\ []) do
+    table(name, chimeway_prefix_opts(opts))
+  end
+
+  defp chimeway_index(table_name, columns, opts \\ []) do
+    index(table_name, columns, chimeway_prefix_opts(opts))
   end
 end

@@ -14,34 +14,60 @@ defmodule Chimeway.Repo.Migrations.AddAttemptHistoryColumns do
 
   use Ecto.Migration
 
+  @chimeway_prefix __CHIMEWAY_PREFIX__
+
   def up do
-    alter table(:chimeway_delivery_attempts) do
-      add :attempt_number, :integer, null: true
-      add :error_class, :string, null: true
+    alter chimeway_table(:chimeway_delivery_attempts) do
+      add(:attempt_number, :integer, null: true)
+      add(:error_class, :string, null: true)
     end
 
     execute(
       """
-      UPDATE chimeway_delivery_attempts AS a
+      UPDATE #{chimeway_relation(:chimeway_delivery_attempts)} AS a
       SET attempt_number = sub.rn
       FROM (
         SELECT id, ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY inserted_at, id) AS rn
-        FROM chimeway_delivery_attempts
+        FROM #{chimeway_relation(:chimeway_delivery_attempts)}
       ) AS sub
       WHERE a.id = sub.id;
       """,
-      "UPDATE chimeway_delivery_attempts SET attempt_number = NULL;"
+      "UPDATE #{chimeway_relation(:chimeway_delivery_attempts)} SET attempt_number = NULL;"
     )
 
-    create index(:chimeway_delivery_attempts, [:error_class])
+    create(chimeway_index(:chimeway_delivery_attempts, [:error_class]))
   end
 
   def down do
-    drop index(:chimeway_delivery_attempts, [:error_class])
+    drop(chimeway_index(:chimeway_delivery_attempts, [:error_class]))
 
-    alter table(:chimeway_delivery_attempts) do
-      remove :error_class
-      remove :attempt_number
+    alter chimeway_table(:chimeway_delivery_attempts) do
+      remove(:error_class)
+      remove(:attempt_number)
+    end
+  end
+
+  defp chimeway_prefix_opts(opts \\ []) do
+    if @chimeway_prefix do
+      Keyword.put_new(opts, :prefix, @chimeway_prefix)
+    else
+      opts
+    end
+  end
+
+  defp chimeway_table(name, opts \\ []) do
+    table(name, chimeway_prefix_opts(opts))
+  end
+
+  defp chimeway_index(table_name, columns, opts \\ []) do
+    index(table_name, columns, chimeway_prefix_opts(opts))
+  end
+
+  defp chimeway_relation(:chimeway_delivery_attempts) do
+    if @chimeway_prefix do
+      ~s("#{@chimeway_prefix}"."chimeway_delivery_attempts")
+    else
+      "chimeway_delivery_attempts"
     end
   end
 end
