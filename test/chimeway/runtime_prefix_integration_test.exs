@@ -267,6 +267,18 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
         channel: :email
       )
 
+    assert {:ok, delivery} =
+             Deliveries.apply_planning_decision(delivery, %{
+               orchestration_state: :digest_held,
+               planning_reason: "digest_rule",
+               planning_context: %{
+                 "channel" => "email",
+                 "source" => "runtime_prefix",
+                 "rule_identity" => "#{rule.rule_key}:v#{rule.rule_version}"
+               },
+               next_eligible_at: nil
+             })
+
     assert {:ok, bucket} =
              Accumulation.accumulate_delivery(delivery,
                accumulated_at: ~U[2026-06-01 10:05:00.000000Z]
