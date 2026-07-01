@@ -1,7 +1,7 @@
 defmodule Chimeway.Test.InstallerFixture do
   @moduledoc false
 
-  @golden_dir Path.expand("../fixtures/installer_golden", __DIR__)
+  @fixtures_dir Path.expand("../fixtures", __DIR__)
   @accept_golden_env "MIX_INSTALLER_ACCEPT_GOLDEN"
 
   @doc """
@@ -34,14 +34,33 @@ defmodule Chimeway.Test.InstallerFixture do
   Runs `mix chimeway.gen.migrations` in a subprocess and returns `{output, status}`.
   """
   @spec run_install!(Path.t(), keyword()) :: {String.t(), non_neg_integer()}
-  def run_install!(root, _opts \\ []) when is_binary(root) do
+  def run_install!(root, opts \\ []) when is_binary(root) do
     ensure_deps!(root)
 
-    System.cmd("mix", ["chimeway.gen.migrations"],
+    System.cmd("mix", install_args(Keyword.get(opts, :prefix, :default)),
       cd: root,
       stderr_to_stdout: true,
       env: [{"MIX_ENV", "dev"}]
     )
+  end
+
+  @doc """
+  Returns the committed golden fixture directory for a generation mode.
+  """
+  @spec golden_dir(:prefixed | :chimeway | :public) :: Path.t()
+  def golden_dir(:prefixed), do: Path.join(@fixtures_dir, "installer_golden_prefixed")
+  def golden_dir(:chimeway), do: golden_dir(:prefixed)
+  def golden_dir(:public), do: Path.join(@fixtures_dir, "installer_golden_public")
+
+  @doc """
+  Returns true when a committed golden fixture exists for a generation mode.
+  """
+  @spec golden_fixture?(atom()) :: boolean()
+  def golden_fixture?(mode) do
+    mode
+    |> golden_dir()
+    |> Path.join("STDOUT.txt")
+    |> File.exists?()
   end
 
   @doc """
@@ -110,35 +129,37 @@ defmodule Chimeway.Test.InstallerFixture do
   @doc """
   Writes normalized tree and stdout to the committed golden fixture directory.
   """
-  @spec write_golden!(map(), String.t()) :: :ok
-  def write_golden!(tree, stdout) when is_map(tree) and is_binary(stdout) do
-    tree_dir = Path.join(@golden_dir, "tree/priv/repo/migrations")
+  @spec write_golden!(:prefixed | :chimeway | :public, map(), String.t()) :: :ok
+  def write_golden!(mode, tree, stdout) when is_map(tree) and is_binary(stdout) do
+    golden_dir = golden_dir(mode)
+    tree_dir = Path.join(golden_dir, "tree/priv/repo/migrations")
     File.rm_rf!(Path.dirname(tree_dir))
     File.mkdir_p!(tree_dir)
 
     Enum.each(tree, fn {rel, content} ->
-      dest = Path.join([@golden_dir, "tree", rel])
+      dest = Path.join([golden_dir, "tree", rel])
       File.mkdir_p!(Path.dirname(dest))
       File.write!(dest, content)
     end)
 
-    File.write!(Path.join(@golden_dir, "STDOUT.txt"), stdout <> "\n")
+    File.write!(Path.join(golden_dir, "STDOUT.txt"), stdout <> "\n")
     :ok
   end
 
   @doc """
   Loads the committed golden migration tree.
   """
-  @spec load_golden_tree() :: %{String.t() => String.t()}
-  def load_golden_tree do
-    tree_dir = Path.join(@golden_dir, "tree")
+  @spec load_golden_tree(:prefixed | :chimeway | :public) :: %{String.t() => String.t()}
+  def load_golden_tree(mode) do
+    golden_dir = golden_dir(mode)
+    tree_dir = Path.join(golden_dir, "tree")
 
     tree_dir
     |> Path.join("**/*.exs")
     |> Path.wildcard()
     |> Enum.sort()
     |> Map.new(fn abs_path ->
-      rel = Path.relative_to(abs_path, Path.join(@golden_dir, "tree"))
+      rel = Path.relative_to(abs_path, Path.join(golden_dir, "tree"))
       {rel, File.read!(abs_path)}
     end)
   end
@@ -146,9 +167,10 @@ defmodule Chimeway.Test.InstallerFixture do
   @doc """
   Loads the committed golden stdout fixture.
   """
-  @spec load_golden_stdout() :: String.t()
-  def load_golden_stdout do
-    @golden_dir
+  @spec load_golden_stdout(:prefixed | :chimeway | :public) :: String.t()
+  def load_golden_stdout(mode) do
+    mode
+    |> golden_dir()
     |> Path.join("STDOUT.txt")
     |> File.read!()
     |> String.trim_trailing()
@@ -215,6 +237,16 @@ defmodule Chimeway.Test.InstallerFixture do
     if compile_status != 0 do
       raise "mix compile failed in #{root}:\n#{compile_output}"
     end
+  end
+
+  defp install_args(:default), do: ["chimeway.gen.migrations"]
+  defp install_args(:chimeway), do: ["chimeway.gen.migrations", "--prefix", "chimeway"]
+  defp install_args(:public), do: ["chimeway.gen.migrations", "--prefix", "public"]
+
+  defp install_args(prefix) do
+    raise ArgumentError,
+          "unsupported installer fixture prefix #{inspect(prefix)}; " <>
+            "expected :default, :chimeway, or :public"
   end
 
   defp host_mix_exs do
