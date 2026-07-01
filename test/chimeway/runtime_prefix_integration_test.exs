@@ -487,11 +487,11 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     due_run = Repo.reload!(due_run)
     assert due_run.state == :waiting
 
-    progression_jobs = all_enqueued(worker: WorkflowProgressionWorker)
+    progression_args = %{"workflow_run_id" => due_run.id}
+    assert_durable_id_args(progression_args, "workflow_run_id")
 
-    assert Enum.any?(progression_jobs, fn %{args: args} ->
-             args == %{"workflow_run_id" => due_run.id}
-           end)
+    assert [progression_job] = all_enqueued(worker: WorkflowProgressionWorker)
+    assert progression_job.args == progression_args
 
     due_at = DateTime.utc_now() |> DateTime.add(-1, :second) |> DateTime.truncate(:microsecond)
 
@@ -502,10 +502,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       )
       |> Repo.update!()
 
-    progression_args = %{"workflow_run_id" => due_run.id}
-    assert_durable_id_args(progression_args, "workflow_run_id")
-
-    assert :ok = WorkflowProgressionWorker.perform(%Oban.Job{args: progression_args})
+    assert :ok = WorkflowProgressionWorker.perform(%Oban.Job{args: progression_job.args})
 
     advanced_run = Repo.get!(WorkflowRun, due_run.id)
     email_delivery = fetch_delivery!(due_notification.id, "email")
