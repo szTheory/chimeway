@@ -44,12 +44,14 @@ defmodule Chimeway.Traces do
   """
   @spec get_trace(String.t(), keyword()) :: {:ok, Event.t()} | {:error, :not_found}
   def get_trace(event_id, opts \\ []) do
-    case Repo.get(Event, event_id, opts) do
+    repo_opts = repo_opts(opts)
+
+    case Repo.get(Event, event_id, repo_opts) do
       nil ->
         {:error, :not_found}
 
       event ->
-        loaded = Repo.preload(event, [notifications: [deliveries: :attempts]], opts)
+        loaded = Repo.preload(event, [notifications: [deliveries: :attempts]], repo_opts)
         {:ok, loaded}
     end
   end
@@ -67,7 +69,7 @@ defmodule Chimeway.Traces do
   def find_traces_for_recipient(recipient_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
     notification_key = Keyword.get(opts, :notification_key)
-    repo_opts = Keyword.drop(opts, [:limit, :notification_key])
+    repo_opts = repo_opts(opts, [:limit, :notification_key])
 
     query =
       from(n in Notification,
@@ -101,7 +103,7 @@ defmodule Chimeway.Traces do
   @spec find_traces_by_correlation_id(String.t(), keyword()) :: [Event.t()]
   def find_traces_by_correlation_id(correlation_id, opts \\ []) do
     limit = Keyword.get(opts, :limit)
-    repo_opts = Keyword.drop(opts, [:limit])
+    repo_opts = repo_opts(opts, [:limit])
 
     query =
       from(e in Event,
@@ -131,13 +133,15 @@ defmodule Chimeway.Traces do
   """
   @spec explain_delivery(String.t(), keyword()) :: {:ok, Explanation.t()} | {:error, :not_found}
   def explain_delivery(delivery_id, opts \\ []) do
+    repo_opts = repo_opts(opts)
+
     delivery =
       Repo.one(
         from(d in Delivery,
           where: d.id == ^delivery_id,
           preload: [notification: :event, attempts: []]
         ),
-        opts
+        repo_opts
       )
 
     case delivery do
@@ -148,8 +152,10 @@ defmodule Chimeway.Traces do
         event = notification.event
         last_attempt = last_attempt_summary(attempts)
         resume_fields = explanation_resume_fields(delivery)
-        digest_context = digest_context(delivery)
-        timeline = build_timeline(event, notification, delivery, attempts, digest_context)
+        digest_context = digest_context(delivery, repo_opts)
+
+        timeline =
+          build_timeline(event, notification, delivery, attempts, digest_context, repo_opts)
 
         explanation = %Explanation{
           delivery_id: delivery.id,
@@ -194,7 +200,7 @@ defmodule Chimeway.Traces do
   @spec aggregate_outcomes(keyword()) :: [map()]
   def aggregate_outcomes(opts \\ []) do
     repo_opts =
-      Keyword.drop(opts, [
+      repo_opts(opts, [
         :notification_key,
         :channel,
         :outcomes,
@@ -302,7 +308,7 @@ defmodule Chimeway.Traces do
     }
   end
 
-  defp build_timeline(event, notification, delivery, attempts, digest_context) do
+  defp build_timeline(event, notification, delivery, attempts, digest_context, repo_opts) do
     planning_context = explanation_planning_context(delivery)
     resume_fields = explanation_resume_fields(delivery)
     recovery_fields = explanation_recovery_fields(delivery)
@@ -429,9 +435,9 @@ defmodule Chimeway.Traces do
 
     digest_entries = digest_timeline_entries(delivery, digest_context)
 
-    signal_event_name = lookup_signal_received_event_name(delivery)
+    signal_event_name = lookup_signal_received_event_name(delivery, repo_opts)
     webhook_received_entries = webhook_received_entries(attempts, signal_event_name)
-    workflow_transition_entries = workflow_transition_entries(delivery)
+    workflow_transition_entries = workflow_transition_entries(delivery, repo_opts)
 
     (base ++
        deferred_entries ++
@@ -552,8 +558,8 @@ defmodule Chimeway.Traces do
     end)
   end
 
-  @spec workflow_transition_entries(Delivery.t()) :: [map()]
-  defp workflow_transition_entries(%Delivery{id: delivery_id, tenant_id: tenant_id}) do
+  @spec workflow_transition_entries(Delivery.t(), keyword()) :: [map()]
+  defp workflow_transition_entries(%Delivery{id: delivery_id, tenant_id: tenant_id}, repo_opts) do
     query =
       from(wt in WorkflowTransition,
         join: wr in WorkflowRun,
@@ -572,7 +578,7 @@ defmodule Chimeway.Traces do
       )
 
     query
-    |> Repo.all()
+    |> Repo.all(repo_opts)
     |> Enum.flat_map(&project_workflow_transition/1)
   end
 
@@ -627,8 +633,11 @@ defmodule Chimeway.Traces do
     }
   end
 
-  @spec lookup_signal_received_event_name(Delivery.t()) :: String.t() | nil
-  defp lookup_signal_received_event_name(%Delivery{id: delivery_id, tenant_id: tenant_id}) do
+  @spec lookup_signal_received_event_name(Delivery.t(), keyword()) :: String.t() | nil
+  defp lookup_signal_received_event_name(
+         %Delivery{id: delivery_id, tenant_id: tenant_id},
+         repo_opts
+       ) do
     query =
       from(wt in WorkflowTransition,
         join: wr in WorkflowRun,
@@ -642,7 +651,7 @@ defmodule Chimeway.Traces do
         select: wt.context
       )
 
-    case Repo.one(query) do
+    case Repo.one(query, repo_opts) do
       nil -> nil
       ctx when is_map(ctx) -> Map.get(ctx, "event_name")
     end
@@ -749,13 +758,13 @@ defmodule Chimeway.Traces do
     end
   end
 
-  defp digest_context(%Delivery{} = delivery) do
+  defp digest_context(%Delivery{} = delivery, repo_opts) do
     cond do
       source_digest_delivery?(delivery) ->
-        source_digest_context(delivery)
+        source_digest_context(delivery, repo_opts)
 
       emitted_digest_delivery?(delivery) ->
-        emitted_digest_context(delivery)
+        emitted_digest_context(delivery, repo_opts)
 
       delivery.planning_reason == "digest_rule" ->
         %{
@@ -779,13 +788,14 @@ defmodule Chimeway.Traces do
 
   defp emitted_digest_delivery?(_delivery), do: false
 
-  defp source_digest_context(%Delivery{} = delivery) do
+  defp source_digest_context(%Delivery{} = delivery, repo_opts) do
     membership =
       Repo.one(
         from(m in DigestMembership,
           where: m.delivery_id == ^delivery.id,
           limit: 1
-        )
+        ),
+        repo_opts
       )
 
     base =
@@ -812,13 +822,14 @@ defmodule Chimeway.Traces do
     end
   end
 
-  defp emitted_digest_context(%Delivery{} = delivery) do
+  defp emitted_digest_context(%Delivery{} = delivery, repo_opts) do
     memberships =
       Repo.all(
         from(m in DigestMembership,
           where: m.digest_delivery_id == ^delivery.id,
           preload: [delivery: [notification: :event]]
-        )
+        ),
+        repo_opts
       )
 
     digest_metadata = Map.get(delivery.metadata || %{}, "digest", %{})
@@ -928,4 +939,10 @@ defmodule Chimeway.Traces do
   defp maybe_put_digest_value(map, _key, nil), do: map
   defp maybe_put_digest_value(map, key, %DateTime{} = value), do: Map.put(map, key, value)
   defp maybe_put_digest_value(map, key, value), do: Map.put(map, key, value)
+
+  defp repo_opts(opts, drop_keys \\ []) do
+    opts
+    |> Keyword.drop(drop_keys)
+    |> Chimeway.Storage.repo_opts()
+  end
 end

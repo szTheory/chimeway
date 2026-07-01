@@ -316,6 +316,8 @@ defmodule Chimeway.Admin do
   defp maybe_older_event_than(query, _now, _older_than), do: query
 
   defp repo_opts(opts) do
-    Keyword.drop(opts, [:limit, :tenant_id, :recipient_id, :now, :older_than])
+    opts
+    |> Keyword.drop([:limit, :tenant_id, :recipient_id, :now, :older_than])
+    |> Chimeway.Storage.repo_opts()
   end
 end
