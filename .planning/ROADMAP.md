@@ -95,7 +95,7 @@ Plans:
 
 **Depends on:** Phases 73-74
 
-**Plans:** 7/7 plans complete
+**Plans:** 7/8 plans complete
 
 Plans:
 **Wave 0**
@@ -119,6 +119,10 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 75-07-PLAN.md — Focused runtime-prefix gate and final verification
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 75-08-PLAN.md — Runtime prefix verification gap closure
 
 **Success Criteria:**
 
