@@ -95,12 +95,12 @@ Plans:
 
 **Depends on:** Phases 73-74
 
-**Plans:** 7 plans
+**Plans:** 1/7 plans executed
 
 Plans:
 **Wave 0**
 
-- [ ] 75-01-PLAN.md — Prefixed runtime test harness and guardrails
+- [x] 75-01-PLAN.md — Prefixed runtime test harness and guardrails
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
