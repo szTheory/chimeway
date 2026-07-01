@@ -21,10 +21,10 @@
 
 ### Runtime Prefix Propagation
 
-- [ ] **RUN-01**: Trigger fanout persists events, notifications, deliveries, and attempts into the configured Chimeway prefix.
-- [ ] **RUN-02**: Idempotency, duplicate detection, lifecycle reads, traces, and explainability queries resolve data from the configured prefix, not accidentally from `public`.
-- [ ] **RUN-03**: Workflow progression, signal routing, digest buckets, policy/preferences, webhook ingress, dispatch workers, and string-source `insert_all` calls propagate prefix options correctly.
-- [ ] **RUN-04**: Admin, inbox, trace, and recovery read/write surfaces use the configured prefix and remain tenant/redaction-safe.
+- [x] **RUN-01**: Trigger fanout persists events, notifications, deliveries, and attempts into the configured Chimeway prefix.
+- [x] **RUN-02**: Idempotency, duplicate detection, lifecycle reads, traces, and explainability queries resolve data from the configured prefix, not accidentally from `public`.
+- [x] **RUN-03**: Workflow progression, signal routing, digest buckets, policy/preferences, webhook ingress, dispatch workers, and string-source `insert_all` calls propagate prefix options correctly.
+- [x] **RUN-04**: Admin, inbox, trace, and recovery read/write surfaces use the configured prefix and remain tenant/redaction-safe.
 
 ### Upgrade and Compatibility
 
@@ -74,10 +74,10 @@
 | MIG-02 | Phase 74 | Complete |
 | MIG-03 | Phase 74 | Complete |
 | MIG-04 | Phase 74 | Complete |
-| RUN-01 | Phase 75 | Pending |
-| RUN-02 | Phase 75 | Pending |
-| RUN-03 | Phase 75 | Pending |
-| RUN-04 | Phase 75 | Pending |
+| RUN-01 | Phase 75 | Complete |
+| RUN-02 | Phase 75 | Complete |
+| RUN-03 | Phase 75 | Complete |
+| RUN-04 | Phase 75 | Complete |
 | UPG-01 | Phase 73 | Complete |
 | UPG-02 | Phase 76 | Pending |
 | UPG-03 | Phase 76 | Pending |

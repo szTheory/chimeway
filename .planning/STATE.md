@@ -4,16 +4,16 @@ milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
 current_phase: 75
 current_phase_name: Runtime Prefix Propagation
-status: executing
-stopped_at: Planned 75-08-PLAN.md
-last_updated: "2026-07-01T20:34:54.899Z"
+status: verifying
+stopped_at: Completed 75-08-PLAN.md
+last_updated: "2026-07-01T20:49:23.968Z"
 last_activity: 2026-07-01
-last_activity_desc: Planned 75-08 gap closure
+last_activity_desc: Completed 75-08 gap closure
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
   percent: 75
 ---
 
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 
 Phase: 75 (Runtime Prefix Propagation) — PLANNED
 Plan: 8 of 8
-Status: Ready to execute
-Last activity: 2026-07-01 — Planned 75-08 gap closure
+Status: Phase complete — ready for verification
+Last activity: 2026-07-01 — Completed 75-08 gap closure
 
 ## Accumulated Context
 
@@ -194,6 +194,9 @@ status: complete
 - [Phase 75-05]: Digest and webhook production paths required no operation-level Storage.repo_opts/1 exceptions; Repo.default_options/1 covers the audited operations.
 - [Phase 75-05]: The digest runtime proof must transition the fixture delivery to :digest_held before accumulation, matching the production digest contract.
 - [Phase 75-05]: The webhook runtime proof must enter through Webhooks.process/4 and assert ProcessFeedbackWorker args remain ingress_id-only.
+- [Phase 75-08]: Admin and recovery prefixed proof uses ordinary API arguments and relies on Repo.default_options/1 rather than passing prefix options.
+- [Phase 75-08]: Signal and workflow worker proof uses durable ID args only: signal_id and workflow_run_id.
+- [Phase 75-08]: RuntimePrefixWorkflow fixture includes email render fields so due wait progression can create the next-step email delivery.
 
 ## Performance
 
@@ -488,8 +491,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-01T19:57:12.446Z
-Stopped at: Completed 75-07-PLAN.md
+Last session: 2026-07-01T20:49:23.961Z
+Stopped at: Completed 75-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -543,3 +546,4 @@ Resume file: None
 | Phase 75 P04 | 5 min | 2 tasks | 3 files |
 | Phase 75-runtime-prefix-propagation P05 | 6 min | 2 tasks | 1 files |
 | Phase 75-runtime-prefix-propagation P07 | 5 min | 2 tasks | 2 files |
+| Phase 75 P08 | 14 min | 2 tasks | 2 files |
