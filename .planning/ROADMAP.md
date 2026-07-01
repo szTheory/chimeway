@@ -50,7 +50,7 @@
 
 **Depends on:** Phase 73
 
-**Plans:** 7/10 plans executed
+**Plans:** 8/10 plans executed
 
 Plans:
 **Wave 1**
@@ -65,7 +65,7 @@ Plans:
 - [x] 74-05-PLAN.md — templates 016-020 helper conversion
 - [x] 74-06-PLAN.md — templates 021-025 helper conversion
 - [x] 74-07-PLAN.md — templates 026-030 helper/raw SQL conversion
-- [ ] 74-08-PLAN.md — template 031 helper conversion
+- [x] 74-08-PLAN.md — template 031 helper conversion
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
