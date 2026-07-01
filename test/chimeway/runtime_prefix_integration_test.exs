@@ -93,6 +93,26 @@ defmodule ChimewayTest.Notifiers.RuntimePrefixWorkflow do
   end
 end
 
+defmodule ChimewayTest.Adapters.RuntimePrefixWebhook do
+  @behaviour Chimeway.Adapter
+
+  def deliver(_delivery, _config), do: {:ok, %{}}
+
+  def verify_webhook(_body, [{"signature", "valid"}], _config), do: :ok
+  def verify_webhook(_body, _headers, _config), do: {:error, :unauthorized}
+
+  def resolve_delivery(%{"delivery_id" => id}) when is_binary(id),
+    do: {:ok, %{delivery_id: id}}
+
+  def resolve_delivery(_parsed), do: :error
+
+  def normalize_feedback(%{"status" => "bounced"}), do: {:ok, %{status: :bounced}}
+  def normalize_feedback(_parsed), do: :error
+
+  def resolve_provider_event_id(%{"event_id" => id}) when is_binary(id), do: {:ok, id}
+  def resolve_provider_event_id(_parsed), do: :none
+end
+
 defmodule Chimeway.RuntimePrefixIntegrationTest do
   use Chimeway.PrefixedRuntimeCase
   use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
@@ -108,7 +128,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   alias Chimeway.Policy
   alias Chimeway.Policy.Settings
   alias Chimeway.Signals.Signal, as: PersistedSignal
-  alias Chimeway.Webhooks.{Ingress, ProcessFeedbackWorker}
+  alias Chimeway.Webhooks.ProcessFeedbackWorker
 
   setup do
     previous_adapter = Application.fetch_env(:chimeway, :adapter)
@@ -307,20 +327,30 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     %{delivery: delivery} =
       create_pending_delivery(notification_key: "test.runtime_prefix.webhook", channel: :email)
 
+    body =
+      Jason.encode!(%{
+        "delivery_id" => delivery.id,
+        "status" => "bounced",
+        "event_id" => unique_key("webhook")
+      })
+
     assert {:ok, ingress} =
-             %Ingress{}
-             |> Ingress.changeset(%{
-               adapter_module: "RuntimePrefixAdapter",
-               delivery_id: delivery.id,
-               normalized_status: "bounced",
-               ingress_state: :queued
-             })
-             |> Repo.insert()
+             Chimeway.Webhooks.process(
+               ChimewayTest.Adapters.RuntimePrefixWebhook,
+               body,
+               [{"signature", "valid"}],
+               []
+             )
 
     assert_prefixed_only("chimeway_events", 1)
     assert_prefixed_only("chimeway_notifications", 1)
     assert_prefixed_only("chimeway_deliveries", 1)
     assert_prefixed_only("chimeway_webhook_ingress", 1)
+
+    assert_enqueued(
+      worker: ProcessFeedbackWorker,
+      args: %{"ingress_id" => ingress.id}
+    )
 
     assert :ok = ProcessFeedbackWorker.perform(%Oban.Job{args: %{"ingress_id" => ingress.id}})
     assert Deliveries.get_delivery!(delivery.id).status == :cancelled
