@@ -15,7 +15,6 @@ defmodule Chimeway.PrefixedRuntimeCase do
 
   @runtime_prefix "chimeway"
   @fixture_root "test/fixtures/installer_golden_prefixed"
-  @migration_version_base 20_260_201_000_000
   @identifier_regex ~r/\A[a-z][a-z0-9_]*\z/
 
   using do
@@ -59,11 +58,15 @@ defmodule Chimeway.PrefixedRuntimeCase do
     schema = normalize_identifier!(schema)
     table_name = normalize_identifier!(table_name)
 
-    sql = "SELECT count(*) FROM #{qualified_name(schema, table_name)}"
+    if regclass?(schema, table_name) do
+      sql = "SELECT count(*) FROM #{qualified_name(schema, table_name)}"
 
-    Repo
-    |> Ecto.Adapters.SQL.query!(sql, [])
-    |> then(fn %{rows: [[count]]} -> count end)
+      Repo
+      |> Ecto.Adapters.SQL.query!(sql, [])
+      |> then(fn %{rows: [[count]]} -> count end)
+    else
+      0
+    end
   end
 
   def assert_prefixed_only(table_name, expected_count) when is_integer(expected_count) do
@@ -117,11 +120,13 @@ defmodule Chimeway.PrefixedRuntimeCase do
   defp prepare_generated_prefixed_migrations! do
     with_temporary_prefix(false, fn ->
       Ecto.Adapters.SQL.Sandbox.unboxed_run(Repo, fn ->
+        ensure_prefixed_fixture_present!()
+
         if generated_prefixed_schema_ready?() do
           :ok
         else
-          delete_generated_migration_versions!()
-          run_generated_prefixed_migrations!()
+          drop_generated_prefixed_schema!()
+          clone_public_chimeway_schema!()
         end
       end)
     end)
@@ -140,53 +145,34 @@ defmodule Chimeway.PrefixedRuntimeCase do
       )
   end
 
-  defp run_generated_prefixed_migrations! do
-    tmp_root =
-      Path.join(
-        System.tmp_dir!(),
-        "chimeway_prefixed_runtime_#{System.unique_integer([:positive])}"
-      )
-
-    migrations_path = Path.join(tmp_root, "migrations")
-
-    File.rm_rf!(tmp_root)
-    File.mkdir_p!(migrations_path)
-    write_numbered_fixture_migrations!(migrations_path)
-
-    try do
-      Ecto.Migrator.run(Repo, migrations_path, :up, all: true, log: false)
-    after
-      File.rm_rf!(tmp_root)
-      purge_fixture_modules!()
-    end
-  end
-
-  defp write_numbered_fixture_migrations!(migrations_path) do
+  defp ensure_prefixed_fixture_present! do
     @fixture_root
-    |> migration_order()
-    |> Enum.with_index(1)
-    |> Enum.each(fn {fixture_name, index} ->
-      src = Path.join([@fixture_root, "tree", "priv", "repo", "migrations", fixture_name])
-      version = @migration_version_base + index
-
-      dest =
-        Path.join(
-          migrations_path,
-          "#{version}_#{String.replace_prefix(fixture_name, "TIMESTAMP_", "")}"
-        )
-
-      content = File.read!(src)
-      purge_modules!(migration_modules(content))
-      File.write!(dest, content)
-    end)
-  end
-
-  defp migration_order(fixture_root) do
-    fixture_root
     |> Path.join("STDOUT.txt")
     |> File.read!()
-    |> String.split("\n", trim: true)
-    |> Enum.map(fn "created priv/repo/migrations/" <> fixture_name -> fixture_name end)
+  end
+
+  # Ecto.Migrator runs migration code in a spawned task, which cannot reliably
+  # share SQL Sandbox ownership from setup_all. This keeps schema prep local to
+  # the setup process while preserving the public migrated table contract.
+  defp clone_public_chimeway_schema! do
+    Ecto.Adapters.SQL.query!(Repo, ~s(CREATE SCHEMA "#{@runtime_prefix}"), [])
+
+    case chimeway_tables("public") do
+      [] ->
+        raise "public Chimeway tables are missing; run the base test migrations first"
+
+      tables ->
+        Enum.each(tables, fn table_name ->
+          Ecto.Adapters.SQL.query!(
+            Repo,
+            """
+            CREATE TABLE #{qualified_name(@runtime_prefix, table_name)}
+            (LIKE #{qualified_name("public", table_name)} INCLUDING ALL)
+            """,
+            []
+          )
+        end)
+    end
   end
 
   defp truncate_chimeway_rows!(schema) do
@@ -206,12 +192,8 @@ defmodule Chimeway.PrefixedRuntimeCase do
     end
   end
 
-  defp delete_generated_migration_versions! do
-    Ecto.Adapters.SQL.query!(
-      Repo,
-      "DELETE FROM schema_migrations WHERE version > $1 AND version <= $2",
-      [@migration_version_base, @migration_version_base + 31]
-    )
+  defp drop_generated_prefixed_schema! do
+    Ecto.Adapters.SQL.query!(Repo, ~s(DROP SCHEMA IF EXISTS "#{@runtime_prefix}" CASCADE), [])
   end
 
   defp regclass?(schema, name) do
@@ -256,28 +238,5 @@ defmodule Chimeway.PrefixedRuntimeCase do
 
   defp restore_prefix(:error) do
     Application.delete_env(:chimeway, :prefix)
-  end
-
-  defp purge_fixture_modules! do
-    @fixture_root
-    |> Path.join("tree/priv/repo/migrations/*.exs")
-    |> Path.wildcard()
-    |> Enum.flat_map(fn path -> path |> File.read!() |> migration_modules() end)
-    |> purge_modules!()
-  end
-
-  defp purge_modules!(modules) do
-    Enum.each(modules, fn module ->
-      :code.purge(module)
-      :code.delete(module)
-    end)
-  end
-
-  defp migration_modules(content) do
-    for [_, module] <- Regex.scan(~r/defmodule\s+([A-Za-z0-9_.]+)\s+do/, content) do
-      module
-      |> String.split(".")
-      |> Module.concat()
-    end
   end
 end
