@@ -28,6 +28,32 @@ config :chimeway,
 
 When you use the `Chimeway.Dispatch.Oban` dispatcher, Chimeway will automatically convert delivery plans into Oban jobs instead of executing them synchronously.
 
+### Database Prefixes
+
+Chimeway's storage prefix and Oban's job-table prefix are separate operational concerns.
+
+```elixir
+config :chimeway, prefix: "chimeway"
+```
+
+That Chimeway setting routes Chimeway-owned `chimeway_*` tables only. It does not create, move, or configure `oban_jobs`.
+
+If you want Oban-owned tables in a separate schema, configure that through Oban migrations and Oban runtime config:
+
+```elixir
+def change do
+  Oban.Migration.up(prefix: "jobs")
+end
+```
+
+```elixir
+config :my_app, Oban,
+  repo: MyApp.Repo,
+  prefix: "jobs"
+```
+
+Use `Oban.Migration.down(prefix: "jobs")` in the matching rollback migration. For Chimeway storage-prefix upgrade and troubleshooting guidance, see the [Storage Prefix Upgrade guide](../introduction/storage-prefix-upgrade.md).
+
 ## Setting Up the Queues and Workers
 
 Chimeway uses several queues to handle different background tasks. Update your Oban configuration to include these queues:
