@@ -37,7 +37,7 @@
 - [x] **DOCS-01**: README, installation, golden path, and troubleshooting docs explain the default `chimeway` schema, explicit public mode, and copy-paste config.
 - [x] **DOCS-02**: Oban guidance states that Oban's prefix is separate from Chimeway's table prefix and shows safe test/production examples.
 - [x] **DEMO-01**: The demo host or equivalent example runs against the default `chimeway` schema and proves a trigger-to-trace flow.
-- [ ] **GATE-01**: Named verify/CI gates cover prefixed install/runtime behavior and public-schema legacy compatibility.
+- [x] **GATE-01**: Named verify/CI gates cover prefixed install/runtime behavior and public-schema legacy compatibility.
 
 ## Future Requirements
 
@@ -84,7 +84,7 @@
 | DOCS-01 | Phase 76 | Complete |
 | DOCS-02 | Phase 76 | Complete |
 | DEMO-01 | Phase 76 | Complete |
-| GATE-01 | Phase 76 | Pending |
+| GATE-01 | Phase 76 | Complete |
 
 **Coverage:**
 
@@ -94,4 +94,4 @@
 
 ---
 *Requirements defined: 2026-06-30*
-*Last updated: 2026-06-30 after v1.13 milestone initialization*
+*Last updated: 2026-07-02 after Phase 76 Plan 03 completion*

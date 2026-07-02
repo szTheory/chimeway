@@ -152,9 +152,9 @@ Plans:
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
 |-----------|--------|-------|--------------|--------|---------|
-| v1.13 Storage Isolation and Upgrade Path | 73-76 | 23/24 | 18/19 | Active | — |
+| v1.13 Storage Isolation and Upgrade Path | 73-76 | 24/24 | 19/19 | Active | — |
 | v1.11 Operator Console Polish & Hardening | 68-72 | 12/12 | 18/18 | Complete | 2026-06-04 |
 | v1.10 Ecosystem Completions | 63-67 | 13/13 | 8/8 | Complete | 2026-06-04 |
 
 ---
-*Roadmap updated: 2026-07-02 — Phase 76 Plan 02 complete*
+*Roadmap updated: 2026-07-02 — Phase 76 Plan 03 complete*

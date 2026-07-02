@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
 current_phase: 76
-current_phase_name: Prefix Docs, Demo, and Gates
-status: executing
-stopped_at: Completed 76-02-PLAN.md
-last_updated: "2026-07-02T15:56:37Z"
+status: Ready for milestone completion
+stopped_at: Completed 76-03-PLAN.md
+last_updated: "2026-07-02T16:20:08.538Z"
 last_activity: 2026-07-02
-last_activity_desc: Phase 76 Plan 02 complete
+last_activity_desc: Phase 76 complete
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 24
-  completed_plans: 23
-  percent: 96
+  completed_plans: 24
+  percent: 100
+current_phase_name: Prefix Docs, Demo, and Gates
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 
 ## Current Position
 
-Phase: 76 (Prefix Docs, Demo, and Gates) — EXECUTING
+Phase: 76 (Prefix Docs, Demo, and Gates) — COMPLETE
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-02 — Phase 76 Plan 02 complete
+Status: Ready for milestone completion
+Last activity: 2026-07-02 — Phase 76 complete
 
 ## Accumulated Context
 
@@ -438,6 +438,8 @@ Ready for 74-04. The next wave-2 template batch can continue applying the same h
 - [76-01]: Oban job-table prefixing uses Oban-owned jobs examples and remains separate from Chimeway storage prefixing.
 - [76-02]: Demo-host prefix proof prepares a `chimeway` schema by cloning Chimeway-owned public table shapes for test/demo setup, without copying data or relying on search_path.
 - [76-02]: Example verification keeps Oban job-table queries on the public Oban prefix; Chimeway storage prefixing is not reused for `oban_jobs`.
+- [76-03]: `verify_runtime_prefix` is a required ci-gate lane; installer golden remains path-gated and outside ci-gate.
+- [76-03]: MAINTAINING has twelve local pre-ship commands while ci-gate has thirteen lanes because `mix ci` maps to lint plus test.
 
 ### Pending Todos
 
@@ -497,13 +499,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-02T15:56:37Z
-Stopped at: Completed 76-02-PLAN.md
+Last session: 2026-07-02T16:20:08Z
+Stopped at: Completed 76-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue Phase 76 Plan 03.
+- Run milestone completion workflow.
 
 ## Performance Metrics
 
@@ -555,3 +557,4 @@ Resume file: None
 | Phase 75 P08 | 14 min | 2 tasks | 2 files |
 | Phase 76 P01 | 35 min | 3 tasks | 7 files |
 | Phase 76 P02 | 16 min | 3 tasks | 20 files |
+| Phase 76 P03 | 20 min | 3 tasks | 4 files |
