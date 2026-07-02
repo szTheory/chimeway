@@ -35,31 +35,10 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
     previous_prefix = Application.fetch_env(:chimeway, :prefix)
     previous_dynamic_repo = Repo.get_dynamic_repo()
 
-    File.rm_rf!(tmp_root)
-    File.mkdir_p!(migrations_path)
-    write_numbered_fixture_migrations!(@fixture_root, migrations_path)
-    Application.put_env(:chimeway, :prefix, @runtime_prefix)
-
-    case Ecto.Adapters.Postgres.storage_up(config) do
-      :ok -> :ok
-      {:error, :already_up} -> :ok
-      {:error, reason} -> flunk("failed to create #{database}: #{inspect(reason)}")
-    end
-
-    {:ok, repo_pid} = Repo.start_link(Keyword.put(config, :name, nil))
-
-    Repo.put_dynamic_repo(repo_pid)
-
-    migrated = run_fixture_migrations(migrations_path, :up)
-
-    assert length(migrated) == 31
-
-    Repo.put_dynamic_repo(previous_dynamic_repo)
-
-    on_exit(fn ->
+    cleanup = fn repo_pid ->
       restore_dynamic_repo(previous_dynamic_repo)
 
-      if Process.alive?(repo_pid) do
+      if repo_pid && Process.alive?(repo_pid) do
         GenServer.stop(repo_pid)
       end
 
@@ -67,6 +46,62 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
       File.rm_rf!(tmp_root)
       purge_fixture_modules!(@fixture_root)
       restore_env(:prefix, previous_prefix)
+    end
+
+    try do
+      File.rm_rf!(tmp_root)
+      File.mkdir_p!(migrations_path)
+      write_numbered_fixture_migrations!(@fixture_root, migrations_path)
+      Application.put_env(:chimeway, :prefix, @runtime_prefix)
+
+      case Ecto.Adapters.Postgres.storage_up(config) do
+        :ok -> :ok
+        {:error, :already_up} -> :ok
+        {:error, reason} -> flunk("failed to create #{database}: #{inspect(reason)}")
+      end
+    rescue
+      exception ->
+        cleanup.(nil)
+        reraise exception, __STACKTRACE__
+    catch
+      kind, reason ->
+        cleanup.(nil)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    end
+
+    repo_pid =
+      case Repo.start_link(Keyword.put(config, :name, nil)) do
+        {:ok, repo_pid} ->
+          repo_pid
+
+        {:error, reason} ->
+          cleanup.(nil)
+          flunk("failed to start generated runtime repo: #{inspect(reason)}")
+      end
+
+    migrated =
+      try do
+        Repo.put_dynamic_repo(repo_pid)
+
+        migrated = run_fixture_migrations(migrations_path, :up)
+
+        assert length(migrated) == 31
+
+        Repo.put_dynamic_repo(previous_dynamic_repo)
+
+        migrated
+      rescue
+        exception ->
+          cleanup.(repo_pid)
+          reraise exception, __STACKTRACE__
+      catch
+        kind, reason ->
+          cleanup.(repo_pid)
+          :erlang.raise(kind, reason, __STACKTRACE__)
+      end
+
+    on_exit(fn ->
+      cleanup.(repo_pid)
     end)
 
     {:ok,
