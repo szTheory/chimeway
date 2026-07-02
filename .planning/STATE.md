@@ -2,36 +2,36 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
-current_phase: 76.1
-status: complete
-stopped_at: Phase 76.1 complete
-last_updated: "2026-07-02T18:38:58.888Z"
+current_phase: null
+status: Awaiting next milestone
+stopped_at: Milestone v1.13 completed and archived
+last_updated: "2026-07-02T21:45:00.000Z"
 last_activity: 2026-07-02
-last_activity_desc: Phase 76.1 complete
+last_activity_desc: Milestone v1.13 completed and archived
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 25
   completed_plans: 25
   percent: 100
-current_phase_name: close-gap-gate-01-generated-prefixed-migration-runtime-proof
+current_phase_name: null
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-30)
+See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 76.1 — close-gap-gate-01-generated-prefixed-migration-runtime-proof
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 76.1
-Plan: 1 of 1 complete
-Status: Phase complete — verification passed
-Last activity: 2026-07-02 — Phase 76.1 complete
+Phase: Milestone v1.13 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-02 — Milestone v1.13 completed and archived
 
 ## Accumulated Context
 
@@ -474,6 +474,15 @@ None.
 
 ### Deferred Items
 
+Items acknowledged and deferred at v1.13 milestone close on 2026-07-02:
+
+| Category | Item | Status |
+|----------|------|--------|
+| validation | Phase 74 validation metadata still shows planned rows despite passing verification | refresh with `/gsd:validate-phase 74` or manual metadata update |
+| validation | Phase 76 validation metadata still shows planned/TBD rows despite passing verification | refresh with `/gsd:validate-phase 76` or manual metadata update |
+| test-support | Broad runtime-prefix coverage still uses clone-based schema setup beyond generated-migration trigger-to-trace proof | extend generated runtime case when future schema-sensitive paths change |
+| verification-noise | Threadline SQL Sandbox cleanup logs and optional dependency warnings remain non-failing gate noise | monitor during future release-gate work |
+
 Items acknowledged and deferred at v1.9 milestone close on 2026-05-30:
 
 | Category | Item | Status |
@@ -503,13 +512,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-02T18:18:36.212Z
-Stopped at: Completed 76.1-01-PLAN.md
+Last session: 2026-07-02T21:45:00.000Z
+Stopped at: Milestone v1.13 completed and archived
 Resume file: None
 
 ## Operator Next Steps
 
-- Run milestone completion workflow.
+- Start the next milestone with $gsd-new-milestone
 
 ## Performance Metrics
 

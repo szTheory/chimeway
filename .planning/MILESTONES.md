@@ -1,5 +1,34 @@
 # Milestones
 
+## v1.13 Storage Isolation and Upgrade Path (Shipped: 2026-07-02)
+
+**Delivered:** Chimeway-owned storage can now default to a dedicated `chimeway` Postgres schema, while existing public-schema installs remain explicitly supported.
+
+**Phases completed:** 73-76.1 (5 phases, 25 plans, 46 tasks)
+
+**Requirements:** 20/20 satisfied
+
+**Audit:** [milestones/v1.13-MILESTONE-AUDIT.md](milestones/v1.13-MILESTONE-AUDIT.md) (`tech_debt` — no blockers)
+
+**Git tag:** v1.13
+
+**Key accomplishments:**
+
+- Validated static storage-prefix config with early boot failure for unsupported values and one internal repo-options helper.
+- Converted generated host migrations to schema-aware output by default, including deterministic prefixed/public fixtures, idempotency proof, static generated-output proof, and DB migration/rollback contracts.
+- Threaded runtime prefix behavior through trigger fanout, idempotency, traces, inbox, admin, recovery, workflow, signals, digests, policies/preferences, webhooks, dispatch workers, and public legacy mode.
+- Added a named `mix verify.runtime_prefix` gate and required CI lane for configured-storage and public legacy compatibility.
+- Documented the default `chimeway` schema, explicit public legacy mode, manual move/rollback guidance, Oban-prefix separation, and demo-host trigger-to-trace proof.
+- Closed GATE-01 with generated prefixed fixture migrations creating the schema used by a runtime trigger-to-trace proof.
+
+**Known tech debt at close:**
+
+- Phase 74 and Phase 76 validation artifacts still need metadata refresh from planned rows to completed evidence rows.
+- Broad runtime-prefix harness coverage still uses clone-based schema setup beyond the generated-migration trigger-to-trace proof.
+- See the milestone audit for non-failing verification noise and follow-up details.
+
+---
+
 ## v1.11 Operator Console Polish & Hardening (Shipped: 2026-06-04)
 
 **Phases completed:** 5 phases, 12 plans, 21 tasks

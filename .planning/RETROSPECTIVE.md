@@ -383,6 +383,52 @@
 
 ---
 
+## Milestone: v1.13 — Storage Isolation and Upgrade Path
+
+**Shipped:** 2026-07-02
+**Phases:** 5 (73-76.1) | **Plans:** 25 | **Requirements:** 20/20
+
+### What Was Built
+
+- Static storage-prefix contract: default `prefix: "chimeway"` for isolated installs and explicit `prefix: false` for public legacy mode.
+- Schema-aware migration generation across 31 canonical migrations, with prefixed/public fixtures, idempotency proof, static generated-output proof, and DB execution/rollback contracts.
+- Runtime prefix propagation across trigger fanout, duplicate detection, traces, admin, inbox, recovery, workflows, signals, digests, webhooks, policies, preferences, and workers.
+- Storage-prefix adoption docs, manual move and rollback guidance, Oban-prefix separation copy, demo-host proof, and release-gate/doc-contract coverage.
+- Generated prefixed migration runtime proof that closes GATE-01-GAP under `mix verify.runtime_prefix`.
+
+### What Worked
+
+- The milestone stayed scoped to static per-install storage isolation, avoiding the much larger dynamic per-tenant prefix problem.
+- A layered proof stack worked well: generator fixtures, DB migration contracts, runtime-prefix integration tests, demo-host proof, docs, and CI gate parity.
+- Phase 76.1 was a focused audit closure that proved generated migrations and runtime behavior together without reshaping the whole CI topology.
+
+### What Was Inefficient
+
+- Phase 74 and Phase 76 validation metadata lagged behind implementation and now need refresh even though verification evidence passed.
+- Broad runtime-prefix coverage still relies on clone-based schema setup; the generated-migration runtime bridge covers trigger-to-trace only.
+- Verification gates emitted known non-failing dependency and SQL Sandbox cleanup noise, which makes close-out reports harder to scan.
+
+### Patterns Established
+
+- Public-schema support is an explicit compatibility mode, not a missing-config fallback.
+- Generated host migrations should qualify Chimeway-owned relations directly instead of relying on `mix ecto.migrate --prefix`.
+- Oban table prefixing remains separate from Chimeway storage prefixing; docs and tests need to preserve that distinction.
+- Generated-migration runtime proof belongs in the runtime-prefix gate when schema-shape correctness matters.
+
+### Key Lessons
+
+1. Storage ownership is an adopter-facing contract; install-time, runtime, docs, demo, and release gates must change together.
+2. Generated fixtures are not enough for schema isolation unless at least one runtime flow runs against those generated migrations.
+3. Validation metadata needs to be refreshed during phase close, not left for milestone audit cleanup.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: phases 73-76.1 shipped 2026-06-30 -> 2026-07-02
+- Notable: 20/20 requirements satisfied; close audit accepted non-blocking tech debt for validation metadata and runtime harness breadth
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -401,6 +447,7 @@
 | v1.9 | 58–62.1 | Accrue dunning + INBX + Hex release automation |
 | v1.10 | 63–67 | Threadline/Sigra ecosystem completions |
 | v1.11 | 68–72 | Operator console polish, safety, redaction, and admin gate |
+| v1.13 | 73–76.1 | Storage isolation, prefixed migrations, runtime prefix propagation, and schema proof |
 
 ### Cumulative Quality
 
@@ -411,6 +458,7 @@
 | v1.6 | 647 + 5 journeys | Pre-ship quintet documented; journey CI separate job |
 | v1.7 | 695+ + 10 journeys | READ spine + expanded persona admin traces |
 | v1.11 | 404 release-gate tests + admin gate | `mix ci.verify_gates` green; `mix verify.admin` green with browser smoke |
+| v1.13 | 17 runtime-prefix + 14 install-golden + 477 release-gate tests | `mix verify.runtime_prefix`, `mix verify.install_golden`, `mix ci.verify_gates`, and demo-host DEMO-01 proof green |
 
 ### Top Lessons (Verified Across Milestones)
 
