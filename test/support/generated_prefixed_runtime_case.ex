@@ -1,0 +1,351 @@
+defmodule Chimeway.GeneratedPrefixedRuntimeCase do
+  @moduledoc """
+  Isolated test case for proving generated prefixed migrations support runtime APIs.
+
+  This case intentionally avoids `Chimeway.DataCase`: the bridge runs generated
+  fixture migrations in a temporary database, outside SQL Sandbox ownership.
+  """
+
+  use ExUnit.CaseTemplate
+
+  import ExUnit.Assertions
+
+  alias Chimeway.Repo
+
+  @runtime_prefix "chimeway"
+  @fixture_root "test/fixtures/installer_golden_prefixed"
+  @migration_version_base 20_260_101_000_000
+  @identifier_regex ~r/\A[a-z][a-z0-9_]*\z/
+
+  using do
+    quote do
+      import Chimeway.GeneratedPrefixedRuntimeCase
+
+      setup_all {Chimeway.GeneratedPrefixedRuntimeCase, :prepare_generated_runtime_storage}
+      setup {Chimeway.GeneratedPrefixedRuntimeCase, :reset_generated_runtime_storage}
+    end
+  end
+
+  def prepare_generated_runtime_storage(_context) do
+    unique = System.unique_integer([:positive])
+    database = "chimeway_generated_prefixed_runtime_#{unique}"
+    tmp_root = Path.join(System.tmp_dir!(), "chimeway_generated_prefixed_runtime_#{unique}")
+    migrations_path = Path.join(tmp_root, "migrations")
+    config = generated_repo_config(database)
+    previous_prefix = Application.fetch_env(:chimeway, :prefix)
+    previous_dynamic_repo = Repo.get_dynamic_repo()
+
+    File.rm_rf!(tmp_root)
+    File.mkdir_p!(migrations_path)
+    write_numbered_fixture_migrations!(@fixture_root, migrations_path)
+    Application.put_env(:chimeway, :prefix, @runtime_prefix)
+
+    case Ecto.Adapters.Postgres.storage_up(config) do
+      :ok -> :ok
+      {:error, :already_up} -> :ok
+      {:error, reason} -> flunk("failed to create #{database}: #{inspect(reason)}")
+    end
+
+    {:ok, repo_pid} = Repo.start_link(Keyword.put(config, :name, nil))
+
+    Repo.put_dynamic_repo(repo_pid)
+
+    migrated = run_fixture_migrations(migrations_path, :up)
+
+    assert length(migrated) == 31
+
+    Repo.put_dynamic_repo(previous_dynamic_repo)
+
+    on_exit(fn ->
+      restore_dynamic_repo(previous_dynamic_repo)
+
+      if Process.alive?(repo_pid) do
+        GenServer.stop(repo_pid)
+      end
+
+      _ = Ecto.Adapters.Postgres.storage_down(config)
+      File.rm_rf!(tmp_root)
+      purge_fixture_modules!(@fixture_root)
+      restore_env(:prefix, previous_prefix)
+    end)
+
+    {:ok,
+     generated_runtime_repo: repo_pid,
+     generated_runtime_migration_count: length(migrated),
+     generated_runtime_config: config,
+     generated_runtime_migrations_path: migrations_path}
+  end
+
+  def checkout_generated_runtime_repo(%{generated_runtime_repo: repo_pid}) do
+    previous_dynamic_repo = Repo.get_dynamic_repo()
+    Repo.put_dynamic_repo(repo_pid)
+    assert Repo.get_dynamic_repo() == repo_pid
+
+    on_exit(fn -> restore_dynamic_repo(previous_dynamic_repo) end)
+
+    :ok
+  end
+
+  def reset_generated_runtime_storage(context) do
+    :ok = checkout_generated_runtime_repo(context)
+
+    truncate_chimeway_rows!(@runtime_prefix)
+    truncate_chimeway_rows!("public")
+
+    :ok
+  end
+
+  def generated_migration_count do
+    sql_repo()
+    |> Ecto.Adapters.SQL.query!(
+      "SELECT count(*) FROM schema_migrations WHERE version >= #{@migration_version_base}",
+      []
+    )
+    |> then(fn %{rows: [[count]]} -> count end)
+  end
+
+  def assert_generated_prefixed_runtime_tables! do
+    assert schema_exists?(@runtime_prefix)
+
+    for table_name <- [
+          "chimeway_events",
+          "chimeway_notifications",
+          "chimeway_deliveries",
+          "chimeway_delivery_attempts"
+        ] do
+      assert regclass?(@runtime_prefix, table_name),
+             "expected #{@runtime_prefix}.#{table_name} to exist"
+    end
+  end
+
+  def prefixed_count(table_name) do
+    table_count(@runtime_prefix, table_name)
+  end
+
+  def public_count(table_name) do
+    table_count("public", table_name)
+  end
+
+  def table_count(schema, table_name) do
+    schema = normalize_identifier!(schema)
+    table_name = normalize_identifier!(table_name)
+
+    if regclass?(schema, table_name) do
+      sql = "SELECT count(*) FROM #{qualified_name(schema, table_name)}"
+
+      sql_repo()
+      |> Ecto.Adapters.SQL.query!(sql, [])
+      |> then(fn %{rows: [[count]]} -> count end)
+    else
+      0
+    end
+  end
+
+  def assert_prefixed_only(table_name, expected_count) when is_integer(expected_count) do
+    assert prefixed_count(table_name) == expected_count
+    assert public_count(table_name) == 0
+  end
+
+  def assert_prefixed_only(table_name, :nonzero) do
+    assert prefixed_count(table_name) > 0
+    assert public_count(table_name) == 0
+  end
+
+  def assert_prefixed_only(table_name) do
+    assert_prefixed_only(table_name, :nonzero)
+  end
+
+  defp generated_repo_config(database) do
+    base_database_config()
+    |> Keyword.merge(
+      database: database,
+      pool_size: 2,
+      queue_target: 5_000,
+      queue_interval: 10_000
+    )
+  end
+
+  defp base_database_config do
+    case System.get_env("DATABASE_URL") do
+      nil ->
+        Repo.config()
+        |> Keyword.drop([:database, :pool, :url])
+        |> Keyword.put_new(:hostname, "localhost")
+
+      database_url ->
+        database_url_config(database_url)
+    end
+  end
+
+  defp database_url_config(database_url) do
+    uri = URI.parse(database_url)
+    {username, password} = parse_userinfo(uri.userinfo)
+
+    [
+      username: username,
+      password: password,
+      hostname: uri.host || "localhost",
+      port: uri.port || 5432
+    ]
+  end
+
+  defp parse_userinfo(nil), do: {"postgres", nil}
+
+  defp parse_userinfo(userinfo) do
+    case String.split(userinfo, ":", parts: 2) do
+      [username, password] -> {URI.decode(username), URI.decode(password)}
+      [username] -> {URI.decode(username), nil}
+    end
+  end
+
+  defp write_numbered_fixture_migrations!(fixture_root, migrations_path) do
+    fixture_root
+    |> migration_order()
+    |> Enum.with_index(1)
+    |> Enum.each(fn {fixture_name, index} ->
+      src = Path.join([fixture_root, "tree", "priv", "repo", "migrations", fixture_name])
+      version = @migration_version_base + index
+
+      dest =
+        Path.join(
+          migrations_path,
+          "#{version}_#{String.replace_prefix(fixture_name, "TIMESTAMP_", "")}"
+        )
+
+      content = File.read!(src)
+      purge_modules!(migration_modules(content))
+      File.write!(dest, content)
+    end)
+  end
+
+  defp migration_order(fixture_root) do
+    fixture_root
+    |> Path.join("STDOUT.txt")
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn "created priv/repo/migrations/" <> fixture_name -> fixture_name end)
+  end
+
+  defp purge_fixture_modules!(fixture_root) do
+    fixture_root
+    |> Path.join("tree/priv/repo/migrations/*.exs")
+    |> Path.wildcard()
+    |> Enum.flat_map(fn path -> path |> File.read!() |> migration_modules() end)
+    |> purge_modules!()
+  end
+
+  defp purge_modules!(modules) do
+    Enum.each(modules, fn module ->
+      :code.purge(module)
+      :code.delete(module)
+    end)
+  end
+
+  defp migration_modules(content) do
+    for [_, module] <- Regex.scan(~r/defmodule\s+([A-Za-z0-9_.]+)\s+do/, content) do
+      module
+      |> String.split(".")
+      |> Module.concat()
+    end
+  end
+
+  defp run_fixture_migrations(migrations_path, direction) when direction in [:up, :down] do
+    parent = self()
+    ref = make_ref()
+
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      result = Ecto.Migrator.run(Repo, migrations_path, direction, all: true, log: false)
+      send(parent, {ref, result})
+    end)
+
+    receive do
+      {^ref, result} -> result
+    end
+  end
+
+  defp schema_exists?(schema) do
+    schema = normalize_identifier!(schema)
+
+    result =
+      Ecto.Adapters.SQL.query!(
+        sql_repo(),
+        "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname = $1)",
+        [schema]
+      )
+
+    result.rows == [[true]]
+  end
+
+  defp regclass?(schema, name) do
+    schema = normalize_identifier!(schema)
+    name = normalize_identifier!(name)
+
+    case Ecto.Adapters.SQL.query!(sql_repo(), "SELECT to_regclass($1)", ["#{schema}.#{name}"]).rows do
+      [[nil]] -> false
+      [[_value]] -> true
+    end
+  end
+
+  defp chimeway_tables(schema) do
+    schema = normalize_identifier!(schema)
+
+    sql_repo()
+    |> Ecto.Adapters.SQL.query!(
+      """
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = $1
+        AND table_name LIKE 'chimeway_%'
+      ORDER BY table_name
+      """,
+      [schema]
+    )
+    |> then(fn %{rows: rows} -> Enum.map(rows, fn [table_name] -> table_name end) end)
+  end
+
+  defp truncate_chimeway_rows!(schema) do
+    tables = chimeway_tables(schema)
+
+    if tables != [] do
+      qualified_tables =
+        tables
+        |> Enum.map(&qualified_name(schema, &1))
+        |> Enum.join(", ")
+
+      Ecto.Adapters.SQL.query!(
+        sql_repo(),
+        "TRUNCATE TABLE #{qualified_tables} RESTART IDENTITY CASCADE",
+        []
+      )
+    end
+  end
+
+  defp qualified_name(schema, table_name) do
+    ~s("#{normalize_identifier!(schema)}"."#{normalize_identifier!(table_name)}")
+  end
+
+  defp normalize_identifier!(identifier) when is_atom(identifier) do
+    identifier
+    |> Atom.to_string()
+    |> normalize_identifier!()
+  end
+
+  defp normalize_identifier!(identifier) when is_binary(identifier) do
+    if Regex.match?(@identifier_regex, identifier) do
+      identifier
+    else
+      raise ArgumentError, "unsafe SQL identifier: #{inspect(identifier)}"
+    end
+  end
+
+  defp restore_env(key, {:ok, value}), do: Application.put_env(:chimeway, key, value)
+  defp restore_env(key, :error), do: Application.delete_env(:chimeway, key)
+
+  defp restore_dynamic_repo(repo) do
+    Repo.put_dynamic_repo(repo)
+  end
+
+  defp sql_repo do
+    Repo.get_dynamic_repo()
+  end
+end

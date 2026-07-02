@@ -81,7 +81,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
                trigger_opts("trigger")
              )
 
-    assert {:ok, %{event: reloaded_event}} = Traces.get_trace(result.event.id)
+    assert {:ok, reloaded_event} = Traces.get_trace(result.event.id)
     assert reloaded_event.id == result.event.id
 
     assert_prefixed_only("chimeway_events", 1)
