@@ -5,16 +5,16 @@ milestone_name: Storage Isolation and Upgrade Path
 current_phase: 76
 current_phase_name: Prefix Docs, Demo, and Gates
 status: executing
-stopped_at: Completed 76-01-PLAN.md
-last_updated: "2026-07-02T15:40:21.148Z"
+stopped_at: Completed 76-02-PLAN.md
+last_updated: "2026-07-02T15:56:37Z"
 last_activity: 2026-07-02
-last_activity_desc: Phase 76 execution started
+last_activity_desc: Phase 76 Plan 02 complete
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 24
-  completed_plans: 22
-  percent: 92
+  completed_plans: 23
+  percent: 96
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 ## Current Position
 
 Phase: 76 (Prefix Docs, Demo, and Gates) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-07-02 — Phase 76 execution started
+Last activity: 2026-07-02 — Phase 76 Plan 02 complete
 
 ## Accumulated Context
 
@@ -436,6 +436,8 @@ Ready for 74-04. The next wave-2 template batch can continue applying the same h
 - [76-01]: Keep README, installation, and golden path beginner-safe; put manual public-to-chimeway move guidance in the dedicated storage prefix guide.
 - [76-01]: mix chimeway.gen.migrations --prefix public is generator-only compatibility sugar; runtime public compatibility remains prefix: false.
 - [76-01]: Oban job-table prefixing uses Oban-owned jobs examples and remains separate from Chimeway storage prefixing.
+- [76-02]: Demo-host prefix proof prepares a `chimeway` schema by cloning Chimeway-owned public table shapes for test/demo setup, without copying data or relying on search_path.
+- [76-02]: Example verification keeps Oban job-table queries on the public Oban prefix; Chimeway storage prefixing is not reused for `oban_jobs`.
 
 ### Pending Todos
 
@@ -495,13 +497,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-02T15:40:21.142Z
-Stopped at: Completed 76-01-PLAN.md
+Last session: 2026-07-02T15:56:37Z
+Stopped at: Completed 76-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue Phase 76 Plan 02.
+- Continue Phase 76 Plan 03.
 
 ## Performance Metrics
 
@@ -552,3 +554,4 @@ Resume file: None
 | Phase 75-runtime-prefix-propagation P07 | 5 min | 2 tasks | 2 files |
 | Phase 75 P08 | 14 min | 2 tasks | 2 files |
 | Phase 76 P01 | 35 min | 3 tasks | 7 files |
+| Phase 76 P02 | 16 min | 3 tasks | 20 files |
