@@ -217,6 +217,7 @@ defmodule Chimeway.MixProject do
         "guides/introduction/getting-started.md",
         "guides/introduction/installation.md",
         "guides/introduction/golden-path.md",
+        "guides/introduction/storage-prefix-upgrade.md",
         "guides/introduction/mailglass-integration.md",
         "guides/introduction/accrue-dunning-integration.md",
         "guides/introduction/admin-console-integration.md",

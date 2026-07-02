@@ -74,6 +74,8 @@ config :chimeway, prefix: false
 
 That legacy mode keeps using the existing unprefixed tables and does not move data.
 
+For upgrade and troubleshooting notes, see the [Storage Prefix Upgrade guide](storage-prefix-upgrade.md).
+
 For supervisor setup, add `{Chimeway.Application, []}` to your application children per [Installation §4](installation.md#4-add-to-supervision-tree). See [Installation §3–§4](installation.md#3-configuration) for the full `application.ex` pattern.
 
 ## 4. Define a minimal :in_app notifier

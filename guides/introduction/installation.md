@@ -64,6 +64,8 @@ config :chimeway, prefix: false
 
 That legacy mode keeps using the existing unprefixed tables and does not move data.
 
+For upgrade and troubleshooting notes, see the [Storage Prefix Upgrade guide](storage-prefix-upgrade.md).
+
 At runtime, Chimeway queries through `Chimeway.Repo`. Configure it to use the same database where your host migrations created the `chimeway_*` tables — see [Golden Path §3](golden-path.md#3-configure-chimeway) for the full shared-database setup.
 
 ## 4. Add to Supervision Tree

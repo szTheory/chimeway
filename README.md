@@ -55,6 +55,7 @@ Chimeway.trigger(MyApp.Notifiers.WelcomeUser, %{user_id: "u1", name: "Ada"},
 ## Documentation
 
 - [Golden Path Guide](guides/introduction/golden-path.md)
+- [Storage Prefix Upgrade Guide](guides/introduction/storage-prefix-upgrade.md)
 - [Mailglass Integration Guide](guides/introduction/mailglass-integration.md)
 - [Accrue Dunning Integration Guide](guides/introduction/accrue-dunning-integration.md)
 - [Inbox Integration Guide](guides/introduction/inbox-integration.md)
