@@ -9,10 +9,11 @@ defmodule Chimeway.ReleaseGateContractTest do
   @release_yml ".github/workflows/release.yml"
   @manifest ".release-please-manifest.json"
   @publish_hex_yml ".github/workflows/publish-hex.yml"
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin)
 
   @pre_ship_verify_commands [
     {"verify.example", "verify_example", "mix verify.example"},
+    {"verify.runtime_prefix", "verify_runtime_prefix", "mix verify.runtime_prefix"},
     {"verify.journeys", "verify_journeys", "mix verify.journeys"},
     {"verify.mailglass", "verify_mailglass", "mix verify.mailglass"},
     {"verify.accrue", "verify_accrue", "mix verify.accrue"},
@@ -44,9 +45,25 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
-    test "MAINTAINING documents eleven-gate pre-ship requirement", %{maintaining: maintaining} do
-      assert Regex.match?(~r/All eleven must pass/i, maintaining),
-             "MAINTAINING.md must state all eleven verify gates must pass before publishing"
+    test "MAINTAINING documents twelve-gate pre-ship requirement", %{maintaining: maintaining} do
+      assert Regex.match?(~r/All twelve must pass/i, maintaining),
+             "MAINTAINING.md must state all twelve verify gates must pass before publishing"
+    end
+
+    test "MAINTAINING documents storage-prefix gate responsibilities", %{
+      maintaining: maintaining
+    } do
+      for required <- [
+            "mix verify.runtime_prefix",
+            "configured-schema runtime behavior",
+            "public-schema legacy compatibility",
+            "mix verify.install_golden",
+            "mix ci.install_golden",
+            "path-gated"
+          ] do
+        assert String.contains?(maintaining, required),
+               "MAINTAINING.md must document storage gate copy: #{required}"
+      end
     end
 
     test "MAINTAINING documents ACCRUE_PATH sibling checkout", %{maintaining: maintaining} do
@@ -69,6 +86,14 @@ defmodule Chimeway.ReleaseGateContractTest do
         assert Regex.match?(~r/"#{Regex.escape(unquote(alias_name))}":\s*\[/, mix_exs),
                "mix.exs must define \"#{unquote(alias_name)}\" alias matching #{unquote(command)}"
       end
+    end
+
+    test "mix.exs defines installer golden local and CI aliases", %{mix_exs: mix_exs} do
+      assert Regex.match?(~r/"verify\.install_golden":\s*\[/, mix_exs),
+             "mix.exs must define verify.install_golden"
+
+      assert Regex.match?(~r/"ci\.install_golden":\s*\[/, mix_exs),
+             "mix.exs must define ci.install_golden"
     end
 
     for {_alias, job_id, command} <- @pre_ship_verify_commands do
@@ -170,16 +195,23 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "mix ci.docs")
     end
 
-    test "ci-gate aggregates 12 required lanes", %{ci_yml: ci_yml} do
+    test "ci-gate aggregates 13 required lanes", %{ci_yml: ci_yml} do
       needs = extract_ci_gate_needs(ci_yml)
+
+      assert length(needs) == length(@ci_gate_lanes)
 
       for lane <- @ci_gate_lanes do
         assert lane in needs, "ci-gate must need #{lane}"
       end
     end
 
-    test "install_golden_contract outside ci-gate needs", %{ci_yml: ci_yml} do
+    test "install_golden_contract exists, runs installer proof, and stays outside ci-gate", %{
+      ci_yml: ci_yml
+    } do
+      job_block = extract_ci_job_block(ci_yml, "install_golden_contract")
       needs = extract_ci_gate_needs(ci_yml)
+
+      assert String.contains?(job_block, "mix verify.install_golden")
       refute "install_golden_contract" in needs
     end
 
