@@ -463,12 +463,12 @@ All planning-relevant claims in this research were verified from project files, 
 |---|-------|---------|---------------|
 | None | No `[ASSUMED]` claims were used. | All | No user confirmation needed before planning. [VERIFIED: research provenance] |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact storage guide filename**
+1. **Exact storage guide filename — RESOLVED**
+   - RESOLVED: Use `guides/introduction/storage-prefix-upgrade.md` as the canonical storage guide filename. [VERIFIED: 76-01-PLAN.md]
    - What we know: Phase context suggests `guides/introduction/storage-prefix-upgrade.md` or `guides/introduction/storage-isolation-upgrade.md`. [VERIFIED: 76-CONTEXT.md]
-   - What's unclear: The filename is not locked by the user. [VERIFIED: 76-CONTEXT.md]
-   - Recommendation: Use `guides/introduction/storage-prefix-upgrade.md` because it matches the phase vocabulary and ExDoc Introduction grouping. [VERIFIED: mix.exs]
+   - Resolution basis: The accepted plans choose `guides/introduction/storage-prefix-upgrade.md`, matching the phase vocabulary and ExDoc Introduction grouping. [VERIFIED: 76-01-PLAN.md] [VERIFIED: mix.exs]
 
 ## Environment Availability
 
