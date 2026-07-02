@@ -5,16 +5,16 @@ milestone_name: Storage Isolation and Upgrade Path
 current_phase: 76
 current_phase_name: Prefix Docs, Demo, and Gates
 status: executing
-stopped_at: Phase 76 context gathered (assumptions mode)
-last_updated: "2026-07-02T13:02:00.676Z"
-last_activity: 2026-07-01
-last_activity_desc: Phase 75 complete, transitioned to Phase 76
+stopped_at: Completed 76-01-PLAN.md
+last_updated: "2026-07-02T15:40:21.148Z"
+last_activity: 2026-07-02
+last_activity_desc: Phase 76 execution started
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 21
-  completed_plans: 21
-  percent: 75
+  total_plans: 24
+  completed_plans: 22
+  percent: 92
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-06-30)
 
 ## Current Position
 
-Phase: 76 — Prefix Docs, Demo, and Gates
-Plan: Not started
+Phase: 76 (Prefix Docs, Demo, and Gates) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-01 — Phase 75 complete, transitioned to Phase 76
+Last activity: 2026-07-02 — Phase 76 execution started
 
 ## Accumulated Context
 
@@ -433,6 +433,9 @@ Ready for 74-04. The next wave-2 template batch can continue applying the same h
 - [75-02]: Chimeway.Repo.default_options(:transaction) stays [] while normal operations delegate to Chimeway.Storage.repo_opts/1.
 - [75-02]: Trigger fanout required no public prefix opts or job-arg prefix propagation; Ecto repo defaults cover event, string-source notification insert_all, delivery planning, and attempts.
 - [75-02]: Trigger duplicate idempotency accepts both chimeway_events_idempotency_key_index and PostgreSQL cloned-table chimeway_events_idempotency_key_idx constraint names.
+- [76-01]: Keep README, installation, and golden path beginner-safe; put manual public-to-chimeway move guidance in the dedicated storage prefix guide.
+- [76-01]: mix chimeway.gen.migrations --prefix public is generator-only compatibility sugar; runtime public compatibility remains prefix: false.
+- [76-01]: Oban job-table prefixing uses Oban-owned jobs examples and remains separate from Chimeway storage prefixing.
 
 ### Pending Todos
 
@@ -492,13 +495,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-01T23:22:32.896Z
-Stopped at: Phase 76 context gathered (assumptions mode)
-Resume file: .planning/phases/76-prefix-docs-demo-and-gates/76-CONTEXT.md
+Last session: 2026-07-02T15:40:21.142Z
+Stopped at: Completed 76-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 75.
+- Continue Phase 76 Plan 02.
 
 ## Performance Metrics
 
@@ -548,3 +551,4 @@ Resume file: .planning/phases/76-prefix-docs-demo-and-gates/76-CONTEXT.md
 | Phase 75-runtime-prefix-propagation P05 | 6 min | 2 tasks | 1 files |
 | Phase 75-runtime-prefix-propagation P07 | 5 min | 2 tasks | 2 files |
 | Phase 75 P08 | 14 min | 2 tasks | 2 files |
+| Phase 76 P01 | 35 min | 3 tasks | 7 files |
