@@ -54,7 +54,7 @@ If both public and `chimeway` versions of the same Chimeway table exist, stop an
 
 ## Manual Public-to-Chimeway Move
 
-The safest shape is one transaction while application writes are stopped. The exact table list must match the Chimeway migrations your application has installed.
+The safest shape is one transaction while application writes are stopped. Expect an exclusive table lock during the move; do not run this while the application is serving Chimeway writes. The exact table list must match the Chimeway migrations your application has installed.
 
 ```sql
 BEGIN;

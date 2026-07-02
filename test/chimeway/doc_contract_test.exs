@@ -1028,6 +1028,63 @@ defmodule Chimeway.DocContractTest do
     "oban prefix"
   ]
 
+  @storage_prefix_upgrade_guide "guides/introduction/storage-prefix-upgrade.md"
+
+  describe "storage prefix upgrade guide doc contract (UPG-02 / UPG-03 / DOCS-02)" do
+    setup do
+      content = File.read!(@storage_prefix_upgrade_guide)
+      %{content: content}
+    end
+
+    @required_strings [
+      "prefix: \"chimeway\"",
+      "prefix: false",
+      "public-schema legacy mode",
+      "manual database operation",
+      "verified database backup",
+      "preflight checks",
+      "transaction",
+      "lock",
+      "Verification Queries",
+      "Rollback",
+      "stop and restore",
+      "mix chimeway.gen.migrations --prefix public",
+      "does not move data",
+      "does not create, move, or configure `oban_jobs`",
+      "Oban.Migration.up(prefix: \"jobs\")",
+      "Oban.Migration.down(prefix: \"jobs\")",
+      "config :my_app, Oban"
+    ]
+
+    for required <- @required_strings do
+      test "requires #{required} in storage prefix upgrade guide", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "storage prefix upgrade guide must reference #{unquote(required)}"
+      end
+    end
+
+    @forbidden_strings [
+      "@schema_prefix",
+      "config :chimeway, prefix: \"public\"",
+      "mix ecto.migrate --prefix chimeway",
+      "search_path",
+      "automatic public-to-chimeway",
+      "automatically move"
+    ]
+
+    for forbidden <- @forbidden_strings do
+      test "forbids #{forbidden} in storage prefix upgrade guide", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "storage prefix upgrade guide must not teach unsafe storage prefix form #{unquote(forbidden)}"
+      end
+    end
+
+    test "forbids runtime prefix options on public Chimeway APIs", %{content: content} do
+      refute Regex.match?(~r/Chimeway\.(?:trigger|mark_read|mark_seen)\([^)]*prefix:/s, content),
+             "storage prefix guide must not teach per-call public API prefix options"
+    end
+  end
+
   @golden_path_guide "guides/introduction/golden-path.md"
 
   describe "golden path doc contract (DOCS-01 / GATE-01)" do
@@ -1272,12 +1329,18 @@ defmodule Chimeway.DocContractTest do
              "oban integration recipe must not reference fictional Chimeway.Workflow"
     end
 
-    @required ~w(
-      Chimeway.Dispatch.WorkflowProgressionWorker
-      Chimeway.Dispatch.SignalRouterWorker
-      chimeway_delivery
-      chimeway_signals
-    )
+    @required [
+      "Chimeway.Dispatch.WorkflowProgressionWorker",
+      "Chimeway.Dispatch.SignalRouterWorker",
+      "chimeway_delivery",
+      "chimeway_signals",
+      "Oban.Migration.up(prefix: \"jobs\")",
+      "Oban.Migration.down(prefix: \"jobs\")",
+      "config :my_app, Oban",
+      "prefix: \"jobs\"",
+      "oban_jobs",
+      "storage-prefix-upgrade.md"
+    ]
 
     for required <- @required do
       test "requires #{required} in oban integration recipe", %{content: content} do
@@ -1294,6 +1357,7 @@ defmodule Chimeway.DocContractTest do
     end
 
     @integration_guides ~w(
+      guides/introduction/storage-prefix-upgrade.md
       guides/introduction/mailglass-integration.md
       guides/introduction/accrue-dunning-integration.md
       guides/introduction/admin-console-integration.md
@@ -1307,6 +1371,34 @@ defmodule Chimeway.DocContractTest do
         assert String.contains?(content, unquote(guide)),
                "mix.exs HexDocs extras must include #{unquote(guide)}"
       end
+    end
+
+    test "lists storage prefix guide after golden path and before integration guides", %{
+      content: content
+    } do
+      golden_path_index =
+        case :binary.match(content, "guides/introduction/golden-path.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include golden path guide")
+        end
+
+      storage_index =
+        case :binary.match(content, "guides/introduction/storage-prefix-upgrade.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include storage prefix upgrade guide")
+        end
+
+      mailglass_index =
+        case :binary.match(content, "guides/introduction/mailglass-integration.md") do
+          {index, _} -> index
+          :nomatch -> flunk("mix.exs extras must include mailglass integration guide")
+        end
+
+      assert golden_path_index < storage_index,
+             "HexDocs extras must list storage prefix guide after golden path"
+
+      assert storage_index < mailglass_index,
+             "HexDocs extras must list storage prefix guide before integration guides"
     end
 
     test "lists accrue integration guide after mailglass integration guide in extras", %{
