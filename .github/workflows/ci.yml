@@ -168,6 +168,46 @@ jobs:
       - run: mix ecto.migrate --quiet
       - run: mix verify.example
 
+  verify_runtime_prefix:
+    name: Runtime prefix gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-verify-runtime-prefix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-verify-runtime-prefix-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix verify.runtime_prefix
+
   verify_journeys:
     name: TeamPulse consumer journeys
     runs-on: ubuntu-latest
@@ -570,7 +610,7 @@ jobs:
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, verify_admin]
+    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, verify_admin]
     if: always()
     steps:
       - name: Verify required CI lanes
@@ -580,6 +620,7 @@ jobs:
           VERIFY_GATES: ${{ needs.verify_gates.result }}
           VERIFY_DOCS: ${{ needs.verify_docs.result }}
           VERIFY_EXAMPLE: ${{ needs.verify_example.result }}
+          VERIFY_RUNTIME_PREFIX: ${{ needs.verify_runtime_prefix.result }}
           VERIFY_JOURNEYS: ${{ needs.verify_journeys.result }}
           VERIFY_MAILGLASS: ${{ needs.verify_mailglass.result }}
           VERIFY_ACCRUE: ${{ needs.verify_accrue.result }}
@@ -590,7 +631,7 @@ jobs:
         run: |
           set -euo pipefail
           failed=0
-          for lane in LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA VERIFY_ADMIN; do
+          for lane in LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA VERIFY_ADMIN; do
             result="${!lane}"
             if [[ "$result" != "success" ]]; then
               echo "Required lane $lane: $result"
