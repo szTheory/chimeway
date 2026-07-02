@@ -150,19 +150,20 @@ Plans:
 
 ### Phase 76.1: Close gap: GATE-01 - generated prefixed migration runtime proof (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Close GATE-01 by proving generated prefixed fixture migrations create the schema used by a Chimeway runtime trigger-to-trace flow.
+**Requirements**: GATE-01-GAP
 **Depends on:** Phase 76
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 76.1 to break down)
+
+- [x] 76.1-01-PLAN.md
 
 ## Progress
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
 |-----------|--------|-------|--------------|--------|---------|
-| v1.13 Storage Isolation and Upgrade Path | 73-76.1 | 24/24 | 19/19 | Active | — |
+| v1.13 Storage Isolation and Upgrade Path | 73-76.1 | 25/25 | 20/20 | Active | — |
 | v1.11 Operator Console Polish & Hardening | 68-72 | 12/12 | 18/18 | Complete | 2026-06-04 |
 | v1.10 Ecosystem Completions | 63-67 | 13/13 | 8/8 | Complete | 2026-06-04 |
 

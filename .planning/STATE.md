@@ -3,16 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
 current_phase: 76.1
-status: Phase inserted - ready for planning
-stopped_at: Inserted Phase 76.1
-last_updated: "2026-07-02T16:46:20Z"
-last_activity: 2026-07-02 — Phase 76.1 inserted after Phase 76
+current_phase_name: close-gap-gate-01-generated-prefixed-migration-runtime-proof
+status: verifying
+stopped_at: Completed 76.1-01-PLAN.md
+last_updated: "2026-07-02T18:18:36.217Z"
+last_activity: 2026-07-02
+last_activity_desc: Phase 76.1 Plan 01 complete
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 24
-  completed_plans: 24
-  percent: 80
+  completed_phases: 5
+  total_plans: 25
+  completed_plans: 25
+  percent: 100
 ---
 
 # Project State
@@ -22,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 76.1 — Close gap: GATE-01 - generated prefixed migration runtime proof
+**Current focus:** Phase 76.1 — close-gap-gate-01-generated-prefixed-migration-runtime-proof
 
 ## Current Position
 
-Phase: 76.1 (Close gap: GATE-01 - generated prefixed migration runtime proof) — NOT PLANNED
-Plan: 0 of 0
-Status: Phase inserted - ready for planning
-Last activity: 2026-07-02 — Phase 76.1 inserted after Phase 76
+Phase: 76.1 (close-gap-gate-01-generated-prefixed-migration-runtime-proof) — COMPLETE
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-07-02 — Phase 76.1 Plan 01 complete
 
 ## Accumulated Context
 
@@ -196,6 +198,9 @@ status: complete
 - [Phase 75-08]: Signal and workflow worker proof uses durable ID args only: signal_id and workflow_run_id.
 - [Phase 75-08]: RuntimePrefixWorkflow fixture includes email render fields so due wait progression can create the next-step email delivery.
 - [Phase 75-08]: Worker runtime-prefix proof asserts exact queued args and performs from queued args for SignalRouterWorker and WorkflowProgressionWorker.
+- [Phase 76.1]: [76.1-01]: Generated prefixed runtime proof runs fixture migrations in an isolated temporary database used by Chimeway.Repo.
+- [Phase 76.1]: [76.1-01]: Runtime proof remains synchronous with Chimeway.Dispatch.Sync and does not add public prefix arguments or migration-runner prefix flags.
+- [Phase 76.1]: [76.1-01]: GATE-01-GAP is covered by extending verify.runtime_prefix; installer golden remains path-gated and CI topology is unchanged.
 
 ## Performance
 
@@ -498,8 +503,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-02T16:20:08Z
-Stopped at: Completed 76-03-PLAN.md
+Last session: 2026-07-02T18:18:36.212Z
+Stopped at: Completed 76.1-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -557,3 +562,4 @@ Resume file: None
 | Phase 76 P01 | 35 min | 3 tasks | 7 files |
 | Phase 76 P02 | 16 min | 3 tasks | 20 files |
 | Phase 76 P03 | 20 min | 3 tasks | 4 files |
+| Phase 76.1 P01 | 7 min | 3 tasks | 4 files |

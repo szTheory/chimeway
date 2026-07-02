@@ -38,6 +38,7 @@
 - [x] **DOCS-02**: Oban guidance states that Oban's prefix is separate from Chimeway's table prefix and shows safe test/production examples.
 - [x] **DEMO-01**: The demo host or equivalent example runs against the default `chimeway` schema and proves a trigger-to-trace flow.
 - [x] **GATE-01**: Named verify/CI gates cover prefixed install/runtime behavior and public-schema legacy compatibility.
+- [x] **GATE-01-GAP**: Runtime behavior is proven against tables created by generated prefixed migrations, not only against a cloned schema shape.
 
 ## Future Requirements
 
@@ -85,11 +86,12 @@
 | DOCS-02 | Phase 76 | Complete |
 | DEMO-01 | Phase 76 | Complete |
 | GATE-01 | Phase 76 | Complete |
+| GATE-01-GAP | Phase 76.1 | Complete |
 
 **Coverage:**
 
-- v1.13 requirements: 19 total
-- Mapped to phases: 19
+- v1.13 requirements: 20 total
+- Mapped to phases: 20
 - Unmapped: 0
 
 ---
