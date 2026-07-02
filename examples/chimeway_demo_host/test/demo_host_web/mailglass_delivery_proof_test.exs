@@ -91,8 +91,8 @@ defmodule DemoHostWeb.MailglassDeliveryProofTest do
 
     refute is_nil(email_delivery)
 
-    conn = get(conn, "/admin/chimeway")
-    assert html_response(conn, 200) =~ "Trace search"
+    conn = get(conn, "/admin/chimeway/traces")
+    assert html_response(conn, 200) =~ "Trace Lookup"
 
     {:ok, view, _html} = live(conn)
 
@@ -105,12 +105,13 @@ defmodule DemoHostWeb.MailglassDeliveryProofTest do
       })
       |> render_submit()
 
-    assert html =~ DemoHost.Seeds.alex_identity()
+    assert html =~ ChimewayAdmin.Redaction.redact_recipient(DemoHost.Seeds.alex_identity())
+    refute html =~ DemoHost.Seeds.alex_identity()
 
     {:ok, detail_view, detail_html} =
       live(conn, "/admin/chimeway/deliveries/#{email_delivery.id}")
 
-    assert detail_html =~ "Trace detail"
+    assert detail_html =~ "Trace Detail"
 
     detail = render(detail_view)
     assert detail =~ "teampulse.invite_sent"

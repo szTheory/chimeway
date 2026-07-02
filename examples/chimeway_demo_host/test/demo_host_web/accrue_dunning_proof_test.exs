@@ -7,7 +7,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
     Tagged `:accrue` only — journey suite keeps default Logger adapter (D-03).
     """
     use DemoHostWeb.ConnCase, async: false
-    use Oban.Testing, repo: Chimeway.Repo
+    use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
 
     import Phoenix.LiveViewTest
     import Ecto.Query
@@ -74,6 +74,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
       assert waiting_run.pending_signals == []
 
       assert {:ok, _row} = trigger_invoice_paid_event!(invoice, subscription, customer)
+
       assert %{success: 1} = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
 
       updated_run = Repo.get!(WorkflowRun, waiting_run.id)
@@ -84,8 +85,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
           from(d in Delivery,
             join: ws in WorkflowStep,
             on: d.workflow_step_id == ws.id,
-            where:
-              d.workflow_run_id == ^waiting_run.id and ws.step_key == "escalation_email"
+            where: d.workflow_run_id == ^waiting_run.id and ws.step_key == "escalation_email"
           )
         )
 
@@ -95,8 +95,8 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
     test "DEMO-07 admin trace shows dunning workflow", %{conn: conn} do
       assert {:ok, result} = DemoHost.Seeds.seed_accrue_dunning()
 
-      conn = get(conn, "/admin/chimeway")
-      assert html_response(conn, 200) =~ "Trace search"
+      conn = get(conn, "/admin/chimeway/traces")
+      assert html_response(conn, 200) =~ "Trace Lookup"
 
       {:ok, view, _html} = live(conn)
 
@@ -109,7 +109,8 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
         })
         |> render_submit()
 
-      assert html =~ result.recipient_identity
+      assert html =~ ChimewayAdmin.Redaction.redact_recipient(result.recipient_identity)
+      refute html =~ result.recipient_identity
 
       delivery_id = hd(result.trace.delivery_ids)
       assert String.contains?(html, delivery_id)
@@ -117,7 +118,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
       {:ok, detail_view, detail_html} =
         live(conn, "/admin/chimeway/deliveries/#{delivery_id}")
 
-      assert detail_html =~ "Trace detail"
+      assert detail_html =~ "Trace Detail"
 
       detail = render(detail_view)
       assert detail =~ "accrue.dunning" or detail =~ "waiting_for_step_progression"

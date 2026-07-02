@@ -33,7 +33,7 @@ defmodule ChimewayAdmin.Live.DefinitionsLive do
           body="Persisted notification keys and versions will appear after Chimeway records events or deliveries."
         />
         <div class="cw-table-wrap">
-          <table :if={@definitions != []} class="cw-table">
+          <table class="cw-table">
             <thead>
               <tr>
                 <th>Notification key</th>

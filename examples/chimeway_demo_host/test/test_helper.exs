@@ -9,6 +9,7 @@ Application.ensure_all_started(:demo_host)
 
 # Reuse Chimeway core's Repo + SQL sandbox so example app tests share durable state.
 Ecto.Adapters.SQL.Sandbox.mode(Chimeway.Repo, :manual)
+DemoHost.StoragePrefixSupport.prepare_prefixed_schema!()
 
 if Code.ensure_loaded?(Mailglass) do
   {:ok, _} = Application.ensure_all_started(:mailglass)

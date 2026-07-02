@@ -2,7 +2,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
   use ExUnit.Case, async: false
   import Plug.Test
   import Plug.Conn
-  use Oban.Testing, repo: Chimeway.Repo
+  use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
 
   alias Chimeway.Repo
   alias Chimeway.Webhooks.{Ingress, ProcessFeedbackWorker}
@@ -20,6 +20,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # The EchoAdapter maps "id" -> provider_message_id.
       provider_msg_id = "msg-" <> Ecto.UUID.generate()
       body = Jason.encode!(%{"id" => provider_msg_id, "status" => "ok"})
+
       conn =
         conn(:post, "/webhooks/chimeway/echo", body)
         |> put_req_header("content-type", "application/json")
@@ -35,11 +36,12 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       assert ingress.normalized_status == "delivered"
 
       # Oban job enqueued atomically with ingress row
-      assert_enqueued worker: ProcessFeedbackWorker, args: %{"ingress_id" => ingress.id}
+      assert_enqueued(worker: ProcessFeedbackWorker, args: %{"ingress_id" => ingress.id})
     end
 
     test "bad signature returns 401 and commits NO ingress row (D-09 / T-33-AUTH-LEAK)" do
       body = Jason.encode!(%{"id" => "msg-" <> Ecto.UUID.generate(), "status" => "ok"})
+
       conn =
         conn(:post, "/webhooks/chimeway/echo", body)
         |> put_req_header("content-type", "application/json")
@@ -48,7 +50,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
 
       assert conn.status == 401
       assert Repo.aggregate(Ingress, :count) == 0
-      refute_enqueued worker: ProcessFeedbackWorker
+      refute_enqueued(worker: ProcessFeedbackWorker)
     end
 
     test "unresolvable body returns non-2xx and commits NO ingress row" do
@@ -83,6 +85,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # before passing to verify_webhook/3.
       provider_msg_id = "msg-" <> Ecto.UUID.generate()
       body = Jason.encode!(%{"id" => provider_msg_id, "status" => "ok"})
+
       conn =
         conn(:post, "/webhooks/chimeway/echo", body)
         |> put_req_header("content-type", "application/json")
@@ -124,6 +127,7 @@ defmodule DemoHostWeb.WebhooksControllerTest do
       # Compute HMAC-SHA256 over the EXACT raw bytes using the same shared
       # secret RawBodyHmacAdapter expects.
       secret = "test-secret-rawbody"
+
       signature =
         :crypto.mac(:hmac, :sha256, secret, body) |> Base.encode16(case: :lower)
 

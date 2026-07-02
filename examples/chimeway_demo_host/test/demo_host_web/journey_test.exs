@@ -14,7 +14,7 @@ defmodule DemoHostWeb.JourneyTest do
   """
   use DemoHostWeb.ConnCase, async: false
   import Ecto.Query, only: [from: 2]
-  use Oban.Testing, repo: Chimeway.Repo
+  use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
 
   alias Chimeway.{Delivery, Repo, Traces}
   alias Chimeway.Dispatch.WorkflowProgressionWorker

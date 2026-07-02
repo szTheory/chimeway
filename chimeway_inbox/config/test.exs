@@ -27,5 +27,6 @@ repo_config =
   end
 
 config :chimeway, Chimeway.Repo, repo_config
+config :chimeway, prefix: false
 config :chimeway, Oban, repo: Chimeway.Repo, testing: :manual, queues: false
 config :logger, level: :warning

@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Sigra) do
+if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
   defmodule DemoHostWeb.SigraAuthProofTest do
     @moduledoc """
     DEMO-10 proof: Sigra auth event → Chimeway trigger → durable Chimeway.Delivery row
@@ -7,7 +7,7 @@ if Code.ensure_loaded?(Sigra) do
     Tagged `:sigra` only — journey suite keeps default Logger adapter (D-03).
     """
     use DemoHostWeb.ConnCase, async: false
-    use Oban.Testing, repo: Chimeway.Repo
+    use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
 
     import Phoenix.LiveViewTest
 
@@ -52,8 +52,8 @@ if Code.ensure_loaded?(Sigra) do
     test "DEMO-10 admin trace shows sigra auth notification", %{conn: conn} do
       assert {:ok, result} = DemoHost.Seeds.seed_sigra_auth()
 
-      conn = get(conn, "/admin/chimeway")
-      assert html_response(conn, 200) =~ "Trace search"
+      conn = get(conn, "/admin/chimeway/traces")
+      assert html_response(conn, 200) =~ "Trace Lookup"
 
       {:ok, view, _html} = live(conn)
 
@@ -66,7 +66,8 @@ if Code.ensure_loaded?(Sigra) do
         })
         |> render_submit()
 
-      assert html =~ result.recipient_identity
+      assert html =~ ChimewayAdmin.Redaction.redact_recipient(result.recipient_identity)
+      refute html =~ result.recipient_identity
 
       delivery_id = hd(result.trace.delivery_ids)
       assert String.contains?(html, delivery_id)
@@ -74,7 +75,7 @@ if Code.ensure_loaded?(Sigra) do
       {:ok, _detail_view, detail_html} =
         live(conn, "/admin/chimeway/deliveries/#{delivery_id}")
 
-      assert detail_html =~ "Trace detail"
+      assert detail_html =~ "Trace Detail"
     end
   end
 end

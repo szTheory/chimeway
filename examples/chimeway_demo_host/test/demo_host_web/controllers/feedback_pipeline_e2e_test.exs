@@ -3,7 +3,7 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
   import Plug.Test
   import Plug.Conn
   import Ecto.Query, only: [from: 2]
-  use Oban.Testing, repo: Chimeway.Repo
+  use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
 
   alias Chimeway.{Deliveries, Repo, Traces}
   alias Chimeway.DeliveryAttempt
@@ -93,8 +93,7 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
       [signal_received_transition] =
         Repo.all(
           from(wt in WorkflowTransition,
-            where:
-              wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
+            where: wt.workflow_run_id == ^run.id and wt.reason == "signal_received"
           )
         )
 
@@ -168,8 +167,7 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
       [stopped_transition] =
         Repo.all(
           from(wt in WorkflowTransition,
-            where:
-              wt.workflow_run_id == ^run.id and wt.reason == "workflow_stopped"
+            where: wt.workflow_run_id == ^run.id and wt.reason == "workflow_stopped"
           )
         )
 

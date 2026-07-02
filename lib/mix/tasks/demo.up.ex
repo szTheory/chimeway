@@ -13,6 +13,8 @@ defmodule Mix.Tasks.Demo.Up do
 
   use Mix.Task
 
+  @demo_storage_prefix "chimeway"
+
   @impl Mix.Task
   def run(args) do
     check? = "--check" in args
@@ -24,6 +26,7 @@ defmodule Mix.Tasks.Demo.Up do
 
     Mix.Task.run("ecto.migrate")
     Mix.Task.run("app.start")
+    prepare_demo_storage_prefix!()
 
     {output, status} =
       System.cmd("mix", ["demo.seed"],
@@ -64,5 +67,65 @@ defmodule Mix.Tasks.Demo.Up do
       {"PGUSER", System.get_env("PGUSER") || System.get_env("USER") || "postgres"},
       {"PGPASSWORD", System.get_env("PGPASSWORD") || ""}
     ]
+  end
+
+  defp prepare_demo_storage_prefix! do
+    create_schema!(@demo_storage_prefix)
+    clone_missing_public_chimeway_tables!(@demo_storage_prefix)
+  end
+
+  defp clone_missing_public_chimeway_tables!(prefix) do
+    public_tables = chimeway_tables("public")
+    prefixed_tables = MapSet.new(chimeway_tables(prefix))
+
+    public_tables
+    |> Enum.reject(&MapSet.member?(prefixed_tables, &1))
+    |> Enum.each(fn table_name ->
+      Ecto.Adapters.SQL.query!(
+        Chimeway.Repo,
+        """
+        CREATE TABLE #{qualified_name(prefix, table_name)}
+        (LIKE #{qualified_name("public", table_name)} INCLUDING ALL)
+        """,
+        []
+      )
+    end)
+  end
+
+  defp create_schema!(schema) do
+    Ecto.Adapters.SQL.query!(
+      Chimeway.Repo,
+      ~s(CREATE SCHEMA IF NOT EXISTS "#{normalize_identifier!(schema)}"),
+      []
+    )
+  end
+
+  defp chimeway_tables(schema) do
+    schema = normalize_identifier!(schema)
+
+    Chimeway.Repo
+    |> Ecto.Adapters.SQL.query!(
+      """
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = $1
+        AND table_name LIKE 'chimeway_%'
+      ORDER BY table_name
+      """,
+      [schema]
+    )
+    |> then(fn %{rows: rows} -> Enum.map(rows, fn [table_name] -> table_name end) end)
+  end
+
+  defp qualified_name(schema, table_name) do
+    ~s("#{normalize_identifier!(schema)}"."#{normalize_identifier!(table_name)}")
+  end
+
+  defp normalize_identifier!(identifier) when is_binary(identifier) do
+    if Regex.match?(~r/\A[a-z][a-z0-9_]*\z/, identifier) do
+      identifier
+    else
+      Mix.raise("Unsafe SQL identifier: #{inspect(identifier)}")
+    end
   end
 end
