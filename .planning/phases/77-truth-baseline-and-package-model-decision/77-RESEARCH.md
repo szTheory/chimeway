@@ -323,7 +323,7 @@ curl -fsS -o /tmp/chimeway_inbox_hex.json -w "%{http_code}" https://hex.pm/api/p
 | `.github/workflows/publish-hex.yml` | Recovery accepts a `tag` or SHA plus `release_version`, verifies `@version`, gates on `ci-gate`, and publishes root `chimeway`. | Publish recovery refs must be package refs or SHAs, not planning labels. | Phase 78/80 | [VERIFIED: .github/workflows/publish-hex.yml] |
 | `.github/workflows/ci.yml` | `ci-gate` needs 13 lanes and uses `if: always()` to aggregate required lanes. | Preserve as release/publish confidence source until Phase 80 adds `pr-gate`. | Phase 80 | [VERIFIED: .github/workflows/ci.yml] [CITED: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks] |
 | `README.md` | Hex badge is correct for `chimeway`; CI badge points to `jonlunsford/chimeway`; install guidance uses `{:chimeway, "~> 1.0"}`. | Repo identity and front-door truth should be corrected in owner phase without changing Phase 77 scope. | Phase 78/79 split | [VERIFIED: README.md] |
-| `CONTRIBUTING.md` | Clone command points to `https://github.com/jonlunsford/chimeway.git`. | Contributor source URL should match canonical repo. | Phase 80 or Phase 79, planner should assign with docs/CI split | [VERIFIED: CONTRIBUTING.md] |
+| `CONTRIBUTING.md` | Clone command points to `https://github.com/jonlunsford/chimeway.git`. | Contributor source URL should match canonical repo. | Phase 80 | [VERIFIED: CONTRIBUTING.md] |
 | `CHANGELOG.md` | Existing 1.0.0 commit links point to `szTheory/chimeway`; no `v1.14` release anchor exists. | Preserve changelog release anchors as package releases, not planning milestones. | Phase 78 | [VERIFIED: CHANGELOG.md] |
 | `MAINTAINING.md` | Documents Release Please, `ci-gate`, root publish/recovery, and first automated release after Hex 1.0.0 targets 1.1.0. | Maintainer copy should continue to match root package truth after Phase 78/80. | Phase 78/80 | [VERIFIED: MAINTAINING.md] |
 | `chimeway_admin/mix.exs` | App `:chimeway_admin`, version `0.1.0`, path dependency `{:chimeway, path: ".."}`, no package/docs metadata. | In-repo preview/path package until future promotion milestone. | Phase 78 docs copy | [VERIFIED: chimeway_admin/mix.exs] |
@@ -351,22 +351,19 @@ curl -fsS -o /tmp/chimeway_inbox_hex.json -w "%{http_code}" https://hex.pm/api/p
 |---|-------|---------|---------------|
 | None | All substantive claims were copied from CONTEXT.md, verified by local file inspection, checked against live Hex/GitHub endpoints, or cited from official docs. | All | N/A |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should the Phase 77 artifact be committed as `77-PACKAGE-MODEL-DECISION.md` or another name?**
+1. **OQ-1: Should the Phase 77 artifact be committed as `77-PACKAGE-MODEL-DECISION.md` or another name?**
    - What we know: CONTEXT.md allows ADR, decision record, or equivalent. [VERIFIED: .planning/phases/77-truth-baseline-and-package-model-decision/77-CONTEXT.md]
-   - What's unclear: Exact filename is not locked. [VERIFIED: .planning/phases/77-truth-baseline-and-package-model-decision/77-CONTEXT.md]
-   - Recommendation: Use `77-PACKAGE-MODEL-DECISION.md` to keep the artifact phase-local and explicit. [VERIFIED: .planning/ROADMAP.md]
+   - RESOLVED: Use `.planning/phases/77-truth-baseline-and-package-model-decision/77-PACKAGE-MODEL-DECISION.md` to keep the artifact phase-local and explicit. [VERIFIED: .planning/ROADMAP.md]
 
-2. **Should Phase 77 add tests for the decision artifact?**
+2. **OQ-2: Should Phase 77 add tests for the decision artifact?**
    - What we know: Roadmap success criteria require an artifact and baseline inventory; Phase 78 owns package truth contracts. [VERIFIED: .planning/ROADMAP.md]
-   - What's unclear: Whether the planner wants an automated grep acceptance step inside Phase 77. [VERIFIED: .planning/ROADMAP.md]
-   - Recommendation: Do not add ExUnit tests in Phase 77; use artifact grep/manual review for TRUTH-04, then add durable contracts in Phase 78/80. [VERIFIED: .planning/ROADMAP.md] [VERIFIED: test/chimeway/release_gate_contract_test.exs]
+   - RESOLVED: Do not add ExUnit tests in Phase 77; use artifact grep/manual review for TRUTH-04 and leave durable package/docs/CI contracts to Phases 78/80 as already planned. [VERIFIED: .planning/ROADMAP.md] [VERIFIED: test/chimeway/release_gate_contract_test.exs]
 
-3. **Which downstream phase owns `CONTRIBUTING.md` canonical repo URL?**
+3. **OQ-3: Which downstream phase owns `CONTRIBUTING.md` canonical repo URL?**
    - What we know: Phase 79 owns front-door docs truth and Phase 80 owns CI/contributor DX truth. [VERIFIED: .planning/ROADMAP.md]
-   - What's unclear: CONTRIBUTING spans public docs and contributor DX. [VERIFIED: CONTRIBUTING.md]
-   - Recommendation: Assign CONTRIBUTING clone/source URL to Phase 80 if bundled with contributor gate docs, otherwise Phase 79 if bundled with public front-door docs. [VERIFIED: .planning/ROADMAP.md]
+   - RESOLVED: Assign `CONTRIBUTING.md` canonical repo URL ownership to Phase 80 because it is contributor DX/gate documentation. Phase 79 can reference public docs implications only if later needed, but Phase 80 is the downstream owner for the baseline row. [VERIFIED: CONTRIBUTING.md] [VERIFIED: .planning/ROADMAP.md]
 
 ## Environment Availability
 
