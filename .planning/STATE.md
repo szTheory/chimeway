@@ -1,20 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.13
-milestone_name: Storage Isolation and Upgrade Path
-current_phase: null
-status: Awaiting next milestone
-stopped_at: Milestone v1.13 completed and archived
-last_updated: "2026-07-02T21:45:00.000Z"
+milestone: v1.14
+milestone_name: Public Truth and Verification Architecture
+status: planning
+last_updated: "2026-07-02T22:05:00.000Z"
 last_activity: 2026-07-02
-last_activity_desc: Milestone v1.13 completed and archived
+last_activity_desc: Milestone v1.14 requirements and roadmap initialized
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
-current_phase_name: null
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 15
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,14 +21,14 @@ current_phase_name: null
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning next milestone
+**Current focus:** v1.14 Public Truth and Verification Architecture
 
 ## Current Position
 
-Phase: Milestone v1.13 complete
+Phase: Not started (ready to plan Phase 77)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-02 — Milestone v1.13 completed and archived
+Status: Requirements and roadmap defined
+Last activity: 2026-07-02 — Milestone v1.14 requirements and roadmap initialized
 
 ## Accumulated Context
 
@@ -518,7 +515,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with $gsd-new-milestone
+- Plan Phase 77: Truth Baseline and Package Model Decision
 
 ## Performance Metrics
 
