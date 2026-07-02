@@ -10,7 +10,8 @@ config :demo_host, DemoHostWeb.Endpoint,
 config :chimeway,
   ecto_repos: [Chimeway.Repo],
   time_zone_database: Tzdata.TimeZoneDatabase,
-  dispatcher: Chimeway.Dispatch.Sync
+  dispatcher: Chimeway.Dispatch.Sync,
+  prefix: "chimeway"
 
 # Full Chimeway.Repo config with SQL sandbox pool for tests.
 # Uses the same env-var conventions as the root project's config/test.exs.

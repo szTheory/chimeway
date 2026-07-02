@@ -42,6 +42,16 @@ See the [Mention escalation recipe](../../guides/recipes/mention-escalation.md) 
 
 Copy `DemoHost.Seeds` patterns into your app — do not copy internal test fixture helpers from `feedback_pipeline_e2e_test.exs`.
 
+## Storage isolation proof
+
+The demo host uses the isolated Chimeway schema by default:
+
+```elixir
+config :chimeway, prefix: "chimeway"
+```
+
+The admin trace proof exercises `DemoHost.Seeds` and public Chimeway APIs from trigger to `Chimeway.Traces.explain_delivery/1`, then verifies Chimeway lifecycle rows land under `chimeway.*` instead of public tables.
+
 ## Prerequisites
 
 - Elixir 1.17+, PostgreSQL 15+

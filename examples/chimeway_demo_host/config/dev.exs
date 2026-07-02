@@ -14,7 +14,8 @@ config :logger, :console,
 config :chimeway,
   ecto_repos: [Chimeway.Repo],
   time_zone_database: Tzdata.TimeZoneDatabase,
-  dispatcher: Chimeway.Dispatch.Sync
+  dispatcher: Chimeway.Dispatch.Sync,
+  prefix: "chimeway"
 
 config :chimeway, Chimeway.Repo,
   username: System.get_env("PGUSER") || System.get_env("USER") || "postgres",
