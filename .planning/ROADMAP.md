@@ -148,13 +148,23 @@ Plans:
 4. Demo host or equivalent example runs against the default `chimeway` schema and proves trigger-to-trace.
 5. Named verify/CI gates cover prefixed install/runtime behavior, public legacy compatibility, and storage docs contracts.
 
+### Phase 76.1: Close gap: GATE-01 - generated prefixed migration runtime proof (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 76
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 76.1 to break down)
+
 ## Progress
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
 |-----------|--------|-------|--------------|--------|---------|
-| v1.13 Storage Isolation and Upgrade Path | 73-76 | 24/24 | 19/19 | Active | — |
+| v1.13 Storage Isolation and Upgrade Path | 73-76.1 | 24/24 | 19/19 | Active | — |
 | v1.11 Operator Console Polish & Hardening | 68-72 | 12/12 | 18/18 | Complete | 2026-06-04 |
 | v1.10 Ecosystem Completions | 63-67 | 13/13 | 8/8 | Complete | 2026-06-04 |
 
 ---
-*Roadmap updated: 2026-07-02 — Phase 76 Plan 03 complete*
+*Roadmap updated: 2026-07-02 — Phase 76.1 urgent closure inserted*

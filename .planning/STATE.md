@@ -2,19 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Storage Isolation and Upgrade Path
-current_phase: 76
-status: Ready for milestone completion
-stopped_at: Completed 76-03-PLAN.md
-last_updated: "2026-07-02T16:20:08.538Z"
-last_activity: 2026-07-02
-last_activity_desc: Phase 76 complete
+current_phase: 76.1
+status: Phase inserted - ready for planning
+stopped_at: Inserted Phase 76.1
+last_updated: "2026-07-02T16:46:20Z"
+last_activity: 2026-07-02 — Phase 76.1 inserted after Phase 76
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 24
   completed_plans: 24
-  percent: 100
-current_phase_name: Prefix Docs, Demo, and Gates
+  percent: 80
 ---
 
 # Project State
@@ -24,14 +22,14 @@ current_phase_name: Prefix Docs, Demo, and Gates
 See: .planning/PROJECT.md (updated 2026-06-30)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 76 — Prefix Docs, Demo, and Gates
+**Current focus:** Phase 76.1 — Close gap: GATE-01 - generated prefixed migration runtime proof
 
 ## Current Position
 
-Phase: 76 (Prefix Docs, Demo, and Gates) — COMPLETE
-Plan: 3 of 3
-Status: Ready for milestone completion
-Last activity: 2026-07-02 — Phase 76 complete
+Phase: 76.1 (Close gap: GATE-01 - generated prefixed migration runtime proof) — NOT PLANNED
+Plan: 0 of 0
+Status: Phase inserted - ready for planning
+Last activity: 2026-07-02 — Phase 76.1 inserted after Phase 76
 
 ## Accumulated Context
 
@@ -467,6 +465,7 @@ None.
 - 57.1 inserted after 57: Close gap: DOCS-06/07 — fix Mailglass inbound webhook guide example (URGENT)
 - Phase 62.1 inserted after Phase 62: Address v1.9 tech debt: Nyquist validation + REQUIREMENTS traceability (URGENT)
 - Phase 67 added: Close ECOS-09: repin Sigra CI SHA, harden verify lanes against vacuous pass, fix guide, verify Phase 64 (from v1.10 milestone audit)
+- Phase 76.1 inserted after Phase 76: Close gap: GATE-01 - generated prefixed migration runtime proof (URGENT)
 
 ### Deferred Items
 
