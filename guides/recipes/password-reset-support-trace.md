@@ -100,7 +100,7 @@ Use the fields above in IEx to classify what happened.
 | Deferred send | `status: :pending`, `planning_reason: "quiet_hours"` | Policy held the delivery until quiet hours end |
 | Blocked channel | `status: :suppressed`, `suppression_reason: "channel_disabled"` | User preference or policy disabled the email channel |
 
-Chimeway recorded the decision — check [Policy and preferences](../flows/policy-and-preferences.md) for the policy model (that guide is still a stub; treat it as orientation, not exhaustive reference).
+Chimeway recorded the decision — the policy model is covered by the Policy and preferences guide (still a stub and not yet published; treat this note as orientation, not exhaustive reference).
 
 ### Delivery failure
 
@@ -119,4 +119,4 @@ When `status: :succeeded`, Chimeway completed its delivery obligation. The trace
 
 - [Tracing a Notification](tracing-a-notification.md) — telemetry, correlation IDs, and deeper diagnosis
 - [Golden Path](../introduction/golden-path.md) — install-to-first-trace baseline
-- [Policy and preferences](../flows/policy-and-preferences.md) — policy model overview (stub)
+- Policy and preferences — policy model overview (stub, not yet published)

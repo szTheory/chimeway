@@ -94,5 +94,5 @@ You have successfully defined, triggered, and retrieved a Chimeway notification.
 To explore further, you might want to look into:
 - [Tracing a Notification](../recipes/tracing-a-notification.md) for explainability and telemetry depth
 - Configuring more complex [Channel Adapters](../recipes/custom-adapter.md)
-- Setting up [Policies and Preferences](../flows/policy-and-preferences.md) to respect user communication limits
-- Understanding the full [Trigger to Delivery Lifecycle](../flows/trigger-to-delivery.md)
+- Setting up Policies and Preferences to respect user communication limits
+- Understanding the full Trigger to Delivery Lifecycle
