@@ -513,6 +513,21 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(readme, ~S({:chimeway, "~> 1.0"})),
              "unpacked README.md must carry the root install constraint {:chimeway, \"~> 1.0\"}"
 
+      # ADPT-01 / D-07: the DOCS-14/15/16 public-story invariants must survive Hex
+      # packaging. Marker strings are byte-identical to the source-tree README
+      # contract (doc_contract_test.exs @readme_decision_markers + @required), so
+      # the packaged and source contracts stay in lockstep.
+      for marker <- [
+            "local-first",
+            "## Non-goals",
+            "## Host-owned boundaries",
+            "in-repo preview/path package",
+            "Chimeway.Traces.explain_delivery"
+          ] do
+        assert String.contains?(readme, marker),
+               "unpacked README.md must carry the public-story marker #{marker}"
+      end
+
       # Sibling preview/path status reaches Hex consumers, no current-Hex install claim.
       for {guide, name} <- [{admin_guide, "admin"}, {inbox_guide, "inbox"}] do
         assert String.contains?(guide, "in-repo preview/path package"),
