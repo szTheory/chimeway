@@ -23,9 +23,9 @@ Requirements for the active milestone. Each requirement maps to exactly one road
 
 ### Verification Architecture
 
-- [ ] **CI-01**: A fast, always-running `pr-gate` gives contributors trustworthy PR feedback without running the entire release matrix.
-- [ ] **CI-02**: The full `ci-gate` remains the release, publish, automerge, and recovery source of truth and is at least as strict as the current release verification surface.
-- [ ] **CI-03**: Required-check topology cannot leave required GitHub checks permanently pending after path-filtered skips.
+- [x] **CI-01**: A fast, always-running `pr-gate` gives contributors trustworthy PR feedback without running the entire release matrix.
+- [x] **CI-02**: The full `ci-gate` remains the release, publish, automerge, and recovery source of truth and is at least as strict as the current release verification surface.
+- [x] **CI-03**: Required-check topology cannot leave required GitHub checks permanently pending after path-filtered skips.
 - [ ] **CI-04**: Complex CI behavior is reproducible locally through scripts or Mix tasks instead of large inline workflow fragments.
 - [ ] **CI-05**: Nested package, demo, npm, and Playwright caches reduce repeated CI setup cost without hiding failures.
 
@@ -77,9 +77,9 @@ Explicitly excluded from v1.14 to keep the milestone coherent.
 | DOCS-16 | Phase 79 | Complete |
 | DOCS-17 | Phase 79 | Complete |
 | ADPT-01 | Phase 79 | Complete |
-| CI-01 | Phase 80 | Pending |
-| CI-02 | Phase 80 | Pending |
-| CI-03 | Phase 80 | Pending |
+| CI-01 | Phase 80 | Complete |
+| CI-02 | Phase 80 | Complete |
+| CI-03 | Phase 80 | Complete |
 | CI-04 | Phase 80 | Pending |
 | CI-05 | Phase 80 | Pending |
 

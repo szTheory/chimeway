@@ -56,7 +56,7 @@
 
 - [ ] **Phase 80: Verification Architecture and CI/DX** (0/4 plans)
   - Plans:
-    - [ ] 80-01-PLAN.md — pr-gate/ci-gate two-aggregate split: add fast `pr-gate`, event-guard + fold `install_golden_contract` into `ci-gate`, gate heavy lanes off PR, lock topology in contract test (CI-01/02/03)
+    - [x] 80-01-PLAN.md — pr-gate/ci-gate two-aggregate split: add fast `pr-gate`, event-guard + fold `install_golden_contract` into `ci-gate`, gate heavy lanes off PR, lock topology in contract test (CI-01/02/03)
     - [ ] 80-02-PLAN.md — Cache coverage: nested `chimeway_admin`/`chimeway_inbox` mix, npm, Playwright, per-lane demo-host caches keyed on lockfiles; contract-lock keying (CI-05)
     - [ ] 80-03-PLAN.md — Extract CI verification fragments to `scripts/ci/*.sh` (detect / aggregate-gate / sigra-proof) and wire `ci.yml`; contract-lock incl. Sigra-in-script (CI-04)
     - [ ] 80-04-PLAN.md — Align CONTRIBUTING.md + MAINTAINING.md (pr-gate/ci-gate split, D-08 branch-protection operator swap, scripts/ci, Sigra ref fix) (CI-01/02/03/04)

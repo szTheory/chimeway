@@ -2,19 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-current_phase: 79
-current_phase_name: front-door-and-docs-ia
 status: executing
-stopped_at: Phase 80 context gathered (assumptions mode)
-last_updated: "2026-07-03T16:16:07.465Z"
+stopped_at: Completed 80-01-PLAN.md
+last_updated: "2026-07-03T16:26:30.355Z"
 last_activity: 2026-07-03
-last_activity_desc: Phase 80 planning complete
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
-  percent: 75
+  total_plans: 10
+  completed_plans: 7
+  percent: 70
 ---
 
 # Project State
@@ -24,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 79 — front-door-and-docs-ia
+**Current focus:** Phase 80 — verification-architecture-and-ci-dx
 
 ## Current Position
 
-Phase: 79 (front-door-and-docs-ia) — EXECUTING
-Plan: 1 of 1
+Phase: 80 (verification-architecture-and-ci-dx) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-03 — Phase 80 planning complete
+Last activity: 2026-07-03
 
 ## Accumulated Context
 
@@ -215,6 +212,9 @@ status: complete
 - [Phase ?]: [78-02]: Sibling mix.exs files are evidence-only; contracts assert app/version/path-dep and absence of package:/docs: metadata (D-05).
 - [Phase ?]: [78-03]: Env-conditional Sigra override (dev/test only); Hex package builds run under MIX_ENV=prod so the build is Hex-legal.
 - [Phase 79]: Docs truth locked as executable ExUnit string contracts with README<->packaged-README marker lockstep
+- [Phase ?]: [80-01]: Two-aggregate CI topology — fast always-on pr-gate for PRs, push/dispatch-only ci-gate for release
+- [Phase ?]: [80-01]: install_golden_contract is PR-exempt (D-04) yet folded into ci-gate needs (D-05); detect-step pattern kept for pending-safety (D-07)
+- [Phase ?]: [80-01]: Heavy lanes use event guards, never paths filters, to avoid the required-check pending trap (CI-03)
 
 ## Performance
 
@@ -526,9 +526,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-03T15:35:32.940Z
-Stopped at: Phase 80 context gathered (assumptions mode)
-Resume file: .planning/phases/80-verification-architecture-and-ci-dx/80-CONTEXT.md
+Last session: 2026-07-03T16:26:30.351Z
+Stopped at: Completed 80-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -592,3 +592,4 @@ Resume file: .planning/phases/80-verification-architecture-and-ci-dx/80-CONTEXT.
 | Phase 78 P02 | 5 min | 2 tasks tasks | 3 files files |
 | Phase 78 P03 | 30 min | 2 tasks | 4 files |
 | Phase 79 P01 | 12min | 3 tasks | 5 files |
+| Phase 80 P01 | 4 min | 3 tasks | 2 files |
