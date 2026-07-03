@@ -85,7 +85,7 @@ Maintainers clone the integration sibling repos adjacent to chimeway and point t
 
 - [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins ref `236fa2f1649e771f3b515603495436badeed3c7b` (`accrue-v1.3.0`).
 - [szTheory/threadline](https://github.com/szTheory/threadline) — convention `../threadline/threadline` from repo root (`THREADLINE_PATH`). CI pins ref `46375fafc4df30fc916244ee4a21b7cae01f1ddc`.
-- [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `b186f03ccc5bbc9416f495df3e5dd0bec2f814a4`.
+- [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`.
 
 Update the pinned refs when bumping an integration.
 
@@ -103,11 +103,29 @@ When modifying any of these paths, also run `mix verify.install_golden` locally 
 
 The installer proof covers committed golden fixtures, second-run idempotency, static prefix qualification, and database execution/rollback for generated prefixed and public migrations. It requires a reachable PostgreSQL test database; CI provisions PostgreSQL 15 for the path-gated `install_golden_contract` job.
 
-CI runs `install_golden_contract` on every push to `main` and on PRs that touch installer surfaces (path-gated). Do not change that gating behavior.
+CI runs `install_golden_contract` on push to `main` and on `workflow_dispatch` only — it is event-guarded off `pull_request` under the two-aggregate topology (see "CI gate topology" below), so it does not run on ordinary PRs. Within those events the detect step keeps the proof path-gated: it diffs the installer surfaces listed above and only runs the full proof when one changed, otherwise reporting `success` so the `ci-gate` fold stays pending-safe. `scripts/ci/detect-installer-changes.sh` reproduces that detection locally.
 
 ### Bootstrap note
 
 First automated release after Hex **1.0.0** targets **1.1.0**. Push all unpushed `main` commits before the first Release Please run so the bootstrap PR includes v1.5–v1.9 surface.
+
+## CI gate topology (pr-gate / ci-gate)
+
+Chimeway's CI fans into two aggregate checks:
+
+- **`pr-gate`** — the fast required check on contributor pull requests. It aggregates a fast subset (`lint`, `test`, `mix ci.verify_gates`, `mix ci.docs`), always reports a conclusion, mirrors what local `mix ci` covers, and carries no `paths:` filter so it never strands a required PR check.
+- **`ci-gate`** — the source of truth for **release, publish, automerge, and recovery**. It aggregates all lanes (the ecosystem-integration gates and `install_golden_contract` included) and runs on push-to-`main` plus `workflow_dispatch` only; release PRs receive it via dispatch. It is event-guarded off `pull_request`, so it does not run on ordinary PRs.
+
+Complex CI behavior is reproducible locally via the committed helpers in `scripts/ci/` — `detect-installer-changes.sh` (installer path-gating), `aggregate-gate.sh` (the required-lane pass/fail loop shared by both gates), and `sigra-proof.sh` (the root + demo-host Sigra proof lanes).
+
+### Operator action: swap the PR required check (`ci-gate` → `pr-gate`)
+
+**This is a GitHub repository settings change — code cannot enforce branch protection, so it must be performed by an operator.** When the two-aggregate topology lands, update branch protection for `main`:
+
+1. GitHub → repo **Settings → Branches → the branch protection rule for `main`**.
+2. Under **Require status checks to pass before merging**, REMOVE `ci-gate` from the required checks and ADD `pr-gate`.
+
+**Hazard (pending trap):** because `ci-gate` is now skipped on `pull_request` events, if branch protection still requires `ci-gate` every PR strands in "Expected — Waiting for status to be reported" and can never merge. This swap **must** accompany the topology change. Release/publish/automerge/recovery flows are unaffected — they poll `ci-gate` on push/dispatch, not as a PR required check.
 
 ## Refreshing GitHub Actions SHAs
 
