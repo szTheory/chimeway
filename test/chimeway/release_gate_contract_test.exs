@@ -9,6 +9,11 @@ defmodule Chimeway.ReleaseGateContractTest do
   @release_yml ".github/workflows/release.yml"
   @manifest ".release-please-manifest.json"
   @publish_hex_yml ".github/workflows/publish-hex.yml"
+  @readme "README.md"
+  @changelog "CHANGELOG.md"
+  @canonical_repo_url "https://github.com/szTheory/chimeway"
+  @legacy_repo_url "https://github.com/jonlunsford/chimeway"
+  @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
   @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin)
 
   @pre_ship_verify_commands [
@@ -295,6 +300,85 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert threadline >= 7,
              "threadline lane must have >= 7 integration tests (found #{threadline})"
+    end
+  end
+
+  describe "root package and source truth (TRUTH-01/TRUTH-02, D-01/D-03)" do
+    setup do
+      %{
+        mix_exs: File.read!(@mix_exs),
+        readme: File.read!(@readme),
+        changelog: File.read!(@changelog),
+        manifest: File.read!(@manifest),
+        version: root_version!()
+      }
+    end
+
+    test "root package release identity uses package SemVer refs", ctx do
+      version = ctx.version
+
+      # SemVer shape guard: root @version is a package SemVer, not a planning label.
+      assert Regex.match?(~r/^\d+\.\d+\.\d+/, version),
+             "root @version must be package SemVer such as 1.0.0 (found #{inspect(version)})"
+
+      # Release Please manifest agrees on the single root package version.
+      manifest = Jason.decode!(ctx.manifest)
+
+      assert Map.keys(manifest) == ["."],
+             "manifest must contain exactly the root \".\" package entry"
+
+      assert manifest["."] == version,
+             "manifest root version #{inspect(manifest["."])} must equal mix.exs @version #{inspect(version)}"
+
+      # CHANGELOG has a package release heading for the current version.
+      assert Regex.match?(~r/^##\s+#{Regex.escape(version)}\b/m, ctx.changelog),
+             "CHANGELOG.md must contain a `## #{version}` package release heading"
+
+      # HexDocs source ref stays pinned to the tagged package version.
+      assert String.contains?(ctx.mix_exs, ~S(source_ref: "v#{@version}")),
+             "mix.exs must keep source_ref: \"v\#{@version}\" so HexDocs points at the release tag"
+
+      # README install constraint is derived from the current MAJOR.MINOR.
+      [major, minor | _] = String.split(version, ".")
+      constraint = ~s({:chimeway, "~> #{major}.#{minor}"})
+
+      assert String.contains?(ctx.readme, constraint),
+             "README.md must show install constraint #{constraint} derived from @version"
+    end
+
+    test "package-facing repository and source URLs use the canonical repository", ctx do
+      for file <- @package_facing_source_files do
+        content = File.read!(file)
+
+        refute String.contains?(content, @legacy_repo_url),
+               "#{file} must not reference the legacy repository URL #{@legacy_repo_url}"
+      end
+
+      # mix.exs package metadata and HexDocs source both point at the canonical repo.
+      assert String.contains?(
+               ctx.mix_exs,
+               ~s(links: %{"GitHub" => "#{@canonical_repo_url}"})
+             ),
+             "mix.exs package links must use #{@canonical_repo_url}"
+
+      assert String.contains?(ctx.mix_exs, ~s(source_url: "#{@canonical_repo_url}")),
+             "mix.exs docs source_url must use #{@canonical_repo_url}"
+
+      # README CI badge links to the canonical repository Actions workflow.
+      assert String.contains?(
+               ctx.readme,
+               "#{@canonical_repo_url}/actions/workflows/ci.yml"
+             ),
+             "README.md CI badge must link to #{@canonical_repo_url}/actions/workflows/ci.yml"
+    end
+  end
+
+  defp root_version! do
+    mix_exs = File.read!(@mix_exs)
+
+    case Regex.run(~r/@version\s+"([^"]+)"/, mix_exs) do
+      [_, version] -> version
+      _ -> flunk("Could not parse @version from #{@mix_exs}")
     end
   end
 

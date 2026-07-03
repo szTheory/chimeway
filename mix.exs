@@ -204,7 +204,7 @@ defmodule Chimeway.MixProject do
     [
       files: ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs),
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/jonlunsford/chimeway"}
+      links: %{"GitHub" => "https://github.com/szTheory/chimeway"}
     ]
   end
 
@@ -212,7 +212,7 @@ defmodule Chimeway.MixProject do
     [
       main: "Chimeway",
       source_ref: "v#{@version}",
-      source_url: "https://github.com/jonlunsford/chimeway",
+      source_url: "https://github.com/szTheory/chimeway",
       extras: [
         "guides/introduction/getting-started.md",
         "guides/introduction/installation.md",

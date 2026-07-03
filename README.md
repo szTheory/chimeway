@@ -3,7 +3,7 @@
 Chimeway is an explainable, durable notification library for Elixir. Every notification decision is traceable — teams can reliably answer why a notification sent, failed, or was suppressed.
 
 [![Hex.pm](https://img.shields.io/hexpm/v/chimeway.svg)](https://hex.pm/packages/chimeway)
-[![CI](https://github.com/jonlunsford/chimeway/actions/workflows/ci.yml/badge.svg)](https://github.com/jonlunsford/chimeway/actions/workflows/ci.yml)
+[![CI](https://github.com/szTheory/chimeway/actions/workflows/ci.yml/badge.svg)](https://github.com/szTheory/chimeway/actions/workflows/ci.yml)
 
 ## Installation
 
