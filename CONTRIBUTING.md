@@ -6,7 +6,7 @@ Thank you for your interest in contributing! Here's how to get started.
 
 1. Clone the repository and install dependencies:
    ```bash
-   git clone https://github.com/jonlunsford/chimeway.git
+   git clone https://github.com/szTheory/chimeway.git
    cd chimeway
    mix deps.get
    ```
@@ -45,6 +45,27 @@ This runs `mix ci.lint` (format check + compile + credo strict) followed by `mix
 |---------|---------|
 | `mix ci` | Default pre-merge gate (lint + test) |
 | `mix ci.install_golden` | Installer golden-diff + idempotency contract (path-gated in CI) |
+
+## What runs on your PR
+
+On a pull request the required status check is the fast **`pr-gate`** aggregate. It fans in a
+small subset of lanes — lint, the full test suite, the release-gate contract (`mix ci.verify_gates`),
+and the HexDocs build (`mix ci.docs`) — and mirrors what your local `mix ci` already covers, so a
+green local `mix ci` (plus `mix ci.docs`) is a good predictor of a green `pr-gate`. `pr-gate` stays
+fast and always reports a conclusion so PRs never strand waiting on a required check.
+
+The full **`ci-gate`** aggregate (all lanes, including the ecosystem-integration gates for Accrue,
+Threadline, Sigra, Mailglass, Inbox, and the installer golden contract) runs on push-to-`main` and on
+release dispatch — not on every PR. `ci-gate` is the release/publish source of truth; `pr-gate` is
+your fast contributor feedback loop.
+
+To reproduce the more complex CI fragments locally, run the committed helpers in `scripts/ci/`:
+
+| Script | Reproduces |
+|--------|------------|
+| `scripts/ci/detect-installer-changes.sh` | The installer-change git-diff detection that path-gates the installer golden lane |
+| `scripts/ci/aggregate-gate.sh` | The required-lane pass/fail loop shared by `pr-gate` and `ci-gate` |
+| `scripts/ci/sigra-proof.sh` | The root + demo-host Sigra auth proof lanes (needs a sibling Sigra checkout via `SIGRA_PATH`) |
 
 ## Pull Request Convention
 
