@@ -1219,6 +1219,14 @@ defmodule Chimeway.DocContractTest do
              "golden path guide must not reference fictional Chimeway.Workflow"
     end
 
+    # D-06: guard the canonicalized owner URLs so the golden-path fix cannot
+    # silently regress (this guide is outside release_gate's package-facing file
+    # list, so it was previously unguarded — RESEARCH Pitfall 4 / Open Q1).
+    test "forbids the legacy jonlunsford owner URL in golden path guide", %{content: content} do
+      refute String.contains?(content, "https://github.com/jonlunsford/chimeway"),
+             "golden path guide must not reference the legacy jonlunsford owner GitHub URL"
+    end
+
     @required ~w(
       mix chimeway.gen.migrations
       Chimeway.trigger
@@ -1370,6 +1378,7 @@ defmodule Chimeway.DocContractTest do
       idempotency_key
       tenant_id
       golden-path
+      Chimeway.Traces.explain_delivery
       guides/introduction/mailglass-integration.md
       guides/introduction/accrue-dunning-integration.md
       guides/introduction/inbox-integration.md
@@ -1386,6 +1395,55 @@ defmodule Chimeway.DocContractTest do
       test "requires storage prefix phrase #{required} in README", %{content: content} do
         assert String.contains?(content, unquote(required)),
                "README must reference #{unquote(required)}"
+      end
+    end
+
+    # DOCS-14/15 decision-page markers (multi-word / heading phrases — explicit
+    # string list, NOT ~w() which splits on whitespace). Byte-identical to the
+    # packaged-README assertions in release_gate_contract_test.exs (marker-string
+    # lockstep, D-07 <-> D-09).
+    @readme_decision_markers [
+      "local-first",
+      "## When to use",
+      "## Non-goals",
+      "## Host-owned boundaries",
+      "## Optional surfaces",
+      "in-repo preview/path package",
+      "not published on Hex yet"
+    ]
+
+    for marker <- @readme_decision_markers do
+      test "requires decision-page marker #{marker} in README", %{content: content} do
+        assert String.contains?(content, unquote(marker)),
+               "README must reference decision-page marker #{unquote(marker)}"
+      end
+    end
+
+    # DOCS-16 per-trigger invariant (mirrored verbatim from the golden path block):
+    # every Chimeway.trigger example must carry both required opts one-to-one.
+    test "every Chimeway.trigger example includes idempotency_key and tenant_id", %{
+      content: content
+    } do
+      triggers = Regex.scan(~r/Chimeway\.trigger\(/, content) |> length()
+      idem = Regex.scan(~r/idempotency_key:/, content) |> length()
+      tenant = Regex.scan(~r/tenant_id:/, content) |> length()
+
+      assert triggers > 0
+
+      assert triggers == idem,
+             "expected idempotency_key on every trigger (got #{idem}/#{triggers})"
+
+      assert triggers == tenant,
+             "expected tenant_id on every trigger (got #{tenant}/#{triggers})"
+    end
+
+    # D-03: the Optional Surfaces copy must never claim a current-Hex install for
+    # the sibling preview/path packages (mirrors the packaged-guide forbid at
+    # release_gate_contract_test.exs:525-528).
+    for sibling <- [~S({:chimeway_admin, "~> 1.0"}), ~S({:chimeway_inbox, "~> 1.0"})] do
+      test "forbids current-Hex sibling install claim #{sibling} in README", %{content: content} do
+        refute String.contains?(content, unquote(sibling)),
+               "README must not claim a current-Hex install for a preview/path sibling package (#{unquote(sibling)})"
       end
     end
   end
