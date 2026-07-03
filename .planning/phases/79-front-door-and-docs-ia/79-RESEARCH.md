@@ -336,14 +336,14 @@ canonicalized package-facing files; golden-path was out of that guard's scope an
 *All API-surface, insertion-point, forbidden/required-string, and stub-disposition claims are
 [VERIFIED] against files read this session — see inline file:line tags.*
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should the golden-path stale-URL fix get its own guard?**
+1. **Should the golden-path stale-URL fix get its own guard?** — RESOLVED: adopted — implemented in 79-01 Task 2 (golden-path legacy-URL forbid guard).
    - Known: golden-path.md is outside the current canonical-URL guard's file list.
    - Unclear: whether the planner wants a new guard vs. a one-time fix.
    - Recommendation: add golden-path (and ideally all first-hop guides) to a legacy-URL guard — consistent with the executable-contract philosophy; prevents silent regression.
 
-2. **Does D-03 warrant a README-level `{:chimeway_admin, "~> 1.0"}` forbid?**
+2. **Does D-03 warrant a README-level `{:chimeway_admin, "~> 1.0"}` forbid?** — RESOLVED: adopted — implemented in 79-01 Task 2 (README sibling-install forbid).
    - Known: the forbid is enforced only on the packaged admin/inbox *guides*, not README.
    - Recommendation: add a README guard when introducing the Optional Surfaces section, so the "never a published Hex install" rule is enforced where the new copy lives.
 
