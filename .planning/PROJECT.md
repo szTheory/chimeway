@@ -14,6 +14,8 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.14 Phase 80 — CI-01/02/03/04/05 two-aggregate CI topology: fast always-on `pr-gate` + push/dispatch-only 14-lane `ci-gate`, anti-pending event guards (live PR #3 proof), nested/npm/Playwright/per-lane-demo caches keyed on lockfiles, and complex CI logic extracted to `scripts/ci/*.sh` — all locked by `release_gate_contract_test.exs`.
+- ✓ v1.14 Phase 79 — DOCS-14/15/16/17, ADPT-01 README rewritten as an additive-superset decision page (local-first value prop + public-API trigger-to-explain snippet chain), stub guides delinked, and byte-identical source-tree/packaged-README (unpacked-Hex) contract locks.
 - ✓ v1.14 Phase 78 — TRUTH-01/02/03 root package release identity, canonical repository/source links, and sibling preview/path install-status copy are aligned and enforced by ExUnit release/doc contracts plus a deterministic local Hex unpack proof (`mix ci.verify_gates`, `mix verify.parity`).
 - ✓ v1.14 Phase 77 — TRUTH-04 planning milestone identifiers and package release tags are separated; Phase 77 records the root-only package model, sibling preview/path package status input, and downstream truth ownership.
 - ✓ v1.13 Storage Isolation and Upgrade Path — PFX-01/02/03/04, MIG-01/02/03/04, RUN-01/02/03/04, UPG-01/02/03, DOCS-01/02, DEMO-01, GATE-01, GATE-01-GAP ([archive](.planning/milestones/v1.13-REQUIREMENTS.md))
@@ -23,46 +25,35 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-- [ ] DOCS-14: README becomes the public decision page for Chimeway's local-first, explainable notification layer.
-- [ ] DOCS-15: README and first-hop docs include clear use-cases, non-goals, host-owned boundaries, and optional surface status.
-- [ ] DOCS-16: Public snippets demonstrate required adoption invariants: stable notification key, `tenant_id`, `idempotency_key`, configured storage prefix, and trace/explainability lookup.
-- [ ] DOCS-17: Stub or stale guides are either completed or removed from primary README/HexDocs learning paths.
-- [ ] CI-01: A fast, always-running `pr-gate` gives contributors trustworthy PR feedback without running the entire release matrix.
-- [ ] CI-02: The full `ci-gate` remains the release/publish/automerge source of truth and is at least as strict as the current release verification surface.
-- [ ] CI-03: Required-check topology cannot leave required GitHub checks permanently pending after path-filtered skips.
-- [ ] CI-04: Complex CI behavior is reproducible locally through scripts or Mix tasks instead of large inline workflow fragments.
-- [ ] CI-05: Nested package, demo, npm, and Playwright caches reduce repeated CI setup cost without hiding failures.
-- [ ] ADPT-01: A fresh-host or unpacked-Hex smoke path proves the public install/docs/package story from a clean consumer perspective.
+(None — v1.14 shipped 2026-07-03. Define the next milestone's requirements via `/gsd-new-milestone`.)
+
+Carried-forward v1.15+ candidates: TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
 
 ### Out of Scope
 
 - Broad channel matrix, generic CRUD admin, full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
 - Dynamic per-tenant database prefixes — Chimeway supports one static storage prefix per host app config, not prefix-per-request tenancy
 
-## Latest Shipped Milestone: v1.13 Storage Isolation and Upgrade Path
+## Latest Shipped Milestone: v1.14 Public Truth and Verification Architecture
 
-**Shipped:** 2026-07-02
+**Shipped:** 2026-07-03
 
 **Delivered:**
-- Static storage-prefix configuration with early validation and explicit public-schema legacy mode.
-- Prefixed migration generation that creates and uses the `chimeway` schema by default while preserving deterministic public output.
-- Runtime prefix propagation across core notification flows, operator surfaces, workflows, digests, signals, webhooks, and policy/preference paths.
-- Storage-prefix docs, upgrade guidance, Oban-prefix caveats, demo-host proof, and a required `verify_runtime_prefix` CI gate.
-- Generated prefixed migration runtime proof for trigger-to-trace row placement.
+- Root package release identity, canonical repository/source links, release manifest, changelog, HexDocs source refs, README install constraint, and sibling preview/path install-status copy aligned and contract-enforced (TRUTH-01/02/03/04).
+- Deterministic local Hex unpack proof with env-scoped Sigra override so the prod package build stays Hex-legal while dev/test resolution is preserved.
+- README rewritten as an additive-superset public decision page with a public-API trigger-to-explainability snippet chain, stub guides delinked, locked by byte-identical source-tree/packaged-README contracts (DOCS-14/15/16/17, ADPT-01).
+- Two-aggregate CI topology: fast always-on `pr-gate` for PRs plus a push/dispatch-only 14-lane `ci-gate` for release confidence, with anti-pending event guards proven by a live PR (CI-01/02/03).
+- Complex CI logic extracted to `scripts/ci/*.sh`; nested/npm/Playwright/per-lane-demo caches keyed on lockfiles; contributor/maintainer gate docs aligned; D-08 `pr-gate` branch-protection ruleset (id 18486746) set up (CI-04/05).
 
-## Current Milestone: v1.14 Public Truth and Verification Architecture
+## Next Milestone: TBD
 
-**Goal:** Make every public adoption claim explainable and reproducible across package metadata, README/docs, and CI/release verification while preserving full release confidence.
-
-**Target features:**
-- Public package truth: align root package metadata, changelog, manifest, HexDocs source refs, README dependency guidance, release docs, and optional package status.
-- Front-door docs truth: rewrite README and first-hop docs around Chimeway's local-first ownership, explainability, non-goals, host boundaries, and trace proof.
-- Verification architecture: introduce a fast PR gate, preserve the full release `ci-gate`, avoid required-check pending traps, improve caches, and move complex CI logic into local scripts/tasks.
-- Adoption proof: add a clean consumer install or unpacked-Hex smoke path that validates the public story from outside the repo internals.
+The v1.14 milestone is shipped. No next milestone is defined yet — start one with `/gsd-new-milestone` (questioning → research → requirements → roadmap). Carried-forward candidates: tenant spine consistency (TENANT-01), redaction hardening (PRIV-03), inbox PubSub (INBX-03), mark_seen E2E (INT-03), and sibling package promotion (PKG-01).
 
 ## Current State
 
-**v1.14 Public Truth and Verification Architecture active (2026-07-03):** Phases 77 and 78 are complete. Phase 77 validated TRUTH-04 (planning-vs-package tag namespace, root-only package model, sibling preview/path input, baseline truth drift inventory, owner handoff). Phase 78 validated TRUTH-01/02/03: root package metadata, release manifest, changelog, HexDocs source refs, README install constraint, canonical repository/source links, and sibling install-status copy now agree and are enforced by ExUnit release-gate + doc contracts and a deterministic local Hex unpack proof (the Sigra dependency override is env-scoped so the prod package build succeeds while dev/test resolution is preserved). Remaining milestone work turns this truth baseline into front-door docs (Phase 79) and CI topology changes (Phase 80).
+**v1.14 Public Truth and Verification Architecture shipped (2026-07-03):** All four phases (77–80) are complete and verified. Phase 77 recorded the root-only package model and separated planning-vs-package tag namespaces (TRUTH-04). Phase 78 aligned root package metadata, release manifest, changelog, HexDocs source refs, README install constraint, canonical repository/source links, and sibling install-status copy, enforced by ExUnit release-gate + doc contracts and a deterministic local Hex unpack proof (env-scoped Sigra override keeps the prod build Hex-legal) (TRUTH-01/02/03). Phase 79 rewrote the README as an additive-superset decision page with public-API trigger-to-explain snippets and byte-identical source/packaged-README contract locks (DOCS-14/15/16/17, ADPT-01). Phase 80 split CI into a fast always-on `pr-gate` plus a push/dispatch-only 14-lane `ci-gate`, proved the anti-pending topology on a live PR, added cache coverage, and extracted complex CI logic to `scripts/ci/*.sh` (CI-01/02/03/04/05). All 14 requirements satisfied; open-artifact audit clear.
+
+**Known fast-follow (out of v1.14 scope):** `main` currently fails `mix ci.lint` — ~18 pre-existing unformatted committed files plus vulnerable-dep audit flags, none touched by Phase 80. Now that `pr-gate` (which includes `Lint`) is the required PR check, this drift blocks PR merges until a `mix format` + dependency-bump fast-follow lands.
 
 **v1.13 Storage Isolation and Upgrade Path shipped (2026-07-02):** New installs can generate and run Chimeway-owned tables in a dedicated `chimeway` Postgres schema by default; existing public-schema installs remain supported through explicit `prefix: false` compatibility. Runtime prefix behavior is verified across trigger, trace, admin, inbox, recovery, workflow, digest, webhook, policy, and worker paths, with docs, demo proof, and `mix verify.runtime_prefix` / CI parity in place.
 
@@ -93,7 +84,7 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.11 Operator Console Polish & Hardening` — embedded admin command center, design system, safety/privacy contracts, and admin verify gate (shipped 2026-06-04).
 - `v1.12 Quality Readiness Audit` — planning-only audit pass that identified storage isolation, release/package truth, CI/DX, README, tenant, privacy, and reliability seams (2026-06-30).
 - `v1.13 Storage Isolation and Upgrade Path` — Chimeway-owned Postgres schema support and upgrade-safe public compatibility (shipped 2026-07-02).
-- `v1.14 Public Truth and Verification Architecture` — active milestone for package/release truth, README/docs front door, fast PR gate, full release gate parity, and clean adoption proof.
+- `v1.14 Public Truth and Verification Architecture` — package/release truth, README/docs front door, fast PR gate, full release gate parity, and clean adoption proof (shipped 2026-07-03).
 
 ## Next Milestone Goals
 
@@ -308,8 +299,8 @@ Prior context includes:
 | Do not build dynamic per-tenant DB prefixes in v1.13 | Chimeway already has tenant identity in domain data; prefix-per-tenant would multiply worker, Oban, uniqueness, and recovery failure modes | Shipped v1.13 |
 | Root-only Hex package for v1.14 truth cleanup | Only root `chimeway` is currently published; advertising sibling packages as Hex releases would create adopter confusion | Validated Phase 77 |
 | Separate planning milestones from package release tags | Planning `v1.x` history and SemVer package releases carry different meanings and should not be conflated | Validated Phase 77 |
-| Two-tier CI gate model | Contributors need fast PR feedback; maintainers still need full release confidence before publish/automerge | Pending v1.14 validation |
-| README as adoption decision page | The first public surface should answer adopter JTBD and prove explainability, not expose internals or stale stub links | Pending v1.14 validation |
+| Two-tier CI gate model | Contributors need fast PR feedback; maintainers still need full release confidence before publish/automerge | Shipped v1.14 Phase 80 (pr-gate + 14-lane ci-gate, live PR anti-pending proof) |
+| README as adoption decision page | The first public surface should answer adopter JTBD and prove explainability, not expose internals or stale stub links | Shipped v1.14 Phase 79 (additive-superset README, byte-identical source/packaged contract lock) |
 
 ## Archived Milestone Context
 
@@ -534,4 +525,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after Phase 78 completion*
+*Last updated: 2026-07-03 after v1.14 milestone completion*

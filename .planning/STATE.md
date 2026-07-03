@@ -2,15 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-status: milestone_complete
-stopped_at: Milestone complete (Phase 80 was final phase)
-last_updated: 2026-07-03T17:11:59.938Z
+current_phase: 14
+status: Awaiting next milestone
+stopped_at: Milestone v1.14 complete (Phase 80 was final phase)
+last_updated: "2026-07-03T17:25:25.363Z"
 last_activity: 2026-07-03
+last_activity_desc: Milestone v1.14 completed and archived
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 60
-  completed_plans: 51
+  total_plans: 10
+  completed_plans: 10
   percent: 100
 ---
 
@@ -18,17 +20,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-02)
+See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Milestone complete
+**Current focus:** Awaiting next milestone — start with `/gsd-new-milestone`. Known fast-follow: `main` fails `mix ci.lint` (pre-existing format + vulnerable-dep drift), now blocking PR merges under the required `pr-gate`.
 
 ## Current Position
 
-Phase: 80
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-07-03
+Phase: Milestone v1.14 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-03 — Milestone v1.14 completed and archived
 
 ## Accumulated Context
 
@@ -537,7 +539,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 78: Release and Package Truth
+- Start the next milestone with $gsd-new-milestone
 
 ## Performance Metrics
 

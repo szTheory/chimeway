@@ -429,6 +429,54 @@
 
 ---
 
+## Milestone: v1.14 — Public Truth and Verification Architecture
+
+**Shipped:** 2026-07-03
+**Phases:** 4 (77-80) | **Plans:** 10 | **Requirements:** 14/14
+
+### What Was Built
+
+- Root-only Hex package model recorded, with planning-milestone labels separated from package release SemVer and a package/docs/CI truth owner map plus evidence-backed drift baseline (TRUTH-04).
+- Aligned root package metadata, release manifest, changelog, HexDocs source refs, README install constraint, canonical repository/source links, and sibling preview/path install-status copy, enforced by ExUnit release-gate + doc contracts (TRUTH-01/02/03).
+- Deterministic local Hex unpack proof with an env-scoped Sigra override that keeps dev/test resolution while the `MIX_ENV=prod` package build stays Hex-legal (`mix verify.parity`).
+- README rewritten as an additive-superset public decision page with a public-API trigger-to-explainability snippet chain and stub-guide delinking, locked by byte-identical source-tree and packaged (unpacked-Hex) README contracts (DOCS-14/15/16/17, ADPT-01).
+- Two-aggregate CI: fast always-on `pr-gate` for PRs plus push/dispatch-only 14-lane `ci-gate` for release, anti-pending event guards proven on a live PR, lockfile-keyed cache coverage, CI logic extracted to `scripts/ci/*.sh`, aligned gate docs, and the D-08 `pr-gate` branch-protection ruleset (CI-01/02/03/04/05).
+
+### What Worked
+
+- Framing the whole milestone as "make the public story true and contract-tested" kept docs, package metadata, and CI changes converging on a single definition of truth.
+- Executable contracts (release-gate + doc-contract ExUnit tests, byte-identical README markers) mean drift now fails a test instead of silently rotting.
+- The live throwaway PR (#3) was the right way to prove the CI-03 anti-pending property, which is a GitHub-runtime behavior no static repo check can fully confirm.
+- Phase 77's baseline/owner-map front-loaded the drift inventory so Phases 78-80 edited public surfaces with an evidence trail instead of guessing.
+
+### What Was Inefficient
+
+- Phase 80's VERIFICATION.md frontmatter was left at `status: human_needed` after the human check actually passed and was committed as UAT — the close had to reconcile the stale field before the audit read clean. Verification frontmatter should be flipped in the same commit that resolves the human item.
+- The Sigra package-build blocker (78-03) surfaced late as a Rule-3 blocking issue during package proof rather than being anticipated when the unpack proof was scoped.
+- Auto-extracted milestone accomplishments pulled deviation/blocker lines ("[Rule 3 - Blocking]…", "[D-08 realization]…") from SUMMARY files and had to be hand-cleaned.
+
+### Patterns Established
+
+- Planning milestone identifiers (`v1.x`) are not package release tags; the two namespaces stay separated in metadata, changelog anchors, and release refs.
+- Public truth (package metadata, README, docs, CI docs) is locked by ExUnit string/marker contracts rather than a parallel shell checker.
+- Required PR gates use an always-on aggregate with event-guarded heavy lanes and no `paths:` filters, to avoid stranding required checks in "Expected — Waiting for status".
+- Complex CI fragments live in committed `scripts/ci/*.sh` invoked verbatim by the workflow, so gate behavior is locally reproducible.
+
+### Key Lessons
+
+1. "Public truth" is a testable property: if package metadata, README, docs, and CI docs can drift apart, they will — encode the agreement as contracts that fail loudly.
+2. Runtime infrastructure properties (branch protection, required-check reporting) need at least one live end-to-end observation; static preconditions are necessary but not sufficient.
+3. Making `pr-gate` the required check exposes pre-existing mainline lint/dependency drift immediately — closing a verification milestone can reveal an out-of-scope fast-follow that now blocks all merges.
+4. Verification metadata (frontmatter status) must be reconciled at the moment a human check passes, or milestone-close audits inherit false "human_needed" flags.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: phases 77-80 executed 2026-07-02 -> 2026-07-03 (~2 days)
+- Notable: 14/14 requirements satisfied; verified_closeout with a clean open-artifact audit; no milestone audit run (docs/CI/package-truth scope, low cross-phase runtime coupling). Known fast-follow: `main` fails `mix ci.lint` (pre-existing format + vulnerable-dep drift, none from Phase 80) and now blocks PR merges under the new required `pr-gate`.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution

@@ -1,14 +1,15 @@
 ---
 phase: 80-verification-architecture-and-ci-dx
 verified: 2026-07-03T16:58:14Z
-status: human_needed
+status: passed
 score: 8/8 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
-human_verification:
+human_verification_resolved:
   - test: "Open a real pull request to `main` that touches only non-installer files and watch the checks tab."
     expected: "`pr-gate` runs and reports a success/failure conclusion; the PR is NOT stuck in 'Expected — Waiting for status to be reported'; `ci-gate` and the nine heavy lanes plus `install_golden_contract` are skipped (not pending) on the PR event. Ruleset 18486746 gates merge on `pr-gate` only."
-    why_human: "The anti-pending property (CI-03) is a GitHub Actions + branch-protection RUNTIME behavior on external infrastructure. Every static precondition is verified in-repo (pr-gate has no event guard, heavy lanes/ci-gate are event-guarded off pull_request, no paths filters, ruleset requires only pr-gate and is enforcement=active), but a live PR reporting a conclusion without stranding cannot be observed from the repo tree. The plan's own Task 3 checkpoint (80-04) specified this test; the SUMMARY confirmed the ruleset exists but did not confirm a live PR was run through the new topology."
+    result: "passed — live throwaway PR #3 (branch test/pr-gate-smoke, single non-installer markdown file) confirmed pr-gate reached COMPLETED/FAILURE (not pending), 11 heavy lanes SKIPPED, pending: [], mergeStateStatus BLOCKED on pr-gate only. pr-gate FAILURE is pre-existing main lint drift, not a topology defect. Recorded in 80-UAT.md (status: complete, passed: 1, issues: 0)."
+    resolved: 2026-07-03T17:12:00Z
 ---
 
 # Phase 80: Verification Architecture and CI/DX Verification Report

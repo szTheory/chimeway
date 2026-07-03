@@ -1,5 +1,32 @@
 # Milestones
 
+## v1.14 Public Truth and Verification Architecture (Shipped: 2026-07-03)
+
+**Delivered:** Every public adoption claim — package/release metadata, README/front-door docs, and CI/release verification — now agrees and is reproducible under executable contracts, while full release confidence is preserved.
+
+**Phases completed:** 77-80 (4 phases, 10 plans, 25 tasks)
+
+**Requirements:** 14/14 satisfied (TRUTH-01/02/03/04, DOCS-14/15/16/17, ADPT-01, CI-01/02/03/04/05)
+
+**Closeout:** verified_closeout — all four phases verified passed; open-artifact audit clear. No milestone audit run (docs/CI/package-truth milestone, low cross-phase runtime coupling).
+
+**Git tag:** v1.14
+
+**Timeline:** 2026-07-02 → 2026-07-03
+
+**Key accomplishments:**
+
+- Recorded the root-only Hex package model and separated planning-milestone labels (`v1.14`) from package release SemVer, with a package/docs/CI truth owner map and evidence-backed drift baseline (Phase 77, TRUTH-04).
+- Aligned root package metadata, release manifest, changelog, HexDocs source refs, README install constraint, canonical repository/source links, and sibling preview/path install-status copy, enforced by ExUnit release-gate + doc contracts (Phase 78, TRUTH-01/02/03).
+- Proved a deterministic local Hex unpack of the root package; an env-scoped Sigra override keeps dev/test resolution while the `MIX_ENV=prod` package build stays Hex-legal (`mix verify.parity`).
+- Rewrote the README as an additive-superset public decision page — local-first value prop, four decision sections, and a public-API trigger-to-explainability snippet chain — stub guides delinked, locked by byte-identical source-tree and packaged (unpacked-Hex) README contracts (Phase 79, DOCS-14/15/16/17, ADPT-01).
+- Split CI into a fast always-on `pr-gate` for PRs plus a push/dispatch-only 14-lane `ci-gate` (incl. `install_golden_contract`) for release, with anti-pending event guards proven on a live PR (#3: pr-gate terminal, 11 heavy lanes SKIPPED, nothing stranded) (Phase 80, CI-01/02/03).
+- Added npm/Playwright/nested-package/per-lane-demo caches keyed on lockfiles, extracted complex CI logic to `scripts/ci/*.sh`, aligned CONTRIBUTING/MAINTAINING gate docs, and set up the D-08 `pr-gate` branch-protection ruleset (id 18486746) (Phase 80, CI-04/05).
+
+**Known fast-follow (out of scope):** `main` fails `mix ci.lint` from ~18 pre-existing unformatted files + vulnerable-dep audit flags (none touched by Phase 80). Because `pr-gate` now includes `Lint` as a required PR check, this drift blocks PR merges until a `mix format` + dependency-bump fast-follow lands.
+
+---
+
 ## v1.13 Storage Isolation and Upgrade Path (Shipped: 2026-07-02)
 
 **Delivered:** Chimeway-owned storage can now default to a dedicated `chimeway` Postgres schema, while existing public-schema installs remain explicitly supported.
