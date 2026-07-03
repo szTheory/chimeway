@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-current_phase: 78
 status: executing
-stopped_at: Phase 78 context gathered (assumptions mode)
-last_updated: "2026-07-03T08:13:34.184Z"
+stopped_at: Completed 78-01-PLAN.md
+last_updated: "2026-07-03T08:25:19.078Z"
 last_activity: 2026-07-03
-last_activity_desc: Phase 78 planning complete
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 2
+  total_plans: 5
   completed_plans: 2
   percent: 25
 ---
@@ -23,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 78 — release and package truth
+**Current focus:** Phase 78 — release-and-package-truth
 
 ## Current Position
 
-Phase: 78
-Plan: Not started
+Phase: 78 (release-and-package-truth) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-03 — Phase 78 planning complete
+Last activity: 2026-07-03
 
 ## Accumulated Context
 
@@ -206,6 +204,9 @@ status: complete
 - [Phase 77]: [77-02]: Baseline drift rows assign package/release truth to Phase 78, front-door docs truth to Phase 79, and CI/DX truth to Phase 80. — Gives downstream phases an evidence-backed owner map before broad public edits.
 - [Phase 77]: [77-02]: CONTRIBUTING.md canonical repo URL drift is Phase 80 contributor DX/gate documentation. — Phase 79 may reference public-doc implications only if later needed.
 - [Phase 77]: [77-02]: Existing release_gate_contract_test.exs and doc_contract_test.exs remain the downstream truth anchors. — Avoids adding a parallel shell checker for package/docs/CI truth.
+- [Phase 78]: [78-01]: Package/source truth is enforced by extending release_gate_contract_test.exs (no parallel shell checker) per D-07.
+- [Phase 78]: [78-01]: Canonical package-facing repository/source URL is https://github.com/szTheory/chimeway; release-gate contracts reject the legacy jonlunsford URL.
+- [Phase 78]: [78-01]: HEX_API_KEY scoping is contracted by asserting absence from the release-please job body, avoiding secret-value assertions (T-78-04).
 
 ## Performance
 
@@ -517,9 +518,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-03T01:33:12.214Z
-Stopped at: Phase 78 context gathered (assumptions mode)
-Resume file: .planning/phases/78-release-and-package-truth/78-CONTEXT.md
+Last session: 2026-07-03T08:25:18.962Z
+Stopped at: Completed 78-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -579,3 +580,4 @@ Resume file: .planning/phases/78-release-and-package-truth/78-CONTEXT.md
 | Phase 76.1 P01 | 7 min | 3 tasks | 4 files |
 | Phase 77 P01 | 4 min | 2 tasks | 2 files |
 | Phase 77 P02 | 9 min | 2 tasks | 2 files |
+| Phase 78 P01 | 4 min | 2 tasks | 3 files |
