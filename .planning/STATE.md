@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-status: planning
+status: verifying
 stopped_at: Phase 79 context gathered (assumptions mode)
-last_updated: "2026-07-03T09:09:03.948Z"
+last_updated: "2026-07-03T09:48:14.891Z"
 last_activity: 2026-07-03
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 50
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 79 — front door and docs ia
+**Current focus:** Phase 79 — front-door-and-docs-ia
 
 ## Current Position
 
-Phase: 79
-Plan: Not started
-Status: Ready to plan
+Phase: 79 (front-door-and-docs-ia) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
 Last activity: 2026-07-03
 
 ## Accumulated Context
@@ -211,6 +211,7 @@ status: complete
 - [Phase ?]: [78-02]: Guides omit any Hex install snippet for chimeway_admin/chimeway_inbox until a package-promotion milestone publishes them (D-05/D-06).
 - [Phase ?]: [78-02]: Sibling mix.exs files are evidence-only; contracts assert app/version/path-dep and absence of package:/docs: metadata (D-05).
 - [Phase ?]: [78-03]: Env-conditional Sigra override (dev/test only); Hex package builds run under MIX_ENV=prod so the build is Hex-legal.
+- [Phase 79]: Docs truth locked as executable ExUnit string contracts with README<->packaged-README marker lockstep
 
 ## Performance
 
@@ -522,9 +523,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-03T09:09:03.943Z
+Last session: 2026-07-03T09:46:47.579Z
 Stopped at: Phase 79 context gathered (assumptions mode)
-Resume file: .planning/phases/79-front-door-and-docs-ia/79-CONTEXT.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -587,3 +588,4 @@ Resume file: .planning/phases/79-front-door-and-docs-ia/79-CONTEXT.md
 | Phase 78 P01 | 4 min | 2 tasks | 3 files |
 | Phase 78 P02 | 5 min | 2 tasks tasks | 3 files files |
 | Phase 78 P03 | 30 min | 2 tasks | 4 files |
+| Phase 79 P01 | 12min | 3 tasks | 5 files |

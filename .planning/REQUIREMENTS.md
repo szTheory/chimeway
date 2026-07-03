@@ -16,10 +16,10 @@ Requirements for the active milestone. Each requirement maps to exactly one road
 
 ### Front Door Documentation
 
-- [ ] **DOCS-14**: README leads with Chimeway's local-first embedded notification value proposition and explainability promise.
-- [ ] **DOCS-15**: README and first-hop docs clearly state use cases, non-goals, host-owned boundaries, and optional surface status.
-- [ ] **DOCS-16**: Public snippets demonstrate required adoption invariants: stable notification key, `tenant_id`, `idempotency_key`, configured storage prefix, and trace/explainability lookup.
-- [ ] **DOCS-17**: Stub or stale guides are either completed or removed from primary README/HexDocs learning paths.
+- [x] **DOCS-14**: README leads with Chimeway's local-first embedded notification value proposition and explainability promise.
+- [x] **DOCS-15**: README and first-hop docs clearly state use cases, non-goals, host-owned boundaries, and optional surface status.
+- [x] **DOCS-16**: Public snippets demonstrate required adoption invariants: stable notification key, `tenant_id`, `idempotency_key`, configured storage prefix, and trace/explainability lookup.
+- [x] **DOCS-17**: Stub or stale guides are either completed or removed from primary README/HexDocs learning paths.
 
 ### Verification Architecture
 
@@ -31,7 +31,7 @@ Requirements for the active milestone. Each requirement maps to exactly one road
 
 ### Adoption Proof
 
-- [ ] **ADPT-01**: A fresh-host or unpacked-Hex smoke path proves the public install, docs, and package story from a clean consumer perspective.
+- [x] **ADPT-01**: A fresh-host or unpacked-Hex smoke path proves the public install, docs, and package story from a clean consumer perspective.
 
 ## v1.15+ Candidates
 
@@ -72,11 +72,11 @@ Explicitly excluded from v1.14 to keep the milestone coherent.
 | TRUTH-01 | Phase 78 | Complete |
 | TRUTH-02 | Phase 78 | Complete |
 | TRUTH-03 | Phase 78 | Complete |
-| DOCS-14 | Phase 79 | Pending |
-| DOCS-15 | Phase 79 | Pending |
-| DOCS-16 | Phase 79 | Pending |
-| DOCS-17 | Phase 79 | Pending |
-| ADPT-01 | Phase 79 | Pending |
+| DOCS-14 | Phase 79 | Complete |
+| DOCS-15 | Phase 79 | Complete |
+| DOCS-16 | Phase 79 | Complete |
+| DOCS-17 | Phase 79 | Complete |
+| ADPT-01 | Phase 79 | Complete |
 | CI-01 | Phase 80 | Pending |
 | CI-02 | Phase 80 | Pending |
 | CI-03 | Phase 80 | Pending |
