@@ -26,7 +26,7 @@ Requirements for the active milestone. Each requirement maps to exactly one road
 - [x] **CI-01**: A fast, always-running `pr-gate` gives contributors trustworthy PR feedback without running the entire release matrix.
 - [x] **CI-02**: The full `ci-gate` remains the release, publish, automerge, and recovery source of truth and is at least as strict as the current release verification surface.
 - [x] **CI-03**: Required-check topology cannot leave required GitHub checks permanently pending after path-filtered skips.
-- [ ] **CI-04**: Complex CI behavior is reproducible locally through scripts or Mix tasks instead of large inline workflow fragments.
+- [x] **CI-04**: Complex CI behavior is reproducible locally through scripts or Mix tasks instead of large inline workflow fragments.
 - [x] **CI-05**: Nested package, demo, npm, and Playwright caches reduce repeated CI setup cost without hiding failures.
 
 ### Adoption Proof
@@ -80,7 +80,7 @@ Explicitly excluded from v1.14 to keep the milestone coherent.
 | CI-01 | Phase 80 | Complete |
 | CI-02 | Phase 80 | Complete |
 | CI-03 | Phase 80 | Complete |
-| CI-04 | Phase 80 | Pending |
+| CI-04 | Phase 80 | Complete |
 | CI-05 | Phase 80 | Complete |
 
 **Coverage:**

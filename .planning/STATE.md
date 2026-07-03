@@ -4,13 +4,13 @@ milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
 status: executing
 stopped_at: Completed 80-01-PLAN.md
-last_updated: "2026-07-03T16:34:27.379Z"
+last_updated: "2026-07-03T16:43:09.819Z"
 last_activity: 2026-07-03
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 75
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 ## Current Position
 
 Phase: 80 (verification-architecture-and-ci-dx) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-03
 
@@ -216,6 +216,8 @@ status: complete
 - [Phase ?]: [80-01]: install_golden_contract is PR-exempt (D-04) yet folded into ci-gate needs (D-05); detect-step pattern kept for pending-safety (D-07)
 - [Phase ?]: [80-01]: Heavy lanes use event guards, never paths filters, to avoid the required-check pending trap (CI-03)
 - [Phase ?]: [80-02]: CI caches (npm/Playwright/nested/demo-host) keyed on lockfiles only; per-lane demo-host key slug prevents cross-lane optional-dep contamination
+- [Phase ?]: [80-03]: Extracted the three complex inline ci.yml verification fragments into committed scripts/ci/*.sh invoked verbatim by the workflow (CI-04)
+- [Phase ?]: [80-03]: Added checkout to pr-gate/ci-gate so the aggregate script is present in the runner (Rule 3 fix)
 
 ## Performance
 
@@ -527,7 +529,7 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-03T16:32:27.674Z
+Last session: 2026-07-03T16:42:50.755Z
 Stopped at: Completed 80-01-PLAN.md
 Resume file: None
 
@@ -595,3 +597,4 @@ Resume file: None
 | Phase 79 P01 | 12min | 3 tasks | 5 files |
 | Phase 80 P01 | 4 min | 3 tasks | 2 files |
 | Phase 80 P02 | 6 min | 3 tasks | 2 files |
+| Phase 80 P03 | 5 min | 3 tasks | 5 files |
