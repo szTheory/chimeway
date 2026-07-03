@@ -54,7 +54,12 @@
   - Requirements: DOCS-14, DOCS-15, DOCS-16, DOCS-17, ADPT-01
   - Success criteria: A new adopter can read the first-hop docs, understand when to use or avoid Chimeway, copy accurate snippets, and verify a trigger-to-explainability path from the public package/docs story.
 
-- [ ] **Phase 80: Verification Architecture and CI/DX** (0/5 plans)
+- [ ] **Phase 80: Verification Architecture and CI/DX** (0/4 plans)
+  - Plans:
+    - [ ] 80-01-PLAN.md — pr-gate/ci-gate two-aggregate split: add fast `pr-gate`, event-guard + fold `install_golden_contract` into `ci-gate`, gate heavy lanes off PR, lock topology in contract test (CI-01/02/03)
+    - [ ] 80-02-PLAN.md — Cache coverage: nested `chimeway_admin`/`chimeway_inbox` mix, npm, Playwright, per-lane demo-host caches keyed on lockfiles; contract-lock keying (CI-05)
+    - [ ] 80-03-PLAN.md — Extract CI verification fragments to `scripts/ci/*.sh` (detect / aggregate-gate / sigra-proof) and wire `ci.yml`; contract-lock incl. Sigra-in-script (CI-04)
+    - [ ] 80-04-PLAN.md — Align CONTRIBUTING.md + MAINTAINING.md (pr-gate/ci-gate split, D-08 branch-protection operator swap, scripts/ci, Sigra ref fix) (CI-01/02/03/04)
   - Add an always-running fast `pr-gate` while preserving the full `ci-gate` for release, publish, automerge, recovery, and mainline validation.
   - Avoid required-check pending traps, add nested package/demo/npm/Playwright cache coverage, and make complex CI behavior locally reproducible through scripts or Mix tasks.
   - Update `CONTRIBUTING.md`, `MAINTAINING.md`, release contracts, and gate docs so local and CI verification language agrees.
@@ -158,7 +163,7 @@ Plans:
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
 |-----------|--------|-------|--------------|--------|---------|
-| v1.14 Public Truth and Verification Architecture | 77-80 | 0/15 | 0/14 | Active | — |
+| v1.14 Public Truth and Verification Architecture | 77-80 | 6/10 | 9/14 | Active | — |
 | v1.13 Storage Isolation and Upgrade Path | 73-76.1 | 25/25 | 20/20 | Complete | 2026-07-02 |
 | v1.11 Operator Console Polish & Hardening | 68-72 | 12/12 | 18/18 | Complete | 2026-06-04 |
 | v1.10 Ecosystem Completions | 63-67 | 13/13 | 8/8 | Complete | 2026-06-04 |
