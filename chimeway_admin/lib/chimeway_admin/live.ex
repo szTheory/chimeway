@@ -15,6 +15,9 @@ defmodule ChimewayAdmin.Live do
   defp html_helpers do
     quote do
       import Phoenix.Component
+      import ChimewayAdmin.Components.Core
+      import ChimewayAdmin.Components.Layout
+      import ChimewayAdmin.Components.Status
       alias Phoenix.LiveView.JS
     end
   end

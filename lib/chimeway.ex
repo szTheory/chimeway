@@ -3,6 +3,7 @@ defmodule Chimeway do
   Public entrypoint for notification triggering.
   """
 
+  alias Chimeway.Admin
   alias Chimeway.Inbox
   alias Chimeway.Deliveries
   alias Chimeway.Rendering.Preview
@@ -44,6 +45,48 @@ defmodule Chimeway do
   """
   def recover_delivery(delivery_id, opts \\ []) do
     Deliveries.recover_delivery(delivery_id, opts)
+  end
+
+  @doc """
+  Returns admin-safe read models for the optional operator UI.
+  """
+  def admin_command_center(opts \\ []) do
+    Admin.command_center(opts)
+  end
+
+  @doc """
+  Lists admin-safe recent problem deliveries.
+  """
+  def admin_recent_problem_deliveries(opts \\ []) do
+    Admin.recent_problem_deliveries(opts)
+  end
+
+  @doc """
+  Lists admin-safe persisted notification definitions.
+  """
+  def admin_definitions(opts \\ []) do
+    Admin.definitions(opts)
+  end
+
+  @doc """
+  Lists admin-safe recipient feed debug rows.
+  """
+  def admin_feed(opts \\ []) do
+    Admin.feed(opts)
+  end
+
+  @doc """
+  Lists admin-safe recovery candidates.
+  """
+  def admin_recovery_candidates(opts \\ []) do
+    Admin.recovery_candidates(opts)
+  end
+
+  @doc """
+  Returns admin-safe outcome totals by delivery status.
+  """
+  def admin_outcome_totals(opts \\ []) do
+    Admin.outcome_totals(opts)
   end
 
   @doc """

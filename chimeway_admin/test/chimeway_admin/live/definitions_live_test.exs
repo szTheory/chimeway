@@ -43,7 +43,9 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
     assert_no_forbidden_phrases(html)
   end
 
-  test "empty state describes persisted notification history without registry claims", %{conn: conn} do
+  test "empty state describes persisted notification history without registry claims", %{
+    conn: conn
+  } do
     {:ok, _view, html} =
       live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
         session: %{"current_actor" => "ops:1"},
@@ -53,6 +55,7 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
     assert html =~ @description
     assert html =~ "Definitions seen in this app"
     assert html =~ "No definitions seen"
+
     assert html =~
              "Persisted notification keys and versions will appear after Chimeway records events or deliveries."
 
@@ -78,7 +81,9 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
         recipient_type: "user",
         metadata: %{},
         render_assigns: %{},
-        render_channels: %{"email" => %{"render_key" => "definitions.email", "render_version" => 1}}
+        render_channels: %{
+          "email" => %{"render_key" => "definitions.email", "render_version" => 1}
+        }
       })
       |> Repo.insert!()
 

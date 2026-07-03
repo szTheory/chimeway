@@ -11,20 +11,20 @@ defmodule ChimewayAdmin.Components.TimelineEvent do
 
   alias ChimewayAdmin.Redaction
 
-  attr :timeline, :list, required: true
+  attr(:timeline, :list, required: true)
 
   def timeline(assigns) do
     ~H"""
     <section class="chimeway-admin-timeline">
       <h2>Timeline</h2>
-      <ol>
+      <ol class="cw-timeline">
         <%= for entry <- @timeline do %>
-          <li>
+          <li class="cw-timeline__item">
             <time datetime={DateTime.to_iso8601(entry.at)}>
               {format_at(entry.at)}
             </time>
             <strong>{humanize_event(entry.event)}</strong>
-            <dl>
+            <dl class="cw-timeline__details">
               <%= for {key, value} <- Redaction.safe_timeline_detail(entry.detail) do %>
                 <dt>{key}</dt>
                 <dd>{format_detail_value(value)}</dd>

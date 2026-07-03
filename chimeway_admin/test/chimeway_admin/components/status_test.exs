@@ -24,7 +24,10 @@ defmodule ChimewayAdmin.Components.StatusTest do
                Status.lifecycle_label(%{
                  status: :succeeded,
                  timeline: [
-                   %{event: :webhook_received, detail: %{event_name: "chimeway.delivery.delivered"}}
+                   %{
+                     event: :webhook_received,
+                     detail: %{event_name: "chimeway.delivery.delivered"}
+                   }
                  ]
                })
 

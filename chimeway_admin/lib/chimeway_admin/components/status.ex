@@ -67,7 +67,13 @@ defmodule ChimewayAdmin.Components.Status do
 
       true ->
         normalized = normalize(facts.status)
-        %{status: facts.status, normalized: normalized, label: humanize(normalized), tone: :neutral}
+
+        %{
+          status: facts.status,
+          normalized: normalized,
+          label: humanize(normalized),
+          tone: :neutral
+        }
     end
   end
 
@@ -101,7 +107,8 @@ defmodule ChimewayAdmin.Components.Status do
     %{
       status: Map.get(facts, :status) || Map.get(facts, "status"),
       last_attempt: Map.get(facts, :last_attempt) || Map.get(facts, "last_attempt"),
-      suppression_reason: Map.get(facts, :suppression_reason) || Map.get(facts, "suppression_reason"),
+      suppression_reason:
+        Map.get(facts, :suppression_reason) || Map.get(facts, "suppression_reason"),
       timeline: Map.get(facts, :timeline) || Map.get(facts, "timeline") || []
     }
   end
@@ -115,7 +122,10 @@ defmodule ChimewayAdmin.Components.Status do
     Enum.any?(timeline, fn entry ->
       detail = Map.get(entry, :detail) || Map.get(entry, "detail") || %{}
       event_name = Map.get(detail, :event_name) || Map.get(detail, "event_name")
-      signal_event_name = Map.get(detail, :signal_event_name) || Map.get(detail, "signal_event_name")
+
+      signal_event_name =
+        Map.get(detail, :signal_event_name) || Map.get(detail, "signal_event_name")
+
       status = Map.get(detail, :status) || Map.get(detail, "status")
       outcome = Map.get(detail, :outcome) || Map.get(detail, "outcome")
 
@@ -146,7 +156,9 @@ defmodule ChimewayAdmin.Components.Status do
   defp sent?(%{status: status}), do: status in [:pending, "pending", :dispatched, "dispatched"]
 
   defp attempt_error_class(nil), do: nil
-  defp attempt_error_class(attempt), do: Map.get(attempt, :error_class) || Map.get(attempt, "error_class")
+
+  defp attempt_error_class(attempt),
+    do: Map.get(attempt, :error_class) || Map.get(attempt, "error_class")
 
   defp attempt_outcome(nil), do: nil
   defp attempt_outcome(attempt), do: Map.get(attempt, :outcome) || Map.get(attempt, "outcome")
