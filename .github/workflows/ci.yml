@@ -400,6 +400,14 @@ jobs:
           key: ${{ runner.os }}-mix-verify-inbox-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-verify-inbox-
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            chimeway_inbox/deps
+            chimeway_inbox/_build
+          key: ${{ runner.os }}-mix-nested-inbox-${{ hashFiles('chimeway_inbox/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-nested-inbox-
       - run: |
           mix local.rebar --force
           mix local.hex --force
@@ -562,6 +570,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: |
@@ -570,6 +580,21 @@ jobs:
           key: ${{ runner.os }}-mix-verify-admin-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-verify-admin-
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            chimeway_admin/deps
+            chimeway_admin/_build
+          key: ${{ runner.os }}-mix-nested-admin-${{ hashFiles('chimeway_admin/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-nested-admin-
       - run: |
           mix local.rebar --force
           mix local.hex --force
