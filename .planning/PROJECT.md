@@ -14,6 +14,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.14 Phase 78 — TRUTH-01/02/03 root package release identity, canonical repository/source links, and sibling preview/path install-status copy are aligned and enforced by ExUnit release/doc contracts plus a deterministic local Hex unpack proof (`mix ci.verify_gates`, `mix verify.parity`).
 - ✓ v1.14 Phase 77 — TRUTH-04 planning milestone identifiers and package release tags are separated; Phase 77 records the root-only package model, sibling preview/path package status input, and downstream truth ownership.
 - ✓ v1.13 Storage Isolation and Upgrade Path — PFX-01/02/03/04, MIG-01/02/03/04, RUN-01/02/03/04, UPG-01/02/03, DOCS-01/02, DEMO-01, GATE-01, GATE-01-GAP ([archive](.planning/milestones/v1.13-REQUIREMENTS.md))
 - ✓ v1.11 Operator Console Polish & Hardening — ADMIN-01/02/03, DES-01/02/03/04, SAFE-01/02/03/04, PRIV-01/02, EXPL-01/02, DOCS-12, GATE-08, SMOKE-01 ([archive](.planning/milestones/v1.11-REQUIREMENTS.md))
@@ -22,9 +23,6 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-- [ ] TRUTH-01: Root package version, manifest, changelog, HexDocs source ref, README install guidance, and release automation agree on the real published package state.
-- [ ] TRUTH-02: Repository identity, source URLs, badges, package links, and documentation links point to the same canonical project surface.
-- [ ] TRUTH-03: `chimeway_admin` and `chimeway_inbox` are described with their real install status: in-repo preview/path packages until intentionally promoted.
 - [ ] DOCS-14: README becomes the public decision page for Chimeway's local-first, explainable notification layer.
 - [ ] DOCS-15: README and first-hop docs include clear use-cases, non-goals, host-owned boundaries, and optional surface status.
 - [ ] DOCS-16: Public snippets demonstrate required adoption invariants: stable notification key, `tenant_id`, `idempotency_key`, configured storage prefix, and trace/explainability lookup.
@@ -64,7 +62,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ## Current State
 
-**v1.14 Public Truth and Verification Architecture active (2026-07-02):** Phase 77 is complete: TRUTH-04 is validated through a phase-local package model decision record, milestone-vs-package tag namespace rule, sibling preview/path package input, baseline truth drift inventory, and package/docs/CI owner handoff. The remaining milestone work now turns that baseline into public package metadata, front-door docs, and CI topology changes.
+**v1.14 Public Truth and Verification Architecture active (2026-07-03):** Phases 77 and 78 are complete. Phase 77 validated TRUTH-04 (planning-vs-package tag namespace, root-only package model, sibling preview/path input, baseline truth drift inventory, owner handoff). Phase 78 validated TRUTH-01/02/03: root package metadata, release manifest, changelog, HexDocs source refs, README install constraint, canonical repository/source links, and sibling install-status copy now agree and are enforced by ExUnit release-gate + doc contracts and a deterministic local Hex unpack proof (the Sigra dependency override is env-scoped so the prod package build succeeds while dev/test resolution is preserved). Remaining milestone work turns this truth baseline into front-door docs (Phase 79) and CI topology changes (Phase 80).
 
 **v1.13 Storage Isolation and Upgrade Path shipped (2026-07-02):** New installs can generate and run Chimeway-owned tables in a dedicated `chimeway` Postgres schema by default; existing public-schema installs remain supported through explicit `prefix: false` compatibility. Runtime prefix behavior is verified across trigger, trace, admin, inbox, recovery, workflow, digest, webhook, policy, and worker paths, with docs, demo proof, and `mix verify.runtime_prefix` / CI parity in place.
 
@@ -536,4 +534,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after Phase 77 completion*
+*Last updated: 2026-07-03 after Phase 78 completion*
