@@ -128,9 +128,38 @@ jobs:
       - run: mix ecto.migrate --quiet
       - run: mix ci.test
 
+  pr-gate:
+    name: pr-gate
+    runs-on: ubuntu-latest
+    needs: [lint, test, verify_gates, verify_docs]
+    if: always()
+    steps:
+      - name: Verify required PR lanes
+        env:
+          LINT: ${{ needs.lint.result }}
+          TEST: ${{ needs.test.result }}
+          VERIFY_GATES: ${{ needs.verify_gates.result }}
+          VERIFY_DOCS: ${{ needs.verify_docs.result }}
+        run: |
+          set -euo pipefail
+          failed=0
+          for lane in LINT TEST VERIFY_GATES VERIFY_DOCS; do
+            result="${!lane}"
+            if [[ "$result" != "success" ]]; then
+              echo "Required lane $lane: $result"
+              failed=1
+            fi
+          done
+          if [[ "$failed" -ne 0 ]]; then
+            echo "pr-gate failed: one or more required lanes did not succeed."
+            exit 1
+          fi
+          echo "pr-gate passed: all required lanes succeeded."
+
   verify_example:
     name: Example host + admin smoke
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -171,6 +200,7 @@ jobs:
   verify_runtime_prefix:
     name: Runtime prefix gate
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -211,6 +241,7 @@ jobs:
   verify_journeys:
     name: TeamPulse consumer journeys
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -251,6 +282,7 @@ jobs:
   verify_mailglass:
     name: Mailglass integration gate
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -291,6 +323,7 @@ jobs:
   verify_accrue:
     name: Accrue dunning integration gate
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -337,6 +370,7 @@ jobs:
   verify_inbox:
     name: Inbox integration gate
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -377,6 +411,7 @@ jobs:
   verify_threadline:
     name: Threadline telemetry gate
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -423,6 +458,7 @@ jobs:
   verify_sigra:
     name: Sigra auth integration gate
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -501,6 +537,7 @@ jobs:
   verify_admin:
     name: Admin integration gate
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -544,6 +581,7 @@ jobs:
   install_golden_contract:
     name: Installer golden + prefix + DB migration contract
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
