@@ -98,8 +98,11 @@ defmodule Chimeway.Install.PrefixContractTest do
     assert job_block =~ "mix ecto.create"
     assert job_block =~ "mix ecto.migrate"
     assert job_block =~ "mix verify.install_golden"
-    assert job_block =~ "test/fixtures/installer_golden_prefixed"
-    assert job_block =~ "test/fixtures/installer_golden_public"
+    # Fixture-path coverage (public + prefixed) is asserted structurally above via the
+    # verify.install_golden alias wiring (this prefix_contract_test uses the prefixed
+    # fixtures; golden_diff/idempotency use the public tree). The CI job delegates to
+    # `mix verify.install_golden` rather than inlining fixture paths (Phase 80-03 refactor),
+    # so the job block intentionally no longer names the fixture directories.
   end
 
   defp assert_no_matches(files, patterns) do
