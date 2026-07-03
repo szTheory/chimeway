@@ -44,7 +44,9 @@
   - Requirements: TRUTH-01, TRUTH-02, TRUTH-03
   - Success criteria: Package/release metadata and public install claims agree, unpublished sibling packages are no longer advertised as Hex releases, and automated package truth checks fail on drift.
 
-- [ ] **Phase 79: Front Door and Docs IA** (0/4 plans)
+- [ ] **Phase 79: Front Door and Docs IA** (1 plan)
+  - Plans:
+    - [ ] 79-01-PLAN.md — Rewrite README (additive superset) + delink Flows stubs + fix golden-path URLs, then lock the story via doc_contract + release_gate contract assertions (DOCS-14/15/16/17, ADPT-01)
   - Rewrite README as the public decision page for local-first ownership, explainability, host boundaries, non-goals, optional surfaces, and install flow.
   - Add or update snippets showing stable notification keys, `tenant_id`, `idempotency_key`, storage prefix configuration, and trace/explainability proof.
   - Complete, demote, or delink stub guides so first-hop docs do not route adopters into unfinished material.
