@@ -15,7 +15,8 @@ defmodule Chimeway.Inbox do
   @read_event "chimeway.notification.read"
   @seen_event "chimeway.notification.seen"
 
-  @spec list_for_recipient(String.t(), keyword()) :: [Notification.t()] | %{items: [map()], has_more: boolean()}
+  @spec list_for_recipient(String.t(), keyword()) ::
+          [Notification.t()] | %{items: [map()], has_more: boolean()}
   def list_for_recipient(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
     if paginated?(opts) do
       list_for_recipient_paginated(recipient_identity, opts)
@@ -147,13 +148,18 @@ defmodule Chimeway.Inbox do
       |> where([n], n.recipient_identity == ^recipient_identity)
       |> where([n], is_nil(field(n, ^field)))
 
-    case Repo.update_all(first_transition_query, set: [{field, timestamp}, {:updated_at, timestamp}]) do
+    case Repo.update_all(first_transition_query,
+           set: [{field, timestamp}, {:updated_at, timestamp}]
+         ) do
       {1, _} ->
         maybe_emit_inbox_signal(notification_id, recipient_identity, event_name)
         :ok
 
       {0, _} ->
-        case Repo.get_by(Notification, id: notification_id, recipient_identity: recipient_identity) do
+        case Repo.get_by(Notification,
+               id: notification_id,
+               recipient_identity: recipient_identity
+             ) do
           %Notification{} = notification ->
             if is_nil(Map.get(notification, field)), do: {:error, :not_found}, else: :ok
 
@@ -173,19 +179,21 @@ defmodule Chimeway.Inbox do
   defp resolve_tenant_id(notification_id) do
     workflow_tenant =
       Repo.one(
-        from wr in WorkflowRun,
+        from(wr in WorkflowRun,
           where: wr.notification_id == ^notification_id,
           select: wr.tenant_id,
           limit: 1
+        )
       )
 
     workflow_tenant ||
       Repo.one(
-        from d in Delivery,
+        from(d in Delivery,
           where: d.notification_id == ^notification_id,
           order_by: [asc: d.inserted_at],
           select: d.tenant_id,
           limit: 1
+        )
       )
   end
 

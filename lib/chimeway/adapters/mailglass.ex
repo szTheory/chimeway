@@ -140,8 +140,7 @@ if Code.ensure_loaded?(Mailglass) do
           {:ok, ensure_tenant_and_recipient(msg, delivery.tenant_id, recipient)}
 
         :error ->
-          {:error, :permanent,
-           %{reason: :unknown_render_key, render_key: delivery.render_key}}
+          {:error, :permanent, %{reason: :unknown_render_key, render_key: delivery.render_key}}
       end
     end
 
@@ -221,7 +220,18 @@ if Code.ensure_loaded?(Mailglass) do
       }
     end
 
-    @sensitive_keys [:password, :token, :secret, :api_key, :auth, "password", "token", "secret", "api_key", "auth"]
+    @sensitive_keys [
+      :password,
+      :token,
+      :secret,
+      :api_key,
+      :auth,
+      "password",
+      "token",
+      "secret",
+      "api_key",
+      "auth"
+    ]
 
     defp redact_meta(meta) when is_map(meta) do
       meta
@@ -233,7 +243,8 @@ if Code.ensure_loaded?(Mailglass) do
     end
 
     @impl Chimeway.Adapter
-    def parse_webhook_body(raw_body, headers, config) when is_binary(raw_body) and is_list(headers) do
+    def parse_webhook_body(raw_body, headers, config)
+        when is_binary(raw_body) and is_list(headers) do
       provider = webhook_provider_module(config)
 
       case provider.normalize(raw_body, headers) do
@@ -289,7 +300,9 @@ if Code.ensure_loaded?(Mailglass) do
     def normalize_feedback(_), do: :error
 
     @impl Chimeway.Adapter
-    def resolve_provider_event_id(%{"_mailglass_event" => %Mailglass.Events.Event{metadata: metadata}})
+    def resolve_provider_event_id(%{
+          "_mailglass_event" => %Mailglass.Events.Event{metadata: metadata}
+        })
         when is_map(metadata) do
       case metadata["provider_event_id"] do
         id when is_binary(id) and id != "" -> {:ok, id}
@@ -303,8 +316,9 @@ if Code.ensure_loaded?(Mailglass) do
       metadata["message_id"] || metadata["provider_message_id"]
     end
 
-    defp delivery_relevant?(%Mailglass.Events.Event{type: type}) when type in @delivery_relevant_types,
-      do: true
+    defp delivery_relevant?(%Mailglass.Events.Event{type: type})
+         when type in @delivery_relevant_types,
+         do: true
 
     defp delivery_relevant?(_), do: false
 

@@ -66,7 +66,7 @@ defmodule Chimeway.InboxStateTransitionTest do
       assert :ok = Inbox.mark_read(notification.id, "user:42")
 
       assert [%Signal{id: signal_id} = signal] =
-               Repo.all(from s in Signal, where: s.event_name == "chimeway.notification.read")
+               Repo.all(from(s in Signal, where: s.event_name == "chimeway.notification.read"))
 
       assert signal.tenant_id == "acme"
       assert signal.actor_id == "user:42"
@@ -95,7 +95,7 @@ defmodule Chimeway.InboxStateTransitionTest do
       assert :ok = Inbox.mark_seen(notification.id, "user:42")
 
       assert [%Signal{event_name: "chimeway.notification.seen"}] =
-               Repo.all(from s in Signal, where: s.event_name == "chimeway.notification.seen")
+               Repo.all(from(s in Signal, where: s.event_name == "chimeway.notification.seen"))
 
       persisted = Repo.get!(Notification, notification.id)
       assert is_nil(persisted.read_at)

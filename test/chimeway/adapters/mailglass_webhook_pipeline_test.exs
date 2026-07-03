@@ -137,7 +137,11 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
           end)
 
         assert webhook_entry
-        assert String.contains?(webhook_entry.detail.adapter_module, "Chimeway.Adapters.Mailglass")
+
+        assert String.contains?(
+                 webhook_entry.detail.adapter_module,
+                 "Chimeway.Adapters.Mailglass"
+               )
       end
     end
   end

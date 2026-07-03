@@ -202,7 +202,8 @@ if Code.ensure_loaded?(Threadline) do
                    tenant_id: "acme"
                  )
 
-        audit_row = assert_audit_action!(:notification_dispatched, correlation_id, reason: "dispatched")
+        audit_row =
+          assert_audit_action!(:notification_dispatched, correlation_id, reason: "dispatched")
 
         assert_correlation_timeline_filter!(correlation_id, audit_row)
       end

@@ -9,10 +9,10 @@ defmodule Chimeway.TestSupport.Sigra.UserToken do
   use Ecto.Schema
 
   schema "user_tokens" do
-    field :token, :binary
-    field :context, :string
-    field :sent_to, :string
-    belongs_to :user, Chimeway.TestSupport.Sigra.User
+    field(:token, :binary)
+    field(:context, :string)
+    field(:sent_to, :string)
+    belongs_to(:user, Chimeway.TestSupport.Sigra.User)
 
     timestamps(type: :utc_datetime, updated_at: false)
   end

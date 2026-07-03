@@ -18,7 +18,12 @@ if Code.ensure_loaded?(Sigra) do
 
       test "Sigra integration module loaded exports dispatch_magic_link_after_request/3" do
         assert Code.ensure_loaded?(Sigra.Integrations.Chimeway)
-        assert function_exported?(Sigra.Integrations.Chimeway, :dispatch_magic_link_after_request, 3)
+
+        assert function_exported?(
+                 Sigra.Integrations.Chimeway,
+                 :dispatch_magic_link_after_request,
+                 3
+               )
       end
 
       test "TestRepo reachable after insert_user!/0" do
@@ -29,7 +34,9 @@ if Code.ensure_loaded?(Sigra) do
 
       test "schema config round-trip sets harness user modules" do
         assert Application.get_env(:sigra, :user_schema) == Chimeway.TestSupport.Sigra.User
-        assert Application.get_env(:sigra, :user_token_schema) == Chimeway.TestSupport.Sigra.UserToken
+
+        assert Application.get_env(:sigra, :user_token_schema) ==
+                 Chimeway.TestSupport.Sigra.UserToken
       end
     end
   end

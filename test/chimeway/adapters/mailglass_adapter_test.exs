@@ -133,7 +133,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "verify_webhook accepts valid Postmark Basic auth" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
         headers = MailglassFixtures.postmark_delivery_headers()
 
         assert :ok = MailglassAdapter.verify_webhook(body, headers, config)
@@ -142,7 +145,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "verify_webhook rejects invalid Basic auth" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
         headers = [{"authorization", "Basic #{Base.encode64("wrong:creds")}"}]
 
         assert {:error, :unauthorized} = MailglassAdapter.verify_webhook(body, headers, config)
@@ -151,7 +157,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "parse_webhook_body returns _mailglass_event for Delivery payload" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
         headers = MailglassFixtures.postmark_delivery_headers()
 
         assert {:ok, %{"_mailglass_event" => event}} =
@@ -164,7 +173,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "parse_webhook_body rejects engagement-only payloads" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_open_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_open_payload())
+
         headers = MailglassFixtures.postmark_delivery_headers()
 
         assert {:error, :unparseable_body} =
@@ -174,7 +186,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "resolve_delivery extracts provider_message_id from Delivery event" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
         headers = MailglassFixtures.postmark_delivery_headers()
 
         {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
@@ -186,7 +201,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "normalize_feedback maps Delivery to :delivered" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
         headers = MailglassFixtures.postmark_delivery_headers()
 
         {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
@@ -197,7 +215,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "normalize_feedback maps Bounce to :bounced" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_bounce_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_bounce_payload())
+
         headers = MailglassFixtures.postmark_delivery_headers()
 
         {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
@@ -220,7 +241,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       @tag :webhook
       test "resolve_provider_event_id returns id from event metadata" do
         config = MailglassFixtures.postmark_webhook_config_keyword()
-        body = MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
+        body =
+          MailglassFixtures.encode_postmark_payload(MailglassFixtures.postmark_delivery_payload())
+
         headers = MailglassFixtures.postmark_delivery_headers()
 
         {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)

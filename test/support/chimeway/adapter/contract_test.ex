@@ -92,8 +92,11 @@ defmodule Chimeway.Adapter.ContractTest do
 
           true ->
             case Jason.decode(body) do
-              {:ok, parsed} -> parsed
-              {:error, _} -> flunk("Jason.decode/1 failed for webhook body on #{inspect(adapter)}")
+              {:ok, parsed} ->
+                parsed
+
+              {:error, _} ->
+                flunk("Jason.decode/1 failed for webhook body on #{inspect(adapter)}")
             end
         end
       end
@@ -176,7 +179,11 @@ defmodule Chimeway.Adapter.ContractTest do
               invalid_headers = [{"authorization", "Basic #{Base.encode64("wrong:creds")}"}]
 
               assert {:error, :unauthorized} =
-                       adapter.verify_webhook(fixtures.valid_body, invalid_headers, fixtures.config)
+                       adapter.verify_webhook(
+                         fixtures.valid_body,
+                         invalid_headers,
+                         fixtures.config
+                       )
             end
 
             test "resolve_delivery extracts provider_message_id from parsed fixture" do

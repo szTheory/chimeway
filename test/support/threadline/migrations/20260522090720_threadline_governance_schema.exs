@@ -2,7 +2,7 @@ defmodule ThreadlineGovernanceSchema do
   use Ecto.Migration
 
   def up do
-    execute """
+    execute("""
     CREATE TABLE IF NOT EXISTS threadline_export_jobs (
       id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
       status         text        NOT NULL,
@@ -16,9 +16,9 @@ defmodule ThreadlineGovernanceSchema do
       inserted_at    timestamptz NOT NULL DEFAULT now(),
       updated_at     timestamptz NOT NULL DEFAULT now()
     )
-    """
+    """)
 
-    execute """
+    execute("""
     CREATE TABLE IF NOT EXISTS threadline_retention_runs (
       id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
       status         text        NOT NULL,
@@ -30,9 +30,9 @@ defmodule ThreadlineGovernanceSchema do
       inserted_at    timestamptz NOT NULL DEFAULT now(),
       updated_at     timestamptz NOT NULL DEFAULT now()
     )
-    """
+    """)
 
-    execute """
+    execute("""
     CREATE TABLE IF NOT EXISTS threadline_saved_views (
       id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
       name           text        NOT NULL,
@@ -41,12 +41,12 @@ defmodule ThreadlineGovernanceSchema do
       inserted_at    timestamptz NOT NULL DEFAULT now(),
       updated_at     timestamptz NOT NULL DEFAULT now()
     )
-    """
+    """)
   end
 
   def down do
-    execute "DROP TABLE IF EXISTS threadline_saved_views"
-    execute "DROP TABLE IF EXISTS threadline_retention_runs"
-    execute "DROP TABLE IF EXISTS threadline_export_jobs"
+    execute("DROP TABLE IF EXISTS threadline_saved_views")
+    execute("DROP TABLE IF EXISTS threadline_retention_runs")
+    execute("DROP TABLE IF EXISTS threadline_export_jobs")
   end
 end

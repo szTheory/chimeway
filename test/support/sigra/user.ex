@@ -9,9 +9,9 @@ defmodule Chimeway.TestSupport.Sigra.User do
   use Ecto.Schema
 
   schema "users" do
-    field :email, :string
-    field :hashed_password, :string
-    field :confirmed_at, :utc_datetime
+    field(:email, :string)
+    field(:hashed_password, :string)
+    field(:confirmed_at, :utc_datetime)
 
     timestamps(type: :utc_datetime)
   end

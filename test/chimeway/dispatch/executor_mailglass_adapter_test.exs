@@ -79,7 +79,8 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
 
       provider_response = attempt.provider_response || %{}
 
-      assert provider_response["adapter"] == "mailglass" or provider_response[:adapter] == "mailglass"
+      assert provider_response["adapter"] == "mailglass" or
+               provider_response[:adapter] == "mailglass"
     end
   end
 end

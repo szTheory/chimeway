@@ -180,8 +180,7 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
             from(d in Delivery,
               join: ws in WorkflowStep,
               on: d.workflow_step_id == ws.id,
-              where:
-                d.workflow_run_id == ^waiting_run.id and ws.step_key == "escalation_email"
+              where: d.workflow_run_id == ^waiting_run.id and ws.step_key == "escalation_email"
             )
           )
 

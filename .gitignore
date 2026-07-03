@@ -2,9 +2,14 @@
 /_build/
 chimeway_admin/_build/
 chimeway_admin/deps/
+chimeway_inbox/_build/
+chimeway_inbox/deps/
 
 # If you run "mix test --cover", coverage assets end up here.
 /cover/
+
+# Test artifacts (e.g. Playwright, JUnit output).
+test-results/
 
 # The directory Mix downloads your dependencies sources to.
 /deps/
@@ -37,6 +42,7 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+.claude/
 *.code-workspace
 .env
 .env.*

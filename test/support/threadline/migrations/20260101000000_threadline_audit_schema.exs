@@ -2,7 +2,7 @@ defmodule ThreadlineAuditSchema do
   use Ecto.Migration
 
   def up do
-    execute """
+    execute("""
     CREATE TABLE IF NOT EXISTS audit_transactions (
       id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
       txid        bigint      NOT NULL UNIQUE,
@@ -10,11 +10,11 @@ defmodule ThreadlineAuditSchema do
       source      text,
       meta        jsonb
     )
-    """
+    """)
 
-    execute "CREATE INDEX IF NOT EXISTS audit_transactions_txid_idx ON audit_transactions (txid)"
+    execute("CREATE INDEX IF NOT EXISTS audit_transactions_txid_idx ON audit_transactions (txid)")
 
-    execute """
+    execute("""
     CREATE TABLE IF NOT EXISTS audit_changes (
       id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
       transaction_id uuid        NOT NULL REFERENCES audit_transactions(id) ON DELETE CASCADE,
@@ -26,13 +26,21 @@ defmodule ThreadlineAuditSchema do
       changed_fields text[],
       captured_at    timestamptz NOT NULL DEFAULT now()
     )
-    """
+    """)
 
-    execute "CREATE INDEX IF NOT EXISTS audit_changes_transaction_id_idx ON audit_changes (transaction_id)"
-    execute "CREATE INDEX IF NOT EXISTS audit_changes_table_name_idx ON audit_changes (table_name)"
-    execute "CREATE INDEX IF NOT EXISTS audit_changes_captured_at_idx ON audit_changes (captured_at)"
+    execute(
+      "CREATE INDEX IF NOT EXISTS audit_changes_transaction_id_idx ON audit_changes (transaction_id)"
+    )
 
-    execute """
+    execute(
+      "CREATE INDEX IF NOT EXISTS audit_changes_table_name_idx ON audit_changes (table_name)"
+    )
+
+    execute(
+      "CREATE INDEX IF NOT EXISTS audit_changes_captured_at_idx ON audit_changes (captured_at)"
+    )
+
+    execute("""
     CREATE OR REPLACE FUNCTION threadline_capture_changes()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -89,12 +97,12 @@ defmodule ThreadlineAuditSchema do
       RETURN NEW;
     END;
     $threadline_trigger$
-    """
+    """)
   end
 
   def down do
-    execute "DROP FUNCTION IF EXISTS threadline_capture_changes()"
-    execute "DROP TABLE IF EXISTS audit_changes"
-    execute "DROP TABLE IF EXISTS audit_transactions"
+    execute("DROP FUNCTION IF EXISTS threadline_capture_changes()")
+    execute("DROP TABLE IF EXISTS audit_changes")
+    execute("DROP TABLE IF EXISTS audit_transactions")
   end
 end

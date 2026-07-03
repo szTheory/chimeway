@@ -7,18 +7,18 @@ defmodule Chimeway.Telemetry.ThreadlineReporter do
     @handler_id :chimeway_threadline_reporter
 
     @stop_events (
-      base = [
-        [:chimeway, :policy, :evaluate, :stop],
-        [:chimeway, :dispatch, :sync, :stop],
-        [:chimeway, :attempts, :record, :stop]
-      ]
+                   base = [
+                     [:chimeway, :policy, :evaluate, :stop],
+                     [:chimeway, :dispatch, :sync, :stop],
+                     [:chimeway, :attempts, :record, :stop]
+                   ]
 
-      if Code.ensure_loaded?(Oban) do
-        base ++ [[:chimeway, :dispatch, :perform, :stop]]
-      else
-        base
-      end
-    )
+                   if Code.ensure_loaded?(Oban) do
+                     base ++ [[:chimeway, :dispatch, :perform, :stop]]
+                   else
+                     base
+                   end
+                 )
 
     @comment_keys ~w(
       delivery_id notification_key channel attempt_id outcome attempt_number error_class

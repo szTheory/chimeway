@@ -707,8 +707,7 @@ defmodule Chimeway.NotifierContractTest do
     test "rejects blank cancel_signals entries" do
       assert {:error,
               {:workflow_resolution_failed,
-               {:invalid_workflow_progress_rule,
-                {:invalid_cancel_signals, {:blank_entry, "   "}}}}} =
+               {:invalid_workflow_progress_rule, {:invalid_cancel_signals, {:blank_entry, "   "}}}}} =
                Notifier.normalize_workflow_declaration(
                  progress_workflow_fixture([
                    base_wait_until_rule(%{"cancel_signals" => ["   "]})
@@ -733,8 +732,7 @@ defmodule Chimeway.NotifierContractTest do
 
       assert {:error,
               {:workflow_resolution_failed,
-               {:invalid_workflow_progress_rule,
-                {:invalid_cancel_signals, {:too_many, 11}}}}} =
+               {:invalid_workflow_progress_rule, {:invalid_cancel_signals, {:too_many, 11}}}}} =
                Notifier.normalize_workflow_declaration(
                  progress_workflow_fixture([
                    base_wait_until_rule(%{"cancel_signals" => signals})
