@@ -37,7 +37,7 @@
   - Requirements: TRUTH-04
   - Success criteria: A decision record or equivalent planning artifact names the package model, tag namespace, root package release rule, and delivery owners for package/docs/CI truth.
 
-- [ ] **Phase 78: Release and Package Truth** (0/4 plans)
+- [ ] **Phase 78: Release and Package Truth** (0/3 plans)
   - Align root package metadata, release manifest, changelog, HexDocs source refs, README install constraints, package files whitelist, and canonical repo/source links.
   - Make `chimeway_admin` and `chimeway_inbox` install status explicit as in-repo preview/path packages unless separately promoted.
   - Add package truth contracts and `mix hex.build --unpack` proof for the root package artifact.
@@ -90,6 +90,18 @@ Plans:
 **Requirements:** TRUTH-01, TRUTH-02, TRUTH-03
 
 **Depends on:** Phase 77
+
+**Plans:** 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 78-01-PLAN.md — Root release identity and canonical package source contracts
+- [ ] 78-02-PLAN.md — Sibling preview/path install-status copy and doc contracts
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 78-03-PLAN.md — Sigra package-build blocker remediation and unpacked artifact proof
 
 **Success Criteria**:
 
