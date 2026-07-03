@@ -1419,6 +1419,35 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
+    # DOCS-14/15 narrative-order gate (Success Criterion 1): the decision-markers above
+    # assert each section is PRESENT; this asserts they appear in the coherent adoption
+    # order value-prop -> When to use -> Non-goals -> Host-owned boundaries -> Optional
+    # surfaces -> Installation -> Trigger to explainable trace. A reorder that breaks the
+    # narrative passes the presence markers but fails here. Line-anchored (~r/^...$/m) so
+    # only real headings match, not prose mentions.
+    @readme_section_order [
+      "# Chimeway",
+      "## When to use",
+      "## Non-goals",
+      "## Host-owned boundaries",
+      "## Optional surfaces",
+      "## Installation",
+      "## Trigger to explainable trace"
+    ]
+
+    test "decision-page sections appear in narrative order", %{content: content} do
+      offsets =
+        Enum.map(@readme_section_order, fn heading ->
+          case Regex.run(~r/^#{Regex.escape(heading)}$/m, content, return: :index) do
+            [{start, _}] -> start
+            _ -> flunk("README missing narrative section heading: #{heading}")
+          end
+        end)
+
+      assert offsets == Enum.sort(offsets),
+             "README decision-page sections must appear in narrative order: #{inspect(@readme_section_order)}"
+    end
+
     # DOCS-16 per-trigger invariant (mirrored verbatim from the golden path block):
     # every Chimeway.trigger example must carry both required opts one-to-one.
     test "every Chimeway.trigger example includes idempotency_key and tenant_id", %{
