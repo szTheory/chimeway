@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-status: ready_to_execute
-last_updated: "2026-07-02T23:14:35.234Z"
-last_activity: 2026-07-02
-last_activity_desc: Phase 77 planning complete — 2 plans ready
+current_phase: 77
+current_phase_name: truth-baseline-and-package-model-decision
+status: executing
+stopped_at: Completed 77-01-PLAN.md
+last_updated: "2026-07-03T00:43:09.695Z"
+last_activity: 2026-07-03
+last_activity_desc: Phase 77 execution started
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 15
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.14 Public Truth and Verification Architecture
+**Current focus:** Phase 77 — truth-baseline-and-package-model-decision
 
 ## Current Position
 
-Phase: 77 - Truth Baseline and Package Model Decision
-Plan: 2 plans ready
+Phase: 77 (truth-baseline-and-package-model-decision) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-02 — Phase 77 planning complete
+Last activity: 2026-07-03 -- Phase 77 execution started
 
 ## Accumulated Context
 
@@ -198,6 +201,9 @@ status: complete
 - [Phase 76.1]: [76.1-01]: Generated prefixed runtime proof runs fixture migrations in an isolated temporary database used by Chimeway.Repo.
 - [Phase 76.1]: [76.1-01]: Runtime proof remains synchronous with Chimeway.Dispatch.Sync and does not add public prefix arguments or migration-runner prefix flags.
 - [Phase 76.1]: [76.1-01]: GATE-01-GAP is covered by extending verify.runtime_prefix; installer golden remains path-gated and CI topology is unchanged.
+- [Phase 77]: [77-01]: chimeway is the only Hex-published package for v1.14 planning work; sibling packages remain in-repo preview/path packages. — Prevents public package confusion and routes sibling install-status copy to Phase 78.
+- [Phase 77]: [77-01]: Planning milestone labels such as v1.14 are planning identifiers only and are not package release refs. — Keeps root package SemVer tags, HexDocs source refs, publish refs, changelog anchors, and GitHub release names tied to actual package releases.
+- [Phase 77]: [77-01]: Phase 78 owns package/release truth, Phase 79 owns front-door docs truth, and Phase 80 owns CI truth while full ci-gate remains the release confidence source. — Preserves Phase 77 as a planning artifact and hands public edits to downstream owner phases.
 
 ## Performance
 
@@ -509,9 +515,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-02T23:14:35.230Z
-Stopped at: Phase 77 context gathered (assumptions mode)
-Resume file: .planning/phases/77-truth-baseline-and-package-model-decision/77-CONTEXT.md
+Last session: 2026-07-03T00:42:51.264Z
+Stopped at: Completed 77-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -569,3 +575,4 @@ Resume file: .planning/phases/77-truth-baseline-and-package-model-decision/77-CO
 | Phase 76 P02 | 16 min | 3 tasks | 20 files |
 | Phase 76 P03 | 20 min | 3 tasks | 4 files |
 | Phase 76.1 P01 | 7 min | 3 tasks | 4 files |
+| Phase 77 P01 | 4 min | 2 tasks | 2 files |

@@ -70,13 +70,14 @@
 Plans:
 **Wave 1**
 
-- [ ] 77-01-PLAN.md — Package model, namespace rule, root release rule, and owner map
+- [x] 77-01-PLAN.md — Package model, namespace rule, root release rule, and owner map
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [ ] 77-02-PLAN.md — Evidence-backed drift inventory and validation handoff
 
 **Success Criteria**:
+
 1. A decision record or equivalent planning artifact names the package model.
 2. The artifact names the tag namespace and root package release rule.
 3. The artifact names delivery owners for package, docs, and CI truth.
@@ -91,6 +92,7 @@ Plans:
 **Depends on:** Phase 77
 
 **Success Criteria**:
+
 1. Package/release metadata and public install claims agree.
 2. Unpublished sibling packages are no longer advertised as Hex releases.
 3. Automated package truth checks fail on package, release, install, source-ref, or sibling-status drift.
@@ -105,6 +107,7 @@ Plans:
 **Depends on:** Phase 78
 
 **Success Criteria**:
+
 1. A new adopter can read the first-hop docs and understand when to use or avoid Chimeway.
 2. Public snippets for stable notification keys, `tenant_id`, `idempotency_key`, storage prefix configuration, and trace/explainability proof are accurate.
 3. Stub guides are completed, demoted, or delinked so first-hop docs do not route adopters into unfinished material.
@@ -119,6 +122,7 @@ Plans:
 **Depends on:** Phase 79
 
 **Success Criteria**:
+
 1. Contributor PRs have a fast required aggregate.
 2. Release, publish, automerge, recovery, and mainline flows still depend on the full gate.
 3. Path-filtered skips cannot strand required checks.
