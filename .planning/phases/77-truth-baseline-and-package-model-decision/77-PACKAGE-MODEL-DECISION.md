@@ -67,7 +67,12 @@ The root package release identity is the agreement among these surfaces:
 
 ## Truth Ownership
 
-Truth ownership rows for D-07 through D-10 are added by Task 2 of Plan 77-01.
+| Owner Phase | Truth Surface | Scope | Required Follow-up | Decision IDs |
+|-------------|---------------|-------|--------------------|--------------|
+| Phase 78 | Root package/release truth | package metadata, package files, release manifest, changelog, HexDocs source refs, README install constraints, canonical repo/source links, sibling package install-status copy, and package truth contracts | Align package/release metadata and public install claims to the root `chimeway` package model; keep `chimeway_admin` and `chimeway_inbox` as preview/path packages unless a future promotion milestone changes the model. | D-07 |
+| Phase 79 | Public front-door docs truth | README decision-page rewrite, first-hop guide IA, accurate adoption snippets, stub guide completion/demotion, and clean consumer or unpacked-Hex smoke path | Rewrite first-hop documentation around local-first ownership, explainability, non-goals, host boundaries, optional surface status, and public adoption proof. | D-08 |
+| Phase 80 | CI truth | fast always-running `pr-gate`, full release/publish `ci-gate`, required-check topology, local reproducibility, and cache coverage | Add contributor-facing speed while preserving full release confidence and making gate behavior reproducible locally. | D-09 |
+| Phase 80 | Release confidence source | full `ci-gate` remains the release, publish, automerge, recovery, and mainline confidence source | Preserve existing release/publish confidence while adding the faster contributor `pr-gate`; do not demote `ci-gate` to a partial signal. | D-10 |
 
 ## Baseline Drift Inventory
 
@@ -91,6 +96,7 @@ test -z "$(git diff --name-only -- README.md mix.exs CHANGELOG.md .github/workfl
 
 ## Downstream Handoff
 
-- Phase 78 receives the root package model, Release Please SemVer namespace rule, root package release identity surfaces, and sibling preview/path package status input.
-- Phase 79 receives public docs/front-door drift rows without Phase 77 changing README or guide content.
-- Phase 80 receives CI/contributor-gate drift rows without Phase 77 changing workflow topology.
+- Phase 78 receives the sibling package install-status input plus the root package model, Release Please SemVer namespace rule, root package release identity surfaces, package metadata drift, package files drift, release manifest drift, changelog drift, HexDocs source ref drift, README install constraints, canonical repo/source link drift, and package truth contract gaps.
+- Phase 79 receives front-door docs drift rows for the README decision-page rewrite, first-hop guide IA, accurate adoption snippets, stub guide completion/demotion, and clean consumer or unpacked-Hex smoke path.
+- Phase 80 receives CI/contributor-gate drift rows for the fast always-running `pr-gate`, full release/publish `ci-gate`, required-check topology, local reproducibility, and cache coverage.
+- Full `ci-gate` remains the release, publish, automerge, recovery, and mainline confidence source while Phase 80 adds contributor-facing speed per D-10.
