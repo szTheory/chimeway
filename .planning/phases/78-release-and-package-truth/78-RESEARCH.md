@@ -405,22 +405,22 @@ end
 | A2 | Existing stale Hex metadata for already-published `chimeway` 1.0.0 should not block Phase 78 if repo/package artifact truth is corrected for the next publish. [ASSUMED] | Architecture Patterns / Runtime State Inventory | Planner may need a Hex owner remediation task if Hex supports editing package metadata without a new release. |
 | A3 | The package-build fix should make default `mix hex.build --unpack` pass instead of relying only on `CHIMEWAY_SKIP_SIGRA_DEP=1`. [ASSUMED] | Runtime State Inventory / Pitfalls | Planner may choose an env-scoped release build path instead, but must then contract-test parity with publish workflows. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **How should the `sigra` `override: true` package-build blocker be fixed?** [VERIFIED: local build probe]
+1. **How should the `sigra` `override: true` package-build blocker be fixed?** [RESOLVED]
    - What we know: Default `mix hex.build --unpack` fails; `CHIMEWAY_SKIP_SIGRA_DEP=1` succeeds. [VERIFIED: local commands]
-   - What's unclear: Whether maintainers prefer removing the override, scoping it away from package builds, or setting skip env in release/publish workflows. [ASSUMED]
-   - Recommendation: Prefer a default root build that passes without special env, because release workflows currently run `mix hex.build` with no skip env. [VERIFIED: .github/workflows/release.yml, .github/workflows/publish-hex.yml]
+   - Resolution: Remove `override: true` from the default Sigra dependency used by the root package build. Keep the default root build passing without `CHIMEWAY_SKIP_SIGRA_DEP`, because release workflows currently run `mix hex.build` with no skip env. [VERIFIED: .github/workflows/release.yml, .github/workflows/publish-hex.yml]
+   - Plan handling: Plan 78-03 Task 1 removes the default override while preserving optional Sigra integration coverage through `verify.sigra`.
 
-2. **Should Phase 78 attempt live Hex metadata remediation for the existing `1.0.0` package page?** [VERIFIED: curl Hex API]
+2. **Should Phase 78 attempt live Hex metadata remediation for the existing `1.0.0` package page?** [RESOLVED]
    - What we know: Live package metadata still points GitHub link at the stale repo. [VERIFIED: curl Hex API]
-   - What's unclear: Whether Hex owners can update package metadata outside the documented update window without a new package version. [ASSUMED]
-   - Recommendation: Correct source package metadata and contracts now; treat live metadata correction as a manual maintainer follow-up unless a documented Hex command is confirmed. [ASSUMED]
+   - Resolution: Correct source package metadata and repository contracts in Phase 78, but keep live Hex metadata remediation as manual/release-time evidence. Do not add live Hex API checks to default local gates. [ASSUMED]
+   - Plan handling: Plan 78-03 keeps live Hex checks out of `mix ci.verify_gates` and `mix verify.parity`; 78-VALIDATION.md records published `chimeway` metadata as manual-only verification.
 
-3. **How broad should stale repo URL cleanup be in Phase 78?** [VERIFIED: repo grep]
+3. **How broad should stale repo URL cleanup be in Phase 78?** [RESOLVED]
    - What we know: Phase 78 owns package-facing README, package metadata, HexDocs links, changelog/source-facing claims, and package truth contracts; Phase 80 owns contributor `CONTRIBUTING.md` drift. [VERIFIED: 78-CONTEXT.md, Phase 77 handoff]
-   - What's unclear: Some guide deep links outside package-facing install truth still point to the old repo. [VERIFIED: repo grep]
-   - Recommendation: Contract-test only Phase 78-owned package-facing surfaces and avoid broad guide rewrite unless the link is in package install/source truth. [VERIFIED: 78-CONTEXT.md]
+   - Resolution: Limit stale repo URL cleanup to Phase 78 package-facing surfaces: root package metadata, HexDocs source refs, README package-facing badges/links, changelog/source-facing package claims, release/publish workflow package truth references, and package truth contracts. Defer broader guide, contributor, and front-door cleanup to their owning phases. [VERIFIED: 78-CONTEXT.md]
+   - Plan handling: Plans 78-01 and 78-03 contract-test package-facing surfaces only; Plan 78-02 updates sibling install-status copy without broad guide rewrites.
 
 ## Environment Availability
 
