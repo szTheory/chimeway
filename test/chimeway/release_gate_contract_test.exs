@@ -14,6 +14,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   @canonical_repo_url "https://github.com/szTheory/chimeway"
   @legacy_repo_url "https://github.com/jonlunsford/chimeway"
   @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
+  @release_please_config "release-please-config.json"
+  @sibling_packages ~w(chimeway_admin chimeway_inbox)
   @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin)
 
   @pre_ship_verify_commands [
@@ -370,6 +372,94 @@ defmodule Chimeway.ReleaseGateContractTest do
                "#{@canonical_repo_url}/actions/workflows/ci.yml"
              ),
              "README.md CI badge must link to #{@canonical_repo_url}/actions/workflows/ci.yml"
+    end
+  end
+
+  describe "root-only Release Please and publish workflows (D-02)" do
+    setup do
+      %{
+        release_please_config: File.read!(@release_please_config),
+        release_yml: File.read!(@release_yml),
+        publish_hex_yml: File.read!(@publish_hex_yml)
+      }
+    end
+
+    test "Release Please config stays root-only", ctx do
+      config = Jason.decode!(ctx.release_please_config)
+
+      assert Map.keys(config["packages"]) == ["."],
+             "release-please-config.json must contain exactly the root \".\" package"
+
+      root = config["packages"]["."]
+
+      assert root["changelog-path"] == "CHANGELOG.md",
+             "root package changelog-path must be CHANGELOG.md"
+
+      assert root["include-v-in-tag"] == true,
+             "root package include-v-in-tag must be true for v-prefixed package tags"
+    end
+
+    test "release workflow builds and publishes the root package from the release tag", ctx do
+      release_yml = ctx.release_yml
+
+      for required <- [
+            "config-file: release-please-config.json",
+            "manifest-file: .release-please-manifest.json",
+            "needs.release-please.outputs.tag_name",
+            ~S(grep -n "@version \"${RELEASE_VERSION}\"" mix.exs),
+            "mix ci.verify_gates",
+            "mix ci.docs",
+            "mix hex.build"
+          ] do
+        assert String.contains?(release_yml, required),
+               "release.yml must include release truth marker: #{required}"
+      end
+
+      # HEX_API_KEY is scoped to Hex publish steps, never the Release Please job.
+      assert String.contains?(release_yml, "secrets.HEX_API_KEY"),
+             "release.yml must reference secrets.HEX_API_KEY for Hex publish"
+
+      # Scope to the release-please job body: from its job header to the next
+      # top-level job (job names contain hyphens, so split on the header text).
+      # This excludes the file-level comment header that names the secret.
+      release_please_block =
+        release_yml
+        |> String.split("\n  release-please:", parts: 2)
+        |> List.last()
+        |> String.split("\n  bootstrap-release-pr-ci:", parts: 2)
+        |> List.first()
+
+      refute String.contains?(release_please_block, "HEX_API_KEY"),
+             "release-please job must not carry HEX_API_KEY"
+
+      for sibling <- @sibling_packages do
+        refute String.contains?(release_yml, sibling),
+               "release.yml must not add a #{sibling} publish lane"
+      end
+    end
+
+    test "recovery publish workflow stays rooted on the chimeway package", ctx do
+      publish_hex_yml = ctx.publish_hex_yml
+
+      for required <- [
+            "workflow_dispatch:",
+            "release_version:",
+            "tag must be a 40-character commit SHA or an existing git tag",
+            ~S(grep -n "@version \"${RELEASE_VERSION}\"" mix.exs),
+            "mix ci.verify_gates",
+            "mix ci.docs",
+            "mix hex.build",
+            "mix hex.publish --dry-run --yes",
+            "mix hex.publish --yes"
+          ] do
+        assert String.contains?(publish_hex_yml, required),
+               "publish-hex.yml must include recovery truth marker: #{required}"
+      end
+
+      for sibling <- @sibling_packages do
+        refute String.contains?(publish_hex_yml, sibling),
+               "publish-hex.yml must not add a #{sibling} publish lane"
+      end
     end
   end
 
