@@ -101,7 +101,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 78-03-PLAN.md — Sigra package-build blocker remediation and unpacked artifact proof
+- [x] 78-03-PLAN.md — Sigra package-build blocker remediation and unpacked artifact proof
 
 **Success Criteria**:
 
