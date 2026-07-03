@@ -14,7 +14,7 @@ There is no separate inbox blueprint recipe in v1.9 — this guide owns the end-
 
 ## 1. Dependencies
 
-Add Chimeway and `chimeway_inbox` to your host `mix.exs`:
+`chimeway_inbox` is an in-repo preview/path package: it lives in the Chimeway monorepo and is **not published on Hex yet**. Add Chimeway and `chimeway_inbox` to your host `mix.exs`, keeping `chimeway_inbox` as a path dependency for repository/demo usage:
 
 ```elixir
 def deps do
@@ -25,7 +25,7 @@ def deps do
 end
 ```
 
-When `chimeway_inbox` is published to hex, replace the path dependency with `{:chimeway_inbox, "~> 1.0"}`. Both packages live in the Chimeway monorepo today — no sibling checkout is required (unlike Accrue integration).
+Keep the `{:chimeway_inbox, path: "../chimeway_inbox"}` path dependency for repository/demo usage until an explicit package-promotion milestone defines package metadata, SemVer policy, publish automation, and a clean install smoke. Both packages live in the Chimeway monorepo today — no sibling checkout is required (unlike Accrue integration).
 
 Then fetch dependencies:
 

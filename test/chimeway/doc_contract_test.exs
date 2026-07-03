@@ -878,6 +878,50 @@ defmodule Chimeway.DocContractTest do
       assert String.contains?(verification_tail, "mix verify.inbox")
       assert String.contains?(verification_tail, "seed_inbox")
     end
+
+    test "documents chimeway_inbox preview/path install status (TRUTH-03 / D-05)", %{
+      content: content
+    } do
+      assert String.contains?(content, "in-repo preview/path package"),
+             "inbox guide must state chimeway_inbox is an in-repo preview/path package"
+
+      assert String.contains?(content, "not published on Hex yet"),
+             "inbox guide must state chimeway_inbox is not published on Hex yet"
+    end
+
+    test "uses chimeway_inbox path dependency and preserves root Chimeway dep (D-05)", %{
+      content: content
+    } do
+      assert String.contains?(content, ~s({:chimeway_inbox, path: "../chimeway_inbox"})),
+             "inbox guide must keep the chimeway_inbox path dependency for preview usage"
+
+      assert String.contains?(content, ~s({:chimeway, "~> 1.0"})),
+             "inbox guide must preserve the root {:chimeway, \"~> 1.0\"} dependency"
+    end
+
+    test "forbids current-Hex chimeway_inbox install claim (D-06)", %{content: content} do
+      refute String.contains?(content, ~s({:chimeway_inbox, "~> 1.0"})),
+             "inbox guide must not present chimeway_inbox as a current Hex dependency"
+    end
+
+    test "chimeway_inbox/mix.exs remains path-package evidence, not a Hex package (D-05)" do
+      mix = File.read!("chimeway_inbox/mix.exs")
+
+      assert String.contains?(mix, "app: :chimeway_inbox"),
+             "chimeway_inbox/mix.exs must declare app: :chimeway_inbox"
+
+      assert String.contains?(mix, ~s(version: "0.1.0")),
+             "chimeway_inbox/mix.exs must keep the preview version 0.1.0"
+
+      assert String.contains?(mix, ~s({:chimeway, path: ".."})),
+             "chimeway_inbox/mix.exs must depend on chimeway via a path dependency"
+
+      refute String.contains?(mix, "package:"),
+             "chimeway_inbox/mix.exs must not define Hex package metadata in Phase 78"
+
+      refute String.contains?(mix, "docs:"),
+             "chimeway_inbox/mix.exs must not define HexDocs metadata in Phase 78"
+    end
   end
 
   @threadline_integration_guide Path.expand(
