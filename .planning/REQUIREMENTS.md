@@ -11,7 +11,7 @@ Requirements for the active milestone. Each requirement maps to exactly one road
 
 - [x] **TRUTH-01**: Root package version, release manifest, changelog, HexDocs source ref, README install guidance, and release automation agree on the real published package state.
 - [x] **TRUTH-02**: Repository identity, source URLs, README badges, package links, HexDocs links, changelog links, and workflow references point to the same canonical project surface.
-- [ ] **TRUTH-03**: `chimeway_admin` and `chimeway_inbox` documentation states their real install status: in-repo preview/path packages until intentionally promoted.
+- [x] **TRUTH-03**: `chimeway_admin` and `chimeway_inbox` documentation states their real install status: in-repo preview/path packages until intentionally promoted.
 - [x] **TRUTH-04**: Planning milestone identifiers and package release tags are separated so planning version `v1.14` cannot be mistaken for a Hex package release.
 
 ### Front Door Documentation
@@ -71,7 +71,7 @@ Explicitly excluded from v1.14 to keep the milestone coherent.
 | TRUTH-04 | Phase 77 | Complete |
 | TRUTH-01 | Phase 78 | Complete |
 | TRUTH-02 | Phase 78 | Complete |
-| TRUTH-03 | Phase 78 | Pending |
+| TRUTH-03 | Phase 78 | Complete |
 | DOCS-14 | Phase 79 | Pending |
 | DOCS-15 | Phase 79 | Pending |
 | DOCS-16 | Phase 79 | Pending |

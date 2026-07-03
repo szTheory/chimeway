@@ -2,15 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
+current_phase: 78
+current_phase_name: release-and-package-truth
 status: executing
 stopped_at: Completed 78-01-PLAN.md
-last_updated: "2026-07-03T08:25:19.078Z"
+last_updated: "2026-07-03T08:32:21.071Z"
 last_activity: 2026-07-03
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 4
   percent: 25
 ---
 
@@ -26,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 ## Current Position
 
 Phase: 78 (release-and-package-truth) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-03
 
@@ -207,6 +209,9 @@ status: complete
 - [Phase 78]: [78-01]: Package/source truth is enforced by extending release_gate_contract_test.exs (no parallel shell checker) per D-07.
 - [Phase 78]: [78-01]: Canonical package-facing repository/source URL is https://github.com/szTheory/chimeway; release-gate contracts reject the legacy jonlunsford URL.
 - [Phase 78]: [78-01]: HEX_API_KEY scoping is contracted by asserting absence from the release-please job body, avoiding secret-value assertions (T-78-04).
+- [Phase ?]: [78-02]: Sibling install-status truth enforced by extending doc_contract_test.exs (no parallel shell checker) per D-07.
+- [Phase ?]: [78-02]: Guides omit any Hex install snippet for chimeway_admin/chimeway_inbox until a package-promotion milestone publishes them (D-05/D-06).
+- [Phase ?]: [78-02]: Sibling mix.exs files are evidence-only; contracts assert app/version/path-dep and absence of package:/docs: metadata (D-05).
 
 ## Performance
 
@@ -518,7 +523,7 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-03T08:25:18.962Z
+Last session: 2026-07-03T08:31:44.989Z
 Stopped at: Completed 78-01-PLAN.md
 Resume file: None
 
@@ -581,3 +586,4 @@ Resume file: None
 | Phase 77 P01 | 4 min | 2 tasks | 2 files |
 | Phase 77 P02 | 9 min | 2 tasks | 2 files |
 | Phase 78 P01 | 4 min | 2 tasks | 3 files |
+| Phase 78 P02 | 5 min | 2 tasks tasks | 3 files files |

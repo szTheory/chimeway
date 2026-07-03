@@ -96,8 +96,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 78-01-PLAN.md — Root release identity and canonical package source contracts
-- [ ] 78-02-PLAN.md — Sibling preview/path install-status copy and doc contracts
+- [x] 78-01-PLAN.md — Root release identity and canonical package source contracts
+- [x] 78-02-PLAN.md — Sibling preview/path install-status copy and doc contracts
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
