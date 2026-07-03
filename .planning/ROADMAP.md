@@ -31,7 +31,7 @@
 
 ### v1.14 Public Truth and Verification Architecture
 
-- [ ] **Phase 77: Truth Baseline and Package Model Decision** (2/2 plans)
+- [x] **Phase 77: Truth Baseline and Package Model Decision** (2/2 plans complete, completed 2026-07-03)
   - Record the root-only package model and milestone-vs-package tag namespace. Sibling package install status is identified here as input, then delivered in Phase 78.
   - Baseline public truth drift across README, guides, mix metadata, release manifests, changelog, workflows, and maintainer docs before broad edits.
   - Requirements: TRUTH-04
@@ -65,7 +65,7 @@
 
 **Requirements:** TRUTH-04
 
-**Plans:** 2/2 plans ready
+**Plans:** 2/2 plans complete
 
 Plans:
 **Wave 1**
