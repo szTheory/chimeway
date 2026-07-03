@@ -19,6 +19,19 @@ defmodule Chimeway.ReleaseGateContractTest do
   @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
   @pr_gate_lanes ~w(lint test verify_gates verify_docs)
 
+  # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
+  # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
+  @demo_host_cache_lanes [
+    {"verify_example", "example"},
+    {"verify_journeys", "journeys"},
+    {"verify_mailglass", "mailglass"},
+    {"verify_accrue", "accrue"},
+    {"verify_inbox", "inbox"},
+    {"verify_threadline", "threadline"},
+    {"verify_sigra", "sigra"},
+    {"verify_admin", "admin"}
+  ]
+
   @pre_ship_verify_commands [
     {"verify.example", "verify_example", "mix verify.example"},
     {"verify.runtime_prefix", "verify_runtime_prefix", "mix verify.runtime_prefix"},
@@ -321,6 +334,100 @@ defmodule Chimeway.ReleaseGateContractTest do
     } do
       assert String.contains?(publish_hex_yml, "ci-gate")
       refute String.contains?(publish_hex_yml, "requiredPrefixes")
+    end
+  end
+
+  describe "CI cache coverage (CI-05)" do
+    setup do
+      %{ci_yml: File.read!(@ci_yml)}
+    end
+
+    test "verify_admin caches npm via setup-node built-in cache", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "verify_admin")
+
+      assert String.contains?(job_block, "cache: 'npm'"),
+             "verify_admin setup-node must enable cache: 'npm'"
+
+      assert String.contains?(job_block, "cache-dependency-path: package-lock.json"),
+             "verify_admin setup-node must key the npm cache on package-lock.json"
+    end
+
+    test "verify_admin caches Playwright browsers keyed on package-lock.json", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "verify_admin")
+
+      assert String.contains?(job_block, "~/.cache/ms-playwright"),
+             "verify_admin must cache the Playwright browser path ~/.cache/ms-playwright"
+
+      assert String.contains?(
+               job_block,
+               "${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}"
+             ),
+             "verify_admin Playwright cache must key on hashFiles('package-lock.json')"
+    end
+
+    test "nested admin/inbox mix caches key on their own lockfiles", %{ci_yml: ci_yml} do
+      admin_block = extract_ci_job_block(ci_yml, "verify_admin")
+      inbox_block = extract_ci_job_block(ci_yml, "verify_inbox")
+
+      assert String.contains?(admin_block, "chimeway_admin/deps")
+      assert String.contains?(admin_block, "chimeway_admin/_build")
+
+      assert String.contains?(admin_block, "hashFiles('chimeway_admin/mix.lock')"),
+             "verify_admin nested cache must key on chimeway_admin/mix.lock"
+
+      assert String.contains?(inbox_block, "chimeway_inbox/deps")
+      assert String.contains?(inbox_block, "chimeway_inbox/_build")
+
+      assert String.contains?(inbox_block, "hashFiles('chimeway_inbox/mix.lock')"),
+             "verify_inbox nested cache must key on chimeway_inbox/mix.lock"
+    end
+
+    for {job_id, slug} <- @demo_host_cache_lanes do
+      test "#{job_id} caches demo host per-lane keyed on demo-host mix.lock", %{ci_yml: ci_yml} do
+        job_block = extract_ci_job_block(ci_yml, unquote(job_id))
+
+        assert String.contains?(job_block, "examples/chimeway_demo_host/deps"),
+               "#{unquote(job_id)} must cache examples/chimeway_demo_host/deps"
+
+        assert String.contains?(job_block, "examples/chimeway_demo_host/_build"),
+               "#{unquote(job_id)} must cache examples/chimeway_demo_host/_build"
+
+        assert String.contains?(
+                 job_block,
+                 "${{ runner.os }}-mix-demo-#{unquote(slug)}-${{ hashFiles('examples/chimeway_demo_host/mix.lock') }}"
+               ),
+               "#{unquote(job_id)} must use a per-lane demo-host key with slug #{unquote(slug)}"
+      end
+    end
+
+    test "no shared/lane-agnostic demo-host cache key exists (D-11)", %{ci_yml: ci_yml} do
+      slugs =
+        ~r/runner\.os }}-mix-demo-([a-z]+)-/
+        |> Regex.scan(ci_yml)
+        |> Enum.map(fn [_, slug] -> slug end)
+
+      known = for {_job_id, slug} <- @demo_host_cache_lanes, do: slug
+
+      assert slugs != [], "expected demo-host cache keys to exist"
+
+      for slug <- slugs do
+        assert slug in known,
+               "demo-host cache key slug #{slug} is not one of the known per-lane slugs (shared/lane-agnostic key?)"
+      end
+    end
+
+    test "every cache hashFiles() references a lockfile only (D-12)", %{ci_yml: ci_yml} do
+      args =
+        ~r/hashFiles\('([^']+)'\)/
+        |> Regex.scan(ci_yml)
+        |> Enum.map(fn [_, arg] -> arg end)
+
+      assert args != [], "expected cache steps to use hashFiles()"
+
+      for arg <- args do
+        assert String.ends_with?(arg, "mix.lock") or String.ends_with?(arg, "package-lock.json"),
+               "cache hashFiles must reference a mix.lock or package-lock.json (source-keyed cache?), got: #{arg}"
+      end
     end
   end
 
