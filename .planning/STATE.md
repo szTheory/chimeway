@@ -2,10 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-status: verifying
+current_phase: 79
+current_phase_name: front-door-and-docs-ia
+status: executing
 stopped_at: Phase 80 context gathered (assumptions mode)
-last_updated: "2026-07-03T15:35:32.946Z"
+last_updated: "2026-07-03T16:16:07.465Z"
 last_activity: 2026-07-03
+last_activity_desc: Phase 80 planning complete
 progress:
   total_phases: 4
   completed_phases: 3
@@ -27,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 
 Phase: 79 (front-door-and-docs-ia) — EXECUTING
 Plan: 1 of 1
-Status: Phase complete — ready for verification
-Last activity: 2026-07-03
+Status: Ready to execute
+Last activity: 2026-07-03 — Phase 80 planning complete
 
 ## Accumulated Context
 

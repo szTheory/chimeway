@@ -1,8 +1,8 @@
 ---
 phase: 80
 slug: verification-architecture-and-ci-dx
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-03
 ---
@@ -58,9 +58,9 @@ Requirement → validation mapping (Nyquist Dimension 8). Structural cores are E
 
 ## Wave 0 Requirements
 
-- [ ] `test/chimeway/release_gate_contract_test.exs` — extend to lock the new `pr-gate`/`ci-gate` topology (invert `install_golden_contract` needs assertion, update lane count 13→14, add `pr-gate` fast-subset + no-path-filter assertions, add cache-presence assertions)
+- [x] `test/chimeway/release_gate_contract_test.exs` — extension folded into **Wave 1 (80-01 Task 3)**, not a separate Wave 0: invert `install_golden_contract` needs assertion, update lane count 13→14, add `pr-gate` fast-subset + no-path-filter assertions; cache-presence assertions added in 80-02, script-redirect assertions in 80-03.
 
-*Existing ExUnit infrastructure covers all code-verifiable phase requirements — no new framework install needed.*
+*No separate Wave 0 needed — existing ExUnit infrastructure covers all code-verifiable phase requirements; the contract-test lock evolves alongside each topology change wave. `wave_0_complete` stays false until execution runs.*
 
 ---
 
@@ -76,11 +76,11 @@ Requirement → validation mapping (Nyquist Dimension 8). Structural cores are E
 
 ## Validation Sign-Off
 
-- [ ] All code-verifiable tasks have an ExUnit contract assertion or Wave 0 dependency
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers the release-gate contract extension
-- [ ] Operator-attested items (D-08 branch-protection swap) documented in MAINTAINING.md
-- [ ] Behavioral/CI-run tails recorded as CI-observed, not silently dropped
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All code-verifiable tasks have an ExUnit contract assertion or Wave 0 dependency
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 1 (80-01 Task 3) covers the release-gate contract extension (Wave 0 folded in)
+- [x] Operator-attested items (D-08 branch-protection swap) documented in MAINTAINING.md (80-04 blocking checkpoint)
+- [x] Behavioral/CI-run tails recorded as CI-observed, not silently dropped
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-07-03 (planning-time strategy sign-off; `wave_0_complete` flips at execution)
