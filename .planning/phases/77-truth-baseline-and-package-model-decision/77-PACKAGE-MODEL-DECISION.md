@@ -105,14 +105,47 @@ Baseline notes:
 ## Validation Commands
 
 ```bash
-test -f .planning/phases/77-truth-baseline-and-package-model-decision/77-PACKAGE-MODEL-DECISION.md
 rg -n "chimeway|chimeway_admin|chimeway_inbox|v1\\.14|v1\\.0\\.0|Release Please|HexDocs|source_ref" .planning/phases/77-truth-baseline-and-package-model-decision/77-PACKAGE-MODEL-DECISION.md
+git diff --name-only -- README.md mix.exs CHANGELOG.md .github/workflows MAINTAINING.md guides
+MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors
+```
+
+## Scope Guard
+
+Phase 77 modifies only `.planning/phases/77-truth-baseline-and-package-model-decision/77-PACKAGE-MODEL-DECISION.md` plus execution summaries. Public package, docs, changelog, workflow, maintainer, guide, runtime source, and sibling package `mix.exs` edits belong to downstream owner phases.
+
+Before closing this plan, the executor must confirm the public-surface diff guard prints no paths:
+
+```bash
 test -z "$(git diff --name-only -- README.md mix.exs CHANGELOG.md .github/workflows MAINTAINING.md guides chimeway_admin/mix.exs chimeway_inbox/mix.exs)"
 ```
 
+## Source Audit
+
+| Source | ID | Coverage | Plan | Status | Evidence |
+|--------|----|----------|------|--------|----------|
+| GOAL | Phase 77 | Record the package model, namespace, sibling status input, and baseline drift before broad edits. | 77-01, 77-02 | COVERED | Decision summary, package model, owner map, baseline inventory, and scope guard. |
+| REQ | TRUTH-04 | Planning milestone identifiers and package release tags are separated. | 77-01, 77-02 | COVERED | Release namespace rules prohibit `v1.14` as package tag, HexDocs `source_ref`, publish ref, changelog anchor, or GitHub release name. |
+| RESEARCH | Phase-local decision artifact | Use a phase-local `77-PACKAGE-MODEL-DECISION.md` and do not edit public surfaces in Phase 77. | 77-01, 77-02 | COVERED | Sources section, scope guard, and public-surface diff validation command. |
+| RESEARCH | Validation Architecture | Use artifact grep, focused release-gate contract test, and public-surface diff guard. | 77-02 | COVERED | Validation commands section and `test/chimeway/release_gate_contract_test.exs` anchor. |
+| CONTEXT | D-01 | `chimeway` is the only Hex-published package for v1.14 planning work. | 77-01, 77-02 | COVERED | Decision summary and Root Hex package row. |
+| CONTEXT | D-02 | `chimeway_admin` and `chimeway_inbox` are in-repo preview/path packages. | 77-01, 77-02 | COVERED | Sibling package install status input plus `chimeway_admin/mix.exs` and `chimeway_inbox/mix.exs` rows. |
+| CONTEXT | D-03 | Phase 77 records sibling status as Phase 78 input, not promotion or publishing. | 77-01, 77-02 | COVERED | Decision summary, scope guard, and Phase 78 handoff. |
+| CONTEXT | D-04 | Package release tags are Release Please root-package SemVer tags such as `v1.0.0`. | 77-01, 77-02 | COVERED | Release namespace rules and `release-please-config.json` row. |
+| CONTEXT | D-05 | Planning labels such as `v1.14` are planning identifiers only. | 77-01, 77-02 | COVERED | Release namespace rules, validation grep, and baseline D-13 note. |
+| CONTEXT | D-06 | Root package release identity is root `mix.exs`, Release Please manifest/output, Hex version, and HexDocs `source_ref`. | 77-01, 77-02 | COVERED | Root package release rule and `mix.exs`/manifest rows. |
+| CONTEXT | D-07 | Phase 78 owns package/release truth. | 77-01, 77-02 | COVERED | Truth ownership table, package/release rows, and Phase 78 handoff. |
+| CONTEXT | D-08 | Phase 79 owns public front-door docs truth. | 77-01, 77-02 | COVERED | Truth ownership table, README/doc contract rows, and Phase 79 handoff. |
+| CONTEXT | D-09 | Phase 80 owns CI truth. | 77-01, 77-02 | COVERED | Truth ownership table, `ci.yml`/CONTRIBUTING/MAINTAINING rows, and Phase 80 handoff. |
+| CONTEXT | D-10 | Full `ci-gate` remains release/publish/automerge/recovery/mainline confidence source. | 77-01, 77-02 | COVERED | Truth ownership table, `ci.yml` row, release workflow rows, and Phase 80 handoff. |
+| CONTEXT | D-11 | Repository/source URL mismatch is captured with `szTheory/chimeway` canonical and `jonlunsford/chimeway` stale. | 77-02 | COVERED | `mix.exs`, README, CONTRIBUTING, and D-11 baseline note cite git remote and GitHub curl status commands. |
+| CONTEXT | D-12 | Sibling install-status risk is captured as preview/path package truth. | 77-02 | COVERED | Root Hex package, guide, sibling `mix.exs`, and D-12 baseline note cite Hex 404 and path dependency evidence. |
+| CONTEXT | D-13 | Package/docs/tag truth surfaces agree on root package state. | 77-02 | COVERED | README, CHANGELOG, manifests, workflows, `mix.exs`, release-gate contract, doc-contract, and D-13 baseline note. |
+| VALIDATION | 77-VALIDATION | Per-task commands and scope guard are recorded for executor and downstream phases. | 77-01, 77-02 | COVERED | Validation commands, scope guard, and plan-level verification commands. |
+
 ## Downstream Handoff
 
-- Phase 78 receives the sibling package install-status input plus the root package model, Release Please SemVer namespace rule, root package release identity surfaces, package metadata drift, package files drift, release manifest drift, changelog drift, HexDocs source ref drift, README install constraints, canonical repo/source link drift, and package truth contract gaps.
-- Phase 79 receives front-door docs drift rows for the README decision-page rewrite, first-hop guide IA, accurate adoption snippets, stub guide completion/demotion, and clean consumer or unpacked-Hex smoke path.
-- Phase 80 receives CI/contributor-gate drift rows for the fast always-running `pr-gate`, full release/publish `ci-gate`, required-check topology, local reproducibility, and cache coverage.
-- Full `ci-gate` remains the release, publish, automerge, recovery, and mainline confidence source while Phase 80 adds contributor-facing speed per D-10.
+- **Phase 78 package/release truth:** Owns the Root Hex package, `mix.exs`, `.release-please-manifest.json`, `release-please-config.json`, `.github/workflows/release.yml`, `.github/workflows/publish-hex.yml`, `CHANGELOG.md`, `guides/introduction/admin-console-integration.md`, `guides/introduction/inbox-integration.md`, `chimeway_admin/mix.exs`, `chimeway_inbox/mix.exs`, and `test/chimeway/release_gate_contract_test.exs` rows. Contract anchor: extend `test/chimeway/release_gate_contract_test.exs` for root package, source URL, release ref, and sibling install-status truth.
+- **Phase 79 front-door docs/adoption proof:** Owns the `README.md`, first-hop guide implications, `guides/introduction/inbox-integration.md` public-doc implications, and `test/chimeway/doc_contract_test.exs` rows. Contract anchor: extend `test/chimeway/doc_contract_test.exs` for README decision-page truth, optional surface status, accurate snippets, and clean adoption path.
+- **Phase 80 CI/DX truth:** Owns `.github/workflows/ci.yml`, `CONTRIBUTING.md`, `MAINTAINING.md`, release workflow gate topology implications, and `test/chimeway/release_gate_contract_test.exs` rows. The `CONTRIBUTING.md` canonical repo URL row is contributor DX/gate documentation and belongs to Phase 80; Phase 79 may reference public-doc implications only if later needed.
+- **Release confidence invariant:** Full `ci-gate` remains the release, publish, automerge, recovery, and mainline confidence source while Phase 80 adds contributor-facing speed per D-10.
