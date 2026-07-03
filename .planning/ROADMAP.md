@@ -54,7 +54,7 @@
   - Requirements: DOCS-14, DOCS-15, DOCS-16, DOCS-17, ADPT-01
   - Success criteria: A new adopter can read the first-hop docs, understand when to use or avoid Chimeway, copy accurate snippets, and verify a trigger-to-explainability path from the public package/docs story.
 
-- [ ] **Phase 80: Verification Architecture and CI/DX** (0/4 plans)
+- [x] **Phase 80: Verification Architecture and CI/DX** (4/4 plans complete, completed 2026-07-03)
   - Plans:
     - [x] 80-01-PLAN.md — pr-gate/ci-gate two-aggregate split: add fast `pr-gate`, event-guard + fold `install_golden_contract` into `ci-gate`, gate heavy lanes off PR, lock topology in contract test (CI-01/02/03)
     - [x] 80-02-PLAN.md — Cache coverage: nested `chimeway_admin`/`chimeway_inbox` mix, npm, Playwright, per-lane demo-host caches keyed on lockfiles; contract-lock keying (CI-05)
