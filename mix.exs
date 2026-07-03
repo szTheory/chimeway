@@ -193,10 +193,20 @@ defmodule Chimeway.MixProject do
 
   defp sigra_dep do
     # Local dev: SIGRA_PATH=../sigra mix deps.get
-    # override: true resolves ecto 3.12 vs 3.11 diamond; inert for adopters (optional transitives not pulled)
+    #
+    # Hex package builds (run under MIX_ENV=prod) reject overridden dependencies
+    # ("Can't build package with overridden dependency sigra"), so `override: true`
+    # is scoped to non-prod resolution only. In dev/test, chimeway fetches its own
+    # optional deps, where root's `sigra ~> 0.3` must coexist with mailglass's
+    # `sigra ~> 1.0` (non-overlapping ranges); the override picks root's requirement.
+    # Adopters never pull these optional transitives, and the prod package carries
+    # no override. Optional Sigra integration stays covered by `mix verify.sigra`.
+    base = [optional: true, runtime: false]
+    opts = if Mix.env() == :prod, do: base, else: [override: true] ++ base
+
     case System.get_env("SIGRA_PATH") do
-      nil -> {:sigra, "~> 0.3", optional: true, runtime: false, override: true}
-      path -> {:sigra, path: path, optional: true, runtime: false, override: true}
+      nil -> {:sigra, "~> 0.3", opts}
+      path -> {:sigra, [{:path, path} | opts]}
     end
   end
 
