@@ -16,7 +16,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
   @release_please_config "release-please-config.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
+  @pr_gate_lanes ~w(lint test verify_gates verify_docs)
 
   @pre_ship_verify_commands [
     {"verify.example", "verify_example", "mix verify.example"},
@@ -202,7 +203,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "mix ci.docs")
     end
 
-    test "ci-gate aggregates 13 required lanes", %{ci_yml: ci_yml} do
+    test "ci-gate aggregates 14 required lanes", %{ci_yml: ci_yml} do
       needs = extract_ci_gate_needs(ci_yml)
 
       assert length(needs) == length(@ci_gate_lanes)
@@ -212,14 +213,68 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
-    test "install_golden_contract exists, runs installer proof, and stays outside ci-gate", %{
+    test "install_golden_contract exists, runs installer proof, and is folded into ci-gate", %{
       ci_yml: ci_yml
     } do
       job_block = extract_ci_job_block(ci_yml, "install_golden_contract")
       needs = extract_ci_gate_needs(ci_yml)
 
       assert String.contains?(job_block, "mix verify.install_golden")
-      refute "install_golden_contract" in needs
+      assert "install_golden_contract" in needs
+    end
+
+    test "pr-gate aggregates exactly the fast subset lanes (CI-01)", %{ci_yml: ci_yml} do
+      needs = extract_pr_gate_needs(ci_yml)
+
+      assert length(needs) == length(@pr_gate_lanes)
+
+      for lane <- @pr_gate_lanes do
+        assert lane in needs, "pr-gate must need #{lane}"
+      end
+
+      for lane <- needs do
+        assert lane in @pr_gate_lanes,
+               "pr-gate must not need lane outside the fast subset: #{lane}"
+      end
+    end
+
+    test "pr-gate feeding lanes carry no path filter (CI-03 anti-pending lock)", %{
+      ci_yml: ci_yml
+    } do
+      for lane <- @pr_gate_lanes do
+        job_block = extract_ci_job_block(ci_yml, lane)
+
+        refute String.contains?(job_block, "paths:"),
+               "#{lane} job must not carry a paths: filter (would strand required pr-gate)"
+
+        refute String.contains?(job_block, "paths-ignore:"),
+               "#{lane} job must not carry a paths-ignore: filter (would strand required pr-gate)"
+      end
+    end
+
+    test "ci-gate is push/dispatch-only and keeps its literal name (CI-02)", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "ci-gate")
+
+      assert String.contains?(job_block, "github.event_name != 'pull_request'"),
+             "ci-gate must be guarded off pull_request events"
+
+      assert String.contains?(job_block, "name: ci-gate"),
+             "ci-gate job name must stay literally ci-gate (release/publish/automerge poll it by name)"
+    end
+
+    test "install_golden_contract is PR-exempt and keeps its detect-step pattern (D-04)", %{
+      ci_yml: ci_yml
+    } do
+      job_block = extract_ci_job_block(ci_yml, "install_golden_contract")
+
+      assert String.contains?(job_block, "if: github.event_name != 'pull_request'"),
+             "install_golden_contract must carry the job-level PR-exemption guard"
+
+      assert String.contains?(job_block, "steps.detect.outputs.run == 'true'"),
+             "install_golden_contract must keep its detect-step conditional pattern"
+
+      assert String.contains?(job_block, "mix verify.install_golden"),
+             "install_golden_contract must keep running the installer proof"
     end
 
     test "docs.yml retired" do
@@ -639,6 +694,19 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       _ ->
         flunk("Could not extract ci-gate needs from ci.yml")
+    end
+  end
+
+  defp extract_pr_gate_needs(ci_yml) do
+    case Regex.run(~r/pr-gate:.*?needs:\s*\[(.*?)\]/s, ci_yml) do
+      [_, needs_str] ->
+        needs_str
+        |> String.split(",")
+        |> Enum.map(&String.trim/1)
+        |> Enum.reject(&(&1 == ""))
+
+      _ ->
+        flunk("Could not extract pr-gate needs from ci.yml")
     end
   end
 end
