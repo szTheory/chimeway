@@ -31,7 +31,7 @@
 
 ### v1.14 Public Truth and Verification Architecture
 
-- [ ] **Phase 77: Truth Baseline and Package Model Decision** (0/2 plans)
+- [ ] **Phase 77: Truth Baseline and Package Model Decision** (2/2 plans)
   - Record the root-only package model and milestone-vs-package tag namespace. Sibling package install status is identified here as input, then delivered in Phase 78.
   - Baseline public truth drift across README, guides, mix metadata, release manifests, changelog, workflows, and maintainer docs before broad edits.
   - Requirements: TRUTH-04
@@ -58,6 +58,72 @@
   - Update `CONTRIBUTING.md`, `MAINTAINING.md`, release contracts, and gate docs so local and CI verification language agrees.
   - Requirements: CI-01, CI-02, CI-03, CI-04, CI-05
   - Success criteria: Contributor PRs have a fast required aggregate, release/publish flows still depend on the full gate, path-filtered skips cannot strand required checks, and complex gate behavior can be run locally.
+
+### Phase 77: Truth Baseline and Package Model Decision
+
+**Goal:** Record the root-only package model and milestone-vs-package tag namespace, identify sibling package install status as Phase 78 input, and baseline public truth drift across docs, package metadata, release manifests, changelog, workflows, and maintainer docs before broad edits.
+
+**Requirements:** TRUTH-04
+
+**Plans:** 2/2 plans ready
+
+Plans:
+**Wave 1**
+
+- [ ] 77-01-PLAN.md — Package model, namespace rule, root release rule, and owner map
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 77-02-PLAN.md — Evidence-backed drift inventory and validation handoff
+
+**Success Criteria**:
+1. A decision record or equivalent planning artifact names the package model.
+2. The artifact names the tag namespace and root package release rule.
+3. The artifact names delivery owners for package, docs, and CI truth.
+4. The baseline inventory captures README, guides, mix metadata, release manifests, changelog, workflows, and maintainer docs drift.
+
+### Phase 78: Release and Package Truth
+
+**Goal:** Align root package metadata, release manifest, changelog, HexDocs source refs, README install constraints, package files whitelist, canonical repo/source links, sibling package install-status copy, and package truth contracts.
+
+**Requirements:** TRUTH-01, TRUTH-02, TRUTH-03
+
+**Depends on:** Phase 77
+
+**Success Criteria**:
+1. Package/release metadata and public install claims agree.
+2. Unpublished sibling packages are no longer advertised as Hex releases.
+3. Automated package truth checks fail on package, release, install, source-ref, or sibling-status drift.
+4. Root package artifact proof covers package files and unpacked Hex behavior.
+
+### Phase 79: Front Door and Docs IA
+
+**Goal:** Rewrite the public first-hop docs so adopters can understand Chimeway's local-first ownership model, explainability contract, host boundaries, non-goals, optional surfaces, install flow, and traceable trigger-to-explainability path.
+
+**Requirements:** DOCS-14, DOCS-15, DOCS-16, DOCS-17, ADPT-01
+
+**Depends on:** Phase 78
+
+**Success Criteria**:
+1. A new adopter can read the first-hop docs and understand when to use or avoid Chimeway.
+2. Public snippets for stable notification keys, `tenant_id`, `idempotency_key`, storage prefix configuration, and trace/explainability proof are accurate.
+3. Stub guides are completed, demoted, or delinked so first-hop docs do not route adopters into unfinished material.
+4. A clean consumer or unpacked-Hex smoke path follows the final public package/docs story.
+
+### Phase 80: Verification Architecture and CI/DX
+
+**Goal:** Add an always-running fast `pr-gate` while preserving full `ci-gate` release confidence, avoid required-check pending traps, improve cache coverage, make complex CI behavior locally reproducible, and align contributor/maintainer gate docs.
+
+**Requirements:** CI-01, CI-02, CI-03, CI-04, CI-05
+
+**Depends on:** Phase 79
+
+**Success Criteria**:
+1. Contributor PRs have a fast required aggregate.
+2. Release, publish, automerge, recovery, and mainline flows still depend on the full gate.
+3. Path-filtered skips cannot strand required checks.
+4. Nested package, demo, npm, and Playwright cache coverage is represented.
+5. Complex gate behavior can be run locally and is documented for contributors and maintainers.
 
 <details>
 <summary>✅ v1.13 Storage Isolation and Upgrade Path (Phases 73-76.1) — SHIPPED 2026-07-02</summary>
