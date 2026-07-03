@@ -47,13 +47,13 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
         assert trace.notification_key == "sigra.auth.magic_link"
         assert trace.correlation_id == correlation_id
 
-        assert length(trace.notifications) >= 1
+        assert trace.notifications != []
 
         deliveries =
           trace.notifications
           |> Enum.flat_map(& &1.deliveries)
 
-        assert length(deliveries) >= 1
+        assert deliveries != []
         assert Enum.all?(deliveries, &delivery_attempted?/1)
 
         refute_sensitive_in_trace!(trace, [raw_token, url])
@@ -85,7 +85,7 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
           trace.notifications
           |> Enum.flat_map(& &1.deliveries)
 
-        assert length(deliveries) >= 1
+        assert deliveries != []
         assert Enum.all?(deliveries, &delivery_attempted?/1)
 
         refute_sensitive_in_trace!(trace, [code, url])

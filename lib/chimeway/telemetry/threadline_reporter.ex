@@ -54,40 +54,36 @@ defmodule Chimeway.Telemetry.ThreadlineReporter do
 
     @doc false
     def handle_event(event, _measurements, meta, _config) do
-      try do
-        with {:ok, repo, actor} <- fetch_config(),
-             {:ok, action, reason} <- map_outcome(event, meta) do
-          case Threadline.record_action(action,
-                 repo: repo,
-                 actor: actor,
-                 correlation_id: meta[:correlation_id],
-                 category: "notifications",
-                 reason: reason,
-                 comment: build_comment(meta)
-               ) do
-            {:ok, _action} ->
-              :ok
-
-            {:error, reason} ->
-              Logger.debug("[chimeway] threadline reporter record_action failed",
-                reason: inspect(reason)
-              )
-          end
-        else
-          :skip ->
+      with {:ok, repo, actor} <- fetch_config(),
+           {:ok, action, reason} <- map_outcome(event, meta) do
+        case Threadline.record_action(action,
+               repo: repo,
+               actor: actor,
+               correlation_id: meta[:correlation_id],
+               category: "notifications",
+               reason: reason,
+               comment: build_comment(meta)
+             ) do
+          {:ok, _action} ->
             :ok
 
-          {:error, :missing_config} ->
-            :ok
+          {:error, reason} ->
+            Logger.debug("[chimeway] threadline reporter record_action failed",
+              reason: inspect(reason)
+            )
         end
-      rescue
-        error ->
-          Logger.debug("[chimeway] threadline reporter handler error",
-            error: Exception.message(error)
-          )
+      else
+        :skip ->
+          :ok
 
+        {:error, :missing_config} ->
           :ok
       end
+    rescue
+      error ->
+        Logger.debug("[chimeway] threadline reporter handler error: #{Exception.message(error)}")
+
+        :ok
     end
 
     defp fetch_config do

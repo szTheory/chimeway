@@ -180,9 +180,7 @@ defmodule Chimeway.PrefixedRuntimeCase do
 
     if tables != [] do
       qualified_tables =
-        tables
-        |> Enum.map(&qualified_name(schema, &1))
-        |> Enum.join(", ")
+        Enum.map_join(tables, ", ", &qualified_name(schema, &1))
 
       Ecto.Adapters.SQL.query!(
         Repo,

@@ -111,15 +111,13 @@ defmodule Mix.Tasks.Chimeway.Gen.Migrations do
 
   defp format_invalid(invalid) do
     invalid =
-      invalid
-      |> Enum.map(fn {switch, value} ->
+      Enum.map_join(invalid, ", ", fn {switch, value} ->
         if value do
           "#{switch} #{value}"
         else
           switch
         end
       end)
-      |> Enum.join(", ")
 
     "unknown options #{invalid}"
   end
