@@ -14,6 +14,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.14 Phase 77 — TRUTH-04 planning milestone identifiers and package release tags are separated; Phase 77 records the root-only package model, sibling preview/path package status input, and downstream truth ownership.
 - ✓ v1.13 Storage Isolation and Upgrade Path — PFX-01/02/03/04, MIG-01/02/03/04, RUN-01/02/03/04, UPG-01/02/03, DOCS-01/02, DEMO-01, GATE-01, GATE-01-GAP ([archive](.planning/milestones/v1.13-REQUIREMENTS.md))
 - ✓ v1.11 Operator Console Polish & Hardening — ADMIN-01/02/03, DES-01/02/03/04, SAFE-01/02/03/04, PRIV-01/02, EXPL-01/02, DOCS-12, GATE-08, SMOKE-01 ([archive](.planning/milestones/v1.11-REQUIREMENTS.md))
 - ✓ v1.10 Ecosystem Completions — ECOS-08/09/10, DEMO-09/10, DOCS-10/11, GATE-07 ([archive](.planning/milestones/v1.10-REQUIREMENTS.md))
@@ -24,7 +25,6 @@ Active requirements for the current milestone are listed below. Archived require
 - [ ] TRUTH-01: Root package version, manifest, changelog, HexDocs source ref, README install guidance, and release automation agree on the real published package state.
 - [ ] TRUTH-02: Repository identity, source URLs, badges, package links, and documentation links point to the same canonical project surface.
 - [ ] TRUTH-03: `chimeway_admin` and `chimeway_inbox` are described with their real install status: in-repo preview/path packages until intentionally promoted.
-- [ ] TRUTH-04: Planning milestone identifiers and package release tags are separated so `v1.14` planning work cannot be mistaken for a Hex package release.
 - [ ] DOCS-14: README becomes the public decision page for Chimeway's local-first, explainable notification layer.
 - [ ] DOCS-15: README and first-hop docs include clear use-cases, non-goals, host-owned boundaries, and optional surface status.
 - [ ] DOCS-16: Public snippets demonstrate required adoption invariants: stable notification key, `tenant_id`, `idempotency_key`, configured storage prefix, and trace/explainability lookup.
@@ -64,7 +64,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ## Current State
 
-**v1.14 Public Truth and Verification Architecture active (2026-07-02):** The next milestone turns v1.12 quality-readiness findings into a public trust pass across README/docs, package/release metadata, and CI topology. Scope deliberately favors truthful adoption and reproducible verification over new runtime behavior.
+**v1.14 Public Truth and Verification Architecture active (2026-07-02):** Phase 77 is complete: TRUTH-04 is validated through a phase-local package model decision record, milestone-vs-package tag namespace rule, sibling preview/path package input, baseline truth drift inventory, and package/docs/CI owner handoff. The remaining milestone work now turns that baseline into public package metadata, front-door docs, and CI topology changes.
 
 **v1.13 Storage Isolation and Upgrade Path shipped (2026-07-02):** New installs can generate and run Chimeway-owned tables in a dedicated `chimeway` Postgres schema by default; existing public-schema installs remain supported through explicit `prefix: false` compatibility. Runtime prefix behavior is verified across trigger, trace, admin, inbox, recovery, workflow, digest, webhook, policy, and worker paths, with docs, demo proof, and `mix verify.runtime_prefix` / CI parity in place.
 
@@ -308,8 +308,8 @@ Prior context includes:
 | Preserve public-schema installs through explicit legacy mode | Existing users must not be silently migrated or forced through unsafe data moves | Shipped v1.13 |
 | Use generated explicit prefixes in copied migrations | Host migrations stay deterministic and do not require `mix ecto.migrate --prefix` migration-history surprises | Shipped v1.13 |
 | Do not build dynamic per-tenant DB prefixes in v1.13 | Chimeway already has tenant identity in domain data; prefix-per-tenant would multiply worker, Oban, uniqueness, and recovery failure modes | Shipped v1.13 |
-| Root-only Hex package for v1.14 truth cleanup | Only root `chimeway` is currently published; advertising sibling packages as Hex releases would create adopter confusion | Pending v1.14 validation |
-| Separate planning milestones from package release tags | Planning `v1.x` history and SemVer package releases carry different meanings and should not be conflated | Pending v1.14 validation |
+| Root-only Hex package for v1.14 truth cleanup | Only root `chimeway` is currently published; advertising sibling packages as Hex releases would create adopter confusion | Validated Phase 77 |
+| Separate planning milestones from package release tags | Planning `v1.x` history and SemVer package releases carry different meanings and should not be conflated | Validated Phase 77 |
 | Two-tier CI gate model | Contributors need fast PR feedback; maintainers still need full release confidence before publish/automerge | Pending v1.14 validation |
 | README as adoption decision page | The first public surface should answer adopter JTBD and prove explainability, not expose internals or stale stub links | Pending v1.14 validation |
 
@@ -536,4 +536,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 after v1.14 milestone initialization*
+*Last updated: 2026-07-03 after Phase 77 completion*
