@@ -564,25 +564,11 @@ jobs:
           timeout 300s mix ecto.migrate
       - name: Run root Sigra proof lane
         shell: bash
-        run: |
-          set -euo pipefail
-          timeout 300s elixir $(find _build/test/lib -type d -name ebin -print | sed 's/^/-pa /') test/support/sigra/ci_proof_runner.exs
-        env:
-          CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP: "1"
-          CHIMEWAY_MANUAL_REPO_START: "1"
-          CHIMEWAY_SKIP_OBAN: "1"
+        run: scripts/ci/sigra-proof.sh root
       - name: Run demo-host Sigra proof lane
-        run: |
-          cd examples/chimeway_demo_host
-          mix deps.get
-          timeout 600s mix deps.compile
-          timeout 300s mix compile
-          timeout 300s mix test --no-compile test/demo_host_web/sigra_auth_proof_test.exs --only sigra --warnings-as-errors --trace
+        shell: bash
+        run: scripts/ci/sigra-proof.sh demo
         env:
-          CHIMEWAY_SKIP_THREADLINE_DEP: "1"
-          CHIMEWAY_SKIP_MAILGLASS_DEP: "1"
-          CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP: "1"
-          CHIMEWAY_PATH: ../..
           SIGRA_PATH: ${{ github.workspace }}/sigra/sigra
 
   verify_admin:
