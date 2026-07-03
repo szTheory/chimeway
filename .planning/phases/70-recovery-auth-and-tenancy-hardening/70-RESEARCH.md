@@ -375,17 +375,15 @@ All claims in this research were verified from local code/config, Hex registry o
 |---|-------|---------|---------------|
 | — | — | — | — |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact host session key for tenant scope**
    - What we know: D-04 requires extracting tenant context from LiveView session/query params, and demo host currently sets only `"current_actor"`. [VERIFIED: CONTEXT.md] [VERIFIED: codebase grep]
-   - What's unclear: Whether the final key should be `"chimeway_admin_tenant_id"`, `"tenant_id"`, or configurable.
-   - Recommendation: Use a conservative helper that checks a documented package-specific session key first and allows query params only as explicit host/debug context. [VERIFIED: CONTEXT.md]
+   - Resolution: Use a conservative helper that checks package-specific `"chimeway_admin_tenant_id"` first, then host-generic `"tenant_id"`, then explicit query param `"tenant_id"` as host/debug context. ChimewayAdmin propagates this scope and passes it to `authorize/3`; it does not treat the value as proof of tenant membership. [VERIFIED: CONTEXT.md]
 
 2. **Event recovery tenant guard for events with no deliveries**
    - What we know: Delivery rows have `tenant_id`; event recovery candidates with no planned deliveries currently select `tenant_id: nil` in DTOs. [VERIFIED: codebase grep]
-   - What's unclear: Whether Phase 70 should infer event tenant from notifications/workflow context or document that event-level no-delivery recovery is unscoped until core data provides a durable event tenant.
-   - Recommendation: Planner should add a focused investigation/task before implementation; do not fake event tenant membership in UI. [VERIFIED: codebase grep]
+   - Resolution: Do not fake tenant membership in UI. When a tenant scope is active, event-level no-delivery candidates are eligible only if the core query can prove the candidate belongs to that tenant from durable data. If no durable tenant can be proven, tenant-scoped reads must omit that event candidate. [VERIFIED: CONTEXT.md] [VERIFIED: codebase grep]
 
 ## Environment Availability
 
