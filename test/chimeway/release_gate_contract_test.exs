@@ -125,29 +125,46 @@ defmodule Chimeway.ReleaseGateContractTest do
         job_block = extract_ci_job_block(ci_yml, unquote(job_id))
 
         if unquote(job_id) == "verify_sigra" do
-          assert String.contains?(job_block, unquote(command)) or
-                   (String.contains?(
-                      job_block,
-                      "test/support/sigra/ci_proof_runner.exs"
-                    ) and
-                      String.contains?(job_block, "test/demo_host_web/sigra_auth_proof_test.exs") and
-                      String.contains?(job_block, "CHIMEWAY_SKIP_THREADLINE_DEP") and
-                      String.contains?(job_block, "CHIMEWAY_SKIP_MAILGLASS_DEP") and
-                      String.contains?(job_block, "CHIMEWAY_SKIP_ACCRUE_DEP") and
-                      String.contains?(job_block, "CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP") and
-                      String.contains?(job_block, "CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") and
-                      String.contains?(job_block, "CHIMEWAY_MANUAL_REPO_START") and
-                      String.contains?(job_block, "CHIMEWAY_SKIP_OBAN") and
-                      String.contains?(job_block, "PGUSER: postgres") and
-                      String.contains?(job_block, "POSTGRES_USER: postgres") and
-                      String.contains?(job_block, "Prepare root test database") and
-                      String.contains?(job_block, "timeout 600s mix ecto.create") and
-                      String.contains?(job_block, "timeout 300s elixir $(") and
-                      String.contains?(job_block, "find _build/test/lib") and
-                      String.contains?(job_block, "timeout 600s mix deps.compile") and
-                      String.contains?(job_block, "timeout 300s mix compile") and
-                      String.contains?(job_block, "timeout 300s mix test")),
-                 "verify_sigra job must run #{unquote(command)} or its explicit root/demo proof lanes"
+          # CI-04 / D-09 / D-14: the Sigra proof runner was extracted to
+          # scripts/ci/sigra-proof.sh. The proof commands and their env-var
+          # contract now live in the script; the job block must call it. This
+          # stays at least as strict as before — every load-bearing string is
+          # re-asserted, either against the script (proof commands + proof env)
+          # or against the job block (job-level env + db-prep step it kept).
+          sigra_script = File.read!("scripts/ci/sigra-proof.sh")
+
+          assert String.contains?(job_block, "scripts/ci/sigra-proof.sh"),
+                 "verify_sigra job must call scripts/ci/sigra-proof.sh for the proof lanes"
+
+          for marker <- [
+                "test/support/sigra/ci_proof_runner.exs",
+                "find _build/test/lib",
+                "timeout 300s elixir $(",
+                "test/demo_host_web/sigra_auth_proof_test.exs",
+                "timeout 600s mix deps.compile",
+                "timeout 300s mix compile",
+                "timeout 300s mix test",
+                "CHIMEWAY_SKIP_THREADLINE_DEP",
+                "CHIMEWAY_SKIP_MAILGLASS_DEP",
+                "CHIMEWAY_SKIP_ACCRUE_DEP",
+                "CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP",
+                "CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP",
+                "CHIMEWAY_MANUAL_REPO_START",
+                "CHIMEWAY_SKIP_OBAN"
+              ] do
+            assert String.contains?(sigra_script, marker),
+                   "scripts/ci/sigra-proof.sh must carry load-bearing Sigra proof string #{marker}"
+          end
+
+          for marker <- [
+                "PGUSER: postgres",
+                "POSTGRES_USER: postgres",
+                "Prepare root test database",
+                "timeout 600s mix ecto.create"
+              ] do
+            assert String.contains?(job_block, marker),
+                   "verify_sigra job block must keep #{marker}"
+          end
         else
           assert String.contains?(job_block, unquote(command)),
                  "#{unquote(job_id)} job must run #{unquote(command)}"
@@ -428,6 +445,79 @@ defmodule Chimeway.ReleaseGateContractTest do
         assert String.ends_with?(arg, "mix.lock") or String.ends_with?(arg, "package-lock.json"),
                "cache hashFiles must reference a mix.lock or package-lock.json (source-keyed cache?), got: #{arg}"
       end
+    end
+  end
+
+  describe "CI verification extraction (CI-04)" do
+    @detect_script "scripts/ci/detect-installer-changes.sh"
+    @aggregate_script "scripts/ci/aggregate-gate.sh"
+    @sigra_script "scripts/ci/sigra-proof.sh"
+
+    setup do
+      %{ci_yml: File.read!(@ci_yml)}
+    end
+
+    test "all three extracted CI scripts exist" do
+      for path <- [@detect_script, @aggregate_script, @sigra_script] do
+        assert File.exists?(path), "expected extracted CI script #{path} to exist"
+      end
+    end
+
+    test "ci.yml references each extracted script", %{ci_yml: ci_yml} do
+      for path <- [@detect_script, @aggregate_script, @sigra_script] do
+        assert String.contains?(ci_yml, path), "ci.yml must call #{path}"
+      end
+    end
+
+    test "detect script carries the verbatim installer regex core" do
+      detect = File.read!(@detect_script)
+
+      # Representative verbatim triggers — paraphrasing the regex fails the gate.
+      for marker <- [
+            "priv/chimeway_migrations/",
+            "installer_golden_prefixed",
+            "installer_golden_public",
+            "installer_fixture",
+            "migration_contract_test"
+          ] do
+        assert String.contains?(detect, marker),
+               "#{@detect_script} must carry installer regex trigger #{marker}"
+      end
+    end
+
+    test "install_golden detect step calls the detect script", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "install_golden_contract")
+
+      assert String.contains?(job_block, @detect_script),
+             "install_golden_contract detect step must call #{@detect_script}"
+
+      # The detect-step conditional pattern is preserved (pending-safety, D-07).
+      assert String.contains?(job_block, "steps.detect.outputs.run == 'true'"),
+             "install_golden_contract must keep its detect-step conditional"
+    end
+
+    test "aggregate script fails on non-success and both gates call it", %{ci_yml: ci_yml} do
+      aggregate = File.read!(@aggregate_script)
+
+      # Mirrors the required-lane loop: compares each lane against `success`.
+      assert String.contains?(aggregate, "!= \"success\""),
+             "#{@aggregate_script} must fail any lane whose result is not success"
+
+      pr_gate = extract_ci_job_block(ci_yml, "pr-gate")
+      ci_gate = extract_ci_job_block(ci_yml, "ci-gate")
+
+      assert String.contains?(pr_gate, @aggregate_script),
+             "pr-gate must call #{@aggregate_script}"
+
+      assert String.contains?(ci_gate, @aggregate_script),
+             "ci-gate must call #{@aggregate_script}"
+    end
+
+    test "verify_sigra job calls the extracted Sigra proof script", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "verify_sigra")
+
+      assert String.contains?(job_block, @sigra_script),
+             "verify_sigra must call #{@sigra_script} for its proof lanes"
     end
   end
 
