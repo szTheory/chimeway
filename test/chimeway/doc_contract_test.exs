@@ -351,7 +351,8 @@ defmodule Chimeway.DocContractTest do
       "template editing",
       "provider configuration UI",
       "arbitrary bulk recovery",
-      "cohort analytics"
+      "cohort analytics",
+      "{:chimeway_admin, \"~> 1.0\"}"
     ]
 
     for forbidden <- @admin_guide_forbidden_strings do
@@ -369,6 +370,50 @@ defmodule Chimeway.DocContractTest do
     test "documents host-owned tenant and role policy", %{content: content} do
       assert String.contains?(content, "does not validate tenant membership or roles")
       assert String.contains?(content, "tenant membership, role policy, and per-resource access")
+    end
+
+    test "documents chimeway_admin preview/path install status (TRUTH-03 / D-05)", %{
+      content: content
+    } do
+      assert String.contains?(content, "in-repo preview/path package"),
+             "admin guide must state chimeway_admin is an in-repo preview/path package"
+
+      assert String.contains?(content, "not published on Hex yet"),
+             "admin guide must state chimeway_admin is not published on Hex yet"
+    end
+
+    test "uses chimeway_admin path dependency and preserves root Chimeway dep (D-05)", %{
+      content: content
+    } do
+      assert String.contains?(content, ~s({:chimeway_admin, path: "../chimeway_admin"})),
+             "admin guide must use the chimeway_admin path dependency for preview usage"
+
+      assert String.contains?(content, ~s({:chimeway, "~> 1.0"})),
+             "admin guide must preserve the root {:chimeway, \"~> 1.0\"} dependency"
+    end
+
+    test "forbids current-Hex chimeway_admin install claim (D-06)", %{content: content} do
+      refute String.contains?(content, ~s({:chimeway_admin, "~> 1.0"})),
+             "admin guide must not present chimeway_admin as a current Hex dependency"
+    end
+
+    test "chimeway_admin/mix.exs remains path-package evidence, not a Hex package (D-05)" do
+      mix = File.read!("chimeway_admin/mix.exs")
+
+      assert String.contains?(mix, "app: :chimeway_admin"),
+             "chimeway_admin/mix.exs must declare app: :chimeway_admin"
+
+      assert String.contains?(mix, ~s(version: "0.1.0")),
+             "chimeway_admin/mix.exs must keep the preview version 0.1.0"
+
+      assert String.contains?(mix, ~s({:chimeway, path: ".."})),
+             "chimeway_admin/mix.exs must depend on chimeway via a path dependency"
+
+      refute String.contains?(mix, "package:"),
+             "chimeway_admin/mix.exs must not define Hex package metadata in Phase 78"
+
+      refute String.contains?(mix, "docs:"),
+             "chimeway_admin/mix.exs must not define HexDocs metadata in Phase 78"
     end
   end
 

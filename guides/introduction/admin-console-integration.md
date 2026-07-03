@@ -14,16 +14,18 @@ The demo-host README remains supporting proof copy. This guide is the adopter se
 
 ## 1. Dependencies
 
-Add Chimeway and `chimeway_admin` to your host `mix.exs`:
+`chimeway_admin` is an in-repo preview/path package: it lives in the Chimeway monorepo and is **not published on Hex yet**. Until an explicit package-promotion milestone defines package metadata, SemVer policy, publish automation, and a clean install smoke, add `chimeway_admin` as a path dependency for repository/checkout preview usage:
 
 ```elixir
 def deps do
   [
     {:chimeway, "~> 1.0"},
-    {:chimeway_admin, "~> 1.0"}
+    {:chimeway_admin, path: "../chimeway_admin"}
   ]
 end
 ```
+
+The `{:chimeway_admin, path: "../chimeway_admin"}` path dependency is for repository/checkout preview usage from within (or alongside) the Chimeway monorepo. A Hex install snippet for `chimeway_admin` is intentionally omitted: current Hex install guidance requires a future explicit package-promotion milestone that actually publishes the package, so do not treat `chimeway_admin` as a current Hex dependency.
 
 Then fetch dependencies:
 
