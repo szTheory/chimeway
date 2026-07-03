@@ -164,11 +164,11 @@ Optional: pass `correlation_id: "my-correlation-id"` on trigger, then `Chimeway.
 
 After your first `explain_delivery/1` in your host app, the **lowest-friction** way to validate explainability end-to-end is the Chimeway demo host IEx walkthrough — no SendGrid, no provider webhooks.
 
-Follow the [Demo host trace walkthrough](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/README.md) for a copy-paste IEx session using `Chimeway.trigger/3` and `explain_delivery/1`.
+Follow the [Demo host trace walkthrough](https://github.com/szTheory/chimeway/blob/main/examples/chimeway_demo_host/README.md) for a copy-paste IEx session using `Chimeway.trigger/3` and `explain_delivery/1`.
 
 ### Validate with operator UI (optional)
 
-After you have trace rows in the database, the [`chimeway_admin`](https://github.com/jonlunsford/chimeway/tree/main/chimeway_admin/) package provides a browser UI for the same Support Operator lookup flow. See the demo host [Operator trace UI (browser)](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/README.md#operator-trace-ui-browser) section: start `mix phx.server`, visit `/admin/chimeway`, search by recipient or correlation ID, and inspect the delivery timeline. This complements IEx validation; it does not replace webhook E2E proof.
+After you have trace rows in the database, the [`chimeway_admin`](https://github.com/szTheory/chimeway/tree/main/chimeway_admin/) package provides a browser UI for the same Support Operator lookup flow. See the demo host [Operator trace UI (browser)](https://github.com/szTheory/chimeway/blob/main/examples/chimeway_demo_host/README.md#operator-trace-ui-browser) section: start `mix phx.server`, visit `/admin/chimeway`, search by recipient or correlation ID, and inspect the delivery timeline. This complements IEx validation; it does not replace webhook E2E proof.
 
 For **webhook-driven workflow progression**, use the [webhook feedback loop](#next-webhook-feedback-loop) appendix instead — the demo host README covers simple delivery explainability only.
 
@@ -188,7 +188,7 @@ When inbound delivery feedback should drive workflow progression, Chimeway recor
 
 See the reference implementation in the repo:
 
-- [Demo host example](https://github.com/jonlunsford/chimeway/tree/main/examples/chimeway_demo_host/)
-- [Feedback pipeline E2E test](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs)
+- [Demo host example](https://github.com/szTheory/chimeway/tree/main/examples/chimeway_demo_host/)
+- [Feedback pipeline E2E test](https://github.com/szTheory/chimeway/blob/main/examples/chimeway_demo_host/test/demo_host_web/controllers/feedback_pipeline_e2e_test.exs)
 
 Feedback appears as `:webhook_received` entries on `Chimeway.Traces.explain_delivery/1` timelines — use that API to answer why progression advanced or stopped after inbound webhook data.
