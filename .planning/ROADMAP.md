@@ -74,7 +74,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 77-02-PLAN.md — Evidence-backed drift inventory and validation handoff
+- [x] 77-02-PLAN.md — Evidence-backed drift inventory and validation handoff
 
 **Success Criteria**:
 

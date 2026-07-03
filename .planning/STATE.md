@@ -2,19 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-current_phase: 77
-current_phase_name: truth-baseline-and-package-model-decision
-status: executing
-stopped_at: Completed 77-01-PLAN.md
-last_updated: "2026-07-03T00:43:09.695Z"
+status: verifying
+stopped_at: Completed 77-02-PLAN.md
+last_updated: "2026-07-03T00:53:37.966Z"
 last_activity: 2026-07-03
-last_activity_desc: Phase 77 execution started
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 25
 ---
 
 # Project State
@@ -30,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 
 Phase: 77 (truth-baseline-and-package-model-decision) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-07-03 -- Phase 77 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-07-03
 
 ## Accumulated Context
 
@@ -204,6 +201,9 @@ status: complete
 - [Phase 77]: [77-01]: chimeway is the only Hex-published package for v1.14 planning work; sibling packages remain in-repo preview/path packages. — Prevents public package confusion and routes sibling install-status copy to Phase 78.
 - [Phase 77]: [77-01]: Planning milestone labels such as v1.14 are planning identifiers only and are not package release refs. — Keeps root package SemVer tags, HexDocs source refs, publish refs, changelog anchors, and GitHub release names tied to actual package releases.
 - [Phase 77]: [77-01]: Phase 78 owns package/release truth, Phase 79 owns front-door docs truth, and Phase 80 owns CI truth while full ci-gate remains the release confidence source. — Preserves Phase 77 as a planning artifact and hands public edits to downstream owner phases.
+- [Phase 77]: [77-02]: Baseline drift rows assign package/release truth to Phase 78, front-door docs truth to Phase 79, and CI/DX truth to Phase 80. — Gives downstream phases an evidence-backed owner map before broad public edits.
+- [Phase 77]: [77-02]: CONTRIBUTING.md canonical repo URL drift is Phase 80 contributor DX/gate documentation. — Phase 79 may reference public-doc implications only if later needed.
+- [Phase 77]: [77-02]: Existing release_gate_contract_test.exs and doc_contract_test.exs remain the downstream truth anchors. — Avoids adding a parallel shell checker for package/docs/CI truth.
 
 ## Performance
 
@@ -515,8 +515,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-03T00:42:51.264Z
-Stopped at: Completed 77-01-PLAN.md
+Last session: 2026-07-03T00:53:37.962Z
+Stopped at: Completed 77-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -576,3 +576,4 @@ Resume file: None
 | Phase 76 P03 | 20 min | 3 tasks | 4 files |
 | Phase 76.1 P01 | 7 min | 3 tasks | 4 files |
 | Phase 77 P01 | 4 min | 2 tasks | 2 files |
+| Phase 77 P02 | 9 min | 2 tasks | 2 files |
