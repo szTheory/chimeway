@@ -84,8 +84,12 @@ defmodule Chimeway.MixProject do
 
       # Post-publish verify trio (run locally by maintainer, not in pre-merge CI)
       "verify.clean": ["cmd git diff --exit-code"],
+      # D-08: local artifact proof — build + unpack the default root package under
+      # MIX_ENV=prod (so the override is absent and Hex accepts the build), with no
+      # Sigra skip envs, and fail unless the unpacked root carries every package
+      # whitelist entry. No live Hex API calls (release-time/manual evidence only).
       "verify.parity": [
-        "cmd mix hex.build --unpack --output /tmp/chimeway_verify && ls /tmp/chimeway_verify"
+        "cmd --shell rm -rf /tmp/chimeway_verify && env MIX_ENV=prod mix hex.build --unpack --output /tmp/chimeway_verify && root=/tmp/chimeway_verify && if [ ! -f \"$root/mix.exs\" ]; then root=$(dirname \"$(find /tmp/chimeway_verify -maxdepth 2 -name mix.exs | head -1)\"); fi && for f in mix.exs lib priv guides README.md CHANGELOG.md LICENSE.md .formatter.exs; do test -e \"$root/$f\" || { echo \"verify.parity: missing package whitelist entry $f under $root\" >&2; exit 1; }; done && echo \"verify.parity OK: unpacked package root $root contains all whitelist entries\""
       ],
       # verify.published: invoked as `mix verify.published <version>` (Mix task)
       # Pre-ship GATE-01: canonical host-mount E2E + operator admin smoke (D-10, D-11).

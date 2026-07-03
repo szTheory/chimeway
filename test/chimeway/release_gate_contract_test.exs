@@ -463,6 +463,119 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "unpacked Hex package artifact truth (TRUTH-01/TRUTH-02/TRUTH-03, D-08)" do
+    setup do
+      output = build_unpacked_package!()
+      on_exit(fn -> File.rm_rf(output) end)
+      %{output: output, root: unpacked_package_root!(output)}
+    end
+
+    test "unpacked Hex package contains the package file whitelist", %{root: root} do
+      entries = top_level_entries(root)
+
+      # Mirrors files: ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs) in mix.exs
+      whitelist = ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs)
+
+      for entry <- whitelist do
+        assert entry in entries,
+               "unpacked package root must contain whitelist entry #{entry} (found: #{inspect(entries)})"
+      end
+
+      # Hex adds hex_metadata.config to every unpacked artifact; ignore only that
+      # generated file and require the root to carry exactly the mix.exs whitelist,
+      # so stray/untracked additions to the package also fail the release gate.
+      extra = (entries -- whitelist) -- ["hex_metadata.config"]
+
+      assert extra == [],
+             "unpacked package root must not contain files outside the whitelist (unexpected: #{inspect(extra)})"
+    end
+
+    test "unpacked Hex package carries package truth docs and source links", %{root: root} do
+      mix_exs = File.read!(Path.join(root, @mix_exs))
+      readme = File.read!(Path.join(root, @readme))
+
+      admin_guide =
+        File.read!(Path.join(root, "guides/introduction/admin-console-integration.md"))
+
+      inbox_guide = File.read!(Path.join(root, "guides/introduction/inbox-integration.md"))
+
+      # Canonical package/source links reach Hex consumers; the legacy owner never does.
+      assert String.contains?(mix_exs, @canonical_repo_url),
+             "unpacked mix.exs must carry the canonical repository URL #{@canonical_repo_url}"
+
+      refute String.contains?(mix_exs, @legacy_repo_url),
+             "unpacked mix.exs must not carry the legacy repository URL #{@legacy_repo_url}"
+
+      refute String.contains?(readme, @legacy_repo_url),
+             "unpacked README.md must not carry the legacy repository URL #{@legacy_repo_url}"
+
+      # Root install constraint is carried in the packaged README.
+      assert String.contains?(readme, ~S({:chimeway, "~> 1.0"})),
+             "unpacked README.md must carry the root install constraint {:chimeway, \"~> 1.0\"}"
+
+      # Sibling preview/path status reaches Hex consumers, no current-Hex install claim.
+      for {guide, name} <- [{admin_guide, "admin"}, {inbox_guide, "inbox"}] do
+        assert String.contains?(guide, "in-repo preview/path package"),
+               "unpacked #{name} guide must state in-repo preview/path status"
+
+        assert String.contains?(guide, "not published on Hex yet"),
+               "unpacked #{name} guide must state the sibling is not published on Hex yet"
+      end
+
+      refute String.contains?(admin_guide, ~S({:chimeway_admin, "~> 1.0"})),
+             "unpacked admin guide must not carry a current-Hex chimeway_admin install claim"
+
+      refute String.contains?(inbox_guide, ~S({:chimeway_inbox, "~> 1.0"})),
+             "unpacked inbox guide must not carry a current-Hex chimeway_inbox install claim"
+    end
+  end
+
+  # Builds the default root Hex package into a unique temp dir and unpacks it.
+  # Runs in a separate OS process under MIX_ENV=prod: the prod package build omits
+  # the dev/test-only Sigra override, so `mix hex.build` succeeds exactly as it does
+  # at release time (no CHIMEWAY_SKIP_SIGRA_DEP).
+  defp build_unpacked_package! do
+    output =
+      Path.join(System.tmp_dir!(), "chimeway_release_gate_#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(output)
+
+    {out, status} =
+      System.cmd("mix", ["hex.build", "--unpack", "--output", output],
+        stderr_to_stdout: true,
+        env: [{"MIX_ENV", "prod"}]
+      )
+
+    assert status == 0,
+           "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
+
+    output
+  end
+
+  # Hex task output shape varies by version: files may land directly in the
+  # output dir, or under a single `chimeway-*` child that contains mix.exs.
+  defp unpacked_package_root!(output) do
+    if File.exists?(Path.join(output, @mix_exs)) do
+      output
+    else
+      case Path.wildcard(Path.join(output, "chimeway-*")) do
+        [child] ->
+          if File.exists?(Path.join(child, @mix_exs)),
+            do: child,
+            else: flunk("unpacked package child #{child} does not contain #{@mix_exs}")
+
+        candidates ->
+          flunk(
+            "could not locate unpacked package root under #{output} (candidates: #{inspect(candidates)})"
+          )
+      end
+    end
+  end
+
+  defp top_level_entries(root) do
+    root |> File.ls!() |> Enum.sort()
+  end
+
   defp root_version! do
     mix_exs = File.read!(@mix_exs)
 

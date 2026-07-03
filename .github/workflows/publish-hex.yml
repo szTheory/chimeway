@@ -185,6 +185,10 @@ jobs:
           mix ci.docs
 
       - name: Build Hex package
+        # MIX_ENV=prod: the package build must omit the dev/test-only Sigra
+        # override (Hex rejects overridden deps). See sigra_dep/0 in mix.exs.
+        env:
+          MIX_ENV: prod
         run: mix hex.build
 
       - name: Skip if version already on Hex
@@ -199,12 +203,14 @@ jobs:
       - name: Dry run Hex publish
         if: github.event.inputs.dry_run == 'true' || steps.idempotency.outputs.skip != 'true'
         env:
+          MIX_ENV: prod
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: mix hex.publish --dry-run --yes
 
       - name: Publish to Hex
         if: github.event.inputs.dry_run != 'true' && steps.idempotency.outputs.skip != 'true'
         env:
+          MIX_ENV: prod
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: mix hex.publish --yes
 
