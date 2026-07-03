@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Public Truth and Verification Architecture
-status: executing
+status: verifying
 stopped_at: Completed 80-01-PLAN.md
-last_updated: "2026-07-03T16:43:09.819Z"
+last_updated: "2026-07-03T16:54:40.272Z"
 last_activity: 2026-07-03
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
-  percent: 75
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 
 Phase: 80 (verification-architecture-and-ci-dx) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-03
 
 ## Accumulated Context
@@ -218,6 +218,8 @@ status: complete
 - [Phase ?]: [80-02]: CI caches (npm/Playwright/nested/demo-host) keyed on lockfiles only; per-lane demo-host key slug prevents cross-lane optional-dep contamination
 - [Phase ?]: [80-03]: Extracted the three complex inline ci.yml verification fragments into committed scripts/ci/*.sh invoked verbatim by the workflow (CI-04)
 - [Phase ?]: [80-03]: Added checkout to pr-gate/ci-gate so the aggregate script is present in the runner (Rule 3 fix)
+- [Phase ?]: [80-04]: D-08 realized as new GitHub ruleset (id 18486746) requiring pr-gate on main; main had no prior protection so it was a set-up, not a swap from ci-gate
+- [Phase ?]: [80-04]: Gate docs (CONTRIBUTING/MAINTAINING) aligned with two-aggregate topology; Sigra ref corrected b186f03->62ceb46a; installer-gating reconciled to push+dispatch-only
 
 ## Performance
 
@@ -529,7 +531,7 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-03T16:42:50.755Z
+Last session: 2026-07-03T16:52:53.507Z
 Stopped at: Completed 80-01-PLAN.md
 Resume file: None
 
@@ -598,3 +600,4 @@ Resume file: None
 | Phase 80 P01 | 4 min | 3 tasks | 2 files |
 | Phase 80 P02 | 6 min | 3 tasks | 2 files |
 | Phase 80 P03 | 5 min | 3 tasks | 5 files |
+| Phase 80 P04 | 12 min | 3 tasks | 2 files |

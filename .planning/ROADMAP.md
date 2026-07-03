@@ -59,7 +59,7 @@
     - [x] 80-01-PLAN.md — pr-gate/ci-gate two-aggregate split: add fast `pr-gate`, event-guard + fold `install_golden_contract` into `ci-gate`, gate heavy lanes off PR, lock topology in contract test (CI-01/02/03)
     - [x] 80-02-PLAN.md — Cache coverage: nested `chimeway_admin`/`chimeway_inbox` mix, npm, Playwright, per-lane demo-host caches keyed on lockfiles; contract-lock keying (CI-05)
     - [x] 80-03-PLAN.md — Extract CI verification fragments to `scripts/ci/*.sh` (detect / aggregate-gate / sigra-proof) and wire `ci.yml`; contract-lock incl. Sigra-in-script (CI-04)
-    - [ ] 80-04-PLAN.md — Align CONTRIBUTING.md + MAINTAINING.md (pr-gate/ci-gate split, D-08 branch-protection operator swap, scripts/ci, Sigra ref fix) (CI-01/02/03/04)
+    - [x] 80-04-PLAN.md — Align CONTRIBUTING.md + MAINTAINING.md (pr-gate/ci-gate split, D-08 branch-protection operator swap, scripts/ci, Sigra ref fix) (CI-01/02/03/04)
   - Add an always-running fast `pr-gate` while preserving the full `ci-gate` for release, publish, automerge, recovery, and mainline validation.
   - Avoid required-check pending traps, add nested package/demo/npm/Playwright cache coverage, and make complex CI behavior locally reproducible through scripts or Mix tasks.
   - Update `CONTRIBUTING.md`, `MAINTAINING.md`, release contracts, and gate docs so local and CI verification language agrees.
