@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -76,7 +76,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -125,7 +125,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        elixir: ["1.17"]
+        elixir: ["1.19"]
         otp: ["26", "27"]
     services:
       postgres:
@@ -202,7 +202,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -251,7 +251,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -292,7 +292,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -341,7 +341,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -396,7 +396,7 @@ jobs:
           path: accrue/accrue
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -445,7 +445,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -508,7 +508,7 @@ jobs:
           path: threadline/threadline
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -570,7 +570,7 @@ jobs:
           path: sigra/sigra
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -630,7 +630,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -715,7 +715,7 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         if: steps.detect.outputs.run == 'true'
         with:
-          elixir-version: "1.17"
+          elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         if: steps.detect.outputs.run == 'true'
