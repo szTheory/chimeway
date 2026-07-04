@@ -45,7 +45,7 @@ config :mailglass, Mailglass.TestRepo,
   username:
     System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
       System.get_env("USER") || "postgres",
-  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD"),
+  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
   hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
   database: "chimeway_mailglass_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
