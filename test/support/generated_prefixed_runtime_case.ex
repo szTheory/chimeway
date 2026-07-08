@@ -131,9 +131,14 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
   end
 
   def generated_migration_count do
+    # Count only the generated fixture migrations, which occupy the contiguous
+    # band base+1 .. base+N (well under base+1_000_000). Scoping to that band
+    # keeps the assertion correct even when schema_migrations also contains the
+    # host app's real migrations (dated 2026-04+), which some CI environments
+    # surface here through the shared connection where local runs do not.
     sql_repo()
     |> Ecto.Adapters.SQL.query!(
-      "SELECT count(*) FROM schema_migrations WHERE version >= #{@migration_version_base}",
+      "SELECT count(*) FROM schema_migrations WHERE version > #{@migration_version_base} AND version < #{@migration_version_base + 1_000_000}",
       []
     )
     |> then(fn %{rows: [[count]]} -> count end)
