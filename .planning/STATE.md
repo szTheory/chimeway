@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
 status: planning
-last_updated: "2026-07-09T22:17:42.332Z"
+last_updated: "2026-07-09T23:10:00.000Z"
 last_activity: 2026-07-09
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Awaiting next milestone — start with `/gsd-new-milestone`. Known fast-follow: `main` fails `mix ci.lint` (pre-existing format + vulnerable-dep drift), now blocking PR merges under the required `pr-gate`.
+**Current focus:** v1.15 Brand Identity & Brand Book — roadmap complete (Phases 81-86, 32/32 requirements mapped). Next: plan Phase 81 (Design Tokens) with `/gsd-plan-phase 81`. Doc/asset-only milestone: no runtime code, no CI changes, `chimeway_admin` untouched. Known fast-follow (unrelated): `main` fails `mix ci.lint` (pre-existing format + vulnerable-dep drift), blocking PR merges under the required `pr-gate`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 81 — Design Tokens (Reconciliation & Documentation) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-09 — Milestone v1.15 started
+Status: Roadmap complete; ready to plan Phase 81
+Last activity: 2026-07-09 — v1.15 roadmap created (Phases 81-86 derived from 32 requirements, 100% coverage)
 
 ## Accumulated Context
 
@@ -479,6 +479,7 @@ None.
 
 ### Roadmap Evolution
 
+- v1.15 Brand Identity & Brand Book started 2026-07-09 — Phases 81-86 (6 phases, coarse granularity, continued numbering from Phase 80); 32/32 requirements mapped (LOGO/TOKEN/BOOK/VOICE/STATE/A11Y/INTEG/NOTES). Doc/asset-only. Consolidated the research's 8-phase steer to 6: voice + component states folded into the HTML brandbook (Phase 84); favicon/social derivatives folded into the selection checkpoint (Phase 83). Preserved invariants: tokens-first, logo-selection user-checkpoint before derivatives, HTML-book after inputs stable, accessibility verified at end.
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
 - v1.10 Ecosystem Completions started 2026-05-30 — Phases 63–66; 8/8 requirements (Threadline + Sigra SEED-003 remainder)
 - v1.9 Adopter Complete shipped 2026-05-30 — Phases 58–62, 60.1, 62.1; 10/10 requirements (Accrue dunning + INBX inbox UI + Hex automation)
@@ -536,7 +537,9 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with $gsd-new-milestone
+- Plan Phase 81 (Design Tokens — Reconciliation & Documentation) with `/gsd-plan-phase 81`
+- v1.15 phase order: 81 Tokens -> 82 Logo Exploration -> 83 Direction Selection (USER CHECKPOINT) -> 84 HTML Brandbook/Voice/States -> 85 Repo Integration -> 86 A11y Audit + Red-Team close
+- Hold scope every phase: `brandbook/`-only + 2 allowed edits (README header, `mix.exs` docs()); keep v1.14 doc-contract/release-gate tests green
 
 ## Performance Metrics
 

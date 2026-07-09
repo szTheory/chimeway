@@ -101,20 +101,46 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOGO-01..06 | TBD | Pending |
-| TOKEN-01..05 | TBD | Pending |
-| BOOK-01..03 | TBD | Pending |
-| VOICE-01..03 | TBD | Pending |
-| STATE-01..02 | TBD | Pending |
-| A11Y-01..05 | TBD | Pending |
-| INTEG-01..04 | TBD | Pending |
-| NOTES-01..04 | TBD | Pending |
+| TOKEN-01 | Phase 81 | Pending |
+| TOKEN-02 | Phase 81 | Pending |
+| TOKEN-03 | Phase 81 | Pending |
+| TOKEN-04 | Phase 81 | Pending |
+| TOKEN-05 | Phase 81 | Pending |
+| LOGO-01 | Phase 82 | Pending |
+| LOGO-02 | Phase 82 | Pending |
+| LOGO-05 | Phase 82 | Pending |
+| LOGO-06 | Phase 82 | Pending |
+| NOTES-02 | Phase 82 | Pending |
+| LOGO-03 | Phase 83 | Pending |
+| LOGO-04 | Phase 83 | Pending |
+| INTEG-03 | Phase 83 | Pending |
+| BOOK-01 | Phase 84 | Pending |
+| BOOK-02 | Phase 84 | Pending |
+| BOOK-03 | Phase 84 | Pending |
+| STATE-01 | Phase 84 | Pending |
+| STATE-02 | Phase 84 | Pending |
+| VOICE-01 | Phase 84 | Pending |
+| VOICE-02 | Phase 84 | Pending |
+| VOICE-03 | Phase 84 | Pending |
+| INTEG-01 | Phase 85 | Pending |
+| INTEG-02 | Phase 85 | Pending |
+| INTEG-04 | Phase 85 | Pending |
+| A11Y-01 | Phase 86 | Pending |
+| A11Y-02 | Phase 86 | Pending |
+| A11Y-03 | Phase 86 | Pending |
+| A11Y-04 | Phase 86 | Pending |
+| A11Y-05 | Phase 86 | Pending |
+| NOTES-01 | Phase 86 | Pending |
+| NOTES-03 | Phase 86 | Pending |
+| NOTES-04 | Phase 86 | Pending |
 
 **Coverage:**
 - v1.15 requirements: 32 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 32 ⚠️
+- Mapped to phases: 32 ✓
+- Unmapped: 0 ✓
+
+**Per-phase counts:** Phase 81 (5: TOKEN-01..05) · Phase 82 (5: LOGO-01/02/05/06, NOTES-02) · Phase 83 (3: LOGO-03/04, INTEG-03) · Phase 84 (8: BOOK-01..03, STATE-01/02, VOICE-01..03) · Phase 85 (3: INTEG-01/02/04) · Phase 86 (8: A11Y-01..05, NOTES-01/03/04)
 
 ---
 *Requirements defined: 2026-07-09*
-*Last updated: 2026-07-09 after initial definition*
+*Last updated: 2026-07-09 after roadmap creation (Phases 81-86 mapped, 100% coverage)*
