@@ -39,7 +39,11 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
       restore_dynamic_repo(previous_dynamic_repo)
 
       if repo_pid && Process.alive?(repo_pid) do
-        GenServer.stop(repo_pid)
+        try do
+          GenServer.stop(repo_pid)
+        catch
+          :exit, _ -> :ok
+        end
       end
 
       _ = Ecto.Adapters.Postgres.storage_down(config)
@@ -86,6 +90,27 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
     migrated =
       try do
         Repo.put_dynamic_repo(repo_pid)
+
+        # Query the throwaway repo directly by pid (passing the Repo module would use
+        # its static sandbox meta, not the dynamic repo). Guard that we're on the
+        # throwaway DB, then drop any residual prefixed schema so migrations cannot
+        # hit the CI-only `42P07 duplicate_table` on chimeway_events.
+        %{rows: [[current_db]]} =
+          Ecto.Adapters.SQL.query!(repo_pid, "SELECT current_database()", [])
+
+        unless current_db == database do
+          cleanup.(repo_pid)
+
+          flunk(
+            "generated runtime repo connected to #{current_db}, expected throwaway #{database}"
+          )
+        end
+
+        Ecto.Adapters.SQL.query!(
+          repo_pid,
+          ~s[DROP SCHEMA IF EXISTS "#{@runtime_prefix}" CASCADE],
+          []
+        )
 
         migrated = run_fixture_migrations(migrations_path, :up, repo_pid)
 
