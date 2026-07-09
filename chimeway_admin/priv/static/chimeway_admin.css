@@ -523,6 +523,11 @@
     min-width: 0;
   }
 
+  .cw-section-heading > .cw-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .cw-section-heading p {
     color: var(--cw-admin-muted);
     font-size: var(--cw-font-size-label);
