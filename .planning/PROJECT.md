@@ -25,9 +25,9 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-(None — v1.14 shipped 2026-07-03. Define the next milestone's requirements via `/gsd-new-milestone`.)
+**v1.15 Brand Identity & Brand Book** — pressure-test the written brand book and produce a self-contained, repo-safe `brandbook/` package (logo system, reconciled design tokens, standalone HTML brandbook, brand voice/microcopy, component states, decision notes + red-team pass). Requirements defined in `.planning/REQUIREMENTS.md`.
 
-Carried-forward v1.15+ candidates: TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
+Carried-forward (not this milestone): TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
 
 ### Out of Scope
 
@@ -45,9 +45,30 @@ Carried-forward v1.15+ candidates: TENANT-01 (broader tenant spine consistency),
 - Two-aggregate CI topology: fast always-on `pr-gate` for PRs plus a push/dispatch-only 14-lane `ci-gate` for release confidence, with anti-pending event guards proven by a live PR (CI-01/02/03).
 - Complex CI logic extracted to `scripts/ci/*.sh`; nested/npm/Playwright/per-lane-demo caches keyed on lockfiles; contributor/maintainer gate docs aligned; D-08 `pr-gate` branch-protection ruleset (id 18486746) set up (CI-04/05).
 
-## Next Milestone: TBD
+## Current Milestone: v1.15 Brand Identity & Brand Book
 
-The v1.14 milestone is shipped. No next milestone is defined yet — start one with `/gsd-new-milestone` (questioning → research → requirements → roadmap). Carried-forward candidates: tenant spine consistency (TENANT-01), redaction hardening (PRIV-03), inbox PubSub (INBX-03), mark_seen E2E (INT-03), and sibling package promotion (PKG-01).
+**Goal:** Critically pressure-test the existing written brand book (`prompts/chimeway-brand-book.md`) and operationalize it into a self-contained, repo-safe, implementation-ready `brandbook/` package with real, programmatically-generated, vector-first artifacts — so Chimeway reads as credible on GitHub / HexDocs / landing pages and future UI/docs/marketing work is accelerated.
+
+**Target features:**
+- **Logo system** — multiple programmatically-generated SVG directions to choose from (icon-only, logotype, ≥1 fully-integrated typemark, horizontal lockup, stacked, mono, inverse, favicon/small). No rectangular background cages; mark + wordmark visually unified; primary lockup carries no subtitle.
+- **Design tokens** — JSON + CSS variables (light/dark/system, semantic state colors, focus-ring, type/spacing/radius/border/shadow/motion), **reconciled with the existing `chimeway_admin` `--cw-*` tokens** rather than forked.
+- **Standalone HTML brandbook** (primary deliverable) — opens via `file://`, responsive, scoped CSS that cannot leak into the repo.
+- **Brand voice & UX microcopy** — voice/tone by context, error pattern (what happened / why it matters / how to fix), CTA style, naming rules, good/bad examples.
+- **Component states & usage** — hover/focus/active/disabled/loading/error/empty/skeleton/selected; do/don't logo & brand usage.
+- **Decision notes + red-team pass** — pros/cons/tradeoffs, analogue, implementation cost, ship/reject/defer, confidence per recommendation; accessible-by-default; research-backed with citations.
+
+**Milestone-start scope decisions (defaults; revisit at requirements gate):**
+- **Rollout boundary:** `brandbook/` package + README header + favicon this milestone; full `chimeway_admin` `cw.tokens` re-theme deferred to a follow-on milestone.
+- **Font strategy:** system font stack + documented OSS webfont recommendation; wordmark/typemark rendered as SVG outlines (no bundled font binary) — honors repo-size/licensing discipline.
+- **Logo directions:** 3–5 fully-worked directions, each with rationale, for user selection.
+
+**Hard taste constraints (non-negotiable):** no background cages, unified mark+wordmark, ≥1 integrated typemark direction, multiple options for the user to pick, no clipart, unique brand-based imagery/type. Existing fonts/colors are a seed, not locked.
+
+**Deliverable discipline:** self-contained in `brandbook/` at repo root; SVG/HTML/CSS/JSON/MD first; no large binaries or new build system unless clearly justified.
+
+Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written brand spec under pressure-test is `prompts/chimeway-brand-book.md`.
+
+**Standing hygiene debt (tracked, not this milestone's deliverable):** 3 red CI lanes on `main` (Example host smoke, TeamPulse journeys, Accrue dunning — `ci-gate` at 12/15; see `.planning/CI-HARDENING-BACKLOG.md`). This milestone is doc/asset-only and does not touch runtime code, so it will not worsen CI.
 
 ## Current State
 
@@ -525,4 +546,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after v1.14 milestone completion*
+*Last updated: 2026-07-09 at start of v1.15 Brand Identity & Brand Book milestone*
