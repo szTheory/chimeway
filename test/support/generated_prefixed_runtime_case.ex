@@ -54,6 +54,10 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
       write_numbered_fixture_migrations!(@fixture_root, migrations_path)
       Application.put_env(:chimeway, :prefix, @runtime_prefix)
 
+      # Drop any stale same-named DB first so migrations can never run against a
+      # dirty database (closes the {:error, :already_up} -> :ok masking below).
+      _ = Ecto.Adapters.Postgres.storage_down(config)
+
       case Ecto.Adapters.Postgres.storage_up(config) do
         :ok -> :ok
         {:error, :already_up} -> :ok
@@ -83,7 +87,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
       try do
         Repo.put_dynamic_repo(repo_pid)
 
-        migrated = run_fixture_migrations(migrations_path, :up)
+        migrated = run_fixture_migrations(migrations_path, :up, repo_pid)
 
         assert length(migrated) == 31
 
@@ -289,12 +293,25 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
     end
   end
 
-  defp run_fixture_migrations(migrations_path, direction) when direction in [:up, :down] do
+  defp run_fixture_migrations(migrations_path, direction, repo_pid)
+       when direction in [:up, :down] do
     parent = self()
     ref = make_ref()
 
     ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      result = Ecto.Migrator.run(Repo, migrations_path, direction, all: true, log: false)
+      # Pin the migrator to the throwaway repo explicitly. Ecto.Migrator resolves the
+      # target via Keyword.get(opts, :dynamic_repo, repo.get_dynamic_repo()) inside a
+      # spawned Task; without the explicit opt the get_dynamic_repo/0 fallback is
+      # process-dependent and can intermittently route migrations at the default
+      # Chimeway.Repo (chimeway_test), colliding with the sibling-cloned `chimeway`
+      # schema (42P07 duplicate_table). Passing dynamic_repo makes it deterministic.
+      result =
+        Ecto.Migrator.run(Repo, migrations_path, direction,
+          all: true,
+          log: false,
+          dynamic_repo: repo_pid
+        )
+
       send(parent, {ref, result})
     end)
 
