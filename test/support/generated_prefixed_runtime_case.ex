@@ -227,6 +227,12 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
   defp generated_repo_config(database) do
     base_database_config()
     |> Keyword.merge(
+      # Repo.start_link/1 merges these opts over the app-env config, which on CI
+      # carries `url: DATABASE_URL` (…/chimeway_test). When both :url and :database
+      # are present the URL's database wins, so the throwaway repo would connect to
+      # chimeway_test and collide with the sibling-cloned `chimeway` schema. Force
+      # url: nil so the explicit `database` below is authoritative.
+      url: nil,
       database: database,
       pool_size: 2,
       queue_target: 5_000,
