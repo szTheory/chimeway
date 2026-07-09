@@ -1,29 +1,24 @@
-# CI Hardening Backlog — 3 CI-only lane failures blocking `ci-gate`
+# CI Hardening Backlog — CI-only lane failures (1 of 3 resolved)
 
 _Filed 2026-07-09 after the milestone-boundary repo-hygiene sweep. Carried forward for a focused CI session (candidate for the next milestone)._
 
 ## Summary
 
-After the hygiene sweep (clean tree, 340 commits pushed, all systemic CI issues fixed), `ci-gate` is at **11/15 lanes green**. Three lanes remain red. All three **pass locally** (full core suite = `1176 tests, 0 failures`) and reproduce **only on CI**, so they need CI-environment debugging rather than code fixes verifiable locally.
+After the hygiene sweep (clean tree, 340 commits pushed, all systemic CI issues fixed), `ci-gate` was at 11/15 lanes green. **The flaky `test` lane (#1) is now fixed (2026-07-09), so `pr-gate` is green and the merge pipeline is unblocked** — `ci-gate` is at **12/15**. Two lanes remain red (#2, #3); both reproduce **only on CI**.
 
 Systemic fixes already landed on `main`: audit→advisory (`SECURITY.md`), uniform DB creds across lanes, CI Elixir 1.17→1.19, scoped migration-count query, `verify_gates` Postgres service.
 
-**Green now (11):** Lint · Docs · Release gate contract · Runtime prefix · Mailglass · Inbox · Installer golden · Threadline · Sigra · Admin · (Test OTP-26 intermittently)
+**Green now (12):** Lint · Docs · Release gate contract · Runtime prefix · Mailglass · Inbox · Installer golden · Threadline · Sigra · Admin · **Test (OTP 26 + 27)**
 
 ---
 
-## 1. Test lane — flaky isolation race (⚠️ blocks `pr-gate`)
+## 1. Test lane — flaky isolation race ✅ RESOLVED 2026-07-09
 
-**Highest priority:** `pr-gate` needs `[lint, test, verify_gates, verify_docs]`; three are green, so fixing this lane restores the merge pipeline and unblocks the release PR — independent of #2/#3.
+**Fixed** (commits up to `28bee93`); `pr-gate` now green across 3 consecutive CI runs (was failing ~every 2nd–3rd run).
 
-- **Symptom:** `Chimeway.GeneratedPrefixedRuntimeProofTest` reported `1 invalid` (setup_all raised):
-  ```
-  ** (Postgrex.Error) ERROR 42P07 (duplicate_table) relation "chimeway_events" already exists
-  ```
-- **Flaky, CI-only:** on a single-commit re-run, **OTP 26 passed while OTP 27 failed**. Local full core suite passes 1176/0 every time.
-- **Where:** `prepare_generated_runtime_storage/1` in `test/support/generated_prefixed_runtime_case.ex` — creates a throwaway DB `chimeway_generated_prefixed_runtime_#{unique}` via `Ecto.Adapters.Postgres.storage_up/1`, treats `{:error, :already_up}` as `:ok`, then runs 31 fixture migrations. "Already exists" = migrations ran against a non-clean DB/schema.
-- **Likely cause:** the `already_up`-as-`:ok` path migrating a pre-existing DB, or a race with a prior module's `on_exit` cleanup (`storage_down` + `File.rm_rf`). Global `Application.put_env(:chimeway, :prefix, ...)` adds shared-state fragility.
-- **Suggested fix:** force a clean slate before migrating (`storage_down` then `storage_up`, or drop the `chimeway` prefix schema) so `already_up` never migrates dirty state; guard the global `:prefix` env.
+- **Symptom:** `Chimeway.GeneratedPrefixedRuntimeProofTest` intermittently `1 invalid` (setup_all raised) with `42P07 duplicate_table: relation "chimeway_events" already exists`; CI-only, never reproduced locally.
+- **Actual root cause (proven by an added `current_database()` guard that flunked with `connected to chimeway_test, expected throwaway …`):** `prepare_generated_runtime_storage/1` starts a throwaway repo via `Repo.start_link/1`, which **merges the given opts over the app-env config**. On CI that config carries `url: DATABASE_URL` (`…/chimeway_test`); when both `:url` and `:database` are present, the URL's database wins — so the "throwaway" repo actually connected to `chimeway_test`, and its migrations collided with the `chimeway` schema the sibling `PrefixedRuntimeCase` clones there. Locally there is no `:url` in config, so it never reproduced. (The intermittency came from whether the sibling had already cloned the schema when this module's setup_all ran.)
+- **Fix:** force `url: nil` in the throwaway repo config so the explicit `database` is authoritative (`test/support/generated_prefixed_runtime_case.ex`, `generated_repo_config/1`). Also kept as hardening: explicit `dynamic_repo:` on the migrator, a `current_database()` guard, a defensive `DROP SCHEMA` before migrating, and crash-safe cleanup.
 
 ## 2. Journeys + Example — `demo.up --check` hangs in CI
 
