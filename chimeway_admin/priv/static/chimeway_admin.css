@@ -223,6 +223,9 @@
 
 @layer cw.base {
   :where(.chimeway-admin) {
+    position: fixed;
+    inset: 0;
+    overflow: auto;
     min-height: 100vh;
     background:
       linear-gradient(90deg, color-mix(in srgb, var(--cw-admin-accent) 8%, transparent), transparent 28rem),
