@@ -307,4 +307,70 @@ Confidence: Low
   <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
 </svg>
 
-<!-- Rejected candidates and the ephemeral gallery are appended in Task 3. -->
+---
+
+## Rejected candidates
+
+Retained inline (NOTES-02 repo-size discipline) so the doc teaches the taste
+gates. Each fails a **different** gate and is annotated with the single gate it
+violates. None of these are shortlist directions — they are counter-examples.
+
+### Literal bell
+
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" role="img" aria-label="rejected literal bell">
+  <path d="M26 8 C18 8 16 16 16 24 C16 32 12 34 12 38 H40 C40 34 36 32 36 24 C36 16 34 8 26 8 Z" fill="none" stroke="#102027" stroke-width="2.4" stroke-linejoin="round"/> <!-- cw-ink -->
+  <path d="M22 38 Q26 44 30 38" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/>
+</svg>
+
+Reason: literal bell imagery — fails LOGO-06 / D-05. The brand-book §13
+"chime/bell endpoint" is superseded; the metaphor must be path/route/signal/trace
+only, with zero literal bell, clapper, note, or staff. A detailed bell also
+collapses into a blob at 16px, an independent technical reason to avoid it.
+
+### cw monogram in an enclosing cage
+
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="44" viewBox="0 0 72 44" role="img" aria-label="rejected cw monogram inside an enclosing cage">
+  <rect x="3" y="3" width="66" height="38" rx="9" fill="none" stroke="#102027" stroke-width="2"/> <!-- cw-ink enclosing cage -->
+  <text x="18" y="30" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="600" fill="#102027">cw</text>
+</svg>
+
+Reason: rectangular/enclosing background cage — fails D-06 / LOGO-05. Marks must
+be transparent/background-free; the only legal background rect is the scoped
+inverse proof cell, never a container drawn around the mark.
+
+### Ultra-thin concentric rings
+
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" role="img" aria-label="rejected ultra-thin concentric signal rings">
+  <circle cx="26" cy="26" r="20" fill="none" stroke="#102027" stroke-width="0.5"/> <!-- cw-ink hairline -->
+  <circle cx="26" cy="26" r="13" fill="none" stroke="#102027" stroke-width="0.5"/>
+  <circle cx="26" cy="26" r="6" fill="none" stroke="#102027" stroke-width="0.5"/>
+</svg>
+
+Reason: fails the 16px legibility gate — hairline strokes fall below one device
+pixel and vanish at favicon size (RESEARCH Pitfall 4). Even though "signal rings"
+are an allowed metaphor, this *execution* dies small and in mono, so it is
+rejected rather than shortlisted.
+
+### Route icon placed left of the wordmark, with a gap
+
+<svg xmlns="http://www.w3.org/2000/svg" width="230" height="48" viewBox="0 0 230 48" role="img" aria-label="rejected route icon placed left of the wordmark with a visible gap">
+  <circle cx="20" cy="24" r="11" fill="none" stroke="#102027" stroke-width="2.4"/> <!-- cw-ink -->
+  <path d="M14 24 H26" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="78" y="32" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="600" fill="#102027">chimeway</text>
+</svg>
+
+Reason: icon-left / text-right with a visible gap — fails D-07. The mark and
+wordmark must read as one unified unit; a detached icon beside plain text is the
+exact anti-pattern the shortlist directions avoid by sitting the wordmark at
+unified-unit distance.
+
+---
+
+## Ephemeral gallery
+
+An uncommitted, `file://`-openable HTML gallery rendering every direction's
+primary lockup + proof strip and every rejected mark at real scale is generated
+in the executor session scratchpad (outside the repo tree, so it can never be
+committed — D-13). Its absolute `file://` path is printed at execution time for
+the Phase 82 human-verify checkpoint. The committed source-of-record is this
+Markdown; the real scoped brandbook HTML is Phase 84.
