@@ -66,7 +66,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 81-03-PLAN.md — Author brandbook/tokens/tokens.json (hand-authored DTCG mirror: alias refs, light/dark sibling groups) [Wave 2, depends 81-01]
+- [x] 81-03-PLAN.md — Author brandbook/tokens/tokens.json (hand-authored DTCG mirror: alias refs, light/dark sibling groups) [Wave 2, depends 81-01]
 
 **Cross-cutting constraints:**
 
@@ -202,7 +202,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 81. Design Tokens (Reconciliation & Documentation) | 2/3 | In Progress|  |
+| 81. Design Tokens (Reconciliation & Documentation) | 3/3 | Complete   | 2026-07-10 |
 | 82. Logo Exploration & Shortlist | 0/TBD | Not started | - |
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 0/TBD | Not started | - |
 | 84. HTML Brandbook, Voice & Component States | 0/TBD | Not started | - |
