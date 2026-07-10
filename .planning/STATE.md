@@ -4,7 +4,7 @@ milestone: v1.15
 milestone_name: Brand Identity & Brand Book
 status: verifying
 stopped_at: Phase 81 context gathered (assumptions mode)
-last_updated: "2026-07-10T02:55:08.660Z"
+last_updated: "2026-07-10T02:55:33.191Z"
 last_activity: 2026-07-10
 progress:
   total_phases: 6
@@ -220,6 +220,7 @@ status: complete
 - [Phase ?]: [80-03]: Added checkout to pr-gate/ci-gate so the aggregate script is present in the runner (Rule 3 fix)
 - [Phase ?]: [80-04]: D-08 realized as new GitHub ruleset (id 18486746) requiring pr-gate on main; main had no prior protection so it was a set-up, not a swap from ci-gate
 - [Phase ?]: [80-04]: Gate docs (CONTRIBUTING/MAINTAINING) aligned with two-aggregate topology; Sigra ref corrected b186f03->62ceb46a; installer-gating reconciled to push+dispatch-only
+- [Phase ?]: 81-03: tokens.json is a hand-synced DTCG mirror (no build tool, D-09); semantic hex-equal-to-primitive values are alias refs (D-10); light/dark are sibling groups, no system node (D-11)
 
 ## Performance
 
