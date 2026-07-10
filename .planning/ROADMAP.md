@@ -87,7 +87,11 @@ Plans:
 3. No direction uses a rectangular/enclosing background cage; mark and wordmark read as one unified unit (not icon-left/text-right); the primary lockup carries no subtitle; imagery routes the "chime" idea through the path/route/signal/trace metaphor set (no literal music/bell/clapper/note).
 4. Every shortlisted mark is demonstrated legible and recognizable at 16px, in single-color mono, and inverse (dark) before shortlisting; clear-space and minimum-size intent is captured.
 
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+**Wave 1**
+- [ ] 82-01-PLAN.md — Wave 0 guard script + author notes/logo-options.md (5 directions, ≥2 integrated typemarks, per-direction 16px/mono/inverse proof strips, rejected set) + ephemeral file:// gallery + human legibility/taste checkpoint
 
 **UI hint**: yes
 
