@@ -59,9 +59,18 @@
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 81-01-PLAN.md — Author brandbook/tokens/tokens.css (:root SSOT: 15 verbatim primitives, generalized semantic tier, light/dark/system theming) [Wave 1]
 - [ ] 81-02-PLAN.md — Author notes/decision-log.md (DIV-1..DIV-7 divergence ledger, DOCUMENTED/DEFERRED, zero-drift invariant) [Wave 1]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 81-03-PLAN.md — Author brandbook/tokens/tokens.json (hand-authored DTCG mirror: alias refs, light/dark sibling groups) [Wave 2, depends 81-01]
+
+**Cross-cutting constraints:**
+
+- Both admin CSS files (chimeway_admin/priv/static/chimeway_admin.css + chimeway_admin/assets/css/chimeway_admin.css wrapper) show zero changes — TOKEN-04
 
 ### Phase 82: Logo Exploration & Shortlist
 

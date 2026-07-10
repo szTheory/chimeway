@@ -356,14 +356,14 @@ No missing dependencies. No build tooling required or permitted.
 
 **All other claims are VERIFIED against the repo files or CITED from the DTCG 2025.10 spec.**
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does the brandbook expose `--cw-surface-panel-soft` and the shadow/radius/transition pass-throughs under generalized names, or only the 7 core D-04 aliases?**
    - What we know: D-04 lists exactly 7 generalized names; the other 5 `--cw-admin-*` rows are non-color pass-throughs already available under primitive/scalar names.
-   - Recommendation: expose only the 7; reference `--cw-shadow-panel`/`--cw-radius-md`/`--cw-motion-fast` directly. Claude's-discretion call at planning time.
+   - **RESOLVED (81-01):** Expose only the 7 generalized D-04 names; the pass-throughs are reachable directly under `--cw-shadow-panel`/`--cw-radius-md`/`--cw-motion-fast` and no `--cw-admin-*` name is emitted. Implemented in 81-01 Task 1 (step 5) with an explicit `! grep -q -- '--cw-admin-'` guard.
 
 2. **Author the motion easing as a `cubicBezier` token or keep the CSS keyword and only emit a `duration` in JSON?**
-   - Recommendation: emit `duration` in JSON, keep the CSS shorthand verbatim, and note the easing keyword in `$description` (least-surprise, avoids the A1 assumption becoming load-bearing).
+   - **RESOLVED (81-03 / DIV-5):** Emit a `duration` token in JSON, keep the CSS `120ms ease-out` / `80ms ease-out` shorthand verbatim, and note the `ease-out` easing keyword in the JSON `$description` rather than hard-coding a `cubicBezier` (least-surprise; keeps the A1 assumption non-load-bearing). Implemented in 81-03 Task 1 (`motion` group) and logged as DIV-5 DOCUMENTED.
 
 ## Sources
 
