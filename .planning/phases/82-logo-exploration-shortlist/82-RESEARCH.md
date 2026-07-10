@@ -305,17 +305,19 @@ Not applicable — this is a **greenfield doc/asset phase**, not a rename/refact
 
 **All rendering/behavioral claims (GitHub SVG stripping, `var()` non-resolution, cross-`<svg>` `<use>`, `file://` same-origin) are VERIFIED against primary sources — not assumptions.**
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Literal token hex vs `var(--cw-*)` in the committed SVG**
    - What we know: `var()` won't resolve in the committed `.md` or a standalone `.svg` (Pitfall 2).
    - What's unclear: whether the planner wants an auditable comment convention (`<!-- --cw-ink -->`) on every fill, or a legend at the top of the doc.
    - Recommendation: literal hex + one comment per distinct color the first time it appears, plus a token→hex legend in the doc intro. Cheap, keeps D-11 auditable.
+   - **RESOLVED:** adopted verbatim in 82-01-PLAN.md `<constraints>` + Task 2 (literal hex, first-use `<!-- --cw-ink -->` comment, token→hex legend in the doc intro).
 
 2. **How many rejected candidates to retain inline**
    - What we know: NOTES-02 requires rejected directions kept inline for repo-size discipline; D-01 confirms.
    - What's unclear: exact count — "all explored" is open-ended.
    - Recommendation: retain 2–4 instructive rejects (each failing a *different* gate: cage, bell-literal, dies-at-16px, icon+text-gap) so the doc teaches the taste gates; keep each SVG minimal.
+   - **RESOLVED:** adopted verbatim in 82-01-PLAN.md Task 3 (2–4 rejects, each failing a different gate).
 
 ## Environment Availability
 
