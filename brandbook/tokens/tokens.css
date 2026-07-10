@@ -1,0 +1,111 @@
+/*
+ * Chimeway design tokens — canonical --cw-* layer.
+ * Reconciled verbatim with the shipped SSOT:
+ *   chimeway_admin/priv/static/chimeway_admin.css (token layer, lines 3-222).
+ * De-scoped from `@layer cw.tokens` + `:where(.chimeway-admin…)` to bare
+ * `:root` / `[data-theme]` / `@media` so the tokens publish globally (D-01/D-02).
+ * Values are copied lowercase from the shipped CSS — never edit that file.
+ */
+
+:root {
+  /* Primitives (verbatim, chimeway_admin.css:5-19) */
+  --cw-ink: #102027;
+  --cw-night: #07131a;
+  --cw-paper: #fffdf8;
+  --cw-porcelain: #f7f4ea;
+  --cw-line: #d8d3c7;
+  --cw-muted: #5e6b72;
+  --cw-teal: #0e7c86;
+  --cw-blue: #2d6cdf;
+  --cw-brass: #d6a84f;
+  --cw-mint: #9adbcf;
+  --cw-violet: #6d5df6;
+  --cw-success: #0b7a50;
+  --cw-warning: #8a5a00;
+  --cw-danger: #b83232;
+  --cw-code: #0b1720;
+
+  /* Non-color scalars (verbatim, chimeway_admin.css:21-49) */
+  --cw-space-xs: 4px;
+  --cw-space-sm: 8px;
+  --cw-space-md: 16px;
+  --cw-space-lg: 24px;
+  --cw-space-xl: 32px;
+  --cw-space-2xl: 48px;
+  --cw-space-3xl: 64px;
+  --cw-font-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --cw-font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --cw-font-size-label: 14px;
+  --cw-font-size-body: 16px;
+  --cw-font-size-heading: 20px;
+  --cw-font-size-display: 28px;
+  --cw-line-height-label: 1.35;
+  --cw-line-height-body: 1.5;
+  --cw-line-height-heading: 1.2;
+  --cw-line-height-display: 1.15;
+  --cw-font-weight-regular: 400;
+  --cw-font-weight-semibold: 600;
+  --cw-radius-sm: 5px;
+  --cw-radius-md: 8px;
+  --cw-radius-pill: 999px;
+  --cw-shadow-panel: 0 16px 42px rgb(16 32 39 / 0.08);
+  --cw-focus-ring: var(--cw-blue);
+  --cw-focus-offset: 3px;
+  --cw-z-sidebar: 10;
+  --cw-z-focus: 50;
+  --cw-motion-fast: 120ms ease-out;
+  --cw-motion-pressed: 80ms ease-out;
+
+  /* Border-width (net-new default satisfying the border family, DIV-7 DOCUMENTED) */
+  --cw-border-width: 1px;
+
+  /* Status triads (verbatim, chimeway_admin.css:51-65) */
+  --cw-status-success-text: #0b6b47;
+  --cw-status-success-surface: #e8f6ef;
+  --cw-status-success-border: #9fd8bf;
+  --cw-status-warning-text: #765000;
+  --cw-status-warning-surface: #fff2cf;
+  --cw-status-warning-border: #e5c36d;
+  --cw-status-danger-text: #9f2424;
+  --cw-status-danger-surface: #fdecec;
+  --cw-status-danger-border: #eda3a3;
+  --cw-status-info-text: #0e5f67;
+  --cw-status-info-surface: #e8f6f5;
+  --cw-status-info-border: #94d4d7;
+  --cw-status-neutral-text: #425158;
+  --cw-status-neutral-surface: #f1eee4;
+  --cw-status-neutral-border: #d8d3c7;
+
+  /* Generalized semantic aliases (D-04, de-scoped from the admin alias layer) */
+  --cw-surface-bg: var(--cw-paper);
+  --cw-surface-panel: #ffffff;
+  --cw-fg: var(--cw-ink);
+  --cw-fg-muted: var(--cw-muted);
+  --cw-border: var(--cw-line);
+  --cw-accent: var(--cw-teal);
+  --cw-focus: var(--cw-focus-ring);
+
+  /* Info alias (net-new, aliases the blue primitive, D-06 / DIV-2 DOCUMENTED) */
+  --cw-info: var(--cw-blue);
+
+  /* Control / surface layer (verbatim, chimeway_admin.css:80-96) */
+  --cw-surface-hover: #eef8f7;
+  --cw-surface-active: #dff1ef;
+  --cw-control-bg: #ffffff;
+  --cw-control-hover: #f7f4ea;
+  --cw-control-active: #eef8f7;
+  --cw-control-disabled-bg: #eee9dc;
+  --cw-control-disabled-fg: #68757b;
+  --cw-border-strong: #a9bebf;
+  --cw-focus-halo: #dbe9ff;
+  --cw-button-primary-bg: #0e7c86;
+  --cw-button-primary-fg: #ffffff;
+  --cw-button-danger-bg: #b83232;
+  --cw-button-danger-fg: #ffffff;
+  --cw-table-row-hover: #f4faf9;
+  --cw-row-bg: #f7f4ea;
+  --cw-row-hover: #eef8f7;
+  --cw-link-fg: #0e5f67;
+
+  color-scheme: light;
+}
