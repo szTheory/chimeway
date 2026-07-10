@@ -62,7 +62,7 @@ Plans:
 **Wave 1**
 
 - [x] 81-01-PLAN.md — Author brandbook/tokens/tokens.css (:root SSOT: 15 verbatim primitives, generalized semantic tier, light/dark/system theming) [Wave 1]
-- [ ] 81-02-PLAN.md — Author notes/decision-log.md (DIV-1..DIV-7 divergence ledger, DOCUMENTED/DEFERRED, zero-drift invariant) [Wave 1]
+- [x] 81-02-PLAN.md — Author notes/decision-log.md (DIV-1..DIV-7 divergence ledger, DOCUMENTED/DEFERRED, zero-drift invariant) [Wave 1]
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -202,7 +202,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 81. Design Tokens (Reconciliation & Documentation) | 1/3 | In Progress|  |
+| 81. Design Tokens (Reconciliation & Documentation) | 2/3 | In Progress|  |
 | 82. Logo Exploration & Shortlist | 0/TBD | Not started | - |
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 0/TBD | Not started | - |
 | 84. HTML Brandbook, Voice & Component States | 0/TBD | Not started | - |

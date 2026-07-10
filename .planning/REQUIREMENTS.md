@@ -23,7 +23,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [x] **TOKEN-01**: `brandbook/tokens/tokens.css` defines canonical `--cw-*` custom properties with the 15 primitive colors copied **verbatim** from the shipped `chimeway_admin.css` — one source of truth, no forked palette.
 - [ ] **TOKEN-02**: `brandbook/tokens/tokens.json` mirrors the token set in DTCG (`$value`/`$type`/`$description`) shape, hand-authored, no build tool required.
 - [x] **TOKEN-03**: Tokens cover color (primitive + generalized semantic tier + semantic state: success/warning/error/**info**), type scale, spacing, radius, border, shadow, motion, focus-ring, and z-index — two-tier primitive→semantic only (no component-token tier, no 12-step per-hue scales).
-- [ ] **TOKEN-04**: Every sub-primitive divergence from shipped admin CSS (radius-sm 5px vs 4px; info/cancelled/sending/expired status triads; missing `--cw-info`; net-new motion + z-index tokens) is recorded in `notes/decision-log.md` as DOCUMENTED/DEFERRED — `chimeway_admin.css` is **not** modified this milestone.
+- [x] **TOKEN-04**: Every sub-primitive divergence from shipped admin CSS (radius-sm 5px vs 4px; info/cancelled/sending/expired status triads; missing `--cw-info`; net-new motion + z-index tokens) is recorded in `notes/decision-log.md` as DOCUMENTED/DEFERRED — `chimeway_admin.css` is **not** modified this milestone.
 - [x] **TOKEN-05**: Light/dark/system theming is supported and each new semantic token has an independently contrast-checked dark value (no `filter: invert()`).
 
 ### Standalone HTML Brandbook (BOOK)
@@ -104,7 +104,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TOKEN-01 | Phase 81 | Complete |
 | TOKEN-02 | Phase 81 | Pending |
 | TOKEN-03 | Phase 81 | Complete |
-| TOKEN-04 | Phase 81 | Pending |
+| TOKEN-04 | Phase 81 | Complete |
 | TOKEN-05 | Phase 81 | Complete |
 | LOGO-01 | Phase 82 | Pending |
 | LOGO-02 | Phase 82 | Pending |
