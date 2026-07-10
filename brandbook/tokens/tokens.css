@@ -109,3 +109,126 @@
 
   color-scheme: light;
 }
+
+/* Explicit light override (mirror chimeway_admin.css:101-129, D-02) */
+[data-theme="light"] {
+  --cw-surface-bg: var(--cw-paper);
+  --cw-surface-panel: #ffffff;
+  --cw-fg: var(--cw-ink);
+  --cw-fg-muted: var(--cw-muted);
+  --cw-border: var(--cw-line);
+  --cw-accent: var(--cw-teal);
+  --cw-focus: var(--cw-focus-ring);
+  --cw-surface-hover: #eef8f7;
+  --cw-surface-active: #dff1ef;
+  --cw-control-bg: #ffffff;
+  --cw-control-hover: #f7f4ea;
+  --cw-control-active: #eef8f7;
+  --cw-control-disabled-bg: #eee9dc;
+  --cw-control-disabled-fg: #68757b;
+  --cw-border-strong: #a9bebf;
+  --cw-focus-halo: #dbe9ff;
+  --cw-button-primary-bg: #0e7c86;
+  --cw-button-primary-fg: #ffffff;
+  --cw-button-danger-bg: #b83232;
+  --cw-button-danger-fg: #ffffff;
+  --cw-table-row-hover: #f4faf9;
+  --cw-row-bg: #f7f4ea;
+  --cw-row-hover: #eef8f7;
+  --cw-link-fg: #0e5f67;
+  color-scheme: light;
+}
+
+/* Dark override — verbatim hand-authored hex, no filter inversion
+   (mirror chimeway_admin.css:131-174, D-02 / TOKEN-05) */
+[data-theme="dark"] {
+  --cw-surface-bg: var(--cw-night);
+  --cw-surface-panel: #10232c;
+  --cw-fg: #fffdf8;
+  --cw-fg-muted: #b8c5c9;
+  --cw-border: #29414a;
+  --cw-accent: var(--cw-mint);
+  --cw-focus: var(--cw-brass);
+  --cw-shadow-panel: 0 18px 50px rgb(0 0 0 / 0.35);
+  --cw-surface-hover: #17323b;
+  --cw-surface-active: #20434c;
+  --cw-control-bg: #10232c;
+  --cw-control-hover: #17323b;
+  --cw-control-active: #20434c;
+  --cw-control-disabled-bg: #13242b;
+  --cw-control-disabled-fg: #7f9298;
+  --cw-border-strong: #4b6972;
+  --cw-focus-halo: #34280d;
+  --cw-button-primary-bg: #9adbcf;
+  --cw-button-primary-fg: #07131a;
+  --cw-button-danger-bg: #ffb3b3;
+  --cw-button-danger-fg: #07131a;
+  --cw-table-row-hover: #112832;
+  --cw-row-bg: #0b1b23;
+  --cw-row-hover: #17323b;
+  --cw-link-fg: #9adbcf;
+  --cw-status-success-text: #b7f0d7;
+  --cw-status-success-surface: #0d2f24;
+  --cw-status-success-border: #2d7a5d;
+  --cw-status-warning-text: #ffe0a0;
+  --cw-status-warning-surface: #33260b;
+  --cw-status-warning-border: #8a6824;
+  --cw-status-danger-text: #ffd4d4;
+  --cw-status-danger-surface: #3a1717;
+  --cw-status-danger-border: #984747;
+  --cw-status-info-text: #b8eee8;
+  --cw-status-info-surface: #0d3035;
+  --cw-status-info-border: #397b83;
+  --cw-status-neutral-text: #d5dee1;
+  --cw-status-neutral-surface: #142832;
+  --cw-status-neutral-border: #4b6972;
+  color-scheme: dark;
+}
+
+/* System dark default — byte-identical override list to [data-theme="dark"]
+   (mirror chimeway_admin.css:176-221, D-02) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cw-surface-bg: var(--cw-night);
+    --cw-surface-panel: #10232c;
+    --cw-fg: #fffdf8;
+    --cw-fg-muted: #b8c5c9;
+    --cw-border: #29414a;
+    --cw-accent: var(--cw-mint);
+    --cw-focus: var(--cw-brass);
+    --cw-shadow-panel: 0 18px 50px rgb(0 0 0 / 0.35);
+    --cw-surface-hover: #17323b;
+    --cw-surface-active: #20434c;
+    --cw-control-bg: #10232c;
+    --cw-control-hover: #17323b;
+    --cw-control-active: #20434c;
+    --cw-control-disabled-bg: #13242b;
+    --cw-control-disabled-fg: #7f9298;
+    --cw-border-strong: #4b6972;
+    --cw-focus-halo: #34280d;
+    --cw-button-primary-bg: #9adbcf;
+    --cw-button-primary-fg: #07131a;
+    --cw-button-danger-bg: #ffb3b3;
+    --cw-button-danger-fg: #07131a;
+    --cw-table-row-hover: #112832;
+    --cw-row-bg: #0b1b23;
+    --cw-row-hover: #17323b;
+    --cw-link-fg: #9adbcf;
+    --cw-status-success-text: #b7f0d7;
+    --cw-status-success-surface: #0d2f24;
+    --cw-status-success-border: #2d7a5d;
+    --cw-status-warning-text: #ffe0a0;
+    --cw-status-warning-surface: #33260b;
+    --cw-status-warning-border: #8a6824;
+    --cw-status-danger-text: #ffd4d4;
+    --cw-status-danger-surface: #3a1717;
+    --cw-status-danger-border: #984747;
+    --cw-status-info-text: #b8eee8;
+    --cw-status-info-surface: #0d3035;
+    --cw-status-info-border: #397b83;
+    --cw-status-neutral-text: #d5dee1;
+    --cw-status-neutral-surface: #142832;
+    --cw-status-neutral-border: #4b6972;
+    color-scheme: dark;
+  }
+}
