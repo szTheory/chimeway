@@ -56,7 +56,12 @@
 3. Light/dark/system theming resolves and every new semantic token has an independently contrast-checked dark value (no `filter: invert()`).
 4. `notes/decision-log.md` records every sub-primitive divergence (radius-sm 5px vs 4px; info/cancelled/sending/expired status triads; missing `--cw-info`; net-new motion + z-index tokens) as DOCUMENTED/DEFERRED, and `chimeway_admin.css` shows zero changes.
 
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 81-01-PLAN.md — Author brandbook/tokens/tokens.css (:root SSOT: 15 verbatim primitives, generalized semantic tier, light/dark/system theming) [Wave 1]
+- [ ] 81-02-PLAN.md — Author notes/decision-log.md (DIV-1..DIV-7 divergence ledger, DOCUMENTED/DEFERRED, zero-drift invariant) [Wave 1]
+- [ ] 81-03-PLAN.md — Author brandbook/tokens/tokens.json (hand-authored DTCG mirror: alias refs, light/dark sibling groups) [Wave 2, depends 81-01]
 
 ### Phase 82: Logo Exploration & Shortlist
 
