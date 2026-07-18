@@ -91,6 +91,7 @@ Plans:
 
 Plans:
 **Wave 1**
+
 - [x] 82-01-PLAN.md — Wave 0 guard script + author notes/logo-options.md (5 directions, ≥2 integrated typemarks, per-direction 16px/mono/inverse proof strips, rejected set) + ephemeral file:// gallery + human legibility/taste checkpoint
 
 **UI hint**: yes
@@ -114,12 +115,15 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 83-01-PLAN.md — Asset tooling: extend logo-guards.sh (`--assets` mode + widened `--scope`), add pinned svgo.config.mjs + Chrome render helper [Wave 1]
+
+- [x] 83-01-PLAN.md — Asset tooling: extend logo-guards.sh (`--assets` mode + widened `--scope`), add pinned svgo.config.mjs + Chrome render helper [Wave 1]
 
 **Wave 2** *(depends 83-01)*
+
 - [ ] 83-02-PLAN.md — Six-mark lockup family in brandbook/assets/logo/: OFL-recut wordmark + keystone-i, mono/inverse/stacked/icon/icon-mono (optimized SVGs) [Wave 2]
 
 **Wave 3** *(depends 83-02)*
+
 - [ ] 83-03-PLAN.md — Simplified favicon set (svg/ico/apple-touch) + OG card (svg/png), decision-log ratification, human perceptual checkpoint [Wave 3]
 
 **UI hint**: yes
@@ -218,7 +222,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 |-------|----------------|--------|-----------|
 | 81. Design Tokens (Reconciliation & Documentation) | 3/3 | Complete    | 2026-07-10 |
 | 82. Logo Exploration & Shortlist | 1/1 | Complete   | 2026-07-18 |
-| 83. Direction Selection & Final Asset Family (User Checkpoint) | 0/3 | Planned | - |
+| 83. Direction Selection & Final Asset Family (User Checkpoint) | 1/3 | In Progress|  |
 | 84. HTML Brandbook, Voice & Component States | 0/TBD | Not started | - |
 | 85. Repo Integration (README + HexDocs + Favicon Wiring) | 0/TBD | Not started | - |
 | 86. Accessibility Audit, Notes & Red-Team Close | 0/TBD | Not started | - |
