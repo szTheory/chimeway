@@ -323,22 +323,21 @@ printf '<!doctype html><meta charset=utf-8><style>html,body{margin:0}</style>\
 | A5 | INTEG-03 "shipped and wired" = Phase 83 ships assets + provides the `<link>` snippet; actual README/`mix.exs`/HexDocs wiring is Phase 85 | Q3 | LOW-MED — if INTEG-03 expects real wiring now, scope crosses into Phase 85's allowed edits |
 | A6 | Three committed raster binaries (`.ico`, apple-touch `.png`, `og.png`) is within the milestone's repo-size/binary discipline | Pitfall 3 | LOW — keep them tiny + documented for the Phase 86 red-team |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Optima font licensing for redistributed outlines.**
-   - What we know: the finalist wordmark is Optima outlined via fontTools; Optima is proprietary (Monotype/Linotype), and the macOS copy is under Apple's device-scoped system-font license. `notes/logo-options.md` explicitly defers "licensing finalization" to Phase 83.
-   - What's unclear: whether shipping the outlines in a public repo is within license, or requires a libre re-cut.
-   - Recommendation: **Raise at the checkpoint.** Safest decisive path if any doubt: re-outline the wordmark in an OFL humanist/glyphic face (fontTools re-run is cheap) so the committed asset is unambiguously redistributable. Record the choice + rationale in `notes/decision-log.md`.
+> All three resolved with the user at the plan-phase checkpoint (2026-07-18). Each maps 1:1 to a session-locked decision now embedded in the Phase 83 plans.
 
-2. **Confirm vs re-open the selection (Success Criterion #1).**
-   - What we know: Phase 82 already had the user informally select Keystone + the Optima keystone-`i` logotype; SUMMARY notes this "pre-stages Phase 83."
-   - What's unclear: does Phase 83 re-run an open selection, or formally ratify the existing one?
-   - Recommendation: Treat the checkpoint as a **confirmation with an explicit escape hatch** ("confirm Keystone/Optima, or change") and record the ratified decision (with ship/defer rationale for the other five directions) in `notes/decision-log.md`. Also settle whether "primary horizontal lockup" and "wordmark" ship as one file (recommended) or two.
+1. **Optima font licensing for redistributed outlines. — RESOLVED: re-cut in a libre/OFL face.**
+   - What we know: the finalist wordmark is Optima outlined via fontTools; Optima is proprietary (Monotype/Linotype), and the macOS copy is under Apple's device-scoped system-font license. `notes/logo-options.md` explicitly deferred "licensing finalization" to Phase 83.
+   - **Decision:** Retire Optima. Re-outline the `chimeway` wordmark in an openly-licensed humanist/glyphic face with Optima-like flared character (fontTools re-run) so the committed asset is unambiguously redistributable in a public hex.pm/OSS repo. Keystone-`i` construction, token-hex color law, and a11y attributes carry over; only glyph geometry changes. The chosen face + its license are recorded in `notes/decision-log.md`. (Plan 02 Task 1.)
 
-3. **INTEG-03 boundary between Phase 83 and Phase 85.**
+2. **Confirm vs re-open the selection (Success Criterion #1). — RESOLVED: ratify Keystone, do not re-explore.**
+   - What we know: Phase 82 already ran a tournament + human checkpoint and selected Keystone + the keystone-`i` logotype; SUMMARY notes this "pre-stages Phase 83."
+   - **Decision:** Phase 83's checkpoint is a formal **ratification**, not a new open selection — no metaphor tournament. Record the ratified Keystone decision (with the OFL re-cut + ship/defer rationale) in `notes/decision-log.md`. "Primary horizontal lockup" and "wordmark" ship as **one file** (`chimeway-logotype.svg`), since the integrated typemark makes them the same artwork; the standalone mono mark is the extra 7th family member. (Plan 03 Tasks 2–3.)
+
+3. **INTEG-03 boundary between Phase 83 and Phase 85. — RESOLVED: Phase 83 ships assets + snippet only.**
    - What we know: INTEG-03 says the favicon is "shipped **and wired**"; INTEG-01/02 (README header, `mix.exs` `docs()` `:logo`/`:favicon`) are Phase 85; the milestone permits only two integration edits and Phase 85 owns them.
-   - What's unclear: whether any wiring happens in Phase 83.
-   - Recommendation: Phase 83 ships the favicon **assets** and the ready-to-paste `<link>`/`docs()` snippet in the decision record; Phase 85 performs the actual `mix.exs`/README edits. Keeps the two-edit budget and "don't revise config mid-flight" intent intact. Confirm with the planner.
+   - **Decision:** Phase 83 ships the favicon **assets** and the ready-to-paste `<link>`/`docs()` snippet in the decision record; Phase 85 performs the actual `mix.exs`/README edits. No README/`mix.exs` edits in Phase 83 — keeps the two-edit budget and "don't revise config mid-flight" intent intact. (Plan 03; verified by the plan-checker: no plan's `files_modified` touches README or mix.exs.)
 
 ## Environment Availability
 
