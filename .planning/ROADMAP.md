@@ -110,7 +110,17 @@ Plans:
 3. Every shipped mark is verified legible and recognizable at 16px, in mono, and inverse before ship.
 4. A deliberately-simplified `favicon.svg` (plus the minimal raster fallback platforms require) and a social/OG card (SVG + the one justified PNG raster) are derived from the final mark — not the primary lockup naively resized.
 
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+**Wave 1**
+- [ ] 83-01-PLAN.md — Asset tooling: extend logo-guards.sh (`--assets` mode + widened `--scope`), add pinned svgo.config.mjs + Chrome render helper [Wave 1]
+
+**Wave 2** *(depends 83-01)*
+- [ ] 83-02-PLAN.md — Six-mark lockup family in brandbook/assets/logo/: OFL-recut wordmark + keystone-i, mono/inverse/stacked/icon/icon-mono (optimized SVGs) [Wave 2]
+
+**Wave 3** *(depends 83-02)*
+- [ ] 83-03-PLAN.md — Simplified favicon set (svg/ico/apple-touch) + OG card (svg/png), decision-log ratification, human perceptual checkpoint [Wave 3]
 
 **UI hint**: yes
 
@@ -208,7 +218,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 |-------|----------------|--------|-----------|
 | 81. Design Tokens (Reconciliation & Documentation) | 3/3 | Complete    | 2026-07-10 |
 | 82. Logo Exploration & Shortlist | 1/1 | Complete   | 2026-07-18 |
-| 83. Direction Selection & Final Asset Family (User Checkpoint) | 0/TBD | Not started | - |
+| 83. Direction Selection & Final Asset Family (User Checkpoint) | 0/3 | Planned | - |
 | 84. HTML Brandbook, Voice & Component States | 0/TBD | Not started | - |
 | 85. Repo Integration (README + HexDocs + Favicon Wiring) | 0/TBD | Not started | - |
 | 86. Accessibility Audit, Notes & Red-Team Close | 0/TBD | Not started | - |
