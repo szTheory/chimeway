@@ -36,14 +36,16 @@ and social derivatives. This phase does **not** pick a winner and does **not** e
 
 ### Direction Set
 - **D-03:** Fully work **5 distinct directions** (top of the 3–5 range) to give a genuine choice.
-- **D-04:** **At least 2 of the 5 are integrated typemarks** — a custom motif/flourish worked
-  *into* the lowercase `chimeway` letterforms (e.g. the `w` rendered as a routed path, a ligature
-  carrying a signal arc), not a mark placed beside a plain font. (Spec requires ≥1 per LOGO-02;
-  authoring 2 de-risks the eventual pick.)
-- **D-05:** Each direction uses **≤2 visual ideas** and routes the "chime" concept through the
-  **path / route / signal-arc / waypoint / trace-timeline / `cw`-monogram-as-path** metaphor set.
-  Abstract gentle rings/arcs are allowed as "signal." **Zero literal bell, clapper, musical note,
-  staff line, or audio/sound-effect imagery** (LOGO-06).
+- **D-04:** ~~At least 2 of the 5 are integrated typemarks~~ **RELAXED by D-14** to the LOGO-02
+  floor: **at least 1** of the shortlist is a genuinely integrated typemark (motif worked *into* a
+  `chimeway` glyph). The first tournament's two typemarks (routed-`w`, trace-`y`) were rejected as
+  not resonating, so 2 is no longer forced — the tournament may surface strong non-typemark
+  directions instead, provided ≥1 typemark survives to satisfy LOGO-02.
+- **D-05:** ~~Each direction routes the "chime" concept through the path / route / signal-arc /
+  waypoint / trace-timeline / `cw`-monogram-as-path metaphor set.~~ **SUPERSEDED by D-14.** This
+  narrow single-family metaphor lock is exactly what produced the rejected first shortlist. The
+  **≤2 visual ideas per direction** discipline and the **zero literal bell/clapper/note/staff/audio**
+  exclusion both survive under D-14; only the single-family restriction is lifted.
 
 ### Taste Constraints (non-negotiable, applied to every direction)
 - **D-06:** No rectangular/enclosing background cage; transparent/background-free marks by default.
@@ -82,6 +84,24 @@ and social derivatives. This phase does **not** pick a winner and does **not** e
   reject are Claude's creative call within D-03..D-12 — the human's taste sign-off is Phase 83.
 - Light external research (OSS devtool logo precedents; integrated-typemark construction) may be
   gathered by the researcher to back rationale with citations; it is non-blocking.
+
+### Post-Checkpoint Reset (2026-07-18)
+- **D-14:** The first shortlist (5 route/signal/trace directions) was **rejected in full** at the
+  Task 4 human-verify checkpoint — D1 "looks like a power button," D2 "doesn't read," D3 routing
+  "doesn't resonate for notifications," D4 "AI slop… not readable," D5 (cw-monogram, the user's
+  favorite) "not a coherent logo, just a floating monogram." Root cause: all five shared the single
+  D-05 metaphor family. **Resolution (approved with the user):** reopen the concept aperture (D-05
+  superseded, D-04 relaxed) and run a **wide divergent tournament + cull** — ~15–20 rough candidates
+  generated across broadened families in parallel, judged, culled to a fresh **5–6** shortlist for a
+  second checkpoint. Broadened families: **pure logotype/wordmark, aperture/opening, abstract
+  geometric fan-out, keystone/anchor, containment/stewardship, ledger/seal/mark-of-record** (plus
+  route/signal/trace still permitted if executed far better). **Retained non-negotiables:** the
+  no-bell/music/note exclusion (LOGO-06), all D-06..D-12 hygiene/taste gates, the ≤2-visual-ideas
+  discipline, and repo scope (only `notes/logo-options.md` + `scripts/logo-guards.sh` committed).
+  **Added anti-slop guardrails** judged in the cull: must read at a glance, must not collide with a
+  common UI glyph (power button / copy icon / circle-arrow), must cohere as a lockup (no floating
+  monogram beside plain text), must survive 16px + mono as authored. Old D5 kept as a *reference*
+  lesson only, not a lead. `notes/logo-options.md` is rewritten in place (new commit, history kept).
 
 ### Folded Todos
 None — `todo.match-phase 82` returned zero matches.

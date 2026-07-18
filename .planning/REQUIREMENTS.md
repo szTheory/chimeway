@@ -16,7 +16,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **LOGO-03**: The selected finalist ships a full lockup family — primary horizontal lockup, icon-only mark, wordmark, stacked lockup, mono, inverse, and a simplified favicon mark — as optimized SVGs.
 - [ ] **LOGO-04**: Every shipped mark stays legible and recognizable at 16px, in single-color mono, and inverse (dark) — each verified against those tests before ship.
 - [ ] **LOGO-05**: No logomark uses a rectangular/enclosing background cage; mark and wordmark read as one unified unit (not icon-left/text-right); the primary lockup carries no subtitle/slogan (a separate optional tagline lockup only if it genuinely adds value).
-- [ ] **LOGO-06**: Directions avoid literal music/bell/clapper/note imagery, expressing the "chime" idea through the path / route / signal / trace metaphor set; clear-space, minimum-size, and a do/don't usage grid are documented.
+- [ ] **LOGO-06**: Directions avoid literal music/bell/clapper/note/audio imagery (Chimeway is not an audio product; "Chime" is trademark-crowded). The brand may be expressed through any "calm infrastructure" metaphor family — route/signal/trace, **or** pure logotype/wordmark, aperture/opening, abstract geometric fan-out, keystone/anchor, containment/stewardship, or ledger/seal/mark-of-record — not solely the route/signal/trace set. Clear-space, minimum-size, and a do/don't usage grid are documented. *(Amended after the Phase 82 human-verify checkpoint rejected all five route/signal/trace directions; the no-audio exclusion is retained, the metaphor scope is broadened — see 82-CONTEXT D-14.)*
 
 ### Design Tokens (TOKEN)
 
