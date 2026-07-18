@@ -115,3 +115,85 @@ git diff --exit-code chimeway_admin/priv/static/chimeway_admin.css chimeway_admi
 exit 0 proves neither file was touched. All live sub-primitive reconciliation (radius-sm 4px,
 blue-info triad, status-pill remapping) belongs to the **ADMIN-RETHEME-01** milestone, which
 consumes this log as its provenance record.
+
+---
+
+## Logo Direction Ratification
+
+**Date:** 2026-07-18
+**Decision status:** RATIFIED (finalist selected in Phase 82; formally recorded + human-gated here)
+**Scope:** the shipped `chimeway` brand-mark direction and its wordmark typeface, plus the INTEG-03 wiring boundary
+
+This section is the written record for **Phase 83 Success Criterion #1** — "the user selects a
+direction at an explicit checkpoint, and the choice (with ship/defer rationale) is recorded in
+`notes/decision-log.md`." The direction is **not re-opened** here: Phase 82 already ran the metaphor
+tournament and selected the finalist. Phase 83 ships the mark-derived asset family, records the
+ratification, and gates the whole family at a blocking human perceptual checkpoint (16px / mono /
+inverse / favicon / OG legibility).
+
+### Sources
+
+- `notes/logo-options.md` — the vetted shortlist and the embedded finalist SVGs: primary logotype (L41), inverse (L45), icon-only keystone (L49). The "Rejected" directions and their gate-failure reasons live here.
+- `.planning/phases/82-logo-exploration-shortlist/82-01-SUMMARY.md` — the **D-14** lineage: the first route/signal/trace shortlist was rejected in full at the human checkpoint, the LOGO-06 metaphor lock was broadened to six families, and the **Keystone** direction emerged as the finalist.
+- `.planning/ROADMAP.md` — Phase 83 Success Criteria #1-#4 (direction recorded; full lockup family shipped; 16px/mono/inverse verified; favicon + OG derived from the mark, not the lockup resized).
+- `.planning/REQUIREMENTS.md` — **LOGO-03** (primary lockup + wordmark), **LOGO-04** (icon / mono / inverse / simplified-favicon family), **INTEG-03** (favicon assets + wiring handoff).
+- `.planning/phases/83-.../83-02-SUMMARY.md` — the OFL face selection + fontTools re-cut of the wordmark.
+
+### Ratified direction — Keystone
+
+- **Shipped side:** the **Keystone** direction is RATIFIED as the chimeway identity. The two-tone keystone (a `--cw-ink #102027` body + a single `--cw-teal #0e7c86` facet at the right ~65% width) ships standalone as the icon mark and integrated as the keystone-`i` inside the wordmark. Shipped family: `brandbook/assets/logo/{chimeway-logotype,chimeway-logotype-mono,chimeway-logotype-inverse,chimeway-logotype-stacked,chimeway-mark,chimeway-mark-mono}.svg`, the simplified `brandbook/assets/favicon/favicon.svg` (+ `favicon.ico` 16/32/48 and `apple-touch-icon.png` 180×180), and the social card `brandbook/assets/social/chimeway-og.{svg,png}`.
+- **Lineage:** selected in Phase 82 under **D-14** (see `82-01-SUMMARY.md`) — not re-explored here. This ratification satisfies ROADMAP Phase 83 SC #1 and closes **LOGO-03 / LOGO-04**.
+- **Disposition:** SHIP. The favicon is a **deliberately-simplified** keystone tuned to read at 16px (a bolder, larger-in-box silhouette derived from `chimeway-mark.svg`), **not** the wordmark lockup naively resized (ROADMAP SC #4 / RESEARCH Anti-Pattern). The OG card is composed from the mark + re-cut wordmark on a `--cw-paper #fffdf8` field with no enclosing cage.
+
+### Wordmark typeface — RE-CUT in Marcellus (Optima retired)
+
+- **Shipped side:** the wordmark is RE-CUT in **Marcellus**, license **SIL Open Font License 1.1 (OFL-1.1)** (Brian J. Bonislawsky DBA Astigmatic / AOETI; from Google Fonts `ofl/marcellus/Marcellus-Regular.ttf`). Only the outlined `<path>` geometry ships in-repo; the `.ttf` was an ephemeral build input (scratchpad, never committed).
+- **Brand rationale:** Marcellus is a flared humanist glyphic face whose tapered stroke terminals rhyme with the keystone wedge — the closest libre analog to Optima's category.
+- **Disposition:** RE-CUT / Optima RETIRED. OFL-1.1 explicitly permits redistributing outlined glyph paths in a public OSS repo, resolving the Optima redistribution-licensing risk (RESEARCH Pitfall 5 / Q1) decisively. The Phase-82 macOS-Optima outlines were re-cut via fontTools, not shipped.
+
+### Ship / defer / reject rationale — the other explored directions
+
+- **Ship:** **Keystone** — the finalist (above).
+- **Defer / documented:** the five other Phase-82 shortlisted directions — **Way/Threshold, Dispatch, Held Record, Aperture-`c` typemark, Cornerstone-`c`** — are coherent but not the shipped identity. They remain documented in `notes/logo-options.md` (with their 16px / Mono / Inverse / Clear-space / Min-size proofs) as the recorded alternative directions; no assets ship for them.
+- **Reject:** the original route/signal/trace shortlist (rejected in full at the Phase 82 checkpoint under D-14) and the four instructive rejects recorded in `notes/logo-options.md` — each failed a distinct gate (legibility, metaphor, taste, or the no-bell/music exclusion). Their `Reason:` / `Failed:` lines stay in `notes/logo-options.md`.
+
+### INTEG-03 boundary — assets ship here, wiring is Phase 85
+
+**INTEG-03 boundary:** Phase 83 ships the favicon assets + the ready-to-paste wiring snippet **only**.
+The actual `README` / `mix.exs` edits are **Phase 85** — do NOT edit `README.md` or `mix.exs` in this phase.
+
+Ready-to-paste favicon `<link>` set (HTML `<head>`; adjust the href base to the docs asset root):
+
+```html
+<link rel="icon" href="/assets/favicon/favicon.ico" sizes="any">
+<link rel="icon" href="/assets/favicon/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
+<meta property="og:image" content="/assets/social/chimeway-og.png">
+```
+
+Ready-to-paste ExDoc `mix.exs` `docs()` note (Phase 85 wires this — shown here, not applied):
+
+```elixir
+# mix.exs — def project / docs: (Phase 85)
+docs: [
+  # ...
+  logo: "brandbook/assets/logo/chimeway-mark.svg",
+  # Favicon: copy brandbook/assets/favicon/* into the ExDoc output (doc/assets/)
+  # and reference them via the <link> set above; wire the OG card similarly.
+]
+```
+
+### Validation Commands
+
+```bash
+# The full asset-family gate: all seven SVGs + three rasters present and passing
+# (presence / token-hex / hygiene / xmllint / viewBox / inverse-no-backdrop /
+# raster-dims / binary-budget), and the scope-boundary allowlist.
+bash scripts/logo-guards.sh --assets && bash scripts/logo-guards.sh --scope
+
+# The ratification section is present in this log.
+grep -q 'Logo Direction Ratification' notes/decision-log.md
+
+# The OFL face + license are recorded here.
+grep -q 'Marcellus' notes/decision-log.md && grep -q 'OFL-1.1' notes/decision-log.md
+```
