@@ -35,7 +35,7 @@
 ### v1.15 Brand Identity & Brand Book
 
 - [ ] **Phase 81: Design Tokens (Reconciliation & Documentation)** — Canonical copy-safe `--cw-*` tokens (CSS + JSON) reconciled with shipped admin CSS; divergences logged as DOCUMENTED/DEFERRED
-- [ ] **Phase 82: Logo Exploration & Shortlist** — 3-5 fully-worked directions with rationale + ship/defer/reject, each passing the hard-taste and mono/inverse/16px gates
+- [x] **Phase 82: Logo Exploration & Shortlist** — 3-5 fully-worked directions with rationale + ship/defer/reject, each passing the hard-taste and mono/inverse/16px gates
 - [ ] **Phase 83: Direction Selection & Final Asset Family (User Checkpoint)** — Human selects the finalist; promote to a full optimized-SVG lockup family + simplified favicon + social derivatives
 - [ ] **Phase 84: HTML Brandbook, Voice & Component States** — The primary deliverable: scoped `file://`-safe HTML book assembling tokens, logos, component states, brand voice, and do/don't
 - [ ] **Phase 85: Repo Integration (README + HexDocs + Favicon Wiring)** — Surface the real mark on GitHub/HexDocs via minimal in-scope edits, v1.14 contracts still green
@@ -91,7 +91,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 82-01-PLAN.md — Wave 0 guard script + author notes/logo-options.md (5 directions, ≥2 integrated typemarks, per-direction 16px/mono/inverse proof strips, rejected set) + ephemeral file:// gallery + human legibility/taste checkpoint
+- [x] 82-01-PLAN.md — Wave 0 guard script + author notes/logo-options.md (5 directions, ≥2 integrated typemarks, per-direction 16px/mono/inverse proof strips, rejected set) + ephemeral file:// gallery + human legibility/taste checkpoint
 
 **UI hint**: yes
 
@@ -207,7 +207,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 81. Design Tokens (Reconciliation & Documentation) | 3/3 | Complete    | 2026-07-10 |
-| 82. Logo Exploration & Shortlist | 0/TBD | Not started | - |
+| 82. Logo Exploration & Shortlist | 1/1 | Complete   | 2026-07-18 |
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 0/TBD | Not started | - |
 | 84. HTML Brandbook, Voice & Component States | 0/TBD | Not started | - |
 | 85. Repo Integration (README + HexDocs + Favicon Wiring) | 0/TBD | Not started | - |
