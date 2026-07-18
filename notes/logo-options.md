@@ -1,44 +1,55 @@
 # Chimeway Logo Options — Exploration & Shortlist
 
 > Phase 82 deliverable (v1.15 Brand Identity & Brand Book). This is a **vetted
-> shortlist, not a raw gallery**: five fully-worked directions, each with
-> rationale, a Ship / Defer / Reject verdict + confidence, and a self-contained
-> proof strip proving 16px / mono / inverse legibility — plus a retained set of
-> rejected candidates that each teach a taste gate. Phase 83 (the user
-> checkpoint) picks the winner from this set; this phase does **not** pick a
-> winner and does **not** emit a `brandbook/logo/*.svg` file family.
+> shortlist, not a raw gallery**: fully-worked directions, each with rationale, a
+> Ship / Defer / Reject verdict + confidence, and a self-contained proof strip
+> proving 16px / mono / inverse legibility — plus a retained set of rejected
+> candidates that each teach a taste gate. Phase 83 (the user checkpoint) picks
+> the winner from this set; this phase does **not** pick a winner and does **not**
+> emit a `brandbook/logo/*.svg` file family.
+
+## Provenance — this is the second, broadened tournament
+
+The first shortlist (five directions all built on a single **path / route /
+signal / trace** metaphor) was **rejected in full** at the human-verify checkpoint
+— the routing idea did not resonate for a notification product and the marks read
+variously as a power button, a smudge, or a floating monogram. Root cause: every
+direction shared one root metaphor. This shortlist is the result of reopening the
+concept aperture (decision **D-14**) and running a **wide divergent tournament** —
+~18 candidates generated across six metaphor families, culled to the six below.
+The **no literal bell / music / note / audio** exclusion is retained (Chimeway is
+not an audio product; "Chime" is trademark-crowded); only the single-family
+metaphor lock was lifted.
 
 ## Visual thesis
 
-**Calm infrastructure** — quiet confidence, routed paths, warm technical
-precision, no SaaS-gloss. Chimeway routes a notification from trigger through
-policy, scheduling, and delivery and can always explain the path it took, so the
-mark expresses "chime" as a **routed signal**, never as a literal instrument.
-The metaphor set is deliberately narrow: **path / route / signal-arc / waypoint /
-trace-timeline / `cw`-monogram-as-path**. There is zero literal bell, clapper,
-musical note, staff line, or audio imagery in any shortlisted direction (the
-brand-book §13 "chime/bell endpoint" is superseded by LOGO-06 and treated as
-rejected).
+**Calm infrastructure** — quiet confidence, warm technical precision, no
+SaaS-gloss. Chimeway is an embedded, **local-first** notification-orchestration
+library whose signature is **explainability** — it can always answer "why wasn't
+this sent?" from a durable trace. The marks express that as **structure, a way in,
+orchestration, stewardship, and record** — never as a literal instrument. Metaphor
+families explored: **keystone/foundation, aperture/threshold, geometric fan-out,
+containment/stewardship, ledger/seal, and pure logotype.** Zero literal bell,
+clapper, musical note, staff line, or audio imagery appears in any direction.
 
 ## How to view this file
 
-Inline marks render in the ephemeral `file://` gallery (path printed at the end
-of authoring) or any raw-HTML-permitting Markdown preview — **not on
-github.com**, which strips inline SVG from rendered Markdown by design. The
-committed Markdown is the source-of-record; the gallery is the eyeball surface.
+Inline marks render in the ephemeral `file://` gallery (path printed at the end of
+authoring) or any raw-HTML-permitting Markdown preview — **not on github.com**,
+which strips inline SVG from rendered Markdown by design. The committed Markdown is
+the source-of-record; the gallery is the eyeball surface.
 
 ## Token legend (the only legal colors)
 
 Committed marks use **literal token hex** (never `var(--cw-*)`, which does not
-resolve in a standalone/committed SVG). Each distinct color is annotated at
-first use with a `cw-*` comment. Marks are drawn `cw-ink` primary with a single
-`cw-teal` accent; mono collapses to one-color ink; inverse is `cw-paper` on
+resolve in a standalone/committed SVG). Marks are drawn `cw-ink` primary with a
+single `cw-teal` accent; mono collapses to one-color ink; inverse is `cw-paper` on
 `cw-night`.
 
 | Token | Hex | Role in the marks |
 |-------|-----|-------------------|
 | `--cw-ink` | `#102027` | Primary mark stroke/fill; wordmark ink |
-| `--cw-teal` | `#0e7c86` | The single accent (one signal node / terminal per mark) |
+| `--cw-teal` | `#0e7c86` | The single accent (one node / facet per mark) |
 | `--cw-paper` | `#fffdf8` | Inverse-variant mark color (paper-on-night) |
 | `--cw-night` | `#07131a` | Inverse proof-cell background (the only legal scoped rect) |
 
@@ -46,7 +57,7 @@ first use with a `cw-*` comment. Marks are drawn `cw-ink` primary with a single
 
 Each shortlisted direction embeds a proof strip carrying all five labels:
 
-- **16px** — the logomark rendered at favicon size; must stay recognizable.
+- **16px** — the logomark at favicon size; must stay recognizable.
 - **Mono** — one-color `--cw-ink`; the concept must survive without the accent.
 - **Inverse** — `--cw-paper` on `--cw-night`; the only legal background rect.
 - **Clear-space** — reserved margin equal to the height of the lowercase `c`.
@@ -55,255 +66,280 @@ Each shortlisted direction embeds a proof strip carrying all five labels:
 ## Scope note
 
 This phase captures **clear-space and minimum-size intent only**. The do/don't
-usage grid, clear-space diagram, and minimum-size grid as *rendered brandbook
-HTML* are consciously **deferred to Phase 84** (BOOK-*, per CONTEXT Deferred
-Ideas) — so LOGO-06 is not over-credited as fully satisfied here. Full
-wordmark-to-outline conversion is deferred to the Phase 83 finalist; non-typemark
-directions render `chimeway` as Inter `<text>`.
+usage grid, clear-space diagram, and minimum-size grid as *rendered brandbook HTML*
+are consciously **deferred to Phase 84** (BOOK-*, per CONTEXT Deferred Ideas) — so
+LOGO-06 is not over-credited as fully satisfied here. Full wordmark-to-outline
+conversion is deferred to the Phase 83 finalist; non-typemark directions render
+`chimeway` as Inter `<text>`, and the one integrated typemark hand-draws only its
+distinctive glyph as `<path>`.
 
 ---
 
 ## Shortlist
 
-Five distinct directions. Directions 3 and 4 are genuinely **integrated
-typemarks** — the motif is worked *into* a `chimeway` glyph as a `<path>`, not an
-icon placed beside plain text (LOGO-02 / D-04).
+Six distinct directions across five metaphor families. Direction 5 is a genuinely
+**integrated typemark** — the leading `c` of `chimeway` is re-cut as the mark, not
+an icon placed beside plain text (LOGO-02 / D-04).
 
-### Direction 1 — Waypoint Route
+### Direction 1 — Keystone
 
 Primary lockup:
 
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway waypoint-route primary lockup">
-  <g transform="translate(10,16)">
-    <path d="M17 6.5 A 7.5 7.5 0 1 0 17 17.5" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/> <!-- cw-ink -->
-    <path d="M15 12 H22" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/>
-    <circle cx="23.6" cy="12" r="2" fill="#0e7c86"/> <!-- cw-teal signal waypoint -->
-  </g>
-  <text x="46" y="38" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway keystone primary lockup">
+  <path d="M14 16 L34 16 L30.5 44 L17.5 44 Z" fill="#102027"/> <!-- cw-ink -->
+  <path d="M24 16 L34 16 L30.5 44 L24 44 Z" fill="#0e7c86"/> <!-- cw-teal keyed facet -->
+  <text x="50" y="40" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
 </svg>
 
-Concept: An open `c`-curve whose mouth releases a short route line that
-terminates at a single teal waypoint node (two ideas: the `c`-as-route-entry and
-the waypoint endpoint). The mark reads as "a path that arrives."
+Concept: The central wedge of an arch — the keystone, the one piece that makes the
+structure hold — with a single teal facet catching light (one idea: durable
+infrastructure you own). It says "the calm foundation your notifications sit on."
 
-Pros: Simplest silhouette in the set; the open aperture and generous stroke
-survive 16px and mono cleanly; the waypoint gives one calm accent without noise.
+Pros: The most confidently infrastructural mark in the set; a solid filled form
+that never smudges, survives 16px and mono trivially, and reads instantly as
+"foundation." Distinctive without being a literal icon.
 
-Cons: The `c`-arc is a common devtool shape, so it leans on the wordmark to feel
-brand-specific; risks reading as a generic "copy" glyph if the route line is too
-short.
+Cons: A bare trapezoid can read generic if the wedge proportion is not held
+distinctive; carries no direct nod to the letter `c` or the name.
 
-Recommendation: Lead candidate for an icon-only favicon — it is the most legible
-at small size and pairs frictionlessly with the Inter wordmark.
+Recommendation: Lead candidate for a standalone icon/favicon — the strongest, most
+timeless silhouette. Pairs cleanly with the Inter wordmark.
 
 Verdict: Ship
 Confidence: High
 
 <svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 1 legibility proof — small, single-color, and dark variants">
   <defs>
-    <symbol id="d1" viewBox="0 0 24 24">
-      <path d="M16 6.5 A 7.5 7.5 0 1 0 16 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      <path d="M14 12 H20.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="21.5" cy="12" r="1.8" fill="currentColor"/>
+    <symbol id="p1" viewBox="0 0 24 24">
+      <path d="M6 5 L18 5 L15.5 19 L8.5 19 Z" fill="currentColor"/>
     </symbol>
   </defs>
-  <use href="#d1" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
-  <use href="#d1" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
+  <use href="#p1" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
+  <use href="#p1" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
   <rect x="92" y="6" width="40" height="40" rx="6" fill="#07131a"/> <!-- cw-night inverse cell -->
-  <use href="#d1" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
+  <use href="#p1" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
   <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
 </svg>
 
-### Direction 2 — Signal Arc
+### Direction 2 — Way (Threshold)
 
 Primary lockup:
 
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway signal-arc primary lockup">
-  <g transform="translate(10,14)">
-    <path d="M4 18 H20" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/> <!-- cw-ink route baseline -->
-    <path d="M4 18 Q12 5 20 18" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/>
-    <circle cx="4" cy="18" r="2" fill="#102027"/>
-    <circle cx="20" cy="18" r="2" fill="#102027"/>
-    <circle cx="12" cy="8.5" r="2" fill="#0e7c86"/> <!-- cw-teal signal apex -->
-  </g>
-  <text x="46" y="38" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway threshold primary lockup">
+  <path d="M14 44 L14 27 A11 11 0 0 1 36 27 L36 44" fill="none" stroke="#102027" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/> <!-- cw-ink doorway -->
+  <circle cx="25" cy="41" r="3.1" fill="#0e7c86"/> <!-- cw-teal at the threshold -->
+  <text x="52" y="40" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
 </svg>
 
-Concept: Two route nodes joined by a baseline, with one gentle signal arc rising
-between them and a teal accent at the apex (two ideas: the node-to-node route and
-the signal rising from it). It reads as "a quiet signal travels the route."
+Concept: A calm archway — the way *in* — with a single teal node resting at the
+threshold (one idea: a doorway a notification passes through). It leans directly on
+the name: **chime-way = the way**.
 
-Pros: The clearest literal statement of the routed-signal metaphor; the arc gives
-a calm, non-technical warmth; symmetrical and balanced beside the wordmark.
+Pros: The strongest name tie in the set; a distinctive, warm form that is neither a
+route line nor a common UI glyph; the node at the threshold gives one quiet accent.
+Holds at 16px and reads inverse cleanly.
 
-Cons: Three dots plus an arc is the busiest mark in the set; the apex accent can
-fill in at 16px, and the arc flattens toward the baseline in mono if the rise is
-too shallow.
+Cons: An open arch can flirt with an "n" or a horseshoe read until the threshold
+node anchors it; the node can crowd the posts at the smallest sizes.
 
-Recommendation: Strong for a horizontal lockup and headers where it renders ≥24px;
-watch the 16px favicon crop where the apex node may merge with the arc.
-
-Verdict: Ship
-Confidence: Medium
-
-<svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 2 legibility proof — small, single-color, and dark variants">
-  <defs>
-    <symbol id="d2" viewBox="0 0 24 24">
-      <path d="M4 17 H20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      <path d="M4 17 Q12 5 20 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="4" cy="17" r="1.6" fill="currentColor"/>
-      <circle cx="20" cy="17" r="1.6" fill="currentColor"/>
-      <circle cx="12" cy="8" r="1.6" fill="currentColor"/>
-    </symbol>
-  </defs>
-  <use href="#d2" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
-  <use href="#d2" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
-  <rect x="92" y="6" width="40" height="40" rx="6" fill="#07131a"/> <!-- cw-night inverse cell -->
-  <use href="#d2" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
-  <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
-</svg>
-
-### Direction 3 — Routed-w typemark (integrated)
-
-Primary lockup — the `w` of `chimeway` is drawn as a zig-zag route with waypoint
-vertices and a teal terminal; `chime` and `ay` are Inter `<text>` on the same
-baseline so the word reads as one unit:
-
-<svg xmlns="http://www.w3.org/2000/svg" width="250" height="56" viewBox="0 0 250 56" role="img" aria-label="chimeway integrated typemark — the w rendered as a routed path">
-  <text x="12" y="38" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chime</text> <!-- cw-ink -->
-  <path d="M92 20 L98 36 L104 24 L110 36 L116 20" fill="none" stroke="#102027" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="98" cy="36" r="2.2" fill="#102027"/>
-  <circle cx="110" cy="36" r="2.2" fill="#102027"/>
-  <circle cx="116" cy="20" r="2.4" fill="#0e7c86"/> <!-- cw-teal route terminal -->
-  <text x="120" y="38" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">ay</text>
-</svg>
-
-Concept: The single letter `w` becomes a routed path — a zig-zag with two
-waypoint vertices at the baseline and a teal signal terminal at the last upstroke
-(one idea, worked into the letterform). The route *is* a glyph.
-
-Pros: Genuinely integrated (LOGO-02) yet reads instantly as `chimeway`; the
-routed `w` is distinctive and brand-specific; monoline construction survives mono
-and holds at 16px as an icon (the `w` alone works as a standalone motif).
-
-Cons: The routed `w` sits slightly taller than the Inter x-height and needs
-per-metric tuning against the outlined finalist in Phase 83; at very small sizes
-the two waypoint dots can crowd the vertices.
-
-Recommendation: Strongest integrated typemark — carry it forward as the primary
-candidate for the finalist selection; the routed `w` doubles as an icon-only mark.
+Recommendation: Strong shortlist lead alongside Keystone — the concept is on-brand
+and the mark is memorable. Carry forward for the finalist pick.
 
 Verdict: Ship
 Confidence: High
 
-<svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 3 legibility proof — small, single-color, and dark variants">
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 2 legibility proof — small, single-color, and dark variants">
   <defs>
-    <symbol id="d3" viewBox="0 0 24 24">
-      <path d="M3 7 L8 18 L12 10 L16 18 L21 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="8" cy="18" r="1.7" fill="currentColor"/>
-      <circle cx="16" cy="18" r="1.7" fill="currentColor"/>
-      <circle cx="21" cy="7" r="1.8" fill="currentColor"/>
+    <symbol id="p2" viewBox="0 0 24 24">
+      <path d="M5.5 20 L5.5 12 A6.5 6.5 0 0 1 18.5 12 L18.5 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="12" cy="18" r="1.9" fill="currentColor"/>
     </symbol>
   </defs>
-  <use href="#d3" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
-  <use href="#d3" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
+  <use href="#p2" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
+  <use href="#p2" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
   <rect x="92" y="6" width="40" height="40" rx="6" fill="#07131a"/> <!-- cw-night inverse cell -->
-  <use href="#d3" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
+  <use href="#p2" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
   <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
 </svg>
 
-### Direction 4 — Trace-timeline typemark (integrated)
+### Direction 3 — Dispatch (fan-out)
 
-Primary lockup — a trace timeline runs beneath the word with tick nodes, and the
-final `y` is hand-drawn as a `<path>` whose descender routes into the timeline and
-terminates at a teal waypoint; `chimewa` is Inter `<text>` on the same baseline:
+Primary lockup:
 
-<svg xmlns="http://www.w3.org/2000/svg" width="250" height="60" viewBox="0 0 250 60" role="img" aria-label="chimeway integrated typemark — trace timeline with the y descender as a routed path">
-  <text x="12" y="34" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimewa</text> <!-- cw-ink -->
-  <path d="M150 20 L158 32 M166 20 L158 32 L156 38 Q156 44 162 44 L182 44" fill="none" stroke="#102027" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="182" cy="44" r="2.4" fill="#0e7c86"/> <!-- cw-teal route terminal -->
-  <path d="M14 46 H140" fill="none" stroke="#102027" stroke-width="1.6" stroke-linecap="round"/>
-  <circle cx="44" cy="46" r="1.6" fill="#102027"/>
-  <circle cx="86" cy="46" r="1.6" fill="#102027"/>
-  <circle cx="128" cy="46" r="1.6" fill="#102027"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway dispatch primary lockup">
+  <g transform="translate(9,16)">
+    <circle cx="4.5" cy="12" r="2.4" fill="#102027"/> <!-- cw-ink single source -->
+    <path d="M6.5 12 H12" fill="none" stroke="#102027" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M12 12 L19 6.5 M12 12 L21.5 12 M12 12 L19 17.5" fill="none" stroke="#102027" stroke-width="2.8" stroke-linecap="round"/>
+    <circle cx="19.8" cy="6" r="2.7" fill="#0e7c86"/> <!-- cw-teal delivered channel -->
+  </g>
+  <text x="54" y="40" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
 </svg>
 
-Concept: The word sits on a trace timeline (tick nodes = lifecycle events), and
-the `y` descender leaves the word to route down onto that timeline, ending at a
-teal waypoint (two ideas: the timeline baseline and the routed descender). It
-literalizes Chimeway's core value — an explainable trace.
+Concept: One source branching calmly to three channels, the top channel teal (one
+idea: orchestration — one notification fanned out to many delivery paths). It is
+the most literal picture of what the library actually does.
 
-Pros: The most on-brand concept in the set (explainable trace = the product
-thesis); the integrated `y` is distinctive and the timeline gives a calm,
-infrastructural rhythm.
+Pros: The clearest concept-to-product fit in the set (dispatch to channels); low
+element count keeps it calm; the single teal endpoint reads as "delivered."
 
-Cons: Two ideas competing under the word get delicate at small sizes — the
-timeline ticks and the routed descender can collapse toward each other at 16px;
-the standalone icon (routed `y`) is less self-evident than the routed `w`.
+Cons: A branch/fan glyph sits near a generic "share/distribute" icon and can read
+directionally ambiguous at a glance; the thinnest of the marks at 16px.
 
-Recommendation: Keep as a strong secondary — the concept is excellent but the
-small-size execution needs the finalist's outlined metrics before it can ship;
-defer the ship/reject call to the Phase 83 pick.
+Recommendation: Keep as a strong secondary — the meaning is excellent but the form
+needs the finalist's tuning to fully escape the "share icon" neighborhood before it
+ships. Defer the ship/reject call to Phase 83.
+
+Verdict: Defer
+Confidence: Medium
+
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 3 legibility proof — small, single-color, and dark variants">
+  <defs>
+    <symbol id="p3" viewBox="0 0 24 24">
+      <circle cx="4.5" cy="12" r="1.8" fill="currentColor"/>
+      <path d="M6 12 H11" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+      <path d="M11 12 L17.5 7 M11 12 L19.2 12 M11 12 L17.5 17" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+      <circle cx="18.2" cy="6.6" r="1.9" fill="currentColor"/>
+    </symbol>
+  </defs>
+  <use href="#p3" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
+  <use href="#p3" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
+  <rect x="92" y="6" width="40" height="40" rx="6" fill="#07131a"/> <!-- cw-night inverse cell -->
+  <use href="#p3" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
+  <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
+</svg>
+
+### Direction 4 — Held Record
+
+Primary lockup:
+
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway held-record primary lockup">
+  <g transform="translate(9,16)">
+    <path d="M9 5 A8 8 0 0 0 9 19" fill="none" stroke="#102027" stroke-width="3" stroke-linecap="round"/> <!-- cw-ink open bracket -->
+    <path d="M16 5 A8 8 0 0 1 16 19" fill="none" stroke="#102027" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="12.5" cy="12" r="2.9" fill="#0e7c86"/> <!-- cw-teal the kept record -->
+  </g>
+  <text x="52" y="40" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
+</svg>
+
+Concept: A single record held in an open embrace — parentheses of stewardship
+around one teal node (one idea: your notifications and their history stay inside
+your app, on the record, in your keeping). Local-first made into a gesture.
+
+Pros: The most tasteful, minimal mark; expresses the local-first stewardship story
+no other direction reaches; the open top and bottom keep it emphatically *not* a
+cage; echoes the teal record-node motif used throughout.
+
+Cons: Minimalism cuts both ways — `( • )` is quiet and could read as a generic
+bullet/button until the brand context accrues; leans on restraint over
+distinctiveness.
+
+Recommendation: Keep as a considered option, especially for stewardship/privacy
+messaging; its calm is a genuine differentiator. Defer to Phase 83 to judge whether
+it is distinctive enough to lead.
 
 Verdict: Defer
 Confidence: Medium
 
 <svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 4 legibility proof — small, single-color, and dark variants">
   <defs>
-    <symbol id="d4" viewBox="0 0 24 24">
-      <path d="M6 5 L12 14 M18 5 L12 14 L10 19 Q10 22 13 22 L21 22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="21" cy="22" r="1.8" fill="currentColor"/>
+    <symbol id="p4" viewBox="0 0 24 24">
+      <path d="M9 7 A6 6 0 0 0 9 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M15.5 7 A6 6 0 0 1 15.5 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="12.25" cy="12" r="2" fill="currentColor"/>
     </symbol>
   </defs>
-  <use href="#d4" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
-  <use href="#d4" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
+  <use href="#p4" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
+  <use href="#p4" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
   <rect x="92" y="6" width="40" height="40" rx="6" fill="#07131a"/> <!-- cw-night inverse cell -->
-  <use href="#d4" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
+  <use href="#p4" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
   <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
 </svg>
 
-### Direction 5 — cw-monogram-as-path
+### Direction 5 — Aperture-c typemark (integrated)
 
-Primary lockup — a `cw` monogram whose strokes form one continuous route (the
-`c` opens directly into a `w`-like zig-zag), paired tightly with the wordmark:
+Primary lockup — the leading `c` of `chimeway` is hand-drawn as an open aperture
+holding a teal node; `himeway` is Inter `<text>` on the same baseline so the word
+reads as one unit:
 
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway cw-monogram-as-path primary lockup">
-  <g transform="translate(10,15)">
-    <path d="M16 6.5 A 7 7 0 1 0 16 17.5 L18 12 L20 16.5 L22 12" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/> <!-- cw-ink continuous cw route -->
-    <circle cx="22" cy="12" r="2" fill="#0e7c86"/> <!-- cw-teal route terminal -->
-  </g>
-  <text x="46" y="38" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="56" viewBox="0 0 250 56" role="img" aria-label="chimeway integrated typemark — the c drawn as an aperture">
+  <path d="M30 22 A 9 9 0 1 0 30 36" fill="none" stroke="#102027" stroke-width="3" stroke-linecap="round"/> <!-- cw-ink the c as aperture -->
+  <circle cx="31" cy="29" r="2.2" fill="#0e7c86"/> <!-- cw-teal node in the aperture -->
+  <text x="34" y="38" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">himeway</text>
 </svg>
 
-Concept: A `cw` monogram drawn as a single unbroken monoline — the `c` aperture
-flows into a compact `w` zig-zag ending at a teal terminal (one idea: the
-initials as one continuous route). It compresses the whole route metaphor into a
-two-letter mark.
+Concept: The first letter becomes the brand mark — an open `c` re-cut as an
+aperture (the way in) with a single teal node resting in its mouth (one idea worked
+*into* the letterform). Symbol and wordmark are literally the same object.
 
-Pros: The most "logo-like" standalone monogram; encodes the brand initials; the
-continuous stroke keeps it unified and calm.
+Pros: A genuine integrated typemark (LOGO-02) that still reads instantly as
+`chimeway`; the `c`-aperture doubles as a favicon; unifies the "way in" concept
+with the name in one move; distinctive yet quiet.
 
-Cons: Two letterforms in one small glyph is the busiest icon at 16px — the `w`
-tail crowds the `c` aperture and can read as a squiggle; the least self-evident
-of the five at favicon size.
+Cons: The hand-drawn monoline `c` runs slightly lighter than the filled Inter
+letters and needs weight/metric matching against the outlined finalist in Phase 83;
+at favicon size the `c`-plus-node can read like a loading spinner until tuned.
 
-Recommendation: Hold as a monogram/avatar option rather than the primary lockup;
-needs simplification before it survives 16px — defer to the finalist review.
+Recommendation: Carry forward as the integrated-typemark candidate — it is the
+subtle, wordmark-native option. The `c`-aperture is the strongest favicon seed.
 
-Verdict: Defer
-Confidence: Low
+Verdict: Ship
+Confidence: Medium
 
 <svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 5 legibility proof — small, single-color, and dark variants">
   <defs>
-    <symbol id="d5" viewBox="0 0 24 24">
-      <path d="M16 6.5 A 6.8 6.8 0 1 0 16 17.5 L18 12 L20 16.5 L22 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="22" cy="12" r="1.8" fill="currentColor"/>
+    <symbol id="p5" viewBox="0 0 24 24">
+      <path d="M17 7.5 A 7.5 7.5 0 1 0 17 16.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="17.6" cy="12" r="1.8" fill="currentColor"/>
     </symbol>
   </defs>
-  <use href="#d5" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
-  <use href="#d5" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
+  <use href="#p5" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
+  <use href="#p5" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
   <rect x="92" y="6" width="40" height="40" rx="6" fill="#07131a"/> <!-- cw-night inverse cell -->
-  <use href="#d5" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
+  <use href="#p5" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
+  <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
+</svg>
+
+### Direction 6 — Cornerstone-c
+
+Primary lockup — a solid architectural `c` block (the cornerstone), a single teal
+facet cut into its top edge, paired tightly with the wordmark:
+
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" role="img" aria-label="chimeway cornerstone-c primary lockup">
+  <path d="M14 16 L38 16 L38 23 L23 23 L23 37 L38 37 L38 44 L14 44 Z" fill="#102027"/> <!-- cw-ink solid c cornerstone -->
+  <path d="M31 16 L38 16 L38 23 L31 23 Z" fill="#0e7c86"/> <!-- cw-teal cut facet -->
+  <text x="54" y="40" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#102027" letter-spacing="0.3">chimeway</text>
+</svg>
+
+Concept: The initial `c` rendered as a solid cornerstone block — foundation and
+brand letter in one confident form, with a single teal facet (one idea: the
+owned, durable footing your app builds on). A monogram that is architecture, not
+ornament.
+
+Pros: Bold and unmistakable; a solid form that holds at 16px, mono, and inverse
+without effort; nods to the name via the `c` while directly answering the earlier
+"floating monogram" critique — this `c` is a structural block, not a glyph placed
+beside text.
+
+Cons: Heavier than the rest of the set; a blocky open form must keep stone-like
+proportions or it can drift toward a generic bracket `[`.
+
+Recommendation: Strong shortlist option and the most "logo-like" standalone
+monogram/avatar. Excellent icon-only mark; carry forward for the finalist.
+
+Verdict: Ship
+Confidence: High
+
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="88" viewBox="0 0 520 88" role="img" aria-label="Direction 6 legibility proof — small, single-color, and dark variants">
+  <defs>
+    <symbol id="p6" viewBox="0 0 24 24">
+      <path d="M6 5 L18 5 L18 8.5 L9.5 8.5 L9.5 15.5 L18 15.5 L18 19 L6 19 Z" fill="currentColor"/>
+    </symbol>
+  </defs>
+  <use href="#p6" x="12" y="18" width="16" height="16" color="#102027"/> <!-- cw-ink 16px -->
+  <use href="#p6" x="48" y="14" width="24" height="24" color="#102027"/> <!-- cw-ink mono -->
+  <rect x="92" y="6" width="40" height="40" rx="6" fill="#07131a"/> <!-- cw-night inverse cell -->
+  <use href="#p6" x="100" y="14" width="24" height="24" color="#fffdf8"/> <!-- cw-paper -->
   <text x="12" y="72" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#102027">16px &#183; Mono &#183; Inverse &#183; Clear-space = height of lowercase c &#183; Min-size 16px min / 24px pref, lockup 120px</text>
 </svg>
 
@@ -311,9 +347,45 @@ Confidence: Low
 
 ## Rejected candidates
 
-Retained inline (NOTES-02 repo-size discipline) so the doc teaches the taste
-gates. Each fails a **different** gate and is annotated with the single gate it
-violates. None of these are shortlist directions — they are counter-examples.
+Retained inline (NOTES-02 repo-size discipline) so the doc teaches the taste gates.
+Each fails a **different** gate and is annotated with the single gate it violates.
+None of these are shortlist directions — they are counter-examples, including
+lessons carried from the first (fully rejected) tournament.
+
+### Power-button c
+
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" role="img" aria-label="rejected power-button c">
+  <path d="M38 15 A 15 15 0 1 1 14 15" fill="none" stroke="#102027" stroke-width="3" stroke-linecap="round"/> <!-- cw-ink -->
+  <path d="M26 8 V22" fill="none" stroke="#102027" stroke-width="3" stroke-linecap="round"/>
+</svg>
+
+Reason: fails the **universal-glyph collision** gate — an open ring broken by a
+vertical bar at the top is the near-universal power/standby symbol. This is the
+exact trap the first tournament's open-`c` mark fell into ("looks like a power
+button"); it is retained here as the boundary to stay away from.
+
+### Iris / eye lens
+
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="44" viewBox="0 0 60 44" role="img" aria-label="rejected iris eye lens">
+  <path d="M8 22 Q30 4 52 22 Q30 40 8 22 Z" fill="none" stroke="#102027" stroke-width="3" stroke-linejoin="round"/> <!-- cw-ink -->
+  <circle cx="30" cy="22" r="5" fill="#0e7c86"/> <!-- cw-teal -->
+</svg>
+
+Reason: fails the **semantic-mismatch** gate — a lens with a central node reads as
+an **eye / surveillance**, the opposite of Chimeway's local-first, "your data stays
+in your app" stewardship story. A technically clean mark can still carry the wrong
+meaning.
+
+### Octagon seal + bar
+
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" role="img" aria-label="rejected octagon seal with a bar">
+  <path d="M34.9 10 L42 17.1 L42 27.9 L34.9 35 L24.1 35 L17 27.9 L17 17.1 L24.1 10 Z" fill="none" stroke="#102027" stroke-width="2.4" stroke-linejoin="round"/> <!-- cw-ink -->
+  <path d="M23 22.5 H36" fill="none" stroke="#0e7c86" stroke-width="2.4" stroke-linecap="round"/> <!-- cw-teal -->
+</svg>
+
+Reason: fails the **wrong-connotation** gate — an octagon (the stop-sign silhouette)
+crossed by a bar reads as "no entry / do-not / minus," a negative signal for a
+product about reliably *delivering* and *explaining* notifications.
 
 ### Literal bell
 
@@ -322,55 +394,18 @@ violates. None of these are shortlist directions — they are counter-examples.
   <path d="M22 38 Q26 44 30 38" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/>
 </svg>
 
-Reason: literal bell imagery — fails LOGO-06 / D-05. The brand-book §13
-"chime/bell endpoint" is superseded; the metaphor must be path/route/signal/trace
-only, with zero literal bell, clapper, note, or staff. A detailed bell also
-collapses into a blob at 16px, an independent technical reason to avoid it.
-
-### cw monogram in an enclosing cage
-
-<svg xmlns="http://www.w3.org/2000/svg" width="72" height="44" viewBox="0 0 72 44" role="img" aria-label="rejected cw monogram inside an enclosing cage">
-  <rect x="3" y="3" width="66" height="38" rx="9" fill="none" stroke="#102027" stroke-width="2"/> <!-- cw-ink enclosing cage -->
-  <text x="18" y="30" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="600" fill="#102027">cw</text>
-</svg>
-
-Reason: rectangular/enclosing background cage — fails D-06 / LOGO-05. Marks must
-be transparent/background-free; the only legal background rect is the scoped
-inverse proof cell, never a container drawn around the mark.
-
-### Ultra-thin concentric rings
-
-<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" role="img" aria-label="rejected ultra-thin concentric signal rings">
-  <circle cx="26" cy="26" r="20" fill="none" stroke="#102027" stroke-width="0.5"/> <!-- cw-ink hairline -->
-  <circle cx="26" cy="26" r="13" fill="none" stroke="#102027" stroke-width="0.5"/>
-  <circle cx="26" cy="26" r="6" fill="none" stroke="#102027" stroke-width="0.5"/>
-</svg>
-
-Reason: fails the 16px legibility gate — hairline strokes fall below one device
-pixel and vanish at favicon size (RESEARCH Pitfall 4). Even though "signal rings"
-are an allowed metaphor, this *execution* dies small and in mono, so it is
-rejected rather than shortlisted.
-
-### Route icon placed left of the wordmark, with a gap
-
-<svg xmlns="http://www.w3.org/2000/svg" width="230" height="48" viewBox="0 0 230 48" role="img" aria-label="rejected route icon placed left of the wordmark with a visible gap">
-  <circle cx="20" cy="24" r="11" fill="none" stroke="#102027" stroke-width="2.4"/> <!-- cw-ink -->
-  <path d="M14 24 H26" fill="none" stroke="#102027" stroke-width="2.4" stroke-linecap="round"/>
-  <text x="78" y="32" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="600" fill="#102027">chimeway</text>
-</svg>
-
-Reason: icon-left / text-right with a visible gap — fails D-07. The mark and
-wordmark must read as one unified unit; a detached icon beside plain text is the
-exact anti-pattern the shortlist directions avoid by sitting the wordmark at
-unified-unit distance.
+Reason: fails the **off-limits-metaphor** gate — literal bell imagery is excluded by
+LOGO-06 (Chimeway is not an audio product; the brand-book §13 "chime/bell endpoint"
+is superseded). Retained as the metaphor boundary; a detailed bell also collapses
+into a blob at 16px.
 
 ---
 
 ## Ephemeral gallery
 
-An uncommitted, `file://`-openable HTML gallery rendering every direction's
-primary lockup + proof strip and every rejected mark at real scale is generated
-in the executor session scratchpad (outside the repo tree, so it can never be
-committed — D-13). Its absolute `file://` path is printed at execution time for
-the Phase 82 human-verify checkpoint. The committed source-of-record is this
-Markdown; the real scoped brandbook HTML is Phase 84.
+An uncommitted, `file://`-openable HTML gallery rendering every direction's primary
+lockup + proof strip and every rejected mark at real scale is generated in the
+executor session scratchpad (outside the repo tree, so it can never be committed —
+D-13). Its absolute `file://` path is printed at execution time for the Phase 82
+human-verify checkpoint. The committed source-of-record is this Markdown; the real
+scoped brandbook HTML is Phase 84.
