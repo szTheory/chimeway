@@ -374,6 +374,89 @@
       </div>
     </section>
 
+    <!-- ============================================================ -->
+    <!-- 6. DO / DON'T — three CSS-only misuse pairs                  -->
+    <!-- STATE-02 / D-06: every "don't" is produced by the plan-01    -->
+    <!-- .cwb-dont treatment applied around the CORRECT shipped       -->
+    <!-- asset/token. No broken SVG is authored or committed, and no  -->
+    <!-- hex is hard-coded — the misuse lives entirely in CSS.        -->
+    <!-- ============================================================ -->
+    <section id="dodont" class="cwb-section">
+      <div>
+        <h2>Do &amp; Don't</h2>
+        <p>Three side-by-side pairs. Each <strong>Don't</strong> is the same
+          correct, shipped asset or token wrapped in a CSS-only misuse treatment
+          (<code>.cwb-dont</code>) &mdash; nothing broken is ever committed. Read
+          the rail color: green marks the <strong>Do</strong>, red the
+          <strong>Don't</strong>.</p>
+      </div>
+
+      <!-- Pair 1 — LOGO: open field vs. rectangular background cage -->
+      <div class="cwb-grid">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; logo</figcaption>
+          <img src="assets/logo/chimeway-mark.svg" alt="chimeway mark on an open field" width="64">
+          <p class="cwb-label">Mark + wordmark as one unit on an open field; the
+            inverse mark reads with no backdrop. Generous, consistent clear-space.</p>
+        </figure>
+        <figure class="cwb-dont cwb-dont--cage">
+          <figcaption><strong>Don't</strong> &mdash; logo</figcaption>
+          <img src="assets/logo/chimeway-mark.svg" alt="chimeway mark, incorrectly caged" width="64">
+          <p class="cwb-label">No rectangular background cage behind the mark, and
+            no icon-left / text-right split. The cage here is pure CSS around the
+            correct asset &mdash; the SVG itself is untouched.</p>
+        </figure>
+      </div>
+
+      <!-- Pair 2 — COLOR: color+label+icon vs. color-alone / brass body -->
+      <div class="cwb-grid">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; color</figcaption>
+          <div style="display:flex; gap: var(--cw-space-sm); flex-wrap:wrap;">
+            <span class="cwb-badge is-pass"><span aria-hidden="true">&#10003;</span> Succeeded</span>
+            <span class="cwb-badge is-fail"><span aria-hidden="true">&#10007;</span> Failed</span>
+          </div>
+          <p>Status is conveyed by color <strong>plus</strong> a label and an icon.
+            Body copy is <code>--cw-ink</code> on <code>--cw-paper</code> &mdash;
+            maximum legibility.</p>
+        </figure>
+        <figure class="cwb-dont cwb-dont--brass-body">
+          <figcaption><strong>Don't</strong> &mdash; color</figcaption>
+          <div style="display:flex; gap: var(--cw-space-sm); flex-wrap:wrap;">
+            <span class="cwb-badge">&#9679; Succeeded</span>
+            <span class="cwb-badge">&#9679; Failed</span>
+          </div>
+          <p>Never lean on color alone (both pills read identically to a
+            color-blind reader), and never set body copy in brass on paper &mdash;
+            it fails contrast. This whole block is tinted by CSS, not a hard-coded hex.</p>
+        </figure>
+      </div>
+
+      <!-- Pair 3 — SPACING: consistent rhythm vs. cramped ad-hoc gaps -->
+      <div class="cwb-grid">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; spacing</figcaption>
+          <div style="display:flex; flex-direction:column; gap: var(--cw-space-md);">
+            <span class="cwb-badge is-pass">event</span>
+            <span class="cwb-badge is-pass">delivery</span>
+            <span class="cwb-badge is-pass">attempt</span>
+          </div>
+          <p class="cwb-label">Consistent <code>--cw-space-*</code> rhythm; documented
+            clear-space around the mark and between elements.</p>
+        </figure>
+        <figure class="cwb-dont cwb-dont--cramped">
+          <figcaption><strong>Don't</strong> &mdash; spacing</figcaption>
+          <div style="display:flex; flex-direction:column;">
+            <span class="cwb-badge is-fail">event</span>
+            <span class="cwb-badge is-fail">delivery</span>
+            <span class="cwb-badge is-fail">attempt</span>
+          </div>
+          <p class="cwb-label">Cramped, ad-hoc gaps and sub-minimum logo clear-space.
+            The zeroed spacing is applied purely via <code>.cwb-dont--cramped</code>.</p>
+        </figure>
+      </div>
+    </section>
+
     <!-- SECTIONS -->
   </main>
 
