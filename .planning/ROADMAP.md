@@ -144,9 +144,20 @@ Plans:
 4. Brand voice and tone are documented by context (docs, errors, marketing, CLI) with good/bad examples, including the named reusable "what happened / why it matters / how to fix" error-pattern template and CTA/naming rules (lowercase `chimeway` graphic vs title-case "Chimeway" prose).
 
 **Plans**: 4 plans
+**Wave 1**
+
 - [ ] 84-01-PLAN.md — Guard gate + scoped stylesheet foundation (brandbook-guards.sh + brandbook.css)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 84-02-PLAN.md — index.html shell, theme toggle, logo family, token swatches, type/spacing
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 84-03-PLAN.md — Component-state showcase, do/don't pairs, live contrast matrix
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 84-04-PLAN.md — Brand voice/microcopy, error template, naming/CTA + final verification
 
 **UI hint**: yes
