@@ -150,7 +150,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 84-02-PLAN.md — index.html shell, theme toggle, logo family, token swatches, type/spacing
+- [x] 84-02-PLAN.md — index.html shell, theme toggle, logo family, token swatches, type/spacing
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -238,7 +238,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 81. Design Tokens (Reconciliation & Documentation) | 3/3 | Complete    | 2026-07-10 |
 | 82. Logo Exploration & Shortlist | 1/1 | Complete   | 2026-07-18 |
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 3/3 | Complete   | 2026-07-18 |
-| 84. HTML Brandbook, Voice & Component States | 1/4 | In Progress|  |
+| 84. HTML Brandbook, Voice & Component States | 2/4 | In Progress|  |
 | 85. Repo Integration (README + HexDocs + Favicon Wiring) | 0/TBD | Not started | - |
 | 86. Accessibility Audit, Notes & Red-Team Close | 0/TBD | Not started | - |
 
