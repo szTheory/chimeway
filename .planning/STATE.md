@@ -2,17 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
-current_phase: 84
-current_phase_name: html-brandbook-voice-component-states
 status: executing
 stopped_at: Phase 84 context gathered (assumptions mode)
-last_updated: "2026-07-19T00:42:48.677Z"
+last_updated: "2026-07-19T00:54:20.088Z"
 last_activity: 2026-07-19
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 50
 ---
 
@@ -28,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 ## Current Position
 
 Phase: 84 (html-brandbook-voice-component-states) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-19
 
@@ -226,6 +224,8 @@ status: complete
 - [Phase ?]: [84-01]: D-04 corrected — only two currentColor marks (mark-mono, logotype-mono) are inlined and D-05 parity-checked; the inverse lockup is fixed-color <img>, not inlined
 - [Phase ?]: [84-01]: brandbook-guards.sh presence-gate keeps the Phase-84 gate RED until brandbook/index.html + brandbook.css both exist (proves wiring, not a defect)
 - [Phase ?]: [84-01]: brandbook.css consumes --cw-* by name only — zero #hex literals, zero token redefinitions; scope-nonleak audit makes BOOK-02 non-vacuous
+- [Phase ?]: [84-03]: Live WCAG contrast matrix uses painted-probe getComputedStyle to resolve tokens under the active data-theme; recomputes on theme flip + prefers-color-scheme change
+- [Phase ?]: [84-03]: Every do/don't 'don't' is CSS-only misuse (.cwb-dont cage/brass-body/cramped) around the correct shipped asset/token — no broken SVG, zero hard-coded hex
 
 ## Performance
 
@@ -538,7 +538,7 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-19T00:42:37.259Z
+Last session: 2026-07-19T00:53:30.433Z
 Stopped at: Phase 84 context gathered (assumptions mode)
 Resume file: None
 
@@ -615,3 +615,4 @@ Resume file: None
 | Phase 81 P03 | ~10m | 2 tasks | 1 files |
 | Phase 84 P01 | 12min | 2 tasks | 2 files |
 | Phase 84 P02 | 5min | 3 tasks | 1 files |
+| Phase 84 P03 | 8min | 3 tasks | 1 files |
