@@ -671,7 +671,113 @@
       </div>
     </section>
 
-    <!-- SECTIONS -->
+    <!-- ============================================================ -->
+    <!-- 9. NAMED ERROR-MESSAGE TEMPLATE (VOICE-02)                   -->
+    <!-- "Chimeway error message pattern: what happened -> why it     -->
+    <!-- matters -> how to fix". The literal phrase `what happened`   -->
+    <!-- is required by the section-presence guard (family 3).        -->
+    <!-- Canonical example lifted verbatim from prompts:1375.          -->
+    <!-- ============================================================ -->
+    <section id="errors" class="cwb-section">
+      <div>
+        <h2>Error message pattern</h2>
+        <p>Every operational error, suppression, and failure follows one named,
+          reusable template &mdash; the <strong>Chimeway error message
+          pattern</strong>:</p>
+        <p class="cwb-badge is-selected" style="font-size: var(--cw-font-size-heading);">
+          what happened &rarr; why it matters &rarr; how to fix
+        </p>
+        <p>Failures are normal in a notification system. The voice helps the reader
+          debug, not panic: it names the observable fact, explains the decision, and
+          points at the next step.</p>
+      </div>
+
+      <!-- Canonical worked example, split into the three template slots -->
+      <div class="cwb-grid">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; <span class="cwb-label">canonical example</span></figcaption>
+          <p>Delivery suppressed: recipient disabled email for <code>invoice.paid</code>.</p>
+          <ol class="cwb-label" style="margin:0; padding-left: var(--cw-space-lg); display:flex; flex-direction:column; gap: var(--cw-space-xs);">
+            <li><strong>what happened</strong> &mdash; <em>Delivery suppressed</em></li>
+            <li><strong>why it matters</strong> &mdash; <em>recipient disabled email for <code>invoice.paid</code></em></li>
+            <li><strong>how to fix</strong> &mdash; <em>re-enable the channel preference (or route the event elsewhere)</em></li>
+          </ol>
+        </figure>
+        <figure class="cwb-dont">
+          <figcaption><strong>Don't</strong> &mdash; <span class="cwb-label">avoid</span></figcaption>
+          <p>This chime did not ring.</p>
+          <p class="cwb-label">No fact, no reason, no fix &mdash; just a metaphor.
+            It tells the reader nothing about <em>what happened</em>, so there is
+            nothing to act on.</p>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 10. NAMING & CTA RULES (VOICE-03)                            -->
+    <!-- Lowercase `chimeway` graphic wordmark vs title-case          -->
+    <!-- `Chimeway` prose (both casings required by the guard).       -->
+    <!-- Naming rules lifted verbatim from prompts §11 (:382-450) &   -->
+    <!-- graphic-vs-prose case (:509-519). The `install chimeway`     -->
+    <!-- CTA label is BINDING from UI-SPEC line 106 + CONTEXT — it is -->
+    <!-- NOT present in prompts/chimeway-brand-book.md.               -->
+    <!-- ============================================================ -->
+    <section id="naming" class="cwb-section">
+      <div>
+        <h2>Naming &amp; calls to action</h2>
+        <p>The name carries the brand, so its casing is not optional. The graphic
+          wordmark is always lowercase; prose is always title case.</p>
+      </div>
+
+      <div class="cwb-grid">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; <span class="cwb-label">casing</span></figcaption>
+          <p><strong>Graphic wordmark:</strong> lowercase
+            <code class="cwb-brandmark">chimeway</code> &mdash; for friendliness and
+            package-name alignment.</p>
+          <p><strong>Prose:</strong> title case <strong>Chimeway</strong>.</p>
+          <p><strong>Packages</strong> are lowercase (<code>chimeway</code>,
+            <code>chimeway_ecto</code>, <code>chimeway_oban</code>,
+            <code>chimeway_phoenix</code>); <strong>modules</strong> are
+            <code>Chimeway</code>, <code>Chimeway.Ecto</code>,
+            <code>Chimeway.Adapters.Swoosh</code>.</p>
+        </figure>
+        <figure class="cwb-dont">
+          <figcaption><strong>Don't</strong> &mdash; <span class="cwb-label">casing</span></figcaption>
+          <p style="display:flex; flex-wrap:wrap; gap: var(--cw-space-xs);">
+            <span class="cwb-badge is-fail">ChimeWay</span>
+            <span class="cwb-badge is-fail">Chime Way</span>
+            <span class="cwb-badge is-fail">Chime-Way</span>
+            <span class="cwb-badge is-fail">ChimewayKit</span>
+            <span class="cwb-badge is-fail">Chimeway Framework</span>
+            <span class="cwb-badge is-fail">NotifyKit</span>
+          </p>
+          <p class="cwb-label">Never camel-case, space, hyphenate, or suffix the name.</p>
+        </figure>
+      </div>
+
+      <!-- CTA style: developer-to-developer, never a sales CTA -->
+      <div class="cwb-grid">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; <span class="cwb-label">primary CTA</span></figcaption>
+          <button type="button" class="cwb-btn is-selected">install chimeway</button>
+          <p class="cwb-label">Developer-to-developer. The primary call to action is
+            an install, not a pitch &mdash; lowercase in the graphic, and it asks the
+            reader to <em>do</em> something concrete.</p>
+        </figure>
+        <figure class="cwb-dont">
+          <figcaption><strong>Don't</strong> &mdash; <span class="cwb-label">sales CTA</span></figcaption>
+          <p style="display:flex; flex-direction:column; gap: var(--cw-space-xs);">
+            <span class="cwb-badge is-fail">Supercharge your engagement</span>
+            <span class="cwb-badge is-fail">Start your omnichannel journey</span>
+            <span class="cwb-badge is-fail">Book a demo</span>
+          </p>
+          <p class="cwb-label">No sales CTAs, no &ldquo;omnichannel engagement,&rdquo;
+            and never turn Chimeway into a marketing/campaign product.</p>
+        </figure>
+      </div>
+    </section>
+
   </main>
 
   <!-- The ONLY JavaScript in the book — a single inline classic &lt;script&gt;,
