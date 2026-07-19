@@ -143,7 +143,11 @@ Plans:
 3. The book renders the logo family, color/token swatches, type/spacing sections, the full component-state showcase (hover/focus/active/disabled/loading/error/empty/skeleton/selected) as static token-driven HTML/CSS, do/don't visual pairs (logo/color/spacing misuse), a live light/dark/system theme toggle, and a live contrast matrix — professional and responsive across viewports.
 4. Brand voice and tone are documented by context (docs, errors, marketing, CLI) with good/bad examples, including the named reusable "what happened / why it matters / how to fix" error-pattern template and CTA/naming rules (lowercase `chimeway` graphic vs title-case "Chimeway" prose).
 
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 84-01-PLAN.md — Guard gate + scoped stylesheet foundation (brandbook-guards.sh + brandbook.css)
+- [ ] 84-02-PLAN.md — index.html shell, theme toggle, logo family, token swatches, type/spacing
+- [ ] 84-03-PLAN.md — Component-state showcase, do/don't pairs, live contrast matrix
+- [ ] 84-04-PLAN.md — Brand voice/microcopy, error template, naming/CTA + final verification
 
 **UI hint**: yes
 
