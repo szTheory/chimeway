@@ -50,11 +50,12 @@
     <section id="logo" class="cwb-section">
       <div>
         <h2>Logo family</h2>
-        <p>Six marks, one system. The two monochrome marks below are inlined as
+        <p>Six marks, one system. The two monochrome marks are inlined as
           <code>&lt;svg&gt;</code> with <code>fill="currentColor"</code>, so they
-          inherit <code>var(--cw-fg)</code> and recolor as you flip the theme. The
-          fixed-color and inverse lockups are shipped assets rendered via
-          <code>&lt;img&gt;</code>.</p>
+          inherit <code>var(--cw-fg)</code> and recolor as you flip the theme.
+          Each fixed-color lockup ships a light (ink) and an inverse (paper)
+          file; the cards render whichever matches the current theme, so every
+          mark reads natively on the surface &mdash; no background tile.</p>
       </div>
 
       <!-- Themeable marks: inlined currentColor <svg> (verbatim d= from SSOT,
@@ -74,25 +75,26 @@
         </figure>
       </div>
 
-      <!-- Fixed-color + inverse + raster assets: <img src> (not inlined). -->
+      <!-- Fixed-color lockups: each ships a light (ink) file and an inverse
+           (paper) file. The card renders whichever matches the current theme,
+           so every mark reads NATIVELY on the surface — no pinned tile. The
+           .cwb-logo--light/--dark swap mirrors the tokens' theme-resolution
+           (explicit toggle wins; system dark only when no explicit choice). -->
       <div class="cwb-grid">
-        <figure class="cwb-panel cwb-panel--field-light">
-          <img src="assets/logo/chimeway-logotype.svg" alt="chimeway logotype (primary, fixed color)" width="240">
-          <figcaption class="cwb-label">logotype &mdash; primary lockup (fixed color)</figcaption>
+        <figure class="cwb-panel">
+          <img class="cwb-logo cwb-logo--light" src="assets/logo/chimeway-logotype.svg" alt="chimeway logotype, primary lockup" width="240">
+          <img class="cwb-logo cwb-logo--dark" src="assets/logo/chimeway-logotype-inverse.svg" alt="chimeway logotype, inverse lockup for dark fields" width="240">
+          <figcaption class="cwb-label">logotype &mdash; primary lockup (light) / inverse (dark)</figcaption>
         </figure>
-        <figure class="cwb-panel cwb-panel--field-light">
-          <img src="assets/logo/chimeway-logotype-stacked.svg" alt="chimeway stacked logotype (fixed color)" width="160">
-          <figcaption class="cwb-label">logotype-stacked &mdash; vertical lockup</figcaption>
+        <figure class="cwb-panel">
+          <img class="cwb-logo cwb-logo--light" src="assets/logo/chimeway-logotype-stacked.svg" alt="chimeway stacked logotype" width="160">
+          <img class="cwb-logo cwb-logo--dark" src="assets/logo/chimeway-logotype-stacked-inverse.svg" alt="chimeway stacked logotype, inverse for dark fields" width="160">
+          <figcaption class="cwb-label">logotype-stacked &mdash; vertical lockup (theme-adaptive)</figcaption>
         </figure>
-        <figure class="cwb-panel cwb-panel--field-light">
-          <img src="assets/logo/chimeway-mark.svg" alt="chimeway mark (fixed color)" width="64">
-          <figcaption class="cwb-label">mark &mdash; standalone glyph (fixed color)</figcaption>
-        </figure>
-        <!-- Inverse is a pre-baked paper-white lockup: it does NOT carry
-             currentColor, so <img> on a dark field is its correct rendering. -->
-        <figure class="cwb-panel cwb-panel--field-dark">
-          <img src="assets/logo/chimeway-logotype-inverse.svg" alt="chimeway logotype, inverse — reads on a dark field" width="240">
-          <figcaption class="cwb-label">logotype-inverse &mdash; for dark fields (no backdrop needed)</figcaption>
+        <figure class="cwb-panel">
+          <img class="cwb-logo cwb-logo--light" src="assets/logo/chimeway-mark.svg" alt="chimeway mark" width="64">
+          <img class="cwb-logo cwb-logo--dark" src="assets/logo/chimeway-mark-inverse.svg" alt="chimeway mark, inverse for dark fields" width="64">
+          <figcaption class="cwb-label">mark &mdash; standalone glyph (theme-adaptive)</figcaption>
         </figure>
       </div>
 

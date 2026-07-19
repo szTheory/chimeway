@@ -257,32 +257,34 @@
     border: var(--cw-border-width) solid var(--cw-border);
     border-radius: var(--cw-radius-md);
   }
-  /* Pinned presentation fields for FIXED-COLOR logo assets. Mono / currentColor
-     marks recolor with the theme and sit on the open panel; the fixed-ink
-     lockups cannot recolor, so each is shown on its intended open field —
-     dark-ink lockups on paper, the inverse lockup on night — via
-     theme-INDEPENDENT primitives so the field never flips with the toggle.
-     Declared here (not in @scope) because the panel background is set by the
-     .cw-brandbook .cwb-panel fallback above; the field override must match its
-     specificity to win. This mirrors the brand-sanctioned inverse-on-night
-     usage: the mark's intended field, not a decorative background cage. */
-  .cw-brandbook .cwb-panel--field-light {
-    background: var(--cw-paper);
-  }
-  .cw-brandbook .cwb-panel--field-light .cwb-label {
-    color: var(--cw-muted);
-  }
-  .cw-brandbook .cwb-panel--field-dark {
-    background: var(--cw-night);
-  }
-  .cw-brandbook .cwb-panel--field-dark .cwb-label {
-    color: var(--cw-paper);
-  }
-  /* Center the mark within its clear-space padding on a pinned field. */
-  .cw-brandbook .cwb-panel--field-light :is(img, svg),
-  .cw-brandbook .cwb-panel--field-dark :is(img, svg) {
+  /* Theme-adaptive fixed-color lockups. Each card ships a light (ink) and an
+     inverse (paper) asset; show the one matching the CURRENT THEME so the mark
+     renders natively on the panel — no pinned tile. Mirrors the tokens'
+     theme-resolution: an explicit data-theme wins; system dark applies only
+     when no explicit choice is set (so "light" under a dark OS still shows the
+     light asset). Declared here (not in @scope) alongside the panel fallback so
+     it combines with the html[data-theme] root the toggle writes. */
+  .cw-brandbook .cwb-logo {
+    display: block;
     align-self: center;
     max-inline-size: 100%;
+  }
+  .cw-brandbook .cwb-logo--dark {
+    display: none;
+  }
+  :root[data-theme="dark"] .cw-brandbook .cwb-logo--light {
+    display: none;
+  }
+  :root[data-theme="dark"] .cw-brandbook .cwb-logo--dark {
+    display: block;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .cw-brandbook .cwb-logo--light {
+      display: none;
+    }
+    :root:not([data-theme]) .cw-brandbook .cwb-logo--dark {
+      display: block;
+    }
   }
   .cw-brandbook .cwb-nav {
     padding: var(--cw-space-md) var(--cw-space-xl);
