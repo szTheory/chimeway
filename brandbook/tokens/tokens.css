@@ -110,8 +110,10 @@
   color-scheme: light;
 }
 
-/* Explicit light override (mirror chimeway_admin.css:101-129, D-02) */
-[data-theme="light"] {
+/* Explicit light override (mirror chimeway_admin.css:101-129, D-02).
+   :root-qualified so an explicit choice outranks the prefers-color-scheme
+   block below (equal-specificity/source-order bug fix). */
+:root[data-theme="light"] {
   --cw-surface-bg: var(--cw-paper);
   --cw-surface-panel: #ffffff;
   --cw-fg: var(--cw-ink);
@@ -140,8 +142,9 @@
 }
 
 /* Dark override — verbatim hand-authored hex, no filter inversion
-   (mirror chimeway_admin.css:131-174, D-02 / TOKEN-05) */
-[data-theme="dark"] {
+   (mirror chimeway_admin.css:131-174, D-02 / TOKEN-05).
+   :root-qualified so an explicit choice outranks the prefers-color-scheme block. */
+:root[data-theme="dark"] {
   --cw-surface-bg: var(--cw-night);
   --cw-surface-panel: #10232c;
   --cw-fg: #fffdf8;
@@ -186,9 +189,10 @@
 }
 
 /* System dark default — byte-identical override list to [data-theme="dark"]
-   (mirror chimeway_admin.css:176-221, D-02) */
+   (mirror chimeway_admin.css:176-221, D-02). Gated on :not([data-theme]) so an
+   explicit light/dark selection on <html> always wins over the OS preference. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --cw-surface-bg: var(--cw-night);
     --cw-surface-panel: #10232c;
     --cw-fg: #fffdf8;

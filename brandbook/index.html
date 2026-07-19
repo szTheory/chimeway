@@ -32,9 +32,9 @@
       <!-- Tri-state theme control (D-03). "system" removes data-theme and defers
            to @media (prefers-color-scheme) declared in tokens.css. -->
       <div class="cwb-theme-toggle" role="group" aria-label="Theme">
-        <button type="button" class="cwb-btn" data-cwb-theme="light">light</button>
-        <button type="button" class="cwb-btn" data-cwb-theme="dark">dark</button>
-        <button type="button" class="cwb-btn" data-cwb-theme="system">system</button>
+        <button type="button" class="cwb-btn" data-cwb-theme="light" aria-pressed="false">light</button>
+        <button type="button" class="cwb-btn" data-cwb-theme="dark" aria-pressed="false">dark</button>
+        <button type="button" class="cwb-btn" data-cwb-theme="system" aria-pressed="false">system</button>
       </div>
     </nav>
   </header>
@@ -793,6 +793,13 @@
           root.removeAttribute('data-theme'); // defer to prefers-color-scheme
         } else {
           root.setAttribute('data-theme', mode); // 'light' | 'dark'
+        }
+        // Mark the active segment so the toggle reads as a segmented control
+        // (aria-pressed drives the accent-fill style in brandbook.css).
+        var toggles = document.querySelectorAll('[data-cwb-theme]');
+        for (var t = 0; t < toggles.length; t++) {
+          toggles[t].setAttribute('aria-pressed',
+            toggles[t].getAttribute('data-cwb-theme') === mode ? 'true' : 'false');
         }
         renderContrast(); // recompute the live matrix for the new theme
       }
