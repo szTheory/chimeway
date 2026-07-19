@@ -257,6 +257,33 @@
     border: var(--cw-border-width) solid var(--cw-border);
     border-radius: var(--cw-radius-md);
   }
+  /* Pinned presentation fields for FIXED-COLOR logo assets. Mono / currentColor
+     marks recolor with the theme and sit on the open panel; the fixed-ink
+     lockups cannot recolor, so each is shown on its intended open field —
+     dark-ink lockups on paper, the inverse lockup on night — via
+     theme-INDEPENDENT primitives so the field never flips with the toggle.
+     Declared here (not in @scope) because the panel background is set by the
+     .cw-brandbook .cwb-panel fallback above; the field override must match its
+     specificity to win. This mirrors the brand-sanctioned inverse-on-night
+     usage: the mark's intended field, not a decorative background cage. */
+  .cw-brandbook .cwb-panel--field-light {
+    background: var(--cw-paper);
+  }
+  .cw-brandbook .cwb-panel--field-light .cwb-label {
+    color: var(--cw-muted);
+  }
+  .cw-brandbook .cwb-panel--field-dark {
+    background: var(--cw-night);
+  }
+  .cw-brandbook .cwb-panel--field-dark .cwb-label {
+    color: var(--cw-paper);
+  }
+  /* Center the mark within its clear-space padding on a pinned field. */
+  .cw-brandbook .cwb-panel--field-light :is(img, svg),
+  .cw-brandbook .cwb-panel--field-dark :is(img, svg) {
+    align-self: center;
+    max-inline-size: 100%;
+  }
   .cw-brandbook .cwb-nav {
     padding: var(--cw-space-md) var(--cw-space-xl);
     background: var(--cw-surface-panel);
