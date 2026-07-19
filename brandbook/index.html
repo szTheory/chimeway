@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chimeway Brand Book</title>
+  <meta name="description" content="The Chimeway brand book — logos, color, type, spacing, component states, and voice. A single file:// -safe page, no build, no dependencies.">
+  <!-- file://-safe: relative refs only. tokens.css is the Phase-81 --cw-* SSOT
+       (read, never redefine); brandbook.css is the Phase-84 scoped stylesheet. -->
+  <link rel="icon" href="assets/favicon/favicon.svg">
+  <link rel="stylesheet" href="tokens/tokens.css">
+  <link rel="stylesheet" href="brandbook.css">
+</head>
+<body class="cw-brandbook">
+  <header>
+    <nav class="cwb-nav" aria-label="Brand book sections">
+      <a class="cwb-brandmark" href="#logo" aria-label="chimeway brand book — top">
+        <strong>chimeway</strong> <span class="cwb-label">brand book</span>
+      </a>
+      <ul class="cwb-anchors">
+        <li><a href="#logo">Logo</a></li>
+        <li><a href="#color">Color</a></li>
+        <li><a href="#contrast">Contrast</a></li>
+        <li><a href="#type">Type</a></li>
+        <li><a href="#spacing">Spacing</a></li>
+        <li><a href="#states">States</a></li>
+        <li><a href="#dodont">Do / Don't</a></li>
+        <li><a href="#voice">Voice</a></li>
+        <li><a href="#errors">Errors</a></li>
+        <li><a href="#naming">Naming</a></li>
+      </ul>
+      <!-- Tri-state theme control (D-03). "system" removes data-theme and defers
+           to @media (prefers-color-scheme) declared in tokens.css. -->
+      <div class="cwb-theme-toggle" role="group" aria-label="Theme">
+        <button type="button" class="cwb-btn" data-cwb-theme="light">light</button>
+        <button type="button" class="cwb-btn" data-cwb-theme="dark">dark</button>
+        <button type="button" class="cwb-btn" data-cwb-theme="system">system</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- SECTIONS -->
+  </main>
+
+  <!-- The ONLY JavaScript in the book — a single inline classic <script>, the
+       only JS that runs under file:// (D-03). No module, no fetch, no XHR.
+       Plan 03 EXTENDS this same script with the live contrast matrix; do not
+       add a second <script> tag. -->
+  <script>
+    (function () {
+      var root = document.documentElement; // tokens target :root / <html>
+
+      function apply(mode) {
+        if (mode === 'system') {
+          root.removeAttribute('data-theme'); // defer to prefers-color-scheme
+        } else {
+          root.setAttribute('data-theme', mode); // 'light' | 'dark'
+        }
+      }
+
+      var buttons = document.querySelectorAll('[data-cwb-theme]');
+      for (var i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            apply(btn.getAttribute('data-cwb-theme'));
+          });
+        })(buttons[i]);
+      }
+
+      apply('system'); // initialize in system mode
+    })();
+  </script>
+</body>
+</html>
