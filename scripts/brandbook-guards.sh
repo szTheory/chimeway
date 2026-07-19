@@ -7,7 +7,7 @@
 # degrades to SKIP when absent. This script — not any inline command — is the
 # canonical automated gate every Phase-84 wave invokes (D-07).
 #
-# It runs FOUR check families plus a git scope-boundary mode:
+# It runs SIX check families plus a git scope-boundary mode:
 #   1. file://-safety negatives over brandbook/index.html — no fetch/XHR,
 #      no type="module", no cross-file <use href>, no remote/root-absolute refs.
 #   2. scope-nonleak audit over brandbook/brandbook.css — @layer + @scope
@@ -18,6 +18,14 @@
 #      anchors, voice-context anchors, error-template phrase, brand casing.
 #   4. D-05 logo-parity — the TWO inlined marks' `d=` paths are bound to the
 #      brandbook/assets/logo/*.svg SSOT.
+#   5. selector-coverage — every `cwb-*` class used in brandbook/index.html has
+#      a matching selector in brandbook.css (catches the Wave-1/Wave-2 class
+#      mismatch that shipped an unstyled nav past presence-only checks).
+#   6. theme-resolution — brandbook/tokens/tokens.css gates its
+#      prefers-color-scheme block on `:root:not([data-theme])` and qualifies its
+#      `[data-theme]` overrides as `:root[data-theme]`, so an explicit toggle
+#      choice outranks the OS preference (the "light does nothing under a dark
+#      OS" bug). Presence-only checks could never catch this.
 #
 # D-04 RECONCILIATION (factual correction): CONTEXT D-04 asserts THREE
 # currentColor marks are inlined. Direct asset inspection shows only TWO carry
@@ -49,6 +57,7 @@ ALLOWED_HEX="102027 07131a fffdf8 0e7c86 d6a84f 9adbcf"
 
 INDEX_HTML="brandbook/index.html"
 BOOK_CSS="brandbook/brandbook.css"
+TOKENS_CSS="brandbook/tokens/tokens.css"
 MARK_MONO="brandbook/assets/logo/chimeway-mark-mono.svg"
 LOGOTYPE_MONO="brandbook/assets/logo/chimeway-logotype-mono.svg"
 
@@ -278,6 +287,52 @@ if [ -f "$INDEX_HTML" ]; then
   else
     skip "xmllint not on PATH — index.html well-formedness check skipped"
   fi
+fi
+
+# ============================================================================
+# Family 5: selector-coverage — every cwb-* class USED in index.html must have a
+# matching selector in brandbook.css. Presence-only checks (families 1-4) passed
+# while `.cwb-anchors`/`.cwb-brandmark`/`.cwb-theme-toggle` had NO rule, shipping
+# a default-bulleted, blue-underlined nav. This closes that vacuous-pass seam.
+# ============================================================================
+if [ -f "$INDEX_HTML" ] && [ -f "$BOOK_CSS" ]; then
+  echo "-- family 5: selector-coverage ($INDEX_HTML classes vs $BOOK_CSS) --"
+  orphans=""
+  while IFS= read -r cls; do
+    [ -z "$cls" ] && continue
+    # Match `.<cls>` followed by any non-class char (space, {, ,, :, ., [, EOL)
+    # so `.cwb-do` does not spuriously satisfy a missing `.cwb-dont`, etc.
+    if ! grep -qE "\.${cls}([^A-Za-z0-9_-]|$)" "$BOOK_CSS"; then
+      orphans="${orphans}.${cls}\n"
+    fi
+  done <<EOF
+$(grep -oE 'class="[^"]*"' "$INDEX_HTML" | grep -oE 'cwb-[A-Za-z0-9_-]+' | sort -u)
+EOF
+  if [ -n "$orphans" ]; then
+    fail "selector-coverage: cwb-* class(es) used in $INDEX_HTML with NO rule in $BOOK_CSS:"
+    printf '%b' "$orphans" | sed 's/^/        /'
+  else
+    pass "selector-coverage: every cwb-* class in $INDEX_HTML has a matching selector"
+  fi
+fi
+
+# ============================================================================
+# Family 6: theme-resolution — an explicit data-theme choice must outrank the OS
+# prefers-color-scheme. The media block must be gated on :root:not([data-theme])
+# and the attribute overrides must be :root-qualified (specificity), else the
+# toggle silently does nothing under a dark OS.
+# ============================================================================
+if [ -f "$TOKENS_CSS" ]; then
+  echo "-- family 6: theme-resolution ($TOKENS_CSS) --"
+  before=$FAILED
+  need "media dark gated on :root:not([data-theme])" ':root:not\(\[data-theme\]\)' "$TOKENS_CSS"
+  # Any column-0 [data-theme=...] selector is unqualified — it ties the media
+  # :root on specificity and loses on source order. Require :root[data-theme=...].
+  if grep -nE '^[[:space:]]*\[data-theme=' "$TOKENS_CSS" >/dev/null 2>&1; then
+    fail "theme-resolution: unqualified [data-theme=...] selector (use :root[data-theme=...] so it outranks the media block):"
+    grep -nE '^[[:space:]]*\[data-theme=' "$TOKENS_CSS" | sed 's/^/        /'
+  fi
+  [ "$FAILED" -eq "$before" ] && pass "theme-resolution: explicit data-theme selectors outrank prefers-color-scheme"
 fi
 
 # ----------------------------------------------------------------------------
