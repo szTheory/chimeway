@@ -26,11 +26,13 @@
 #      `[data-theme]` overrides as `:root[data-theme]`, so an explicit toggle
 #      choice outranks the OS preference (the "light does nothing under a dark
 #      OS" bug). Presence-only checks could never catch this.
-#   7. logo-field-coverage — every FIXED-COLOR <img> logo is pinned to its
-#      intended field (dark-ink lockups inside a .cwb-panel--field-light figure,
-#      the inverse lockup inside .cwb-panel--field-dark), and no <figure> carries
-#      an ad-hoc inline background. Catches the "dark-ink logo vanishes on the
-#      dark panel in dark mode" breakage that presence/parity checks let ship.
+#   7. adaptive-logo coverage — each fixed-color lockup renders NATIVELY in both
+#      themes via a light (ink) + inverse (paper) <img> pair that swaps on the
+#      toggle: the derived inverse assets exist and carry zero ink, every lockup
+#      ships both .cwb-logo--light and .cwb-logo--dark, and brandbook.css swaps
+#      them on the same theme-resolution the tokens use. Catches "a fixed-color
+#      lockup with no dark variant" (the dark-mode logo breakage) without pinning
+#      a light tile in the dark UI.
 #
 # D-04 RECONCILIATION (factual correction): CONTEXT D-04 asserts THREE
 # currentColor marks are inlined. Direct asset inspection shows only TWO carry
@@ -341,38 +343,56 @@ if [ -f "$TOKENS_CSS" ]; then
 fi
 
 # ============================================================================
-# Family 7: logo-field-coverage — every FIXED-COLOR <img> logo must render on
-# its intended pinned field, not the theme-flipping panel surface. The dark-ink
-# lockups vanished on the dark #10232c panel in dark mode because no guard tied
-# a fixed-color asset to a fixed backdrop (families 1-4 never inspect an <img>'s
-# background). This is a CONTENT check: each fixed asset must sit inside the
-# matching cwb-panel--field-* figure, mirroring the brand's inverse-on-night
-# usage. It would have caught the dark-mode logo breakage.
+# Family 7: adaptive-logo coverage — the fixed-color lockups must render
+# NATIVELY in both themes, not on a pinned tile. Each ships a light (ink) and an
+# inverse (paper) asset that swap by theme. Enforce: (a) the derived inverse
+# assets exist and are truly paper-based (ink fully removed); (b) each lockup
+# card carries BOTH a .cwb-logo--light and a .cwb-logo--dark <img> for the
+# matching SSOT files; (c) brandbook.css swaps them on the SAME theme-resolution
+# the tokens use (explicit data-theme wins; system dark gated on
+# :not([data-theme])). Catches "a fixed-color lockup with no dark variant" (the
+# dark-mode breakage) and "a dark asset that still carries ink".
 # ============================================================================
+LOGO_DIR="brandbook/assets/logo"
 if [ -f "$INDEX_HTML" ]; then
-  echo "-- family 7: logo-field-coverage ($INDEX_HTML) --"
+  echo "-- family 7: adaptive-logo coverage ($INDEX_HTML) --"
   before=$FAILED
-  # -A2 window: a <figure class=...--field-*> line plus its <img> (+ caption).
-  light_block="$(grep -A2 'cwb-panel--field-light' "$INDEX_HTML" || true)"
-  dark_block="$(grep -A2 'cwb-panel--field-dark' "$INDEX_HTML" || true)"
-  for asset in chimeway-logotype.svg chimeway-logotype-stacked.svg chimeway-mark.svg; do
-    if printf '%s\n' "$light_block" | grep -qF "assets/logo/$asset"; then
-      pass "logo-field: $asset pinned to a light field"
+  # (a) inverse assets exist and are paper-based (no ink left).
+  for inv in chimeway-logotype-inverse.svg chimeway-logotype-stacked-inverse.svg chimeway-mark-inverse.svg; do
+    f="$LOGO_DIR/$inv"
+    if [ ! -f "$f" ]; then
+      fail "adaptive-logo: inverse asset $f missing"
+    elif grep -q '#102027' "$f"; then
+      fail "adaptive-logo: $f still carries ink #102027 (not a true paper inverse)"
+    elif ! grep -q '#fffdf8' "$f"; then
+      fail "adaptive-logo: $f has no paper #fffdf8 fill (not an inverse)"
     else
-      fail "logo-field: fixed-color $asset is NOT inside a .cwb-panel--field-light figure (dark-ink vanishes on the dark panel in dark mode)"
+      pass "adaptive-logo: $inv is a paper-based inverse"
     fi
   done
-  if printf '%s\n' "$dark_block" | grep -qF 'assets/logo/chimeway-logotype-inverse.svg'; then
-    pass "logo-field: inverse lockup pinned to a dark field"
-  else
-    fail "logo-field: chimeway-logotype-inverse.svg is NOT inside a .cwb-panel--field-dark figure"
+  # (b) each lockup ships a matched light + inverse <img> pair.
+  light_imgs="$(grep -E 'cwb-logo--light' "$INDEX_HTML" || true)"
+  dark_imgs="$(grep -E 'cwb-logo--dark' "$INDEX_HTML" || true)"
+  for pair in \
+    'chimeway-logotype.svg|chimeway-logotype-inverse.svg' \
+    'chimeway-logotype-stacked.svg|chimeway-logotype-stacked-inverse.svg' \
+    'chimeway-mark.svg|chimeway-mark-inverse.svg'; do
+    l="${pair%%|*}"; d="${pair##*|}"
+    if printf '%s\n' "$light_imgs" | grep -qF "assets/logo/$l" \
+       && printf '%s\n' "$dark_imgs" | grep -qF "assets/logo/$d"; then
+      pass "adaptive-logo: $l has a theme-swapped inverse ($d)"
+    else
+      fail "adaptive-logo: $l is not paired as .cwb-logo--light + .cwb-logo--dark ($d) — it would not render in the opposite theme"
+    fi
+  done
+  # (c) the swap honors the toggle (same resolution as tokens family 6).
+  need "logo swap gated on explicit dark" ':root\[data-theme="dark"\][^{]*\.cwb-logo--light' "$BOOK_CSS"
+  need "logo swap gated on system dark"   ':root:not\(\[data-theme\]\)[^{]*\.cwb-logo--dark'  "$BOOK_CSS"
+  # The pinned-tile workaround must not be reintroduced.
+  if grep -qE 'cwb-panel--field-' "$INDEX_HTML"; then
+    fail "adaptive-logo: pinned-tile modifier cwb-panel--field-* still in $INDEX_HTML (superseded by the theme-swap)"
   fi
-  # No ad-hoc inline field background on a <figure> — use the systematic class.
-  if grep -nE '<figure[^>]*style[[:space:]]*=[[:space:]]*"[^"]*background' "$INDEX_HTML" >/dev/null 2>&1; then
-    fail "logo-field: inline style=\"background:...\" on a <figure> (use .cwb-panel--field-* instead):"
-    grep -nE '<figure[^>]*style[[:space:]]*=[[:space:]]*"[^"]*background' "$INDEX_HTML" | sed 's/^/        /'
-  fi
-  [ "$FAILED" -eq "$before" ] && pass "logo-field-coverage: fixed-color logos pinned to their intended fields"
+  [ "$FAILED" -eq "$before" ] && pass "adaptive-logo coverage: fixed-color lockups swap light/inverse by theme"
 fi
 
 # ----------------------------------------------------------------------------
