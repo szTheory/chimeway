@@ -335,17 +335,19 @@ Using a painted probe + `getComputedStyle` (rather than string-parsing hex) mean
 
 **These four are the only open items.** All are low/medium risk and resolvable at plan or discuss time; none blocks planning.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact name for the reusable error template (VOICE-02).**
    - What we know: the required *structure* is "what happened / why it matters / how to fix," grounded in voice principle §2 (`prompts:265-275`) and the good/bad error examples (`prompts:1371-1379`).
    - What's unclear: whether the user wants a specific branded name for it.
    - Recommendation: propose a plain descriptive name ("Chimeway error message pattern: what happened → why it matters → how to fix") and let the planner/user rename if desired. Not a blocker.
+   - **RESOLVED:** Locked by CONTEXT `<specifics>` + UI-SPEC §Copywriting Contract line 110 as **"Chimeway error message pattern: what happened → why it matters → how to fix"**, canonical example `Delivery suppressed: recipient disabled email for \`invoice.paid\`.` Implemented in Plan 84-04 Task 2.
 
 2. **Inline-vs-`<img>` policy for logos, and drift control.**
    - What we know: theming needs inline; DRY favors `<img>`.
    - What's unclear: appetite for a parity guard vs. accepting a documented inline copy.
    - Recommendation: inline only the marks that must theme (mono/inverse/primary-on-both-themes); `<img>` everything else; add a lightweight grep parity check to the guard. Decide at plan time.
+   - **RESOLVED:** Locked by D-04 (inline only the two `fill="currentColor"` marks — `chimeway-mark-mono.svg`, `chimeway-logotype-mono.svg`; the inverse lockup is fixed-color, so `<img>`) and D-05 (guard grep parity check over exactly those two inlined `d=` paths against the SSOT assets). Implemented in Plan 84-02 Task 2 (rendering) + Plan 84-01 Task 1 (parity guard).
 
 ## Environment Availability
 
