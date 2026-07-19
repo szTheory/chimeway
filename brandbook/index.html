@@ -244,6 +244,136 @@
       </div>
     </section>
 
+    <!-- ============================================================ -->
+    <!-- 5. COMPONENT STATES — the nine states, each LIVE + FROZEN    -->
+    <!-- STATE-01: every state renders statically via an .is-* forcing -->
+    <!-- class (or .cwb-skeleton) alongside a live interactive control -->
+    <!-- so the state proves out on a static page. All classes are     -->
+    <!-- authored in plan-01 brandbook.css — no inline styles here.    -->
+    <!-- ============================================================ -->
+    <section id="states" class="cwb-section">
+      <div>
+        <h2>Component states</h2>
+        <p>Nine states, each shown <strong>twice</strong>: a live interactive
+          control that exhibits the real pseudo-class as you hover / focus / press
+          it, and a frozen copy carrying the matching <code>.is-*</code> forcing
+          class (or <code>.cwb-skeleton</code>) so the state renders statically —
+          no interaction required. Every surface is token-driven; the primary
+          control label is the developer-to-developer CTA <code>install chimeway</code>.</p>
+      </div>
+
+      <div class="cwb-grid">
+        <!-- 1. hover -->
+        <figure class="cwb-panel">
+          <h3>Hover</h3>
+          <p class="cwb-label">token: <code>--cw-control-hover</code></p>
+          <div style="display:flex; flex-wrap:wrap; gap: var(--cw-space-md); align-items:center;">
+            <button type="button" class="cwb-btn">install chimeway</button>
+            <span class="cwb-label">live &mdash; hover me</span>
+            <button type="button" class="cwb-btn is-hover">install chimeway</button>
+            <span class="cwb-label">frozen <code>.is-hover</code></span>
+          </div>
+        </figure>
+
+        <!-- 2. focus -->
+        <figure class="cwb-panel">
+          <h3>Focus</h3>
+          <p class="cwb-label">token: <code>--cw-focus</code> ring (SC 2.4.7)</p>
+          <div style="display:flex; flex-wrap:wrap; gap: var(--cw-space-md); align-items:center;">
+            <button type="button" class="cwb-btn">install chimeway</button>
+            <span class="cwb-label">live &mdash; tab to me</span>
+            <button type="button" class="cwb-btn is-focus">install chimeway</button>
+            <span class="cwb-label">frozen <code>.is-focus</code></span>
+          </div>
+        </figure>
+
+        <!-- 3. active -->
+        <figure class="cwb-panel">
+          <h3>Active</h3>
+          <p class="cwb-label">token: <code>--cw-control-active</code> / <code>--cw-motion-pressed</code></p>
+          <div style="display:flex; flex-wrap:wrap; gap: var(--cw-space-md); align-items:center;">
+            <button type="button" class="cwb-btn">install chimeway</button>
+            <span class="cwb-label">live &mdash; press me</span>
+            <button type="button" class="cwb-btn is-active">install chimeway</button>
+            <span class="cwb-label">frozen <code>.is-active</code></span>
+          </div>
+        </figure>
+
+        <!-- 4. disabled -->
+        <figure class="cwb-panel">
+          <h3>Disabled</h3>
+          <p class="cwb-label">token: <code>--cw-control-disabled-bg</code> / <code>-fg</code></p>
+          <div style="display:flex; flex-wrap:wrap; gap: var(--cw-space-md); align-items:center;">
+            <button type="button" class="cwb-btn" disabled>install chimeway</button>
+            <span class="cwb-label">live &mdash; <code>:disabled</code></span>
+            <button type="button" class="cwb-btn is-disabled">install chimeway</button>
+            <span class="cwb-label">frozen <code>.is-disabled</code></span>
+          </div>
+        </figure>
+
+        <!-- 5. loading -->
+        <figure class="cwb-panel">
+          <h3>Loading</h3>
+          <p class="cwb-label">token: <code>--cw-fg-muted</code> + <code>--cw-motion-fast</code> pulse</p>
+          <div style="display:flex; flex-wrap:wrap; gap: var(--cw-space-md); align-items:center;">
+            <button type="button" class="cwb-btn">install chimeway</button>
+            <span class="cwb-label">live control</span>
+            <button type="button" class="cwb-btn is-loading" aria-busy="true"><span aria-hidden="true">&#8635;</span> installing&hellip;</button>
+            <span class="cwb-label">frozen <code>.is-loading</code></span>
+          </div>
+        </figure>
+
+        <!-- 6. error — color paired with label + icon (never color-alone) -->
+        <figure class="cwb-panel">
+          <h3>Error</h3>
+          <p class="cwb-label">token: <code>--cw-status-danger-*</code> triad + label + icon</p>
+          <div style="display:flex; flex-wrap:wrap; gap: var(--cw-space-md); align-items:center;">
+            <button type="button" class="cwb-btn">install chimeway</button>
+            <span class="cwb-label">live control</span>
+            <button type="button" class="cwb-btn is-error"><span aria-hidden="true">&#10007;</span> Delivery failed</button>
+            <span class="cwb-label">frozen <code>.is-error</code> &mdash; color + icon + word</span>
+          </div>
+        </figure>
+
+        <!-- 7. empty — carries the specified empty-state copy -->
+        <figure class="cwb-panel">
+          <h3>Empty</h3>
+          <p class="cwb-label">token: <code>--cw-fg-muted</code> on <code>--cw-surface-panel</code></p>
+          <div style="display:flex; flex-direction:column; gap: var(--cw-space-sm);">
+            <div class="cwb-cell is-empty">
+              <strong>No deliveries yet</strong>
+              <p>Trigger an event to see it traced here.</p>
+            </div>
+            <span class="cwb-label">frozen <code>.is-empty</code> &mdash; calm copy that explains the next step</span>
+          </div>
+        </figure>
+
+        <!-- 8. skeleton — pure-CSS shimmer (reduced-motion safe) -->
+        <figure class="cwb-panel">
+          <h3>Skeleton</h3>
+          <p class="cwb-label">token: <code>--cw-control-disabled-bg</code> &harr; <code>--cw-surface-hover</code> shimmer</p>
+          <div style="display:flex; flex-direction:column; gap: var(--cw-space-sm);">
+            <span class="cwb-skeleton" style="inline-size: 70%;">&nbsp;</span>
+            <span class="cwb-skeleton" style="inline-size: 90%;">&nbsp;</span>
+            <span class="cwb-skeleton" style="inline-size: 45%;">&nbsp;</span>
+            <span class="cwb-label">frozen <code>.cwb-skeleton</code> &mdash; animation off under <code>prefers-reduced-motion</code></span>
+          </div>
+        </figure>
+
+        <!-- 9. selected -->
+        <figure class="cwb-panel">
+          <h3>Selected</h3>
+          <p class="cwb-label">token: <code>--cw-surface-active</code> + inset <code>--cw-accent</code> ring</p>
+          <div style="display:flex; flex-wrap:wrap; gap: var(--cw-space-md); align-items:center;">
+            <button type="button" class="cwb-btn">install chimeway</button>
+            <span class="cwb-label">live control</span>
+            <button type="button" class="cwb-btn is-selected" aria-pressed="true">install chimeway</button>
+            <span class="cwb-label">frozen <code>.is-selected</code></span>
+          </div>
+        </figure>
+      </div>
+    </section>
+
     <!-- SECTIONS -->
   </main>
 
