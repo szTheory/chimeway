@@ -524,6 +524,153 @@
       </div>
     </section>
 
+    <!-- ============================================================ -->
+    <!-- 8. VOICE BY CONTEXT (VOICE-01)                               -->
+    <!-- Four contexts (docs / errors / marketing / cli), each a      -->
+    <!-- good/bad pair lifted VERBATIM from prompts/chimeway-brand-    -->
+    <!-- book.md §25 (:1349-1409) & §9 (:251-311). No invented copy.   -->
+    <!-- The four anchor literals docs/errors/marketing/cli are        -->
+    <!-- required by the section-presence guard (family 3).            -->
+    <!-- ============================================================ -->
+    <section id="voice" class="cwb-section">
+      <div>
+        <h2>Voice by context</h2>
+        <p>One voice, four registers. Chimeway is calm, precise, and
+          developer-to-developer: it explains what happened and why, stays
+          literal in operational surfaces, and never sells. Every example below
+          is lifted <strong>verbatim</strong> from the brand book &mdash; the
+          <strong>Do</strong> reads like the library you want to debug at 2am,
+          the <strong>Don't</strong> like a SaaS landing page.</p>
+      </div>
+
+      <!-- docs -->
+      <div class="cwb-grid" data-voice-context="docs">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; <span class="cwb-label">docs</span></figcaption>
+          <p>Use an idempotency key when the same domain event may be retried.
+            Chimeway uses the key to avoid creating duplicate events and
+            deliveries.</p>
+          <p class="cwb-label">Accurate, technical, speaks developer-to-developer.</p>
+        </figure>
+        <figure class="cwb-dont">
+          <figcaption><strong>Don't</strong> &mdash; <span class="cwb-label">docs</span></figcaption>
+          <p>Chimeway magically knows when not to duplicate messages.</p>
+          <p class="cwb-label">Mystical, hand-wavy, hides the mechanism. Operational
+            docs must be literal.</p>
+        </figure>
+      </div>
+
+      <!-- errors -->
+      <div class="cwb-grid" data-voice-context="errors">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; <span class="cwb-label">errors</span></figcaption>
+          <p>Delivery suppressed: recipient disabled email for <code>invoice.paid</code>.</p>
+          <p class="cwb-label">Says what happened and why; calm about failure, helps
+            the reader debug.</p>
+        </figure>
+        <figure class="cwb-dont">
+          <figcaption><strong>Don't</strong> &mdash; <span class="cwb-label">errors</span></figcaption>
+          <p>This chime did not ring.</p>
+          <p class="cwb-label">Too musical, explains nothing. A failed delivery is
+            normal &mdash; name the cause.</p>
+        </figure>
+      </div>
+
+      <!-- marketing -->
+      <div class="cwb-grid" data-voice-context="marketing">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; <span class="cwb-label">marketing</span></figcaption>
+          <p>Notifications are easy to send and hard to explain. Chimeway gives
+            every event, recipient, delivery, and attempt a place in your
+            app&rsquo;s database, so production debugging starts with a trace
+            instead of a guess.</p>
+          <p class="cwb-label">Honest, concrete, app-owned. Leads with the
+            notification path and the debug value.</p>
+        </figure>
+        <figure class="cwb-dont">
+          <figcaption><strong>Don't</strong> &mdash; <span class="cwb-label">marketing</span></figcaption>
+          <p>Supercharge your user engagement with next-generation omnichannel
+            notification journeys.</p>
+          <p class="cwb-label">Sounds like a SaaS company &mdash; banned words
+            stacked three deep (<em>omnichannel</em>, <em>engagement</em>,
+            <em>journeys</em>).</p>
+        </figure>
+      </div>
+
+      <!-- cli -->
+      <div class="cwb-grid" data-voice-context="cli">
+        <figure class="cwb-do">
+          <figcaption><strong>Do</strong> &mdash; <span class="cwb-label">cli / admin UI</span></figcaption>
+          <p>Provider accepted the push notification. Device display is not
+            guaranteed by the provider response.</p>
+          <p class="cwb-label">Precise about what the provider actually promised;
+            no overstated delivery guarantee.</p>
+        </figure>
+        <figure class="cwb-dont">
+          <figcaption><strong>Don't</strong> &mdash; <span class="cwb-label">cli / admin UI</span></figcaption>
+          <p>Push delivered.</p>
+          <p class="cwb-label">Claims a guarantee the provider never gave. Admin and
+            CLI surfaces must be literal.</p>
+        </figure>
+      </div>
+
+      <!-- Copy vocabulary (prompts §10 :313-381) -->
+      <div class="cwb-grid">
+        <figure class="cwb-panel">
+          <figcaption><strong>Preferred vocabulary</strong> <span class="cwb-label">&mdash; use freely</span></figcaption>
+          <p style="display:flex; flex-wrap:wrap; gap: var(--cw-space-xs);">
+            <span class="cwb-badge is-pass">notification</span>
+            <span class="cwb-badge is-pass">event</span>
+            <span class="cwb-badge is-pass">recipient</span>
+            <span class="cwb-badge is-pass">channel</span>
+            <span class="cwb-badge is-pass">route</span>
+            <span class="cwb-badge is-pass">delivery</span>
+            <span class="cwb-badge is-pass">attempt</span>
+            <span class="cwb-badge is-pass">trace</span>
+            <span class="cwb-badge is-pass">policy</span>
+            <span class="cwb-badge is-pass">preference</span>
+            <span class="cwb-badge is-pass">suppression</span>
+            <span class="cwb-badge is-pass">fallback</span>
+            <span class="cwb-badge is-pass">digest</span>
+            <span class="cwb-badge is-pass">inbox</span>
+            <span class="cwb-badge is-pass">durable</span>
+            <span class="cwb-badge is-pass">explainable</span>
+            <span class="cwb-badge is-pass">inspectable</span>
+            <span class="cwb-badge is-pass">adapter</span>
+            <span class="cwb-badge is-pass">app-owned</span>
+            <span class="cwb-badge is-pass">code-first</span>
+          </p>
+          <p class="cwb-label">Good brand words used sparingly (never at the cost of
+            clarity): <em>chime</em>, <em>path</em>, <em>way</em>, <em>signal</em>,
+            <em>ring</em>, <em>resonate</em>, <em>melody</em>, <em>cadence</em>.</p>
+        </figure>
+        <figure class="cwb-panel">
+          <figcaption><strong>Banned vocabulary</strong> <span class="cwb-label">&mdash; avoid</span></figcaption>
+          <p style="display:flex; flex-wrap:wrap; gap: var(--cw-space-xs);">
+            <span class="cwb-badge is-fail">blast</span>
+            <span class="cwb-badge is-fail">campaign</span>
+            <span class="cwb-badge is-fail">journey</span>
+            <span class="cwb-badge is-fail">engagement automation</span>
+            <span class="cwb-badge is-fail">growth</span>
+            <span class="cwb-badge is-fail">funnel</span>
+            <span class="cwb-badge is-fail">omnichannel</span>
+            <span class="cwb-badge is-fail">customer messaging platform</span>
+            <span class="cwb-badge is-fail">AI-powered</span>
+            <span class="cwb-badge is-fail">magical</span>
+            <span class="cwb-badge is-fail">zero-config</span>
+            <span class="cwb-badge is-fail">enterprise-grade</span>
+            <span class="cwb-badge is-fail">hosted</span>
+            <span class="cwb-badge is-fail">cloud-native notification platform</span>
+            <span class="cwb-badge is-fail">monetization</span>
+            <span class="cwb-badge is-fail">freemium</span>
+            <span class="cwb-badge is-fail">open-core</span>
+          </p>
+          <p class="cwb-label"><em>zero-config</em> and <em>enterprise-grade</em> are
+            allowed only when literally true / specifically substantiated.</p>
+        </figure>
+      </div>
+    </section>
+
     <!-- SECTIONS -->
   </main>
 
