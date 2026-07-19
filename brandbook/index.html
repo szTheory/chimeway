@@ -121,6 +121,129 @@
       </div>
     </section>
 
+    <!-- ============================================================ -->
+    <!-- 2. COLOR / TOKENS                                            -->
+    <!-- Every chip is painted from var(--cw-*) so it renders the     -->
+    <!-- live resolved value under the active theme. Zero hex here.   -->
+    <!-- ============================================================ -->
+    <section id="color" class="cwb-section">
+      <div>
+        <h2>Color &amp; tokens</h2>
+        <p>The book reads the Phase-81 <code>--cw-*</code> SSOT by name only. Each
+          chip below is painted with <code>var(--cw-*)</code>, so what you see is
+          the token's live resolved value under the current theme &mdash; flip the
+          theme and the swatches repaint. No hex is hard-coded on this page.</p>
+      </div>
+
+      <h3>Primitives</h3>
+      <div class="cwb-grid">
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-ink);"></div><span class="cwb-label">--cw-ink</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-night);"></div><span class="cwb-label">--cw-night</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-paper);"></div><span class="cwb-label">--cw-paper</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-porcelain);"></div><span class="cwb-label">--cw-porcelain</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-line);"></div><span class="cwb-label">--cw-line</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-muted);"></div><span class="cwb-label">--cw-muted</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-teal);"></div><span class="cwb-label">--cw-teal</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-blue);"></div><span class="cwb-label">--cw-blue</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-brass);"></div><span class="cwb-label">--cw-brass</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-mint);"></div><span class="cwb-label">--cw-mint</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-violet);"></div><span class="cwb-label">--cw-violet</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-success);"></div><span class="cwb-label">--cw-success</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-warning);"></div><span class="cwb-label">--cw-warning</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-danger);"></div><span class="cwb-label">--cw-danger</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-code);"></div><span class="cwb-label">--cw-code</span></div>
+      </div>
+
+      <h3>Semantic aliases</h3>
+      <p class="cwb-label">These remap across themes (e.g. accent: teal &rarr; mint; focus: blue &rarr; brass).</p>
+      <div class="cwb-grid">
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-surface-bg);"></div><span class="cwb-label">--cw-surface-bg</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-surface-panel);"></div><span class="cwb-label">--cw-surface-panel</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-fg);"></div><span class="cwb-label">--cw-fg</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-fg-muted);"></div><span class="cwb-label">--cw-fg-muted</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-border);"></div><span class="cwb-label">--cw-border</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-accent);"></div><span class="cwb-label">--cw-accent (teal &rarr; mint)</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-focus);"></div><span class="cwb-label">--cw-focus (blue &rarr; brass)</span></div>
+        <div class="cwb-swatch"><div style="flex:1; min-block-size:3rem; background: var(--cw-info);"></div><span class="cwb-label">--cw-info</span></div>
+      </div>
+
+      <h3>Status triads</h3>
+      <p class="cwb-label">Status is <strong>never color-alone</strong> &mdash; each pill pairs
+        its <code>-text</code>/<code>-surface</code>/<code>-border</code> triad with an icon and a word.</p>
+      <div class="cwb-grid">
+        <span class="cwb-badge" style="color: var(--cw-status-success-text); background: var(--cw-status-success-surface); border: var(--cw-border-width) solid var(--cw-status-success-border);"><span aria-hidden="true">&#10003;</span> Succeeded</span>
+        <span class="cwb-badge" style="color: var(--cw-status-warning-text); background: var(--cw-status-warning-surface); border: var(--cw-border-width) solid var(--cw-status-warning-border);"><span aria-hidden="true">&#9888;</span> Suppressed</span>
+        <span class="cwb-badge" style="color: var(--cw-status-warning-text); background: var(--cw-status-warning-surface); border: var(--cw-border-width) dashed var(--cw-status-warning-border);"><span aria-hidden="true">&#9888;</span> Expired</span>
+        <span class="cwb-badge" style="color: var(--cw-status-danger-text); background: var(--cw-status-danger-surface); border: var(--cw-border-width) solid var(--cw-status-danger-border);"><span aria-hidden="true">&#10007;</span> Failed</span>
+        <span class="cwb-badge" style="color: var(--cw-status-info-text); background: var(--cw-status-info-surface); border: var(--cw-border-width) solid var(--cw-status-info-border);"><span aria-hidden="true">&#8635;</span> Enqueued</span>
+        <span class="cwb-badge" style="color: var(--cw-status-neutral-text); background: var(--cw-status-neutral-surface); border: var(--cw-border-width) solid var(--cw-status-neutral-border);"><span aria-hidden="true">&#9679;</span> Planned</span>
+        <span class="cwb-badge" style="color: var(--cw-status-neutral-text); background: var(--cw-status-neutral-surface); border: var(--cw-border-width) dashed var(--cw-status-neutral-border);"><span aria-hidden="true">&#9679;</span> Cancelled</span>
+        <span class="cwb-badge" style="color: var(--cw-paper); background: var(--cw-violet); border: var(--cw-border-width) solid var(--cw-violet);"><span aria-hidden="true">&#8599;</span> Sending</span>
+      </div>
+
+      <div class="cwb-panel">
+        <h3>Accent is reserved</h3>
+        <p><code>--cw-accent</code> is a 10% accent, <strong>not</strong> "all interactive elements". Use it only for:</p>
+        <ul>
+          <li>The primary button surface (<code>--cw-button-primary-bg</code>) in the state showcase</li>
+          <li>The <code>.is-selected</code> component-state indicator (inset ring)</li>
+          <li>The integrated accent stroke of the brand mark when rendered on theme</li>
+          <li>Section-anchor / active-nav emphasis in the book chrome</li>
+        </ul>
+        <p class="cwb-label">Links use <code>--cw-link-fg</code>; focus rings use <code>--cw-focus</code>;
+          hover/active surfaces use the <code>--cw-control-*</code> layer &mdash; never accent.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 3. TYPOGRAPHY — exactly 4 sizes, exactly 2 weights           -->
+    <!-- ============================================================ -->
+    <section id="type" class="cwb-section">
+      <div>
+        <h2>Typography</h2>
+        <p>Four sizes, two weights. Sizes and weights come from
+          <code>var(--cw-font-size-*)</code> and <code>var(--cw-font-weight-*)</code>;
+          never ship ultra-light UI text, never set muted text below the 14px label size.</p>
+      </div>
+
+      <div class="cwb-panel" style="font-family: var(--cw-font-family-sans);">
+        <p style="font-size: var(--cw-font-size-display); line-height: var(--cw-line-height-display); font-weight: var(--cw-font-weight-semibold);">Display 28 / semibold 600</p>
+        <p style="font-size: var(--cw-font-size-display); line-height: var(--cw-line-height-display); font-weight: var(--cw-font-weight-regular);">Display 28 / regular 400</p>
+        <p style="font-size: var(--cw-font-size-heading); line-height: var(--cw-line-height-heading); font-weight: var(--cw-font-weight-semibold);">Heading 20 / semibold 600</p>
+        <p style="font-size: var(--cw-font-size-heading); line-height: var(--cw-line-height-heading); font-weight: var(--cw-font-weight-regular);">Heading 20 / regular 400</p>
+        <p style="font-size: var(--cw-font-size-body); line-height: var(--cw-line-height-body); font-weight: var(--cw-font-weight-semibold);">Body 16 / semibold 600 &mdash; developer-to-developer voice</p>
+        <p style="font-size: var(--cw-font-size-body); line-height: var(--cw-line-height-body); font-weight: var(--cw-font-weight-regular);">Body 16 / regular 400 &mdash; the default reading size for prose</p>
+        <p style="font-size: var(--cw-font-size-label); line-height: var(--cw-line-height-label); font-weight: var(--cw-font-weight-semibold);">Label 14 / semibold 600</p>
+        <p style="font-size: var(--cw-font-size-label); line-height: var(--cw-line-height-label); font-weight: var(--cw-font-weight-regular);">Label 14 / regular 400 &mdash; captions and metadata</p>
+      </div>
+
+      <div class="cwb-panel">
+        <h3>Font stacks</h3>
+        <p style="font-family: var(--cw-font-family-sans);">Sans / UI &mdash; <code>--cw-font-family-sans</code> (Inter &rarr; system-ui): the quick brown fox jumps over the lazy dog.</p>
+        <p style="font-family: var(--cw-font-family-mono);">Mono / code &mdash; <code>--cw-font-family-mono</code> (IBM Plex Mono): mix.deliver(event, recipient) # 0123456789</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 4. SPACING — seven-step 4px scale                            -->
+    <!-- ============================================================ -->
+    <section id="spacing" class="cwb-section">
+      <div>
+        <h2>Spacing</h2>
+        <p>A single 4px base scale. Every bar's width is the token itself
+          (<code>var(--cw-space-*)</code>); every step is a multiple of 4.</p>
+      </div>
+      <div class="cwb-panel" style="display:flex; flex-direction:column; gap: var(--cw-space-sm);">
+        <div style="display:flex; align-items:center; gap: var(--cw-space-md);"><span class="cwb-label" style="min-inline-size:9rem;">--cw-space-xs &middot; 4px</span><span style="display:block; block-size: var(--cw-space-md); inline-size: var(--cw-space-xs); background: var(--cw-accent);"></span></div>
+        <div style="display:flex; align-items:center; gap: var(--cw-space-md);"><span class="cwb-label" style="min-inline-size:9rem;">--cw-space-sm &middot; 8px</span><span style="display:block; block-size: var(--cw-space-md); inline-size: var(--cw-space-sm); background: var(--cw-accent);"></span></div>
+        <div style="display:flex; align-items:center; gap: var(--cw-space-md);"><span class="cwb-label" style="min-inline-size:9rem;">--cw-space-md &middot; 16px</span><span style="display:block; block-size: var(--cw-space-md); inline-size: var(--cw-space-md); background: var(--cw-accent);"></span></div>
+        <div style="display:flex; align-items:center; gap: var(--cw-space-md);"><span class="cwb-label" style="min-inline-size:9rem;">--cw-space-lg &middot; 24px</span><span style="display:block; block-size: var(--cw-space-md); inline-size: var(--cw-space-lg); background: var(--cw-accent);"></span></div>
+        <div style="display:flex; align-items:center; gap: var(--cw-space-md);"><span class="cwb-label" style="min-inline-size:9rem;">--cw-space-xl &middot; 32px</span><span style="display:block; block-size: var(--cw-space-md); inline-size: var(--cw-space-xl); background: var(--cw-accent);"></span></div>
+        <div style="display:flex; align-items:center; gap: var(--cw-space-md);"><span class="cwb-label" style="min-inline-size:9rem;">--cw-space-2xl &middot; 48px</span><span style="display:block; block-size: var(--cw-space-md); inline-size: var(--cw-space-2xl); background: var(--cw-accent);"></span></div>
+        <div style="display:flex; align-items:center; gap: var(--cw-space-md);"><span class="cwb-label" style="min-inline-size:9rem;">--cw-space-3xl &middot; 64px</span><span style="display:block; block-size: var(--cw-space-md); inline-size: var(--cw-space-3xl); background: var(--cw-accent);"></span></div>
+      </div>
+    </section>
+
     <!-- SECTIONS -->
   </main>
 
