@@ -457,13 +457,80 @@
       </div>
     </section>
 
+    <!-- ============================================================ -->
+    <!-- 7. LIVE WCAG CONTRAST MATRIX                                 -->
+    <!-- BOOK-03 / D-03: fg×bg cells whose ratios are computed LIVE   -->
+    <!-- by the single inline script below. Each token is resolved to -->
+    <!-- [r,g,b] by painting it on a hidden probe and reading back    -->
+    <!-- getComputedStyle, so var() aliases + the active data-theme   -->
+    <!-- resolve correctly. The matrix recomputes on theme flip and   -->
+    <!-- on prefers-color-scheme change.                              -->
+    <!-- ============================================================ -->
+    <section id="contrast" class="cwb-section">
+      <div>
+        <h2>Live contrast matrix</h2>
+        <p>Every badge below is computed <strong>live</strong> from the token's
+          resolved value using the exact WCAG relative-luminance formula (no color
+          library). Flip the theme or your OS light/dark preference and the ratios
+          recompute. AA thresholds: <strong>&ge;4.5:1</strong> for normal text,
+          <strong>&ge;3:1</strong> for large text and non-text UI. Sanity check:
+          <code>--cw-ink</code> on <code>--cw-paper</code> reads very high, while
+          <code>--cw-brass</code> on <code>--cw-paper</code> fails body text.</p>
+      </div>
+
+      <div class="cwb-matrix" id="contrast-matrix">
+        <!-- Primitive sanity pairs (Pitfall 5) -->
+        <div class="cwb-cell" data-fg="--cw-ink" data-bg="--cw-paper" style="color: var(--cw-ink); background: var(--cw-paper);">
+          <strong>--cw-ink on --cw-paper</strong>
+          <p style="margin:0;">The quick brown fox delivers the event.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+        <div class="cwb-cell" data-fg="--cw-brass" data-bg="--cw-paper" style="color: var(--cw-brass); background: var(--cw-paper);">
+          <strong>--cw-brass on --cw-paper</strong>
+          <p style="margin:0;">The quick brown fox delivers the event.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+        <!-- Semantic fg × surface bg combinations -->
+        <div class="cwb-cell" data-fg="--cw-fg" data-bg="--cw-surface-bg" style="color: var(--cw-fg); background: var(--cw-surface-bg);">
+          <strong>--cw-fg on --cw-surface-bg</strong>
+          <p style="margin:0;">Body text on the page field.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+        <div class="cwb-cell" data-fg="--cw-fg" data-bg="--cw-surface-panel" style="color: var(--cw-fg); background: var(--cw-surface-panel);">
+          <strong>--cw-fg on --cw-surface-panel</strong>
+          <p style="margin:0;">Body text on a panel.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+        <div class="cwb-cell" data-fg="--cw-fg-muted" data-bg="--cw-surface-panel" style="color: var(--cw-fg-muted); background: var(--cw-surface-panel);">
+          <strong>--cw-fg-muted on --cw-surface-panel</strong>
+          <p style="margin:0;">Muted caption on a panel.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+        <div class="cwb-cell" data-fg="--cw-link-fg" data-bg="--cw-surface-bg" style="color: var(--cw-link-fg); background: var(--cw-surface-bg);">
+          <strong>--cw-link-fg on --cw-surface-bg</strong>
+          <p style="margin:0;">A link on the page field.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+        <div class="cwb-cell" data-fg="--cw-accent" data-bg="--cw-surface-bg" style="color: var(--cw-accent); background: var(--cw-surface-bg);">
+          <strong>--cw-accent on --cw-surface-bg</strong>
+          <p style="margin:0;">Accent text / large UI on the field.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+        <div class="cwb-cell" data-fg="--cw-button-primary-fg" data-bg="--cw-button-primary-bg" style="color: var(--cw-button-primary-fg); background: var(--cw-button-primary-bg);">
+          <strong>--cw-button-primary-fg on --cw-button-primary-bg</strong>
+          <p style="margin:0;">Primary button label on its surface.</p>
+          <span class="cwb-badge" data-role="badge">&hellip;</span>
+        </div>
+      </div>
+    </section>
+
     <!-- SECTIONS -->
   </main>
 
-  <!-- The ONLY JavaScript in the book — a single inline classic <script>, the
-       only JS that runs under file:// (D-03). No module, no fetch, no XHR.
-       Plan 03 EXTENDS this same script with the live contrast matrix; do not
-       add a second <script> tag. -->
+  <!-- The ONLY JavaScript in the book — a single inline classic &lt;script&gt;,
+       the only JS that runs under file:// (D-03). No module, no fetch, no XHR.
+       Plan 03 EXTENDED this same script with the live contrast matrix; there is
+       no second &lt;script&gt; tag. -->
   <script>
     (function () {
       var root = document.documentElement; // tokens target :root / <html>
@@ -474,6 +541,7 @@
         } else {
           root.setAttribute('data-theme', mode); // 'light' | 'dark'
         }
+        renderContrast(); // recompute the live matrix for the new theme
       }
 
       var buttons = document.querySelectorAll('[data-cwb-theme]');
@@ -485,7 +553,63 @@
         })(buttons[i]);
       }
 
-      apply('system'); // initialize in system mode
+      // ----------------------------------------------------------------
+      // Live WCAG contrast matrix (BOOK-03, D-03). Exact WCAG 2.x
+      // relative-luminance + ratio, computed inline with NO color library.
+      // Sanity (Pitfall 5): --cw-ink on --cw-paper reads very high;
+      // --cw-brass on --cw-paper FAILs body text.
+      // ----------------------------------------------------------------
+      function _lin(c) {
+        c /= 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      }
+      function luminance(rgb) {
+        return 0.2126 * _lin(rgb[0]) + 0.7152 * _lin(rgb[1]) + 0.0722 * _lin(rgb[2]);
+      }
+      function ratio(fg, bg) {
+        var l1 = luminance(fg), l2 = luminance(bg);
+        var hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+        return (hi + 0.05) / (lo + 0.05);
+      }
+      // Resolve a --cw-* token to [r,g,b] by painting it on a hidden probe
+      // appended INSIDE .cw-brandbook, so var() aliases and the active
+      // data-theme resolve correctly — proving the matrix is LIVE.
+      function tokenRGB(varName) {
+        var scope = document.querySelector('.cw-brandbook');
+        var probe = document.createElement('span');
+        probe.style.color = 'var(' + varName + ')';
+        probe.style.display = 'none';
+        scope.appendChild(probe);
+        var m = getComputedStyle(probe).color.match(/\d+/g) || [0, 0, 0];
+        probe.remove();
+        return [Number(m[0]), Number(m[1]), Number(m[2])];
+      }
+
+      function renderContrast() {
+        var cells = document.querySelectorAll('#contrast-matrix .cwb-cell[data-fg]');
+        for (var i = 0; i < cells.length; i++) {
+          var cell = cells[i];
+          var r = ratio(tokenRGB(cell.getAttribute('data-fg')), tokenRGB(cell.getAttribute('data-bg')));
+          var normalPass = r >= 4.5;   // AA normal text
+          var largePass = r >= 3;      // AA large text / non-text UI
+          var badge = cell.querySelector('[data-role="badge"]');
+          if (!badge) continue;
+          badge.className = 'cwb-badge ' + (normalPass ? 'is-pass' : 'is-fail');
+          var verdict = normalPass ? 'AA' : (largePass ? 'AA large only' : 'fail');
+          badge.textContent = r.toFixed(2) + ':1 · ' + verdict;
+          badge.setAttribute('title', 'WCAG AA needs ≥4.5:1 for normal text, ≥3:1 for large/UI');
+        }
+      }
+
+      // Recompute when the OS colour scheme changes (relevant in system mode).
+      if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var onSchemeChange = function () { renderContrast(); };
+        if (mq.addEventListener) { mq.addEventListener('change', onSchemeChange); }
+        else if (mq.addListener) { mq.addListener(onSchemeChange); } // older engines
+      }
+
+      apply('system'); // initialize in system mode (also paints the matrix)
     })();
   </script>
 </body>
