@@ -38,6 +38,21 @@
     :scope * {
       margin: 0;
     }
+    /* Link reset — UA blue+underline would otherwise hit every nav/content
+       anchor (they carry no class). Book styles override colour per context. */
+    :scope a {
+      color: var(--cw-link-fg);
+      text-decoration: none;
+    }
+    :scope a:hover,
+    :scope a:focus-visible {
+      text-decoration: underline;
+    }
+    /* List reset for the section jump-nav only; content lists keep markers. */
+    :scope .cwb-anchors {
+      list-style: none;
+      padding: 0;
+    }
   }
 }
 
@@ -71,21 +86,95 @@
       border-block-end: var(--cw-border-width) solid var(--cw-border);
     }
 
-    /* Vertical rhythm for each documented section */
+    /* Wordmark link, top-left of the nav */
+    .cwb-brandmark {
+      display: inline-flex;
+      align-items: baseline;
+      gap: var(--cw-space-xs);
+      color: var(--cw-fg);
+      text-decoration: none;
+      font-family: var(--cw-font-family-sans);
+    }
+    .cwb-brandmark strong {
+      font-weight: var(--cw-font-weight-semibold);
+    }
+    .cwb-brandmark:hover,
+    .cwb-brandmark:focus-visible {
+      text-decoration: none;
+    }
+
+    /* Section jump-nav — horizontal list of anchor links */
+    .cwb-anchors {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--cw-space-xs) var(--cw-space-sm);
+    }
+    .cwb-anchors a {
+      display: inline-block;
+      padding: var(--cw-space-xs) var(--cw-space-sm);
+      border-radius: var(--cw-radius-sm);
+      color: var(--cw-fg-muted);
+      font-family: var(--cw-font-family-mono);
+      font-size: var(--cw-font-size-label);
+      line-height: var(--cw-line-height-label);
+      text-decoration: none;
+    }
+    .cwb-anchors a:hover,
+    .cwb-anchors a:focus-visible {
+      color: var(--cw-fg);
+      background: var(--cw-surface-hover);
+      text-decoration: none;
+    }
+
+    /* Heading type scale — real <h1>/<h2>/<h3> ride the brand tokens
+       (previously only the Typography demo applied them via inline style). */
+    h1,
+    h2 {
+      font-family: var(--cw-font-family-sans);
+      font-size: var(--cw-font-size-display);
+      line-height: var(--cw-line-height-display);
+      font-weight: var(--cw-font-weight-semibold);
+      color: var(--cw-fg);
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-family: var(--cw-font-family-sans);
+      font-size: var(--cw-font-size-heading);
+      line-height: var(--cw-line-height-heading);
+      font-weight: var(--cw-font-weight-semibold);
+      color: var(--cw-fg);
+    }
+
+    /* Vertical rhythm for each documented section — centred readable column */
     .cwb-section {
+      inline-size: 100%;
+      max-inline-size: 72rem;
+      margin-inline: auto;
       padding: var(--cw-space-xl);
       display: flex;
       flex-direction: column;
       gap: var(--cw-space-lg);
     }
 
-    /* Elevated content card */
+    /* Elevated content card. Flex column + gap restores the vertical rhythm the
+       `:scope * { margin: 0 }` reset strips off headings/paragraphs/lists. */
     .cwb-panel {
       background: var(--cw-surface-panel);
       border: var(--cw-border-width) solid var(--cw-border);
       border-radius: var(--cw-radius-md);
       box-shadow: var(--cw-shadow-panel);
       padding: var(--cw-space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--cw-space-sm);
+    }
+    /* Content lists keep their markers; restore indent + inter-item spacing. */
+    .cwb-panel :is(ul, ol) {
+      padding-inline-start: var(--cw-space-lg);
+    }
+    .cwb-panel li + li {
+      margin-block-start: var(--cw-space-xs);
     }
 
     /* Fluid responsive grid — no fixed pixel container widths */
@@ -259,6 +348,42 @@
       background: var(--cw-surface-active);
       color: var(--cw-fg);
       box-shadow: inset 0 0 0 2px var(--cw-accent);
+    }
+
+    /* Tri-state theme control — a segmented control, NOT three primary CTAs.
+       Lives in cwb.demo so these override the base .cwb-btn in the same layer.
+       Active segment is driven by aria-pressed, set by the inline script. */
+    .cwb-theme-toggle {
+      display: inline-flex;
+      align-items: stretch;
+      border: var(--cw-border-width) solid var(--cw-border);
+      border-radius: var(--cw-radius-md);
+      overflow: hidden;
+    }
+    .cwb-theme-toggle .cwb-btn {
+      min-block-size: 2rem;
+      min-inline-size: 0;
+      padding: var(--cw-space-xs) var(--cw-space-md);
+      background: var(--cw-control-bg);
+      color: var(--cw-fg-muted);
+      border: 0;
+      border-radius: 0;
+      border-inline-start: var(--cw-border-width) solid var(--cw-border);
+      font-family: var(--cw-font-family-mono);
+      font-size: var(--cw-font-size-label);
+      font-weight: var(--cw-font-weight-regular);
+    }
+    .cwb-theme-toggle .cwb-btn:first-child {
+      border-inline-start: 0;
+    }
+    .cwb-theme-toggle .cwb-btn:hover {
+      background: var(--cw-control-hover);
+      color: var(--cw-fg);
+    }
+    .cwb-theme-toggle .cwb-btn[aria-pressed="true"] {
+      background: var(--cw-accent);
+      color: var(--cw-button-primary-fg);
+      font-weight: var(--cw-font-weight-semibold);
     }
 
     /* Skeleton loading placeholder — pure-CSS shimmer */
