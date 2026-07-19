@@ -7,7 +7,7 @@
 # degrades to SKIP when absent. This script — not any inline command — is the
 # canonical automated gate every Phase-84 wave invokes (D-07).
 #
-# It runs SIX check families plus a git scope-boundary mode:
+# It runs SEVEN check families plus a git scope-boundary mode:
 #   1. file://-safety negatives over brandbook/index.html — no fetch/XHR,
 #      no type="module", no cross-file <use href>, no remote/root-absolute refs.
 #   2. scope-nonleak audit over brandbook/brandbook.css — @layer + @scope
@@ -26,6 +26,11 @@
 #      `[data-theme]` overrides as `:root[data-theme]`, so an explicit toggle
 #      choice outranks the OS preference (the "light does nothing under a dark
 #      OS" bug). Presence-only checks could never catch this.
+#   7. logo-field-coverage — every FIXED-COLOR <img> logo is pinned to its
+#      intended field (dark-ink lockups inside a .cwb-panel--field-light figure,
+#      the inverse lockup inside .cwb-panel--field-dark), and no <figure> carries
+#      an ad-hoc inline background. Catches the "dark-ink logo vanishes on the
+#      dark panel in dark mode" breakage that presence/parity checks let ship.
 #
 # D-04 RECONCILIATION (factual correction): CONTEXT D-04 asserts THREE
 # currentColor marks are inlined. Direct asset inspection shows only TWO carry
@@ -333,6 +338,41 @@ if [ -f "$TOKENS_CSS" ]; then
     grep -nE '^[[:space:]]*\[data-theme=' "$TOKENS_CSS" | sed 's/^/        /'
   fi
   [ "$FAILED" -eq "$before" ] && pass "theme-resolution: explicit data-theme selectors outrank prefers-color-scheme"
+fi
+
+# ============================================================================
+# Family 7: logo-field-coverage — every FIXED-COLOR <img> logo must render on
+# its intended pinned field, not the theme-flipping panel surface. The dark-ink
+# lockups vanished on the dark #10232c panel in dark mode because no guard tied
+# a fixed-color asset to a fixed backdrop (families 1-4 never inspect an <img>'s
+# background). This is a CONTENT check: each fixed asset must sit inside the
+# matching cwb-panel--field-* figure, mirroring the brand's inverse-on-night
+# usage. It would have caught the dark-mode logo breakage.
+# ============================================================================
+if [ -f "$INDEX_HTML" ]; then
+  echo "-- family 7: logo-field-coverage ($INDEX_HTML) --"
+  before=$FAILED
+  # -A2 window: a <figure class=...--field-*> line plus its <img> (+ caption).
+  light_block="$(grep -A2 'cwb-panel--field-light' "$INDEX_HTML" || true)"
+  dark_block="$(grep -A2 'cwb-panel--field-dark' "$INDEX_HTML" || true)"
+  for asset in chimeway-logotype.svg chimeway-logotype-stacked.svg chimeway-mark.svg; do
+    if printf '%s\n' "$light_block" | grep -qF "assets/logo/$asset"; then
+      pass "logo-field: $asset pinned to a light field"
+    else
+      fail "logo-field: fixed-color $asset is NOT inside a .cwb-panel--field-light figure (dark-ink vanishes on the dark panel in dark mode)"
+    fi
+  done
+  if printf '%s\n' "$dark_block" | grep -qF 'assets/logo/chimeway-logotype-inverse.svg'; then
+    pass "logo-field: inverse lockup pinned to a dark field"
+  else
+    fail "logo-field: chimeway-logotype-inverse.svg is NOT inside a .cwb-panel--field-dark figure"
+  fi
+  # No ad-hoc inline field background on a <figure> — use the systematic class.
+  if grep -nE '<figure[^>]*style[[:space:]]*=[[:space:]]*"[^"]*background' "$INDEX_HTML" >/dev/null 2>&1; then
+    fail "logo-field: inline style=\"background:...\" on a <figure> (use .cwb-panel--field-* instead):"
+    grep -nE '<figure[^>]*style[[:space:]]*=[[:space:]]*"[^"]*background' "$INDEX_HTML" | sed 's/^/        /'
+  fi
+  [ "$FAILED" -eq "$before" ] && pass "logo-field-coverage: fixed-color logos pinned to their intended fields"
 fi
 
 # ----------------------------------------------------------------------------
