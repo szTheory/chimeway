@@ -2,17 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
-current_phase: 83
 status: executing
 stopped_at: Phase 84 context gathered (assumptions mode)
-last_updated: "2026-07-19T00:16:11.020Z"
-last_activity: 2026-07-18
-last_activity_desc: Phase 83 marked complete
+last_updated: "2026-07-19T00:34:18.614Z"
+last_activity: 2026-07-19
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
   percent: 50
 ---
 
@@ -23,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 83 — direction-selection-final-asset-family-user-checkpoint
+**Current focus:** Phase 84 — html-brandbook-voice-component-states
 
 ## Current Position
 
-Phase: 83 — COMPLETE
-Plan: 3 of 3
+Phase: 84 (html-brandbook-voice-component-states) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-18 — Phase 83 marked complete
+Last activity: 2026-07-19
 
 ## Accumulated Context
 
@@ -223,6 +221,9 @@ status: complete
 - [Phase ?]: [80-04]: D-08 realized as new GitHub ruleset (id 18486746) requiring pr-gate on main; main had no prior protection so it was a set-up, not a swap from ci-gate
 - [Phase ?]: [80-04]: Gate docs (CONTRIBUTING/MAINTAINING) aligned with two-aggregate topology; Sigra ref corrected b186f03->62ceb46a; installer-gating reconciled to push+dispatch-only
 - [Phase ?]: 81-03: tokens.json is a hand-synced DTCG mirror (no build tool, D-09); semantic hex-equal-to-primitive values are alias refs (D-10); light/dark are sibling groups, no system node (D-11)
+- [Phase ?]: [84-01]: D-04 corrected — only two currentColor marks (mark-mono, logotype-mono) are inlined and D-05 parity-checked; the inverse lockup is fixed-color <img>, not inlined
+- [Phase ?]: [84-01]: brandbook-guards.sh presence-gate keeps the Phase-84 gate RED until brandbook/index.html + brandbook.css both exist (proves wiring, not a defect)
+- [Phase ?]: [84-01]: brandbook.css consumes --cw-* by name only — zero #hex literals, zero token redefinitions; scope-nonleak audit makes BOOK-02 non-vacuous
 
 ## Performance
 
@@ -535,9 +536,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-18T23:36:28.313Z
+Last session: 2026-07-19T00:34:04.260Z
 Stopped at: Phase 84 context gathered (assumptions mode)
-Resume file: .planning/phases/84-html-brandbook-voice-component-states/84-CONTEXT.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -610,3 +611,4 @@ Resume file: .planning/phases/84-html-brandbook-voice-component-states/84-CONTEX
 | Phase 81 P01 | 2 min | 2 tasks | 1 files |
 | Phase 81 P02 | 6min | 1 tasks | 1 files |
 | Phase 81 P03 | ~10m | 2 tasks | 1 files |
+| Phase 84 P01 | 12min | 2 tasks | 2 files |

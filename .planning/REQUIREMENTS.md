@@ -28,8 +28,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Standalone HTML Brandbook (BOOK)
 
-- [ ] **BOOK-01**: `brandbook/index.html` opens directly via `file://` with no server and no build step — all asset references relative, no `fetch()` or cross-file `<use href>` sprite patterns (Chromium `file://` safe).
-- [ ] **BOOK-02**: Brandbook CSS is scoped (`@layer` + `@scope`, `.cw-brandbook` root, `.cwb-*` demo classes) so it cannot leak into the repo or into a host app that copies a snippet.
+- [x] **BOOK-01**: `brandbook/index.html` opens directly via `file://` with no server and no build step — all asset references relative, no `fetch()` or cross-file `<use href>` sprite patterns (Chromium `file://` safe).
+- [x] **BOOK-02**: Brandbook CSS is scoped (`@layer` + `@scope`, `.cw-brandbook` root, `.cwb-*` demo classes) so it cannot leak into the repo or into a host app that copies a snippet.
 - [ ] **BOOK-03**: The book renders the logo family, color/token swatches, type/spacing sections, component showcase, a live light/dark/system theme toggle, and a live contrast matrix — professional and responsive across viewports.
 
 ### Brand Voice & Microcopy (VOICE)
@@ -40,8 +40,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Component States & Usage (STATE)
 
-- [ ] **STATE-01**: Component states — hover / focus / active / disabled / loading / error / empty / skeleton / selected — are documented as static token-driven HTML/CSS.
-- [ ] **STATE-02**: Do/don't brand-usage examples (logo misuse, color misuse, spacing) are shown as visual pairs.
+- [x] **STATE-01**: Component states — hover / focus / active / disabled / loading / error / empty / skeleton / selected — are documented as static token-driven HTML/CSS.
+- [x] **STATE-02**: Do/don't brand-usage examples (logo misuse, color misuse, spacing) are shown as visual pairs.
 
 ### Accessibility (A11Y)
 
@@ -114,11 +114,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | LOGO-03 | Phase 83 | Pending |
 | LOGO-04 | Phase 83 | Pending |
 | INTEG-03 | Phase 83 | Pending |
-| BOOK-01 | Phase 84 | Pending |
-| BOOK-02 | Phase 84 | Pending |
+| BOOK-01 | Phase 84 | Complete |
+| BOOK-02 | Phase 84 | Complete |
 | BOOK-03 | Phase 84 | Pending |
-| STATE-01 | Phase 84 | Pending |
-| STATE-02 | Phase 84 | Pending |
+| STATE-01 | Phase 84 | Complete |
+| STATE-02 | Phase 84 | Complete |
 | VOICE-01 | Phase 84 | Pending |
 | VOICE-02 | Phase 84 | Pending |
 | VOICE-03 | Phase 84 | Pending |
