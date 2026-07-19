@@ -1,0 +1,353 @@
+/*
+ * brandbook.css — scoped stylesheet for the standalone Chimeway brand book.
+ *
+ * BOOK-02 non-leak contract (D-02 / D-07):
+ *   Every rule lives inside `@layer cwb.* { @scope (.cw-brandbook) { … } }`
+ *   (with a plain `.cw-brandbook` descendant fallback for the older-browser
+ *   tail that ignores @scope). Nothing here can leak into — or be leaked into
+ *   by — a host app that copies a `.cwb-*` snippet.
+ *
+ * Zero-drift token contract:
+ *   This file CONSUMES the Phase-81 `--cw-*` SSOT (brandbook/tokens/tokens.css)
+ *   strictly by name. It NEVER redefines a `--cw-*` value and carries ZERO
+ *   hard-coded `#hex` literals — a hex literal here would be token drift and
+ *   trips scripts/brandbook-guards.sh family 2.
+ *
+ * STATE-01: every real pseudo-class is duplicated by an `.is-*` forcing class
+ *   so all nine component states render statically for the state matrix, plus
+ *   a pure-CSS `.cwb-skeleton` shimmer (reduced-motion safe).
+ * STATE-02 / D-06: do/don't pairs use CSS-only `.cwb-do` / `.cwb-dont`
+ *   wrappers around the CORRECT shipped asset/token — no broken SVG is ever
+ *   authored or committed.
+ */
+
+/* Explicit layer order — book styles never accidentally lose the cascade. */
+@layer cwb.reset, cwb.book, cwb.demo;
+
+/* ------------------------------------------------------------------ */
+/* cwb.reset — minimal, fully scoped                                   */
+/* ------------------------------------------------------------------ */
+@layer cwb.reset {
+  @scope (.cw-brandbook) {
+    :scope,
+    :scope *,
+    :scope *::before,
+    :scope *::after {
+      box-sizing: border-box;
+    }
+    :scope * {
+      margin: 0;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* cwb.book — layout, swatches, contrast matrix                        */
+/* ------------------------------------------------------------------ */
+@layer cwb.book {
+  @scope (.cw-brandbook) {
+    :scope {
+      color: var(--cw-fg);
+      background: var(--cw-surface-bg);
+      font-family: var(--cw-font-family-sans);
+      font-size: var(--cw-font-size-body);
+      line-height: var(--cw-line-height-body);
+      font-weight: var(--cw-font-weight-regular);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* Sticky top navigation / theme-toggle bar */
+    .cwb-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--cw-space-sm);
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--cw-space-md) var(--cw-space-xl);
+      position: sticky;
+      top: 0;
+      z-index: var(--cw-z-sidebar);
+      background: var(--cw-surface-panel);
+      border-block-end: var(--cw-border-width) solid var(--cw-border);
+    }
+
+    /* Vertical rhythm for each documented section */
+    .cwb-section {
+      padding: var(--cw-space-xl);
+      display: flex;
+      flex-direction: column;
+      gap: var(--cw-space-lg);
+    }
+
+    /* Elevated content card */
+    .cwb-panel {
+      background: var(--cw-surface-panel);
+      border: var(--cw-border-width) solid var(--cw-border);
+      border-radius: var(--cw-radius-md);
+      box-shadow: var(--cw-shadow-panel);
+      padding: var(--cw-space-lg);
+    }
+
+    /* Fluid responsive grid — no fixed pixel container widths */
+    .cwb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+      gap: var(--cw-space-md);
+    }
+
+    /* Colour swatch tile */
+    .cwb-swatch {
+      display: flex;
+      flex-direction: column;
+      gap: var(--cw-space-xs);
+      min-block-size: 6rem;
+      border: var(--cw-border-width) solid var(--cw-border);
+      border-radius: var(--cw-radius-md);
+      overflow: hidden;
+    }
+
+    /* Small caption / metadata text */
+    .cwb-label {
+      font-size: var(--cw-font-size-label);
+      line-height: var(--cw-line-height-label);
+      color: var(--cw-fg-muted);
+      font-family: var(--cw-font-family-mono);
+      padding: var(--cw-space-xs) var(--cw-space-sm);
+    }
+
+    /* Contrast matrix presentation */
+    .cwb-matrix {
+      display: grid;
+      gap: var(--cw-space-xs);
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+    }
+    .cwb-cell {
+      padding: var(--cw-space-sm);
+      border: var(--cw-border-width) solid var(--cw-border);
+      border-radius: var(--cw-radius-sm);
+      font-size: var(--cw-font-size-label);
+    }
+    .cwb-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--cw-space-xs);
+      padding: 0 var(--cw-space-sm);
+      min-block-size: 1.5rem;
+      border-radius: var(--cw-radius-pill);
+      font-family: var(--cw-font-family-mono);
+      font-size: var(--cw-font-size-label);
+      font-weight: var(--cw-font-weight-semibold);
+    }
+    .cwb-badge.is-pass {
+      color: var(--cw-status-success-text);
+      background: var(--cw-status-success-surface);
+      border: var(--cw-border-width) solid var(--cw-status-success-border);
+    }
+    .cwb-badge.is-fail {
+      color: var(--cw-status-danger-text);
+      background: var(--cw-status-danger-surface);
+      border: var(--cw-border-width) solid var(--cw-status-danger-border);
+    }
+  }
+}
+
+/* Plain-descendant fallback (older browsers that ignore @scope). Same layer,
+   so the cascade order is preserved. Kept minimal — the load-bearing layout
+   knobs only. */
+@layer cwb.book {
+  .cw-brandbook {
+    color: var(--cw-fg);
+    background: var(--cw-surface-bg);
+    font-family: var(--cw-font-family-sans);
+  }
+  .cw-brandbook .cwb-section {
+    padding: var(--cw-space-xl);
+  }
+  .cw-brandbook .cwb-panel {
+    background: var(--cw-surface-panel);
+    border: var(--cw-border-width) solid var(--cw-border);
+    border-radius: var(--cw-radius-md);
+  }
+  .cw-brandbook .cwb-nav {
+    padding: var(--cw-space-md) var(--cw-space-xl);
+    background: var(--cw-surface-panel);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* cwb.demo — the interactive control + all nine forced states         */
+/* ------------------------------------------------------------------ */
+@layer cwb.demo {
+  @scope (.cw-brandbook) {
+    /* Base demo control. Interactive target >= 24x24px (SC 2.5.8). */
+    .cwb-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--cw-space-xs);
+      min-block-size: 2.5rem;
+      min-inline-size: 2.5rem;
+      padding: var(--cw-space-sm) var(--cw-space-md);
+      background: var(--cw-button-primary-bg);
+      color: var(--cw-button-primary-fg);
+      border: var(--cw-border-width) solid transparent;
+      border-radius: var(--cw-radius-md);
+      font-family: var(--cw-font-family-sans);
+      font-size: var(--cw-font-size-body);
+      font-weight: var(--cw-font-weight-semibold);
+      line-height: var(--cw-line-height-body);
+      cursor: pointer;
+      transition: background var(--cw-motion-fast), box-shadow var(--cw-motion-fast);
+    }
+
+    /* 1 + 2. hover — live pseudo AND forced .is-hover */
+    .cwb-btn:hover,
+    .cwb-btn.is-hover {
+      background: var(--cw-control-hover);
+      color: var(--cw-fg);
+    }
+
+    /* 3. active — forced .is-active carries the pressed motion token */
+    .cwb-btn:active,
+    .cwb-btn.is-active {
+      background: var(--cw-control-active);
+      color: var(--cw-fg);
+      transition: background var(--cw-motion-pressed);
+    }
+
+    /* 4. focus — forced .is-focus mirrors :focus-visible ring */
+    .cwb-btn:focus-visible,
+    .cwb-btn.is-focus {
+      outline: var(--cw-focus-offset) solid var(--cw-focus);
+      outline-offset: var(--cw-focus-offset);
+    }
+
+    /* 5. disabled */
+    .cwb-btn:disabled,
+    .cwb-btn.is-disabled {
+      background: var(--cw-control-disabled-bg);
+      color: var(--cw-control-disabled-fg);
+      cursor: not-allowed;
+    }
+
+    /* 6. loading — pulse composed from muted fg + fast motion */
+    .cwb-btn.is-loading {
+      color: var(--cw-fg-muted);
+      cursor: progress;
+      animation: cwb-pulse 1.2s ease-in-out infinite;
+    }
+
+    /* 7. error — danger status triad */
+    .cwb-btn.is-error,
+    .cwb-cell.is-error {
+      color: var(--cw-status-danger-text);
+      background: var(--cw-status-danger-surface);
+      border: var(--cw-border-width) solid var(--cw-status-danger-border);
+    }
+
+    /* 8. empty — muted fg on the panel surface */
+    .cwb-btn.is-empty,
+    .cwb-cell.is-empty {
+      color: var(--cw-fg-muted);
+      background: var(--cw-surface-panel);
+      border: var(--cw-border-width) dashed var(--cw-border);
+    }
+
+    /* 9. selected — active surface + inset accent ring */
+    .cwb-btn.is-selected,
+    .cwb-cell.is-selected {
+      background: var(--cw-surface-active);
+      color: var(--cw-fg);
+      box-shadow: inset 0 0 0 2px var(--cw-accent);
+    }
+
+    /* Skeleton loading placeholder — pure-CSS shimmer */
+    .cwb-skeleton {
+      display: block;
+      min-block-size: 1rem;
+      border-radius: var(--cw-radius-sm);
+      background: linear-gradient(
+        90deg,
+        var(--cw-control-disabled-bg) 25%,
+        var(--cw-surface-hover) 37%,
+        var(--cw-control-disabled-bg) 63%
+      );
+      background-size: 400% 100%;
+      animation: cwb-shimmer 1.4s ease-in-out infinite;
+    }
+
+    @keyframes cwb-shimmer {
+      0% {
+        background-position: 100% 0;
+      }
+      100% {
+        background-position: -100% 0;
+      }
+    }
+    @keyframes cwb-pulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.55;
+      }
+    }
+
+    /* a11y (Phase-86 gate): honour reduced-motion for every book animation */
+    @media (prefers-reduced-motion: reduce) {
+      .cwb-skeleton,
+      .cwb-btn.is-loading {
+        animation: none;
+      }
+    }
+
+    /* -------------------------------------------------------------- */
+    /* D-06 do/don't — CSS-only misuse wrappers around correct assets  */
+    /* -------------------------------------------------------------- */
+    .cwb-do,
+    .cwb-dont {
+      display: flex;
+      flex-direction: column;
+      gap: var(--cw-space-sm);
+      padding: var(--cw-space-md);
+      border: var(--cw-border-width) solid var(--cw-border);
+      border-radius: var(--cw-radius-md);
+    }
+    /* Correct treatment: mark sits on the ambient surface, generous clear-space. */
+    .cwb-do {
+      background: var(--cw-surface-bg);
+      border-inline-start: var(--cw-space-xs) solid var(--cw-status-success-border);
+    }
+    .cwb-do :is(img, svg) {
+      display: block;
+      padding: var(--cw-space-md);
+    }
+    /* Wrong treatment: flagged rail, applied purely in CSS to the SAME asset. */
+    .cwb-dont {
+      border-inline-start: var(--cw-space-xs) solid var(--cw-status-danger-border);
+    }
+    /* Misuse 1 — rectangular background "cage" behind the mark. */
+    .cwb-dont--cage :is(img, svg) {
+      display: block;
+      background: var(--cw-ink);
+      border: var(--cw-border-width) solid var(--cw-brass);
+      border-radius: var(--cw-radius-sm);
+      padding: var(--cw-space-xs);
+    }
+    /* Misuse 2 — cramped, ad-hoc clear-space. */
+    .cwb-dont--cramped {
+      gap: 0;
+      padding: 0;
+    }
+    .cwb-dont--cramped :is(img, svg) {
+      padding: 0;
+      margin: -0.25rem;
+    }
+    /* Misuse 3 — brass body copy on paper (fails contrast for body text). */
+    .cwb-dont--brass-body {
+      color: var(--cw-brass);
+      background: var(--cw-paper);
+    }
+  }
+}
