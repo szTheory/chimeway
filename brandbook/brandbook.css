@@ -286,6 +286,19 @@
       display: block;
     }
   }
+  /* Shipped raster/OG previews carry their OWN baked background (the real
+     1200x630 share card is light). Rather than fake a dark version, frame the
+     asset as an intentional preview thumbnail: fill the card width with a
+     hairline border + radius so the light reads as image content, not a stray
+     patch floating on the dark panel. */
+  .cw-brandbook .cwb-preview {
+    display: block;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    block-size: auto;
+    border: var(--cw-border-width) solid var(--cw-border);
+    border-radius: var(--cw-radius-sm);
+  }
   .cw-brandbook .cwb-nav {
     padding: var(--cw-space-md) var(--cw-space-xl);
     background: var(--cw-surface-panel);
