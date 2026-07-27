@@ -34,9 +34,9 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Brand Voice & Microcopy (VOICE)
 
-- [ ] **VOICE-01**: Voice and tone are documented by context (docs, errors, marketing, CLI) with concrete good/bad examples.
-- [ ] **VOICE-02**: A named, reusable "what happened / why it matters / how to fix" error-message pattern template is provided.
-- [ ] **VOICE-03**: CTA style and product/feature naming rules (incl. lowercase `chimeway` graphic vs title-case "Chimeway" prose) are documented with examples.
+- [x] **VOICE-01**: Voice and tone are documented by context (docs, errors, marketing, CLI) with concrete good/bad examples.
+- [x] **VOICE-02**: A named, reusable "what happened / why it matters / how to fix" error-message pattern template is provided.
+- [x] **VOICE-03**: CTA style and product/feature naming rules (incl. lowercase `chimeway` graphic vs title-case "Chimeway" prose) are documented with examples.
 
 ### Component States & Usage (STATE)
 
@@ -119,9 +119,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | BOOK-03 | Phase 84 | Complete |
 | STATE-01 | Phase 84 | Complete |
 | STATE-02 | Phase 84 | Complete |
-| VOICE-01 | Phase 84 | Pending |
-| VOICE-02 | Phase 84 | Pending |
-| VOICE-03 | Phase 84 | Pending |
+| VOICE-01 | Phase 84 | Complete |
+| VOICE-02 | Phase 84 | Complete |
+| VOICE-03 | Phase 84 | Complete |
 | INTEG-01 | Phase 85 | Pending |
 | INTEG-02 | Phase 85 | Pending |
 | INTEG-04 | Phase 85 | Pending |
@@ -144,4 +144,4 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 ---
 *Requirements defined: 2026-07-09*
-*Last updated: 2026-07-09 after roadmap creation (Phases 81-86 mapped, 100% coverage)*
+*Last updated: 2026-07-27 — VOICE-01/02/03 marked complete (Phase 84 closed, 4/4 plans)*

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
 status: executing
-stopped_at: Phase 84 context gathered (assumptions mode)
-last_updated: "2026-07-19T00:54:20.088Z"
-last_activity: 2026-07-19
+stopped_at: Phase 84 complete (4/4 plans) — VOICE-01/02/03 delivered, book guard-green + file://-safe
+last_updated: "2026-07-27T00:00:00.000Z"
+last_activity: 2026-07-27
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
-  percent: 50
+  completed_plans: 11
+  percent: 67
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: 84 (html-brandbook-voice-component-states) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-07-19
+Phase: 84 (html-brandbook-voice-component-states) — COMPLETE (4/4 plans)
+Plan: 4 of 4 — done
+Status: Phase 84 complete; ready for Phase 85 (Repo Integration)
+Last activity: 2026-07-27
 
 ## Accumulated Context
 
@@ -226,6 +226,10 @@ status: complete
 - [Phase ?]: [84-01]: brandbook.css consumes --cw-* by name only — zero #hex literals, zero token redefinitions; scope-nonleak audit makes BOOK-02 non-vacuous
 - [Phase ?]: [84-03]: Live WCAG contrast matrix uses painted-probe getComputedStyle to resolve tokens under the active data-theme; recomputes on theme flip + prefers-color-scheme change
 - [Phase ?]: [84-03]: Every do/don't 'don't' is CSS-only misuse (.cwb-dont cage/brass-body/cramped) around the correct shipped asset/token — no broken SVG, zero hard-coded hex
+- [Phase ?]: [84-04]: Voice/error/naming copy is verbatim from prompts/chimeway-brand-book.md; the sole exception is the 'install chimeway' CTA label, authoritative in UI-SPEC line 106 + 84-CONTEXT (not the prompt file)
+- [Phase ?]: [84-04]: Theme-resolution fix lives in tokens.css — dark @media gated on :root:not([data-theme]) so an explicit data-theme outranks OS prefers-color-scheme (the 'light does nothing under a dark OS' bug); toggle script untouched
+- [Phase ?]: [84-04]: Fixed-color lockups swap light/inverse <img> by theme (.cwb-logo--light/.cwb-logo--dark), not pinned color tiles; OG social preview reframed as a self-contained bordered .cwb-preview thumbnail (light-only by design)
+- [Phase ?]: [84-04]: Checkpoint gap-closure touched brandbook.css / tokens.css / brandbook-guards.sh + two derived inverse assets beyond the plan's declared files_modified — in-scope (brandbook/ + guard-script), recorded as a deviation; guard families 5/6/7 added to lock the fixes
 
 ## Performance
 
@@ -538,8 +542,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-19T00:53:30.433Z
-Stopped at: Phase 84 context gathered (assumptions mode)
+Last session: 2026-07-27T00:00:00.000Z
+Stopped at: Completed 84-04-PLAN.md — Phase 84 complete (VOICE-01/02/03; book guard-green, file://-safe, human-verified light + dark)
 Resume file: None
 
 ## Operator Next Steps
@@ -616,3 +620,4 @@ Resume file: None
 | Phase 84 P01 | 12min | 2 tasks | 2 files |
 | Phase 84 P02 | 5min | 3 tasks | 1 files |
 | Phase 84 P03 | 8min | 3 tasks | 1 files |
+| Phase 84 P04 | 53min | 3 tasks | 4 files + 2 assets |
