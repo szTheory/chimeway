@@ -179,16 +179,15 @@ jobs:
 
       - name: Pre-publish gate replay
         env:
-          MIX_ENV: test
-          # The gate replay only re-checks file-content gates (doc_contract +
-          # release_gate_contract); this job has no Postgres. Skip Oban and the
-          # partner TestRepo provisioning so the app + test_helper boot without a
-          # DB — otherwise Oban.verify_migrated! / storage_up hit DBConnection errors.
+          # File-content gates run under :test; the docs build runs under :dev
+          # (where ex_doc lives). This job has no Postgres, so skip Oban and the
+          # partner TestRepo provisioning — otherwise Oban.verify_migrated! /
+          # storage_up hit DBConnection errors. Docs need no DB (mirrors verify_docs).
           CHIMEWAY_SKIP_OBAN: "1"
           CHIMEWAY_SKIP_PARTNER_TEST_REPOS: "1"
         run: |
-          mix ci.verify_gates
-          mix ci.docs
+          env MIX_ENV=test mix ci.verify_gates
+          env MIX_ENV=dev mix ci.docs
 
       - name: Build Hex package
         # MIX_ENV=prod: the package build must omit the dev/test-only Sigra
