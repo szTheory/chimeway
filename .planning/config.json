@@ -62,12 +62,5 @@
   "resolve_model_ids": "omit",
   "mode": "yolo",
   "granularity": "coarse",
-  "runtime": "codex",
-  "model_profile_overrides": {
-    "codex": {
-      "opus": "gpt-5.5",
-      "sonnet": "gpt-5.4",
-      "haiku": "gpt-5.4-mini"
-    }
-  }
+  "runtime": "claude"
 }
