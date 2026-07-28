@@ -180,6 +180,11 @@ jobs:
       - name: Pre-publish gate replay
         env:
           MIX_ENV: test
+          # The gate replay only re-checks file-content gates (doc_contract +
+          # release_gate_contract); this job has no Postgres. Skip Oban so the
+          # app boots without a DB — otherwise Oban.verify_migrated! at startup
+          # fails with a DBConnection error.
+          CHIMEWAY_SKIP_OBAN: "1"
         run: |
           mix ci.verify_gates
           mix ci.docs
