@@ -177,7 +177,9 @@ Plans:
 3. Integration edits stay in scope — limited to the README header region, docs config, and optional `package() files:` (+= `brandbook/assets`); `chimeway_admin` untouched.
 4. All v1.14 doc-contract and release-gate tests still pass after the integration edits.
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+- [ ] 85-01-PLAN.md — README brand lockup + mix.exs docs() :logo/:favicon wiring + v1.14 contract/HexDocs verification
 
 ### Phase 86: Accessibility Audit, Notes & Red-Team Close
 
