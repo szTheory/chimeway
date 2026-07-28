@@ -11,12 +11,12 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Logo System (LOGO)
 
-- [ ] **LOGO-01**: User is presented 3–5 distinct, fully-worked logo directions — each with rationale, pros/cons, and a ship/defer/reject recommendation + confidence — to choose from (a vetted shortlist, not a raw gallery).
-- [ ] **LOGO-02**: At least one direction is a fully-integrated typemark — a custom motif/flourish worked *into* the wordmark's letterforms, not a mark placed beside a plain font.
-- [ ] **LOGO-03**: The selected finalist ships a full lockup family — primary horizontal lockup, icon-only mark, wordmark, stacked lockup, mono, inverse, and a simplified favicon mark — as optimized SVGs.
-- [ ] **LOGO-04**: Every shipped mark stays legible and recognizable at 16px, in single-color mono, and inverse (dark) — each verified against those tests before ship.
-- [ ] **LOGO-05**: No logomark uses a rectangular/enclosing background cage; mark and wordmark read as one unified unit (not icon-left/text-right); the primary lockup carries no subtitle/slogan (a separate optional tagline lockup only if it genuinely adds value).
-- [ ] **LOGO-06**: Directions avoid literal music/bell/clapper/note/audio imagery (Chimeway is not an audio product; "Chime" is trademark-crowded). The brand may be expressed through any "calm infrastructure" metaphor family — route/signal/trace, **or** pure logotype/wordmark, aperture/opening, abstract geometric fan-out, keystone/anchor, containment/stewardship, or ledger/seal/mark-of-record — not solely the route/signal/trace set. Clear-space, minimum-size, and a do/don't usage grid are documented. *(Amended after the Phase 82 human-verify checkpoint rejected all five route/signal/trace directions; the no-audio exclusion is retained, the metaphor scope is broadened — see 82-CONTEXT D-14.)*
+- [x] **LOGO-01**: User is presented 3–5 distinct, fully-worked logo directions — each with rationale, pros/cons, and a ship/defer/reject recommendation + confidence — to choose from (a vetted shortlist, not a raw gallery).
+- [x] **LOGO-02**: At least one direction is a fully-integrated typemark — a custom motif/flourish worked *into* the wordmark's letterforms, not a mark placed beside a plain font.
+- [x] **LOGO-03**: The selected finalist ships a full lockup family — primary horizontal lockup, icon-only mark, wordmark, stacked lockup, mono, inverse, and a simplified favicon mark — as optimized SVGs.
+- [x] **LOGO-04**: Every shipped mark stays legible and recognizable at 16px, in single-color mono, and inverse (dark) — each verified against those tests before ship.
+- [x] **LOGO-05**: No logomark uses a rectangular/enclosing background cage; mark and wordmark read as one unified unit (not icon-left/text-right); the primary lockup carries no subtitle/slogan (a separate optional tagline lockup only if it genuinely adds value).
+- [x] **LOGO-06**: Directions avoid literal music/bell/clapper/note/audio imagery (Chimeway is not an audio product; "Chime" is trademark-crowded). The brand may be expressed through any "calm infrastructure" metaphor family — route/signal/trace, **or** pure logotype/wordmark, aperture/opening, abstract geometric fan-out, keystone/anchor, containment/stewardship, or ledger/seal/mark-of-record — not solely the route/signal/trace set. Clear-space, minimum-size, and a do/don't usage grid are documented. *(Amended after the Phase 82 human-verify checkpoint rejected all five route/signal/trace directions; the no-audio exclusion is retained, the metaphor scope is broadened — see 82-CONTEXT D-14.)*
 
 ### Design Tokens (TOKEN)
 
@@ -55,13 +55,13 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 - [ ] **INTEG-01**: The README header shows the real primary lockup (relative-path SVG that GitHub resolves), replacing any placeholder.
 - [ ] **INTEG-02**: `mix.exs` `docs()` wires ExDoc `:logo` and `:favicon` (SVG) so HexDocs shows the brand mark.
-- [ ] **INTEG-03**: A deliberately-simplified `favicon.svg` (+ the minimal raster fallback the platforms require) is shipped and wired.
+- [x] **INTEG-03**: A deliberately-simplified `favicon.svg` (+ the minimal raster fallback the platforms require) is shipped and wired. *(Assets shipped & verified in Phase 83 — favicon.svg/.ico + apple-touch-icon.png, 83-VERIFICATION passed. App-side wiring — mix.exs `docs()` `:favicon` — is delivered by INTEG-02 in Phase 85, the "Favicon Wiring" phase.)*
 - [ ] **INTEG-04**: Integration edits stay in scope — changes limited to the README header region, docs config, and optional `package() files:`; `chimeway_admin` untouched; all v1.14 doc-contract/release-gate tests still pass.
 
 ### Decision Notes & Red-Team (NOTES)
 
 - [ ] **NOTES-01**: Every major recommendation carries pros/cons/tradeoffs, an analogue, implementation cost, ship/reject/defer, and confidence (cohesive, not a buffet).
-- [ ] **NOTES-02**: `notes/logo-options.md` documents all explored directions (including rejected, as inline SVG for repo-size discipline) with rationale.
+- [x] **NOTES-02**: `notes/logo-options.md` documents all explored directions (including rejected, as inline SVG for repo-size discipline) with rationale.
 - [ ] **NOTES-03**: A red-team/skeptic pass is recorded, closing with a `git diff --stat` scope-boundary audit that confirms changes are `brandbook/`-only plus the two allowed integration edits, and a repo-size/binary check.
 - [ ] **NOTES-04**: `notes/research.md` captures the research basis and citations (Elixir/Phoenix idioms + mature design-system precedent).
 
@@ -106,14 +106,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TOKEN-03 | Phase 81 | Complete |
 | TOKEN-04 | Phase 81 | Complete |
 | TOKEN-05 | Phase 81 | Complete |
-| LOGO-01 | Phase 82 | Pending |
-| LOGO-02 | Phase 82 | Pending |
-| LOGO-05 | Phase 82 | Pending |
-| LOGO-06 | Phase 82 | Pending |
-| NOTES-02 | Phase 82 | Pending |
-| LOGO-03 | Phase 83 | Pending |
-| LOGO-04 | Phase 83 | Pending |
-| INTEG-03 | Phase 83 | Pending |
+| LOGO-01 | Phase 82 | Complete |
+| LOGO-02 | Phase 82 | Complete |
+| LOGO-05 | Phase 82 | Complete |
+| LOGO-06 | Phase 82 | Complete |
+| NOTES-02 | Phase 82 | Complete |
+| LOGO-03 | Phase 83 | Complete |
+| LOGO-04 | Phase 83 | Complete |
+| INTEG-03 | Phase 83 | Complete |
 | BOOK-01 | Phase 84 | Complete |
 | BOOK-02 | Phase 84 | Complete |
 | BOOK-03 | Phase 84 | Complete |
@@ -145,3 +145,4 @@ Which phases cover which requirements. Populated during roadmap creation.
 ---
 *Requirements defined: 2026-07-09*
 *Last updated: 2026-07-27 — VOICE-01/02/03 marked complete (Phase 84 closed, 4/4 plans)*
+*Last updated: 2026-07-27 — reconciled Phase 82/83 requirement statuses with the ROADMAP (both phases Complete): LOGO-01/02/03/04/05/06 + NOTES-02 marked complete; INTEG-03 assets complete (Phase 83), its app-side wiring tracked under INTEG-02 in Phase 85.*

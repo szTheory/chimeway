@@ -36,7 +36,7 @@
 
 - [ ] **Phase 81: Design Tokens (Reconciliation & Documentation)** — Canonical copy-safe `--cw-*` tokens (CSS + JSON) reconciled with shipped admin CSS; divergences logged as DOCUMENTED/DEFERRED
 - [x] **Phase 82: Logo Exploration & Shortlist** — 3-5 fully-worked directions with rationale + ship/defer/reject, each passing the hard-taste and mono/inverse/16px gates
-- [ ] **Phase 83: Direction Selection & Final Asset Family (User Checkpoint)** — Human selects the finalist; promote to a full optimized-SVG lockup family + simplified favicon + social derivatives
+- [x] **Phase 83: Direction Selection & Final Asset Family (User Checkpoint)** — Human selects the finalist; promote to a full optimized-SVG lockup family + simplified favicon + social derivatives
 - [x] **Phase 84: HTML Brandbook, Voice & Component States** — The primary deliverable: scoped `file://`-safe HTML book assembling tokens, logos, component states, brand voice, and do/don't
 - [ ] **Phase 85: Repo Integration (README + HexDocs + Favicon Wiring)** — Surface the real mark on GitHub/HexDocs via minimal in-scope edits, v1.14 contracts still green
 - [ ] **Phase 86: Accessibility Audit, Notes & Red-Team Close** — Verify WCAG 2.2 against rendered output, complete decision/research notes, red-team the scope boundary
