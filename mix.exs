@@ -225,6 +225,8 @@ defmodule Chimeway.MixProject do
   defp docs do
     [
       main: "Chimeway",
+      logo: "brandbook/assets/logo/chimeway-mark.svg",
+      favicon: "brandbook/assets/favicon/favicon.svg",
       source_ref: "v#{@version}",
       source_url: "https://github.com/szTheory/chimeway",
       extras: [
