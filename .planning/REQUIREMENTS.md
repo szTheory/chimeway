@@ -60,10 +60,10 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Decision Notes & Red-Team (NOTES)
 
-- [ ] **NOTES-01**: Every major recommendation carries pros/cons/tradeoffs, an analogue, implementation cost, ship/reject/defer, and confidence (cohesive, not a buffet).
+- [x] **NOTES-01**: Every major recommendation carries pros/cons/tradeoffs, an analogue, implementation cost, ship/reject/defer, and confidence (cohesive, not a buffet).
 - [x] **NOTES-02**: `notes/logo-options.md` documents all explored directions (including rejected, as inline SVG for repo-size discipline) with rationale.
 - [ ] **NOTES-03**: A red-team/skeptic pass is recorded, closing with a `git diff --stat` scope-boundary audit that confirms changes are `brandbook/`-only plus the two allowed integration edits, and a repo-size/binary check.
-- [ ] **NOTES-04**: `notes/research.md` captures the research basis and citations (Elixir/Phoenix idioms + mature design-system precedent).
+- [x] **NOTES-04**: `notes/research.md` captures the research basis and citations (Elixir/Phoenix idioms + mature design-system precedent).
 
 ## Future Requirements
 
@@ -130,9 +130,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | A11Y-03 | Phase 86 | Pending |
 | A11Y-04 | Phase 86 | Pending |
 | A11Y-05 | Phase 86 | Complete |
-| NOTES-01 | Phase 86 | Pending |
+| NOTES-01 | Phase 86 | Complete |
 | NOTES-03 | Phase 86 | Pending |
-| NOTES-04 | Phase 86 | Pending |
+| NOTES-04 | Phase 86 | Complete |
 
 **Coverage:**
 
