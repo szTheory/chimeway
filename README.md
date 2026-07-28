@@ -66,7 +66,7 @@ Add `chimeway` to your `mix.exs` dependencies:
 ```elixir
 def deps do
   [
-    {:chimeway, "~> 1.0"}
+    {:chimeway, "~> 1.1"}
   ]
 end
 ```
