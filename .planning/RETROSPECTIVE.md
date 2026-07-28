@@ -477,6 +477,54 @@
 
 ---
 
+## Milestone: v1.15 — Brand Identity & Brand Book
+
+**Shipped:** 2026-07-28 (override_closeout, accepted-risk)
+**Phases:** 6 (81-86) | **Plans:** 16 | **Requirements:** 30/32 (2 accepted-risk)
+
+### What Was Built
+
+- Canonical copy-safe `--cw-*` design-token layer — `brandbook/tokens/tokens.css` (bare `:root` SSOT, 15 verbatim admin primitives, generalized semantic tier, light/dark/system) + hand-authored DTCG `tokens.json` mirror, with sub-primitive divergences DIV-1..DIV-7 recorded DOCUMENTED/DEFERRED; shipped admin CSS proven byte-identical (TOKEN-01..05).
+- Human-selected six-mark logo lockup family (Keystone/Marcellus OFL-1.1 recut) as SVGO-optimized SVGs + dual-theme favicon set + 1200×630 OG card, ratified at a blocking perceptual checkpoint (LOGO-01..06, INTEG-03, NOTES-02).
+- Standalone `file://`-safe scoped HTML brandbook (`@layer`+`@scope`, `.cwb-*`) — token swatches, full component-state showcase, live theme toggle + live contrast matrix, brand voice/microcopy with the named error-message template, and do/don't pairs (BOOK-01..03, STATE-01/02, VOICE-01..03).
+- README `<picture>` theme-swapping lockup + ExDoc `:logo`/`:favicon` wiring, keeping every v1.14 doc-contract/release-gate green via a deliberate narrative-order-gate evolution (INTEG-01/02/04).
+- Accessibility audit closed with a dependency-free offline WCAG contrast calc (`scripts/contrast-audit.sh`, output byte-identical to the recorded table), verbatim-cited exemptions, research/red-team notes, and a machine-enforced `brandbook/`-only scope guard + binary budget (A11Y-01/02/05, NOTES-01/03/04).
+
+### What Worked
+
+- The offline `contrast-audit.sh` calc made A11Y-01/02/05 a re-runnable machine proof rather than a hand-typed table — the verifier confirmed byte-identical output, so the evidence can't silently rot.
+- Machine-enforced scope discipline: `brandbook-guards.sh --scope` (deny-by-default, proven to fail on a stray file) plus a binary-budget gate kept the doc/asset-only boundary honest instead of asserted.
+- Sequential-on-main executors (worktrees disabled) each committed atomically with hooks; zero-drift on `tokens.css`/`chimeway_admin` held across all six phases.
+- Honest handling of the manual-check waiver: recorded as accepted-risk documented gaps (not a fabricated PASS), so the milestone close carries the gap visibly instead of hiding it.
+
+### What Was Inefficient
+
+- Executor dispatch for Plan 86-01 hit two consecutive transient "Connection closed mid-response" API errors before any output; a fresh third dispatch succeeded. Large single-response plans (a whole shell script + a long evidence table) appear more exposed to mid-response SSE cutoffs — worth splitting very large generative steps.
+- Verification frontmatter drift recurred (same lesson as v1.14): Phase 84 sat at `human_needed` for an *optional* visual check, and Phase 82 had no VERIFICATION.md at all, so the milestone-close readiness scan surfaced three "unverified" phases when the substance was 30/32 complete. Exploration phases and optional-visual checks need a clearer terminal status than `human_needed`.
+- The whole v1.15 branch history (Phases 85-86) was executed directly on local `main`, unpushed, so `/gsd-ship` couldn't cleanly PR a single phase — the accepted-risk close routed through `/gsd-complete-milestone` instead, and the tag is local-only until the history lands via `pr-gate`.
+
+### Patterns Established
+
+- Accessibility evidence of record = a re-runnable offline calc whose output is quoted verbatim; the in-page live matrix is corroborating proof only.
+- Sub-threshold contrast pairings are recorded as documented WCAG exemptions with the SC clause quoted verbatim, never silently "fixed" (zero-drift TOKEN-01 over the token SSOT).
+- Owner risk-acceptance on an inherently-manual check is recorded as an accepted-risk documented gap with corroborating machine/CSS evidence cited as mitigation — never converted into a fabricated pass.
+- Milestone scope boundaries are machine-enforced by a deny-by-default guard + binary budget, verified non-vacuous by an adversarial stray-file test.
+
+### Key Lessons
+
+1. Push the "can this be a re-runnable machine check?" question early — the offline contrast calc turned the largest A11Y requirement from attestation into reproducible proof and made verification trivial.
+2. Manual/visual verification that the owner won't perform should be recorded as an explicit accepted-risk gap, not fabricated and not silently dropped — the milestone close then makes the acceptance a conscious, logged decision.
+3. `human_needed` is overloaded: it currently covers both "a required human gate is genuinely pending" and "an optional visual polish check was recommended" — the readiness scan can't tell them apart, inflating apparent milestone risk.
+4. Executing a milestone's phases directly on local `main` (no per-phase branch) defers the real "is it shipped?" question to milestone close; under a `pr-gate` ruleset the history still isn't on the remote, so a local milestone tag is a bookmark, not a release.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: phases 81-86; Phases 85-86 executed 2026-07-27 -> 2026-07-28
+- Notable: 30/32 requirements complete; override_closeout with 2 A11Y manual checks accepted-risk (owner-waived). Transient API mid-response cutoffs cost two retry dispatches on Plan 86-01. Carry-forward: v1.15 branch history remains local/unpushed on `main` (pr-gate requires PR), and the v1.15 tag is local-only until that history reaches the remote; the standing 3 red CI lanes + `mix ci.lint` mainline drift (from before this milestone) are untouched — v1.15 was doc/asset-only.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
