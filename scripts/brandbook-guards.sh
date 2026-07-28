@@ -75,9 +75,21 @@ skip() { printf 'SKIP  %s\n' "$1"; }
 
 # ----------------------------------------------------------------------------
 # --scope : assert the working tree carries no stray phase edits beyond the
-# allowed Phase-84 paths (brandbook/** + the guard itself). Tolerates
-# pre-existing .planning/ bookkeeping. Copies the logo-guards.sh porcelain walk
-# verbatim, changing only the allow-list `case` (D-07).
+# v1.15 Brand Identity & Brand Book milestone boundary (NOTES-03 / Phase 86 D-03).
+# The allowlist is EXACTLY:
+#   brandbook/**                    the brandbook package (all phases)
+#   README.md                       Phase 85 D-01 header lockup integration edit
+#   mix.exs                         Phase 85 D-02 ExDoc :logo/:favicon integration edit
+#   notes/**                        the milestone record set (options/checks/research/red-team)
+#   scripts/brandbook-guards.sh     this guard
+#   scripts/logo-guards.sh          the sibling guard + NOTES-03 binary budget
+#   scripts/render-svg-png.sh       the Phase 83 raster render helper
+#   scripts/contrast-audit.sh       the Phase 86-01 offline WCAG contrast calc
+#   .planning/**                    bookkeeping, out of phase scope
+# Any other path is stray and FAILs (deny-by-default `*)` branch). No broad glob
+# (no bare scripts/*, no top-level *): an over-broad allowlist silently defeats
+# the audit. Copies the logo-guards.sh porcelain walk verbatim, changing only
+# the allow-list `case` (D-07).
 # ----------------------------------------------------------------------------
 if [ "${1:-}" = "--scope" ]; then
   echo "== scope-boundary check (git) =="
@@ -96,8 +108,14 @@ if [ "${1:-}" = "--scope" ]; then
     # Trim surrounding quotes git adds for unusual paths.
     path="${path%\"}"; path="${path#\"}"
     case "$path" in
-      brandbook/*)                  : ;;  # phase 84 book scope
-      scripts/brandbook-guards.sh)  : ;;  # the guard itself
+      brandbook/*)                  : ;;  # brandbook package scope
+      README.md)                    : ;;  # Phase 85 D-01 header lockup integration edit
+      mix.exs)                      : ;;  # Phase 85 D-02 ExDoc :logo/:favicon integration edit
+      notes/*)                      : ;;  # milestone record set (incl. this red-team pass)
+      scripts/brandbook-guards.sh)  : ;;  # this guard
+      scripts/logo-guards.sh)       : ;;  # sibling guard + NOTES-03 binary budget
+      scripts/render-svg-png.sh)    : ;;  # Phase 83 raster render helper
+      scripts/contrast-audit.sh)    : ;;  # Phase 86-01 offline WCAG contrast calc
       .planning/*)                  : ;;  # bookkeeping, out of phase scope
       *) stray="${stray}${path}\n" ;;
     esac
@@ -105,7 +123,7 @@ if [ "${1:-}" = "--scope" ]; then
 $(git status --porcelain --untracked-files=all)
 EOF
   if [ -n "$stray" ]; then
-    fail "scope: unexpected path(s) outside brandbook/ + the guard:"
+    fail "scope: unexpected path(s) outside the milestone allowlist:"
     printf '%b' "$stray" | sed 's/^/        /'
   else
     pass "scope: working tree carries only the allowed phase paths"
