@@ -133,8 +133,25 @@ defmodule DemoHost.Seeds do
     )
   end
 
-  @doc "Alias for `seed_escalation_waiting/0` — used by journey tests."
-  def escalation_waiting!, do: seed_escalation_waiting()
+  @doc """
+  Journey/admin-test helper — like `seed_escalation_waiting/0` but with a UNIQUE
+  idempotency key per call.
+
+  `mix demo.up --check` (JOUR-05) commits `seed_escalation_waiting/0`'s stable
+  `@payment_idempotency` row into the CI test DB outside the SQL sandbox. Reusing
+  that stable key here would make a later trigger return `{:duplicate, _}` (no Oban
+  delivery job enqueued), silently breaking `drain_oban!(:chimeway_delivery)` in
+  JOUR-06. A unique key keeps each test exercising the real `{:ok, _}` dispatch path.
+  """
+  def escalation_waiting! do
+    trigger(
+      DemoHost.Notifiers.PaymentReminder,
+      %{email: @morgan_email, invoice_id: "INV-1001"},
+      idempotency_key: "#{@payment_idempotency}-#{System.unique_integer([:positive])}",
+      correlation_id: "teampulse-seed-payment-corr",
+      tenant_id: @tenant_id
+    )
+  end
 
   @doc """
   DEMO-07: Accrue billing-event dunning through Chimeway with Logger email delivery.
