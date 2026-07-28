@@ -226,6 +226,15 @@ jobs:
           mix deps.get
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
+      # JOUR-05 (mix demo.up --check) cold-compiles the root + demo host in :dev
+      # inside a 300s test. Pre-warm the :dev builds here so it runs warm.
+      - name: Warm :dev build for JOUR-05 (mix demo.up --check)
+        env:
+          MIX_ENV: dev
+        run: |
+          mix deps.get
+          mix compile
+          cd examples/chimeway_demo_host && mix deps.get && mix compile
       - run: mix verify.example
 
   verify_runtime_prefix:
@@ -316,6 +325,16 @@ jobs:
           mix deps.get
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
+      # JOUR-05 spawns `mix demo.up --check` in :dev, which cold-compiles the
+      # root + demo host in :dev inside a 300s test. Pre-warm the :dev builds
+      # here (outside the test's timeout) so the readiness check runs warm.
+      - name: Warm :dev build for JOUR-05 (mix demo.up --check)
+        env:
+          MIX_ENV: dev
+        run: |
+          mix deps.get
+          mix compile
+          cd examples/chimeway_demo_host && mix deps.get && mix compile
       - run: mix verify.journeys
 
   verify_mailglass:
@@ -386,7 +405,9 @@ jobs:
     env:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
-      ACCRUE_PATH: ${{ github.workspace }}/accrue/accrue
+      # szTheory/accrue is a monorepo checked out at accrue/accrue; the :accrue
+      # package (its mix.exs) is nested one level deeper at accrue/ within it.
+      ACCRUE_PATH: ${{ github.workspace }}/accrue/accrue/accrue
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
