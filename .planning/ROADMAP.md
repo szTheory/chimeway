@@ -199,7 +199,8 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 86-01-PLAN.md — Offline contrast calc + accessibility-checks.md (A11Y-01/02/05, machine A11Y-03/04)
+
+- [x] 86-01-PLAN.md — Offline contrast calc + accessibility-checks.md (A11Y-01/02/05, machine A11Y-03/04)
 - [ ] 86-02-PLAN.md — research.md: WCAG verbatim citations + design-system analogues + recommendations (NOTES-01/04)
 - [ ] 86-03-PLAN.md — Operator CVD emulation + focus-not-obscured checkpoint (A11Y-03/04)
 - [ ] 86-04-PLAN.md — Red-team scope close: widen --scope allowlist + red-team.md (NOTES-03)

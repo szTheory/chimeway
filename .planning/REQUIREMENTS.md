@@ -45,11 +45,11 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Accessibility (A11Y)
 
-- [ ] **A11Y-01**: Every text foreground/background pairing meets WCAG 2.2 SC 1.4.3 (4.5:1, or 3:1 for large text) — verified and recorded.
-- [ ] **A11Y-02**: Non-text/UI contrast — borders, focus rings, meaningful icons — meets SC 1.4.11 (3:1) — verified.
+- [x] **A11Y-01**: Every text foreground/background pairing meets WCAG 2.2 SC 1.4.3 (4.5:1, or 3:1 for large text) — verified and recorded.
+- [x] **A11Y-02**: Non-text/UI contrast — borders, focus rings, meaningful icons — meets SC 1.4.11 (3:1) — verified.
 - [ ] **A11Y-03**: Focus is visible and not obscured (SC 2.4.7 / 2.4.11), reduced motion is honored (SC 2.3.3), and interactive targets are ≥24×24px (SC 2.5.8).
 - [ ] **A11Y-04**: Status/semantic meaning is never conveyed by color alone, and the palette is colorblind-safe (verified against CVD simulation).
-- [ ] **A11Y-05**: `notes/accessibility-checks.md` records per-pairing ratios and the verification of the above against the *rendered* brandbook output.
+- [x] **A11Y-05**: `notes/accessibility-checks.md` records per-pairing ratios and the verification of the above against the *rendered* brandbook output.
 
 ### Repo Integration (INTEG)
 
@@ -125,11 +125,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | INTEG-01 | Phase 85 | Complete |
 | INTEG-02 | Phase 85 | Complete |
 | INTEG-04 | Phase 85 | Complete |
-| A11Y-01 | Phase 86 | Pending |
-| A11Y-02 | Phase 86 | Pending |
+| A11Y-01 | Phase 86 | Complete |
+| A11Y-02 | Phase 86 | Complete |
 | A11Y-03 | Phase 86 | Pending |
 | A11Y-04 | Phase 86 | Pending |
-| A11Y-05 | Phase 86 | Pending |
+| A11Y-05 | Phase 86 | Complete |
 | NOTES-01 | Phase 86 | Pending |
 | NOTES-03 | Phase 86 | Pending |
 | NOTES-04 | Phase 86 | Pending |

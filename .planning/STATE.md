@@ -2,16 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
-status: verifying
-stopped_at: Phase 86 context gathered (assumptions mode)
-last_updated: "2026-07-28T01:24:29.551Z"
-last_activity: 2026-07-27 — Phase 85 execution started
+current_phase: 86
+current_phase_name: accessibility-audit-notes-red-team-close
+status: executing
+stopped_at: Completed 86-01-PLAN.md
+last_updated: "2026-07-28T13:15:10.281Z"
+last_activity: 2026-07-27
+last_activity_desc: Phase 86 execution started
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 12
-  completed_plans: 12
-  percent: 83
+  total_plans: 16
+  completed_plans: 13
+  percent: 81
 ---
 
 # Project State
@@ -21,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 85 — repo-integration-readme-hexdocs-favicon-wiring
+**Current focus:** Phase 86 — accessibility-audit-notes-red-team-close
 
 ## Current Position
 
-Phase: 85 (repo-integration-readme-hexdocs-favicon-wiring) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
-Last activity: 2026-07-27 — Phase 85 execution started
+Phase: 86 (accessibility-audit-notes-red-team-close) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-07-27 — Phase 86 execution started
 
 ## Accumulated Context
 
@@ -230,6 +233,8 @@ status: complete
 - [Phase ?]: [84-04]: Theme-resolution fix lives in tokens.css — dark @media gated on :root:not([data-theme]) so an explicit data-theme outranks OS prefers-color-scheme (the 'light does nothing under a dark OS' bug); toggle script untouched
 - [Phase ?]: [84-04]: Fixed-color lockups swap light/inverse <img> by theme (.cwb-logo--light/.cwb-logo--dark), not pinned color tiles; OG social preview reframed as a self-contained bordered .cwb-preview thumbnail (light-only by design)
 - [Phase ?]: [84-04]: Checkpoint gap-closure touched brandbook.css / tokens.css / brandbook-guards.sh + two derived inverse assets beyond the plan's declared files_modified — in-scope (brandbook/ + guard-script), recorded as a deviation; guard families 5/6/7 added to lock the fixes
+- [Phase ?]: [86-01]: offline contrast-audit.sh (dependency-free shell+awk) is the A11Y-05 evidence of record; in-page 8-cell matrix is corroborating proof only.
+- [Phase ?]: [86-01]: sub-threshold pairings recorded as DOCUMENTED WCAG exemptions (disabled SC 1.4.3 Incidental; borders SC 1.4.11 required-to-identify), never patched (TOKEN-01).
 
 ## Performance
 
@@ -542,9 +547,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-28T01:24:29.547Z
-Stopped at: Phase 86 context gathered (assumptions mode)
-Resume file: .planning/phases/86-accessibility-audit-notes-red-team-close/86-CONTEXT.md
+Last session: 2026-07-28T13:15:01.666Z
+Stopped at: Completed 86-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -621,3 +626,8 @@ Resume file: .planning/phases/86-accessibility-audit-notes-red-team-close/86-CON
 | Phase 84 P02 | 5min | 3 tasks | 1 files |
 | Phase 84 P03 | 8min | 3 tasks | 1 files |
 | Phase 84 P04 | 53min | 3 tasks | 4 files + 2 assets |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 86 P01 | 6min | 2 tasks | 2 files |
