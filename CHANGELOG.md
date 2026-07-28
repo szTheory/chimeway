@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 Format: [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.1.1](https://github.com/szTheory/chimeway/compare/v1.1.0...v1.1.1) (2026-07-28)
+
+
+### Bug Fixes
+
+* **deps:** bump optional sigra dep to ~&gt; 1.0 to unblock Hex publish ([fa569b4](https://github.com/szTheory/chimeway/commit/fa569b4e1a9ed82e8e1c3d1048588651b3e1bfcc))
+* **deps:** scope sigra override to the SIGRA_PATH branch only ([5ade68f](https://github.com/szTheory/chimeway/commit/5ade68f05701fb0694c0741a86a0ad9e84e1e3c4))
+* **release:** publish in :dev (drop obsolete sigra override) so hex docs build ([20f4069](https://github.com/szTheory/chimeway/commit/20f4069f0185d6bdf1ff495e3a5a1fce2a95a330))
+* **release:** run pre-publish docs build in :dev (ex_doc is dev-only) ([a96baa0](https://github.com/szTheory/chimeway/commit/a96baa07f65b56b4dc4873d0ffd9ea508c6c1dd0))
+* **release:** skip Oban in pre-publish gate replay (no Postgres in publish job) ([7969d94](https://github.com/szTheory/chimeway/commit/7969d9486e5c904bc03506f93356d49df5d78499))
+* **release:** skip partner TestRepo provisioning in DB-less pre-publish gate replay ([a2210fc](https://github.com/szTheory/chimeway/commit/a2210fc8236855d35b740b053e2703ed43d2e939))
+
 ## [1.1.0](https://github.com/szTheory/chimeway/compare/v1.0.0...v1.1.0) (2026-07-28)
 
 
