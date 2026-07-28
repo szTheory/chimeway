@@ -2,6 +2,12 @@ ExUnit.start()
 
 sigra_ci_proof? = System.get_env("CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") in ["1", "true"]
 
+# Skip partner TestRepo provisioning (Mailglass/Accrue/Threadline/Sigra), which
+# requires a running Postgres. Set by the DB-less pre-publish gate replay, which
+# only runs file-content gates (doc_contract + release_gate_contract) that touch
+# no repo.
+skip_partner_test_repos? = System.get_env("CHIMEWAY_SKIP_PARTNER_TEST_REPOS") in ["1", "true"]
+
 if System.get_env("CHIMEWAY_MANUAL_REPO_START") in ["1", "true"] do
   Logger.configure(level: :warning)
 
@@ -32,7 +38,7 @@ end
 
 Ecto.Adapters.SQL.Sandbox.mode(Chimeway.Repo, :manual)
 
-if Code.ensure_loaded?(Mailglass) and not sigra_ci_proof? do
+if Code.ensure_loaded?(Mailglass) and not sigra_ci_proof? and not skip_partner_test_repos? do
   {:ok, _} = Application.ensure_all_started(:mailglass)
 
   migrations_path = Path.join([__DIR__, "support", "mailglass", "migrations"])
@@ -63,7 +69,7 @@ if Code.ensure_loaded?(Mailglass) and not sigra_ci_proof? do
   Ecto.Adapters.SQL.Sandbox.mode(Mailglass.TestRepo, :manual)
 end
 
-if Code.ensure_loaded?(Accrue) and not sigra_ci_proof? do
+if Code.ensure_loaded?(Accrue) and not sigra_ci_proof? and not skip_partner_test_repos? do
   if Code.ensure_loaded?(Chimeway) and not Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
     source =
       [:accrue]
@@ -130,7 +136,7 @@ if Code.ensure_loaded?(Accrue) and not sigra_ci_proof? do
   end
 end
 
-if Code.ensure_loaded?(Threadline) and not sigra_ci_proof? do
+if Code.ensure_loaded?(Threadline) and not sigra_ci_proof? and not skip_partner_test_repos? do
   {:ok, _} = Application.ensure_all_started(:threadline)
 
   migrations_path =
@@ -170,8 +176,9 @@ if Code.ensure_loaded?(Threadline) and not sigra_ci_proof? do
   Ecto.Adapters.SQL.Sandbox.mode(Threadline.Test.Repo, :manual)
 end
 
-if Code.ensure_loaded?(Sigra) or
-     System.get_env("CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") in ["1", "true"] do
+if (Code.ensure_loaded?(Sigra) or
+      System.get_env("CHIMEWAY_FORCE_SIGRA_TEST_REPO_SETUP") in ["1", "true"]) and
+     not skip_partner_test_repos? do
   if Code.ensure_loaded?(Chimeway) and not Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
     source =
       case System.get_env("SIGRA_PATH") do
