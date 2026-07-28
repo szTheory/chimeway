@@ -38,7 +38,7 @@
 - [x] **Phase 82: Logo Exploration & Shortlist** — 3-5 fully-worked directions with rationale + ship/defer/reject, each passing the hard-taste and mono/inverse/16px gates
 - [x] **Phase 83: Direction Selection & Final Asset Family (User Checkpoint)** — Human selects the finalist; promote to a full optimized-SVG lockup family + simplified favicon + social derivatives
 - [x] **Phase 84: HTML Brandbook, Voice & Component States** — The primary deliverable: scoped `file://`-safe HTML book assembling tokens, logos, component states, brand voice, and do/don't
-- [ ] **Phase 85: Repo Integration (README + HexDocs + Favicon Wiring)** — Surface the real mark on GitHub/HexDocs via minimal in-scope edits, v1.14 contracts still green
+- [x] **Phase 85: Repo Integration (README + HexDocs + Favicon Wiring)** — Surface the real mark on GitHub/HexDocs via minimal in-scope edits, v1.14 contracts still green
 - [ ] **Phase 86: Accessibility Audit, Notes & Red-Team Close** — Verify WCAG 2.2 against rendered output, complete decision/research notes, red-team the scope boundary
 
 ### Phase 81: Design Tokens (Reconciliation & Documentation)
@@ -241,7 +241,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 82. Logo Exploration & Shortlist | 1/1 | Complete   | 2026-07-18 |
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 3/3 | Complete   | 2026-07-18 |
 | 84. HTML Brandbook, Voice & Component States | 4/4 | Complete   | 2026-07-27 |
-| 85. Repo Integration (README + HexDocs + Favicon Wiring) | 1/1 | Automated gate passed — awaiting human visual verify | - |
+| 85. Repo Integration (README + HexDocs + Favicon Wiring) | 1/1 | Complete | - |
 | 86. Accessibility Audit, Notes & Red-Team Close | 0/TBD | Not started | - |
 
 ---

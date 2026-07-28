@@ -53,10 +53,10 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Repo Integration (INTEG)
 
-- [ ] **INTEG-01**: The README header shows the real primary lockup (relative-path SVG that GitHub resolves), replacing any placeholder.
-- [ ] **INTEG-02**: `mix.exs` `docs()` wires ExDoc `:logo` and `:favicon` (SVG) so HexDocs shows the brand mark.
+- [x] **INTEG-01**: The README header shows the real primary lockup (relative-path SVG that GitHub resolves), replacing any placeholder.
+- [x] **INTEG-02**: `mix.exs` `docs()` wires ExDoc `:logo` and `:favicon` (SVG) so HexDocs shows the brand mark.
 - [x] **INTEG-03**: A deliberately-simplified `favicon.svg` (+ the minimal raster fallback the platforms require) is shipped and wired. *(Assets shipped & verified in Phase 83 — favicon.svg/.ico + apple-touch-icon.png, 83-VERIFICATION passed. App-side wiring — mix.exs `docs()` `:favicon` — is delivered by INTEG-02 in Phase 85, the "Favicon Wiring" phase.)*
-- [ ] **INTEG-04**: Integration edits stay in scope — changes limited to the README header region, docs config, and optional `package() files:`; `chimeway_admin` untouched; all v1.14 doc-contract/release-gate tests still pass.
+- [x] **INTEG-04**: Integration edits stay in scope — changes limited to the README header region, docs config, and optional `package() files:`; `chimeway_admin` untouched; all v1.14 doc-contract/release-gate tests still pass.
 
 ### Decision Notes & Red-Team (NOTES)
 
@@ -122,9 +122,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | VOICE-01 | Phase 84 | Complete |
 | VOICE-02 | Phase 84 | Complete |
 | VOICE-03 | Phase 84 | Complete |
-| INTEG-01 | Phase 85 | Pending |
-| INTEG-02 | Phase 85 | Pending |
-| INTEG-04 | Phase 85 | Pending |
+| INTEG-01 | Phase 85 | Complete |
+| INTEG-02 | Phase 85 | Complete |
+| INTEG-04 | Phase 85 | Complete |
 | A11Y-01 | Phase 86 | Pending |
 | A11Y-02 | Phase 86 | Pending |
 | A11Y-03 | Phase 86 | Pending |

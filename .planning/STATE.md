@@ -4,17 +4,17 @@ milestone: v1.15
 milestone_name: Brand Identity & Brand Book
 current_phase: 85
 current_phase_name: repo-integration-readme-hexdocs-favicon-wiring
-status: executing
-stopped_at: Phase 85 Plan 01 (85-01) automated gate PASSED (3 contract tests green, mix docs builds, assets byte-verified); awaiting human visual verify of HexDocs sidebar mark + tab favicon
-last_updated: "2026-07-28T00:58:20.388Z"
+status: phase-complete
+stopped_at: Phase 85 (85-01) COMPLETE — all 3 tasks done, 6/6 must-haves verified (85-VERIFICATION passed), human approved HexDocs render. v1.15 milestone: all 6 phases complete, ready for milestone completion.
+last_updated: "2026-07-28T01:04:36.290Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 85 execution started
+last_activity_desc: Phase 85 complete + verified (README lockup + HexDocs logo/favicon wiring)
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 12
   completed_plans: 12
-  percent: 83
+  percent: 100
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 85 (repo-integration-readme-hexdocs-favicon-wiring) — EXECUTING
 Plan: 1 of 1
-Status: Executing Phase 85
+Status: Phase complete — ready for verification
 Last activity: 2026-07-27 — Phase 85 execution started
 
 ## Accumulated Context
