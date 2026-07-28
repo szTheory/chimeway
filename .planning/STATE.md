@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
-current_phase: 84
-current_phase_name: html-brandbook-voice-component-states
+current_phase: 85
+current_phase_name: repo-integration-readme-hexdocs-favicon-wiring
 status: executing
-stopped_at: Phase 85 context gathered (assumptions mode)
-last_updated: "2026-07-28T00:44:22.543Z"
+stopped_at: Phase 85 Plan 01 (85-01) automated gate PASSED (3 contract tests green, mix docs builds, assets byte-verified); awaiting human visual verify of HexDocs sidebar mark + tab favicon
+last_updated: "2026-07-28T00:58:20.388Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 85 planning complete
+last_activity_desc: Phase 85 execution started
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 12
-  completed_plans: 11
-  percent: 67
+  completed_plans: 12
+  percent: 83
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 84 — html-brandbook-voice-component-states
+**Current focus:** Phase 85 — repo-integration-readme-hexdocs-favicon-wiring
 
 ## Current Position
 
-Phase: 84 (html-brandbook-voice-component-states) — COMPLETE (4/4 plans)
-Plan: 4 of 4 — done
-Status: Ready to execute
-Last activity: 2026-07-27 — Phase 85 planning complete
+Phase: 85 (repo-integration-readme-hexdocs-favicon-wiring) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 85
+Last activity: 2026-07-27 — Phase 85 execution started
 
 ## Accumulated Context
 
@@ -545,9 +545,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-28T00:32:26.849Z
-Stopped at: Phase 85 context gathered (assumptions mode)
-Resume file: .planning/phases/85-repo-integration-readme-hexdocs-favicon-wiring/85-CONTEXT.md
+Last session: 2026-07-28T00:58:20.379Z
+Stopped at: Phase 85 Plan 01 (85-01) automated gate PASSED (3 contract tests green, mix docs builds, assets byte-verified); awaiting human visual verify of HexDocs sidebar mark + tab favicon
+Resume file: None
 
 ## Operator Next Steps
 

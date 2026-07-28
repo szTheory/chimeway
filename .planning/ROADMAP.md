@@ -241,7 +241,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 82. Logo Exploration & Shortlist | 1/1 | Complete   | 2026-07-18 |
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 3/3 | Complete   | 2026-07-18 |
 | 84. HTML Brandbook, Voice & Component States | 4/4 | Complete   | 2026-07-27 |
-| 85. Repo Integration (README + HexDocs + Favicon Wiring) | 0/TBD | Not started | - |
+| 85. Repo Integration (README + HexDocs + Favicon Wiring) | 1/1 | Automated gate passed — awaiting human visual verify | - |
 | 86. Accessibility Audit, Notes & Red-Team Close | 0/TBD | Not started | - |
 
 ---
