@@ -294,10 +294,9 @@ jobs:
           env MIX_ENV=dev mix ci.docs
 
       - name: Build Hex package
-        # MIX_ENV=prod: the package build must omit the dev/test-only Sigra
-        # override (Hex rejects overridden deps). See sigra_dep/0 in mix.exs.
-        env:
-          MIX_ENV: prod
+        # Runs in :dev (default). sigra_dep/0 no longer uses `override: true`
+        # (sigra ~> 1.0 matches mailglass), so Hex no longer rejects the build, and
+        # :dev is where ex_doc lives to build docs for `mix hex.publish`.
         run: mix hex.build
 
       - name: Skip if version already on Hex
@@ -311,14 +310,12 @@ jobs:
       - name: Dry run Hex publish
         if: steps.idempotency.outputs.skip != 'true'
         env:
-          MIX_ENV: prod
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: mix hex.publish --dry-run --yes
 
       - name: Publish to Hex
         if: steps.idempotency.outputs.skip != 'true'
         env:
-          MIX_ENV: prod
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: mix hex.publish --yes
 
