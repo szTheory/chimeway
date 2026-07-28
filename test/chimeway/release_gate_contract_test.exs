@@ -584,8 +584,10 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert manifest["."] == version,
              "manifest root version #{inspect(manifest["."])} must equal mix.exs @version #{inspect(version)}"
 
-      # CHANGELOG has a package release heading for the current version.
-      assert Regex.match?(~r/^##\s+#{Regex.escape(version)}\b/m, ctx.changelog),
+      # CHANGELOG has a package release heading for the current version. Accept both
+      # the bare `## 1.0.0` form (release-please's first release) and the linked
+      # `## [1.1.0](compare-url)` form it uses for every subsequent release.
+      assert Regex.match?(~r/^##\s+\[?#{Regex.escape(version)}\b/m, ctx.changelog),
              "CHANGELOG.md must contain a `## #{version}` package release heading"
 
       # HexDocs source ref stays pinned to the tagged package version.
@@ -761,9 +763,15 @@ defmodule Chimeway.ReleaseGateContractTest do
       refute String.contains?(readme, @legacy_repo_url),
              "unpacked README.md must not carry the legacy repository URL #{@legacy_repo_url}"
 
-      # Root install constraint is carried in the packaged README.
-      assert String.contains?(readme, ~S({:chimeway, "~> 1.0"})),
-             "unpacked README.md must carry the root install constraint {:chimeway, \"~> 1.0\"}"
+      # Root install constraint is carried in the packaged README, aligned with the
+      # packaged @version's MAJOR.MINOR (derive it — don't hardcode, or every release
+      # bump breaks this gate).
+      [_, pkg_version] = Regex.run(~r/@version "([^"]+)"/, mix_exs)
+      [pkg_major, pkg_minor, _patch] = String.split(pkg_version, ".")
+      expected_constraint = ~s({:chimeway, "~> #{pkg_major}.#{pkg_minor}"})
+
+      assert String.contains?(readme, expected_constraint),
+             "unpacked README.md must carry the root install constraint #{expected_constraint}"
 
       # ADPT-01 / D-07: the DOCS-14/15/16 public-story invariants must survive Hex
       # packaging. Marker strings are byte-identical to the source-tree README
