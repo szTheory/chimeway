@@ -207,15 +207,21 @@ defmodule Chimeway.MixProject do
     # chimeway's own lib/ never references Sigra; this optional, runtime:false dep
     # only exists so the Sigra integration (Sigra.Integrations.Chimeway, exercised by
     # `mix verify.sigra` via SIGRA_PATH) resolves. Pinned `~> 1.0` to match mailglass's
-    # `sigra ~> 1.0` — the ranges now overlap, so no `override: true` is needed. That
-    # lets `mix hex.publish` run in :dev (where ex_doc lives to build docs) instead of
-    # :prod; Hex rejects overridden deps in published builds, which was the only reason
-    # publishing was pinned to :prod.
-    opts = [optional: true, runtime: false]
+    # `sigra ~> 1.0`, so the plain hex requirement needs no override — which keeps the
+    # Hex package build override-free (Hex rejects overridden deps) and lets
+    # `mix hex.publish` run in :dev, where ex_doc lives to build docs.
+    base = [optional: true, runtime: false]
 
     case System.get_env("SIGRA_PATH") do
-      nil -> {:sigra, "~> 1.0", opts}
-      path -> {:sigra, [{:path, path} | opts]}
+      # No SIGRA_PATH: `sigra ~> 1.0` matches mailglass's requirement — no override.
+      nil ->
+        {:sigra, "~> 1.0", base}
+
+      # SIGRA_PATH set (verify.sigra): the local path dep must override chimeway's hex
+      # `sigra ~> 1.0` requirement so the checkout is used. This branch never runs in a
+      # Hex publish (which sets no SIGRA_PATH), so the override never reaches the package.
+      path ->
+        {:sigra, [{:path, path}, {:override, true} | base]}
     end
   end
 
