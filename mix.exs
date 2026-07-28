@@ -95,7 +95,13 @@ defmodule Chimeway.MixProject do
       # Pre-ship GATE-01: canonical host-mount E2E + operator admin smoke (D-10, D-11).
       # Run separately from ci.test to preserve fast feedback on core lib tests (Phase 33 D-10).
       "verify.example": [
-        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test",
+        # Exclude :journey here — those run in verify.journeys (--only journey).
+        # JOUR-05 (mix demo.up --check) commits seed data outside the SQL sandbox
+        # into the shared CI DB; running it alongside these sandboxed tests leaks
+        # rows into unscoped queries (DeliveryAttempt counts, mailglass idempotency,
+        # inbox badge). Keeping it out of this lane removes the cross-test pollution
+        # with no coverage loss.
+        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --exclude journey",
         "cmd --shell cd chimeway_admin && mix deps.get && mix test",
         "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors"
       ],
@@ -129,7 +135,7 @@ defmodule Chimeway.MixProject do
       "verify.accrue": [
         "deps.compile",
         "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors",
-        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
+        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
       ],
 
       # v1.9 GATE-05 Inbox: chimeway_inbox package + demo host DEMO-08 :inbox proof
