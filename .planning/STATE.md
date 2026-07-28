@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
-status: executing
-stopped_at: Phase 84 complete (4/4 plans) — VOICE-01/02/03 delivered, book guard-green + file://-safe
-last_updated: "2026-07-27T00:00:00.000Z"
+status: completed
+stopped_at: Phase 85 context gathered (assumptions mode)
+last_updated: "2026-07-28T00:32:26.853Z"
 last_activity: 2026-07-27
 progress:
   total_phases: 6
@@ -542,9 +542,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-27T00:00:00.000Z
-Stopped at: Completed 84-04-PLAN.md — Phase 84 complete (VOICE-01/02/03; book guard-green, file://-safe, human-verified light + dark)
-Resume file: None
+Last session: 2026-07-28T00:32:26.849Z
+Stopped at: Phase 85 context gathered (assumptions mode)
+Resume file: .planning/phases/85-repo-integration-readme-hexdocs-favicon-wiring/85-CONTEXT.md
 
 ## Operator Next Steps
 
