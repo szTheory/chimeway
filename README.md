@@ -1,4 +1,10 @@
-# Chimeway
+<!-- header region: brand lockup (in-scope edit boundary; do not edit below the badges) -->
+<a href="https://github.com/szTheory/chimeway">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brandbook/assets/logo/chimeway-logotype-inverse.svg">
+    <img src="brandbook/assets/logo/chimeway-logotype.svg" alt="Chimeway" width="380">
+  </picture>
+</a>
 
 Chimeway is a local-first, explainable, durable notification library for Elixir. It runs
 inside your application and your database — there is no external notification SaaS to trust
