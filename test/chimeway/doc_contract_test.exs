@@ -1425,8 +1425,11 @@ defmodule Chimeway.DocContractTest do
     # surfaces -> Installation -> Trigger to explainable trace. A reorder that breaks the
     # narrative passes the presence markers but fails here. Line-anchored (~r/^...$/m) so
     # only real headings match, not prose mentions.
+    #
+    # Note (Phase 85, INTEG-01): the README title is now rendered as a GitHub-native
+    # brand lockup (<picture>/<img>), not a plain "# Chimeway" Markdown H1, so the
+    # narrative-order gate starts at "## When to use". The lockup carries alt="Chimeway".
     @readme_section_order [
-      "# Chimeway",
       "## When to use",
       "## Non-goals",
       "## Host-owned boundaries",
