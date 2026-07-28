@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.15 Brand Identity & Brand Book (Shipped: 2026-07-28)
+
+**Phases completed:** 6 phases, 16 plans, 29 tasks
+
+**Key accomplishments:**
+
+- notes/decision-log.md divergence ledger recording DIV-1..DIV-7 sub-primitive divergences between the shipped chimeway_admin.css token layer and brand-book intent, each DOCUMENTED/DEFERRED with both-side line refs and a git-diff zero-drift invariant over both admin CSS files (TOKEN-04)
+- Task 1 — Primitive + non-color scalar groups
+- Extended logo-guards.sh with an `--assets` file-level gate and widened `--scope` allowlist, plus a pinned SVGO config and a Chrome-headless SVG→PNG render helper — the tooling Waves 2-3 need to produce and verify the brand-asset family.
+- Six-mark chimeway logo lockup family shipped as SVGO-optimized SVGs, with the wordmark re-cut from Marcellus (SIL OFL 1.1) via fontTools and a two-tone keystone-i (ink body + teal facet at 65% width).
+- Dual-theme favicon set (prefers-color-scheme dark) + 1200x630 mark-derived OG card, with the Keystone/Marcellus(OFL-1.1) direction formally ratified by a human at the blocking perceptual checkpoint — closing LOGO-03/04 and INTEG-03.
+- A single file://-safe `brandbook/index.html` — relative-linked to the tokens SSOT and the scoped stylesheet — that stands up the `.cw-brandbook` scaffold, a tri-state theme toggle in one inline classic script, and the token-driven logo, color, typography, and spacing sections with zero hard-coded hex.
+- 1. [Rule 3 - Blocking issue] Escaped `<script>` prose in a plan-02 comment so the plan's acceptance grep is honest
+- Completes `brandbook/index.html` with the brand-voice content — voice/tone by context (docs/errors/marketing/CLI) with verbatim good/bad pairs, the named "what happened → why it matters → how to fix" error-message template, and the lowercase-`chimeway`-graphic vs title-case-`Chimeway`-prose naming/CTA rules — then closes the phase: the full seven-family guard suite is green, the book is `file://`-safe, and the render is human-verified on both light and dark after a checkpoint gap-closure that fixed theme resolution, nav/visual polish, and theme-adaptive logo rendering.
+- Wired the shipped Chimeway brand assets into the two adopter-facing surfaces — a GitHub-native theme-swapping `<picture>` lockup in the README header and `:logo`/`:favicon` in ExDoc `docs()` — keeping all v1.14 contracts green via a deliberate narrative-order-gate evolution.
+- The two genuinely-manual browser accessibility checks (A11Y-04 CVD emulation and A11Y-03 focus-not-obscured) were WAIVED by the project owner on 2026-07-28 — risk accepted, manual verification not performed — and recorded truthfully in `notes/accessibility-checks.md` §6.1/§6.2 as documented known gaps (accepted-risk, NOT a PASS), corroborated by pre-existing machine/CSS evidence that mitigates but does not substitute for the human attestation.
+- Widened the existing `scripts/brandbook-guards.sh --scope` allowlist to the exact v1.15 milestone boundary (`brandbook/
+
+---
+
 ## v1.14 Public Truth and Verification Architecture (Shipped: 2026-07-03)
 
 **Delivered:** Every public adoption claim — package/release metadata, README/front-door docs, and CI/release verification — now agrees and is reproducible under executable contracts, while full release confidence is preserved.

@@ -2,18 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
-current_phase: 86
-current_phase_name: accessibility-audit-notes-red-team-close
-status: phase_complete
-stopped_at: Phase 86 complete — verified (A11Y-03/A11Y-04 manual checks owner-waived / accepted-risk, carried to v1.15 ship gate)
-last_updated: "2026-07-28T15:13:34.233Z"
+status: Awaiting next milestone
+stopped_at: Completed 86-04-PLAN.md (NOTES-03 red-team close)
+last_updated: "2026-07-28T16:16:27.027Z"
 last_activity: 2026-07-28
+last_activity_desc: Milestone v1.15 completed and archived
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 16
   completed_plans: 16
   percent: 100
+current_phase: 86
+current_phase_name: accessibility-audit-notes-red-team-close
 ---
 
 # Project State
@@ -27,10 +28,21 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: 86 (accessibility-audit-notes-red-team-close) — COMPLETE
-Plan: 4 of 4
-Status: Phase complete — verified human_needed with owner accepted-risk on A11Y-03/A11Y-04 (2 manual browser checks waived 2026-07-28); all machine-verifiable requirements passed. All 6 v1.15 phases complete → ready for milestone ship gate.
-Last activity: 2026-07-28
+Phase: Milestone v1.15 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-28 — Milestone v1.15 completed and archived
+
+## Deferred Items
+
+Items acknowledged and deferred at v1.15 milestone close on 2026-07-28 (override_closeout):
+
+| Category | Item | Status |
+|----------|------|--------|
+| verification | Phase 84 (84-VERIFICATION.md) — optional in-browser visual/responsive confirmation; 8/8 must-haves structurally verified | human_needed (accepted) |
+| verification | Phase 86 (86-VERIFICATION.md) — A11Y-03 focus-not-obscured + A11Y-04 CVD emulation manual checks owner-waived | human_needed (accepted-risk) |
+
+**Note:** Phase 82 has no VERIFICATION.md (exploration/shortlist phase) but all its requirements are Complete in the archived REQUIREMENTS.md. The two A11Y items above remain the only Pending requirements (30/32 complete); they carry forward as accepted-risk for a future manual browser pass.
 
 ## Accumulated Context
 
@@ -556,9 +568,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 81 (Design Tokens — Reconciliation & Documentation) with `/gsd-plan-phase 81`
-- v1.15 phase order: 81 Tokens -> 82 Logo Exploration -> 83 Direction Selection (USER CHECKPOINT) -> 84 HTML Brandbook/Voice/States -> 85 Repo Integration -> 86 A11y Audit + Red-Team close
-- Hold scope every phase: `brandbook/`-only + 2 allowed edits (README header, `mix.exs` docs()); keep v1.14 doc-contract/release-gate tests green
+- Start the next milestone with /gsd-new-milestone
 
 ## Performance Metrics
 

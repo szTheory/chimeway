@@ -14,6 +14,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.15 Brand Identity & Brand Book (Phases 82–86) — Logo lockup family (LOGO-01/02/03/04/05/06, NOTES-02) selected at a human checkpoint and shipped as optimized SVGs + favicon/OG derivatives; standalone `file://`-safe scoped HTML brandbook with token swatches, component states, brand voice/microcopy, and do/don't (BOOK-01/02/03, STATE-01/02, VOICE-01/02/03); README `<picture>` lockup + ExDoc `:logo`/`:favicon` wiring, v1.14 contracts green (INTEG-01/02/03/04); offline WCAG contrast calc + cited exemptions + research/red-team notes with machine-enforced scope boundary (A11Y-01/02/05, NOTES-01/03/04). **Accepted-risk:** A11Y-03 (focus-not-obscured) and A11Y-04 (CVD emulation) manual browser checks were owner-waived 2026-07-28 — recorded as documented known gaps, not passes; 30/32 requirements complete.
 - ✓ v1.15 Phase 81 — TOKEN-01/02/03/04/05 canonical copy-safe `--cw-*` token layer: `brandbook/tokens/tokens.css` (bare `:root` SSOT, 15 verbatim primitives, generalized semantic tier, light/dark/system theming, no filter inversion) + hand-authored DTCG `brandbook/tokens/tokens.json` mirror (alias refs, light/dark sibling groups), with sub-primitive divergences DIV-1..DIV-7 recorded DOCUMENTED/DEFERRED in `notes/decision-log.md`; shipped admin CSS proven byte-identical (`git diff --exit-code`).
 - ✓ v1.14 Phase 80 — CI-01/02/03/04/05 two-aggregate CI topology: fast always-on `pr-gate` + push/dispatch-only 14-lane `ci-gate`, anti-pending event guards (live PR #3 proof), nested/npm/Playwright/per-lane-demo caches keyed on lockfiles, and complex CI logic extracted to `scripts/ci/*.sh` — all locked by `release_gate_contract_test.exs`.
 - ✓ v1.14 Phase 79 — DOCS-14/15/16/17, ADPT-01 README rewritten as an additive-superset decision page (local-first value prop + public-API trigger-to-explain snippet chain), stub guides delinked, and byte-identical source-tree/packaged-README (unpacked-Hex) contract locks.
@@ -26,16 +27,16 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-**v1.15 Brand Identity & Brand Book** — pressure-test the written brand book and produce a self-contained, repo-safe `brandbook/` package (logo system, reconciled design tokens, standalone HTML brandbook, brand voice/microcopy, component states, decision notes + red-team pass). Requirements defined in `.planning/REQUIREMENTS.md`.
+**No active milestone.** v1.15 Brand Identity & Brand Book completed 2026-07-28 (override_closeout, accepted-risk). Start the next milestone via `/gsd-new-milestone`.
 
-Carried-forward (not this milestone): TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
+Carried-forward candidates for the next milestone: the two accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation — a short in-browser pass); TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
 
 ### Out of Scope
 
 - Broad channel matrix, generic CRUD admin, full TeamPulse SaaS shell — see [Out of Scope](#out-of-scope) below
 - Dynamic per-tenant database prefixes — Chimeway supports one static storage prefix per host app config, not prefix-per-request tenancy
 
-## Latest Shipped Milestone: v1.14 Public Truth and Verification Architecture
+## Prior Milestone: v1.14 Public Truth and Verification Architecture
 
 **Shipped:** 2026-07-03
 
@@ -46,9 +47,13 @@ Carried-forward (not this milestone): TENANT-01 (broader tenant spine consistenc
 - Two-aggregate CI topology: fast always-on `pr-gate` for PRs plus a push/dispatch-only 14-lane `ci-gate` for release confidence, with anti-pending event guards proven by a live PR (CI-01/02/03).
 - Complex CI logic extracted to `scripts/ci/*.sh`; nested/npm/Playwright/per-lane-demo caches keyed on lockfiles; contributor/maintainer gate docs aligned; D-08 `pr-gate` branch-protection ruleset (id 18486746) set up (CI-04/05).
 
-## Current Milestone: v1.15 Brand Identity & Brand Book
+## Latest Shipped Milestone: v1.15 Brand Identity & Brand Book
 
-**Goal:** Critically pressure-test the existing written brand book (`prompts/chimeway-brand-book.md`) and operationalize it into a self-contained, repo-safe, implementation-ready `brandbook/` package with real, programmatically-generated, vector-first artifacts — so Chimeway reads as credible on GitHub / HexDocs / landing pages and future UI/docs/marketing work is accelerated.
+**Shipped:** 2026-07-28 (override_closeout — A11Y-03/A11Y-04 manual browser checks owner-waived, accepted-risk; 30/32 requirements complete)
+
+**Delivered:** A self-contained, repo-safe `brandbook/` package — reconciled copy-safe `--cw-*` design tokens (CSS + hand-authored DTCG JSON), a human-selected six-mark logo lockup family (optimized SVGs + dual-theme favicon + OG card), a standalone `file://`-safe scoped HTML brandbook (token swatches, component states, live theme toggle + contrast matrix, brand voice/microcopy, do/don't), README `<picture>` lockup + ExDoc `:logo`/`:favicon` wiring (v1.14 contracts green), and an accessibility audit closed with an offline WCAG contrast calc, verbatim-cited exemptions, research/red-team notes, and a machine-enforced `brandbook/`-only scope guard. All work stayed doc/asset-only; `chimeway_admin` and tokens.css held zero-drift. The two manual browser accessibility checks were consciously waived by the owner and carry forward as accepted-risk documented gaps (not passes).
+
+**Original goal (for the record):** Critically pressure-test the existing written brand book (`prompts/chimeway-brand-book.md`) and operationalize it into a self-contained, repo-safe, implementation-ready `brandbook/` package with real, programmatically-generated, vector-first artifacts — so Chimeway reads as credible on GitHub / HexDocs / landing pages and future UI/docs/marketing work is accelerated.
 
 **Target features:**
 - **Logo system** — multiple programmatically-generated SVG directions to choose from (icon-only, logotype, ≥1 fully-integrated typemark, horizontal lockup, stacked, mono, inverse, favicon/small). No rectangular background cages; mark + wordmark visually unified; primary lockup carries no subtitle.
@@ -73,7 +78,9 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 
 ## Current State
 
-**v1.15 Brand Identity & Brand Book in progress — Phase 81 complete (2026-07-10):** Design-token reconciliation & documentation landed. `brandbook/tokens/tokens.css` is the canonical, copy-safe `--cw-*` SSOT (de-scoped from the shipped `@layer cw.tokens` / `:where(.chimeway-admin)` wrapper to bare `:root` + `[data-theme]` + `@media`), mirrored by a hand-authored DTCG `brandbook/tokens/tokens.json`, with every sub-primitive divergence recorded as DOCUMENTED/DEFERRED in `notes/decision-log.md` (DEFERRED items deferred to a future ADMIN-RETHEME-01 milestone). The shipped admin CSS was never patched (byte-identical, verified). Downstream v1.15 artifacts (HTML brandbook, docs) consume these token names as a cross-phase contract.
+**v1.15 Brand Identity & Brand Book shipped (2026-07-28, override_closeout):** All six phases (81–86) complete. The `brandbook/` package is self-contained and repo-safe: reconciled `--cw-*` tokens (CSS + DTCG JSON), a human-selected optimized-SVG logo lockup family with favicon/OG derivatives, a `file://`-safe scoped HTML brandbook (tokens, component states, live theme toggle + contrast matrix, brand voice, do/don't), README + ExDoc brand wiring with v1.14 contracts green, and an accessibility audit closed via an offline WCAG contrast calc + cited exemptions + research/red-team notes + a machine-enforced scope guard. 30/32 requirements complete; the milestone held doc/asset-only discipline with zero drift on `chimeway_admin`/`tokens.css`. **Accepted-risk carry-forward:** A11Y-03 (focus-not-obscured) and A11Y-04 (CVD emulation) manual browser checks were owner-waived — a short in-browser pass would close them. Note: the v1.15 branch history (Phases 85–86, 33 commits) remains local on `main` and unpushed; the `pr-gate` ruleset requires it to land via PR, and the v1.15 git tag is local-only until that history reaches the remote.
+
+**v1.15 Phase 81 (2026-07-10):** Design-token reconciliation & documentation landed. `brandbook/tokens/tokens.css` is the canonical, copy-safe `--cw-*` SSOT (de-scoped from the shipped `@layer cw.tokens` / `:where(.chimeway-admin)` wrapper to bare `:root` + `[data-theme]` + `@media`), mirrored by a hand-authored DTCG `brandbook/tokens/tokens.json`, with every sub-primitive divergence recorded as DOCUMENTED/DEFERRED in `notes/decision-log.md` (DEFERRED items deferred to a future ADMIN-RETHEME-01 milestone). The shipped admin CSS was never patched (byte-identical, verified). Downstream v1.15 artifacts (HTML brandbook, docs) consume these token names as a cross-phase contract.
 
 **v1.14 Public Truth and Verification Architecture shipped (2026-07-03):** All four phases (77–80) are complete and verified. Phase 77 recorded the root-only package model and separated planning-vs-package tag namespaces (TRUTH-04). Phase 78 aligned root package metadata, release manifest, changelog, HexDocs source refs, README install constraint, canonical repository/source links, and sibling install-status copy, enforced by ExUnit release-gate + doc contracts and a deterministic local Hex unpack proof (env-scoped Sigra override keeps the prod build Hex-legal) (TRUTH-01/02/03). Phase 79 rewrote the README as an additive-superset decision page with public-API trigger-to-explain snippets and byte-identical source/packaged-README contract locks (DOCS-14/15/16/17, ADPT-01). Phase 80 split CI into a fast always-on `pr-gate` plus a push/dispatch-only 14-lane `ci-gate`, proved the anti-pending topology on a live PR, added cache coverage, and extracted complex CI logic to `scripts/ci/*.sh` (CI-01/02/03/04/05). All 14 requirements satisfied; open-artifact audit clear.
 
@@ -549,4 +556,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 at start of v1.15 Brand Identity & Brand Book milestone*
+*Last updated: 2026-07-28 after v1.15 Brand Identity & Brand Book milestone completion (override_closeout, accepted-risk)*
