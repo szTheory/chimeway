@@ -202,7 +202,7 @@ Plans:
 
 - [x] 86-01-PLAN.md — Offline contrast calc + accessibility-checks.md (A11Y-01/02/05, machine A11Y-03/04)
 - [x] 86-02-PLAN.md — research.md: WCAG verbatim citations + design-system analogues + recommendations (NOTES-01/04)
-- [ ] 86-03-PLAN.md — Operator CVD emulation + focus-not-obscured checkpoint (A11Y-03/04)
+- [x] 86-03-PLAN.md — Operator CVD emulation + focus-not-obscured checkpoint (A11Y-03/04)
 - [ ] 86-04-PLAN.md — Red-team scope close: widen --scope allowlist + red-team.md (NOTES-03)
 
 <details>
@@ -249,7 +249,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 3/3 | Complete   | 2026-07-18 |
 | 84. HTML Brandbook, Voice & Component States | 4/4 | Complete   | 2026-07-27 |
 | 85. Repo Integration (README + HexDocs + Favicon Wiring) | 1/1 | Complete | - |
-| 86. Accessibility Audit, Notes & Red-Team Close | 0/TBD | Not started | - |
+| 86. Accessibility Audit, Notes & Red-Team Close | 3/4 | In Progress|  |
 
 ---
 *Roadmap updated: 2026-07-09 — v1.15 Brand Identity & Brand Book milestone initialized (Phases 81-86)*
