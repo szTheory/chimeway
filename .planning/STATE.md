@@ -2,16 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Brand Identity & Brand Book
-status: executing
-stopped_at: Completed 86-03-PLAN.md (manual A11Y checks WAIVED by owner)
-last_updated: "2026-07-28T15:06:43.865Z"
+current_phase: 86
+current_phase_name: accessibility-audit-notes-red-team-close
+status: verifying
+stopped_at: Completed 86-04-PLAN.md (NOTES-03 red-team close)
+last_updated: "2026-07-28T15:13:34.233Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 16
-  completed_plans: 15
-  percent: 83
+  completed_plans: 16
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 86 (accessibility-audit-notes-red-team-close) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-28
 
 ## Accumulated Context
@@ -233,6 +235,9 @@ status: complete
 - [Phase ?]: [86-01]: offline contrast-audit.sh (dependency-free shell+awk) is the A11Y-05 evidence of record; in-page 8-cell matrix is corroborating proof only.
 - [Phase ?]: [86-01]: sub-threshold pairings recorded as DOCUMENTED WCAG exemptions (disabled SC 1.4.3 Incidental; borders SC 1.4.11 required-to-identify), never patched (TOKEN-01).
 - [Phase ?]: [86-03]: A11Y-04 CVD emulation + A11Y-03 focus-not-obscured manual checks WAIVED by owner 2026-07-28 (accepted risk); recorded as documented known gaps, NOT PASS; requirements left partially satisfied.
+- [Phase ?]: [86-04]: Widened the existing brandbook-guards.sh --scope default allowlist (single source of truth) to the exact milestone boundary rather than adding a new mode; deny-by-default *) retained, no broad glob.
+- [Phase ?]: [86-04]: NOTES-03 red-team recorded in notes/red-team.md closing with captured --scope audit + logo-guards --assets binary budget (3 rasters, 38,579B <= 204,800B PASS); boundary machine-enforced, not asserted.
+- [Phase ?]: [86-04]: Red-team record honestly carries owner-waived A11Y-03/A11Y-04 manual attestation forward as an accepted-risk gap, NOT a pass.
 
 ## Performance
 
@@ -545,8 +550,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-28T15:06:43.859Z
-Stopped at: Completed 86-03-PLAN.md (manual A11Y checks WAIVED by owner)
+Last session: 2026-07-28T15:13:21.750Z
+Stopped at: Completed 86-04-PLAN.md (NOTES-03 red-team close)
 Resume file: None
 
 ## Operator Next Steps
@@ -631,3 +636,4 @@ Resume file: None
 | Phase 86 P01 | 6min | 2 tasks | 2 files |
 | Phase 86 P02 | 10m | 2 tasks | 1 files |
 | Phase 86 P03 | 4min | 1 tasks | 1 files |
+| Phase 86 P04 | 8min | 2 tasks | 2 files |
