@@ -196,7 +196,13 @@ Plans:
 3. Every major recommendation carries pros/cons/tradeoffs, an analogue, implementation cost, ship/reject/defer, and confidence (cohesive, not a buffet), and `notes/research.md` captures the research basis and citations.
 4. A recorded red-team/skeptic pass closes with a `git diff --stat` scope-boundary audit confirming changes are `brandbook/`-only plus the two allowed integration edits, and a repo-size/binary check.
 
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 86-01-PLAN.md — Offline contrast calc + accessibility-checks.md (A11Y-01/02/05, machine A11Y-03/04)
+- [ ] 86-02-PLAN.md — research.md: WCAG verbatim citations + design-system analogues + recommendations (NOTES-01/04)
+- [ ] 86-03-PLAN.md — Operator CVD emulation + focus-not-obscured checkpoint (A11Y-03/04)
+- [ ] 86-04-PLAN.md — Red-team scope close: widen --scope allowlist + red-team.md (NOTES-03)
 
 <details>
 <summary>✅ v1.14 Public Truth and Verification Architecture (Phases 77-80) — SHIPPED 2026-07-03</summary>
