@@ -137,6 +137,67 @@ Every status pill in the set is structured identically — Succeeded (check), Su
 
 ---
 
+## 6. Plan 03 — Operator sign-off (the two genuinely-manual browser checks)
+
+Two checks require a real browser and a human: the A11Y-04 CVD emulation (§5) and the
+A11Y-03 focus-not-obscured pass (§4). Everything else in this file is machine-evidenced.
+**No CVD tooling, no screenshots/binaries, and no `tokens.css`/`brandbook.css` edits** — if a
+check fails, record it as a *documented finding* below (out-of-scope to "fix" here per D-02 /
+TOKEN-01 zero-drift).
+
+### 6.0 Operator run-book (exact steps)
+
+1. **Render the book.** From the repo root: `open brandbook/index.html` (opens the `file://`
+   page in the default browser — use Chrome for step 2). No server, no build, no network.
+2. **CVD emulation (A11Y-04).** Chrome DevTools (⌥⌘I) → **⋮ (More tools)** → **Rendering** →
+   scroll to **"Emulate vision deficiencies"**. Select each of Protanopia, Deuteranopia,
+   Tritanopia, and Achromatopsia in turn. For each, scroll to the **States** section
+   (`#states`) and confirm every status pill (Succeeded / Suppressed / Failed / Enqueued /
+   Planned / Sending …) is still tellable apart by its **text label + icon glyph**, not by hue.
+   Tick the four boxes in **§5** and sign §6.1.
+3. **Focus-not-obscured (A11Y-03, SC 2.4.11).** Click once into the page body, then press
+   **Tab** repeatedly through every interactive control — the top brandmark link, the 10
+   jump-nav anchors (`.cwb-anchors`), the 3 theme-toggle buttons (`.cwb-theme-toggle`, light /
+   dark / system), and any in-content links. As focus lands on each, confirm the focused
+   control is **not *entirely* hidden** behind the sticky top `.cwb-nav` bar (partial overlap
+   is allowed by the SC; only *entirely* hidden fails). Tick the box and sign §6.2.
+4. **Record.** Fill the date, result, and operator initials in §6.1 and §6.2. If any status is
+   indistinguishable under emulation, or any control is entirely obscured, write it under
+   "Documented finding" in that block instead of ticking PASS — do **not** edit any token or CSS.
+
+### 6.1 A11Y-04 — CVD emulation sign-off
+
+- [ ] All four DevTools vision-deficiency emulations pass (the four boxes in §5 are ticked):
+      every status remains distinguishable by **label + icon**, never color-alone.
+
+| Field | Value |
+|-------|-------|
+| Result | ☐ PASS ☐ FINDING _(operator to mark)_ |
+| Date | _(operator to fill: YYYY-MM-DD)_ |
+| Operator | _(initials/name)_ |
+| Browser | _(e.g. Chrome 1XX)_ |
+| Documented finding (if any) | _(none / describe — no token/CSS edit)_ |
+
+### 6.2 A11Y-03 — focus-not-obscured sign-off (SC 2.4.11)
+
+- [ ] Keyboard-tabbed all interactive controls (brandmark, 10 jump-nav anchors, 3 theme-toggle
+      buttons, in-content links); **no focused control is entirely hidden** behind the sticky
+      `.cwb-nav`.
+
+| Field | Value |
+|-------|-------|
+| Result | ☐ PASS ☐ FINDING _(operator to mark)_ |
+| Date | _(operator to fill: YYYY-MM-DD)_ |
+| Operator | _(initials/name)_ |
+| Browser | _(e.g. Chrome 1XX)_ |
+| Documented finding (if any) | _(none / describe — no token/CSS edit)_ |
+
+> **Status:** PENDING operator sign-off (Plan 86-03). These two blocks are the only open items
+> in this audit; §1–§5 are complete and machine-evidenced. Do not fabricate the result — the
+> operator runs the browser checks and records the outcome above.
+
+---
+
 ## Self-check
 
 - `scripts/contrast-audit.sh` exits 0 and its stdout is quoted verbatim in §1; re-running it reproduces every ratio here (2dp half-up).
