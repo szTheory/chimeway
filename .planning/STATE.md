@@ -4,8 +4,8 @@ milestone: v1.15
 milestone_name: Brand Identity & Brand Book
 current_phase: 86
 current_phase_name: accessibility-audit-notes-red-team-close
-status: verifying
-stopped_at: Completed 86-04-PLAN.md (NOTES-03 red-team close)
+status: phase_complete
+stopped_at: Phase 86 complete — verified (A11Y-03/A11Y-04 manual checks owner-waived / accepted-risk, carried to v1.15 ship gate)
 last_updated: "2026-07-28T15:13:34.233Z"
 last_activity: 2026-07-28
 progress:
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: 86 (accessibility-audit-notes-red-team-close) — EXECUTING
+Phase: 86 (accessibility-audit-notes-red-team-close) — COMPLETE
 Plan: 4 of 4
-Status: Phase complete — ready for verification
+Status: Phase complete — verified human_needed with owner accepted-risk on A11Y-03/A11Y-04 (2 manual browser checks waived 2026-07-28); all machine-verifiable requirements passed. All 6 v1.15 phases complete → ready for milestone ship gate.
 Last activity: 2026-07-28
 
 ## Accumulated Context

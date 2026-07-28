@@ -39,7 +39,7 @@
 - [x] **Phase 83: Direction Selection & Final Asset Family (User Checkpoint)** — Human selects the finalist; promote to a full optimized-SVG lockup family + simplified favicon + social derivatives
 - [x] **Phase 84: HTML Brandbook, Voice & Component States** — The primary deliverable: scoped `file://`-safe HTML book assembling tokens, logos, component states, brand voice, and do/don't
 - [x] **Phase 85: Repo Integration (README + HexDocs + Favicon Wiring)** — Surface the real mark on GitHub/HexDocs via minimal in-scope edits, v1.14 contracts still green
-- [ ] **Phase 86: Accessibility Audit, Notes & Red-Team Close** — Verify WCAG 2.2 against rendered output, complete decision/research notes, red-team the scope boundary
+- [x] **Phase 86: Accessibility Audit, Notes & Red-Team Close** — Verify WCAG 2.2 against rendered output, complete decision/research notes, red-team the scope boundary _(complete 2026-07-28; A11Y-03/A11Y-04 manual checks owner-waived / accepted-risk — carried to v1.15 ship gate)_
 
 ### Phase 81: Design Tokens (Reconciliation & Documentation)
 
@@ -234,7 +234,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
 |-----------|--------|-------|--------------|--------|---------|
-| v1.15 Brand Identity & Brand Book | 81-86 | 11/TBD | 13/32 | In progress | - |
+| v1.15 Brand Identity & Brand Book | 81-86 | 16/16 | 30/32 | Phases complete — ready for ship gate (2 A11Y accepted-risk) | - |
 | v1.14 Public Truth and Verification Architecture | 77-80 | 10/10 | 14/14 | Complete | 2026-07-03 |
 | v1.13 Storage Isolation and Upgrade Path | 73-76.1 | 25/25 | 20/20 | Complete | 2026-07-02 |
 | v1.11 Operator Console Polish & Hardening | 68-72 | 12/12 | 18/18 | Complete | 2026-06-04 |
@@ -249,7 +249,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 83. Direction Selection & Final Asset Family (User Checkpoint) | 3/3 | Complete   | 2026-07-18 |
 | 84. HTML Brandbook, Voice & Component States | 4/4 | Complete   | 2026-07-27 |
 | 85. Repo Integration (README + HexDocs + Favicon Wiring) | 1/1 | Complete | - |
-| 86. Accessibility Audit, Notes & Red-Team Close | 3/4 | In Progress|  |
+| 86. Accessibility Audit, Notes & Red-Team Close | 4/4 | Complete (accepted-risk: 2 A11Y manual checks owner-waived) | 2026-07-28 |
 
 ---
 *Roadmap updated: 2026-07-09 — v1.15 Brand Identity & Brand Book milestone initialized (Phases 81-86)*
