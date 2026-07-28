@@ -439,10 +439,12 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
-      # Compile the accrue path dep before ecto.create's deps-check runs; unlike
-      # the hex dep used locally, the CI path dep isn't built by the implicit
-      # ecto.create compile, causing "Unchecked dependencies: accrue not yet compiled".
-      - run: mix deps.compile accrue --force
+      # Compile all deps before ecto.create's deps-check runs. The accrue path
+      # dep isn't built by the implicit ecto.create compile ("Unchecked
+      # dependencies: accrue not yet compiled"), and the accrue monorepo package
+      # needs its own deps (ecto, etc.) compiled first, so compile the full tree
+      # in dependency order rather than accrue in isolation.
+      - run: mix deps.compile
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - run: mix verify.accrue

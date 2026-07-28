@@ -127,9 +127,9 @@ defmodule Chimeway.MixProject do
 
       # v1.9 GATE-05 prep: Accrue dunning integration harness (root + demo host :accrue lane)
       "verify.accrue": [
-        "deps.compile accrue --force",
+        "deps.compile",
         "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors",
-        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile accrue --force && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
+        "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
       ],
 
       # v1.9 GATE-05 Inbox: chimeway_inbox package + demo host DEMO-08 :inbox proof
