@@ -150,3 +150,139 @@ the borderline pairs under both `0.03928` and `0.04045` yields identical ratios 
 1. Mature systems verify contrast and color-independence with **re-runnable checks and documented design rules**, not committed simulated-screenshot binaries — directly validating D-05 (DevTools-emulation checklist, no binaries) and D-01/D-03 (offline calc + `--scope` guard over pasted assertions).
 2. The **"never rely on color alone"** rule is a first-class, universally documented principle — the chimeway status architecture (surface + text + label + icon) is the standard-of-practice implementation, giving the A11Y-04 argument named-precedent weight.
 3. Documenting a sub-threshold value **with a WCAG exemption rationale** (rather than silently passing or force-fixing) matches how these systems handle boundary/decorative color — reinforcing D-02.
+
+---
+
+## Cohesive Recommendations (NOTES-01 format)
+
+> **This section carries the recommendations.** Each is a single cohesive recommendation with a
+> verdict — **never a buffet of equally-weighted options** (NOTES-01 adjacency). Every entry
+> carries Pros / Cons / Tradeoffs, an Analogue, an implementation Cost, a **Ship / Defer /
+> Reject** Verdict, and a **Confidence** rating. Presented in a stable order **by topic**
+> (contrast exemptions → button watch-item → CVD/color-independence → focus/motion/target-size →
+> scope enforcement), not interleaved with the citation record above (NOTES-01 ordering).
+
+### R-1 — Document sub-threshold pairs as WCAG exemptions, do not patch tokens
+
+**Claim (sourced):** the sub-4.5:1 disabled text (3.92:1) and the sub-3:1 status/panel borders
+(1.29–1.91:1) are covered by SC 1.4.3 **Incidental** ("inactive user interface component … no
+contrast requirement") and SC 1.4.11 "**required to identify** … except for inactive components"
+respectively (§ WCAG 2.2 Citation Basis). Record them as **documented exemptions** in
+`notes/accessibility-checks.md`; do **not** raise the token ratios.
+
+**Pros:** Preserves the v1.15 zero-drift / TOKEN-01 invariant (the tokens are verbatim from shipped
+`chimeway_admin.css`); the exemptions are backed by verbatim normative text, so a red-team cannot
+dispute applicability; identity is already carried by surface + text + label + icon, so nothing is
+actually inaccessible.
+**Cons / Tradeoffs:** The raw ratios still read "fail" to an automated scanner that ignores
+exemption context, so the record must state the exemption rationale explicitly next to each number;
+a future maintainer could mistake "exempt" for "unchecked."
+**Analogue:** IBM Carbon documents state/boundary contrast **by role** and treats non-identifying
+boundaries as outside the 3:1 rule; USWDS documents exemptions rather than force-fixing decorative color.
+**Cost:** Low — prose + citation in `accessibility-checks.md`; zero code, zero token edits.
+**Recommendation:** Record each sub-threshold pair with its verbatim-cited exemption; defer any
+actual ratio change to the **ADMIN-RETHEME-01** milestone.
+**Verdict:** Ship
+**Confidence:** High
+
+### R-2 — Record the 4.95:1 primary-button pair as a watch-item, do not pad it
+
+**Claim (sourced):** white-on-teal `#0e7c86` computes to **4.95:1** — it **passes** SC 1.4.3 (≥4.5:1)
+but with almost no margin, so any future token nudge would break it. Record it as a **watch-item**,
+not a finding and not a fix.
+
+**Pros:** Truthful — it passes today, so no exemption is needed; flagging the thin margin warns the
+ADMIN-RETHEME-01 milestone before a nudge silently drops it below AA.
+**Cons / Tradeoffs:** A watch-item has no machine gate here (the offline calc records the number but
+does not fail on a thin margin); relies on the future milestone reading the note.
+**Analogue:** GOV.UK's re-runnable axe-core checks would catch a regression in CI — the watch-item is
+the doc-of-record stand-in until that milestone owns the live re-theme.
+**Cost:** Low — one annotated row in `accessibility-checks.md`.
+**Recommendation:** Record 4.95:1 as PASS + watch-item; **defer** any padding of the pair to
+ADMIN-RETHEME-01 (padding it now would be a token edit, out of scope).
+**Verdict:** Defer (the fix); Ship (the record)
+**Confidence:** High
+
+### R-3 — Verify never-color-alone + CVD via architecture and DevTools emulation, no binaries
+
+**Claim (sourced):** A11Y-04 (meaning never conveyed by color alone; palette CVD-safe) is argued
+primarily from the **architectural** property — every status = surface + text + **label + icon** —
+backed by a documented **manual pass through Chrome DevTools "Emulate vision deficiencies"** recorded
+as a checklist. **No CVD tooling or binary/screenshot artifacts are added** (D-05).
+
+**Pros:** The label+icon architecture is the actual defense, so color-vision deficiency cannot hide
+meaning regardless of hue; honors the milestone's no-binary constraint; matches documented
+standard-of-practice.
+**Cons / Tradeoffs:** The DevTools emulation step is inherently **manual** (operator-run) — it is a
+signed checklist, not an automated gate; a screenshot would be "objective" but is explicitly forbidden.
+**Analogue:** USWDS's first-class "do not rely on color alone" rule (with the ~4.5% CVD population
+figure) and GOV.UK's review-plus-tooling verification — both verify via rules + review, **not**
+committed simulation images.
+**Cost:** Low — a manual DevTools checklist recorded in `notes/accessibility-checks.md` (and the
+operator sign-off in Plan 86-03); zero binaries, zero dependencies.
+**Recommendation:** Argue A11Y-04 from the never-color-alone architecture; corroborate with the
+recorded DevTools-emulation checklist; ship no binaries.
+**Verdict:** Ship
+**Confidence:** High
+
+### R-4 — Adjudicate the A11Y-03 borderline targets against the SC 2.5.8 Inline/Spacing exceptions
+
+**Claim (sourced):** primary `.cwb-btn` (40×40px) and theme-toggle segments (32px height) **pass
+SC 2.5.8 on measurement**. The narrowest inline jump-nav anchor (~26.9px vertical; horizontal
+label-dependent) is adjudicated against the **Inline** exception ("size … constrained by the
+line-height of non-target text"), with the **Spacing** exception (24px-circle non-intersection) as
+the fallback test. If neither clearly holds, record it as a documented finding — never change CSS.
+
+**Pros:** Both exceptions are quoted verbatim, so the adjudication is defensible; the pass-on-
+measurement targets need no exception at all; the fallback (record-as-finding) keeps tokens/CSS
+untouched.
+**Cons / Tradeoffs:** The Inline/Spacing determination for the narrowest anchor is a **judgment against
+rendered geometry** — it must be measured on the actual `file://` render, not asserted; a wrong measure
+would mis-adjudicate.
+**Analogue:** GOV.UK adjudicates target size per-component against WCAG 2.2's new AA criteria (2.5.8 is
+new in 2.2) rather than blanket-failing small inline controls.
+**Cost:** Low — measure rendered geometry, record the applicable exception (or the finding) in
+`accessibility-checks.md`; no code change.
+**Recommendation:** Record the two pass-on-measurement targets as PASS; adjudicate the jump-nav anchor
+under Inline (Spacing fallback); if neither holds, record a documented finding — do **not** edit CSS.
+**Verdict:** Ship
+**Confidence:** Medium (the pass-on-measurement targets are High; the narrowest-anchor exception is Medium pending the rendered-geometry check)
+
+### R-5 — Machine-enforce the scope boundary via the widened `--scope` allowlist, not a pasted diff
+
+**Claim (sourced):** the red-team scope audit (NOTES-03 / D-03) must **widen the existing
+`scripts/brandbook-guards.sh --scope` allowlist** to exactly `brandbook/**` + `README.md` + `mix.exs`
++ `notes/**` + the guard/render scripts, and capture its **output** — rather than pasting a
+`git diff --stat` into `red-team.md`.
+
+**Pros:** The porcelain-walk guard **fails** on any stray out-of-scope edit; the boundary is enforced
+by the tool, not asserted in prose (the exact NOTES-03 footgun avoided); one source of truth (the
+default `--scope` list), no drift risk from a separate mode.
+**Cons / Tradeoffs:** Widening the allowlist is itself an edit to a guard script — but that script is
+inside the allowlist, so the guard remains self-consistent; the allowlist must be kept exact (too wide
+defeats the boundary).
+**Analogue:** GOV.UK's re-runnable axe-core/html-validate CI checks — "machine-enforced, not asserted"
+is the same philosophy; a pasted diff is the anti-pattern.
+**Cost:** Low — extend the `case` block in `brandbook-guards.sh --scope` (Plan 86-04) and capture its
+output plus the `logo-guards.sh` binary-budget result in `notes/red-team.md`.
+**Recommendation:** Widen the default `--scope` allowlist (not a new mode); capture the guard output +
+binary-budget result verbatim as the NOTES-03 close.
+**Verdict:** Ship
+**Confidence:** High
+
+---
+
+## Zero-drift proof (record)
+
+This phase **documents and defers** — it never patches tokens or the shipped admin CSS. The hard gate:
+
+```bash
+# tokens frozen (v1.15 zero-drift / TOKEN-01)
+git diff --exit-code brandbook/tokens/tokens.css
+# no new binary/raster committed by this plan (research.md is the only artifact)
+git diff --stat
+```
+
+All actual ratio/token changes (raising status-border ratios to 3:1, padding the 4.95:1 primary
+button) belong to the **ADMIN-RETHEME-01** milestone, which consumes this research record as its
+provenance. `[VERIFIED: 86-RESEARCH.md § Verified Contrast Findings; notes/accessibility-checks.md]`
