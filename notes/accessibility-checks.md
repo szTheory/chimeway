@@ -167,34 +167,43 @@ TOKEN-01 zero-drift).
 
 ### 6.1 A11Y-04 — CVD emulation sign-off
 
-- [ ] All four DevTools vision-deficiency emulations pass (the four boxes in §5 are ticked):
-      every status remains distinguishable by **label + icon**, never color-alone.
+> **Status: WAIVED — manual verification NOT performed. Risk accepted by project owner on
+> 2026-07-28.** This is recorded as a **documented known gap, NOT a PASS.** The four
+> DevTools vision-deficiency boxes in §5 remain deliberately **unticked** — no operator ran
+> the emulation.
+
+- [ ] _(unticked — not verified)_ Four DevTools CVD emulations distinguishable by label + icon.
 
 | Field | Value |
 |-------|-------|
-| Result | ☐ PASS ☐ FINDING _(operator to mark)_ |
-| Date | _(operator to fill: YYYY-MM-DD)_ |
-| Operator | _(initials/name)_ |
-| Browser | _(e.g. Chrome 1XX)_ |
-| Documented finding (if any) | _(none / describe — no token/CSS edit)_ |
+| Result | **WAIVED** (accepted-risk / not manually verified) — NOT PASS |
+| Date | 2026-07-28 (risk-acceptance date) |
+| Operator | none — manual verification waived by project owner |
+| Browser | n/a — not run |
+| Corroborating machine evidence (mitigates, does not substitute) | §5 grep-backed never-color-alone architecture (Plan 86-01): every status = surface + text + **label + icon** (`brandbook/index.html:176-183`), so meaning is not color-alone even without CVD emulation. This lowers residual risk but does **not** replace the human CVD pass D-05 prescribes. |
+| Documented finding | Manual CVD emulation not performed; residual risk accepted. No token/CSS edit. |
 
 ### 6.2 A11Y-03 — focus-not-obscured sign-off (SC 2.4.11)
 
-- [ ] Keyboard-tabbed all interactive controls (brandmark, 10 jump-nav anchors, 3 theme-toggle
-      buttons, in-content links); **no focused control is entirely hidden** behind the sticky
-      `.cwb-nav`.
+> **Status: WAIVED — manual verification NOT performed. Risk accepted by project owner on
+> 2026-07-28.** Recorded as a **documented known gap, NOT a PASS.** No operator ran the
+> keyboard-tab pass.
+
+- [ ] _(unticked — not verified)_ Keyboard-tab confirms no focused control entirely hidden behind `.cwb-nav`.
 
 | Field | Value |
 |-------|-------|
-| Result | ☐ PASS ☐ FINDING _(operator to mark)_ |
-| Date | _(operator to fill: YYYY-MM-DD)_ |
-| Operator | _(initials/name)_ |
-| Browser | _(e.g. Chrome 1XX)_ |
-| Documented finding (if any) | _(none / describe — no token/CSS edit)_ |
+| Result | **WAIVED** (accepted-risk / not manually verified) — NOT PASS |
+| Date | 2026-07-28 (risk-acceptance date) |
+| Operator | none — manual verification waived by project owner |
+| Browser | n/a — not run |
+| Corroborating evidence (mitigates, does not substitute) | RESEARCH A3 low-risk assessment (scroll-margin / anchor-offset behavior typically keeps targets visible) plus the rendered-CSS focus evidence in §4 (visible `:focus-visible` rings, sticky `.cwb-nav` is the only fixed content, criterion is "not *entirely* hidden"). Mitigates but does **not** replace the human keyboard-tab pass. |
+| Documented finding | Manual focus-not-obscured pass not performed; residual risk accepted. No token/CSS edit. |
 
-> **Status:** PENDING operator sign-off (Plan 86-03). These two blocks are the only open items
-> in this audit; §1–§5 are complete and machine-evidenced. Do not fabricate the result — the
-> operator runs the browser checks and records the outcome above.
+> **Overall status:** Both manual browser checks are **WAIVED / accepted-risk / not manually
+> verified** (project owner, 2026-07-28). §1–§5 remain complete and machine-evidenced. A11Y-03
+> and A11Y-04 are therefore **partially satisfied** by corroborating machine/CSS evidence, with
+> the manual attestation waived — tracked as documented known gaps, not a false PASS.
 
 ---
 
