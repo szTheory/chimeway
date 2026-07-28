@@ -273,15 +273,17 @@ esac
 
 **All A1–A4 are low-risk and self-resolving in the record** (the offline calc confirms A4; the manual checklist confirms A3; D-06 already prescribes the fallback for A2).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Standalone calc script vs a function inside `brandbook-guards.sh`?**
    - What we know: D-01 leaves the shape to Claude's discretion; it must be dependency-free and its output quoted into `accessibility-checks.md`.
    - Recommendation: A small standalone `scripts/contrast-audit.sh` (readable, re-runnable, one job) that reads `tokens.css`; add its path to the `--scope` allowlist. Keeps the guard script's `--scope` mode uncluttered.
+   - **RESOLVED:** standalone `scripts/contrast-audit.sh` — implemented by Plan 86-01.
 
 2. **Default `--scope` widening vs a new `--milestone-scope` mode (D-03)?**
    - What we know: either is acceptable if the boundary is enforced.
    - Recommendation: widen the default `--scope` allowlist (simplest, one source of truth). A separate mode risks the milestone check drifting from the default.
+   - **RESOLVED:** widen the default `--scope` allowlist — implemented by Plan 86-04.
 
 ## Environment Availability
 
