@@ -10,6 +10,7 @@ defmodule Chimeway.CIObservabilityContractTest do
   @obs_recompile_sh "scripts/ci/obs-recompile.sh"
   @obs_summary_sh "scripts/ci/obs-summary.sh"
   @runner_name "GitHub Actions 2"
+  @ci_perf_baseline ".planning/CI-PERF-BASELINE.md"
 
   # Mirrors @ci_gate_lanes in release_gate_contract_test.exs — the 14 build
   # lanes that must each carry a stable cache id: and a trailing obs-summary
@@ -136,6 +137,45 @@ defmodule Chimeway.CIObservabilityContractTest do
 
       refute summary =~ "super-secret-token-value"
       refute summary =~ "DATABASE_URL"
+    end
+  end
+
+  describe "OBS-04 baseline (baseline doc)" do
+    test "baseline doc exists" do
+      assert File.exists?(@ci_perf_baseline),
+             "#{@ci_perf_baseline} must exist and be committed (OBS-04)"
+    end
+
+    test "baseline doc carries a durable actions/runs/ permalink" do
+      baseline = File.read!(@ci_perf_baseline)
+
+      assert baseline =~ ~r{actions/runs/\d+},
+             "#{@ci_perf_baseline} must contain a real numeric actions/runs/<digits> permalink, " <>
+               "not a placeholder"
+    end
+
+    test "baseline doc contains the four pre-optimization baseline facts" do
+      baseline = File.read!(@ci_perf_baseline)
+
+      # ci-gate wall-clock (~373-395s)
+      assert baseline =~ "395", "baseline doc must record the wall-clock baseline figure (~395s)"
+      # install_golden job (373s) / hidden compile in ecto.create (~135s)
+      assert baseline =~ "373",
+             "baseline doc must record the install_golden baseline figure (373s)"
+
+      assert baseline =~ "135",
+             "baseline doc must record the hidden ecto.create compile figure (~135s)"
+
+      # dep recompile across 3 identical-lock runs: dead-flat (cache never warms)
+      assert baseline =~ "dead-flat",
+             "baseline doc must record the dead-flat recompile finding across identical-lock runs"
+    end
+
+    test "baseline doc includes a delta-ledger table for later phases to append to" do
+      baseline = File.read!(@ci_perf_baseline)
+
+      assert baseline =~ "Phase 88 after",
+             "baseline doc must include a delta-ledger column for Phase 88+ to append after-values to"
     end
   end
 
