@@ -2,16 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
-status: executing
-stopped_at: Completed 87-02-PLAN.md (fanned observability to all 14 build lanes)
-last_updated: "2026-07-29T02:09:05.183Z"
-last_activity: 2026-07-29
+current_phase: 87
+current_phase_name: ci-observability-cache-diagnostics
+status: verifying
+stopped_at: Completed 87-03-PLAN.md (CI performance baseline recorded + OBS-04 contract assertion; human-verify checkpoint approved, live render confirmed on run 30416472070)
+last_updated: "2026-07-29T02:44:33.235Z"
+last_activity: 2026-07-28
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 17
 ---
 
 # Project State
@@ -27,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 87 (ci-observability-cache-diagnostics) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-29
+Status: Phase complete — ready for verification
+Last activity: 2026-07-28
 
 ## Deferred Items
 
@@ -255,6 +257,8 @@ status: complete
 - [Phase ?]: [87-01]: Added scoped .gitignore exception (!test/fixtures/ci/*.log) since the repo-wide *.log rule silently blocked committing the plan-required compile fixtures (Rule 3 auto-fix)
 - [Phase ?]: [87-02]: verify_accrue's obs-recompile.sh step replaces (not supplements) the prior mix deps.compile step
 - [Phase ?]: [87-02]: @build_lanes mirrors release_gate_contract_test.exs's @ci_gate_lanes exactly (14 lanes incl. lint)
+- [Phase ?]: [87-03]: Baseline run permalink is the pre-Phase-87 main run at commit 8ce347e (actions/runs/30410779443), resolved via gh run list — never a placeholder
+- [Phase ?]: [87-03]: Task 2's live-render confirmation run (30416472070, post-instrumentation) is deliberately NOT written into CI-PERF-BASELINE.md's Run: field — that field stays fixed at the pre-optimization reference point for the whole v1.16 milestone
 
 ## Performance
 
@@ -504,7 +508,7 @@ None.
 
 ### Blockers/Concerns
 
-None.
+None. (87-03 Task 2 checkpoint:human-verify was approved 2026-07-29 — Phase 87 push 8ce347e..2d9af89, CI run 30416472070, all 16 jobs green, observability tables confirmed rendering. See 87-03-SUMMARY.md.)
 
 ### Open Investigations
 
@@ -568,8 +572,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-29T02:09:05.169Z
-Stopped at: Completed 87-02-PLAN.md (fanned observability to all 14 build lanes)
+Last session: 2026-07-29T02:44:00.101Z
+Stopped at: Completed 87-03-PLAN.md (CI performance baseline recorded + OBS-04 contract assertion; human-verify checkpoint approved, live render confirmed on run 30416472070)
 Resume file: None
 
 ## Operator Next Steps
@@ -655,3 +659,4 @@ Resume file: None
 | Phase 86 P04 | 8min | 2 tasks | 2 files |
 | Phase 87 P01 | 12min | 2 tasks | 8 files |
 | Phase 87 P02 | 9min | 3 tasks | 2 files |
+| Phase 87 P03 | 6min | 2 tasks | 2 files |

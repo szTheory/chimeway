@@ -12,7 +12,7 @@
 - [x] **OBS-01**: A maintainer can see per-lane cache hit/miss in the GitHub Actions job summary for every build lane.
 - [x] **OBS-02**: A maintainer can see how many files were recompiled (deps + app) on each build lane, exposed after `deps.get`.
 - [x] **OBS-03**: A maintainer can see a per-step timing summary written to `$GITHUB_STEP_SUMMARY` for each lane.
-- [ ] **OBS-04**: The measured pre-optimization baseline is recorded (with a run link) so every later win is provable by a before/after delta.
+- [x] **OBS-04**: The measured pre-optimization baseline is recorded (with a run link) so every later win is provable by a before/after delta.
 
 ### CACHE — Cache Correctness & Compile-Once (Phase 88)
 
@@ -76,7 +76,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OBS-01..04 | Phase 87 | Pending |
+| OBS-01..04 | Phase 87 | Complete |
 | CACHE-01..05 | Phase 88 | Pending |
 | CONC-01..04 | Phase 89 | Pending |
 | TIER-01..04 | Phase 90 | Pending |
@@ -84,6 +84,7 @@
 | REL-01..04 | Phase 92 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 26 total (OBS 4, CACHE 5, CONC 4, TIER 4, QUAL 5, REL 4)
 - Mapped to phases: 26
 - Unmapped: 0

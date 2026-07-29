@@ -63,7 +63,7 @@
 
 - [x] 87-01-PLAN.md — Tracer: shared `obs-*.sh` scripts + Wave 0 contract test + fixtures + instrument the `lint` lane end-to-end (OBS-01/02/03)
 - [x] 87-02-PLAN.md — Fan-out the observability pattern to the remaining 13 build lanes + extend the contract test to all 14 (OBS-01/02/03)
-- [ ] 87-03-PLAN.md — Commit `.planning/CI-PERF-BASELINE.md` with the four baseline facts + delta ledger + run permalink; live-render human check (OBS-04)
+- [x] 87-03-PLAN.md — Commit `.planning/CI-PERF-BASELINE.md` with the four baseline facts + delta ledger + run permalink; live-render human check (OBS-04)
 
 ### Phase 88: Cache Correctness & Compile-Once
 
