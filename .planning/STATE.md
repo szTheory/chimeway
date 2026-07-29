@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: planning
-stopped_at: Phase 88 closed partial — correctness (CACHE-01/02/03/04) delivered & merged; CACHE-05 compile-once deferred to spike (CI-HARDENING-BACKLOG #4). Warm ci-gate regressed 373s->648s; owner banked correctness 2026-07-29
+stopped_at: Phase 88 correctness delivered + regression RECOVERED 2026-07-29 (bbee487) — dropped producer, per-lane self-cache, demo :dev build warmed (236/297s->6s); warm ci-gate 648s->362s (at/below baseline). <3min needs Phase 89 async (test-execution-bound), not caching. CACHE-05 residual compile deferred low-value.
 last_updated: "2026-07-29T00:00:00.000Z"
 last_activity: 2026-07-29
 progress:
