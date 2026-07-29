@@ -312,17 +312,19 @@ gh api --paginate "$api" 2>/dev/null | jq -r --arg rn "$RUNNER_NAME" '
 | A4 | `gh` and `jq` are preinstalled on `ubuntu-latest` | Standard Stack | If absent, add a setup step; both are standard on GitHub-hosted runners |
 | A5 | Adding explicit `mix deps.compile`+`compile` before `ecto.create` is behavior-neutral (same artifacts) | Pattern 2 | If it perturbed a lane, revert to parsing existing compile output; but this is the standard warm-up idiom already used in verify_example/journeys `[VERIFIED: ci.yml L231-237]` |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Two scripts vs. three?**
+*All three settled at planning time and consumed by the Phase 87 plans (87-01/02/03).*
+
+1. **Two scripts vs. three?** — **RESOLVED: 2 scripts.**
    - Known: `obs-cache-row.sh` is separable for unit-testing but its logic is ~6 lines.
    - Unclear: whether the planner prefers folding it into `obs-summary.sh`.
-   - Recommendation: keep `obs-recompile.sh` + `obs-summary.sh` (2 scripts); inline cache classification into the summary script and unit-test it via `System.cmd`.
-2. **Add `permissions: actions: read` now, or rely on default token?**
+   - Recommendation: keep `obs-recompile.sh` + `obs-summary.sh` (2 scripts); inline cache classification into the summary script and unit-test it via `System.cmd`. **Adopted in 87-01.**
+2. **Add `permissions: actions: read` now, or rely on default token?** — **RESOLVED: default token now; defer explicit block to Phase 91/QUAL-03.**
    - Known: no top-level `permissions:` block exists; QUAL-03 (Phase 91) will add least-privilege.
-   - Recommendation: rely on the default token in Phase 87 with graceful degradation; leave the explicit `permissions:` block to Phase 91 to avoid double-editing. Flag the coupling in the plan.
-3. **Scope: which jobs count as "build lanes"?**
-   - The 2 aggregator jobs (`pr-gate`, `ci-gate`) run no build → no cache/recompile tables (a trivial timing table is optional). Instrument the ~14 lanes that run `setup-beam` + cache + compile.
+   - Recommendation: rely on the default token in Phase 87 with graceful degradation; leave the explicit `permissions:` block to Phase 91 to avoid double-editing. Flag the coupling in the plan. **Coupling flagged in 87-01/87-02.**
+3. **Scope: which jobs count as "build lanes"?** — **RESOLVED: the 14 setup-beam+cache+compile lanes; aggregators excluded.**
+   - The 2 aggregator jobs (`pr-gate`, `ci-gate`) run no build → no cache/recompile tables (a trivial timing table is optional). Instrument the ~14 lanes that run `setup-beam` + cache + compile. **87-01 does `lint`; 87-02 fans out to the other 13.**
 
 ## Environment Availability
 
