@@ -37,7 +37,7 @@
 
 ### v1.16 CI/CD Performance & Reliability
 
-- [ ] **Phase 87: CI Observability & Cache Diagnostics** — Per-lane cache hit/miss, recompile counts, and step timing land in job summaries; pre-optimization baseline recorded for provable before/after deltas
+- [x] **Phase 87: CI Observability & Cache Diagnostics** — Per-lane cache hit/miss, recompile counts, and step timing land in job summaries; pre-optimization baseline recorded for provable before/after deltas (completed 2026-07-29)
 - [ ] **Phase 88: Cache Correctness & Compile-Once** — Fix the MIX_ENV-absent cache-key collision, standardize keys, split deps from `_build`, de-fragment plain-hex lanes, and compile deps once via a producer job
 - [ ] **Phase 89: Test-Lane Concurrency** — Flip ~32 pure-DB DataCase files to async, size the pool, enforce warnings-as-errors, and shake out ordering coupling across seeds
 - [ ] **Phase 90: Pipeline Tiering (PR/main/nightly)** — Add a `schedule:` nightly tier (cold build, full OTP matrix, 1.17 floor leg, heavy Playwright lane); PR path stays single-OTP
@@ -206,7 +206,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. CI Observability & Cache Diagnostics | 2/3 | In Progress|  |
+| 87. CI Observability & Cache Diagnostics | 3/3 | Complete    | 2026-07-29 |
 | 88. Cache Correctness & Compile-Once | 0/TBD | Not started | - |
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
 | 90. Pipeline Tiering (PR/main/nightly) | 0/TBD | Not started | - |
