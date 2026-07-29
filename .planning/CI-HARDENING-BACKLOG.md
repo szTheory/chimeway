@@ -37,6 +37,18 @@ Systemic fixes already landed on `main`: audit→advisory (`SECURITY.md`), unifo
 - **Cause:** on CI, `accrue` is a **path dep** (`ACCRUE_PATH=.../accrue/accrue`, checked out from `szTheory/accrue`); locally it's the hex dep and compiles cleanly. An explicit `mix deps.compile accrue --force` step (added, runs under the job's `MIX_ENV=test`) still doesn't produce `accrue.app` — suggests the `szTheory/accrue` sibling fails to compile in this CI setup, or a nested-path / `app:` config mismatch.
 - **Suggested fix:** compile the accrue sibling directly on CI and read the real error; verify `ACCRUE_PATH` points at the mix project root; compare against the passing `verify_sigra` lane's custom setup.
 
+## 4. Compile-once spike — warm `_build` restore still recompiles (CACHE-05, deferred from Phase 88)
+
+_Filed 2026-07-29. Phase 88 fixed cache correctness (keys/collision/HITs) but the warm `ci-gate` **regressed** ~373 s → ~648 s; the compile-once target was not met. See `CI-PERF-BASELINE.md` "Phase 88 outcome"._
+
+- **Symptom:** on warm runs every lane's `build-test` cache HITs and the restored `_build` is complete (app manifest + 98 beams present), yet compilation still costs ~86 s+ per lane, and the serial `build` producer (`needs: [build]`) adds ~140 s in front of consumers that don't get faster.
+- **Three proven causes (on-runner producer probe, run `30474102629`):**
+  1. **`ex_cldr` / `ex_cldr_numbers` rebuild ~86 s exactly once after each cache restore** (then stable) — via `ex_money` → `mailglass`. Signature of the D-01 split of `deps` and `_build` into two independently-restored caches: the dep source can land newer than its compiled artifact, so `mix` rebuilds it once. Top hypothesis to test first: **re-unify `deps`+`_build` into a single cache** so their relative mtimes are preserved.
+  2. **8 rebar/Erlang deps (hackney, telemetry, idna, certifi, mimerl, parse_trans, metrics, unicode_util_compat) recompile on every `mix` invocation** regardless of cache — the known `mix`-invokes-`rebar3` quirk. Needs its own investigation (rebar `_build`/`.rebar3` caching).
+  3. **Consumers recompile the app (~93 files) though the producer does not** — cause still unprobed (consumer-specific; would need a second probe on e.g. `install_golden`).
+- **Ruled out:** mtime staleness (mix's content-hash check ignores it — confirmed on CI and locally, and a `restore-mtimes.sh` experiment changed nothing); cache incompleteness (restored `_build` is complete); an `ex_cldr → app` cascade (producer app stayed clean after ex_cldr rebuilt).
+- **Suggested approach:** spike the unified-cache hypothesis first (cheapest, addresses the ~86 s ex_cldr cost); if the producer split still doesn't pay off after that, consider reverting the `build` producer + `needs: [build]` wiring to baseline timing and keeping only the pure key-correctness. Each hypothesis costs an ~11-min live CI run — batch changes.
+
 ---
 
 **Interim commits already on `main` (see `2c2cb2a`):** the scoped migration-count fix (real fix — keep), plus the `demo_up_test` timeout tag and the accrue `deps.compile` step (both interim/partial — revisit per above).

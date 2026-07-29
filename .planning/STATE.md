@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: planning
-stopped_at: Phase 88 Waves 1-2 executed (88-01/88-02 complete, local commits); 88-03 pending merge-to-main + live warm CI
+stopped_at: Phase 88 closed partial — correctness (CACHE-01/02/03/04) delivered & merged; CACHE-05 compile-once deferred to spike (CI-HARDENING-BACKLOG #4). Warm ci-gate regressed 373s->648s; owner banked correctness 2026-07-29
 last_updated: "2026-07-29T00:00:00.000Z"
 last_activity: 2026-07-29
 progress:
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 ## Current Position
 
 Phase: 88
-Plan: 88-01 ✓ executed, 88-02 ✓ executed (local commits, contract suites green); 88-03 pending live warm CI
-Status: Waves 1-2 done — awaiting merge-to-main + 2 warm runs before Wave 3 (88-03)
+Plan: 88-01 ✓, 88-02 ✓ (correctness merged); 88-03 ✓ partial — CACHE-05 target not met, deferred to spike
+Status: Phase 88 closed partial — correctness banked; compile-once spike = CI-HARDENING-BACKLOG #4
 Last activity: 2026-07-29
 
 ## Deferred Items
@@ -571,14 +571,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 ### Session Continuity
 
 Last session: 2026-07-29T03:30:29.728Z
-Stopped at: Phase 88 Waves 1-2 executed (88-01/88-02 complete, local commits — 129 tests 0 failures); 88-03 blocked on merge-to-main + 2 consecutive warm main runs
-Resume file: .planning/phases/88-cache-correctness-compile-once/88-03-PLAN.md
+Stopped at: Phase 88 closed partial 2026-07-29 — correctness (CACHE-01/02/03/04) delivered & merged (caches HIT, collision fixed, 129 tests green); CACHE-05 compile-once deferred (warm ci-gate regressed 373s->648s; ex_cldr rebuilds once/restore + rebar deps every run). Owner banked correctness, spike filed.
+Resume file: .planning/CI-HARDENING-BACKLOG.md (#4 compile-once spike)
 
 ## Operator Next Steps
 
-- Review the 88-01/88-02 diff (`.github/workflows/ci.yml` + `test/chimeway/ci_observability_contract_test.exs`), then merge/push Phase 88 to `main` (e.g. /gsd-ship or direct fast-forward push per ruleset)
-- Let CI run twice on an identical `mix.lock` to warm the `build-test`/`deps` caches
-- Re-run /gsd-execute-phase 88 (or --wave 3) to execute 88-03: fill the CI-PERF-BASELINE delta ledger from the 2nd warm run's OBS summaries, then the blocking human-verify checkpoint (deps recompile 0, build-test HIT, warm ci-gate <~3 min)
+- Phase 88 merged (correctness only). Compile-once (CACHE-05) is deferred to CI-HARDENING-BACKLOG #4 — spike the unified deps+_build cache hypothesis first (kills the ~86s ex_cldr rebuild-once-per-restore); if the producer split still doesn't pay off, consider reverting the build producer + needs:[build] wiring to baseline timing.
+- Decide milestone continuation: Phases 89-92 (CONC/TIER/QUAL/REL) remain; note the warm-perf regression currently on main (373s->648s) when prioritizing.
 
 ## Performance Metrics
 
