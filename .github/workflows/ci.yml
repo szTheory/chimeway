@@ -185,6 +185,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
@@ -194,9 +195,9 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-verify-docs-${{ hashFiles('**/mix.lock') }}
+          key: build-dev-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-verify-docs-
+            build-dev-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
       - run: |
           mix local.rebar --force
           mix local.hex --force
@@ -242,6 +243,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.otp }}
@@ -251,9 +253,9 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          key: test-matrix-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-
+            test-matrix-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
       - run: |
           mix local.rebar --force
           mix local.hex --force
@@ -615,6 +617,7 @@ jobs:
           ref: 236fa2f1649e771f3b515603495436badeed3c7b
           path: accrue/accrue
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
@@ -624,9 +627,9 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-verify-accrue-${{ hashFiles('**/mix.lock') }}
+          key: build-test-accrue-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-verify-accrue-
+            build-test-accrue-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_demo
         with:
@@ -777,6 +780,7 @@ jobs:
           ref: 46375fafc4df30fc916244ee4a21b7cae01f1ddc
           path: threadline/threadline
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
@@ -786,9 +790,9 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-verify-threadline-${{ hashFiles('**/mix.lock') }}
+          key: build-test-threadline-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-verify-threadline-
+            build-test-threadline-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_demo
         with:
@@ -857,6 +861,7 @@ jobs:
           ref: 62ceb46a38c4e617f6c06d874ecb12e1ab19d97c
           path: sigra/sigra
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
@@ -866,9 +871,9 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-verify-sigra-${{ hashFiles('**/mix.lock') }}
+          key: build-test-sigra-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-verify-sigra-
+            build-test-sigra-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_demo
         with:
