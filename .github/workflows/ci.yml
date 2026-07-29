@@ -93,6 +93,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -104,11 +105,24 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       # The doc/release contract tests boot the :chimeway app (Repo + Oban), so a
       # Postgres service is required even though the assertions are file-content only.
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - run: mix ci.verify_gates
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   verify_docs:
     name: Docs build gate
@@ -120,6 +134,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -131,7 +146,20 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ci.docs
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   test:
     name: Test (Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }})
@@ -163,6 +191,7 @@ jobs:
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.otp }}
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -174,9 +203,22 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - run: mix ci.test
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   pr-gate:
     name: pr-gate
@@ -277,6 +319,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -288,9 +331,22 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - run: mix verify.runtime_prefix
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   verify_journeys:
     name: TeamPulse consumer journeys
