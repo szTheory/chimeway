@@ -59,7 +59,11 @@
 3. Every lane writes a per-step timing table (step name + duration) to `$GITHUB_STEP_SUMMARY`.
 4. The pre-optimization baseline (~373–395s `main` wall-clock, 373s `install_golden`, 135s hidden compile inside `ecto.create`, dead-flat compile time across 3 identical-lock runs) is committed with a run link, so Phase 88's fix and every later phase can cite a before/after delta.
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+- [ ] 87-01-PLAN.md — Tracer: shared `obs-*.sh` scripts + Wave 0 contract test + fixtures + instrument the `lint` lane end-to-end (OBS-01/02/03)
+- [ ] 87-02-PLAN.md — Fan-out the observability pattern to the remaining 13 build lanes + extend the contract test to all 14 (OBS-01/02/03)
+- [ ] 87-03-PLAN.md — Commit `.planning/CI-PERF-BASELINE.md` with the four baseline facts + delta ledger + run permalink; live-render human check (OBS-04)
 
 ### Phase 88: Cache Correctness & Compile-Once
 
@@ -202,7 +206,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. CI Observability & Cache Diagnostics | 0/TBD | Not started | - |
+| 87. CI Observability & Cache Diagnostics | 0/3 | Not started | - |
 | 88. Cache Correctness & Compile-Once | 0/TBD | Not started | - |
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
 | 90. Pipeline Tiering (PR/main/nightly) | 0/TBD | Not started | - |
