@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: executing
-stopped_at: Completed 87-01-PLAN.md (obs core + lint lane tracer)
-last_updated: "2026-07-29T02:01:06.381Z"
+stopped_at: Completed 87-02-PLAN.md (fanned observability to all 14 build lanes)
+last_updated: "2026-07-29T02:09:05.183Z"
 last_activity: 2026-07-29
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 ## Current Position
 
 Phase: 87 (ci-observability-cache-diagnostics) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-29
 
@@ -253,6 +253,8 @@ status: complete
 - [Phase ?]: [87-01]: obs-recompile.sh uses set -uo pipefail (no -e) with PIPESTATUS capture so a warm-cache grep miss never aborts the step, while the real mix compile exit code is preserved
 - [Phase ?]: [87-01]: obs-summary.sh discovers caches generically via compgen -e + indirect ${!name} expansion (2 scripts total, not 3 — cache classification stays inlined)
 - [Phase ?]: [87-01]: Added scoped .gitignore exception (!test/fixtures/ci/*.log) since the repo-wide *.log rule silently blocked committing the plan-required compile fixtures (Rule 3 auto-fix)
+- [Phase ?]: [87-02]: verify_accrue's obs-recompile.sh step replaces (not supplements) the prior mix deps.compile step
+- [Phase ?]: [87-02]: @build_lanes mirrors release_gate_contract_test.exs's @ci_gate_lanes exactly (14 lanes incl. lint)
 
 ## Performance
 
@@ -566,8 +568,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-29T02:01:06.373Z
-Stopped at: Completed 87-01-PLAN.md (obs core + lint lane tracer)
+Last session: 2026-07-29T02:09:05.169Z
+Stopped at: Completed 87-02-PLAN.md (fanned observability to all 14 build lanes)
 Resume file: None
 
 ## Operator Next Steps
@@ -652,3 +654,4 @@ Resume file: None
 | Phase 86 P03 | 4min | 1 tasks | 1 files |
 | Phase 86 P04 | 8min | 2 tasks | 2 files |
 | Phase 87 P01 | 12min | 2 tasks | 8 files |
+| Phase 87 P02 | 9min | 3 tasks | 2 files |
