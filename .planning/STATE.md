@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
-status: planning
-last_updated: "2026-07-29T01:15:00.000Z"
+status: executing
+stopped_at: Completed 87-01-PLAN.md (obs core + lint lane tracer)
+last_updated: "2026-07-29T02:01:06.381Z"
 last_activity: 2026-07-29
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 87 — CI Observability & Cache Diagnostics (roadmap created; not yet planned)
+**Current focus:** Phase 87 — ci-observability-cache-diagnostics
 
 ## Current Position
 
-Phase: Not started — Phase 87 next (roadmap created, Phases 87-92)
-Plan: —
-Status: Roadmap created — ready for /gsd-plan-phase 87
-Last activity: 2026-07-29 — ROADMAP.md created (Phases 87-92, 26/26 requirements mapped)
+Phase: 87 (ci-observability-cache-diagnostics) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-29
 
 ## Deferred Items
 
@@ -249,6 +250,9 @@ status: complete
 - [v1.16]: Requirements categories map 1:1 to phases (OBS/CACHE/CONC/TIER/QUAL/REL -> Phases 87-92); dependency chain is 87 -> 88 -> {89, 90} -> 91 -> 92, with 91 leaning on 90's nightly tier for its 1.17 CI leg.
 - [v1.16]: Milestone-wide invariant: doc/config/CI-only — no runtime library behavior changes across any of the six phases.
 - [v1.16]: Phase 87 (observability) must land first as a low-risk enabler so every later cache/tiering win is provable by a run-link delta rather than asserted.
+- [Phase ?]: [87-01]: obs-recompile.sh uses set -uo pipefail (no -e) with PIPESTATUS capture so a warm-cache grep miss never aborts the step, while the real mix compile exit code is preserved
+- [Phase ?]: [87-01]: obs-summary.sh discovers caches generically via compgen -e + indirect ${!name} expansion (2 scripts total, not 3 — cache classification stays inlined)
+- [Phase ?]: [87-01]: Added scoped .gitignore exception (!test/fixtures/ci/*.log) since the repo-wide *.log rule silently blocked committing the plan-required compile fixtures (Rule 3 auto-fix)
 
 ## Performance
 
@@ -562,8 +566,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-28T15:13:21.750Z
-Stopped at: Completed 86-04-PLAN.md (NOTES-03 red-team close)
+Last session: 2026-07-29T02:01:06.373Z
+Stopped at: Completed 87-01-PLAN.md (obs core + lint lane tracer)
 Resume file: None
 
 ## Operator Next Steps
@@ -647,3 +651,4 @@ Resume file: None
 | Phase 86 P02 | 10m | 2 tasks | 1 files |
 | Phase 86 P03 | 4min | 1 tasks | 1 files |
 | Phase 86 P04 | 8min | 2 tasks | 2 files |
+| Phase 87 P01 | 12min | 2 tasks | 8 files |

@@ -9,9 +9,9 @@
 
 ### OBS — CI Observability & Cache Diagnostics (Phase 87)
 
-- [ ] **OBS-01**: A maintainer can see per-lane cache hit/miss in the GitHub Actions job summary for every build lane.
-- [ ] **OBS-02**: A maintainer can see how many files were recompiled (deps + app) on each build lane, exposed after `deps.get`.
-- [ ] **OBS-03**: A maintainer can see a per-step timing summary written to `$GITHUB_STEP_SUMMARY` for each lane.
+- [x] **OBS-01**: A maintainer can see per-lane cache hit/miss in the GitHub Actions job summary for every build lane.
+- [x] **OBS-02**: A maintainer can see how many files were recompiled (deps + app) on each build lane, exposed after `deps.get`.
+- [x] **OBS-03**: A maintainer can see a per-step timing summary written to `$GITHUB_STEP_SUMMARY` for each lane.
 - [ ] **OBS-04**: The measured pre-optimization baseline is recorded (with a run link) so every later win is provable by a before/after delta.
 
 ### CACHE — Cache Correctness & Compile-Once (Phase 88)
