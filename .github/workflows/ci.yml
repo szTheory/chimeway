@@ -261,6 +261,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -269,6 +270,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-verify-example-
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_demo
         with:
           path: |
             examples/chimeway_demo_host/deps
@@ -280,6 +282,9 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       # JOUR-05 (mix demo.up --check) cold-compiles the root + demo host in :dev
@@ -292,6 +297,19 @@ jobs:
           mix compile
           cd examples/chimeway_demo_host && mix deps.get && mix compile
       - run: mix verify.example
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+          CACHE_DEMO_HIT: ${{ steps.cache_demo.outputs.cache-hit }}
+          CACHE_DEMO_MATCHED: ${{ steps.cache_demo.outputs.cache-matched-key }}
+          CACHE_DEMO_PRIMARY: ${{ steps.cache_demo.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   verify_runtime_prefix:
     name: Runtime prefix gate
@@ -374,6 +392,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -382,6 +401,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-verify-journeys-
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_demo
         with:
           path: |
             examples/chimeway_demo_host/deps
@@ -393,6 +413,9 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       # JOUR-05 spawns `mix demo.up --check` in :dev, which cold-compiles the
@@ -406,6 +429,19 @@ jobs:
           mix compile
           cd examples/chimeway_demo_host && mix deps.get && mix compile
       - run: mix verify.journeys
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+          CACHE_DEMO_HIT: ${{ steps.cache_demo.outputs.cache-hit }}
+          CACHE_DEMO_MATCHED: ${{ steps.cache_demo.outputs.cache-matched-key }}
+          CACHE_DEMO_PRIMARY: ${{ steps.cache_demo.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   verify_mailglass:
     name: Mailglass integration gate
@@ -433,6 +469,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -441,6 +478,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-verify-mailglass-
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_demo
         with:
           path: |
             examples/chimeway_demo_host/deps
@@ -452,9 +490,25 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - run: mix verify.mailglass
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+          CACHE_DEMO_HIT: ${{ steps.cache_demo.outputs.cache-hit }}
+          CACHE_DEMO_MATCHED: ${{ steps.cache_demo.outputs.cache-matched-key }}
+          CACHE_DEMO_PRIMARY: ${{ steps.cache_demo.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   verify_accrue:
     name: Accrue dunning integration gate
@@ -608,6 +662,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -616,6 +671,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-verify-threadline-
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_demo
         with:
           path: |
             examples/chimeway_demo_host/deps
@@ -627,9 +683,25 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
       - run: mix verify.threadline
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+          CACHE_DEMO_HIT: ${{ steps.cache_demo.outputs.cache-hit }}
+          CACHE_DEMO_MATCHED: ${{ steps.cache_demo.outputs.cache-matched-key }}
+          CACHE_DEMO_PRIMARY: ${{ steps.cache_demo.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   verify_sigra:
     name: Sigra auth integration gate
