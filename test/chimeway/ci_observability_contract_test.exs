@@ -11,6 +11,11 @@ defmodule Chimeway.CIObservabilityContractTest do
   @obs_summary_sh "scripts/ci/obs-summary.sh"
   @runner_name "GitHub Actions 2"
 
+  # Mirrors @ci_gate_lanes in release_gate_contract_test.exs — the 14 build
+  # lanes that must each carry a stable cache id: and a trailing obs-summary
+  # step (OBS-01/02/03 fleet-wide fan-out).
+  @build_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
+
   setup do
     %{ci_yml: File.read!(@ci_yml)}
   end
@@ -170,6 +175,44 @@ defmodule Chimeway.CIObservabilityContractTest do
              |> List.last()
              |> String.contains?("- name:"),
              "the observability summary step must be the LAST step in the lint lane"
+    end
+  end
+
+  describe "all build lanes carry cache id + trailing obs-summary (OBS-01/02/03 fan-out)" do
+    for lane <- @build_lanes do
+      test "#{lane} carries a cache id and a trailing obs-summary step", %{ci_yml: ci_yml} do
+        lane_block = extract_ci_job_block(ci_yml, unquote(lane))
+
+        assert String.contains?(lane_block, "id: cache_main"),
+               "#{unquote(lane)} must carry a stable id: cache_main on its root cache step"
+
+        assert String.contains?(lane_block, "scripts/ci/obs-summary.sh"),
+               "#{unquote(lane)} must run scripts/ci/obs-summary.sh"
+
+        assert String.contains?(lane_block, "if: always()"),
+               "#{unquote(lane)} obs-summary step must be gated on if: always()"
+      end
+    end
+
+    test "install_golden_contract obs-summary step also gates on steps.detect.outputs.run",
+         %{ci_yml: ci_yml} do
+      lane_block = extract_ci_job_block(ci_yml, "install_golden_contract")
+
+      [_before, after_summary_name] =
+        String.split(lane_block, "name: CI observability summary", parts: 2)
+
+      assert after_summary_name =~ "if: always() && steps.detect.outputs.run == 'true'",
+             "install_golden_contract's obs-summary step must never run when the lane body is skipped"
+    end
+
+    test "no build-lane observability step introduces --warnings-as-errors", %{ci_yml: ci_yml} do
+      for lane <- @build_lanes do
+        lane_block = extract_ci_job_block(ci_yml, lane)
+
+        refute String.contains?(lane_block, "--warnings-as-errors"),
+               "#{lane}'s recompile probe must stay a plain compile — the compile-warnings " <>
+                 "upgrade is Phase 88 / CACHE-03, out of scope for this observability-only phase"
+      end
     end
   end
 
