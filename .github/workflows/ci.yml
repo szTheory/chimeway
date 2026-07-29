@@ -33,6 +33,7 @@ jobs:
           elixir-version: "1.19"
           otp-version: "27"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
         with:
           path: |
             deps
@@ -44,6 +45,9 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
       - run: mix ci.lint
       # Dependency advisory audit is ADVISORY-ONLY: it runs and surfaces new
       # advisories in the logs, but does not fail the gate. Blocking on
@@ -53,6 +57,16 @@ jobs:
       - name: Dependency advisory audit (advisory-only)
         run: mix ci.audit
         continue-on-error: true
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
 
   verify_gates:
     name: Release gate contract
