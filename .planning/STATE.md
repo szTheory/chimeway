@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: planning
-last_updated: "2026-07-29T00:57:19.768Z"
+last_updated: "2026-07-29T01:15:00.000Z"
 last_activity: 2026-07-29
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 86 — accessibility-audit-notes-red-team-close
+**Current focus:** Phase 87 — CI Observability & Cache Diagnostics (roadmap created; not yet planned)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started — Phase 87 next (roadmap created, Phases 87-92)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-29 — Milestone v1.16 started
+Status: Roadmap created — ready for /gsd-plan-phase 87
+Last activity: 2026-07-29 — ROADMAP.md created (Phases 87-92, 26/26 requirements mapped)
 
 ## Deferred Items
 
@@ -110,7 +110,7 @@ Items acknowledged and deferred at v1.15 milestone close on 2026-07-28 (override
 - [67-03]: Binding ECOS-09 proof is CI run 26925122158 / Sigra job 79433504716 with root 6 tests and demo 2 tests passing against szTheory/sigra@62ceb46a.
 - [v1.11]: Operator console milestone includes SEED-004 and SEED-002; scope is embedded admin explainability, not generic CRUD or SaaS control plane.
 - [v1.11]: UI polish ships with safety contracts because recovery is action-bearing; auth, tenancy, redaction, docs, and verification are milestone scope.
-- [v1.11]: Keep `chimeway_admin` optional and host-mounted; core owns redacted DTO read models and recovery APIs.
+- [v1.11]: Keep `chimeway_admin` as optional and host-mounted; core owns redacted DTO read models and recovery APIs.
 - [v1.13]: New Chimeway installs default to a dedicated `chimeway` Postgres schema for Chimeway-owned tables.
 - [v1.13]: Existing public-schema installs remain supported through explicit legacy mode and no silent migration.
 - [v1.13]: Copied host migrations should generate explicit prefixes instead of requiring `mix ecto.migrate --prefix`.
@@ -246,6 +246,9 @@ status: complete
 - [Phase ?]: [86-04]: Widened the existing brandbook-guards.sh --scope default allowlist (single source of truth) to the exact milestone boundary rather than adding a new mode; deny-by-default *) retained, no broad glob.
 - [Phase ?]: [86-04]: NOTES-03 red-team recorded in notes/red-team.md closing with captured --scope audit + logo-guards --assets binary budget (3 rasters, 38,579B <= 204,800B PASS); boundary machine-enforced, not asserted.
 - [Phase ?]: [86-04]: Red-team record honestly carries owner-waived A11Y-03/A11Y-04 manual attestation forward as an accepted-risk gap, NOT a pass.
+- [v1.16]: Requirements categories map 1:1 to phases (OBS/CACHE/CONC/TIER/QUAL/REL -> Phases 87-92); dependency chain is 87 -> 88 -> {89, 90} -> 91 -> 92, with 91 leaning on 90's nightly tier for its 1.17 CI leg.
+- [v1.16]: Milestone-wide invariant: doc/config/CI-only — no runtime library behavior changes across any of the six phases.
+- [v1.16]: Phase 87 (observability) must land first as a low-risk enabler so every later cache/tiering win is provable by a run-link delta rather than asserted.
 
 ## Performance
 
@@ -506,6 +509,7 @@ None.
 
 ### Roadmap Evolution
 
+- v1.16 CI/CD Performance & Reliability roadmap created 2026-07-29 — Phases 87-92 (6 phases, coarse granularity, continued numbering from Phase 86); 26/26 requirements mapped (OBS/CACHE/CONC/TIER/QUAL/REL). Doc/config/CI-only invariant (no runtime library behavior changes). Dependency chain: 87 -> 88 -> {89, 90} -> 91 -> 92; 91 leans on 90's nightly tier. Next: /gsd-plan-phase 87.
 - v1.15 Brand Identity & Brand Book started 2026-07-09 — Phases 81-86 (6 phases, coarse granularity, continued numbering from Phase 80); 32/32 requirements mapped (LOGO/TOKEN/BOOK/VOICE/STATE/A11Y/INTEG/NOTES). Doc/asset-only. Consolidated the research's 8-phase steer to 6: voice + component states folded into the HTML brandbook (Phase 84); favicon/social derivatives folded into the selection checkpoint (Phase 83). Preserved invariants: tokens-first, logo-selection user-checkpoint before derivatives, HTML-book after inputs stable, accessibility verified at end.
 - Phase 53 added: Milestone close-out — Nyquist validation + journey test hygiene (post-audit)
 - v1.10 Ecosystem Completions started 2026-05-30 — Phases 63–66; 8/8 requirements (Threadline + Sigra SEED-003 remainder)
@@ -564,7 +568,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Run /gsd-plan-phase 87 to plan the first v1.16 phase (CI Observability & Cache Diagnostics)
 
 ## Performance Metrics
 
