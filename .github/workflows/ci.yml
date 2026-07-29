@@ -37,6 +37,8 @@ jobs:
       MIX_ENV: test
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
@@ -60,6 +62,9 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
+      - name: Restore mtimes for warm compile
+        shell: bash
+        run: scripts/ci/restore-mtimes.sh
       - run: mix deps.compile
       - run: mix compile
 
@@ -1079,6 +1084,10 @@ jobs:
           mix local.hex --force
           mix deps.get
         if: steps.detect.outputs.run == 'true'
+      - name: Restore mtimes for warm compile
+        if: steps.detect.outputs.run == 'true'
+        shell: bash
+        run: scripts/ci/restore-mtimes.sh
       - name: Compile (instrumented — deps then app)
         if: steps.detect.outputs.run == 'true'
         shell: bash
