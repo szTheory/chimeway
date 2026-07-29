@@ -60,24 +60,6 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
-      - name: DIAG warm-recompile probe
-        shell: bash
-        run: |
-          set +e
-          echo "===DIAG=== restored _build completeness"
-          echo "app beams: $(ls _build/test/lib/chimeway/ebin/*.beam 2>/dev/null | wc -l)"
-          echo "app manifest present: $(ls _build/test/lib/chimeway/.mix/compile.elixir 2>/dev/null || echo MISSING)"
-          echo "ex_cldr_numbers beams: $(ls _build/test/lib/ex_cldr_numbers/ebin/*.beam 2>/dev/null | wc -l)"
-          echo "top-level _build/test/lib dirs: $(ls _build/test/lib 2>/dev/null | wc -l)"
-          echo "===DIAG=== deps.compile PASS 1"
-          mix deps.compile 2>&1 | grep -iE "Compiling [0-9]+ files|Generated (ex_cldr|chimeway)|===> Compiling" | sed 's/^/[d1] /'
-          echo "===DIAG=== compile PASS 1 (verbose)"
-          mix compile --verbose 2>&1 | grep -iE "Compiling [0-9]+ files|Compiled lib/" | head -20 | sed 's/^/[c1] /'
-          echo "===DIAG=== deps.compile PASS 2 (silent unless force-recompiled every run)"
-          mix deps.compile 2>&1 | grep -iE "Compiling [0-9]+ files|Generated (ex_cldr|chimeway)|===> Compiling" | sed 's/^/[d2] /'
-          echo "===DIAG=== compile PASS 2 (silent unless force-recompiled every run)"
-          mix compile 2>&1 | grep -iE "Compiling [0-9]+ files" | sed 's/^/[c2] /'
-          echo "===DIAG=== END"
       - run: mix deps.compile
       - run: mix compile
 
