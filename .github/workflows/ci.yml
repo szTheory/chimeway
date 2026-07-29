@@ -121,6 +121,7 @@ jobs:
   verify_gates:
     name: Release gate contract
     runs-on: ubuntu-latest
+    needs: [build]
     services:
       postgres:
         image: postgres:15
@@ -139,18 +140,22 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-verify-gates-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-verify-gates-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - run: |
           mix local.rebar --force
           mix local.hex --force
@@ -288,6 +293,7 @@ jobs:
   verify_example:
     name: Example host + admin smoke
     runs-on: ubuntu-latest
+    needs: [build]
     if: github.event_name != 'pull_request'
     services:
       postgres:
@@ -307,18 +313,22 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-verify-example-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-verify-example-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_demo
         with:
@@ -364,6 +374,7 @@ jobs:
   verify_runtime_prefix:
     name: Runtime prefix gate
     runs-on: ubuntu-latest
+    needs: [build]
     if: github.event_name != 'pull_request'
     services:
       postgres:
@@ -383,18 +394,22 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-verify-runtime-prefix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-verify-runtime-prefix-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - run: |
           mix local.rebar --force
           mix local.hex --force
@@ -419,6 +434,7 @@ jobs:
   verify_journeys:
     name: TeamPulse consumer journeys
     runs-on: ubuntu-latest
+    needs: [build]
     if: github.event_name != 'pull_request'
     services:
       postgres:
@@ -438,18 +454,22 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-verify-journeys-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-verify-journeys-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_demo
         with:
@@ -496,6 +516,7 @@ jobs:
   verify_mailglass:
     name: Mailglass integration gate
     runs-on: ubuntu-latest
+    needs: [build]
     if: github.event_name != 'pull_request'
     services:
       postgres:
@@ -515,18 +536,22 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-verify-mailglass-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-verify-mailglass-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_demo
         with:
@@ -643,6 +668,7 @@ jobs:
   verify_inbox:
     name: Inbox integration gate
     runs-on: ubuntu-latest
+    needs: [build]
     if: github.event_name != 'pull_request'
     services:
       postgres:
@@ -662,18 +688,22 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-verify-inbox-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-verify-inbox-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_nested_inbox
         with:
@@ -886,6 +916,7 @@ jobs:
   verify_admin:
     name: Admin integration gate
     runs-on: ubuntu-latest
+    needs: [build]
     if: github.event_name != 'pull_request'
     services:
       postgres:
@@ -905,6 +936,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         with:
           elixir-version: "1.19"
           otp-version: "27"
@@ -913,15 +945,18 @@ jobs:
           node-version: "22"
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-verify-admin-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-verify-admin-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: playwright-cache
         with:
