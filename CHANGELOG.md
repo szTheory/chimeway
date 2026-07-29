@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 Format: [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.0](https://github.com/szTheory/chimeway/compare/v1.1.1...v1.2.0) (2026-07-29)
+
+
+### Features
+
+* **87-01:** add obs-recompile.sh + obs-summary.sh + parser fixtures ([83db6d2](https://github.com/szTheory/chimeway/commit/83db6d25e8b41cf01e8fa9e312370b91ea3c9b88))
+* **87-01:** instrument lint lane end-to-end + Wave 0 contract test ([7e9367f](https://github.com/szTheory/chimeway/commit/7e9367f48aae497b754824798f5487845a8ec557))
+* **87-02:** instrument single-cache DB lanes with CI observability ([226d07e](https://github.com/szTheory/chimeway/commit/226d07e12712a1b02fe5bf66e5509ac1748070bb))
+* **87-02:** instrument special build lanes + fan contract test to all 14 lanes ([bf13e87](https://github.com/szTheory/chimeway/commit/bf13e87b4713c1911e9f128be44d306492877d58))
+* **87-02:** instrument two-cache demo-host lanes with CI observability ([14d7662](https://github.com/szTheory/chimeway/commit/14d76620f497c642f839486cb0fdf06b44989e50))
+* **87-03:** record pre-optimization CI baseline + OBS-04 contract assertion ([2d9af89](https://github.com/szTheory/chimeway/commit/2d9af897d9ab35609f6cde83e92395521a795f72))
+* **88-01:** add build compile-once producer job and wire lint as first restore-only consumer ([0813b1e](https://github.com/szTheory/chimeway/commit/0813b1eb0fe1c15ddebcc73d8b0f04d68ee08705))
+* **88-01:** convert install_golden_contract to consumer, add CACHE-03 warnings-as-errors compile ([e195bc1](https://github.com/szTheory/chimeway/commit/e195bc15987b71926f8145710f8d0207e97dd71e))
+* **88-02:** convert 7 default-graph lanes to shared restore-only consumers ([6b3af2f](https://github.com/szTheory/chimeway/commit/6b3af2f6d9f93455a4132bb4b9dc995a32acb888))
+* **88-02:** reschema 5 exception lanes onto distinct self-cached roles ([7068288](https://github.com/szTheory/chimeway/commit/706828894d053a2f97d0d937f141429a06eafb52))
+
+
+### Performance Improvements
+
+* **88:** restore source mtimes before compile to fix warm recompile (experiment: build + install_golden) ([93a4214](https://github.com/szTheory/chimeway/commit/93a42148354d21adfc9103494655c03419a68ece))
+
 ## [1.1.1](https://github.com/szTheory/chimeway/compare/v1.1.0...v1.1.1) (2026-07-28)
 
 
