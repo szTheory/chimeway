@@ -101,7 +101,15 @@
 3. The `ci.test` lane runs with `--warnings-as-errors` and fails the lane on any compiler warning, at parity with the `verify.*` lanes.
 4. The suite passes across randomized-seed CI runs and one ordered `--seed 0` run with identical pass/fail results, proving the async conversion introduced no test-ordering coupling.
 
-**Plans:** TBD
+**Plans:** 6 plans
+
+Plans:
+- [ ] 89-01-PLAN.md — Tracer: size Chimeway.Repo test pool + flip signal_test.exs to async, prove the mechanism end-to-end
+- [ ] 89-02-PLAN.md — Flip inbox-suite + digest + remaining top-level workflow DataCase modules to async (9 files)
+- [ ] 89-03-PLAN.md — Flip orchestration + integration + remaining trigger/persistence DataCase modules to async (7 files)
+- [ ] 89-04-PLAN.md — Flip rendering + dispatch/webhooks worker DataCase modules to async — completes the 20-file flip set (3 files)
+- [ ] 89-05-PLAN.md — Add --warnings-as-errors to ci.test, fix surfaced warnings, one-time negative proof, contract guard
+- [ ] 89-06-PLAN.md — Closing CONC-04 proof: 3 random-seed + 1 --seed 0 mix ci.test runs, contract guard, success-criteria closure
 
 ### Phase 90: Pipeline Tiering (PR/main/nightly)
 

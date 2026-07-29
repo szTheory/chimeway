@@ -70,8 +70,7 @@ proof. **Test/config-only — no runtime `lib/` behavior changes.**
   `orchestration/delivery_planning_test`, `rendering/render_identity_integration_test`,
   `digests/digest_rule_test`, `digests/emission_test`, `digests/accumulation_test`,
   `webhooks/process_feedback_worker_test`.
-- **D-02 (3-axis flip-safety filter, applied per candidate — the grep list is a starting point,
-  NOT a blind-flip set):** a module is flip-safe only if ALL hold: **(a)** never mutates global
+- **D-02 (3-axis flip-safety filter, applied per candidate — the grep list is a starting point, NOT a blind-flip set):** a module is flip-safe only if ALL hold: **(a)** never mutates global
   app-env (`Application.put_env`/`delete_env`, `System.put_env`); **(b)** never touches tenant
   prefix / `put_dynamic_repo` / `PrefixedRuntime` / `Triplex`; **(c)** never reads/writes
   `Chimeway.Repo` from a spawned process (`Task`/`GenServer`/`spawn`/Oban worker executed inline)
