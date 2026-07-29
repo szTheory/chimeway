@@ -81,7 +81,10 @@
 4. A single producer `build` job compiles dependencies once per run; consuming plain-hex lanes declare `needs: [build]` and restore its cache instead of each recompiling the tree independently.
 5. Two consecutive warm `main` runs against an identical `mix.lock` show near-zero dependency recompilation per the OBS probe from Phase 87, and warm `ci-gate` wall-clock is under ~3 minutes — provable by a run-link delta against the recorded baseline.
 
-**Plans:** TBD
+**Plans:** 3 plans
+- [ ] 88-01-PLAN.md — Tracer: `build` producer job + `lint`/`install_golden` converted to restore-only consumers + CACHE-03 warnings-as-errors (wave 1)
+- [ ] 88-02-PLAN.md — Fan-out: 7 default-graph lanes → shared cache consumers; docs/OTP-matrix/partners reschemed to distinct self-cached roles; contract extended (wave 2)
+- [ ] 88-03-PLAN.md — Proof: fill the delta-ledger after-row + human-verify the warm-run compile-once win (near-zero dep recompile, sub-3-min ci-gate) (wave 3)
 
 ### Phase 89: Test-Lane Concurrency
 

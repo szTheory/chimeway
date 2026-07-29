@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: planning
-stopped_at: Phase 88 context gathered (assumptions mode)
-last_updated: "2026-07-29T03:30:29.734Z"
+stopped_at: Phase 88 Waves 1-2 executed (88-01/88-02 complete, local commits); 88-03 pending merge-to-main + live warm CI
+last_updated: "2026-07-29T00:00:00.000Z"
 last_activity: 2026-07-29
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 17
+  total_plans: 6
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 ## Current Position
 
 Phase: 88
-Plan: Not started
-Status: Ready to plan
+Plan: 88-01 ✓ executed, 88-02 ✓ executed (local commits, contract suites green); 88-03 pending live warm CI
+Status: Waves 1-2 done — awaiting merge-to-main + 2 warm runs before Wave 3 (88-03)
 Last activity: 2026-07-29
 
 ## Deferred Items
@@ -571,12 +571,14 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 ### Session Continuity
 
 Last session: 2026-07-29T03:30:29.728Z
-Stopped at: Phase 88 context gathered (assumptions mode)
-Resume file: .planning/phases/88-cache-correctness-compile-once/88-CONTEXT.md
+Stopped at: Phase 88 Waves 1-2 executed (88-01/88-02 complete, local commits — 129 tests 0 failures); 88-03 blocked on merge-to-main + 2 consecutive warm main runs
+Resume file: .planning/phases/88-cache-correctness-compile-once/88-03-PLAN.md
 
 ## Operator Next Steps
 
-- Run /gsd-plan-phase 87 to plan the first v1.16 phase (CI Observability & Cache Diagnostics)
+- Review the 88-01/88-02 diff (`.github/workflows/ci.yml` + `test/chimeway/ci_observability_contract_test.exs`), then merge/push Phase 88 to `main` (e.g. /gsd-ship or direct fast-forward push per ruleset)
+- Let CI run twice on an identical `mix.lock` to warm the `build-test`/`deps` caches
+- Re-run /gsd-execute-phase 88 (or --wave 3) to execute 88-03: fill the CI-PERF-BASELINE delta ledger from the 2nd warm run's OBS summaries, then the blocking human-verify checkpoint (deps recompile 0, build-test HIT, warm ci-gate <~3 min)
 
 ## Performance Metrics
 
