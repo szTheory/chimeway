@@ -17,6 +17,17 @@ defmodule Chimeway.CIObservabilityContractTest do
   # step (OBS-01/02/03 fleet-wide fan-out).
   @build_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
 
+  # CACHE-01/02/04 (Phase 88): the compile-once shared-cache schema. The `build`
+  # producer publishes exactly one `deps` + `build-test` cache under the
+  # resolved-toolchain root-lock key; the default-graph consumers restore it
+  # restore-only via `needs: [build]`; the genuinely-different exception lanes
+  # (docs :dev, the OTP matrix, the path-dep partners) self-cache on distinct
+  # roles so they can never collide with or clobber the shared `build-test` key.
+  @shared_deps_key "deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}"
+  @shared_build_test_key "build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}"
+  @shared_consumer_lanes ~w(lint install_golden_contract verify_gates verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_inbox verify_admin)
+  @self_cache_lanes ~w(verify_docs test verify_accrue verify_threadline verify_sigra)
+
   setup do
     %{ci_yml: File.read!(@ci_yml)}
   end
@@ -275,6 +286,82 @@ defmodule Chimeway.CIObservabilityContractTest do
 
       assert compile_idx < ecto_idx,
              "the CACHE-03 warnings-as-errors compile must appear BEFORE mix ecto.create (D-13)"
+    end
+  end
+
+  describe "CACHE-01/02/04 shared cache schema (Phase 88)" do
+    test "the build producer publishes both the deps and build-test caches on the resolved-toolchain root-lock schema",
+         %{ci_yml: ci_yml} do
+      build_block = extract_ci_job_block(ci_yml, "build")
+
+      assert String.contains?(build_block, @shared_deps_key),
+             "the build producer must publish the shared deps cache key (schema + resolved toolchain + root mix.lock)"
+
+      assert String.contains?(build_block, @shared_build_test_key),
+             "the build producer must publish the sibling build-test cache key the consumers restore"
+    end
+
+    for lane <- @shared_consumer_lanes do
+      test "#{lane} restores the shared build-test cache restore-only via needs: [build]",
+           %{ci_yml: ci_yml} do
+        block = extract_ci_job_block(ci_yml, unquote(lane))
+
+        assert String.contains?(block, "needs: [build]"),
+               "#{unquote(lane)} must declare needs: [build] to consume the producer cache"
+
+        assert String.contains?(block, "actions/cache/restore"),
+               "#{unquote(lane)} must restore the shared cache restore-only (actions/cache/restore, not the full action)"
+
+        assert String.contains?(block, "fail-on-cache-miss: true"),
+               "#{unquote(lane)} must fail loudly on a producer-cache miss (guards the vacuous cold-build pass)"
+
+        assert String.contains?(block, @shared_build_test_key),
+               "#{unquote(lane)} must restore the byte-identical shared build-test key so it collides with the producer"
+      end
+    end
+
+    for lane <- @self_cache_lanes do
+      test "#{lane} self-caches a distinct role and does NOT join needs: [build]",
+           %{ci_yml: ci_yml} do
+        block = extract_ci_job_block(ci_yml, unquote(lane))
+
+        refute String.contains?(block, "needs: [build]"),
+               "#{unquote(lane)} is a genuinely-different graph and must NOT consume the shared build-test cache"
+      end
+    end
+
+    test "verify_docs self-caches the :dev-scoped build-dev role (D-07)", %{ci_yml: ci_yml} do
+      block = extract_ci_job_block(ci_yml, "verify_docs")
+
+      assert String.contains?(block, "build-dev-${{ runner.os }}"),
+             "verify_docs must self-cache a distinct build-dev role (ex_doc is only: :dev)"
+    end
+
+    test "the OTP matrix self-caches the test-matrix role (D-12)", %{ci_yml: ci_yml} do
+      block = extract_ci_job_block(ci_yml, "test")
+
+      assert String.contains?(block, "test-matrix-${{ runner.os }}"),
+             "the OTP matrix must self-cache a distinct test-matrix role so the OTP-27 leg can't clobber build-test"
+    end
+
+    test "each partner lane self-caches its graph-scoped build-test-<partner> role (D-08)",
+         %{ci_yml: ci_yml} do
+      for {lane, role} <- [
+            {"verify_accrue", "build-test-accrue-"},
+            {"verify_threadline", "build-test-threadline-"},
+            {"verify_sigra", "build-test-sigra-"}
+          ] do
+        block = extract_ci_job_block(ci_yml, lane)
+
+        assert String.contains?(block, role),
+               "#{lane} must self-cache its graph-scoped #{role} role (path-dep injection changes the graph)"
+      end
+    end
+
+    test "no default-graph root key uses the recursive **/mix.lock glob (D-04)", %{ci_yml: ci_yml} do
+      refute String.contains?(ci_yml, "hashFiles('**/mix.lock')"),
+             "default-graph root cache keys must hash the root mix.lock, not the recursive **/mix.lock glob " <>
+               "(the intentionally-nested demo/nested lanes hash their own specific lockfiles)"
     end
   end
 
