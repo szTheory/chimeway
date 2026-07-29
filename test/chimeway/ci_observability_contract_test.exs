@@ -17,15 +17,28 @@ defmodule Chimeway.CIObservabilityContractTest do
   # step (OBS-01/02/03 fleet-wide fan-out).
   @build_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
 
-  # CACHE-01/02/04 (Phase 88): the compile-once shared-cache schema. The `build`
-  # producer publishes exactly one `deps` + `build-test` cache under the
-  # resolved-toolchain root-lock key; the default-graph consumers restore it
-  # restore-only via `needs: [build]`; the genuinely-different exception lanes
-  # (docs :dev, the OTP matrix, the path-dep partners) self-cache on distinct
-  # roles so they can never collide with or clobber the shared `build-test` key.
-  @shared_deps_key "deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}"
-  @shared_build_test_key "build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}"
-  @shared_consumer_lanes ~w(lint install_golden_contract verify_gates verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_inbox verify_admin)
+  # CACHE-01/02/04 (Phase 88, per-lane self-cache reversion): there is NO
+  # compile-once `build` producer job and NO lane carries `needs: [build]`. The
+  # former default-graph consumers were reverted to per-lane self-caching (the
+  # same pattern verify_docs/test already use): each caches BOTH `deps` and
+  # `_build` under a graph-scoped `build-test-<slug>` root key on the
+  # resolved-toolchain + root-lock schema, with no restore-only / no
+  # fail-on-cache-miss. Distinct <slug>s keep the lanes from colliding, and
+  # self-caching `_build` lets the demo lanes warm their :dev build across runs.
+  # The genuinely-different exception lanes (docs :dev, the OTP matrix, the
+  # path-dep partners) already self-cache on their own distinct roles.
+  @lane_key_suffix "-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}"
+  @converted_lanes %{
+    "lint" => "lint",
+    "verify_gates" => "gates",
+    "verify_example" => "example",
+    "verify_runtime_prefix" => "runtime-prefix",
+    "verify_journeys" => "journeys",
+    "verify_mailglass" => "mailglass",
+    "verify_inbox" => "inbox",
+    "verify_admin" => "admin",
+    "install_golden_contract" => "install-golden"
+  }
   @self_cache_lanes ~w(verify_docs test verify_accrue verify_threadline verify_sigra)
 
   setup do
@@ -289,35 +302,65 @@ defmodule Chimeway.CIObservabilityContractTest do
     end
   end
 
-  describe "CACHE-01/02/04 shared cache schema (Phase 88)" do
-    test "the build producer publishes both the deps and build-test caches on the resolved-toolchain root-lock schema",
-         %{ci_yml: ci_yml} do
-      build_block = extract_ci_job_block(ci_yml, "build")
+  describe "CACHE-01/02/04 per-lane self-cache (Phase 88 reversion)" do
+    test "there is no compile-once build producer job", %{ci_yml: ci_yml} do
+      refute String.contains?(ci_yml, "Build (compile-once producer)"),
+             "the serial compile-once producer job must be gone (it added a ~140s stage that didn't pay off)"
 
-      assert String.contains?(build_block, @shared_deps_key),
-             "the build producer must publish the shared deps cache key (schema + resolved toolchain + root mix.lock)"
-
-      assert String.contains?(build_block, @shared_build_test_key),
-             "the build producer must publish the sibling build-test cache key the consumers restore"
+      refute Regex.match?(~r/^  build:\s*$/m, ci_yml),
+             "there must be no top-level `build:` job left in ci.yml"
     end
 
-    for lane <- @shared_consumer_lanes do
-      test "#{lane} restores the shared build-test cache restore-only via needs: [build]",
+    test "no lane declares needs: [build]", %{ci_yml: ci_yml} do
+      refute String.contains?(ci_yml, "needs: [build]"),
+             "no lane may consume a producer cache via needs: [build] — every lane self-caches now"
+    end
+
+    for {lane, slug} <- @converted_lanes do
+      test "#{lane} self-caches deps + _build under the build-test-#{slug} root role",
            %{ci_yml: ci_yml} do
         block = extract_ci_job_block(ci_yml, unquote(lane))
 
-        assert String.contains?(block, "needs: [build]"),
-               "#{unquote(lane)} must declare needs: [build] to consume the producer cache"
+        refute String.contains?(block, "needs: [build]"),
+               "#{unquote(lane)} must not declare needs: [build]"
 
-        assert String.contains?(block, "actions/cache/restore"),
-               "#{unquote(lane)} must restore the shared cache restore-only (actions/cache/restore, not the full action)"
+        refute String.contains?(block, "actions/cache/restore"),
+               "#{unquote(lane)} must self-cache with the full actions/cache action, not restore-only"
 
-        assert String.contains?(block, "fail-on-cache-miss: true"),
-               "#{unquote(lane)} must fail loudly on a producer-cache miss (guards the vacuous cold-build pass)"
+        assert String.contains?(block, "id: cache_main"),
+               "#{unquote(lane)} must keep a stable id: cache_main on its root cache step"
 
-        assert String.contains?(block, @shared_build_test_key),
-               "#{unquote(lane)} must restore the byte-identical shared build-test key so it collides with the producer"
+        # The self-caching root step caches BOTH deps and _build (the previous
+        # split restore-only pair is folded into one full-cache step). Assert the
+        # cache_main step's own path list carries both entries.
+        cache_main_step = extract_cache_main_step(block)
+
+        assert cache_main_step =~ ~r/path:\s*\|/,
+               "#{unquote(lane)} cache_main must use a multi-line path list"
+
+        assert String.contains?(cache_main_step, "deps"),
+               "#{unquote(lane)} cache_main must cache deps"
+
+        assert String.contains?(cache_main_step, "_build"),
+               "#{unquote(lane)} cache_main must cache _build (so demo lanes warm their :dev build across runs)"
+
+        expected_key = "build-test-" <> unquote(slug) <> @lane_key_suffix
+
+        assert String.contains?(cache_main_step, expected_key),
+               "#{unquote(lane)} cache_main must key on build-test-#{unquote(slug)} + resolved toolchain + root mix.lock"
+
+        refute String.contains?(cache_main_step, "fail-on-cache-miss"),
+               "#{unquote(lane)} self-cache must NOT fail-on-cache-miss (there is no producer to miss)"
       end
+    end
+
+    test "install_golden_contract keeps its detect-gate on the self-cache step",
+         %{ci_yml: ci_yml} do
+      block = extract_ci_job_block(ci_yml, "install_golden_contract")
+      cache_main_step = extract_cache_main_step(block)
+
+      assert String.contains?(cache_main_step, "if: steps.detect.outputs.run == 'true'"),
+             "install_golden_contract's self-cache step must stay gated on the installer-change detect step"
     end
 
     for lane <- @self_cache_lanes do
@@ -326,7 +369,7 @@ defmodule Chimeway.CIObservabilityContractTest do
         block = extract_ci_job_block(ci_yml, unquote(lane))
 
         refute String.contains?(block, "needs: [build]"),
-               "#{unquote(lane)} is a genuinely-different graph and must NOT consume the shared build-test cache"
+               "#{unquote(lane)} is a genuinely-different graph and must NOT consume any shared build-test cache"
       end
     end
 
@@ -432,6 +475,20 @@ defmodule Chimeway.CIObservabilityContractTest do
     case Regex.run(~r/#{job_id}:(.*?)(?:\n  [a-z_]+:|\z)/s, yml) do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
+    end
+  end
+
+  # Isolate the single `id: cache_main` step from a lane block. Steps are
+  # 6-space-indented `      - ` entries; split on that boundary and return the
+  # one carrying the cache_main id so per-step assertions can't accidentally
+  # match a sibling cache step (cache_demo/nested/playwright).
+  defp extract_cache_main_step(lane_block) do
+    lane_block
+    |> String.split(~r/\n      - /)
+    |> Enum.find(fn step -> String.contains?(step, "id: cache_main") end)
+    |> case do
+      nil -> flunk("Could not find an id: cache_main step in lane block:\n#{lane_block}")
+      step -> step
     end
   end
 end
