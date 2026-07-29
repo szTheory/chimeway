@@ -8,6 +8,20 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
+## Current Milestone: v1.16 CI/CD Performance & Reliability
+
+**Goal:** Make CI fast, deterministic, and trustworthy — collapse the ~6.5 min `main` wall-clock (gated by a single cold-compiling job) toward under ~3 min by fixing compiled-artifact caching, without lowering the quality signal or overcomplicating the pipeline.
+
+**Target features:**
+- **Cache correctness (headline):** fix the `MIX_ENV`-absent cache-key collision (`lint` `:dev` vs `install_golden` `:test` share one write-once key) so `_build` actually warms; standardize keys on env + resolved OTP/Elixir + `mix.lock`; de-fragment the plain-hex lanes; add a compile-once producer job so deps compile 1× per run instead of ~13×.
+- **CI observability:** per-lane cache hit/miss + "N files recompiled" + per-step timing in the job summary, so every win is provable by a run-link delta.
+- **Test concurrency:** flip the ~32 pure-DB `DataCase` files to `async: true` (leave the 25 app-env / 5 prefix mutators serial); explicit `pool_size`; `--warnings-as-errors` on `ci.test`.
+- **Pipeline tiering:** add a `schedule:` nightly tier (cold-build backstop + full OTP matrix + 1.17 floor leg + heavy Playwright lane); single-OTP on the PR path.
+- **Quality & supply-chain polish:** `.tool-versions`, `dependabot.yml`, top-level `permissions: contents: read`, `mix_audit` (advisory), resolve CI↔release Elixir skew.
+- **Reliability triage & determinism:** measure real-vs-flaky rate; close/verify the two documented CI-only backlog issues; keep the random ExUnit seed (nightly `--seed 0` ordering run); scoped clock injection.
+
+**Key context:** Baseline measured 2026-07-28 — `main` CI ~373–395s, entire wall-clock gated by the 373s `install_golden` job whose `mix ecto.create` hides a 135s cold compile; compile times are dead-flat across 3 identical-`mix.lock` runs (cache never warms). Runner ≈ 4 cores. Full scoping in `.planning/` plan artifact. Decisions (nightly tier yes; partner lanes stay push-to-main; drop OTP 26 from PR; Dialyzer/coverage deferred; `mix_audit` advisory; keep release at 1.17 floor + add a 1.17 CI leg) recommended and confirmable at the requirements gate. Doc/config/CI-only work — no runtime library behavior changes.
+
 ## Requirements
 
 Active requirements for the current milestone are listed below. Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`.
@@ -27,9 +41,9 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-**No active milestone.** v1.15 Brand Identity & Brand Book completed 2026-07-28 (override_closeout, accepted-risk). Start the next milestone via `/gsd-new-milestone`.
+**v1.16 CI/CD Performance & Reliability** (started 2026-07-28) — CI pipeline efficiency, determinism, and DX. Requirements in `.planning/REQUIREMENTS.md`; roadmap in `.planning/ROADMAP.md` (Phases 87–92). Goal + target features in the [Current Milestone](#current-milestone-v116-cicd-performance--reliability) section above.
 
-Carried-forward candidates for the next milestone: the two accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation — a short in-browser pass); TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
+Carried-forward candidates NOT in v1.16 scope (future milestones): the two accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation — a short in-browser pass); TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
 
 ### Out of Scope
 
@@ -556,4 +570,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-28 after v1.15 Brand Identity & Brand Book milestone completion (override_closeout, accepted-risk)*
+*Last updated: 2026-07-28 — started milestone v1.16 CI/CD Performance & Reliability*
