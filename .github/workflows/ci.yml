@@ -980,6 +980,7 @@ jobs:
   install_golden_contract:
     name: Installer golden + prefix + DB migration contract
     runs-on: ubuntu-latest
+    needs: [build]
     if: github.event_name != 'pull_request'
     services:
       postgres:
@@ -1014,20 +1015,25 @@ jobs:
           fi
           scripts/ci/detect-installer-changes.sh "${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
         if: steps.detect.outputs.run == 'true'
         with:
           elixir-version: "1.19"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_deps
+        if: steps.detect.outputs.run == 'true'
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         if: steps.detect.outputs.run == 'true'
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-
+          path: _build
+          key: build-test-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          fail-on-cache-miss: true
       - run: |
           mix local.rebar --force
           mix local.hex --force
@@ -1037,6 +1043,12 @@ jobs:
         if: steps.detect.outputs.run == 'true'
         shell: bash
         run: scripts/ci/obs-recompile.sh
+      # CACHE-03 / D-13: surface the compile-warnings gate as its own fast step
+      # on already-warm artifacts, so the Phase-87 timing summary shows
+      # ecto.create as a fast DB-only step instead of a disguised ~135s compile.
+      # This literal flag lives ONLY here — never in shared obs-recompile.sh.
+      - run: mix compile --warnings-as-errors
+        if: steps.detect.outputs.run == 'true'
       - run: mix ecto.create --quiet
         if: steps.detect.outputs.run == 'true'
       - run: mix ecto.migrate --quiet

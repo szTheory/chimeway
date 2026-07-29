@@ -245,14 +245,36 @@ defmodule Chimeway.CIObservabilityContractTest do
              "install_golden_contract's obs-summary step must never run when the lane body is skipped"
     end
 
-    test "no build-lane observability step introduces --warnings-as-errors", %{ci_yml: ci_yml} do
-      for lane <- @build_lanes do
+    test "no build-lane observability step introduces --warnings-as-errors (CACHE-03 exempts install_golden_contract only)",
+         %{ci_yml: ci_yml} do
+      # D-14: CACHE-03 adds an explicit `mix compile --warnings-as-errors` to
+      # install_golden_contract only. The refute still fires for the other 13
+      # lanes so the flag cannot leak into the shared obs-recompile.sh probe or
+      # into Phase 89's separate ci.test --warnings-as-errors (CONC-03).
+      for lane <- @build_lanes -- ["install_golden_contract"] do
         lane_block = extract_ci_job_block(ci_yml, lane)
 
         refute String.contains?(lane_block, "--warnings-as-errors"),
                "#{lane}'s recompile probe must stay a plain compile — the compile-warnings " <>
-                 "upgrade is Phase 88 / CACHE-03, out of scope for this observability-only phase"
+                 "upgrade is CACHE-03's sanctioned exception, scoped to install_golden_contract only"
       end
+    end
+
+    test "install_golden_contract runs the CACHE-03 warnings-as-errors compile before ecto.create (D-13)",
+         %{ci_yml: ci_yml} do
+      lane_block = extract_ci_job_block(ci_yml, "install_golden_contract")
+
+      assert String.contains?(lane_block, "mix compile --warnings-as-errors"),
+             "install_golden_contract must run the explicit CACHE-03 compile --warnings-as-errors gate"
+
+      assert String.contains?(lane_block, "mix ecto.create"),
+             "install_golden_contract must still run mix ecto.create"
+
+      {compile_idx, _} = :binary.match(lane_block, "mix compile --warnings-as-errors")
+      {ecto_idx, _} = :binary.match(lane_block, "mix ecto.create")
+
+      assert compile_idx < ecto_idx,
+             "the CACHE-03 warnings-as-errors compile must appear BEFORE mix ecto.create (D-13)"
     end
   end
 
