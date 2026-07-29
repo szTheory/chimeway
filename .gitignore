@@ -58,6 +58,9 @@ venv/
 target/
 vendor/
 *.log
+# Phase 87 observability parser fixtures — intentionally committed .log files
+# consumed by test/chimeway/ci_observability_contract_test.exs (OBS-02).
+!test/fixtures/ci/*.log
 coverage/
 .cache/
 tmp/

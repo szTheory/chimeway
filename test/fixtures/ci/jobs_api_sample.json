@@ -1,0 +1,39 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 79433504716,
+      "run_id": 26925122158,
+      "run_attempt": 1,
+      "name": "Lint",
+      "status": "in_progress",
+      "runner_name": "GitHub Actions 2",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-07-28T20:00:00Z",
+          "completed_at": "2026-07-28T20:00:02Z"
+        },
+        {
+          "name": "Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-07-28T20:00:02Z",
+          "completed_at": "2026-07-28T20:00:05Z"
+        },
+        {
+          "name": "Compile (instrumented — deps then app)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-07-28T20:00:05Z",
+          "completed_at": "2026-07-28T20:02:20Z"
+        }
+      ]
+    }
+  ]
+}

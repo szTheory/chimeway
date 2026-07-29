@@ -1,0 +1,14 @@
+==> jason
+Compiling 6 files (.ex)
+Generated jason app
+==> decimal
+Compiling 4 files (.ex)
+Generated decimal app
+==> ecto
+Compiling 55 files (.ex)
+Generated ecto app
+==> postgrex
+Compiling 63 files (.ex)
+Generated postgrex app
+Compiling 132 files (.ex)
+Generated chimeway app
