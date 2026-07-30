@@ -1,5 +1,5 @@
 defmodule Chimeway.WorkflowsTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   import Ecto.Query
 

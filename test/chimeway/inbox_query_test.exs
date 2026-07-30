@@ -1,5 +1,5 @@
 defmodule Chimeway.InboxQueryTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   # Requirements: INBX-02, INBX-03
   alias Chimeway.Events.Event

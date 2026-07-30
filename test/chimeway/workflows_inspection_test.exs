@@ -1,5 +1,5 @@
 defmodule Chimeway.WorkflowsInspectionTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   alias Chimeway.Repo
   alias Chimeway.Workflows

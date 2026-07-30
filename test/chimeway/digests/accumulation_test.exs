@@ -1,5 +1,5 @@
 defmodule Chimeway.Digests.AccumulationTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   alias Chimeway.{Deliveries, Repo}
   alias Chimeway.Digests

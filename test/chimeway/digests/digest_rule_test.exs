@@ -1,5 +1,5 @@
 defmodule Chimeway.Digests.DigestRuleTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   alias Chimeway.{Digests, Repo}
   alias Chimeway.Digests.DigestRule

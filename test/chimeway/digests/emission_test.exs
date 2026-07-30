@@ -1,5 +1,5 @@
 defmodule Chimeway.Digests.EmissionTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   alias Chimeway.{Delivery, Deliveries, Repo}
   alias Chimeway.Digests

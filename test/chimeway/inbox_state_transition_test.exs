@@ -1,5 +1,5 @@
 defmodule Chimeway.InboxStateTransitionTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
   use Oban.Testing, repo: Chimeway.Repo
 
   # Requirements: INBX-02, INBX-03, READ-02
