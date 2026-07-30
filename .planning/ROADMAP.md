@@ -186,7 +186,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1; parallel, no file overlap)*
 
 - [x] 92-02-PLAN.md — REL-01: re-runnable `scripts/ci/reliability-report.sh` (push-on-main `ci-gate` job classification, strict <10% / ≥5-streak bar) + fixture-backed parser test + committed `.planning/CI-RELIABILITY-REPORT.md` snapshot
-- [ ] 92-03-PLAN.md — REL-03 + REL-02: nightly-only `test_seed_zero` (`--seed 0`) lane wired into `nightly-gate` + coupled contract updates + live nightly proof; verify-fixed backlog #2/#3 with documented mechanisms and tightened timeout tag
+- [x] 92-03-PLAN.md — REL-03 + REL-02: nightly-only `test_seed_zero` (`--seed 0`) lane wired into `nightly-gate` + coupled contract updates + live nightly proof; verify-fixed backlog #2/#3 with documented mechanisms and tightened timeout tag
 
 <details>
 <summary>✅ v1.15 Brand Identity & Brand Book (Phases 81-86) — SHIPPED 2026-07-28 (accepted-risk close)</summary>
