@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
-status: planning
-stopped_at: Phase 89 (Test-Lane Concurrency) COMPLETE 2026-07-30 (897d836..10a674f) — CONC-01/02/03/04 all satisfied. 20/21 pure-DB DataCase modules async (telemetry_correlation_test held serial), Chimeway.Repo pool_size=min(schedulers*2+10,24) (tracer caught 5-repo shared-Postgres exhaustion, capped), ci.test --warnings-as-errors + negative proof. CONC-04 proven by 3 consecutive green CI runs (30502499062/30502918529/30503332684, fresh seeds) + local --seed 0; 1229 tests 0 failures. HONEST: test-lane wall-clock NOT materially improved (~5-7min) — async files are fast pure-DB unit tests (~4s of ~130s); <3min needs Phase 90 tiering. Zero lib/ changes. Docs commit pending push.
-last_updated: "2026-07-30T00:40:00.000Z"
-last_activity: 2026-07-30
+status: executing
+stopped_at: Phase 88 closed partial 2026-07-29 — correctness (CACHE-01/02/03/04) delivered & merged (caches HIT, collision fixed, 129 tests green); CACHE-05 compile-once deferred (warm ci-gate regressed 373s->648s; ex_cldr rebuilds once/restore + rebar deps every run). Owner banked correctness, spike filed.
+last_updated: "2026-07-30T02:56:02.441Z"
+last_activity: 2026-07-30 -- Phase 90 planning complete
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 12
+  completed_phases: 3
+  total_plans: 15
   completed_plans: 12
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 89
 Plan: 89-01 ✓ (tracer: pool + first flip), 89-02/03/04 ✓ (19 fan-out flips), 89-05 ✓ (ci.test --warnings-as-errors + negative proof + contract guard), 89-06 ✓ (CONC-04: 3 consecutive green CI runs + local --seed 0)
-Status: Phase 89 COMPLETE — CONC-01/02/03/04 satisfied. Next: Phase 90 (Pipeline Tiering) — the lever that actually shrinks the PR path toward <3min (async alone didn't, test-execution-bound on serial heavy lanes)
-Last activity: 2026-07-30
+Status: Ready to execute
+Last activity: 2026-07-30 -- Phase 90 planning complete
 
 ## Deferred Items
 
