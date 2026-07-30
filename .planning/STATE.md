@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: planning
-stopped_at: Phase 88 correctness delivered + regression RECOVERED 2026-07-29 (bbee487) — dropped producer, per-lane self-cache, demo :dev build warmed (236/297s->6s); warm ci-gate 648s->362s (at/below baseline). <3min needs Phase 89 async (test-execution-bound), not caching. CACHE-05 residual compile deferred low-value.
-last_updated: "2026-07-29T00:00:00.000Z"
-last_activity: 2026-07-29
+stopped_at: Phase 89 (Test-Lane Concurrency) EXECUTED locally 2026-07-29 (897d836..10a674f) — 20/21 pure-DB DataCase modules flipped to async (telemetry_correlation_test held serial), Chimeway.Repo pool_size=min(schedulers*2+10,24), ci.test now --warnings-as-errors. Tracer caught a real pool-cap bug (5-repo shared Postgres exhaustion) before fan-out. Local: 1229 tests 0 failures on random + seed-0. Pushed to main; CI 3-run CONC-04 proof in flight (run 30502247481).
+last_updated: "2026-07-30T00:20:00.000Z"
+last_activity: 2026-07-30
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 5
-  percent: 83
+  total_plans: 12
+  completed_plans: 11
+  percent: 92
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 88 — cache correctness & compile once
+**Current focus:** Phase 89 — test-lane concurrency (async conversion)
 
 ## Current Position
 
-Phase: 88
-Plan: 88-01 ✓, 88-02 ✓ (correctness merged); 88-03 ✓ partial — CACHE-05 target not met, deferred to spike
-Status: Phase 88 closed partial — correctness banked; compile-once spike = CI-HARDENING-BACKLOG #4
-Last activity: 2026-07-29
+Phase: 89
+Plan: 89-01 ✓ (tracer: pool + first flip), 89-02/03/04 ✓ (19 fan-out flips), 89-05 ✓ (ci.test --warnings-as-errors + negative proof + contract guard); 89-06 (CONC-04 CI proof) IN FLIGHT
+Status: Phase 89 executed locally, all CONC-01/02/03 verified green (1229 tests, 0 failures on random seed + --seed 0, no pool exhaustion, no lib/ changes); pushed to main, CI 3-consecutive-run + seed proof running (CONC-04)
+Last activity: 2026-07-30
 
 ## Deferred Items
 
