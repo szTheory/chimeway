@@ -3,6 +3,46 @@
 All notable changes to this project will be documented in this file.
 Format: [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.0](https://github.com/szTheory/chimeway/compare/v1.1.1...v1.2.0) (2026-07-30)
+
+
+### Features
+
+* **87-01:** add obs-recompile.sh + obs-summary.sh + parser fixtures ([83db6d2](https://github.com/szTheory/chimeway/commit/83db6d25e8b41cf01e8fa9e312370b91ea3c9b88))
+* **87-01:** instrument lint lane end-to-end + Wave 0 contract test ([7e9367f](https://github.com/szTheory/chimeway/commit/7e9367f48aae497b754824798f5487845a8ec557))
+* **87-02:** instrument single-cache DB lanes with CI observability ([226d07e](https://github.com/szTheory/chimeway/commit/226d07e12712a1b02fe5bf66e5509ac1748070bb))
+* **87-02:** instrument special build lanes + fan contract test to all 14 lanes ([bf13e87](https://github.com/szTheory/chimeway/commit/bf13e87b4713c1911e9f128be44d306492877d58))
+* **87-02:** instrument two-cache demo-host lanes with CI observability ([14d7662](https://github.com/szTheory/chimeway/commit/14d76620f497c642f839486cb0fdf06b44989e50))
+* **87-03:** record pre-optimization CI baseline + OBS-04 contract assertion ([2d9af89](https://github.com/szTheory/chimeway/commit/2d9af897d9ab35609f6cde83e92395521a795f72))
+* **88-01:** add build compile-once producer job and wire lint as first restore-only consumer ([0813b1e](https://github.com/szTheory/chimeway/commit/0813b1eb0fe1c15ddebcc73d8b0f04d68ee08705))
+* **88-01:** convert install_golden_contract to consumer, add CACHE-03 warnings-as-errors compile ([e195bc1](https://github.com/szTheory/chimeway/commit/e195bc15987b71926f8145710f8d0207e97dd71e))
+* **88-02:** convert 7 default-graph lanes to shared restore-only consumers ([6b3af2f](https://github.com/szTheory/chimeway/commit/6b3af2f6d9f93455a4132bb4b9dc995a32acb888))
+* **88-02:** reschema 5 exception lanes onto distinct self-cached roles ([7068288](https://github.com/szTheory/chimeway/commit/706828894d053a2f97d0d937f141429a06eafb52))
+* **90-01:** add resolve_tiers setup job + event-conditional OTP matrix (TIER-03) ([76f4459](https://github.com/szTheory/chimeway/commit/76f445925f40597ae26ea060e82238682e6ac6ab))
+* **90-02:** relocate verify_admin to nightly-only + strip from ci-gate (TIER-02) ([0a619ae](https://github.com/szTheory/chimeway/commit/0a619ae526b254d82ae98fe8ea34d17149476392))
+* **90-03:** add nightly_cold_build + test_floor_1_17 jobs (TIER-01) ([d827306](https://github.com/szTheory/chimeway/commit/d82730672842e3c683114bd08d72c470fee30d58))
+* **90-03:** add nightly-gate aggregate job (TIER-04) ([211dd33](https://github.com/szTheory/chimeway/commit/211dd33faca53032d5c7f5d334a0b4269936aac7))
+* **91-01:** create .tool-versions and convert lint job (tracer) ([86edab6](https://github.com/szTheory/chimeway/commit/86edab64c7214f75b241b298280c9d3695a0f996))
+* **91-01:** fan out .tool-versions conversion to remaining 13 jobs ([8f010ed](https://github.com/szTheory/chimeway/commit/8f010ed392034751b75d742dab92aa29d6cb9e39))
+* **91-02:** add Dependabot config for mix + github-actions ([8c7aef0](https://github.com/szTheory/chimeway/commit/8c7aef0e8a8b7915001972c03b9ebac0cbd11aa3))
+* **91-02:** add mix_audit dep and extend ci.audit alias ([4c039a5](https://github.com/szTheory/chimeway/commit/4c039a586ade68ce588d925eaba141d487bcaeda))
+* **91-03:** gate the 1.17 floor on push and nightly, not just nightly ([309203a](https://github.com/szTheory/chimeway/commit/309203a39b5bab61017b82ef4dd299337b5a5d48))
+* **91-03:** least-privilege GITHUB_TOKEN permissions in ci.yml ([ec90ccc](https://github.com/szTheory/chimeway/commit/ec90cccc0fd6ddff54e5a5097938c9f304c2409e))
+* **92-02:** add reliability-report.sh + fixture-backed parser contract test ([596361f](https://github.com/szTheory/chimeway/commit/596361f6387dab75f0107478ff04348fd10d1706))
+* **92-03:** add nightly test_seed_zero ordering guard + wire nightly-gate ([6a81d15](https://github.com/szTheory/chimeway/commit/6a81d1596fb30a177c965ce0dfcac0321c44cd35))
+
+
+### Bug Fixes
+
+* **92-01:** collapse chained Enum.filter in REL-04 guard (credo --strict) ([eff0ba4](https://github.com/szTheory/chimeway/commit/eff0ba43b08e53cd08a395d970f019538e7a6cbe))
+* **92-03:** mix format release_gate_contract_test signature (ci.lint green) ([2fdbea2](https://github.com/szTheory/chimeway/commit/2fdbea250a2103dba6c9273c036bacba6862c428))
+
+
+### Performance Improvements
+
+* **88:** restore source mtimes before compile to fix warm recompile (experiment: build + install_golden) ([93a4214](https://github.com/szTheory/chimeway/commit/93a42148354d21adfc9103494655c03419a68ece))
+* **ci:** drop compile-once producer, per-lane self-cache to undo warm regression ([bbee487](https://github.com/szTheory/chimeway/commit/bbee48701dd25a376fd6af9e98858f31dcd3b2ac))
+
 ## [1.1.1](https://github.com/szTheory/chimeway/compare/v1.1.0...v1.1.1) (2026-07-28)
 
 
