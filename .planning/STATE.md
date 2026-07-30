@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 current_phase: 91
-current_phase_name: Quality & Supply-Chain Polish
+current_phase_name: quality-supply-chain-polish
 status: executing
-stopped_at: Phase 91 context gathered (assumptions mode)
-last_updated: "2026-07-30T05:38:46.075Z"
+stopped_at: Completed 91-01-PLAN.md
+last_updated: "2026-07-30T14:14:57.174Z"
 last_activity: 2026-07-30
-last_activity_desc: Phase 90 complete, transitioned to Phase 91
+last_activity_desc: Phase 91 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 67
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 90 — pipeline-tiering-pr-main-nightly
+**Current focus:** Phase 91 — quality-supply-chain-polish
 
 ## Current Position
 
-Phase: 91 — Quality & Supply-Chain Polish
-Plan: Not started
+Phase: 91 (quality-supply-chain-polish) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-30 — Phase 90 complete, transitioned to Phase 91
+Last activity: 2026-07-30 -- Phase 91 execution started
 
 ## Deferred Items
 
@@ -266,6 +266,8 @@ status: complete
 - [Phase ?]: [90-03]: nightly_cold_build (no cache step, elixir 1.19/otp 27) + test_floor_1_17 (elixir 1.17/otp 27, test-floor- cache key) complete TIER-01's cold-build + 1.17-floor legs; nightly-gate aggregates nightly_cold_build/test/test_floor_1_17/verify_admin via aggregate-gate.sh (TIER-04), kept LAST in ci.yml, ci-gate untouched at 13 lanes.
 - [Phase ?]: [90-03]: Proven live — run_nightly=true dispatch run 30512184143 GREEN (Resolve tier flags, Test OTP 26+27, Nightly cold build, Test 1.17 floor, Admin integration gate, nightly-gate, ci-gate all success, 0 cancelled/failure); PR-path run 30512220386 ran exactly ONE executed Test( leg (OTP 27), no OTP 26 (TIER-03).
 - [Phase ?]: [90-03]: extract_ci_job_block boundary regex widened from [a-z_]+ to [a-z0-9_]+ in both contract-test files so digit-bearing job ids (test_floor_1_17) are recognized as block boundaries and don't over-capture (Rule 1 latent-bug fix).
+- [Phase ?]: [91-01]: erlang pin is 27.3.4.15, not research's 27.3.4 — setup-beam strict lookup is an exact-key match against erlef's precompiled build tag (verified via source + builds.hex.pm + two live green main run logs)
+- [Phase ?]: [91-01]: Task 1 tracer's live-CI checkpoint deferred per orchestrator override for this run; backstop recorded as pending in WINDOWS.md ledger
 
 ## Performance
 
@@ -579,9 +581,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-30T04:45:59.026Z
-Stopped at: Phase 91 context gathered (assumptions mode)
-Resume file: .planning/phases/91-quality-supply-chain-polish/91-CONTEXT.md
+Last session: 2026-07-30T14:14:57.165Z
+Stopped at: Completed 91-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -671,3 +673,4 @@ Resume file: .planning/phases/91-quality-supply-chain-polish/91-CONTEXT.md
 | Phase 90 P01 | 18 min | 2 tasks | 2 files |
 | Phase 90 P02 | 22 min | 2 tasks | 2 files |
 | Phase 90 P03 | 30 min | 3 tasks | 3 files |
+| Phase 91 P01 | 3 min | 2 tasks | 2 files |

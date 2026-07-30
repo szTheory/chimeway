@@ -38,7 +38,7 @@
 
 ### QUAL — Quality & Supply-Chain Polish (Phase 91)
 
-- [ ] **QUAL-01**: `.tool-versions` is the single toolchain source and feeds `setup-beam` (`version-file:`) and the cache keys.
+- [x] **QUAL-01**: `.tool-versions` is the single toolchain source and feeds `setup-beam` (`version-file:`) and the cache keys.
 - [ ] **QUAL-02**: `.github/dependabot.yml` covers `mix` and `github-actions`.
 - [ ] **QUAL-03**: `ci.yml` declares top-level least-privilege `permissions: contents: read` (jobs escalate only where needed).
 - [ ] **QUAL-04**: `mix_audit` runs (advisory-only, matching the deliberate `hex.audit` posture) as a real advisory-DB scan.

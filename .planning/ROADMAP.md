@@ -155,7 +155,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 91-01-PLAN.md — QUAL-01 tracer: `.tool-versions` single source + convert 14 setup-beam jobs to `version-file:` strict (matrix + 1.17 floor stay pinned)
+- [x] 91-01-PLAN.md — QUAL-01 tracer: `.tool-versions` single source + convert 14 setup-beam jobs to `version-file:` strict (matrix + 1.17 floor stay pinned)
 - [ ] 91-02-PLAN.md — QUAL-02 + QUAL-04: `.github/dependabot.yml` (mix + github-actions) and `mix_audit` advisory scan (`ci.audit` = hex.audit + deps.audit)
 
 **Wave 2** *(blocked on Wave 1 completion)*
