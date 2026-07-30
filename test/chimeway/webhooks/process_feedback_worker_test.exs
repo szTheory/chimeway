@@ -1,5 +1,5 @@
 defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
   use Oban.Testing, repo: Chimeway.Repo
 
   alias Chimeway.{Deliveries, Repo}

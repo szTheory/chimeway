@@ -1,5 +1,5 @@
 defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   alias Chimeway.{Delivery, DeliveryPlanning, Repo, Trigger}
   alias Chimeway.Events.Event
