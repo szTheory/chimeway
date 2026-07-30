@@ -42,7 +42,7 @@
 - [x] **Phase 89: Test-Lane Concurrency** — Flip ~32 pure-DB DataCase files to async, size the pool, enforce warnings-as-errors, and shake out ordering coupling across seeds
 - [x] **Phase 90: Pipeline Tiering (PR/main/nightly)** — Add a `schedule:` nightly tier (cold build, full OTP matrix, 1.17 floor leg, heavy Playwright lane); PR path stays single-OTP (completed 2026-07-30)
 - [x] **Phase 91: Quality & Supply-Chain Polish** — `.tool-versions`, dependabot, least-privilege permissions, advisory `mix_audit`, and closing the CI↔release Elixir skew (completed 2026-07-30)
-- [ ] **Phase 92: Reliability Triage & Determinism** — Measure real-vs-flaky rate, close the two CI-only backlog issues, keep seed determinism, and add a put_env capture/restore helper
+- [x] **Phase 92: Reliability Triage & Determinism** — Measure real-vs-flaky rate, close the two CI-only backlog issues, keep seed determinism, and add a put_env capture/restore helper (completed 2026-07-30)
 
 ### Phase 87: CI Observability & Cache Diagnostics
 
@@ -247,7 +247,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
 | 90. Pipeline Tiering (PR/main/nightly) | 3/3 | Complete   | 2026-07-30 |
 | 91. Quality & Supply-Chain Polish | 3/3 | Complete   | 2026-07-30 |
-| 92. Reliability Triage & Determinism | 2/3 | In Progress|  |
+| 92. Reliability Triage & Determinism | 3/3 | Complete    | 2026-07-30 |
 
 ---
 *Roadmap updated: 2026-07-29 — v1.16 CI/CD Performance & Reliability milestone initialized (Phases 87-92, continued numbering from Phase 86); 26/26 requirements mapped (OBS/CACHE/CONC/TIER/QUAL/REL). Doc/config/CI-only invariant. Next: /gsd-plan-phase 87.*
