@@ -525,6 +525,55 @@
 
 ---
 
+## Milestone: v1.16 — CI/CD Performance & Reliability
+
+**Shipped:** 2026-07-30 (override_closeout, accepted-risk)
+**Phases:** 6 (87-92) | **Plans:** 21 | **Requirements:** 25/26 (CACHE-05 deferred)
+
+### What Was Built
+
+- CI observability across all 14 build lanes — per-job cache hit/miss + deps/app recompile counts + per-step timing to `$GITHUB_STEP_SUMMARY` (`obs-*.sh`, whitelist-only), 31-test contract, durable baseline in `CI-PERF-BASELINE.md` (OBS-01..04).
+- Cache **correctness** — fixed the `MIX_ENV`-absent write-once key collision; keys standardized on env + resolved OTP/Elixir + root `mix.lock`; source `deps` split from compiled `build-test`; shared warm key for plain-hex lanes; producer `build` job + restore-only consumers + attributed compile before `ecto.create` (CACHE-01..04). Warm caches proven HIT.
+- Test-lane concurrency — ~20 pure-DB `DataCase` modules → `async: true` (mutators stay serial), explicit pool, `--warnings-as-errors` parity; no ordering coupling (3 green random-seed CI runs + `--seed 0`) (CONC-01..04).
+- Pipeline tiering — `resolve_tiers` `fromJSON()` OTP matrix (PR single-{27}; push/nightly {26,27}); `verify_admin` + cold-build + 1.17-floor moved to a `schedule`/dispatch nightly tier with `nightly-gate`; `ci-gate` 14→13 lanes (TIER-01..04).
+- Quality & supply-chain — `.tool-versions` strict SSOT, Dependabot (mix+actions), least-privilege token, dual hex+deps audit, CI↔release 1.17 skew closed; 5/5 by automated live-CI assertion; `threats_open: 0` (QUAL-01..05).
+- Reliability & determinism — `reliability-report.sh` (6% flake rate / 10-run green streak), nightly `test_seed_zero`, `put_env_isolated/3` helper + no-bare-`put_env` async guard, backlog #2/#3 verified-fixed + #4 closed (REL-01..04).
+
+### What Worked
+
+- **Automated live-CI UAT (shift-left).** Phases 91/92 proved requirements by pushing and asserting run logs via `gh`/`/jobs` API pinned to the phase HEAD SHA — 0 human UAT, and the pin caught that proofs must be on the phase's actual code, not an ancestor.
+- **Honest deferral over green-washing.** Phase 88 measured the compile-once win, found a regression, and recorded the delta as a regression (not a fabricated pass), then the owner made an explicit bank-correctness/defer-speed decision. The milestone close carries CACHE-05 as a visible accepted-risk gap.
+- **Contract tests as structural locks.** `release_gate_contract_test.exs` + `ci_observability_contract_test.exs` (140+ assertions) caught lane-count/wiring drift on every tiering and permissions change, so pipeline surgery never silently dropped a gate.
+- **The OBS baseline paid for itself.** Recording the pre-optimization facts in Phase 87 first meant every later claim (and the CACHE-05 regression) was provable by a run-link delta rather than a feeling.
+
+### What Was Inefficient
+
+- **The headline goal was mis-scoped as achievable within cache correctness.** The sub-3-min target assumed fixing the cache key would warm `_build`; the real cost was `ex_cldr`/rebar/`_build`-split rebuilds that a correct cache doesn't touch. Two phases (88 async-cache, 89 concurrency) each independently discovered they were *not* the wall-clock lever. The perf lever (compile-once) was never isolated before being committed to as the milestone headline.
+- **Verification-artifact drift recurred (same lesson as v1.14/v1.15).** Phases 88/89 shipped without a `VERIFICATION.md`, and ROADMAP/REQUIREMENTS bookkeeping showed them "Not started" despite complete SUMMARY sets — so the milestone-close readiness scan computed `all_phases_verified=false` and STATE miscounted. The substance was done; the terminal-status hygiene wasn't.
+- **Wall-clock did not improve** — the milestone's stated reason-for-being (collapse ~6.5min → <3min) was not delivered; it produced correctness, observability, tiering, and supply-chain wins instead. Real value, wrong headline.
+
+### Patterns Established
+
+- Live-CI backstops are verified by pushing + asserting run logs pinned to the phase HEAD SHA (`gh run`/`/jobs`), never by human inspection — and the pin is checked so a proof can't cite an ancestor commit.
+- A measured optimization that regresses is recorded as a regression in the delta ledger with an owner defer/bank decision — the checkpoint is never green-washed to "win".
+- Pipeline structure (lane count, needs-lists, tier gating) is locked by contract tests so every workflow edit that changes the gate set fails loudly.
+- Toolchain versions have exactly one source (`.tool-versions`, `version-type: strict`) feeding both `setup-beam` and cache keys — no duplicated pins in `ci.yml`.
+
+### Key Lessons
+
+1. **Isolate the actual bottleneck with a spike before naming it the milestone headline.** "Fix caching → sub-3min" conflated cache *correctness* (real bug, fixed) with compile *cost* (untouched by the cache fix). A one-day compile-once spike up front would have re-scoped the milestone honestly.
+2. **A correct cache is not a fast pipeline.** Warm caches HIT and still regressed wall-clock because the serial producer recompiles deps the split cache doesn't restore — measure recompile counts, not just hit/miss.
+3. **Verification frontmatter + roadmap status is a recurring close-time footgun** (third milestone running). Phases that are substantively done but lack a `VERIFICATION.md` or carry a stale "Not started" checkbox inflate apparent milestone risk and force a manual reconciliation at close.
+4. **Concurrency ≠ speed when the serial tail dominates.** The async flip parallelized ~4s of a ~130s suite; the win was correctness/parity, and that was named honestly rather than sold as a wall-clock improvement.
+
+### Cost Observations
+
+- Model mix: not instrumented for this milestone
+- Sessions: phases 87-92 executed 2026-07-28 → 2026-07-30
+- Notable: 25/26 requirements; override_closeout with CACHE-05 (the headline sub-3-min target) deferred to the compile-once spike (`CI-HARDENING-BACKLOG.md` #4). Phases 88/89 have no `VERIFICATION.md` (proof-in-summary, accepted). Corrected stale ROADMAP/REQUIREMENTS bookkeeping at close. The milestone delivered correctness/observability/tiering/supply-chain/reliability value but **not** its stated wall-clock goal.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
