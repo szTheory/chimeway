@@ -160,7 +160,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 91-03-PLAN.md — QUAL-03 + QUAL-05: top-level least-privilege `permissions` + `run_floor` wiring so the 1.17 floor gates on push
+- [x] 91-03-PLAN.md — QUAL-03 + QUAL-05: top-level least-privilege `permissions` + `run_floor` wiring so the 1.17 floor gates on push
 
 ### Phase 92: Reliability Triage & Determinism
 
@@ -237,7 +237,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 88. Cache Correctness & Compile-Once | 0/TBD | Not started | - |
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
 | 90. Pipeline Tiering (PR/main/nightly) | 3/3 | Complete   | 2026-07-30 |
-| 91. Quality & Supply-Chain Polish | 0/TBD | Not started | - |
+| 91. Quality & Supply-Chain Polish | 3/3 | Complete   | 2026-07-30 |
 | 92. Reliability Triage & Determinism | 0/TBD | Not started | - |
 
 ---

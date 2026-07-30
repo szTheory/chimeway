@@ -2,19 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
-current_phase: 91
-current_phase_name: quality-supply-chain-polish
-status: executing
-stopped_at: Completed 91-02-PLAN.md
-last_updated: "2026-07-30T14:20:25.285Z"
+status: verifying
+stopped_at: Completed 91-03-PLAN.md
+last_updated: "2026-07-30T14:38:28.208Z"
 last_activity: 2026-07-30
-last_activity_desc: Phase 91 execution started
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 18
-  completed_plans: 17
-  percent: 67
+  completed_plans: 18
+  percent: 83
 ---
 
 # Project State
@@ -30,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 91 (quality-supply-chain-polish) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-30 -- Phase 91 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-07-30
 
 ## Deferred Items
 
@@ -270,6 +267,9 @@ status: complete
 - [Phase ?]: [91-01]: Task 1 tracer's live-CI checkpoint deferred per orchestrator override for this run; backstop recorded as pending in WINDOWS.md ledger
 - [Phase ?]: [91-02]: mix_audit ~> 2.1 confirmed current (resolves 2.1.5); Dependabot cosmetics left at defaults per Claude's Discretion
 - [Phase ?]: [91-02]: CI advisory-audit step (continue-on-error: true) verified read-only, untouched — D-12 advisory-only posture preserved
+- [Phase ?]: [91-03]: run_floor mirrors ci-gate's own run condition (event != pull_request) so the 1.17 floor is never skipped when ci-gate evaluates TEST_FLOOR_1_17 — structural PR-skip-as-pass, not a softened aggregate-gate.sh (D-15)
+- [Phase ?]: [91-03]: job-level permissions blocks always re-declare contents: read alongside actions: read since job-level permissions replaces (not merges with) the top-level default (D-08, Pitfall 3)
+- [Phase ?]: [91-03]: updated release_gate_contract_test.exs's stale Phase-90 assertions (13->14 ci-gate lanes, floor if: run_nightly->run_floor) as a Rule-1 deviation — the plan's own change made those assertions wrong
 
 ## Performance
 
@@ -583,8 +583,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-30T14:20:25.278Z
-Stopped at: Completed 91-02-PLAN.md
+Last session: 2026-07-30T14:38:28.203Z
+Stopped at: Completed 91-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -677,3 +677,4 @@ Resume file: None
 | Phase 90 P03 | 30 min | 3 tasks | 3 files |
 | Phase 91 P01 | 3 min | 2 tasks | 2 files |
 | Phase 91 P02 | 8min | 2 tasks | 3 files |
+| Phase 91 P03 | ~10 min | 2 tasks | 2 files |
