@@ -223,7 +223,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 87. CI Observability & Cache Diagnostics | 3/3 | Complete    | 2026-07-29 |
 | 88. Cache Correctness & Compile-Once | 0/TBD | Not started | - |
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
-| 90. Pipeline Tiering (PR/main/nightly) | 0/3 | Not started | - |
+| 90. Pipeline Tiering (PR/main/nightly) | 0/3 | Planned    |  |
 | 91. Quality & Supply-Chain Polish | 0/TBD | Not started | - |
 | 92. Reliability Triage & Determinism | 0/TBD | Not started | - |
 

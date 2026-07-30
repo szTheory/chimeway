@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: executing
-stopped_at: Phase 88 closed partial 2026-07-29 — correctness (CACHE-01/02/03/04) delivered & merged (caches HIT, collision fixed, 129 tests green); CACHE-05 compile-once deferred (warm ci-gate regressed 373s->648s; ex_cldr rebuilds once/restore + rebar deps every run). Owner banked correctness, spike filed.
-last_updated: "2026-07-30T02:56:02.441Z"
-last_activity: 2026-07-30 -- Phase 90 planning complete
+stopped_at: "Completed 90-01-PLAN.md (tracer: resolve_tiers + event-conditional OTP matrix, proven live on run 30510307057)"
+last_updated: "2026-07-30T03:15:56.185Z"
+last_activity: 2026-07-30
 progress:
   total_phases: 6
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 89 — test-lane concurrency (async conversion)
+**Current focus:** Phase 90 — pipeline-tiering-pr-main-nightly
 
 ## Current Position
 
-Phase: 89
-Plan: 89-01 ✓ (tracer: pool + first flip), 89-02/03/04 ✓ (19 fan-out flips), 89-05 ✓ (ci.test --warnings-as-errors + negative proof + contract guard), 89-06 ✓ (CONC-04: 3 consecutive green CI runs + local --seed 0)
+Phase: 90 (pipeline-tiering-pr-main-nightly) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-30 -- Phase 90 planning complete
+Last activity: 2026-07-30
 
 ## Deferred Items
 
@@ -257,6 +257,8 @@ status: complete
 - [Phase ?]: [87-02]: @build_lanes mirrors release_gate_contract_test.exs's @ci_gate_lanes exactly (14 lanes incl. lint)
 - [Phase ?]: [87-03]: Baseline run permalink is the pre-Phase-87 main run at commit 8ce347e (actions/runs/30410779443), resolved via gh run list — never a placeholder
 - [Phase ?]: [87-03]: Task 2's live-render confirmation run (30416472070, post-instrumentation) is deliberately NOT written into CI-PERF-BASELINE.md's Run: field — that field stays fixed at the pre-optimization reference point for the whole v1.16 milestone
+- [Phase ?]: [90-01]: resolve_tiers is a bare setup job (no checkout) emitting run_nightly + otp_matrix JSON outputs; test's OTP matrix consumes it via fromJSON — PR runs OTP 27 only, push/schedule/dispatch run 26+27.
+- [Phase ?]: [90-01]: concurrency group keyed on github.event_name with cancel-in-progress scoped to pull_request only, so a push can never cancel an in-flight nightly run (Pitfall 2 / T-90-04).
 
 ## Performance
 
@@ -570,9 +572,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-29T03:30:29.728Z
-Stopped at: Phase 88 closed partial 2026-07-29 — correctness (CACHE-01/02/03/04) delivered & merged (caches HIT, collision fixed, 129 tests green); CACHE-05 compile-once deferred (warm ci-gate regressed 373s->648s; ex_cldr rebuilds once/restore + rebar deps every run). Owner banked correctness, spike filed.
-Resume file: .planning/CI-HARDENING-BACKLOG.md (#4 compile-once spike)
+Last session: 2026-07-30T03:15:56.180Z
+Stopped at: Completed 90-01-PLAN.md (tracer: resolve_tiers + event-conditional OTP matrix, proven live on run 30510307057)
+Resume file: None
 
 ## Operator Next Steps
 
@@ -659,3 +661,4 @@ Resume file: .planning/CI-HARDENING-BACKLOG.md (#4 compile-once spike)
 | Phase 87 P01 | 12min | 2 tasks | 8 files |
 | Phase 87 P02 | 9min | 3 tasks | 2 files |
 | Phase 87 P03 | 6min | 2 tasks | 2 files |
+| Phase 90 P01 | 18 min | 2 tasks | 2 files |
