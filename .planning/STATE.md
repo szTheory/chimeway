@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
 status: executing
-stopped_at: "Completed 90-01-PLAN.md (tracer: resolve_tiers + event-conditional OTP matrix, proven live on run 30510307057)"
-last_updated: "2026-07-30T03:15:56.185Z"
+stopped_at: Completed 90-02-PLAN.md (verify_admin nightly-only + ci-gate 13-lane, proven live on runs 30510922206 skipped / 30511329087 success)
+last_updated: "2026-07-30T03:39:16.452Z"
 last_activity: 2026-07-30
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 14
   percent: 50
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 ## Current Position
 
 Phase: 90 (pipeline-tiering-pr-main-nightly) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-30
 
@@ -259,6 +259,7 @@ status: complete
 - [Phase ?]: [87-03]: Task 2's live-render confirmation run (30416472070, post-instrumentation) is deliberately NOT written into CI-PERF-BASELINE.md's Run: field — that field stays fixed at the pre-optimization reference point for the whole v1.16 milestone
 - [Phase ?]: [90-01]: resolve_tiers is a bare setup job (no checkout) emitting run_nightly + otp_matrix JSON outputs; test's OTP matrix consumes it via fromJSON — PR runs OTP 27 only, push/schedule/dispatch run 26+27.
 - [Phase ?]: [90-01]: concurrency group keyed on github.event_name with cancel-in-progress scoped to pull_request only, so a push can never cancel an in-flight nightly run (Pitfall 2 / T-90-04).
+- [Phase ?]: [90-02]: verify_admin relocated to nightly tier (needs.resolve_tiers.outputs.run_nightly=='true'); ci-gate needs-list + @ci_gate_lanes reduced 14->13 in one atomic commit (Pitfall 1). Proven live: skipped on plain dispatch run 30510922206, success on run_nightly=true dispatch run 30511329087, ci-gate green in both.
 
 ## Performance
 
@@ -572,8 +573,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-30T03:15:56.180Z
-Stopped at: Completed 90-01-PLAN.md (tracer: resolve_tiers + event-conditional OTP matrix, proven live on run 30510307057)
+Last session: 2026-07-30T03:39:16.446Z
+Stopped at: Completed 90-02-PLAN.md (verify_admin nightly-only + ci-gate 13-lane, proven live on runs 30510922206 skipped / 30511329087 success)
 Resume file: None
 
 ## Operator Next Steps
@@ -662,3 +663,4 @@ Resume file: None
 | Phase 87 P02 | 9min | 3 tasks | 2 files |
 | Phase 87 P03 | 6min | 2 tasks | 2 files |
 | Phase 90 P01 | 18 min | 2 tasks | 2 files |
+| Phase 90 P02 | 22 min | 2 tasks | 2 files |

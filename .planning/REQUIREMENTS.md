@@ -32,7 +32,7 @@
 ### TIER — Pipeline Tiering (PR / main / nightly) (Phase 90)
 
 - [ ] **TIER-01**: A `schedule:` nightly tier exists that runs one full **cold** build, the full OTP {26,27} matrix, and a 1.17 floor leg (honoring `mix.exs` `~> 1.17`).
-- [ ] **TIER-02**: The heavy Playwright `verify_admin` lane runs on the nightly tier.
+- [x] **TIER-02**: The heavy Playwright `verify_admin` lane runs on the nightly tier.
 - [x] **TIER-03**: The PR path runs a single OTP version (27); push and nightly run the full matrix.
 - [ ] **TIER-04**: A nightly aggregate gate mirrors `ci-gate` decision semantics for the relocated lanes.
 
