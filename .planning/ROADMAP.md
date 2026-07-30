@@ -181,7 +181,7 @@ Plans:
 
 **Wave 1** *(tracer)*
 
-- [ ] 92-01-PLAN.md — REL-04 tracer: `Chimeway.TestSupport.EnvHelper.put_env_isolated/3` capture/restore helper + unit test + adopt in the one async DataCase hazard (`policy_test.exs`) + no-bare-put_env adoption contract (end-to-end slice)
+- [x] 92-01-PLAN.md — REL-04 tracer: `Chimeway.TestSupport.EnvHelper.put_env_isolated/3` capture/restore helper + unit test + adopt in the one async DataCase hazard (`policy_test.exs`) + no-bare-put_env adoption contract (end-to-end slice)
 
 **Wave 2** *(blocked on Wave 1; parallel, no file overlap)*
 
