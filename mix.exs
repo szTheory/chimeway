@@ -73,7 +73,7 @@ defmodule Chimeway.MixProject do
 
       # Test lane (mailglass/accrue/threadline/sigra excluded — run mix verify.* separately, GATE-04/05/07)
       "ci.test": [
-        "cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude threadline --exclude sigra"
+        "cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude threadline --exclude sigra --warnings-as-errors"
       ],
 
       # Docs gate: fails on undocumented public functions
