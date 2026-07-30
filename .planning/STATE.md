@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
-status: executing
-stopped_at: Completed 90-02-PLAN.md (verify_admin nightly-only + ci-gate 13-lane, proven live on runs 30510922206 skipped / 30511329087 success)
-last_updated: "2026-07-30T03:39:16.452Z"
+status: verifying
+stopped_at: Completed 90-03-PLAN.md — Phase 90 nightly tier complete, proven live (dispatch 30512184143 green, PR-path 30512220386 single-OTP)
+last_updated: "2026-07-30T04:01:05.096Z"
 last_activity: 2026-07-30
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
   percent: 50
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 90 (pipeline-tiering-pr-main-nightly) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-30
 
 ## Deferred Items
@@ -260,6 +260,9 @@ status: complete
 - [Phase ?]: [90-01]: resolve_tiers is a bare setup job (no checkout) emitting run_nightly + otp_matrix JSON outputs; test's OTP matrix consumes it via fromJSON — PR runs OTP 27 only, push/schedule/dispatch run 26+27.
 - [Phase ?]: [90-01]: concurrency group keyed on github.event_name with cancel-in-progress scoped to pull_request only, so a push can never cancel an in-flight nightly run (Pitfall 2 / T-90-04).
 - [Phase ?]: [90-02]: verify_admin relocated to nightly tier (needs.resolve_tiers.outputs.run_nightly=='true'); ci-gate needs-list + @ci_gate_lanes reduced 14->13 in one atomic commit (Pitfall 1). Proven live: skipped on plain dispatch run 30510922206, success on run_nightly=true dispatch run 30511329087, ci-gate green in both.
+- [Phase ?]: [90-03]: nightly_cold_build (no cache step, elixir 1.19/otp 27) + test_floor_1_17 (elixir 1.17/otp 27, test-floor- cache key) complete TIER-01's cold-build + 1.17-floor legs; nightly-gate aggregates nightly_cold_build/test/test_floor_1_17/verify_admin via aggregate-gate.sh (TIER-04), kept LAST in ci.yml, ci-gate untouched at 13 lanes.
+- [Phase ?]: [90-03]: Proven live — run_nightly=true dispatch run 30512184143 GREEN (Resolve tier flags, Test OTP 26+27, Nightly cold build, Test 1.17 floor, Admin integration gate, nightly-gate, ci-gate all success, 0 cancelled/failure); PR-path run 30512220386 ran exactly ONE executed Test( leg (OTP 27), no OTP 26 (TIER-03).
+- [Phase ?]: [90-03]: extract_ci_job_block boundary regex widened from [a-z_]+ to [a-z0-9_]+ in both contract-test files so digit-bearing job ids (test_floor_1_17) are recognized as block boundaries and don't over-capture (Rule 1 latent-bug fix).
 
 ## Performance
 
@@ -573,8 +576,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-30T03:39:16.446Z
-Stopped at: Completed 90-02-PLAN.md (verify_admin nightly-only + ci-gate 13-lane, proven live on runs 30510922206 skipped / 30511329087 success)
+Last session: 2026-07-30T04:01:05.092Z
+Stopped at: Completed 90-03-PLAN.md — Phase 90 nightly tier complete, proven live (dispatch 30512184143 green, PR-path 30512220386 single-OTP)
 Resume file: None
 
 ## Operator Next Steps
@@ -664,3 +667,4 @@ Resume file: None
 | Phase 87 P03 | 6min | 2 tasks | 2 files |
 | Phase 90 P01 | 18 min | 2 tasks | 2 files |
 | Phase 90 P02 | 22 min | 2 tasks | 2 files |
+| Phase 90 P03 | 30 min | 3 tasks | 3 files |

@@ -129,7 +129,7 @@ Plans:
 **Plans:** 3 plans
 - [x] 90-01-PLAN.md — Tracer: resolve_tiers setup job + event-conditional OTP matrix on test + Wave-0 contract backstop (TIER-03)
 - [x] 90-02-PLAN.md — Atomic fix: relocate verify_admin to nightly-only + strip from ci-gate + update lane-count contract, live-proven (TIER-02)
-- [ ] 90-03-PLAN.md — nightly_cold_build + test_floor_1_17 + nightly-gate + closing live nightly/PR-path proof (TIER-01, TIER-04)
+- [x] 90-03-PLAN.md — nightly_cold_build + test_floor_1_17 + nightly-gate + closing live nightly/PR-path proof (TIER-01, TIER-04)
 
 ### Phase 91: Quality & Supply-Chain Polish
 
@@ -223,7 +223,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 87. CI Observability & Cache Diagnostics | 3/3 | Complete    | 2026-07-29 |
 | 88. Cache Correctness & Compile-Once | 0/TBD | Not started | - |
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
-| 90. Pipeline Tiering (PR/main/nightly) | 2/3 | In Progress|  |
+| 90. Pipeline Tiering (PR/main/nightly) | 3/3 | Complete   | 2026-07-30 |
 | 91. Quality & Supply-Chain Polish | 0/TBD | Not started | - |
 | 92. Reliability Triage & Determinism | 0/TBD | Not started | - |
 

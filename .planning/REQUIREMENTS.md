@@ -31,10 +31,10 @@
 
 ### TIER — Pipeline Tiering (PR / main / nightly) (Phase 90)
 
-- [ ] **TIER-01**: A `schedule:` nightly tier exists that runs one full **cold** build, the full OTP {26,27} matrix, and a 1.17 floor leg (honoring `mix.exs` `~> 1.17`).
+- [x] **TIER-01**: A `schedule:` nightly tier exists that runs one full **cold** build, the full OTP {26,27} matrix, and a 1.17 floor leg (honoring `mix.exs` `~> 1.17`).
 - [x] **TIER-02**: The heavy Playwright `verify_admin` lane runs on the nightly tier.
 - [x] **TIER-03**: The PR path runs a single OTP version (27); push and nightly run the full matrix.
-- [ ] **TIER-04**: A nightly aggregate gate mirrors `ci-gate` decision semantics for the relocated lanes.
+- [x] **TIER-04**: A nightly aggregate gate mirrors `ci-gate` decision semantics for the relocated lanes.
 
 ### QUAL — Quality & Supply-Chain Polish (Phase 91)
 
@@ -79,7 +79,7 @@
 | OBS-01..04 | Phase 87 | Complete |
 | CACHE-01..05 | Phase 88 | Pending |
 | CONC-01..04 | Phase 89 | Complete |
-| TIER-01..04 | Phase 90 | Pending |
+| TIER-01..04 | Phase 90 | Complete |
 | QUAL-01..05 | Phase 91 | Pending |
 | REL-01..04 | Phase 92 | Pending |
 
