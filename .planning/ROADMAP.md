@@ -40,7 +40,7 @@
 - [x] **Phase 87: CI Observability & Cache Diagnostics** — Per-lane cache hit/miss, recompile counts, and step timing land in job summaries; pre-optimization baseline recorded for provable before/after deltas (completed 2026-07-29)
 - [ ] **Phase 88: Cache Correctness & Compile-Once** — Fix the MIX_ENV-absent cache-key collision, standardize keys, split deps from `_build`, de-fragment plain-hex lanes, and compile deps once via a producer job
 - [x] **Phase 89: Test-Lane Concurrency** — Flip ~32 pure-DB DataCase files to async, size the pool, enforce warnings-as-errors, and shake out ordering coupling across seeds
-- [ ] **Phase 90: Pipeline Tiering (PR/main/nightly)** — Add a `schedule:` nightly tier (cold build, full OTP matrix, 1.17 floor leg, heavy Playwright lane); PR path stays single-OTP
+- [x] **Phase 90: Pipeline Tiering (PR/main/nightly)** — Add a `schedule:` nightly tier (cold build, full OTP matrix, 1.17 floor leg, heavy Playwright lane); PR path stays single-OTP (completed 2026-07-30)
 - [ ] **Phase 91: Quality & Supply-Chain Polish** — `.tool-versions`, dependabot, least-privilege permissions, advisory `mix_audit`, and closing the CI↔release Elixir skew
 - [ ] **Phase 92: Reliability Triage & Determinism** — Measure real-vs-flaky rate, close the two CI-only backlog issues, keep seed determinism, and add a put_env capture/restore helper
 
@@ -82,6 +82,7 @@
 5. Two consecutive warm `main` runs against an identical `mix.lock` show near-zero dependency recompilation per the OBS probe from Phase 87, and warm `ci-gate` wall-clock is under ~3 minutes — provable by a run-link delta against the recorded baseline.
 
 **Plans:** 3 plans
+
 - [ ] 88-01-PLAN.md — Tracer: `build` producer job + `lint`/`install_golden` converted to restore-only consumers + CACHE-03 warnings-as-errors (wave 1)
 - [ ] 88-02-PLAN.md — Fan-out: 7 default-graph lanes → shared cache consumers; docs/OTP-matrix/partners reschemed to distinct self-cached roles; contract extended (wave 2)
 - [ ] 88-03-PLAN.md — Proof: fill the delta-ledger after-row + human-verify the warm-run compile-once win (near-zero dep recompile, sub-3-min ci-gate) (wave 3)
@@ -104,6 +105,7 @@
 **Plans:** 6 plans
 
 Plans:
+
 - [x] 89-01-PLAN.md — Tracer: size Chimeway.Repo test pool + flip signal_test.exs to async, prove the mechanism end-to-end
 - [x] 89-02-PLAN.md — Flip inbox-suite + digest + remaining top-level workflow DataCase modules to async (9 files)
 - [x] 89-03-PLAN.md — Flip orchestration + integration + remaining trigger/persistence DataCase modules to async (7 files)
@@ -126,7 +128,8 @@ Plans:
 3. The PR path (`pr-gate`) runs a single OTP version (27); only the push and nightly tiers run the full OTP matrix.
 4. A nightly aggregate gate job mirrors `ci-gate`'s pass/fail decision semantics for every lane relocated to the nightly tier, so a maintainer can tell from one job whether the nightly tier is green.
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
+
 - [x] 90-01-PLAN.md — Tracer: resolve_tiers setup job + event-conditional OTP matrix on test + Wave-0 contract backstop (TIER-03)
 - [x] 90-02-PLAN.md — Atomic fix: relocate verify_admin to nightly-only + strip from ci-gate + update lane-count contract, live-proven (TIER-02)
 - [x] 90-03-PLAN.md — nightly_cold_build + test_floor_1_17 + nightly-gate + closing live nightly/PR-path proof (TIER-01, TIER-04)
