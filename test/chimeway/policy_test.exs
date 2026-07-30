@@ -245,7 +245,7 @@ defmodule Chimeway.PolicyTest do
 
   describe "integration: policy enforcement at dispatch time" do
     test "preference disabled after enqueue suppresses delivery in Dispatch.Sync" do
-      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      Chimeway.TestSupport.EnvHelper.put_env_isolated(:chimeway, :adapter, Chimeway.Adapters.Test)
       Chimeway.Adapters.Test.clear()
 
       event = insert_event("late.disable")
@@ -276,7 +276,7 @@ defmodule Chimeway.PolicyTest do
     end
 
     test "full sync path: trigger → preference disabled → delivery suppressed, adapter never called" do
-      Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
+      Chimeway.TestSupport.EnvHelper.put_env_isolated(:chimeway, :adapter, Chimeway.Adapters.Test)
       Chimeway.Adapters.Test.clear()
 
       event = insert_event("sync.suppress")
