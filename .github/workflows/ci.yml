@@ -69,8 +69,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:

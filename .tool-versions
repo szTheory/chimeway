@@ -1,0 +1,10 @@
+# Source: erlef/setup-beam version-file requires strict, full-patch versions.
+# Values reproduce today's loose 1.19 / 27 resolution, captured from the latest
+# green main run (30524268555, 2026-07-30T07:50 UTC) via Setup BEAM logs.
+# NOTE: the OTP key is the exact build tag from builds.hex.pm (erlef precompiled
+# builds append a 4th "build" component beyond the OTP release patch) — the
+# strict-mode lookup in setup-beam is an exact map-key match against this string,
+# not a semver-style 27.3.4 prefix. Re-capture both values from the latest green
+# main run if a newer 1.19.x / 27.x has landed since.
+erlang 27.3.4.15
+elixir 1.19.5-otp-27
