@@ -472,9 +472,10 @@ defmodule Chimeway.ReleaseGateContractTest do
              "test_floor_1_17 must use its own test-floor- cache-key namespace"
     end
 
-    test "nightly-gate aggregates the five nightly lanes via aggregate-gate.sh (TIER-04/REL-03)", %{
-      ci_yml: ci_yml
-    } do
+    test "nightly-gate aggregates the five nightly lanes via aggregate-gate.sh (TIER-04/REL-03)",
+         %{
+           ci_yml: ci_yml
+         } do
       job_block = extract_ci_job_block(ci_yml, "nightly-gate")
 
       assert String.contains?(job_block, "scripts/ci/aggregate-gate.sh"),
