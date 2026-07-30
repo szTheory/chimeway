@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.16 CI/CD Performance & Reliability (Shipped: 2026-07-30)
+
+**Phases completed:** 6 phases (87–92), 21 plans. **Closeout:** override_closeout (accepted-risk). **Requirements delivered:** 25/26. **Scope:** doc/config/CI/test-only — zero `lib/` runtime changes across the milestone. Range: `feat(87-01)` (`83db6d2`) → `docs(phase-92)` (`e8a9936`); ~42 CI/config/test files, +2175/−145.
+
+**Known verification overrides:** 2 (see STATE.md Deferred Items) — CACHE-05 requirement deferred, and Phases 88/89 shipped without a formal VERIFICATION.md (proof lives in their 88-03/89-06 SUMMARYs + live CI runs).
+
+**Key accomplishments:**
+
+- **Phase 87 — Observability:** all 14 CI build lanes render a per-job cache hit/miss + deps/app recompile-count + per-step timing table to `$GITHUB_STEP_SUMMARY` (`obs-recompile.sh`/`obs-summary.sh`, whitelist-only), locked by a 31-test contract; durable pre-optimization baseline committed (`CI-PERF-BASELINE.md`, run permalink + delta ledger).
+- **Phase 88 — Cache correctness (CACHE-01..04):** fixed the `MIX_ENV`-absent write-once cache-key collision; keys standardized on env + resolved OTP/Elixir + root `mix.lock`; source `deps` split from compiled `build-test`; plain-hex lanes de-fragmented onto one shared warm key (partner lanes keep graph-specific keys); producer `build` job + restore-only consumers (`fail-on-cache-miss: true`) + attributed compile before `ecto.create`. Caches proven HIT on warm runs.
+- **Phase 89 — Test concurrency:** ~20 pure-DB `DataCase` modules → `async: true` (app-env/prefix mutators stay serial), explicit `Chimeway.Repo` `pool_size`, `ci.test --warnings-as-errors` parity; CONC-04 no-ordering-coupling proven by 3 green random-seed CI runs + a local ordered `--seed 0` run (1229 tests, 0 failures).
+- **Phase 90 — Pipeline tiering:** `resolve_tiers` setup job drives an event-conditional `fromJSON()` OTP matrix (PR single-{27}; push/nightly {26,27}); `verify_admin` + `nightly_cold_build` + `test_floor_1_17` relocated to a `schedule`/dispatch nightly tier with a `nightly-gate` aggregate; `ci-gate` 14→13 lanes. Proven live (nightly 30512184143, PR 30512220386).
+- **Phase 91 — Quality & supply-chain:** `.tool-versions` strict SSOT feeds all 14 `setup-beam` lanes + cache keys; Dependabot (mix + github-actions); top-level least-privilege `permissions: contents: read`; dual `hex.audit` + `deps.audit` advisory scan; CI↔release Elixir skew closed (1.17 floor gates on push). 5/5 by automated live-CI assertion (push 30556372077, nightly 30556417111, PR #10); secure-phase `threats_open: 0`.
+- **Phase 92 — Reliability & determinism:** `reliability-report.sh` classifies push-on-`main` `ci-gate` job conclusions (measured 6% failure rate / 10-run green streak, `CI-RELIABILITY-REPORT.md`); nightly-only `test_seed_zero` (`--seed 0`) wired into `nightly-gate`; `EnvHelper.put_env_isolated/3` capture/restore helper adopted with a no-bare-`put_env` async contract guard; backlog #2/#3 verified-fixed + tracking issue #4 closed. Verified 12/12; `ci-gate` fully green on phase HEAD `eff0ba43` (push 30573877353 + nightly 30573935421).
+
+### Known Gaps (accepted-risk)
+
+- **CACHE-05 DEFERRED → `CI-HARDENING-BACKLOG.md` #4 (compile-once spike).** The milestone's headline sub-3-min warm `ci-gate` target was **not** met: cache *correctness* shipped and proved out (warm caches HIT), but warm `ci-gate` wall-clock **regressed ~373s→~648s** because the serial `build` producer runs ahead of consumers that still recompile `ex_cldr` (~86s) + rebar deps + the ~93-file app. On-runner diagnosis is documented in `88-03-SUMMARY.md` (mtime disproven as cause). Owner decision 2026-07-29: bank the correctness win, relegate compile-once to a spike. First spike hypothesis: re-unify the `deps`+`_build` cache. **Also honest:** the Phase 89 async flip did not materially cut wall-clock either (the fast pure-DB modules are ~4s of a ~130s suite; the serial integration/mutator tests dominate) — concurrency was a correctness/parity win, not the speed lever.
+- **Phases 88 & 89 have no formal `VERIFICATION.md`** — the gsd-verifier never ran on them, so `init.manager` computed `all_phases_verified=false` at close. Their completion proof lives in `88-03-SUMMARY.md` (CACHE-01..04 delivered, CACHE-05 owner-deferred) and `89-06-SUMMARY.md` (full CONC-04 proof, 3 green CI runs + `--seed 0`), and downstream Phases 90–92 (which depend on 88/89) are themselves verified-green. Bookkeeping note: ROADMAP/REQUIREMENTS had shown 88/89 as "Not started" despite completion — corrected at close.
+
+---
+
 ## v1.15 Brand Identity & Brand Book (Shipped: 2026-07-28)
 
 **Phases completed:** 6 phases, 16 plans, 29 tasks

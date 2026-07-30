@@ -2,18 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
-current_phase: 92
-current_phase_name: reliability-triage-determinism
-status: milestone_complete
-stopped_at: Milestone complete (Phase 92 was final phase)
-last_updated: 2026-07-30T19:33:27.120Z
+status: Awaiting next milestone
+stopped_at: Completed 92-03-PLAN.md
+last_updated: "2026-07-30T19:58:15.410Z"
 last_activity: 2026-07-30
+last_activity_desc: Milestone v1.16 completed and archived
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 102
+  completed_phases: 6
+  total_plans: 21
   completed_plans: 21
-  percent: 67
+  percent: 100
+current_phase: 92
+current_phase_name: reliability-triage-determinism
 ---
 
 # Project State
@@ -27,12 +28,24 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: 92
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-07-30
+Phase: Milestone v1.16 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-30 — Milestone v1.16 completed and archived
 
 ## Deferred Items
+
+Items acknowledged and deferred at v1.16 milestone close on 2026-07-30 (override_closeout — accepted-risk):
+
+| Category | Item | Status |
+|----------|------|--------|
+| requirement | CACHE-05 (near-zero warm-run recompile + sub-3-min warm `ci-gate`) — cache correctness (CACHE-01..04) shipped & proven, but warm `ci-gate` regressed ~373s→~648s; deferred to compile-once spike (`CI-HARDENING-BACKLOG.md` #4) | owner-deferred 2026-07-29 (accepted-risk) |
+| verification | Phase 88 (no 88-VERIFICATION.md) — completion proof in `88-03-SUMMARY.md` (CACHE-01..04 delivered, CACHE-05 deferred); downstream 90–92 verified-green | proof-in-summary (accepted) |
+| verification | Phase 89 (no 89-VERIFICATION.md) — completion proof in `89-06-SUMMARY.md` (full CONC-04 proof: 3 green CI runs + `--seed 0`) | proof-in-summary (accepted) |
+
+**v1.16 note:** 25/26 requirements delivered; CACHE-05 is the sole deferral. ROADMAP/REQUIREMENTS had shown Phases 88/89 as "Not started 0/TBD" despite completion — corrected at close. The headline sub-3-min wall-clock was **not** achieved (documented honestly in `88-03`/`89-06` summaries); the compile-once spike (backlog #4) is the top carried-forward item.
+
+---
 
 Items acknowledged and deferred at v1.15 milestone close on 2026-07-28 (override_closeout):
 
@@ -600,8 +613,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Phase 88 merged (correctness only). Compile-once (CACHE-05) is deferred to CI-HARDENING-BACKLOG #4 — spike the unified deps+_build cache hypothesis first (kills the ~86s ex_cldr rebuild-once-per-restore); if the producer split still doesn't pay off, consider reverting the build producer + needs:[build] wiring to baseline timing.
-- Decide milestone continuation: Phases 89-92 (CONC/TIER/QUAL/REL) remain; note the warm-perf regression currently on main (373s->648s) when prioritizing.
+- Start the next milestone with /gsd-new-milestone
 
 ## Performance Metrics
 
