@@ -5,12 +5,23 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 7 * * *"
   workflow_dispatch:
     # Dispatched by release.yml when a Release PR is open but bot pushes skip pull_request CI.
+    # On-demand nightly tier (cold build, full OTP matrix, 1.17 floor, verify_admin) without
+    # waiting for the 07:00 UTC cron:
+    #   gh workflow run ci.yml --ref <branch> -f run_nightly=true
+    inputs:
+      run_nightly:
+        description: "Run the nightly tier on this dispatch (cold build, full OTP matrix, 1.17 floor, verify_admin)."
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Uniform Postgres credentials for every lane. Partner TestRepos
 # (Mailglass/Accrue/Threadline/Sigra) derive their user/password from these
@@ -23,6 +34,31 @@ env:
   PGHOST: localhost
 
 jobs:
+  resolve_tiers:
+    name: Resolve tier flags
+    runs-on: ubuntu-latest
+    outputs:
+      run_nightly: ${{ steps.flags.outputs.run_nightly }}
+      otp_matrix: ${{ steps.flags.outputs.otp_matrix }}
+    steps:
+      - id: flags
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo 'otp_matrix=["27"]' >>"$GITHUB_OUTPUT"
+          else
+            echo 'otp_matrix=["26","27"]' >>"$GITHUB_OUTPUT"
+          fi
+
+          if [ "${{ github.event_name }}" = "schedule" ] || \
+             { [ "${{ github.event_name }}" = "workflow_dispatch" ] && \
+               [ "${{ github.event.inputs.run_nightly }}" = "true" ]; }; then
+            echo "run_nightly=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "run_nightly=false" >>"$GITHUB_OUTPUT"
+          fi
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -169,11 +205,12 @@ jobs:
   test:
     name: Test (Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }})
     runs-on: ubuntu-latest
+    needs: [resolve_tiers]
     strategy:
       fail-fast: false
       matrix:
         elixir: ["1.19"]
-        otp: ["26", "27"]
+        otp: ${{ fromJSON(needs.resolve_tiers.outputs.otp_matrix) }}
     services:
       postgres:
         image: postgres:15
