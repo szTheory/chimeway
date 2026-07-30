@@ -153,8 +153,13 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 91-01-PLAN.md — QUAL-01 tracer: `.tool-versions` single source + convert 14 setup-beam jobs to `version-file:` strict (matrix + 1.17 floor stay pinned)
 - [ ] 91-02-PLAN.md — QUAL-02 + QUAL-04: `.github/dependabot.yml` (mix + github-actions) and `mix_audit` advisory scan (`ci.audit` = hex.audit + deps.audit)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 91-03-PLAN.md — QUAL-03 + QUAL-05: top-level least-privilege `permissions` + `run_floor` wiring so the 1.17 floor gates on push
 
 ### Phase 92: Reliability Triage & Determinism
