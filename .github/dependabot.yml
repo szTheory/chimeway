@@ -1,0 +1,18 @@
+# Source: docs.github.com dependabot-options-reference (version: 2 schema)
+# QUAL-02 (D-05/D-06): weekly, grouped minor/patch update PRs for both ecosystems.
+version: 2
+updates:
+  - package-ecosystem: "mix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      mix-minor-patch:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/" # scans .github/workflows + any root action.yml
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
