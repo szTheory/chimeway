@@ -356,18 +356,23 @@ gh issue create --title "CI-only: demo.up --check dev-DB/timeout hardening" \
 | A2 | Only `policy_test.exs` is an `async: true` DataCase module that mutates global app-env (grep found exactly one) | REL-04 | LOW — grep was exhaustive over `test/`; if another exists it just adds one adoption site |
 | A3 | The current 11/11 green window persists through the phase's own commits (docs/CI/test commits won't themselves flake) | REL-01 | LOW — the phase adds no `lib/` changes; the re-runnable script re-measures on demand |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+_All three resolved at planning (2026-07-30); each recommendation is implemented by a Phase 92 plan._
 
 1. **Should the REL-01 report run *in* CI or as a maintainer-run script?**
    - What we know: `obs-summary.sh` runs in-lane; the reliability report reads *cross-run* history, which is awkward to run inside the very run it measures.
    - Recommendation: implement as a **maintainer-runnable script** (`scripts/ci/reliability-report.sh`) whose parser is unit-tested in CI against a fixture; commit the measured snapshot + run links to `.planning/CI-RELIABILITY-REPORT.md`. Optionally add a nightly informational job that prints the report to `$GITHUB_STEP_SUMMARY` (non-gating). This keeps the measurement re-runnable and log-assertable without making CI depend on its own history.
+   - **RESOLVED:** adopted maintainer-runnable script + fixture-tested parser + committed snapshot → implemented in `92-02-PLAN.md`.
 
 2. **Verified-fixed vs. quarantine for #2/#3?**
    - What we know: both green on every push; both root causes pinned.
    - Recommendation: **verified-fixed** for both, with the two band-aids tightened and mechanisms documented in the SUMMARY + backlog. Reserve `gh issue create` only if the owner wants the timeout-tag tightening tracked separately.
+   - **RESOLVED:** verified-fixed (with quarantine+linked-issue as the documented data-driven fallback if a lane regresses) → implemented in `92-03-PLAN.md` Task 3.
 
 3. **Does `test_seed_zero` join `@build_lanes` (full obs wiring) or stay exempt like `test_floor_1_17`?**
    - Recommendation: **exempt** (nightly, ordering-focused, not an OBS-parity target); document the exemption in `ci_observability_contract_test.exs`, matching the `test_floor_1_17`/`nightly_cold_build` precedent.
+   - **RESOLVED:** exempt from `@build_lanes` (mirrors `test_floor_1_17`) → implemented in `92-03-PLAN.md` Task 1.
 
 ## Environment Availability
 

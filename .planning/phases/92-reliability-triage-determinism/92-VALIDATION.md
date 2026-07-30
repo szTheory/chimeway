@@ -40,19 +40,19 @@ created: 2026-07-30
 
 ## Per-Task Verification Map
 
-> Requirement-level rows from research. `Task ID` / `Plan` / `Wave` are filled once PLAN.md task IDs exist.
+> Requirement-level rows from research, reconciled to PLAN.md tasks (2026-07-30). `Task` = `plan / Task N`; `Wave` follows the plan. Task IDs are `Task N` within each plan (no numeric IDs).
 
-| Task ID | Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|-------------|----------|-----------|-------------------|-------------|--------|
-| TBD | REL-01 | `reliability-report.sh` classifies success/failure/cancelled + computes rate + streak | unit (bash-vs-fixture) | `mix test test/chimeway/ci_reliability_contract_test.exs` | ❌ W0 | ⬜ pending |
-| TBD | REL-01 | Live bar met: <10% failure, ≥5 consecutive green on `main` `ci-gate` | integration (log-assert) | `scripts/ci/reliability-report.sh` exits 0 on live `main` history | ❌ W0 | ⬜ pending |
-| TBD | REL-02 | #2 (`demo.up --check`) lanes green on push | integration (log-assert) | `gh run view <push-run> --json jobs -q '…Example…/.conclusion=="success"'` | ✅ live CI | ⬜ pending |
-| TBD | REL-02 | #3 (Accrue path-dep) lane green on push | integration (log-assert) | `gh run view <push-run> --json jobs -q '…Accrue…/.conclusion=="success"'` | ✅ live CI | ⬜ pending |
-| TBD | REL-02 | If quarantined: tracking issue linked in backlog | doc-contract | grep backlog for `#<issue>` | N/A unless quarantine | ⬜ pending |
-| TBD | REL-03 | `test_seed_zero` exists, nightly-gated, runs `--seed 0`, wired into `nightly-gate` needs+tokens | contract (ci.yml parse) | `mix test test/chimeway/release_gate_contract_test.exs` (extended) | ⚠️ existing, new assertions | ⬜ pending |
-| TBD | REL-03 | Lane green on a real nightly dispatch | integration (log-assert) | `gh workflow run ci.yml -f run_nightly=true` then assert `test_seed_zero` success | ❌ W0 (live proof) | ⬜ pending |
-| TBD | REL-04 | `put_env` helper restores prior value + deletes when absent | unit | `mix test test/chimeway/test_support/env_helper_test.exs` | ❌ W0 | ⬜ pending |
-| TBD | REL-04 | async DataCase modules adopt helper (no raw `put_env` in async modules) | contract (grep) | adoption assertion in a contract test | ❌ W0 | ⬜ pending |
+| Task | Wave | Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
+|------|------|-------------|----------|-----------|-------------------|-------------|--------|
+| 92-02 / T1 | 2 | REL-01 | `reliability-report.sh` classifies success/failure/cancelled + computes rate + streak | unit (bash-vs-fixture) | `mix test test/chimeway/ci_reliability_contract_test.exs` | ❌ W0 | ⬜ pending |
+| 92-02 / T2 | 2 | REL-01 | Live bar met: <10% failure, ≥5 consecutive green on `main` `ci-gate` | integration (log-assert) | `scripts/ci/reliability-report.sh` exits 0 on live `main` history | ❌ W0 | ⬜ pending |
+| 92-03 / T3 | 2 | REL-02 | #2 (`demo.up --check`) lanes green on SHA-pinned push run | integration (log-assert) | `gh run view <push-run @ HEAD sha> --json jobs -q '…Example…/.conclusion=="success"'` | ✅ live CI | ⬜ pending |
+| 92-03 / T3 | 2 | REL-02 | #3 (Accrue path-dep) lane green on SHA-pinned push run | integration (log-assert) | `gh run view <push-run @ HEAD sha> --json jobs -q '…Accrue…/.conclusion=="success"'` | ✅ live CI | ⬜ pending |
+| 92-03 / T3 | 2 | REL-02 | If quarantined: tracking issue linked in backlog | doc-contract | grep backlog for `#<issue>` | N/A unless quarantine | ⬜ pending |
+| 92-03 / T1 | 2 | REL-03 | `test_seed_zero` exists, nightly-gated, runs `--seed 0`, wired into `nightly-gate` needs+tokens (contract updated same change) | contract (ci.yml parse) | `mix test test/chimeway/release_gate_contract_test.exs` (extended) | ⚠️ existing, new assertions | ⬜ pending |
+| 92-03 / T2 | 2 | REL-03 | Lane green on a SHA-pinned real nightly dispatch | integration (log-assert) | `gh workflow run ci.yml -f run_nightly=true` then assert `test_seed_zero` success on run @ HEAD sha | ❌ W0 (live proof) | ⬜ pending |
+| 92-01 / T1 | 1 | REL-04 | `put_env` helper restores prior value + deletes when absent | unit | `mix test test/chimeway/test_support/env_helper_test.exs` | ❌ W0 | ⬜ pending |
+| 92-01 / T1–T2 | 1 | REL-04 | async DataCase modules adopt helper (no raw `put_env` in async modules) | contract (grep) | adoption contract assertion (T1 adopts, T2 guards) | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
