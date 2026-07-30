@@ -39,7 +39,8 @@ defmodule Chimeway.MixProject do
       {:tzdata, "~> 1.1"},
       {:oban, "~> 2.17", optional: true},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ] ++ mailglass_deps() ++ accrue_deps() ++ threadline_deps() ++ sigra_deps()
   end
 
@@ -80,7 +81,7 @@ defmodule Chimeway.MixProject do
       "ci.docs": ["docs --warnings-as-errors"],
 
       # Dependency audit
-      "ci.audit": ["hex.audit"],
+      "ci.audit": ["hex.audit", "deps.audit"],
 
       # Post-publish verify trio (run locally by maintainer, not in pre-merge CI)
       "verify.clean": ["cmd git diff --exit-code"],
