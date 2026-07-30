@@ -1181,3 +1181,24 @@ jobs:
           VERIFY_SIGRA: ${{ needs.verify_sigra.result }}
           INSTALL_GOLDEN: ${{ needs.install_golden_contract.result }}
         run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN
+
+  # nightly-gate mirrors ci-gate's aggregate pass/fail contract, scoped to
+  # exactly the relocated/nightly-composition lanes (TIER-04). It gives a
+  # maintainer one job to check for "is the nightly tier green." `test` is
+  # intentionally a needs: target of BOTH ci-gate and this gate — a job can gate
+  # more than one aggregator. Kept LAST in the file so its block extraction is
+  # bounded cleanly at end-of-file. Do NOT add these nightly jobs to ci-gate.
+  nightly-gate:
+    name: nightly-gate
+    runs-on: ubuntu-latest
+    needs: [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin]
+    if: always() && needs.resolve_tiers.outputs.run_nightly == 'true'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Verify required nightly lanes
+        env:
+          NIGHTLY_COLD_BUILD: ${{ needs.nightly_cold_build.result }}
+          TEST: ${{ needs.test.result }}
+          TEST_FLOOR_1_17: ${{ needs.test_floor_1_17.result }}
+          VERIFY_ADMIN: ${{ needs.verify_admin.result }}
+        run: scripts/ci/aggregate-gate.sh NIGHTLY_COLD_BUILD TEST TEST_FLOOR_1_17 VERIFY_ADMIN

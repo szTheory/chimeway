@@ -453,6 +453,49 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "test-floor-"),
              "test_floor_1_17 must use its own test-floor- cache-key namespace"
     end
+
+    test "nightly-gate aggregates the four nightly lanes via aggregate-gate.sh (TIER-04)", %{
+      ci_yml: ci_yml
+    } do
+      job_block = extract_ci_job_block(ci_yml, "nightly-gate")
+
+      assert String.contains?(job_block, "scripts/ci/aggregate-gate.sh"),
+             "nightly-gate must reuse scripts/ci/aggregate-gate.sh"
+
+      assert String.contains?(
+               job_block,
+               "needs: [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin]"
+             ),
+             "nightly-gate needs must be exactly [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin]"
+
+      for lane <- ~w(nightly_cold_build test test_floor_1_17 verify_admin) do
+        assert String.contains?(job_block, lane),
+               "nightly-gate must reference the #{lane} lane in its needs/env"
+      end
+
+      assert String.contains?(
+               job_block,
+               "aggregate-gate.sh NIGHTLY_COLD_BUILD TEST TEST_FLOOR_1_17 VERIFY_ADMIN"
+             ),
+             "nightly-gate must pass the four uppercase lane tokens to aggregate-gate.sh"
+    end
+
+    test "ci-gate needs stays 13 lanes and excludes the nightly jobs (T-90-03)", %{
+      ci_yml: ci_yml
+    } do
+      # Use the specialized ci-gate needs extractor, NOT the generic block
+      # extractor — ci-gate is hyphenated, so the generic extractor would
+      # over-capture past ci-gate into nightly-gate's own body.
+      needs = extract_ci_gate_needs(ci_yml)
+
+      assert length(needs) == 13,
+             "ci-gate needs must remain exactly 13 lanes (verify_admin removed in 90-02)"
+
+      for excluded <- ~w(nightly-gate nightly_cold_build test_floor_1_17) do
+        refute excluded in needs,
+               "ci-gate must not need the nightly-only job #{excluded}"
+      end
+    end
   end
 
   describe "CI cache coverage (CI-05)" do
