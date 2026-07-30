@@ -150,7 +150,12 @@ Plans:
 4. `mix_audit` runs in CI as a real advisory-database vulnerability scan (non-blocking, matching the existing deliberate `hex.audit` posture), with findings visible in job output.
 5. The release workflow's Elixir version and CI's 1.17-floor leg (added in Phase 90) are reconciled — release stays pinned to the 1.17 floor, and CI actually exercises that floor on push/nightly, closing the prior skew.
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 91-01-PLAN.md — QUAL-01 tracer: `.tool-versions` single source + convert 14 setup-beam jobs to `version-file:` strict (matrix + 1.17 floor stay pinned)
+- [ ] 91-02-PLAN.md — QUAL-02 + QUAL-04: `.github/dependabot.yml` (mix + github-actions) and `mix_audit` advisory scan (`ci.audit` = hex.audit + deps.audit)
+- [ ] 91-03-PLAN.md — QUAL-03 + QUAL-05: top-level least-privilege `permissions` + `run_floor` wiring so the 1.17 floor gates on push
 
 ### Phase 92: Reliability Triage & Determinism
 
