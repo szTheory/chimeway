@@ -130,8 +130,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -172,8 +172,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -302,8 +302,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -379,8 +379,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -435,8 +435,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -513,8 +513,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -589,8 +589,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -662,8 +662,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -748,8 +748,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -829,8 +829,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         with:
@@ -909,8 +909,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
@@ -1020,8 +1020,8 @@ jobs:
         id: beam
         if: steps.detect.outputs.run == 'true'
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: cache_main
         if: steps.detect.outputs.run == 'true'
@@ -1089,8 +1089,8 @@ jobs:
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
-          elixir-version: "1.19"
-          otp-version: "27"
+          version-file: .tool-versions
+          version-type: strict
       # NOTE: deliberately NO dependency/build cache step here — this is the
       # whole point of the cold-build backstop (TIER-01). Every dep is fetched
       # and every module compiled from nothing, so a cache-key correctness bug
