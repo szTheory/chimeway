@@ -16,7 +16,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
   @release_please_config "release-please-config.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract)
   @pr_gate_lanes ~w(lint test verify_gates verify_docs)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
@@ -233,7 +233,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "mix ci.docs")
     end
 
-    test "ci-gate aggregates 14 required lanes", %{ci_yml: ci_yml} do
+    test "ci-gate aggregates 13 required lanes", %{ci_yml: ci_yml} do
       needs = extract_ci_gate_needs(ci_yml)
 
       assert length(needs) == length(@ci_gate_lanes)

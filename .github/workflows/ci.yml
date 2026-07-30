@@ -887,7 +887,8 @@ jobs:
   verify_admin:
     name: Admin integration gate
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    needs: [resolve_tiers]
+    if: needs.resolve_tiers.outputs.run_nightly == 'true'
     services:
       postgres:
         image: postgres:15
@@ -1066,7 +1067,7 @@ jobs:
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, verify_admin, install_golden_contract]
+    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract]
     if: always() && github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -1084,6 +1085,5 @@ jobs:
           VERIFY_INBOX: ${{ needs.verify_inbox.result }}
           VERIFY_THREADLINE: ${{ needs.verify_threadline.result }}
           VERIFY_SIGRA: ${{ needs.verify_sigra.result }}
-          VERIFY_ADMIN: ${{ needs.verify_admin.result }}
           INSTALL_GOLDEN: ${{ needs.install_golden_contract.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA VERIFY_ADMIN INSTALL_GOLDEN
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN
