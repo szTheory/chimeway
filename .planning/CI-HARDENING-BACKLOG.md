@@ -1,4 +1,4 @@
-# CI Hardening Backlog — CI-only lane failures (1 of 3 resolved)
+# CI Hardening Backlog — CI-only lane failures (1 of 3 resolved; #2/#3 root causes pinned, quarantined pending push — see Phase 92 note)
 
 _Filed 2026-07-09 after the milestone-boundary repo-hygiene sweep. Carried forward for a focused CI session (candidate for the next milestone)._
 
@@ -25,6 +25,8 @@ Systemic fixes already landed on `main`: audit→advisory (`SECURITY.md`), unifo
 - **Symptom:** `Mix.Tasks.Demo.UpTest` "JOUR-05 mix demo.up --check exits 0" times out. Interim `@tag timeout: 300_000` confirmed a **hang** (>5 min), not slowness — runs ~2 s locally.
 - **Cause:** the test runs `System.cmd("mix", ["demo.up", "--check"], env: [{"MIX_ENV", "dev"}, ...])`. In `:dev` the demo host needs its **dev database**, which CI never provisions (only the `test` DB is set up) → hangs on connection retry.
 - **Suggested fix:** provision the demo-host dev DB (`ecto.create`/`ecto.migrate` in `MIX_ENV=dev` for `examples/chimeway_demo_host`) before the test, OR make `demo.up --check` DB-less / run it in test env. Reconsider the interim 300 s timeout tag afterward (`examples/chimeway_demo_host/test/mix/tasks/demo_up_test.exs`).
+- **Root cause pinned (Phase 92/REL-02, `92-RESEARCH.md`):** the job-level `DATABASE_URL` env is inherited by the `System.cmd` subprocess, which routes the `:dev`-env task at whatever DB that URL names — combined with the `:dev` pre-warm compile step already on the demo lanes, `demo.up --check` no longer hits a cold-compile timeout or a missing DB. Both the job-level `DATABASE_URL` env and the `:dev` pre-warm step are load-bearing and must not be removed (Pitfall 5).
+- **Phase 92 quarantine status:** mechanism above is pinned and a pre-phase run (`30558617430`) showed `verify_example`/`verify_journeys` green, but this plan requires the verified-fixed proof to be pinned to *this phase's own HEAD* push run — that run does not exist yet because the phase's commits have not been pushed to `origin/main` in this session (push is out of scope for this executor). **Quarantined, not silently gapped:** tracked in issue [#4](https://github.com/szTheory/chimeway/issues/4) pending a phase-HEAD-pinned push-run proof. The `@tag timeout: 300_000` tighten to `120_000` is deferred to that same push-verification pass so the tighten is never landed unguarded (Pitfall 5 / plan reversibility note).
 
 ## 3. Accrue — path dep not compiled in test env
 
@@ -36,6 +38,8 @@ Systemic fixes already landed on `main`: audit→advisory (`SECURITY.md`), unifo
   ```
 - **Cause:** on CI, `accrue` is a **path dep** (`ACCRUE_PATH=.../accrue/accrue`, checked out from `szTheory/accrue`); locally it's the hex dep and compiles cleanly. An explicit `mix deps.compile accrue --force` step (added, runs under the job's `MIX_ENV=test`) still doesn't produce `accrue.app` — suggests the `szTheory/accrue` sibling fails to compile in this CI setup, or a nested-path / `app:` config mismatch.
 - **Suggested fix:** compile the accrue sibling directly on CI and read the real error; verify `ACCRUE_PATH` points at the mix project root; compare against the passing `verify_sigra` lane's custom setup.
+- **Root cause pinned (Phase 92/REL-02, `92-RESEARCH.md`):** full-tree `mix deps.compile` (via `obs-recompile.sh`) produces `accrue.app` in dependency order before the lane's own suite runs, plus the nested `ACCRUE_PATH` layout resolves correctly — the earlier standalone `mix deps.compile accrue --force` step was the incomplete fix; the full-tree compile step is what actually resolves it.
+- **Phase 92 quarantine status:** mechanism above is pinned and a pre-phase run (`30558617430`) showed `verify_accrue` green, but — same as #2 — this plan requires proof pinned to this phase's own HEAD push run, which does not exist yet (commits not pushed in this session). **Quarantined, not silently gapped:** tracked in issue [#4](https://github.com/szTheory/chimeway/issues/4) pending a phase-HEAD-pinned push-run proof.
 
 ## 4. Compile-once spike — warm `_build` restore still recompiles (CACHE-05, deferred from Phase 88)
 
