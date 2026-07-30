@@ -16,7 +16,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
   @release_please_config "release-please-config.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract test_floor_1_17)
   @pr_gate_lanes ~w(lint test verify_gates verify_docs)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
@@ -233,7 +233,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "mix ci.docs")
     end
 
-    test "ci-gate aggregates 13 required lanes", %{ci_yml: ci_yml} do
+    test "ci-gate aggregates 14 required lanes", %{ci_yml: ci_yml} do
       needs = extract_ci_gate_needs(ci_yml)
 
       assert length(needs) == length(@ci_gate_lanes)
@@ -395,15 +395,33 @@ defmodule Chimeway.ReleaseGateContractTest do
              "cancel-in-progress must be scoped to pull_request only"
     end
 
-    test "resolve_tiers is a bare setup job emitting both tier outputs", %{ci_yml: ci_yml} do
+    test "resolve_tiers is a bare setup job emitting all three tier outputs", %{ci_yml: ci_yml} do
       job_block = extract_ci_job_block(ci_yml, "resolve_tiers")
 
       assert String.contains?(job_block, "outputs:")
       assert String.contains?(job_block, "run_nightly:")
       assert String.contains?(job_block, "otp_matrix:")
 
+      assert String.contains?(job_block, "run_floor:"),
+             "resolve_tiers must emit run_floor (QUAL-05/D-14) so test_floor_1_17 can run on push+nightly"
+
       refute String.contains?(job_block, "actions/checkout"),
              "resolve_tiers must stay a bare job with no checkout (Pitfall 3)"
+    end
+
+    test "run_floor is true iff the event is not a pull_request (QUAL-05/D-15 vacuous-pass guard)",
+         %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "resolve_tiers")
+
+      assert String.contains?(
+               job_block,
+               ~S(if [ "${{ github.event_name }}" != "pull_request" ]; then)
+             ) &&
+               String.contains?(job_block, "run_floor=true") &&
+               String.contains?(job_block, "run_floor=false"),
+             "run_floor must be true iff event != pull_request — identical to ci-gate's run " <>
+               "condition, so the floor is never `skipped` when ci-gate evaluates TEST_FLOOR_1_17 " <>
+               "(structural PR-skip-as-pass, never a softened aggregate-gate.sh)"
     end
 
     test "test job's OTP matrix is driven by resolve_tiers via fromJSON", %{ci_yml: ci_yml} do
@@ -440,9 +458,9 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert String.contains?(
                job_block,
-               "if: needs.resolve_tiers.outputs.run_nightly == 'true'"
+               "if: needs.resolve_tiers.outputs.run_floor == 'true'"
              ),
-             "test_floor_1_17 must be gated on the nightly-tier output"
+             "test_floor_1_17 must be gated on the run_floor output (QUAL-05/D-14: push+nightly, off for PRs)"
 
       assert String.contains?(job_block, ~S(elixir-version: "1.17")),
              "test_floor_1_17 must pin elixir-version 1.17 (mix.exs's ~> 1.17 floor)"
@@ -480,7 +498,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the four uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 13 lanes and excludes the nightly jobs (T-90-03)", %{
+    test "ci-gate needs stays 14 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -488,10 +506,14 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 13,
-             "ci-gate needs must remain exactly 13 lanes (verify_admin removed in 90-02)"
+      assert length(needs) == 14,
+             "ci-gate needs must remain exactly 14 lanes (verify_admin removed in 90-02; " <>
+               "test_floor_1_17 added in 91-03 to close the CI<->release Elixir skew, D-15)"
 
-      for excluded <- ~w(nightly-gate nightly_cold_build test_floor_1_17) do
+      assert "test_floor_1_17" in needs,
+             "ci-gate must need test_floor_1_17 so the 1.17 floor genuinely gates on push (D-15)"
+
+      for excluded <- ~w(nightly-gate nightly_cold_build verify_admin) do
         refute excluded in needs,
                "ci-gate must not need the nightly-only job #{excluded}"
       end

@@ -49,6 +49,7 @@ jobs:
     outputs:
       run_nightly: ${{ steps.flags.outputs.run_nightly }}
       otp_matrix: ${{ steps.flags.outputs.otp_matrix }}
+      run_floor: ${{ steps.flags.outputs.run_floor }}
     steps:
       - id: flags
         shell: bash
@@ -66,6 +67,17 @@ jobs:
             echo "run_nightly=true" >>"$GITHUB_OUTPUT"
           else
             echo "run_nightly=false" >>"$GITHUB_OUTPUT"
+          fi
+
+          # QUAL-05/D-14/D-15: the 1.17 floor must run AND gate on every event
+          # where ci-gate itself runs (`always() && github.event_name !=
+          # 'pull_request'`), so run_floor mirrors that exact condition. This
+          # keeps the floor's result out of `skipped` whenever ci-gate
+          # evaluates it (Pitfall 2) — never true on pull_request.
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run_floor=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "run_floor=false" >>"$GITHUB_OUTPUT"
           fi
 
   lint:
@@ -1171,7 +1183,7 @@ jobs:
     name: Test (Elixir 1.17 floor / OTP 27)
     runs-on: ubuntu-latest
     needs: [resolve_tiers]
-    if: needs.resolve_tiers.outputs.run_nightly == 'true'
+    if: needs.resolve_tiers.outputs.run_floor == 'true'
     services:
       postgres:
         image: postgres:15
@@ -1215,7 +1227,7 @@ jobs:
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract]
+    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, test_floor_1_17]
     if: always() && github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -1234,7 +1246,8 @@ jobs:
           VERIFY_THREADLINE: ${{ needs.verify_threadline.result }}
           VERIFY_SIGRA: ${{ needs.verify_sigra.result }}
           INSTALL_GOLDEN: ${{ needs.install_golden_contract.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN
+          TEST_FLOOR_1_17: ${{ needs.test_floor_1_17.result }}
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN TEST_FLOOR_1_17
 
   # nightly-gate mirrors ci-gate's aggregate pass/fail contract, scoped to
   # exactly the relocated/nightly-composition lanes (TIER-04). It gives a
