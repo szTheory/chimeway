@@ -39,7 +39,7 @@
 
 - [x] **Phase 87: CI Observability & Cache Diagnostics** — Per-lane cache hit/miss, recompile counts, and step timing land in job summaries; pre-optimization baseline recorded for provable before/after deltas (completed 2026-07-29)
 - [ ] **Phase 88: Cache Correctness & Compile-Once** — Fix the MIX_ENV-absent cache-key collision, standardize keys, split deps from `_build`, de-fragment plain-hex lanes, and compile deps once via a producer job
-- [ ] **Phase 89: Test-Lane Concurrency** — Flip ~32 pure-DB DataCase files to async, size the pool, enforce warnings-as-errors, and shake out ordering coupling across seeds
+- [x] **Phase 89: Test-Lane Concurrency** — Flip ~32 pure-DB DataCase files to async, size the pool, enforce warnings-as-errors, and shake out ordering coupling across seeds
 - [ ] **Phase 90: Pipeline Tiering (PR/main/nightly)** — Add a `schedule:` nightly tier (cold build, full OTP matrix, 1.17 floor leg, heavy Playwright lane); PR path stays single-OTP
 - [ ] **Phase 91: Quality & Supply-Chain Polish** — `.tool-versions`, dependabot, least-privilege permissions, advisory `mix_audit`, and closing the CI↔release Elixir skew
 - [ ] **Phase 92: Reliability Triage & Determinism** — Measure real-vs-flaky rate, close the two CI-only backlog issues, keep seed determinism, and add a put_env capture/restore helper
@@ -109,7 +109,7 @@ Plans:
 - [x] 89-03-PLAN.md — Flip orchestration + integration + remaining trigger/persistence DataCase modules to async (7 files)
 - [x] 89-04-PLAN.md — Flip rendering + dispatch/webhooks worker DataCase modules to async — completes the 20-file flip set (3 files)
 - [x] 89-05-PLAN.md — Add --warnings-as-errors to ci.test, fix surfaced warnings, one-time negative proof, contract guard
-- [ ] 89-06-PLAN.md — Closing CONC-04 proof: 3 random-seed + 1 --seed 0 mix ci.test runs, contract guard, success-criteria closure
+- [x] 89-06-PLAN.md — Closing CONC-04 proof: 3 random-seed + 1 --seed 0 mix ci.test runs, contract guard, success-criteria closure
 
 ### Phase 90: Pipeline Tiering (PR/main/nightly)
 

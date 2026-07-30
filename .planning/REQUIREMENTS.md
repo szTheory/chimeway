@@ -24,10 +24,10 @@
 
 ### CONC — Test-Lane Concurrency (Phase 89)
 
-- [ ] **CONC-01**: Pure-DB `Chimeway.DataCase` test modules run `async: true`; the ~25 app-env mutators and ~5 `:prefix` mutators remain `async: false`.
-- [ ] **CONC-02**: `config/test.exs` sets an explicit `Chimeway.Repo` `pool_size` sized for the async concurrency.
-- [ ] **CONC-03**: The `ci.test` lane runs with `--warnings-as-errors` (parity with the `verify.*` lanes).
-- [ ] **CONC-04**: The suite passes across randomized seeds **and** an ordered `--seed 0` run after the async conversion (no ordering coupling introduced).
+- [x] **CONC-01**: Pure-DB `Chimeway.DataCase` test modules run `async: true`; the ~25 app-env mutators and ~5 `:prefix` mutators remain `async: false`.
+- [x] **CONC-02**: `config/test.exs` sets an explicit `Chimeway.Repo` `pool_size` sized for the async concurrency.
+- [x] **CONC-03**: The `ci.test` lane runs with `--warnings-as-errors` (parity with the `verify.*` lanes).
+- [x] **CONC-04**: The suite passes across randomized seeds **and** an ordered `--seed 0` run after the async conversion (no ordering coupling introduced).
 
 ### TIER — Pipeline Tiering (PR / main / nightly) (Phase 90)
 
@@ -78,7 +78,7 @@
 |-------------|-------|--------|
 | OBS-01..04 | Phase 87 | Complete |
 | CACHE-01..05 | Phase 88 | Pending |
-| CONC-01..04 | Phase 89 | Pending |
+| CONC-01..04 | Phase 89 | Complete |
 | TIER-01..04 | Phase 90 | Pending |
 | QUAL-01..05 | Phase 91 | Pending |
 | REL-01..04 | Phase 92 | Pending |
