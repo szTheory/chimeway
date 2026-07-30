@@ -1,5 +1,22 @@
 import Config
 
+# Sized for async ExUnit (CONC-02/D-04): ExUnit's default max_cases is
+# System.schedulers_online() * 2, so the pool tracks that with headroom and
+# self-scales — the 4-vCPU CI runner resolves to 8+10=18.
+#
+# The cap matters: test_helper.exs starts FIVE repos against one Postgres
+# (Chimeway + Mailglass/Accrue/Threadline/Sigra), and the prefix suite creates
+# throwaway databases mid-run — all sharing the server's default max_connections
+# (100). An uncapped pool on a high-core box (e.g. 18 cores → 46) starves that
+# shared budget: verified on an 18-core machine that pool 46/40 exhausted
+# connections and invalidated GeneratedPrefixedRuntimeProofTest, while the
+# baseline pool-10 run was clean. CI's max_cases is only 8, so it never needs
+# more than ~18; the cap of 24 keeps CI unchanged (min picks 18), stays ≥
+# max_cases for machines up to 12 cores, and on higher-core boxes leaves ample
+# headroom under 100 (short sandbox tests recycle connections faster than any
+# mild client-side queueing costs).
+pool_size = min(System.schedulers_online() * 2 + 10, 24)
+
 repo_config =
   case System.get_env("DATABASE_URL") do
     nil ->
@@ -10,11 +27,12 @@ repo_config =
         password: System.get_env("PGPASSWORD"),
         hostname: System.get_env("PGHOST") || "localhost",
         database: "chimeway_test#{System.get_env("MIX_TEST_PARTITION")}",
-        pool: Ecto.Adapters.SQL.Sandbox
+        pool: Ecto.Adapters.SQL.Sandbox,
+        pool_size: pool_size
       ]
 
     database_url ->
-      [url: database_url, pool: Ecto.Adapters.SQL.Sandbox]
+      [url: database_url, pool: Ecto.Adapters.SQL.Sandbox, pool_size: pool_size]
   end
 
 config :chimeway, Chimeway.Repo, repo_config
