@@ -177,7 +177,16 @@ Plans:
 3. A nightly `--seed 0` ordering run (building on Phase 89's shakeout) continues to guard against test-ordering coupling going forward; the random ExUnit seed is kept for all other runs.
 4. A capture/restore `put_env` test helper exists and is adopted by the async-safe DataCase modules from Phase 89, standardizing app-env isolation so the async split stays safe as the suite grows.
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+**Wave 1** *(tracer)*
+
+- [ ] 92-01-PLAN.md — REL-04 tracer: `Chimeway.TestSupport.EnvHelper.put_env_isolated/3` capture/restore helper + unit test + adopt in the one async DataCase hazard (`policy_test.exs`) + no-bare-put_env adoption contract (end-to-end slice)
+
+**Wave 2** *(blocked on Wave 1; parallel, no file overlap)*
+
+- [ ] 92-02-PLAN.md — REL-01: re-runnable `scripts/ci/reliability-report.sh` (push-on-main `ci-gate` job classification, strict <10% / ≥5-streak bar) + fixture-backed parser test + committed `.planning/CI-RELIABILITY-REPORT.md` snapshot
+- [ ] 92-03-PLAN.md — REL-03 + REL-02: nightly-only `test_seed_zero` (`--seed 0`) lane wired into `nightly-gate` + coupled contract updates + live nightly proof; verify-fixed backlog #2/#3 with documented mechanisms and tightened timeout tag
 
 <details>
 <summary>✅ v1.15 Brand Identity & Brand Book (Phases 81-86) — SHIPPED 2026-07-28 (accepted-risk close)</summary>
@@ -238,7 +247,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
 | 90. Pipeline Tiering (PR/main/nightly) | 3/3 | Complete   | 2026-07-30 |
 | 91. Quality & Supply-Chain Polish | 3/3 | Complete   | 2026-07-30 |
-| 92. Reliability Triage & Determinism | 0/TBD | Not started | - |
+| 92. Reliability Triage & Determinism | 0/3 | Not started | - |
 
 ---
 *Roadmap updated: 2026-07-29 — v1.16 CI/CD Performance & Reliability milestone initialized (Phases 87-92, continued numbering from Phase 86); 26/26 requirements mapped (OBS/CACHE/CONC/TIER/QUAL/REL). Doc/config/CI-only invariant. Next: /gsd-plan-phase 87.*
