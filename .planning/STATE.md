@@ -2,18 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: CI/CD Performance & Reliability
-current_phase: 92
-current_phase_name: reliability-triage-determinism
 status: executing
-stopped_at: Completed 92-01-PLAN.md
-last_updated: "2026-07-30T18:13:51.328Z"
+stopped_at: Completed 92-02-PLAN.md
+last_updated: "2026-07-30T18:26:31.644Z"
 last_activity: 2026-07-30
-last_activity_desc: Phase 92 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 20
   percent: 83
 ---
 
@@ -29,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 ## Current Position
 
 Phase: 92 (reliability-triage-determinism) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-07-30 -- Phase 92 execution started
+Last activity: 2026-07-30
 
 ## Deferred Items
 
@@ -276,6 +273,7 @@ status: complete
 - [Phase ?]: [92-01]: Helper body is the verbatim capture/restore pattern from test/support/accrue/data_case.ex:38-47, generalized to (app, key, value).
 - [Phase ?]: [92-01]: Adoption scoped to policy_test.exs only — the sole async: true module with a bare Application.put_env/3 call; no async: false module flipped to async: true.
 - [Phase ?]: [92-01]: Tracer feedback gate auto-verified via its deterministic mix test command and logged rather than paused as an interactive checkpoint, consistent with Phase 91-01 precedent.
+- [Phase ?]: [92-02]: Classification is strictly the ci-gate JOB conclusion (not run-level) on event=push, branch=main runs; live measurement surfaced a run-level cancelled/job-level failure counting nuance (run 30502247481), documented in CI-RELIABILITY-REPORT.md.
 
 ## Performance
 
@@ -589,8 +587,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-30T18:13:51.320Z
-Stopped at: Completed 92-01-PLAN.md
+Last session: 2026-07-30T18:26:31.638Z
+Stopped at: Completed 92-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -685,3 +683,4 @@ Resume file: None
 | Phase 91 P02 | 8min | 2 tasks | 3 files |
 | Phase 91 P03 | ~10 min | 2 tasks | 2 files |
 | Phase 92 P01 | 12 min | 2 tasks | 4 files |
+| Phase 92 P02 | 15 min | 2 tasks | 4 files |

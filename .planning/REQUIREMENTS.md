@@ -46,7 +46,7 @@
 
 ### REL — Reliability Triage & Determinism (Phase 92)
 
-- [ ] **REL-01**: Real-vs-flaky failure rate is measured via the OBS tooling; completed-run failure rate is under 10% with ≥ 5 consecutive green `main` `ci-gate` runs.
+- [x] **REL-01**: Real-vs-flaky failure rate is measured via the OBS tooling; completed-run failure rate is under 10% with ≥ 5 consecutive green `main` `ci-gate` runs.
 - [ ] **REL-02**: The two documented CI-only backlog issues (`CI-HARDENING-BACKLOG.md` #2 `demo.up --check` dev-DB hang, #3 Accrue path-dep compile) are verified fixed or quarantined with a tracking issue.
 - [ ] **REL-03**: A nightly `--seed 0` ordering run guards against test-ordering coupling.
 - [x] **REL-04**: A capture/restore `put_env` test helper standardizes app-env isolation so the async split stays safe long-term.

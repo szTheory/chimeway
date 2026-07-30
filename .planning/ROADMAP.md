@@ -185,7 +185,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1; parallel, no file overlap)*
 
-- [ ] 92-02-PLAN.md — REL-01: re-runnable `scripts/ci/reliability-report.sh` (push-on-main `ci-gate` job classification, strict <10% / ≥5-streak bar) + fixture-backed parser test + committed `.planning/CI-RELIABILITY-REPORT.md` snapshot
+- [x] 92-02-PLAN.md — REL-01: re-runnable `scripts/ci/reliability-report.sh` (push-on-main `ci-gate` job classification, strict <10% / ≥5-streak bar) + fixture-backed parser test + committed `.planning/CI-RELIABILITY-REPORT.md` snapshot
 - [ ] 92-03-PLAN.md — REL-03 + REL-02: nightly-only `test_seed_zero` (`--seed 0`) lane wired into `nightly-gate` + coupled contract updates + live nightly proof; verify-fixed backlog #2/#3 with documented mechanisms and tightened timeout tag
 
 <details>
@@ -247,7 +247,7 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | 89. Test-Lane Concurrency | 0/TBD | Not started | - |
 | 90. Pipeline Tiering (PR/main/nightly) | 3/3 | Complete   | 2026-07-30 |
 | 91. Quality & Supply-Chain Polish | 3/3 | Complete   | 2026-07-30 |
-| 92. Reliability Triage & Determinism | 0/3 | Not started | - |
+| 92. Reliability Triage & Determinism | 2/3 | In Progress|  |
 
 ---
 *Roadmap updated: 2026-07-29 — v1.16 CI/CD Performance & Reliability milestone initialized (Phases 87-92, continued numbering from Phase 86); 26/26 requirements mapped (OBS/CACHE/CONC/TIER/QUAL/REL). Doc/config/CI-only invariant. Next: /gsd-plan-phase 87.*
