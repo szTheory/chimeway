@@ -16,7 +16,7 @@ defmodule Chimeway.CIObservabilityContractTest do
   # lanes that must each carry a stable cache id: and a trailing obs-summary
   # step (OBS-01/02/03 fleet-wide fan-out).
   #
-  # Phase 90 (pipeline tiering) exemption — the following four jobs are
+  # Phase 90 (pipeline tiering) exemption — the following five jobs are
   # deliberately NOT members of @build_lanes:
   #   * resolve_tiers    — a bare setup job with no compile step at all.
   #   * nightly_cold_build — has NO cache step by design (its entire point is a
@@ -24,7 +24,10 @@ defmodule Chimeway.CIObservabilityContractTest do
   #     "carries a cache id" invariant every @build_lanes member must satisfy.
   #   * test_floor_1_17  — falls outside this phase's OBS-parity scope.
   #   * nightly-gate     — an aggregate gate, not a build lane.
-  # Their structural (TIER-01..04) contract lives in release_gate_contract_test.exs.
+  #   * test_seed_zero (Phase 92/REL-03) — nightly-only ordering guard, exempt
+  #     for the same reason as test_floor_1_17: outside this phase's
+  #     OBS-parity scope, not an OBS-01/02/03 fleet-wide fan-out target.
+  # Their structural (TIER-01..04/REL-03) contract lives in release_gate_contract_test.exs.
   @build_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
 
   # CACHE-01/02/04 (Phase 88, per-lane self-cache reversion): there is NO
@@ -341,6 +344,20 @@ defmodule Chimeway.CIObservabilityContractTest do
 
       refute "test_floor_1_17" in @build_lanes,
              "test_floor_1_17 must stay out of @build_lanes (outside OBS-parity scope)"
+    end
+
+    test "test_seed_zero (REL-03) carries its own cache namespace and is exempt from @build_lanes",
+         %{ci_yml: ci_yml} do
+      block = extract_ci_job_block(ci_yml, "test_seed_zero")
+
+      assert String.contains?(block, "id: cache_main"),
+             "test_seed_zero must carry a stable cache-step id"
+
+      assert String.contains?(block, "test-seed-zero-"),
+             "test_seed_zero must key its cache on its own test-seed-zero- namespace (not reuse another lane's key)"
+
+      refute "test_seed_zero" in @build_lanes,
+             "test_seed_zero must stay out of @build_lanes (nightly ordering guard, outside OBS-parity scope)"
     end
   end
 

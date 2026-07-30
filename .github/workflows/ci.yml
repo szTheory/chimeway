@@ -1224,6 +1224,56 @@ jobs:
       - run: mix ecto.migrate --quiet
       - run: mix ci.test
 
+  # test_seed_zero (REL-03): nightly-only ordering guard. Runs the exact same
+  # default suite as `mix ci.test` but with a fixed `--seed 0` instead of the
+  # random ExUnit seed every PR/push run uses, so a test-ordering coupling
+  # (like the Phase 89 CONC-04 shakeout) is caught going forward without
+  # green-washing it behind a permanently pinned seed on the main paths.
+  test_seed_zero:
+    name: Test ordering guard (--seed 0)
+    runs-on: ubuntu-latest
+    needs: [resolve_tiers]
+    if: needs.resolve_tiers.outputs.run_nightly == 'true'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
+        with:
+          path: |
+            deps
+            _build
+          key: test-seed-zero-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            test-seed-zero-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix test --seed 0 --exclude mailglass --exclude accrue --exclude threadline --exclude sigra --warnings-as-errors
+
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
@@ -1258,7 +1308,7 @@ jobs:
   nightly-gate:
     name: nightly-gate
     runs-on: ubuntu-latest
-    needs: [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin]
+    needs: [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin, test_seed_zero]
     if: always() && needs.resolve_tiers.outputs.run_nightly == 'true'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -1268,4 +1318,5 @@ jobs:
           TEST: ${{ needs.test.result }}
           TEST_FLOOR_1_17: ${{ needs.test_floor_1_17.result }}
           VERIFY_ADMIN: ${{ needs.verify_admin.result }}
-        run: scripts/ci/aggregate-gate.sh NIGHTLY_COLD_BUILD TEST TEST_FLOOR_1_17 VERIFY_ADMIN
+          TEST_SEED_ZERO: ${{ needs.test_seed_zero.result }}
+        run: scripts/ci/aggregate-gate.sh NIGHTLY_COLD_BUILD TEST TEST_FLOOR_1_17 VERIFY_ADMIN TEST_SEED_ZERO

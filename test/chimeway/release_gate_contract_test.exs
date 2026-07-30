@@ -472,7 +472,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "test_floor_1_17 must use its own test-floor- cache-key namespace"
     end
 
-    test "nightly-gate aggregates the four nightly lanes via aggregate-gate.sh (TIER-04)", %{
+    test "nightly-gate aggregates the five nightly lanes via aggregate-gate.sh (TIER-04/REL-03)", %{
       ci_yml: ci_yml
     } do
       job_block = extract_ci_job_block(ci_yml, "nightly-gate")
@@ -482,20 +482,20 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert String.contains?(
                job_block,
-               "needs: [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin]"
+               "needs: [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin, test_seed_zero]"
              ),
-             "nightly-gate needs must be exactly [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin]"
+             "nightly-gate needs must be exactly [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin, test_seed_zero]"
 
-      for lane <- ~w(nightly_cold_build test test_floor_1_17 verify_admin) do
+      for lane <- ~w(nightly_cold_build test test_floor_1_17 verify_admin test_seed_zero) do
         assert String.contains?(job_block, lane),
                "nightly-gate must reference the #{lane} lane in its needs/env"
       end
 
       assert String.contains?(
                job_block,
-               "aggregate-gate.sh NIGHTLY_COLD_BUILD TEST TEST_FLOOR_1_17 VERIFY_ADMIN"
+               "aggregate-gate.sh NIGHTLY_COLD_BUILD TEST TEST_FLOOR_1_17 VERIFY_ADMIN TEST_SEED_ZERO"
              ),
-             "nightly-gate must pass the four uppercase lane tokens to aggregate-gate.sh"
+             "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
     test "ci-gate needs stays 14 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
@@ -513,7 +513,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert "test_floor_1_17" in needs,
              "ci-gate must need test_floor_1_17 so the 1.17 floor genuinely gates on push (D-15)"
 
-      for excluded <- ~w(nightly-gate nightly_cold_build verify_admin) do
+      for excluded <- ~w(nightly-gate nightly_cold_build verify_admin test_seed_zero) do
         refute excluded in needs,
                "ci-gate must not need the nightly-only job #{excluded}"
       end
