@@ -472,8 +472,7 @@ defmodule Chimeway.CIObservabilityContractTest do
       offenders =
         "test/chimeway/*.exs"
         |> Path.wildcard()
-        |> Enum.filter(&async_true_module?/1)
-        |> Enum.filter(&bare_app_env_put?/1)
+        |> Enum.filter(&(async_true_module?(&1) and bare_app_env_put?(&1)))
 
       assert offenders == [],
              "async: true test modules must mutate app-env only via " <>
