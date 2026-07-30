@@ -1,23 +1,28 @@
 ---
 phase: 91-quality-supply-chain-polish
 verified: 2026-07-30T14:42:56Z
-status: human_needed
+status: passed
 score: 13/13 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
+
   - test: "Push (or dispatch) a commit and inspect all 14 converted setup-beam jobs' 'Setup BEAM' step logs in ci.yml"
     expected: "Every converted job resolves the identical `Elixir 1.19.5` / `Erlang/OTP 27.3.4.15` from `.tool-versions`; the `test` matrix leg still resolves `matrix.elixir`/`matrix.otp`, and `test_floor_1_17` still resolves 1.17/OTP-27"
     why_human: "QUAL-01 backstop — version resolution is only observable in a live GitHub Actions runner, not statically. Declared as `verification: backstop` in 91-01-PLAN.md must_haves."
+
   - test: "After merge to the default branch, check GitHub → Insights → Dependency graph → Dependabot"
     expected: "Both the `mix` and `github-actions` ecosystems are listed as parsed/enabled with no config error"
     why_human: "QUAL-02 backstop — Dependabot config parsing is only observable in GitHub's UI post-push. Declared as `verification: backstop` in 91-02-PLAN.md must_haves."
+
   - test: "Inspect the `lint` job's 'Dependency advisory audit (advisory-only)' step output on a live CI run"
     expected: "The step runs both `hex.audit` and `deps.audit`, prints findings (hackney/decimal advisories were locally confirmed to exist), and the job/gate stays green because `continue-on-error: true` is set"
     why_human: "QUAL-04 backstop — advisory-step behavior under `continue-on-error` in a live runner. Declared as `verification: backstop` in 91-02-PLAN.md must_haves."
+
   - test: "Inspect a live CI run's 15 escalated (obs-summary) jobs — their 'CI observability summary' step output/step-summary"
     expected: "The obs-summary timing table still renders (proves `actions: read` grants the `gh api .../jobs` query) and no job's checkout step fails (proves `contents: read` survived the job-level permissions override on all 15 jobs)"
     why_human: "QUAL-03 backstop — GITHUB_TOKEN scope behavior is only observable in a live runner, not via static grep. Declared as `verification: backstop` in 91-03-PLAN.md must_haves."
+
   - test: "Trigger one push run and one PR run"
     expected: "On push: `test_floor_1_17` executes and `ci-gate` lists it in `needs`, going red if the floor fails. On PR: `run_floor=false`, `test_floor_1_17` is skipped, `pr-gate` is green, and `ci-gate` does not evaluate (`if: github.event_name != 'pull_request'`)"
     why_human: "QUAL-05 backstop — the push-vs-PR gating behavior is only observable across two real workflow runs. Declared as `verification: backstop` in 91-03-PLAN.md must_haves. The structural argument (run_floor's condition == ci-gate's `if:` condition, byte-for-byte) is statically verified below and is the primary proof; the live run is the terminal confirmation."
