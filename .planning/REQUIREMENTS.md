@@ -80,7 +80,7 @@
 | CACHE-01..05 | Phase 88 | Pending |
 | CONC-01..04 | Phase 89 | Complete |
 | TIER-01..04 | Phase 90 | Complete |
-| QUAL-01..05 | Phase 91 | Pending |
+| QUAL-01..05 | Phase 91 | Complete |
 | REL-01..04 | Phase 92 | Pending |
 
 **Coverage:**

@@ -41,7 +41,7 @@
 - [ ] **Phase 88: Cache Correctness & Compile-Once** — Fix the MIX_ENV-absent cache-key collision, standardize keys, split deps from `_build`, de-fragment plain-hex lanes, and compile deps once via a producer job
 - [x] **Phase 89: Test-Lane Concurrency** — Flip ~32 pure-DB DataCase files to async, size the pool, enforce warnings-as-errors, and shake out ordering coupling across seeds
 - [x] **Phase 90: Pipeline Tiering (PR/main/nightly)** — Add a `schedule:` nightly tier (cold build, full OTP matrix, 1.17 floor leg, heavy Playwright lane); PR path stays single-OTP (completed 2026-07-30)
-- [ ] **Phase 91: Quality & Supply-Chain Polish** — `.tool-versions`, dependabot, least-privilege permissions, advisory `mix_audit`, and closing the CI↔release Elixir skew
+- [x] **Phase 91: Quality & Supply-Chain Polish** — `.tool-versions`, dependabot, least-privilege permissions, advisory `mix_audit`, and closing the CI↔release Elixir skew (completed 2026-07-30)
 - [ ] **Phase 92: Reliability Triage & Determinism** — Measure real-vs-flaky rate, close the two CI-only backlog issues, keep seed determinism, and add a put_env capture/restore helper
 
 ### Phase 87: CI Observability & Cache Diagnostics
@@ -150,7 +150,7 @@ Plans:
 4. `mix_audit` runs in CI as a real advisory-database vulnerability scan (non-blocking, matching the existing deliberate `hex.audit` posture), with findings visible in job output.
 5. The release workflow's Elixir version and CI's 1.17-floor leg (added in Phase 90) are reconciled — release stays pinned to the 1.17 floor, and CI actually exercises that floor on push/nightly, closing the prior skew.
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
