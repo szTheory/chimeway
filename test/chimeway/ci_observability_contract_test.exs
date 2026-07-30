@@ -450,6 +450,44 @@ defmodule Chimeway.CIObservabilityContractTest do
     end
   end
 
+  describe "REL-04 adoption guard: no bare app-env put in async DataCase modules" do
+    test "every async: true test/chimeway/*.exs module routes app-env mutation through EnvHelper" do
+      offenders =
+        "test/chimeway/*.exs"
+        |> Path.wildcard()
+        |> Enum.filter(&async_true_module?/1)
+        |> Enum.filter(&bare_app_env_put?/1)
+
+      assert offenders == [],
+             "async: true test modules must mutate app-env only via " <>
+               "Chimeway.TestSupport.EnvHelper.put_env_isolated/3, never a bare " <>
+               "Application.put_env/3 call (REL-04). Offending file(s): #{inspect(offenders)}"
+    end
+  end
+
+  defp async_true_module?(path) do
+    path
+    |> File.read!()
+    |> String.contains?("async: true")
+  end
+
+  defp bare_app_env_put?(path) do
+    source_without_comments =
+      path
+      |> File.read!()
+      |> String.split("\n")
+      |> Enum.reject(&comment_line?/1)
+      |> Enum.join("\n")
+
+    Regex.match?(~r/Application\.put_env\(/, source_without_comments)
+  end
+
+  defp comment_line?(line) do
+    line
+    |> String.trim_leading()
+    |> String.starts_with?("#")
+  end
+
   defp run_recompile_probe!(deps_fixture, app_fixture) do
     tmp = mk_runner_temp!()
     deps_log = Path.join(tmp, "obs-deps.log")
