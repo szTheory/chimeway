@@ -1,0 +1,8 @@
+[
+  { "databaseId": 30600006, "gate_conclusion": "success" },
+  { "databaseId": 30600005, "gate_conclusion": "success" },
+  { "databaseId": 30600004, "gate_conclusion": "cancelled" },
+  { "databaseId": 30600003, "gate_conclusion": "success" },
+  { "databaseId": 30600002, "gate_conclusion": "success" },
+  { "databaseId": 30600001, "gate_conclusion": "success" }
+]
