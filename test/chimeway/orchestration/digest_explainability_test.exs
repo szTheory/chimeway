@@ -1,5 +1,5 @@
 defmodule Chimeway.Orchestration.DigestExplainabilityTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   alias Chimeway.{Deliveries, Repo, Traces}
   alias Chimeway.Digests

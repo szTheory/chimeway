@@ -12,7 +12,7 @@
 #
 # Runs in the default `mix test` -> `ci.test` -> CI `test` job (Postgres already provisioned).
 defmodule Chimeway.ReadmeSnippetTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   @moduletag :integration
 

@@ -1,5 +1,5 @@
 defmodule Chimeway.IdempotencyConstraintTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   import Ecto.Query, only: [from: 2]
 

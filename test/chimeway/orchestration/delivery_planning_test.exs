@@ -1,5 +1,5 @@
 defmodule Chimeway.Orchestration.DeliveryPlanningTest do
-  use Chimeway.DataCase, async: false
+  use Chimeway.DataCase, async: true
 
   alias Chimeway.{Delivery, DeliveryPlanning, Digests, Preferences, Repo}
   alias Chimeway.Digests.{DigestBucket, DigestMembership}
