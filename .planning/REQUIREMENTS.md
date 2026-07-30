@@ -39,9 +39,9 @@
 ### QUAL — Quality & Supply-Chain Polish (Phase 91)
 
 - [x] **QUAL-01**: `.tool-versions` is the single toolchain source and feeds `setup-beam` (`version-file:`) and the cache keys.
-- [ ] **QUAL-02**: `.github/dependabot.yml` covers `mix` and `github-actions`.
+- [x] **QUAL-02**: `.github/dependabot.yml` covers `mix` and `github-actions`.
 - [ ] **QUAL-03**: `ci.yml` declares top-level least-privilege `permissions: contents: read` (jobs escalate only where needed).
-- [ ] **QUAL-04**: `mix_audit` runs (advisory-only, matching the deliberate `hex.audit` posture) as a real advisory-DB scan.
+- [x] **QUAL-04**: `mix_audit` runs (advisory-only, matching the deliberate `hex.audit` posture) as a real advisory-DB scan.
 - [ ] **QUAL-05**: The CI↔release Elixir version skew is resolved — release stays on the 1.17 floor and a 1.17 CI leg is added on push/nightly so the floor is actually exercised.
 
 ### REL — Reliability Triage & Determinism (Phase 92)
