@@ -354,6 +354,68 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "pipeline tiering contract (TIER-01..04, Phase 90)" do
+    setup do
+      %{ci_yml: File.read!(@ci_yml)}
+    end
+
+    test "on: block declares the nightly schedule and run_nightly dispatch input", %{
+      ci_yml: ci_yml
+    } do
+      assert String.contains?(ci_yml, ~S(cron: "0 7 * * *")),
+             "ci.yml must declare the nightly schedule cron"
+
+      dispatch_input = extract_ci_job_block(ci_yml, "run_nightly")
+
+      assert String.contains?(dispatch_input, "type: boolean"),
+             "run_nightly input must be type: boolean"
+
+      assert String.contains?(dispatch_input, "default: false"),
+             "run_nightly input must default to false"
+    end
+
+    test "concurrency group keys on event_name and only PRs cancel-in-progress", %{
+      ci_yml: ci_yml
+    } do
+      group_line =
+        ci_yml
+        |> String.split("\n")
+        |> Enum.find(&String.contains?(&1, "group:"))
+
+      assert group_line && String.contains?(group_line, "github.event_name"),
+             "concurrency group: must interpolate github.event_name"
+
+      cancel_line =
+        ci_yml
+        |> String.split("\n")
+        |> Enum.find(&String.contains?(&1, "cancel-in-progress:"))
+
+      assert cancel_line &&
+               String.contains?(cancel_line, "github.event_name == 'pull_request'"),
+             "cancel-in-progress must be scoped to pull_request only"
+    end
+
+    test "resolve_tiers is a bare setup job emitting both tier outputs", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "resolve_tiers")
+
+      assert String.contains?(job_block, "outputs:")
+      assert String.contains?(job_block, "run_nightly:")
+      assert String.contains?(job_block, "otp_matrix:")
+
+      refute String.contains?(job_block, "actions/checkout"),
+             "resolve_tiers must stay a bare job with no checkout (Pitfall 3)"
+    end
+
+    test "test job's OTP matrix is driven by resolve_tiers via fromJSON", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "test")
+
+      assert String.contains?(job_block, "needs: [resolve_tiers]")
+
+      assert String.contains?(job_block, "fromJSON(needs.resolve_tiers.outputs.otp_matrix)"),
+             "test's matrix.otp must consume resolve_tiers.outputs.otp_matrix via fromJSON"
+    end
+  end
+
   describe "CI cache coverage (CI-05)" do
     setup do
       %{ci_yml: File.read!(@ci_yml)}
