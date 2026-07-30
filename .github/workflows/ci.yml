@@ -1064,6 +1064,100 @@ jobs:
           CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
         run: scripts/ci/obs-summary.sh
 
+  nightly_cold_build:
+    name: Nightly cold build (cache-correctness backstop)
+    runs-on: ubuntu-latest
+    needs: [resolve_tiers]
+    if: needs.resolve_tiers.outputs.run_nightly == 'true'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
+        with:
+          elixir-version: "1.19"
+          otp-version: "27"
+      # NOTE: deliberately NO dependency/build cache step here — this is the
+      # whole point of the cold-build backstop (TIER-01). Every dep is fetched
+      # and every module compiled from nothing, so a cache-key correctness bug
+      # can never hide behind a restored cache on this lane. This job design
+      # cannot satisfy the shared @build_lanes "carries a cache id" invariant and
+      # is exempt from it by contract (see ci_observability_contract_test.exs).
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix ci.test
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+        run: scripts/ci/obs-summary.sh
+
+  test_floor_1_17:
+    name: Test (Elixir 1.17 floor / OTP 27)
+    runs-on: ubuntu-latest
+    needs: [resolve_tiers]
+    if: needs.resolve_tiers.outputs.run_nightly == 'true'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
+        with:
+          path: |
+            deps
+            _build
+          key: test-floor-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            test-floor-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix ci.test
+
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest

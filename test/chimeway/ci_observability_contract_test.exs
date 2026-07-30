@@ -15,6 +15,16 @@ defmodule Chimeway.CIObservabilityContractTest do
   # Mirrors @ci_gate_lanes in release_gate_contract_test.exs — the 14 build
   # lanes that must each carry a stable cache id: and a trailing obs-summary
   # step (OBS-01/02/03 fleet-wide fan-out).
+  #
+  # Phase 90 (pipeline tiering) exemption — the following four jobs are
+  # deliberately NOT members of @build_lanes:
+  #   * resolve_tiers    — a bare setup job with no compile step at all.
+  #   * nightly_cold_build — has NO cache step by design (its entire point is a
+  #     cold build), which is fundamentally incompatible with the shared
+  #     "carries a cache id" invariant every @build_lanes member must satisfy.
+  #   * test_floor_1_17  — falls outside this phase's OBS-parity scope.
+  #   * nightly-gate     — an aggregate gate, not a build lane.
+  # Their structural (TIER-01..04) contract lives in release_gate_contract_test.exs.
   @build_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra verify_admin install_golden_contract)
 
   # CACHE-01/02/04 (Phase 88, per-lane self-cache reversion): there is NO
@@ -302,6 +312,38 @@ defmodule Chimeway.CIObservabilityContractTest do
     end
   end
 
+  describe "nightly-only jobs exempt from build-lane cache/obs invariants (Phase 90)" do
+    test "nightly_cold_build emits obs-summary but carries no cache-step id", %{ci_yml: ci_yml} do
+      block = extract_ci_job_block(ci_yml, "nightly_cold_build")
+
+      assert String.contains?(block, "scripts/ci/obs-summary.sh"),
+             "nightly_cold_build must still emit the CI observability summary"
+
+      refute String.contains?(block, "id: cache_main"),
+             "nightly_cold_build must have no cache step (cold-build backstop) — so no cache id"
+    end
+
+    test "test_floor_1_17 carries a cache-step id keyed on the test-floor- namespace", %{
+      ci_yml: ci_yml
+    } do
+      block = extract_ci_job_block(ci_yml, "test_floor_1_17")
+
+      assert String.contains?(block, "id: cache_main"),
+             "test_floor_1_17 must carry a stable cache-step id"
+
+      assert String.contains?(block, "test-floor-"),
+             "test_floor_1_17 must key its cache on the test-floor- namespace"
+    end
+
+    test "neither nightly-only build job is a member of @build_lanes" do
+      refute "nightly_cold_build" in @build_lanes,
+             "nightly_cold_build must stay out of @build_lanes (no cache step by design)"
+
+      refute "test_floor_1_17" in @build_lanes,
+             "test_floor_1_17 must stay out of @build_lanes (outside OBS-parity scope)"
+    end
+  end
+
   describe "CACHE-01/02/04 per-lane self-cache (Phase 88 reversion)" do
     test "there is no compile-once build producer job", %{ci_yml: ci_yml} do
       refute String.contains?(ci_yml, "Build (compile-once producer)"),
@@ -472,7 +514,11 @@ defmodule Chimeway.CIObservabilityContractTest do
   end
 
   defp extract_ci_job_block(yml, job_id) do
-    case Regex.run(~r/#{job_id}:(.*?)(?:\n  [a-z_]+:|\z)/s, yml) do
+    # Boundary char class includes 0-9 so digit-bearing job ids (e.g.
+    # test_floor_1_17) are recognized as block boundaries and don't cause an
+    # over-capture into the following job. Hyphenated gate jobs (ci-gate,
+    # nightly-gate) are intentionally still not boundaries.
+    case Regex.run(~r/#{job_id}:(.*?)(?:\n  [a-z0-9_]+:|\z)/s, yml) do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
     end

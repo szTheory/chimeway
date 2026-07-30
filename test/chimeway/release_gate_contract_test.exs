@@ -414,6 +414,45 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "fromJSON(needs.resolve_tiers.outputs.otp_matrix)"),
              "test's matrix.otp must consume resolve_tiers.outputs.otp_matrix via fromJSON"
     end
+
+    test "nightly_cold_build is gated on the nightly tier and restores no cache (TIER-01)", %{
+      ci_yml: ci_yml
+    } do
+      job_block = extract_ci_job_block(ci_yml, "nightly_cold_build")
+
+      assert String.contains?(job_block, "needs: [resolve_tiers]"),
+             "nightly_cold_build must depend on resolve_tiers"
+
+      assert String.contains?(
+               job_block,
+               "if: needs.resolve_tiers.outputs.run_nightly == 'true'"
+             ),
+             "nightly_cold_build must be gated on the nightly-tier output"
+
+      refute String.contains?(job_block, "actions/cache"),
+             "nightly_cold_build must never restore a cache — it is the cold-build backstop (TIER-01)"
+    end
+
+    test "test_floor_1_17 pins the 1.17/OTP-27 floor with its own test-floor cache (TIER-01)", %{
+      ci_yml: ci_yml
+    } do
+      job_block = extract_ci_job_block(ci_yml, "test_floor_1_17")
+
+      assert String.contains?(
+               job_block,
+               "if: needs.resolve_tiers.outputs.run_nightly == 'true'"
+             ),
+             "test_floor_1_17 must be gated on the nightly-tier output"
+
+      assert String.contains?(job_block, ~S(elixir-version: "1.17")),
+             "test_floor_1_17 must pin elixir-version 1.17 (mix.exs's ~> 1.17 floor)"
+
+      assert String.contains?(job_block, ~S(otp-version: "27")),
+             "test_floor_1_17 must pin otp-version 27 (matches release.yml/publish-hex.yml)"
+
+      assert String.contains?(job_block, "test-floor-"),
+             "test_floor_1_17 must use its own test-floor- cache-key namespace"
+    end
   end
 
   describe "CI cache coverage (CI-05)" do
@@ -945,7 +984,11 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp extract_ci_job_block(yml, job_id) do
-    case Regex.run(~r/#{job_id}:(.*?)(?:\n  [a-z_]+:|\z)/s, yml) do
+    # Boundary char class includes 0-9 so digit-bearing job ids (e.g.
+    # test_floor_1_17) are recognized as block boundaries and don't cause an
+    # over-capture into the following job. Hyphenated gate jobs (ci-gate,
+    # nightly-gate) are intentionally still not boundaries.
+    case Regex.run(~r/#{job_id}:(.*?)(?:\n  [a-z0-9_]+:|\z)/s, yml) do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
     end
