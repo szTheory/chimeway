@@ -659,6 +659,27 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
+    @mailglass_proof_forbidden [
+      "Fake recorded exactly one host-composed message and email delivered",
+      "successful Chimeway.Adapters.Mailglass attempt means the email was delivered",
+      "Hex consumers should run `mix verify.mailglass`",
+      "run `mix verify.mailglass` after adding `{:chimeway"
+    ]
+
+    for forbidden <- @mailglass_proof_forbidden do
+      test "forbids Mailglass proof overclaim: #{forbidden}", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "mailglass integration guide must not overclaim Fake proof or present maintainer commands to consumers"
+      end
+    end
+
+    test "labels mix verify.mailglass as a repository-maintainer regression suite", %{
+      content: content
+    } do
+      assert String.contains?(content, "repository-maintainer regression suite"),
+             "mailglass integration guide must identify mix verify.mailglass as maintainer-only"
+    end
+
     @mailglass_webhook_forbidden [
       ~s(process("mailglass"),
       "conn.params",
