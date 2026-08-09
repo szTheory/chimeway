@@ -1043,9 +1043,10 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag timeout: 120_000
-    test "a clean consumer proves one host-owned Mailglass transaction from only the unpacked artifact", %{
-      root: root
-    } do
+    test "a clean consumer proves one host-owned Mailglass transaction from only the unpacked artifact",
+         %{
+           root: root
+         } do
       proof = ArtifactConsumerFixture.prove_mailglass!(root)
 
       assert proof.output =~ "CHIMEWAY_MAILGLASS_PROOF"

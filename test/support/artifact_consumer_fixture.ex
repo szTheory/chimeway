@@ -10,6 +10,20 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "last_attempt_outcome" => :last_attempt_outcome,
     "timeline_events" => :timeline_events
   }
+  @mailglass_evidence_keys %{
+    "transport" => :transport,
+    "notification_key" => :notification_key,
+    "notification_version" => :notification_version,
+    "delivery_id" => :delivery_id,
+    "channel" => :channel,
+    "render_key" => :render_key,
+    "render_version" => :render_version,
+    "status" => :status,
+    "last_attempt_outcome" => :last_attempt_outcome,
+    "last_attempt_number" => :last_attempt_number,
+    "adapter_module" => :adapter_module,
+    "timeline_events" => :timeline_events
+  }
   @database_prefix "chimeway_artifact_consumer_"
   @postgres_identifier_max_bytes 63
   @spec prove_core!(Path.t()) :: map()
@@ -52,6 +66,60 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
           proof_source: proof_source,
           identity: identity,
           evidence: parse_evidence!(safe_output),
+          artifact_root: Path.expand(unpacked_root)
+        }
+      rescue
+        error ->
+          cleanup!(identity, opts)
+          reraise error, __STACKTRACE__
+      catch
+        kind, value ->
+          cleanup!(identity, opts)
+          :erlang.raise(kind, value, __STACKTRACE__)
+      end
+
+    Map.put(result, :cleanup, cleanup!(identity, opts))
+  end
+
+  @spec prove_mailglass!(Path.t()) :: map()
+  def prove_mailglass!(unpacked_root), do: prove_mailglass!(unpacked_root, [])
+
+  @doc false
+  @spec prove_mailglass!(Path.t(), keyword()) :: map()
+  def prove_mailglass!(unpacked_root, opts) when is_binary(unpacked_root) and is_list(opts) do
+    identity = Keyword.get(opts, :identity, resource_identity())
+    validate_identity!(identity)
+    root = identity.root
+    db_config = database_config(identity.database)
+
+    result =
+      try do
+        File.rm_rf!(root)
+        scaffold!(root, unpacked_root, db_config)
+
+        mix_source = File.read!(Path.join(root, "mix.exs"))
+        validate_artifact_dependency!(mix_source, unpacked_root, repo_root!())
+
+        if Keyword.get(opts, :fail_before_commands, false) do
+          raise "artifact consumer pre-command validation failure"
+        end
+
+        run_mix!(root, ["deps.get"])
+        run_mix!(root, ["chimeway.gen.migrations"])
+        run_mix!(root, ["ecto.create"])
+        run_mix!(root, ["run", "--no-start", "-e", database_probe(identity.database)])
+        run_mix!(root, ["ecto.migrate"])
+        output = run_mix!(root, ["run", "priv/prove_mailglass.exs"])
+        proof_source = File.read!(Path.join(root, "priv/prove_mailglass.exs"))
+
+        %{
+          output: mailglass_proof_line!(output),
+          proof_source: proof_source,
+          migration_source:
+            File.read!(Path.join(root, "priv/repo/migrations/20260808000000_mailglass_init.exs")),
+          mix_source: mix_source,
+          identity: identity,
+          evidence: parse_mailglass_evidence!(output),
           artifact_root: Path.expand(unpacked_root)
         }
       rescue
@@ -183,6 +251,8 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   defp scaffold!(root, unpacked_root, db_config) do
     File.mkdir_p!(Path.join(root, "config"))
     File.mkdir_p!(Path.join(root, "lib/artifact_consumer/notifiers"))
+    File.mkdir_p!(Path.join(root, "lib/artifact_consumer/mailers"))
+    File.mkdir_p!(Path.join(root, "priv/repo/migrations"))
     File.mkdir_p!(Path.join(root, "priv"))
 
     File.write!(Path.join(root, "mix.exs"), mix_exs(unpacked_root))
@@ -190,7 +260,24 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     File.write!(Path.join(root, "lib/artifact_consumer/repo.ex"), repo_ex())
     File.write!(Path.join(root, "lib/artifact_consumer/application.ex"), application_ex())
     File.write!(Path.join(root, "lib/artifact_consumer/notifiers/core_trace.ex"), notifier_ex())
+
+    File.write!(
+      Path.join(root, "lib/artifact_consumer/notifiers/mailglass_proof.ex"),
+      mailglass_notifier_ex()
+    )
+
+    File.write!(
+      Path.join(root, "lib/artifact_consumer/mailers/mailglass_proof_email.ex"),
+      mailglass_mailable_ex()
+    )
+
+    File.write!(
+      Path.join(root, "priv/repo/migrations/20260808000000_mailglass_init.exs"),
+      mailglass_migration_ex()
+    )
+
     File.write!(Path.join(root, "priv/prove_core.exs"), proof_ex())
+    File.write!(Path.join(root, "priv/prove_mailglass.exs"), mailglass_proof_ex())
   end
 
   defp mix_exs(unpacked_root) do
@@ -203,7 +290,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       end
 
       def application, do: [extra_applications: [:logger], mod: {ArtifactConsumer.Application, []}]
-      defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
+      defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}}, {:mailglass, "~> 1.3"}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
     end
     """
   end
@@ -217,6 +304,9 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     config :artifact_consumer, ArtifactConsumer.Repo, repo_config
     config :chimeway, Chimeway.Repo, repo_config
     config :chimeway, repo: Chimeway.Repo, prefix: "chimeway", dispatcher: Chimeway.Dispatch.Sync, adapter: Chimeway.Adapters.Logger
+    config :chimeway, channel_adapters: %{"email" => Chimeway.Adapters.Mailglass}
+    config :chimeway, channel_adapter_configs: %{"email" => [mailables: %{"artifact_consumer.mailglass_proof.email" => {ArtifactConsumer.Mailers.MailglassProofEmail, :mailglass_proof_email}}]}
+    config :mailglass, repo: ArtifactConsumer.Repo, adapter: {Mailglass.Adapters.Fake, []}, tenancy: Mailglass.Tenancy.SingleTenant, suppression_store: Mailglass.SuppressionStore.Ecto, async_adapter: :oban, adapter_endpoint: "artifact-consumer-mailglass-fake"
     """
   end
 
@@ -277,6 +367,81 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     """
   end
 
+  defp mailglass_notifier_ex do
+    """
+    defmodule ArtifactConsumer.Notifiers.MailglassProof do
+      use Chimeway.Notifier
+      @impl true
+      def notification_key, do: "artifact_consumer.mailglass_proof"
+      @impl true
+      def version, do: 1
+      @impl true
+      def recipients(_params), do: {:ok, [%{recipient_identity: "user:proof@example.test", recipient_type: "user"}]}
+      @impl true
+      def build(_params, _recipient), do: {:ok, %{subject: "Artifact Mailglass proof", html_body: "<p>Artifact Mailglass proof</p>", text_body: "Artifact Mailglass proof"}}
+      @impl true
+      def channels(_params, _recipient), do: {:ok, [:email]}
+      @impl true
+      def rendering(_params, _recipient), do: {:ok, %{assigns: %{subject: "Artifact Mailglass proof", html_body: "<p>Artifact Mailglass proof</p>", text_body: "Artifact Mailglass proof"}, channels: %{email: %{render_key: "artifact_consumer.mailglass_proof.email", render_version: 1}}}}
+    end
+    """
+  end
+
+  defp mailglass_mailable_ex do
+    """
+    defmodule ArtifactConsumer.Mailers.MailglassProofEmail do
+      use Mailglass.Mailable, stream: :transactional
+      def mailglass_proof_email(assigns) when is_map(assigns) do
+        new()
+        |> Mailglass.Message.update_swoosh(fn email ->
+          email
+          |> Swoosh.Email.to(Map.fetch!(assigns, "to"))
+          |> Swoosh.Email.from({"Artifact Consumer", "proof@artifact-consumer.test"})
+          |> Swoosh.Email.subject(Map.fetch!(assigns, "subject"))
+          |> Swoosh.Email.html_body(Map.fetch!(assigns, "html_body"))
+          |> Swoosh.Email.text_body(Map.fetch!(assigns, "text_body"))
+        end)
+        |> Mailglass.Message.put_function(:mailglass_proof_email)
+      end
+    end
+    """
+  end
+
+  defp mailglass_migration_ex do
+    """
+    defmodule ArtifactConsumer.Repo.Migrations.MailglassInit do
+      use Ecto.Migration
+      def up, do: Mailglass.Migration.up()
+      def down, do: Mailglass.Migration.down()
+    end
+    """
+  end
+
+  defp mailglass_proof_ex do
+    """
+    {:ok, _} = Application.ensure_all_started(:artifact_consumer)
+    :ok = Mailglass.Adapters.Fake.checkout()
+    :ok = Mailglass.Adapters.Fake.set_shared(self())
+    {:ok, result} = Chimeway.trigger(ArtifactConsumer.Notifiers.MailglassProof, %{}, tenant_id: "artifact-proof-tenant", idempotency_key: "artifact-mailglass-proof-v1")
+    [delivery_id] = result.trace.delivery_ids
+    {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id)
+    timeline_events = Enum.map(explanation.timeline, & &1.event)
+    required_events = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
+    ordered? = Enum.reduce_while(timeline_events, required_events, fn event, remaining -> case remaining do [^event | rest] -> {:cont, rest}; _ -> {:cont, remaining} end end) == []
+    true = explanation.channel == "email"
+    true = explanation.notification_key == ArtifactConsumer.Notifiers.MailglassProof.notification_key()
+    true = explanation.render_key == "artifact_consumer.mailglass_proof.email"
+    true = explanation.render_version == 1
+    true = explanation.status == :succeeded
+    true = explanation.last_attempt != nil and explanation.last_attempt.outcome == :succeeded
+    true = explanation.last_attempt.adapter_module == "Chimeway.Adapters.Mailglass"
+    true = ordered?
+    true = length(Mailglass.Adapters.Fake.deliveries()) == 1
+    evidence = %{transport: "fake", notification_key: explanation.notification_key, notification_version: ArtifactConsumer.Notifiers.MailglassProof.version(), delivery_id: delivery_id, channel: explanation.channel, render_key: explanation.render_key, render_version: explanation.render_version, status: explanation.status, last_attempt_outcome: explanation.last_attempt.outcome, last_attempt_number: explanation.last_attempt.attempt_number, adapter_module: explanation.last_attempt.adapter_module, timeline_events: Enum.join(timeline_events, ",")}
+    IO.puts("CHIMEWAY_MAILGLASS_PROOF " <> Enum.map_join([:transport, :notification_key, :notification_version, :delivery_id, :channel, :render_key, :render_version, :status, :last_attempt_outcome, :last_attempt_number, :adapter_module, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
+    """
+  end
+
   defp run_mix!(root, args) do
     {output, status} =
       System.cmd("mix", args, cd: root, stderr_to_stdout: true, env: [{"MIX_ENV", "dev"}])
@@ -328,12 +493,72 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     end)
   end
 
+  @doc false
+  @spec parse_mailglass_evidence!(String.t()) :: map()
+  def parse_mailglass_evidence!(output) do
+    output
+    |> mailglass_proof_line!()
+    |> String.replace_prefix("CHIMEWAY_MAILGLASS_PROOF ", "")
+    |> parse_evidence_pairs!(@mailglass_evidence_keys, "Mailglass")
+    |> then(fn evidence ->
+      if evidence.transport != "fake" do
+        raise "artifact consumer Mailglass proof must declare fake transport"
+      end
+
+      evidence
+    end)
+  end
+
+  defp parse_evidence_pairs!(line, allowed_keys, label) do
+    line
+    |> String.split(" ", trim: true)
+    |> Enum.reduce(%{}, fn pair, evidence ->
+      case String.split(pair, "=", parts: 2) do
+        [key, value] when value != "" ->
+          evidence_key =
+            case Map.fetch(allowed_keys, key) do
+              {:ok, allowed_key} -> allowed_key
+              :error -> raise "artifact consumer #{label} proof emitted an unknown evidence key"
+            end
+
+          if Map.has_key?(evidence, evidence_key) do
+            raise "artifact consumer #{label} proof emitted a duplicate evidence key"
+          end
+
+          Map.put(evidence, evidence_key, value)
+
+        _ ->
+          raise "artifact consumer #{label} proof emitted malformed evidence"
+      end
+    end)
+    |> then(fn evidence ->
+      if Enum.sort(Map.keys(evidence)) != Enum.sort(Map.values(allowed_keys)) do
+        raise "artifact consumer #{label} proof must emit exactly the safe evidence allowlist"
+      end
+
+      evidence
+    end)
+  end
+
   defp proof_line!(output) do
     line =
       output |> String.split("\n") |> Enum.find(&String.starts_with?(&1, "CHIMEWAY_CORE_PROOF "))
 
     if is_nil(line), do: raise("artifact consumer proof did not emit CHIMEWAY_CORE_PROOF")
     line
+  end
+
+  defp mailglass_proof_line!(output) do
+    lines =
+      output
+      |> String.split("\n")
+      |> Enum.filter(&String.starts_with?(&1, "CHIMEWAY_MAILGLASS_PROOF "))
+
+    case lines do
+      [line] -> line
+      [] -> raise "artifact consumer proof did not emit CHIMEWAY_MAILGLASS_PROOF"
+      _ -> raise "artifact consumer proof emitted multiple CHIMEWAY_MAILGLASS_PROOF lines"
+    end
   end
 
   defp cleanup!(identity, opts) do
