@@ -26,6 +26,19 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   }
   @database_prefix "chimeway_artifact_consumer_"
   @postgres_identifier_max_bytes 63
+
+  @doc false
+  @spec mailglass_repo_topology() :: map()
+  def mailglass_repo_topology do
+    %{
+      ecto_repos: [ArtifactConsumer.Repo],
+      chimeway_repo: ArtifactConsumer.Repo,
+      mailglass_repo: ArtifactConsumer.Repo,
+      active_repo: ArtifactConsumer.Repo,
+      supervised_repo: ArtifactConsumer.Repo
+    }
+  end
+
   @spec prove_core!(Path.t()) :: map()
   def prove_core!(unpacked_root), do: prove_core!(unpacked_root, [])
 
@@ -118,6 +131,9 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
           migration_source:
             File.read!(Path.join(root, "priv/repo/migrations/20260808000000_mailglass_init.exs")),
           mix_source: mix_source,
+          config_source: File.read!(Path.join(root, "config/config.exs")),
+          application_source: File.read!(Path.join(root, "lib/artifact_consumer/application.ex")),
+          topology: mailglass_repo_topology(),
           identity: identity,
           evidence: parse_mailglass_evidence!(output),
           artifact_root: Path.expand(unpacked_root)
@@ -289,7 +305,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
         [app: :artifact_consumer, version: "0.0.1", elixir: "~> 1.17", start_permanent: Mix.env() == :prod, deps: deps()]
       end
 
-      def application, do: [extra_applications: [:logger], mod: {ArtifactConsumer.Application, []}]
+      def application, do: [extra_applications: [:logger], included_applications: [:chimeway], mod: {ArtifactConsumer.Application, []}]
       defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}}, {:mailglass, "~> 1.3"}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
     end
     """
@@ -302,8 +318,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     config :artifact_consumer, ecto_repos: [ArtifactConsumer.Repo]
     repo_config = #{inspect(db_config)}
     config :artifact_consumer, ArtifactConsumer.Repo, repo_config
-    config :chimeway, Chimeway.Repo, repo_config
-    config :chimeway, repo: Chimeway.Repo, prefix: "chimeway", dispatcher: Chimeway.Dispatch.Sync, adapter: Chimeway.Adapters.Logger
+    config :chimeway, repo: ArtifactConsumer.Repo, prefix: "chimeway", dispatcher: Chimeway.Dispatch.Sync, adapter: Chimeway.Adapters.Logger
     config :chimeway, channel_adapters: %{"email" => Chimeway.Adapters.Mailglass}
     config :chimeway, channel_adapter_configs: %{"email" => [mailables: %{"artifact_consumer.mailglass_proof.email" => {ArtifactConsumer.Mailers.MailglassProofEmail, :mailglass_proof_email}}]}
     config :mailglass, repo: ArtifactConsumer.Repo, adapter: {Mailglass.Adapters.Fake, []}, tenancy: Mailglass.Tenancy.SingleTenant, suppression_store: Mailglass.SuppressionStore.Ecto, async_adapter: :oban, adapter_endpoint: "artifact-consumer-mailglass-fake"
@@ -323,8 +338,6 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     defmodule ArtifactConsumer.Application do
       use Application
       def start(_type, _args) do
-        # Mix starts the Chimeway dependency application before this host application.
-        # The host supervises its own Repo while Chimeway.Application owns Chimeway.Repo.
         Supervisor.start_link([ArtifactConsumer.Repo], strategy: :one_for_one, name: ArtifactConsumer.Supervisor)
       end
     end
@@ -422,23 +435,37 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     {:ok, _} = Application.ensure_all_started(:artifact_consumer)
     :ok = Mailglass.Adapters.Fake.checkout()
     :ok = Mailglass.Adapters.Fake.set_shared(self())
-    {:ok, result} = Chimeway.trigger(ArtifactConsumer.Notifiers.MailglassProof, %{}, tenant_id: "artifact-proof-tenant", idempotency_key: "artifact-mailglass-proof-v1")
-    [delivery_id] = result.trace.delivery_ids
-    {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id)
-    timeline_events = Enum.map(explanation.timeline, & &1.event)
-    required_events = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
-    ordered? = Enum.reduce_while(timeline_events, required_events, fn event, remaining -> case remaining do [^event | rest] -> {:cont, rest}; _ -> {:cont, remaining} end end) == []
-    true = explanation.channel == "email"
-    true = explanation.notification_key == ArtifactConsumer.Notifiers.MailglassProof.notification_key()
-    true = explanation.render_key == "artifact_consumer.mailglass_proof.email"
-    true = explanation.render_version == 1
-    true = explanation.status == :succeeded
-    true = explanation.last_attempt != nil and explanation.last_attempt.outcome == :succeeded
-    true = explanation.last_attempt.adapter_module == "Chimeway.Adapters.Mailglass"
-    true = ordered?
-    true = length(Mailglass.Adapters.Fake.deliveries()) == 1
-    evidence = %{transport: "fake", notification_key: explanation.notification_key, notification_version: ArtifactConsumer.Notifiers.MailglassProof.version(), delivery_id: delivery_id, channel: explanation.channel, render_key: explanation.render_key, render_version: explanation.render_version, status: explanation.status, last_attempt_outcome: explanation.last_attempt.outcome, last_attempt_number: explanation.last_attempt.attempt_number, adapter_module: explanation.last_attempt.adapter_module, timeline_events: Enum.join(timeline_events, ",")}
-    IO.puts("CHIMEWAY_MAILGLASS_PROOF " <> Enum.map_join([:transport, :notification_key, :notification_version, :delivery_id, :channel, :render_key, :render_version, :status, :last_attempt_outcome, :last_attempt_number, :adapter_module, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
+    previous_repo = Chimeway.Repo.get_dynamic_repo()
+    Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)
+
+    try do
+      true = Application.fetch_env!(:artifact_consumer, :ecto_repos) == [ArtifactConsumer.Repo]
+      true = Application.fetch_env!(:chimeway, :repo) == ArtifactConsumer.Repo
+      true = Application.fetch_env!(:mailglass, :repo) == ArtifactConsumer.Repo
+      true = Chimeway.Repo.get_dynamic_repo() == ArtifactConsumer.Repo
+      true = Process.whereis(ArtifactConsumer.Repo) != nil
+      true = Process.whereis(Chimeway.Repo) == nil
+
+      {:ok, result} = Chimeway.trigger(ArtifactConsumer.Notifiers.MailglassProof, %{}, tenant_id: "artifact-proof-tenant", idempotency_key: "artifact-mailglass-proof-v1")
+      [delivery_id] = result.trace.delivery_ids
+      {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id)
+      timeline_events = Enum.map(explanation.timeline, & &1.event)
+      required_events = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
+      ordered? = Enum.reduce_while(timeline_events, required_events, fn event, remaining -> case remaining do [^event | rest] -> {:cont, rest}; _ -> {:cont, remaining} end end) == []
+      true = explanation.channel == "email"
+      true = explanation.notification_key == ArtifactConsumer.Notifiers.MailglassProof.notification_key()
+      true = explanation.render_key == "artifact_consumer.mailglass_proof.email"
+      true = explanation.render_version == 1
+      true = explanation.status == :succeeded
+      true = explanation.last_attempt != nil and explanation.last_attempt.outcome == :succeeded
+      true = explanation.last_attempt.adapter_module == "Chimeway.Adapters.Mailglass"
+      true = ordered?
+      true = length(Mailglass.Adapters.Fake.deliveries()) == 1
+      evidence = %{transport: "fake", notification_key: explanation.notification_key, notification_version: ArtifactConsumer.Notifiers.MailglassProof.version(), delivery_id: delivery_id, channel: explanation.channel, render_key: explanation.render_key, render_version: explanation.render_version, status: explanation.status, last_attempt_outcome: explanation.last_attempt.outcome, last_attempt_number: explanation.last_attempt.attempt_number, adapter_module: explanation.last_attempt.adapter_module, timeline_events: Enum.join(timeline_events, ",")}
+      IO.puts("CHIMEWAY_MAILGLASS_PROOF " <> Enum.map_join([:transport, :notification_key, :notification_version, :delivery_id, :channel, :render_key, :render_version, :status, :last_attempt_outcome, :last_attempt_number, :adapter_module, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
+    after
+      Chimeway.Repo.put_dynamic_repo(previous_repo)
+    end
     """
   end
 

@@ -1088,7 +1088,10 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert proof.mix_source =~ "{:mailglass, \"~> 1.3\"}"
 
       assert proof.topology == ArtifactConsumerFixture.mailglass_repo_topology()
-      assert proof.config_source =~ "config :artifact_consumer, ecto_repos: [ArtifactConsumer.Repo]"
+
+      assert proof.config_source =~
+               "config :artifact_consumer, ecto_repos: [ArtifactConsumer.Repo]"
+
       assert proof.config_source =~ "config :chimeway, repo: ArtifactConsumer.Repo"
       assert proof.config_source =~ "config :mailglass, repo: ArtifactConsumer.Repo"
       refute proof.config_source =~ "config :chimeway, Chimeway.Repo"
