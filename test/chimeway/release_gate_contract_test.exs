@@ -1042,6 +1042,74 @@ defmodule Chimeway.ReleaseGateContractTest do
                )
     end
 
+    @tag timeout: 120_000
+    test "a clean consumer proves one host-owned Mailglass transaction from only the unpacked artifact", %{
+      root: root
+    } do
+      proof = ArtifactConsumerFixture.prove_mailglass!(root)
+
+      assert proof.output =~ "CHIMEWAY_MAILGLASS_PROOF"
+      assert proof.output =~ "transport=fake"
+
+      assert Map.keys(proof.evidence) |> Enum.sort() ==
+               [
+                 :adapter_module,
+                 :channel,
+                 :delivery_id,
+                 :last_attempt_number,
+                 :last_attempt_outcome,
+                 :notification_key,
+                 :notification_version,
+                 :render_key,
+                 :render_version,
+                 :status,
+                 :timeline_events,
+                 :transport
+               ]
+
+      assert proof.evidence.transport == "fake"
+      assert proof.evidence.channel == "email"
+      assert proof.evidence.notification_key == "artifact_consumer.mailglass_proof"
+      assert proof.evidence.notification_version == "1"
+      assert proof.evidence.render_key == "artifact_consumer.mailglass_proof.email"
+      assert proof.evidence.render_version == "1"
+      assert proof.evidence.status == "succeeded"
+      assert proof.evidence.last_attempt_outcome == "succeeded"
+      assert proof.evidence.adapter_module == "Chimeway.Adapters.Mailglass"
+      assert proof.evidence.last_attempt_number == "1"
+
+      assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+      assert proof.proof_source =~ "Mailglass.Adapters.Fake.checkout()"
+      assert proof.proof_source =~ "Mailglass.Adapters.Fake.set_shared(self())"
+      assert proof.proof_source =~ "length(Mailglass.Adapters.Fake.deliveries()) == 1"
+      assert proof.migration_source =~ "Mailglass.Migration.up()"
+      assert proof.migration_source =~ "Mailglass.Migration.down()"
+      assert proof.mix_source =~ "{:mailglass, \"~> 1.3\"}"
+
+      for forbidden <- [
+            "ArtifactConsumer.Repo",
+            "Chimeway.Repo",
+            "Ecto.Query",
+            "Repo.get",
+            "Repo.one",
+            "Ecto.Adapters.SQL",
+            "recipient",
+            "subject",
+            "html_body",
+            "text_body",
+            "assigns",
+            "password",
+            "secret",
+            "provider_response",
+            "metadata"
+          ] do
+        refute proof.output =~ forbidden
+      end
+
+      refute File.exists?(proof.identity.root)
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+    end
+
     test "provenance validation accepts only one unpacked artifact dependency" do
       unpacked_root = Path.join(System.tmp_dir!(), "artifact-unpacked")
       source = "defp deps, do: [{:chimeway, path: #{inspect(unpacked_root)}}]"
