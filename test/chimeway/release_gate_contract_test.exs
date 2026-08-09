@@ -995,7 +995,148 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert proof.output =~ "notification_version=1"
       assert proof.output =~ "status=succeeded"
       assert proof.output =~ "last_attempt_outcome=succeeded"
+
+      assert Map.keys(proof.evidence) |> Enum.sort() ==
+               [
+                 :delivery_id,
+                 :last_attempt_outcome,
+                 :notification_key,
+                 :notification_version,
+                 :status,
+                 :timeline_events
+               ]
+
+      assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+
+      for forbidden <- [
+            "ArtifactConsumer.Repo",
+            "Chimeway.Repo",
+            "Ecto.Query",
+            "Repo.get",
+            "Repo.one",
+            "Ecto.Adapters.SQL",
+            "payload",
+            "recipient_identity",
+            "email",
+            "phone",
+            "provider_response",
+            "DATABASE_URL",
+            "password",
+            "secret"
+          ] do
+        refute proof.proof_source =~ forbidden
+        refute proof.output =~ forbidden
+      end
+
+      refute File.exists?(proof.identity.root)
+      assert :ok = Ecto.Adapters.Postgres.storage_up(ArtifactConsumerFixture.database_config(proof.identity.database))
+      assert :ok = Ecto.Adapters.Postgres.storage_down(ArtifactConsumerFixture.database_config(proof.identity.database))
     end
+
+    test "provenance validation accepts only one unpacked artifact dependency" do
+      unpacked_root = Path.join(System.tmp_dir!(), "artifact-unpacked")
+      source = "defp deps, do: [{:chimeway, path: #{inspect(unpacked_root)}}]"
+
+      assert :ok = ArtifactConsumerFixture.validate_artifact_dependency!(source, unpacked_root, "/repo/root")
+
+      assert_raise RuntimeError, ~r/repository source root/, fn ->
+        ArtifactConsumerFixture.validate_artifact_dependency!(source, unpacked_root, unpacked_root)
+      end
+
+      assert_raise RuntimeError, ~r/exactly one :chimeway dependency/, fn ->
+        ArtifactConsumerFixture.validate_artifact_dependency!(source <> ", {:chimeway, path: \"/other\"}", unpacked_root, "/repo/root")
+      end
+
+      assert_raise RuntimeError, ~r/unpacked artifact root/, fn ->
+        ArtifactConsumerFixture.validate_artifact_dependency!(
+          "defp deps, do: [{:chimeway, path: \"/other\"}]",
+          unpacked_root,
+          "/repo/root"
+        )
+      end
+    end
+
+    test "public evidence rejects empty or incomplete trace data" do
+      complete = %Chimeway.Traces.Explanation{
+        delivery_id: "delivery-id",
+        status: :succeeded,
+        last_attempt: %{outcome: :succeeded},
+        timeline: Enum.map([:event_created, :notification_created, :delivery_planned, :attempt_recorded], &%{event: &1})
+      }
+
+      assert %{notification_key: "artifact_consumer.core_trace"} =
+               ArtifactConsumerFixture.build_safe_evidence!(
+                 Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+                 complete
+               )
+
+      assert_raise RuntimeError, ~r/delivery ID/, fn ->
+        ArtifactConsumerFixture.build_safe_evidence!(
+          Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+          %{complete | delivery_id: ""}
+        )
+      end
+
+      assert_raise RuntimeError, ~r/non-empty explanation timeline/, fn ->
+        ArtifactConsumerFixture.build_safe_evidence!(
+          Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+          %{complete | timeline: []}
+        )
+      end
+
+      assert_raise RuntimeError, ~r/last attempt outcome/, fn ->
+        ArtifactConsumerFixture.build_safe_evidence!(
+          Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+          %{complete | last_attempt: nil}
+        )
+      end
+    end
+
+    test "timeline evidence allows interposed public events but enforces required order" do
+      required = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
+
+      assert ArtifactConsumerFixture.ordered_subsequence?(required, [
+               :event_created,
+               :notification_created,
+               :deferred,
+               :delivery_planned,
+               :webhook_received,
+               :attempt_recorded
+             ])
+
+      refute ArtifactConsumerFixture.ordered_subsequence?(required, [
+               :event_created,
+               :delivery_planned,
+               :notification_created,
+               :attempt_recorded
+             ])
+
+      refute ArtifactConsumerFixture.ordered_subsequence?(required, [
+               :event_created,
+               :notification_created,
+               :delivery_planned
+             ])
+    end
+
+    test "fixture resources are unique and an early failure cleans its exact root and database" do
+      first = ArtifactConsumerFixture.resource_identity()
+      second = ArtifactConsumerFixture.resource_identity()
+      refute first.root == second.root
+      refute first.database == second.database
+
+      assert_raise RuntimeError, ~r/pre-command validation failure/, fn ->
+        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(), identity: first, fail_before_commands: true)
+      end
+
+      refute File.exists?(first.root)
+      assert :ok = Ecto.Adapters.Postgres.storage_up(ArtifactConsumerFixture.database_config(first.database))
+      assert :ok = Ecto.Adapters.Postgres.storage_down(ArtifactConsumerFixture.database_config(first.database))
+    end
+  end
+
+  defmodule CoreProofNotifier do
+    def notification_key, do: "artifact_consumer.core_trace"
+    def version, do: 1
   end
 
   # Builds the default root Hex package into a unique temp dir and unpacks it.

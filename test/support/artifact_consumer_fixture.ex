@@ -30,10 +30,11 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       run_mix!(root, ["ecto.migrate"])
       output = run_mix!(root, ["run", "priv/prove_core.exs"])
       proof_source = File.read!(Path.join(root, "priv/prove_core.exs"))
-      evidence = parse_evidence!(output)
+      safe_output = proof_line!(output)
+      evidence = parse_evidence!(safe_output)
 
       %{
-        output: output,
+        output: safe_output,
         proof_source: proof_source,
         identity: identity,
         evidence: evidence,
@@ -130,7 +131,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   @doc false
   def database_config(database) do
     base_database_config()
-    |> Keyword.merge(url: nil, database: database, pool_size: 2, queue_target: 5_000, queue_interval: 10_000)
+    |> Keyword.merge(url: nil, database: database, pool_size: 2, queue_target: 5_000, queue_interval: 10_000, log: false)
   end
 
   defp scaffold!(root, unpacked_root, db_config) do
@@ -245,8 +246,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   end
 
   defp parse_evidence!(output) do
-    line = output |> String.split("\n") |> Enum.find(&String.starts_with?(&1, "CHIMEWAY_CORE_PROOF "))
-    if is_nil(line), do: raise("artifact consumer proof did not emit CHIMEWAY_CORE_PROOF")
+    line = proof_line!(output)
 
     line
     |> String.replace_prefix("CHIMEWAY_CORE_PROOF ", "")
@@ -256,6 +256,12 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       {String.to_atom(key), value}
     end)
     |> Map.new()
+  end
+
+  defp proof_line!(output) do
+    line = output |> String.split("\n") |> Enum.find(&String.starts_with?(&1, "CHIMEWAY_CORE_PROOF "))
+    if is_nil(line), do: raise("artifact consumer proof did not emit CHIMEWAY_CORE_PROOF")
+    line
   end
 
   defp cleanup!(root, db_config) do
