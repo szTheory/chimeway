@@ -638,6 +638,27 @@ defmodule Chimeway.DocContractTest do
              "mailglass integration guide must document Chimeway.Adapters.Mailglass for email delivery"
     end
 
+    @mailglass_proof_required [
+      "host-configured Ecto repo",
+      "one consumer-owned `ArtifactConsumer.Repo`",
+      "Fake recorded exactly one host-composed message",
+      "successful `Chimeway.Adapters.Mailglass` attempt",
+      "real provider acceptance",
+      "sender/domain verification",
+      "inbox placement/display",
+      "production credentials",
+      "provider callbacks",
+      "live webhook feedback",
+      "../recipes/mailglass-integration-blueprint.md"
+    ]
+
+    for required <- @mailglass_proof_required do
+      test "requires Mailglass clean-consumer proof boundary: #{required}", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "mailglass integration guide must document #{unquote(required)} for the clean-consumer proof"
+      end
+    end
+
     @mailglass_webhook_forbidden [
       ~s(process("mailglass"),
       "conn.params",
