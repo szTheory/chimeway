@@ -275,12 +275,11 @@ Use a fixed ordered key list and parser map, analogous to the existing core proo
 
 The underlying Mailglass functionality is confirmed by current official docs and local 1.3 usage, but the fetched official docs were for the current 2.4 documentation, not a versioned 1.3 document. [ASSUMED]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Which non-sensitive stable values should the generated proof use?**
    - What we know: names, values, ordering, and migration filename are explicitly discretionary. [VERIFIED: 94-CONTEXT.md]
-   - What's unclear: no canonical naming convention for the Mailglass proof has been locked.
-   - Recommendation: use an `artifact_consumer.mailglass_proof` notification key and matching `.email` render key, with version `1`; contract-test only the stable outputs, not private fixture names. [ASSUMED]
+   - Resolution: use `artifact_consumer.mailglass_proof` as the notification key, `artifact_consumer.mailglass_proof.email` as the render key, and version `1`; contract-test only these stable outputs, not private fixture names. This is resolved under the agent's discretion in CONTEXT.md and matches the values selected by Plan 94-01.
 
 ## Environment Availability
 

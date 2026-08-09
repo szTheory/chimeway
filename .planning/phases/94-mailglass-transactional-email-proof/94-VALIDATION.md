@@ -2,7 +2,7 @@
 phase: 94
 slug: mailglass-transactional-email-proof
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: true
 created: 2026-08-08
 ---
@@ -32,9 +32,10 @@ created: 2026-08-08
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 94-01-01 | 01 | 1 | MAIL-01 | — | The clean consumer proves only allowlisted trace evidence and rejects unsafe proof output. | integration / contract | `mix test test/chimeway/release_gate_contract_test.exs` | ✅ | ⬜ pending |
-| 94-01-02 | 01 | 1 | MAIL-02 | — | Public documentation names the Fake transport boundary and does not direct adopters to maintainer-only commands. | documentation contract | `mix test test/chimeway/doc_contract_test.exs` | ✅ | ⬜ pending |
-| 94-01-03 | 01 | 1 | MAIL-01, MAIL-02 | — | Release and documentation gates remain in parity. | gate suite | `mix ci.verify_gates` | ✅ | ⬜ pending |
+| 94-01-01 | 01 | 1 | MAIL-01, MAIL-02 | T-94-01, T-94-03, T-94-04, T-94-05 | The unpacked-artifact tracer proves the exact host-owned Mailglass path, sanitized public trace, provenance, Fake ownership, and cleanup. | integration / release-gate contract | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
+| 94-01-02 | 01 | 1 | MAIL-01, MAIL-02 | T-94-02, T-94-04 | The strict parser rejects unknown, duplicate, missing, malformed, repeated-prefix, and unsafe evidence without atom creation or leaked resources. | integration / release-gate contract | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
+| 94-02-01 | 02 | 2 | MAIL-02 | T-94-06, T-94-07, T-94-08 | Documentation contracts require one-repo ownership, the exact Fake/adapter-attempt distinction, all live-provider exclusions, and the blueprint link. | documentation contract | `MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
+| 94-02-02 | 02 | 2 | MAIL-02 | T-94-06, T-94-09 | Negative documentation contracts reject live-delivery overclaims and Hex-consumer presentation of the maintainer-only suite; release/doc gates remain in parity. | documentation contract / gate suite | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs test/chimeway/doc_contract_test.exs --warnings-as-errors && mix ci.verify_gates` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,11 +49,11 @@ All phase behaviors have automated verification.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have automated verification.
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verification.
+- [x] All tasks have automated verification.
+- [x] Sampling continuity: no 3 consecutive tasks without automated verification.
 - [x] Existing infrastructure covers all requirements.
-- [ ] No watch-mode flags.
-- [ ] Feedback latency < 60 seconds.
-- [ ] `nyquist_compliant: true` set in frontmatter.
+- [x] No watch-mode flags.
+- [x] Feedback latency < 60 seconds.
+- [x] `nyquist_compliant: true` set in frontmatter.
 
 **Approval:** pending
