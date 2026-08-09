@@ -1,6 +1,8 @@
 defmodule Chimeway.DocContractTest do
   use ExUnit.Case, async: true
 
+  alias Chimeway.Test.ArtifactConsumerFixture
+
   @moduledoc false
 
   @public_modules [
@@ -636,6 +638,24 @@ defmodule Chimeway.DocContractTest do
     } do
       assert String.contains?(content, "Chimeway.Adapters.Mailglass"),
              "mailglass integration guide must document Chimeway.Adapters.Mailglass for email delivery"
+    end
+
+    test "couples clean-consumer repo guidance to the executable fixture topology", %{
+      content: content
+    } do
+      topology = ArtifactConsumerFixture.mailglass_repo_topology()
+      repo = inspect(topology.chimeway_repo)
+
+      assert topology.ecto_repos == [topology.chimeway_repo]
+      assert topology.chimeway_repo == topology.mailglass_repo
+      assert topology.mailglass_repo == topology.active_repo
+      assert topology.active_repo == topology.supervised_repo
+      assert String.contains?(content, "config :artifact_consumer, ecto_repos: [#{repo}]")
+      assert String.contains?(content, "config :chimeway, repo: #{repo}")
+      assert String.contains?(content, "config :mailglass, repo: #{repo}")
+      assert String.contains?(content, "included_applications: [:chimeway]")
+      assert String.contains?(content, "without separately starting `Chimeway.Repo`")
+      assert String.contains?(content, "Chimeway.Repo.put_dynamic_repo(#{repo})")
     end
 
     @mailglass_proof_required [
