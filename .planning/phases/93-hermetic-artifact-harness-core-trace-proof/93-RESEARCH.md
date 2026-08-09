@@ -262,14 +262,14 @@ assert :attempt_recorded in Enum.map(explanation.timeline, & &1.event)
 | A1 | The generated consumer should directly declare `ecto_sql` and `postgrex` to compile its own Repo rather than rely on transitive compilation visibility. | Standard Stack | Consumer Mix compilation may need a small dependency declaration adjustment. |
 | A2 | A public script with `assert`/nonzero exit is the clearest evidence boundary. | Supporting / Patterns | Planner may instead select a compiled `mix` task; either is valid if it remains consumer-owned and public-API-only. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the Core artifact contract stay inside `mix ci.verify_gates`?**
    - What we know: that job already provisions PostgreSQL 15 and runs the existing release gate contract. [VERIFIED: .github/workflows/ci.yml, mix.exs]
-   - Recommendation: keep this Phase-93 contract in the existing anchor now; do not create a dedicated lane before Phase 96.
+   - **RESOLVED:** Keep the Phase-93 contract in the existing release-gate / `mix ci.verify_gates` anchor; do not create a dedicated lane before Phase 96. This preserves the established package/release truth topology while reusing its PostgreSQL-backed execution environment.
 2. **What exact safe evidence serialization should the consumer print?**
    - What we know: the explanation struct exposes safe public lifecycle fields, and existing tests forbid sensitive keys in timeline details. [VERIFIED: lib/chimeway/traces/explanation.ex, test/chimeway/traces_test.exs]
-   - Recommendation: print only a fixed map of notification key, delivery ID, status, last-attempt outcome, and timeline event atoms; do not print full structs.
+   - **RESOLVED:** Print only the fixed six-field public evidence allowlist: `notification_key`, `notification_version`, `delivery_id`, `status`, `last_attempt_outcome`, and `timeline_events`; do not print full structs. These fields prove stable notifier identity and terminal public lifecycle evidence without exposing payload, recipient, provider, or connection data.
 
 ## Environment Availability
 
