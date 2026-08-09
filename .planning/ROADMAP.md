@@ -2,6 +2,7 @@
 
 ## Milestones
 
+- 🚧 **v1.17 Adopter Proof Paths** — active (Phases 93–96 planned)
 - ✅ **v1.0** — [Archived roadmap](.planning/milestones/v1.0-ROADMAP.md) (shipped 2026-04-25)
 - ✅ **v1.1** — [Archived roadmap](.planning/milestones/v1.1-ROADMAP.md) (shipped 2026-04-27)
 - ✅ **v1.2** — [Archived roadmap](.planning/milestones/v1.2-ROADMAP.md) (shipped 2026-04-29)
@@ -20,6 +21,15 @@
 - ✅ **v1.16 CI/CD Performance & Reliability** — [Archived roadmap](.planning/milestones/v1.16-ROADMAP.md) (shipped 2026-07-30, accepted-risk close — 25/26; CACHE-05 deferred)
 
 ## Phases
+
+### v1.17 Adopter Proof Paths
+
+**Goal:** Let a prospective Elixir/Phoenix adopter select a relevant Chimeway use case, run a clean and trustworthy proof from a packaged artifact, and understand the boundary between Chimeway and its integration partners.
+
+- [ ] **Phase 93: Hermetic Artifact Harness & Core Trace Proof** - A clean consumer proves the core durable notification lifecycle and public trace from an unpacked package artifact.
+- [ ] **Phase 94: Mailglass Transactional-Email Proof** - A clean consumer proves deterministic Mailglass orchestration and explains exactly what fake transport covers.
+- [ ] **Phase 95: Accrue Billing-Escalation Proof** - A clean consumer proves Accrue workflow outcomes with truthful released-package versus pinned-ref provenance.
+- [ ] **Phase 96: Adoption Front Door & Proof Gate** - Adopters can select, run, and trust the three proof paths through contract-checked guidance and one focused CI lane.
 
 <details>
 <summary>✅ v1.16 CI/CD Performance & Reliability (Phases 87-92) — SHIPPED 2026-07-30 (accepted-risk close — 25/26; CACHE-05 deferred → backlog #4)</summary>
@@ -76,10 +86,57 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 
 </details>
 
+## Phase Details
+
+### Phase 93: Hermetic Artifact Harness & Core Trace Proof
+**Goal**: Prospective adopters can independently install an unpacked Chimeway artifact into a clean host and prove a core notification lifecycle through public explainability evidence.
+**Depends on**: Nothing
+**Requirements**: PROOF-01, PROOF-02, PROOF-03, CORE-01
+**Success Criteria** (what must be TRUE):
+  1. An adopter can run the Core proof from a temporary clean consumer whose Chimeway dependency resolves from an unpacked built package artifact, not the repository source tree.
+  2. The clean consumer can boot, create and migrate its own supported PostgreSQL database, and execute the documented Core command reproducibly.
+  3. The Core proof shows a notifier definition, public trigger, and durable delivery outcome with stable notification identity inputs visible in sanitized evidence.
+  4. The proof obtains and asserts the lifecycle explanation through a public Chimeway explainability API rather than private test helpers or database-only inspection.
+**Plans**: TBD
+
+### Phase 94: Mailglass Transactional-Email Proof
+**Goal**: Prospective adopters can evaluate the existing Mailglass transactional-email path in the clean consumer and see its public delivery evidence and exact boundary.
+**Depends on**: Phase 93
+**Requirements**: MAIL-01, MAIL-02
+**Success Criteria** (what must be TRUE):
+  1. An adopter can run the Mailglass proof in the clean consumer and observe configured host mailable/render-key orchestration reach a deterministic transactional-email outcome.
+  2. The proof output includes sanitized public explainability evidence for the Mailglass adapter and delivery attempt.
+  3. The path’s guidance states that its fake/test transport proves local composition and orchestration, while provider acceptance, sender verification, and live feedback remain outside the proof.
+**Plans**: TBD
+
+### Phase 95: Accrue Billing-Escalation Proof
+**Goal**: Prospective adopters can evaluate Accrue-driven billing escalation through its natural event and outcome-signal boundaries, with provenance that does not overstate release support.
+**Depends on**: Phase 93
+**Requirements**: ACCR-01, ACCR-02
+**Success Criteria** (what must be TRUE):
+  1. An adopter can run an Accrue proof in the clean consumer where a billing failure begins escalation and a payment outcome signal progresses or terminates the workflow without directly invoking a Chimeway notifier.
+  2. The proof shows sanitized public trace evidence for the workflow progression and its resulting termination or outcome state.
+  3. When the resolved Accrue release contains the integration, the proof identifies the released package versions and labels itself as an independent released-package adopter proof.
+  4. If the integration is available only through an immutable pinned reference, the proof identifies the exact ref/SHA and labels itself solely as compatibility evidence, never as released-package installation guidance.
+**Plans**: TBD
+
+### Phase 96: Adoption Front Door & Proof Gate
+**Goal**: Prospective adopters can choose the right canonical path, understand ownership boundaries, and rely on CI-backed commands and documentation that remain truthful over time.
+**Depends on**: Phase 94, Phase 95
+**Requirements**: ADPT-01, ADPT-02, GATE-01, GATE-02, DOCS-01
+**Success Criteria** (what must be TRUE):
+  1. An adopter can choose Core, Mailglass, or Accrue from the desired outcome and see the respective host, Chimeway, and partner responsibilities.
+  2. Each chosen path provides a copyable proof command, expected sanitized explainability evidence, and an explicit statement of what the proof does not cover.
+  3. An adopter or maintainer can run `mix verify.adoption_paths` to execute the clean-room proof paths without re-running the repository’s detailed partner integration suites.
+  4. CI runs that command in one dedicated PostgreSQL-backed adoption lane and surfaces enough per-path diagnostics to identify a failed proof.
+  5. Contract checks prevent the selector, commands, artifact fixture guidance, and CI entrypoint from silently drifting apart.
+**Plans**: TBD
+
 ## Progress
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
 |-----------|--------|-------|--------------|--------|---------|
+| v1.17 Adopter Proof Paths | 93-96 | 0/TBD | 0/13 | Planning | - |
 | v1.16 CI/CD Performance & Reliability | 87-92 | 21/21 | 25/26 | Complete (accepted-risk: CACHE-05 deferred → backlog #4) | 2026-07-30 |
 | v1.15 Brand Identity & Brand Book | 81-86 | 16/16 | 30/32 | Complete (accepted-risk: 2 A11Y manual checks owner-waived) | 2026-07-28 |
 | v1.14 Public Truth and Verification Architecture | 77-80 | 10/10 | 14/14 | Complete | 2026-07-03 |
@@ -88,4 +145,4 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 | v1.10 Ecosystem Completions | 63-67 | 13/13 | 8/8 | Complete | 2026-06-04 |
 
 ---
-*Roadmap updated: 2026-07-30 — v1.16 CI/CD Performance & Reliability SHIPPED (accepted-risk close, 25/26; Phases 87–92 collapsed, full detail archived to `milestones/v1.16-ROADMAP.md`). CACHE-05 (sub-3-min warm ci-gate) deferred → `CI-HARDENING-BACKLOG.md` #4 (compile-once spike). No active milestone — next: /gsd-new-milestone or take on the CACHE-05 spike.*
+*Roadmap updated: 2026-08-08 — v1.17 Adopter Proof Paths defined: Phases 93–96. All 13 v1.17 requirements are mapped once; Phase 93 is next.*

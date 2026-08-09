@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
 status: planning
-last_updated: "2026-08-09T00:58:40.685Z"
+last_updated: "2026-08-08T01:10:00.000Z"
 last_activity: 2026-08-08
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Milestone complete
+**Current focus:** v1.17 Adopter Proof Paths — begin with the hermetic unpacked-artifact consumer harness and Core trace proof.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 93 of 96 (Hermetic Artifact Harness & Core Trace Proof)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-08 — Milestone v1.17 started
+Status: Roadmap defined; awaiting approval
+Last activity: 2026-08-08 — Mapped all 13 v1.17 requirements to Phases 93–96
 
 ## Deferred Items
 
@@ -603,13 +603,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-30T18:38:56.225Z
-Stopped at: Completed 92-03-PLAN.md
-Resume file: None
+Last session: 2026-08-08T01:10:00.000Z
+Stopped at: v1.17 roadmap created; awaiting user approval
+Resume file: .planning/ROADMAP.md
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Approve the v1.17 roadmap, then plan Phase 93 with /gsd-plan-phase 93
 
 ## Performance Metrics
 

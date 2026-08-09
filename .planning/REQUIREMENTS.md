@@ -58,25 +58,25 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ADPT-01 | TBD | Pending |
-| ADPT-02 | TBD | Pending |
-| PROOF-01 | TBD | Pending |
-| PROOF-02 | TBD | Pending |
-| PROOF-03 | TBD | Pending |
-| CORE-01 | TBD | Pending |
-| MAIL-01 | TBD | Pending |
-| MAIL-02 | TBD | Pending |
-| ACCR-01 | TBD | Pending |
-| ACCR-02 | TBD | Pending |
-| GATE-01 | TBD | Pending |
-| GATE-02 | TBD | Pending |
-| DOCS-01 | TBD | Pending |
+| ADPT-01 | Phase 96 | Pending |
+| ADPT-02 | Phase 96 | Pending |
+| PROOF-01 | Phase 93 | Pending |
+| PROOF-02 | Phase 93 | Pending |
+| PROOF-03 | Phase 93 | Pending |
+| CORE-01 | Phase 93 | Pending |
+| MAIL-01 | Phase 94 | Pending |
+| MAIL-02 | Phase 94 | Pending |
+| ACCR-01 | Phase 95 | Pending |
+| ACCR-02 | Phase 95 | Pending |
+| GATE-01 | Phase 96 | Pending |
+| GATE-02 | Phase 96 | Pending |
+| DOCS-01 | Phase 96 | Pending |
 
 **Coverage:**
 - v1.17 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13 (roadmap pending)
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-08-08*
-*Last updated: 2026-08-08 after v1.17 requirement confirmation*
+*Last updated: 2026-08-08 after v1.17 roadmap mapping*
