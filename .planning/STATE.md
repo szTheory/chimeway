@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
-current_phase: 93
-current_phase_name: Hermetic Artifact Harness & Core Trace Proof
+current_phase: 94
+current_phase_name: Mailglass Transactional-Email Proof
 status: planning
 stopped_at: Phase 93 context gathered (assumptions mode)
-last_updated: "2026-08-09T01:31:45.551Z"
+last_updated: "2026-08-09T02:25:26.420Z"
 last_activity: 2026-08-08
-last_activity_desc: Mapped all 13 v1.17 requirements to Phases 93–96
+last_activity_desc: Phase 93 complete, transitioned to Phase 94
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.17 Adopter Proof Paths — begin with the hermetic unpacked-artifact consumer harness and Core trace proof.
+**Current focus:** Phase 93 — hermetic-artifact-harness-core-trace-proof
 
 ## Current Position
 
-Phase: 93 of 96 (Hermetic Artifact Harness & Core Trace Proof)
-Plan: —
-Status: Roadmap defined; awaiting approval
-Last activity: 2026-08-08 — Mapped all 13 v1.17 requirements to Phases 93–96
+Phase: 94 — Mailglass Transactional-Email Proof
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-08 — Phase 93 complete, transitioned to Phase 94
 
 ## Deferred Items
 

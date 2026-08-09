@@ -13,13 +13,13 @@
 
 ### Hermetic Proof Foundation
 
-- [ ] **PROOF-01**: A clean consumer fixture installs Chimeway from an unpacked built package artifact without a root source-path dependency.
-- [ ] **PROOF-02**: The fixture can boot, migrate, and run the documented proof commands reproducibly with the project-supported PostgreSQL environment.
-- [ ] **PROOF-03**: Every adoption proof asserts its lifecycle evidence through a public Chimeway explainability API.
+- [x] **PROOF-01**: A clean consumer fixture installs Chimeway from an unpacked built package artifact without a root source-path dependency.
+- [x] **PROOF-02**: The fixture can boot, migrate, and run the documented proof commands reproducibly with the project-supported PostgreSQL environment.
+- [x] **PROOF-03**: Every adoption proof asserts its lifecycle evidence through a public Chimeway explainability API.
 
 ### Core Trace Path
 
-- [ ] **CORE-01**: The Core path proves notifier definition through trigger, durable delivery outcome, and an explainable trace in the clean consumer fixture.
+- [x] **CORE-01**: The Core path proves notifier definition through trigger, durable delivery outcome, and an explainable trace in the clean consumer fixture.
 
 ### Transactional Email Path
 
@@ -60,10 +60,10 @@
 |-------------|-------|--------|
 | ADPT-01 | Phase 96 | Pending |
 | ADPT-02 | Phase 96 | Pending |
-| PROOF-01 | Phase 93 | Pending |
-| PROOF-02 | Phase 93 | Pending |
-| PROOF-03 | Phase 93 | Pending |
-| CORE-01 | Phase 93 | Pending |
+| PROOF-01 | Phase 93 | Complete |
+| PROOF-02 | Phase 93 | Complete |
+| PROOF-03 | Phase 93 | Complete |
+| CORE-01 | Phase 93 | Complete |
 | MAIL-01 | Phase 94 | Pending |
 | MAIL-02 | Phase 94 | Pending |
 | ACCR-01 | Phase 95 | Pending |
@@ -73,6 +73,7 @@
 | DOCS-01 | Phase 96 | Pending |
 
 **Coverage:**
+
 - v1.17 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0
