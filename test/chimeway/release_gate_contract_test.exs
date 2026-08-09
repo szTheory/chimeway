@@ -1315,8 +1315,13 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "Mailglass proof evidence rejects forged values beneath every allowlisted key" do
       complete = mailglass_evidence_line()
 
+      assert_raise RuntimeError, ~r/must declare fake transport/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          replace_mailglass_evidence_value(complete, "transport", "live")
+        )
+      end
+
       mutations = [
-        {"transport", "live"},
         {"notification_key", "recipient@example.test"},
         {"notification_version", "2"},
         {"delivery_id", "provider-message-123"},
