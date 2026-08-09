@@ -23,8 +23,8 @@
 
 ### Transactional Email Path
 
-- [ ] **MAIL-01**: The Mailglass path proves configured transactional-email orchestration and trace evidence in the clean consumer fixture.
-- [ ] **MAIL-02**: Mailglass guidance and proof output accurately distinguish fake-transport behavior from live-provider delivery and feedback coverage.
+- [x] **MAIL-01**: The Mailglass path proves configured transactional-email orchestration and trace evidence in the clean consumer fixture.
+- [x] **MAIL-02**: Mailglass guidance and proof output accurately distinguish fake-transport behavior from live-provider delivery and feedback coverage.
 
 ### Billing Escalation Path
 
@@ -64,8 +64,8 @@
 | PROOF-02 | Phase 93 | Complete |
 | PROOF-03 | Phase 93 | Complete |
 | CORE-01 | Phase 93 | Complete |
-| MAIL-01 | Phase 94 | Pending |
-| MAIL-02 | Phase 94 | Pending |
+| MAIL-01 | Phase 94 | Complete |
+| MAIL-02 | Phase 94 | Complete |
 | ACCR-01 | Phase 95 | Pending |
 | ACCR-02 | Phase 95 | Pending |
 | GATE-01 | Phase 96 | Pending |

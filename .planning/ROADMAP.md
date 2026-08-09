@@ -113,16 +113,19 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
   2. The proof output includes sanitized public explainability evidence for the Mailglass adapter and delivery attempt.
   3. The path’s guidance states that its fake/test transport proves local composition and orchestration, while provider acceptance, sender verification, and live feedback remain outside the proof.
 
-**Plans**: 2 plans
+**Plans**: 3/3 plans executed
 
 Plans:
+
+- [x] 94-03-PLAN.md
+
 **Wave 1**
 
-- [ ] 94-01-PLAN.md — Prove the unpacked-artifact Mailglass path and strict trace-only evidence boundary.
+- [x] 94-01-PLAN.md — Prove the unpacked-artifact Mailglass path and strict trace-only evidence boundary.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 94-02-PLAN.md — Lock canonical one-repo, Fake-transport, and live-provider boundary guidance.
+- [x] 94-02-PLAN.md — Lock canonical one-repo, Fake-transport, and live-provider boundary guidance.
 
 ### Phase 95: Accrue Billing-Escalation Proof
 
