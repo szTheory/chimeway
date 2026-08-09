@@ -1273,6 +1273,19 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
+    test "Mailglass proof evidence accepts the canonical schema but rejects recipient-shaped delivery IDs" do
+      complete = mailglass_evidence_line()
+
+      assert %{delivery_id: "2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e"} =
+               ArtifactConsumerFixture.parse_mailglass_evidence!(complete)
+
+      assert_raise RuntimeError, ~r/delivery_id/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          replace_mailglass_evidence_value(complete, "delivery_id", "recipient@example.test")
+        )
+      end
+    end
+
     test "Mailglass proof evidence rejects every sensitive output category" do
       for unsafe_key <- [
             "recipient",
@@ -1471,11 +1484,15 @@ defmodule Chimeway.ReleaseGateContractTest do
   defp mailglass_evidence_line do
     "CHIMEWAY_MAILGLASS_PROOF " <>
       "transport=fake notification_key=artifact_consumer.mailglass_proof " <>
-      "notification_version=1 delivery_id=delivery-id channel=email " <>
+      "notification_version=1 delivery_id=2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e channel=email " <>
       "render_key=artifact_consumer.mailglass_proof.email render_version=1 " <>
       "status=succeeded last_attempt_outcome=succeeded last_attempt_number=1 " <>
       "adapter_module=Chimeway.Adapters.Mailglass " <>
       "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded"
+  end
+
+  defp replace_mailglass_evidence_value(line, key, value) do
+    Regex.replace(~r/(^|\s)#{Regex.escape(key)}=[^\s]*/, line, "\\1#{key}=#{value}")
   end
 
   defp count_tests(files) do
