@@ -116,7 +116,12 @@ Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md
 **Plans**: 2 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 94-01-PLAN.md — Prove the unpacked-artifact Mailglass path and strict trace-only evidence boundary.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 94-02-PLAN.md — Lock canonical one-repo, Fake-transport, and live-provider boundary guidance.
 
 ### Phase 95: Accrue Billing-Escalation Proof
