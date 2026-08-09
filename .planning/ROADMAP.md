@@ -27,7 +27,7 @@
 **Goal:** Let a prospective Elixir/Phoenix adopter select a relevant Chimeway use case, run a clean and trustworthy proof from a packaged artifact, and understand the boundary between Chimeway and its integration partners.
 
 - [x] **Phase 93: Hermetic Artifact Harness & Core Trace Proof** - A clean consumer proves the core durable notification lifecycle and public trace from an unpacked package artifact. (completed 2026-08-08)
-- [ ] **Phase 94: Mailglass Transactional-Email Proof** - A clean consumer proves deterministic Mailglass orchestration and explains exactly what fake transport covers.
+- [x] **Phase 94: Mailglass Transactional-Email Proof** - A clean consumer proves deterministic Mailglass orchestration and explains exactly what fake transport covers. (completed 2026-08-09)
 - [ ] **Phase 95: Accrue Billing-Escalation Proof** - A clean consumer proves Accrue workflow outcomes with truthful released-package versus pinned-ref provenance.
 - [ ] **Phase 96: Adoption Front Door & Proof Gate** - Adopters can select, run, and trust the three proof paths through contract-checked guidance and one focused CI lane.
 
