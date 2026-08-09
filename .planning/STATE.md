@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
+current_phase: 93
+current_phase_name: Hermetic Artifact Harness & Core Trace Proof
 status: planning
-last_updated: "2026-08-08T01:10:00.000Z"
+stopped_at: Phase 93 context gathered (assumptions mode)
+last_updated: "2026-08-09T01:31:45.551Z"
 last_activity: 2026-08-08
+last_activity_desc: Mapped all 13 v1.17 requirements to Phases 93–96
 progress:
   total_phases: 4
   completed_phases: 0
@@ -603,9 +607,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-08T01:10:00.000Z
-Stopped at: v1.17 roadmap created; awaiting user approval
-Resume file: .planning/ROADMAP.md
+Last session: 2026-08-09T01:31:45.543Z
+Stopped at: Phase 93 context gathered (assumptions mode)
+Resume file: .planning/phases/93-hermetic-artifact-harness-core-trace-proof/93-CONTEXT.md
 
 ## Operator Next Steps
 
