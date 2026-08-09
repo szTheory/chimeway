@@ -8,6 +8,17 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
+## Current Milestone: v1.17 Adopter Proof Paths
+
+**Goal:** Let a prospective Elixir/Phoenix adopter choose a relevant end-to-end Chimeway use case, run a clean, trustworthy proof of it, and understand the boundary between Chimeway and its integration partners.
+
+**Target features:**
+- **Adoption front door:** a concise path selector that guides adopters from their goal to the right canonical integration journey and makes Chimeway's responsibility explicit.
+- **Clean-room tracer bullets:** reproducible install-to-outcome proofs for the core notification-and-trace, Mailglass transactional-email, and Accrue billing-escalation paths.
+- **Executable documentation:** CI-backed proof commands that validate the documented paths against a packaged/local-release artifact, so instructional guidance stays copyable and true.
+
+**Key context:** Existing guides and `verify.*` lanes already cover Golden Path, Mailglass, Accrue, Inbox, Threadline, and Sigra. This milestone consolidates and strengthens the highest-value adopter evaluation paths rather than expanding UI, adding recipient inbox behavior, or optimizing CI wall-clock further.
+
 ## Latest Shipped Milestone: v1.16 CI/CD Performance & Reliability
 
 **Status:** ✅ SHIPPED 2026-07-30 (accepted-risk close) — 25/26 requirements. Phases 87–92, 21 plans. **CACHE-05 deferred:** cache *correctness* (CACHE-01..04) shipped and proven (caches HIT on warm runs, `MIX_ENV` collision fixed), but the headline sub-3-min warm `ci-gate` target was **not** met — warm wall-clock regressed ~373s→~648s (serial `build` producer runs ahead of consumers that still recompile ex_cldr/rebar/app). Owner banked the correctness win 2026-07-29 and relegated compile-once to a spike (`CI-HARDENING-BACKLOG.md` #4).
@@ -49,7 +60,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-**v1.16 CI/CD Performance & Reliability** (started 2026-07-28) — CI pipeline efficiency, determinism, and DX. Requirements in `.planning/REQUIREMENTS.md`; roadmap in `.planning/ROADMAP.md` (Phases 87–92). Goal + target features in the [Current Milestone](#current-milestone-v116-cicd-performance--reliability) section above.
+**v1.17 Adopter Proof Paths** (started 2026-08-08) — adoption clarity and clean-room, CI-backed vertical proofs. Requirements and roadmap are being defined.
 
 Carried-forward candidates NOT in v1.16 scope (future milestones): the two accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation — a short in-browser pass); TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
 
@@ -581,4 +592,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-30 after v1.16 CI/CD Performance & Reliability milestone (accepted-risk close — 25/26 requirements; Phases 87–92; 21 plans). CACHE-05 (sub-3-min warm ci-gate) deferred to the compile-once spike, backlog #4. Also corrected stale ROADMAP/REQUIREMENTS bookkeeping that had shown Phases 88/89 as "Not started" despite completion.*
+*Last updated: 2026-08-08 after starting v1.17 Adopter Proof Paths.*

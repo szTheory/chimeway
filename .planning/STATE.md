@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.16
-milestone_name: CI/CD Performance & Reliability
-status: Awaiting next milestone
-stopped_at: Completed 92-03-PLAN.md
-last_updated: "2026-07-30T19:58:15.410Z"
-last_activity: 2026-07-30
-last_activity_desc: Milestone v1.16 completed and archived
+milestone: v1.17
+milestone_name: Adopter Proof Paths
+status: planning
+last_updated: "2026-08-09T00:58:40.685Z"
+last_activity: 2026-08-08
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
-current_phase: 92
-current_phase_name: reliability-triage-determinism
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: Milestone v1.16 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-30 — Milestone v1.16 completed and archived
+Status: Defining requirements
+Last activity: 2026-08-08 — Milestone v1.17 started
 
 ## Deferred Items
 
