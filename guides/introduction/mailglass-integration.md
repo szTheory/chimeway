@@ -172,7 +172,7 @@ Runnable demo: `DemoHost.Seeds.seed_invite/0` triggers the same notifier with de
 
 The proof does not cover real provider acceptance, sender/domain verification, inbox placement/display, production credentials, provider callbacks, or live webhook feedback.
 
-`mix verify.mailglass` is this repository's maintainer regression suite. It exercises the Mailglass adapter contract, executor routing, webhook pipeline, and demo-host proof; it is not a command supplied to Hex consumers.
+`mix verify.mailglass` is this repository's repository-maintainer regression suite. It exercises the Mailglass adapter contract, executor routing, webhook pipeline, and demo-host proof; it is not a command supplied to Hex consumers.
 
 ## 6. Optional inbound feedback
 
