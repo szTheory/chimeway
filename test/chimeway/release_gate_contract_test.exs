@@ -1087,6 +1087,18 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert proof.migration_source =~ "Mailglass.Migration.down()"
       assert proof.mix_source =~ "{:mailglass, \"~> 1.3\"}"
 
+      assert proof.topology == ArtifactConsumerFixture.mailglass_repo_topology()
+      assert proof.config_source =~ "config :artifact_consumer, ecto_repos: [ArtifactConsumer.Repo]"
+      assert proof.config_source =~ "config :chimeway, repo: ArtifactConsumer.Repo"
+      assert proof.config_source =~ "config :mailglass, repo: ArtifactConsumer.Repo"
+      refute proof.config_source =~ "config :chimeway, Chimeway.Repo"
+      assert proof.application_source =~ "included_applications: [:chimeway]"
+      assert proof.application_source =~ "Supervisor.start_link([ArtifactConsumer.Repo]"
+      refute proof.application_source =~ "Chimeway.Repo"
+      assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
+      assert proof.proof_source =~ "Process.whereis(ArtifactConsumer.Repo)"
+      assert proof.proof_source =~ "Process.whereis(Chimeway.Repo) == nil"
+
       for forbidden <- [
             "ArtifactConsumer.Repo",
             "Chimeway.Repo",
