@@ -25,7 +25,6 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "timeline_events" => :timeline_events
   }
   @mailglass_expected_values %{
-    transport: "fake",
     notification_key: "artifact_consumer.mailglass_proof",
     channel: "email",
     render_key: "artifact_consumer.mailglass_proof.email",
@@ -548,6 +547,10 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   end
 
   defp validate_mailglass_evidence!(evidence) do
+    if evidence.transport != "fake" do
+      raise "artifact consumer Mailglass proof must declare fake transport"
+    end
+
     Enum.each(@mailglass_expected_values, fn {field, expected} ->
       if Map.fetch!(evidence, field) != expected do
         raise "artifact consumer Mailglass proof emitted invalid #{field}"
