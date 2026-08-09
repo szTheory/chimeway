@@ -5,7 +5,7 @@ milestone_name: Adopter Proof Paths
 current_phase: 95
 current_phase_name: Accrue Billing-Escalation Proof
 status: planning
-stopped_at: Completed 94-03-PLAN.md
+stopped_at: Phase 94 complete; Phase 95 ready to plan
 last_updated: "2026-08-09T17:06:22.041Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 94 complete, transitioned to Phase 95
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 94 — mailglass-transactional-email-proof
+**Current focus:** Phase 95 — Accrue Billing-Escalation Proof
 
 ## Current Position
 
