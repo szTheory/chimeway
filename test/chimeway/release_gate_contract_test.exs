@@ -1029,22 +1029,44 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
 
       refute File.exists?(proof.identity.root)
-      assert :ok = Ecto.Adapters.Postgres.storage_up(ArtifactConsumerFixture.database_config(proof.identity.database))
-      assert :ok = Ecto.Adapters.Postgres.storage_down(ArtifactConsumerFixture.database_config(proof.identity.database))
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_up(
+                 ArtifactConsumerFixture.database_config(proof.identity.database)
+               )
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_down(
+                 ArtifactConsumerFixture.database_config(proof.identity.database)
+               )
     end
 
     test "provenance validation accepts only one unpacked artifact dependency" do
       unpacked_root = Path.join(System.tmp_dir!(), "artifact-unpacked")
       source = "defp deps, do: [{:chimeway, path: #{inspect(unpacked_root)}}]"
 
-      assert :ok = ArtifactConsumerFixture.validate_artifact_dependency!(source, unpacked_root, "/repo/root")
+      assert :ok =
+               ArtifactConsumerFixture.validate_artifact_dependency!(
+                 source,
+                 unpacked_root,
+                 "/repo/root"
+               )
 
       assert_raise RuntimeError, ~r/repository source root/, fn ->
-        ArtifactConsumerFixture.validate_artifact_dependency!(source, unpacked_root, unpacked_root)
+        ArtifactConsumerFixture.validate_artifact_dependency!(
+          source,
+          unpacked_root,
+          unpacked_root
+        )
       end
 
       assert_raise RuntimeError, ~r/exactly one :chimeway dependency/, fn ->
-        ArtifactConsumerFixture.validate_artifact_dependency!(source <> ", {:chimeway, path: \"/other\"}", unpacked_root, "/repo/root")
+        ArtifactConsumerFixture.validate_artifact_dependency!(
+          source <> ", {:chimeway, path: \"/other\"}",
+          unpacked_root,
+          "/repo/root"
+        )
       end
 
       assert_raise RuntimeError, ~r/unpacked artifact root/, fn ->
@@ -1061,7 +1083,11 @@ defmodule Chimeway.ReleaseGateContractTest do
         delivery_id: "delivery-id",
         status: :succeeded,
         last_attempt: %{outcome: :succeeded},
-        timeline: Enum.map([:event_created, :notification_created, :delivery_planned, :attempt_recorded], &%{event: &1})
+        timeline:
+          Enum.map(
+            [:event_created, :notification_created, :delivery_planned, :attempt_recorded],
+            &%{event: &1}
+          )
       }
 
       assert %{notification_key: "artifact_consumer.core_trace"} =
@@ -1092,6 +1118,25 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
+    test "subprocess evidence rejects unknown and duplicate string keys without atomizing them" do
+      unknown_key = "untrusted_key_#{System.unique_integer([:positive])}"
+
+      assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+        ArtifactConsumerFixture.parse_evidence!("CHIMEWAY_CORE_PROOF #{unknown_key}=value")
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_key) end
+
+      duplicate =
+        "CHIMEWAY_CORE_PROOF notification_key=one notification_key=two " <>
+          "notification_version=1 delivery_id=id status=succeeded " <>
+          "last_attempt_outcome=succeeded timeline_events=attempt_recorded"
+
+      assert_raise RuntimeError, ~r/duplicate evidence key/, fn ->
+        ArtifactConsumerFixture.parse_evidence!(duplicate)
+      end
+    end
+
     test "timeline evidence allows interposed public events but enforces required order" do
       required = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
 
@@ -1118,19 +1163,55 @@ defmodule Chimeway.ReleaseGateContractTest do
              ])
     end
 
-    test "fixture resources are unique and an early failure cleans its exact root and database" do
-      first = ArtifactConsumerFixture.resource_identity()
-      second = ArtifactConsumerFixture.resource_identity()
+    test "fixture resources have VM-safe namespaces and cleanup accepts only fixture-owned identities" do
+      first = ArtifactConsumerFixture.resource_identity("vm_one")
+      second = ArtifactConsumerFixture.resource_identity("vm_two")
       refute first.root == second.root
       refute first.database == second.database
+      assert first.root =~ "chimeway_artifact_consumer_vm_one_"
+      assert second.root =~ "chimeway_artifact_consumer_vm_two_"
+
+      forged = %{first | root: Path.join(System.tmp_dir!(), "not_fixture_owned")}
+
+      assert_raise ArgumentError, ~r/fixture-owned resource identity/, fn ->
+        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(),
+          identity: forged,
+          fail_before_commands: true
+        )
+      end
 
       assert_raise RuntimeError, ~r/pre-command validation failure/, fn ->
-        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(), identity: first, fail_before_commands: true)
+        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(),
+          identity: first,
+          fail_before_commands: true
+        )
       end
 
       refute File.exists?(first.root)
-      assert :ok = Ecto.Adapters.Postgres.storage_up(ArtifactConsumerFixture.database_config(first.database))
-      assert :ok = Ecto.Adapters.Postgres.storage_down(ArtifactConsumerFixture.database_config(first.database))
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_up(
+                 ArtifactConsumerFixture.database_config(first.database)
+               )
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_down(
+                 ArtifactConsumerFixture.database_config(first.database)
+               )
+    end
+
+    test "a database teardown failure fails closed and still removes the fixture tree" do
+      identity = ArtifactConsumerFixture.resource_identity("cleanup_failure")
+
+      assert_raise RuntimeError, ~r/database cleanup failed/, fn ->
+        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(),
+          identity: identity,
+          fail_before_commands: true,
+          storage_down: fn _config -> {:error, :controlled_failure} end
+        )
+      end
+
+      refute File.exists?(identity.root)
     end
   end
 
