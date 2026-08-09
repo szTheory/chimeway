@@ -74,7 +74,7 @@ defmodule Chimeway.MixProject do
 
       # Test lane (mailglass/accrue/threadline/sigra excluded — run mix verify.* separately, GATE-04/05/07)
       "ci.test": [
-        "cmd env MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude threadline --exclude sigra --warnings-as-errors"
+        "cmd scripts/test-db env MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude threadline --exclude sigra --warnings-as-errors"
       ],
 
       # Docs gate: fails on undocumented public functions
@@ -118,7 +118,7 @@ defmodule Chimeway.MixProject do
 
       # GATE-01 doc-contract + version alignment gates (pre-ship; no Postgres required)
       "ci.verify_gates": [
-        "cmd env MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --warnings-as-errors"
+        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --warnings-as-errors"
       ],
 
       # v1.7 GATE-03: TeamPulse consumer journey proof JOUR-01..08 (10 tests)

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$#" -eq 0 ]; then
+  echo "usage: scripts/test-db <command> [args...]" >&2
+  exit 64
+fi
+
+project_root=$(cd "$(dirname "$0")/.." && pwd)
+cd "$project_root"
+
+export MIX_ENV="${MIX_ENV:-test}"
+
+# CI provides DATABASE_URL and manages its own PostgreSQL service. Local runs start
+# this project-scoped service instead of sharing the developer's default Postgres.
+if [ -z "${DATABASE_URL:-}" ]; then
+  port="${CHIMEWAY_TEST_POSTGRES_PORT:-55432}"
+  test_database="chimeway_test${MIX_TEST_PARTITION:-}"
+
+  if [[ ! "$test_database" =~ ^[a-zA-Z0-9_]+$ ]]; then
+    echo "invalid MIX_TEST_PARTITION for PostgreSQL database name" >&2
+    exit 64
+  fi
+
+  docker compose -f docker-compose.test.yml up --detach --wait postgres
+
+  if ! docker compose -f docker-compose.test.yml exec -T postgres \
+    psql -U postgres -d postgres -tAc \
+      "SELECT 1 FROM pg_database WHERE datname = '${test_database}'" | grep -qx 1; then
+    docker compose -f docker-compose.test.yml exec -T postgres \
+      createdb -U postgres "$test_database"
+  fi
+
+  export DATABASE_URL="postgres://postgres:postgres@127.0.0.1:${port}/${test_database}"
+  export PGHOST=127.0.0.1
+  export PGPORT="$port"
+  export PGUSER=postgres
+  export PGPASSWORD=postgres
+  export POSTGRES_HOST=127.0.0.1
+  export POSTGRES_PORT="$port"
+  export POSTGRES_USER=postgres
+  export POSTGRES_PASSWORD=postgres
+
+  mix ecto.create --quiet
+  mix ecto.migrate --quiet
+fi
+
+exec "$@"

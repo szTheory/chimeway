@@ -77,6 +77,20 @@ mix verify.sigra
 
 All twelve must pass before publishing.
 
+### Local PostgreSQL isolation
+
+The root `mix ci` and `mix ci.verify_gates` aliases start and use the project-scoped
+PostgreSQL container in `docker-compose.test.yml` (default port `55432`). This keeps
+the root test repositories out of a developer's shared PostgreSQL instance. To run a
+focused root test with the same isolation, prefix it with `scripts/test-db`, for example:
+
+```bash
+scripts/test-db env MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors
+```
+
+Set `CHIMEWAY_TEST_POSTGRES_PORT` when `55432` is already in use. CI supplies its own
+`DATABASE_URL`, so the wrapper does not start Docker there.
+
 These twelve local commands map to ci-gate lanes plus publish replay — not twelve identical CI job names.
 
 #### Sibling repo checkouts
