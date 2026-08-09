@@ -1312,6 +1312,82 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
+    test "Mailglass proof evidence rejects forged values beneath every allowlisted key" do
+      complete = mailglass_evidence_line()
+
+      mutations = [
+        {"transport", "live"},
+        {"notification_key", "recipient@example.test"},
+        {"notification_version", "2"},
+        {"delivery_id", "provider-message-123"},
+        {"channel", "sms"},
+        {"render_key", "recipient@example.test"},
+        {"render_version", "2"},
+        {"status", "failed"},
+        {"last_attempt_outcome", "failed"},
+        {"last_attempt_number", "2"},
+        {"adapter_module", "provider-secret"}
+      ]
+
+      for {key, value} <- mutations do
+        assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, key, value)
+          )
+        end
+      end
+    end
+
+    test "Mailglass proof evidence requires canonical numeric values and a UUID-shaped delivery ID" do
+      complete = mailglass_evidence_line()
+
+      for key <- ["notification_version", "render_version", "last_attempt_number"],
+          value <- ["0", "-1", "+1", "01", "1.0", "one", "2"] do
+        assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, key, value)
+          )
+        end
+      end
+
+      for malformed_id <- [
+            "recipient@example.test",
+            "provider-message-123",
+            "2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7",
+            "2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e0",
+            "2f1c8b943a5e4d708c162e3a4b5c6d7e"
+          ] do
+        assert_raise RuntimeError, ~r/invalid delivery_id/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, "delivery_id", malformed_id)
+          )
+        end
+      end
+    end
+
+    test "Mailglass proof evidence accepts only the canonical ordered binary timeline without atomizing it" do
+      complete = mailglass_evidence_line()
+      unknown_token = "untrusted_timeline_#{System.unique_integer([:positive])}"
+
+      for timeline <- [
+            "event_created,notification_created,delivery_planned,recipient@example.test",
+            "event_created,notification_created,delivery_planned,provider-secret",
+            "event_created,notification_created,delivery_planned,#{unknown_token}",
+            "event_created,,delivery_planned,attempt_recorded",
+            "event_created,notification_created,attempt_recorded",
+            "event_created,notification_created,delivery_planned,delivery_planned,attempt_recorded",
+            "notification_created,event_created,delivery_planned,attempt_recorded"
+          ] do
+        assert_raise RuntimeError, ~r/invalid timeline_events/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, "timeline_events", timeline)
+          )
+        end
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_token) end
+    end
+
     test "timeline evidence allows interposed public events but enforces required order" do
       required = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
 
