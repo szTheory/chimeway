@@ -24,6 +24,23 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "adapter_module" => :adapter_module,
     "timeline_events" => :timeline_events
   }
+  @mailglass_expected_values %{
+    transport: "fake",
+    notification_key: "artifact_consumer.mailglass_proof",
+    channel: "email",
+    render_key: "artifact_consumer.mailglass_proof.email",
+    status: "succeeded",
+    last_attempt_outcome: "succeeded",
+    adapter_module: "Chimeway.Adapters.Mailglass"
+  }
+  @mailglass_numeric_fields [:notification_version, :render_version, :last_attempt_number]
+  @mailglass_timeline [
+    "event_created",
+    "notification_created",
+    "delivery_planned",
+    "attempt_recorded"
+  ]
+  @mailglass_delivery_id ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/
   @database_prefix "chimeway_artifact_consumer_"
   @postgres_identifier_max_bytes 63
 
@@ -527,13 +544,33 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     |> mailglass_proof_line!()
     |> String.replace_prefix("CHIMEWAY_MAILGLASS_PROOF ", "")
     |> parse_evidence_pairs!(@mailglass_evidence_keys, "Mailglass")
-    |> then(fn evidence ->
-      if evidence.transport != "fake" do
-        raise "artifact consumer Mailglass proof must declare fake transport"
-      end
+    |> validate_mailglass_evidence!()
+  end
 
-      evidence
+  defp validate_mailglass_evidence!(evidence) do
+    Enum.each(@mailglass_expected_values, fn {field, expected} ->
+      if Map.fetch!(evidence, field) != expected do
+        raise "artifact consumer Mailglass proof emitted invalid #{field}"
+      end
     end)
+
+    Enum.each(@mailglass_numeric_fields, fn field ->
+      value = Map.fetch!(evidence, field)
+
+      unless Regex.match?(~r/\A[1-9][0-9]*\z/, value) and value == "1" do
+        raise "artifact consumer Mailglass proof emitted invalid #{field}"
+      end
+    end)
+
+    unless Regex.match?(@mailglass_delivery_id, evidence.delivery_id) do
+      raise "artifact consumer Mailglass proof emitted invalid delivery_id"
+    end
+
+    if String.split(evidence.timeline_events, ",", trim: false) != @mailglass_timeline do
+      raise "artifact consumer Mailglass proof emitted invalid timeline_events"
+    end
+
+    evidence
   end
 
   defp parse_evidence_pairs!(line, allowed_keys, label) do
