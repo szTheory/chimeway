@@ -5,8 +5,8 @@ milestone_name: Adopter Proof Paths
 current_phase: 95
 current_phase_name: Accrue Billing-Escalation Proof
 status: planning
-stopped_at: Phase 94 complete; Phase 95 ready to plan
-last_updated: "2026-08-09T17:06:22.041Z"
+stopped_at: Phase 95 context gathered (assumptions mode)
+last_updated: "2026-08-09T17:16:33.112Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 94 complete, transitioned to Phase 95
 progress:
@@ -609,9 +609,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-09T16:16:58.177Z
-Stopped at: Completed 94-03-PLAN.md
-Resume file: None
+Last session: 2026-08-09T17:16:33.097Z
+Stopped at: Phase 95 context gathered (assumptions mode)
+Resume file: .planning/phases/95-accrue-billing-escalation-proof/95-CONTEXT.md
 
 ## Operator Next Steps
 
