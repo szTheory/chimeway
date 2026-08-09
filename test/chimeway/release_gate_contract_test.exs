@@ -1206,6 +1206,84 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
+    test "Mailglass proof evidence accepts only one complete safe allowlist without atomizing keys" do
+      complete = mailglass_evidence_line()
+
+      assert Map.keys(ArtifactConsumerFixture.parse_mailglass_evidence!(complete)) |> Enum.sort() ==
+               [
+                 :adapter_module,
+                 :channel,
+                 :delivery_id,
+                 :last_attempt_number,
+                 :last_attempt_outcome,
+                 :notification_key,
+                 :notification_version,
+                 :render_key,
+                 :render_version,
+                 :status,
+                 :timeline_events,
+                 :transport
+               ]
+
+      unknown_key = "untrusted_mailglass_key_#{System.unique_integer([:positive])}"
+
+      assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " #{unknown_key}=value")
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_key) end
+
+      assert_raise RuntimeError, ~r/duplicate evidence key/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " status=succeeded")
+      end
+
+      assert_raise RuntimeError, ~r/exactly the safe evidence allowlist/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          String.replace(complete, " adapter_module=Chimeway.Adapters.Mailglass", "")
+        )
+      end
+
+      assert_raise RuntimeError, ~r/malformed evidence/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " malformed")
+      end
+
+      assert_raise RuntimeError, ~r/multiple CHIMEWAY_MAILGLASS_PROOF lines/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> "\n" <> complete)
+      end
+
+      assert_raise RuntimeError, ~r/fake transport/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          String.replace(complete, "transport=fake", "transport=live")
+        )
+      end
+    end
+
+    test "Mailglass proof evidence rejects every sensitive output category" do
+      for unsafe_key <- [
+            "recipient",
+            "to",
+            "subject",
+            "body",
+            "html_body",
+            "text_body",
+            "assigns",
+            "password",
+            "secret",
+            "credential",
+            "api_key",
+            "raw_mailglass",
+            "provider_id",
+            "provider_response",
+            "metadata"
+          ] do
+        assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            mailglass_evidence_line() <> " #{unsafe_key}=private"
+          )
+        end
+      end
+    end
+
     test "timeline evidence allows interposed public events but enforces required order" do
       required = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
 
@@ -1290,6 +1368,29 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       refute File.exists?(identity.root)
     end
+
+    test "Mailglass proof failure cleans its temporary filesystem and database resources" do
+      identity = ArtifactConsumerFixture.resource_identity("mailglass_cleanup_failure")
+
+      assert_raise RuntimeError, ~r/pre-command validation failure/, fn ->
+        ArtifactConsumerFixture.prove_mailglass!(System.tmp_dir!(),
+          identity: identity,
+          fail_before_commands: true
+        )
+      end
+
+      refute File.exists?(identity.root)
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_up(
+                 ArtifactConsumerFixture.database_config(identity.database)
+               )
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_down(
+                 ArtifactConsumerFixture.database_config(identity.database)
+               )
+    end
   end
 
   defmodule CoreProofNotifier do
@@ -1350,6 +1451,16 @@ defmodule Chimeway.ReleaseGateContractTest do
       [_, version] -> version
       _ -> flunk("Could not parse @version from #{@mix_exs}")
     end
+  end
+
+  defp mailglass_evidence_line do
+    "CHIMEWAY_MAILGLASS_PROOF " <>
+      "transport=fake notification_key=artifact_consumer.mailglass_proof " <>
+      "notification_version=1 delivery_id=delivery-id channel=email " <>
+      "render_key=artifact_consumer.mailglass_proof.email render_version=1 " <>
+      "status=succeeded last_attempt_outcome=succeeded last_attempt_number=1 " <>
+      "adapter_module=Chimeway.Adapters.Mailglass " <>
+      "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded"
   end
 
   defp count_tests(files) do
