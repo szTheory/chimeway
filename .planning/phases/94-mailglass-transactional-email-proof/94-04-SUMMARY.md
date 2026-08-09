@@ -74,6 +74,7 @@ status: complete
 
 1. **Task 1: Trace one canonical proof and one forged value through the hardened boundary** - `d9402a6` (test), `bd65f1d` (feat)
 2. **Task 2: Exhaust every allowlisted value with adversarial release-gate contracts** - `77ce859` (test)
+3. **Review remediation: retain the established fake-transport diagnostic** - `9a3fb32` (fix)
 
 ## Files Created/Modified
 
@@ -87,7 +88,20 @@ status: complete
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Regression] Restored the existing fake-transport rejection diagnostic**
+
+- **Found during:** Post-plan release-gate review
+- **Issue:** The new general fixed-value validator changed the established `transport=live` failure from `fake transport` to `invalid transport`, breaking the retained structural parser contract.
+- **Fix:** Validate `transport=fake` first with its existing error message, then validate the remaining fixed schema values.
+- **Files modified:** `test/support/artifact_consumer_fixture.ex`
+- **Verification:** Focused release-gate test and `mix ci.verify_gates` both passed.
+- **Commit:** `9a3fb32`
+
+**Total deviations:** 1 auto-fixed (Rule 1 regression).
+
+**Impact on plan:** The strict value boundary remains unchanged; the fix restores the pre-existing fail-closed public contract.
 
 ## Issues Encountered
 
@@ -108,7 +122,7 @@ MAIL-02's proof-output boundary is covered by focused and aggregate release gate
 ## Self-Check: PASSED
 
 - Confirmed both modified test artifacts exist.
-- Confirmed commits `d9402a6`, `bd65f1d`, and `77ce859` exist.
+- Confirmed commits `d9402a6`, `bd65f1d`, `77ce859`, and `9a3fb32` exist.
 - Confirmed focused release-gate and aggregate `mix ci.verify_gates` commands passed.
 
 ---
