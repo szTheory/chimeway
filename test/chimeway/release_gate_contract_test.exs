@@ -1200,6 +1200,14 @@ defmodule Chimeway.ReleaseGateContractTest do
                )
     end
 
+    test "fixture database identities retain entropy within PostgreSQL's 63-byte identifier limit" do
+      identity = ArtifactConsumerFixture.resource_identity(String.duplicate("vm_boundary_", 12))
+
+      assert byte_size(identity.database) <= 63
+      assert identity.database =~ ~r/^chimeway_artifact_consumer_[a-z2-7]+$/
+      assert identity.root =~ "chimeway_artifact_consumer_vm_boundary_"
+    end
+
     test "a database teardown failure fails closed and still removes the fixture tree" do
       identity = ArtifactConsumerFixture.resource_identity("cleanup_failure")
 

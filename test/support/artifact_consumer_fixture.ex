@@ -11,6 +11,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "timeline_events" => :timeline_events
   }
   @database_prefix "chimeway_artifact_consumer_"
+  @postgres_identifier_max_bytes 63
   @spec prove_core!(Path.t()) :: map()
   def prove_core!(unpacked_root), do: prove_core!(unpacked_root, [])
 
@@ -86,7 +87,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
     identity = %{
       root: Path.join(System.tmp_dir!(), "#{@database_prefix}#{suffix}"),
-      database: "#{@database_prefix}#{suffix}",
+      database: database_name(suffix),
       token: token
     }
 
@@ -395,6 +396,16 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
   defp random_suffix,
     do: :crypto.strong_rand_bytes(10) |> Base.encode32(case: :lower, padding: false)
+
+  defp database_name(suffix) do
+    max_suffix_bytes = @postgres_identifier_max_bytes - byte_size(@database_prefix)
+
+    digest =
+      :crypto.hash(:sha256, suffix)
+      |> Base.encode32(case: :lower, padding: false)
+
+    @database_prefix <> binary_part(digest, 0, max_suffix_bytes)
+  end
 
   defp base_database_config do
     case System.get_env("DATABASE_URL") do
