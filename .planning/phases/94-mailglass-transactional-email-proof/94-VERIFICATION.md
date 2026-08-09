@@ -1,36 +1,34 @@
 ---
 phase: 94-mailglass-transactional-email-proof
-verified: 2026-08-09T16:22:59Z
+verified: 2026-08-09T17:05:00Z
 status: gaps_found
-score: 7/10 must-haves verified
+score: 9/10 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
   previous_score: 8/10
   gaps_closed:
-    - "MAIL-01: One consumer-owned repo migrates both Chimeway and Mailglass through normal Ecto migrations and the public Mailglass migration wrapper."
-    - "MAIL-02: The canonical guide accurately states that one host-configured, consumer-owned ArtifactConsumer.Repo owns both Chimeway and Mailglass persistence in this proof."
-  gaps_remaining: []
-  regressions: []
+    - "The parser now validates every allowlisted Mailglass proof value: stable identities, exact numeric values, UUID-shaped delivery ID, succeeded state, adapter, and ordered timeline."
+  gaps_remaining:
+    - "The required table-driven all-allowlisted-value release-gate contract is red because its transport mutation expects the wrong error text."
+  regressions:
+    - "test/chimeway/release_gate_contract_test.exs:1315 expects /invalid transport/ although the deliberately retained parser contract raises /must declare fake transport/."
 gaps:
-  - truth: "The Mailglass proof output is a trustworthy sanitized, trace-derived evidence boundary that fails closed for unsafe fields."
-    status: failed
-    reason: "parse_mailglass_evidence!/1 validates only field names, completeness, duplicates, non-empty values, and transport=fake. It accepts forged or sensitive values beneath allowlisted field names, so an untrusted subprocess line can spoof lifecycle facts or disclose data as delivery_id."
+  - truth: "MAIL-02 / D-08: Sensitive or forged values beneath every allowlisted key fail closed, with a passing adversarial release-gate contract proving that boundary."
+    status: partial
+    reason: "The parser does fail closed, but the phase's required table-driven adversarial test is currently red at its first transport mutation because the expected diagnostic no longer matches the intentionally preserved fake-transport diagnostic."
     artifacts:
-      - path: "test/support/artifact_consumer_fixture.ex"
-        issue: "Lines 524-567 do not validate delivery_id, status, adapter_module, versions, attempt number, or timeline values after parsing."
       - path: "test/chimeway/release_gate_contract_test.exs"
-        issue: "Lines 1224-1300 test unknown keys and transport only; no test mutates an allowlisted value to a sensitive or invalid value."
+        issue: "Line 1333 expects /invalid transport/ for transport=live; parse_mailglass_evidence!/1 correctly raises 'artifact consumer Mailglass proof must declare fake transport' before the generic value validator."
     missing:
-      - "Validate the complete Mailglass evidence schema, including fixed expected lifecycle values, numeric fields, UUID-shaped delivery IDs, and an allowed ordered timeline."
-      - "Add negative contracts for sensitive and forged values under every relevant allowlisted key."
+      - "Change the transport mutation assertion to expect the established fake-transport diagnostic (or special-case it), then run the focused release-gate contract successfully."
 ---
 
 # Phase 94: Mailglass Transactional-Email Proof Verification Report
 
 **Phase Goal:** Prospective adopters can evaluate the existing Mailglass transactional-email path in the clean consumer and see its public delivery evidence and exact boundary.
-**Verified:** 2026-08-09T16:22:59Z
+**Verified:** 2026-08-09T17:05:00Z
 **Status:** gaps_found
 **Re-verification:** Yes — after gap closure
 
@@ -40,75 +38,74 @@ gaps:
 
 | # | Truth | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | An adopter can run the clean-consumer Mailglass proof and obtain deterministic host-mailable/render-key orchestration. | ✓ VERIFIED | `prove_mailglass!/2` scaffolds and runs an unpacked consumer; the focused release contract passed and asserts the stable render key, host mailable map, Fake record, and succeeded adapter attempt. |
-| 2 | The proof emits sanitized public explainability evidence for the Mailglass adapter and delivery attempt. | ✗ FAILED | Direct probe accepted `delivery_id=recipient@example.test status=failed adapter_module=provider-secret` under allowed keys. The parser cannot establish that returned evidence is sanitized or truthful. |
-| 3 | Guidance limits Fake proof to local composition/orchestration and excludes live-provider behavior. | ✓ VERIFIED | The guide states the bounded Fake/attempt claim and provider exclusions; the focused documentation contracts and `mix ci.verify_gates` passed. |
-| 4 | MAIL-01: One consumer-owned repo migrates both Chimeway and Mailglass through normal Ecto migrations and the public Mailglass wrapper. | ✓ VERIFIED | Generated config sets both `:chimeway` and `:mailglass` to `ArtifactConsumer.Repo`; the generated proof asserts the active dynamic repo, live process, and absence of `Chimeway.Repo`; the migration delegates to `Mailglass.Migration`. |
-| 5 | Lifecycle evidence is public-trace-only, with Fake records retained as private proof assertions. | ✓ VERIFIED | Generated `prove_mailglass.exs` calls `Chimeway.Traces.explain_delivery/1` once, asserts `Fake.deliveries()` privately, and serializes only its projection. |
-| 6 | The sole proof line labels `transport=fake` and contains an exact safe allowlist. | ✗ FAILED | The key set and fake label are enforced, but values in allowlisted fields are unconstrained; a sensitive recipient can be accepted as `delivery_id`, so the purported safe allowlist is not safe. |
-| 7 | Unknown, duplicate, missing, malformed, repeated-prefix, and unsafe proof fields fail closed without atom creation. | ✗ FAILED | Unknown-key and atom-safety checks pass, but unsafe values under known keys are accepted. This is observable failure of the unsafe-field portion of the truth. |
-| 8 | MAIL-02 guide accurately describes one consumer-owned repo for both libraries. | ✓ VERIFIED | Guide lines 49-73 specify `ArtifactConsumer.Repo` for Ecto, Chimeway, and Mailglass; doc contract compares that text with `mailglass_repo_topology/0`. |
-| 9 | The guide distinguishes Fake recording from a successful Mailglass adapter attempt and lists live-provider exclusions. | ✓ VERIFIED | Guide lines 193-203 and doc contracts preserve the distinction and all required exclusions. |
-| 10 | The guide links the focused blueprint and labels `mix verify.mailglass` as a repository-maintainer suite. | ✓ VERIFIED | Guide lines 199 and 203 provide both; documentation contracts passed. |
+| 1 | An adopter can run the Mailglass proof in the clean consumer and observe configured host mailable/render-key orchestration reach a deterministic transactional-email outcome. | ✓ VERIFIED | `prove_mailglass!/2` scaffolds an unpacked-artifact-only host, migrates it, runs `priv/prove_mailglass.exs`, and parses its one proof line. The selected end-to-end release-contract execution completed successfully; the proof source asserts one Fake delivery and the Mailglass adapter attempt. |
+| 2 | The proof output includes sanitized public explainability evidence for the Mailglass adapter and delivery attempt. | ✓ VERIFIED | `parse_mailglass_evidence!/1` admits only twelve fixed fields, exact stable lifecycle values, UUID-shaped delivery IDs, and the exact binary timeline. `mailglass_proof_ex/0` gets its public evidence from its single `Chimeway.Traces.explain_delivery/1` call. |
+| 3 | The path’s guidance states that its fake/test transport proves local composition and orchestration, while provider acceptance, sender verification, and live feedback remain outside the proof. | ✓ VERIFIED | The canonical guide says Fake records one host-composed message and Chimeway records a successful adapter attempt, then explicitly excludes real provider acceptance, sender/domain verification, inbox placement, credentials, callbacks, and live feedback. The focused documentation contract passed. |
+| 4 | MAIL-01: One consumer-owned repo migrates both Chimeway and Mailglass through normal Ecto migrations and the public Mailglass wrapper. | ✓ VERIFIED | Generated config uses `ArtifactConsumer.Repo` for Ecto, Chimeway, and Mailglass; the generated migration delegates to `Mailglass.Migration.up/0` and `down/0`; the proof binds the Chimeway facade to that host repo and asserts that `Chimeway.Repo` is not started. |
+| 5 | Lifecycle evidence is public-trace-only, with Fake records retained as private proof assertions. | ✓ VERIFIED | `mailglass_proof_ex/0` calls `Chimeway.Traces.explain_delivery/1` once, checks `Fake.deliveries()` privately, and serializes only the fixed trace projection. The proof-output contract rejects Fake, database, recipient/content, provider, metadata, and configuration strings. |
+| 6 | The sole proof line labels `transport=fake` and contains an exact safe allowlist. | ✓ VERIFIED | The exact twelve-key compile-time string-to-existing-atom map is checked for completeness, duplicates, and unknown keys; fixed-value validation rejects a recipient-shaped delivery ID, wrong adapter/status/key, numeric aliases, and noncanonical timelines. |
+| 7 | Unknown, duplicate, missing, malformed, repeated-prefix, and unsafe proof fields fail closed without creating atoms, and the adversarial contract covering all values is green. | ✗ FAILED | Runtime parsing fails closed, but the required table-driven test at `release_gate_contract_test.exs:1315` is red: `transport=live` raises the preserved `fake transport` diagnostic while the test expects `invalid transport`. A focused direct run produced 1 failure. |
+| 8 | MAIL-02 guide accurately describes one consumer-owned repo for both libraries. | ✓ VERIFIED | Guide topology is coupled to `ArtifactConsumerFixture.mailglass_repo_topology/0`; the focused doc test passed. |
+| 9 | The guide distinguishes Fake recording from a successful Mailglass adapter attempt and lists live-provider exclusions. | ✓ VERIFIED | Required and forbidden phrase contracts at `doc_contract_test.exs:647` passed. |
+| 10 | The guide links the focused blueprint and labels `mix verify.mailglass` as a repository-maintainer suite. | ✓ VERIFIED | The guide links `../recipes/mailglass-integration-blueprint.md`; the blueprint links back to the canonical guide; the guide explicitly says the command is not supplied to Hex consumers. |
 
-**Score:** 7/10 truths verified (0 present, behavior-unverified)
+**Score:** 9/10 truths verified (0 present, behavior-unverified)
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 | --- | --- | --- | --- |
-| `test/support/artifact_consumer_fixture.ex` | Generated consumer, topology assertion, strict evidence parser | ✗ PARTIAL | Exists (665 lines), substantive, and invoked by contracts. Topology is correct; Mailglass parser does not validate allowed-key values. |
-| `test/chimeway/release_gate_contract_test.exs` | Runtime Mailglass/topology/evidence contracts | ⚠️ PARTIAL | Executes the generated consumer and confirms the good path, but omits forged-value contracts at the untrusted output boundary. |
-| `guides/introduction/mailglass-integration.md` | Canonical topology and Fake/live boundary | ✓ VERIFIED | Exists, substantive, and read by documentation contracts; topology and boundary text match the executable fixture. |
-| `test/chimeway/doc_contract_test.exs` | Fixture-coupled topology and guidance contracts | ✓ VERIFIED | Imports `ArtifactConsumerFixture.mailglass_repo_topology/0` and checks the canonical guide’s concrete configuration. |
+| `test/support/artifact_consumer_fixture.ex` | Generated clean consumer, one-repo topology, trace-only proof, and strict value-validating parser | ✓ VERIFIED | Exists and substantive. `prove_mailglass!/2` is called by the release-gate contract; the generated host, migration, proof script, and parser form one runtime path. |
+| `test/chimeway/release_gate_contract_test.exs` | End-to-end proof plus structural and adversarial evidence contracts | ⚠️ PARTIAL | Exists and is wired, but the per-allowlisted-value test is red because its transport assertion expects the wrong diagnostic. |
+| `guides/introduction/mailglass-integration.md` | Canonical topology and Fake/live-provider boundary | ✓ VERIFIED | Substantive guide text is coupled to executable topology and tested documentation requirements. |
+| `test/chimeway/doc_contract_test.exs` | Documentation truth contracts | ✓ VERIFIED | Imports the fixture topology helper and verifies both required boundary claims and forbidden overclaims. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 | --- | --- | --- | --- | --- |
-| `release_gate_contract_test.exs` | `artifact_consumer_fixture.ex` | `ArtifactConsumerFixture.prove_mailglass!/2` | ✓ WIRED | Alias is loaded and `prove_mailglass!/1` is called at line 1050. |
-| Generated notifier `rendering/2` | Generated host mailable | Stable render key and `channel_adapter_configs` map | ✓ WIRED | Exact `artifact_consumer.mailglass_proof.email` value appears in generated rendering and map. |
-| Generated proof script | `Chimeway.Traces.explain_delivery/1` | One trace call then fixed projection | ✓ WIRED | `mailglass_proof_ex/0` invokes it once at line 451 before serializing the proof line. |
-| `doc_contract_test.exs` | Fixture topology | `ArtifactConsumerFixture.mailglass_repo_topology/0` | ✓ WIRED | The contract calls the shared helper at line 646 and compares its fields with guide config text. |
+| `release_gate_contract_test.exs` | `artifact_consumer_fixture.ex` | `ArtifactConsumerFixture.prove_mailglass!/1` and `parse_mailglass_evidence!/1` | ✓ WIRED | The contract calls the generated proof and directly exercises canonical, structural, and mutated proof lines. |
+| Generated notifier `rendering/2` | Generated host mailable | Stable render key and `channel_adapter_configs` map | ✓ WIRED | `artifact_consumer.mailglass_proof.email` occurs in the notifier rendering and exact mailable map; `Chimeway.Adapters.Mailglass` resolves that map. |
+| Generated proof script | `Chimeway.Traces.explain_delivery/1` | One trace call then fixed safe projection | ✓ WIRED | The generated script has one trace call before it builds and emits the 12-field line. |
+| Documentation contract | Guide and fixture topology | Shared `mailglass_repo_topology/0` values | ✓ WIRED | The guide’s concrete config is compared with the fixture’s host-owned topology. |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 | --- | --- | --- | --- | --- |
-| Generated proof script | `explanation` → `evidence` | `Chimeway.trigger/3` → delivery ID → `Chimeway.Traces.explain_delivery/1` | Yes — focused end-to-end artifact consumer contract passed against PostgreSQL and Fake transport. | ✓ FLOWING |
-| Public evidence parser | Parsed `evidence` map | Untrusted subprocess stdout | No safe validation — arbitrary allowed-key values flow through unchanged. | ✗ HOLLOW / UNSAFE |
+| Generated proof script | `explanation` → `evidence` | `Chimeway.trigger/3` → delivery ID → `Chimeway.Traces.explain_delivery/1` | Yes — the selected clean-consumer end-to-end release contract ran the generated host and Fake transport. | ✓ FLOWING |
+| Public evidence parser | Parsed 12-field `evidence` map | Untrusted subprocess stdout | Yes, but only after exact complete-schema validation. | ✓ FLOWING / SANITIZED |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| Focused Mailglass proof, topology, parser, and guide contracts | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs test/chimeway/doc_contract_test.exs --warnings-as-errors` | Exit 0; tests passed. Pre-existing Threadline sandbox-ownership logs appeared during teardown. | ✓ PASS |
-| Release/doc gate | `mix ci.verify_gates` | Exit 0; project PostgreSQL container became healthy and suite passed. | ✓ PASS |
-| Allowed-key value validation | `MIX_ENV=test mix run --no-start -e '...parse_mailglass_evidence!(forged_line)...'` | Exit 0, printed `accepted_delivery_id=recipient@example.test status=failed adapter=provider-secret`. | ✗ FAIL |
+| Selected clean-consumer proof and guide topology | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs:1046 test/chimeway/doc_contract_test.exs:647 --warnings-as-errors` | Completed successfully; background Threadline sandbox-ownership logs appeared during teardown. | ✓ PASS |
+| Canonical guide boundary | `MIX_ENV=test mix test test/chimeway/doc_contract_test.exs:647 --warnings-as-errors` | 1 test, 0 failures. | ✓ PASS |
+| All allowlisted forged values | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs:1316 --warnings-as-errors` | 1 test, 1 failure: expected `/invalid transport/`; actual `must declare fake transport`. | ✗ FAIL |
+
+Subsequent focused test startup also encountered the pre-existing shared PostgreSQL `FATAL 53300 (too_many_connections)` condition. It is recorded as an environment warning, not used as evidence for or against the implementation.
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| MAIL-01 | 94-01, 94-03 | Configured transactional-email orchestration and trace evidence in the clean consumer | ✓ SATISFIED | Executed artifact proof and runtime topology assertions establish one active host-owned repo, migrations, render-key/mailable routing, Fake result, and trace. |
-| MAIL-02 | 94-01, 94-02, 94-03 | Fake behavior and proof output accurately distinguish local test behavior from live-provider delivery and feedback | ✗ BLOCKED | Guide wording is accurate, but its required sanitized proof output boundary is false for forged values under approved keys. |
+| MAIL-01 | 94-01, 94-03 | Configured transactional-email orchestration and trace evidence in the clean consumer | ✓ SATISFIED | One host repo, normal migrations, stable notifier/render key, host mailable map, Fake ownership, adapter attempt, and public trace are implemented and exercised. |
+| MAIL-02 | 94-01, 94-02, 94-03, 94-04 | Fake behavior and proof output accurately distinguish local test behavior from live-provider delivery and feedback | ✗ BLOCKED | Parser behavior and guide wording are correct, but the phase’s required adversarial release-gate test is red, so the claimed automated proof boundary is not currently green. |
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
-| --- | --- | --- | --- | --- |
-| `test/support/artifact_consumer_fixture.ex` | 524-567 | Allowlist checks only keys, not values | 🛑 Blocker | Allows evidence spoofing and sensitive-value disclosure at the public proof boundary. |
-| `test/chimeway/release_gate_contract_test.exs` | 1224-1300 | Happy-path/parser-key tests omit allowed-value adversarial cases | ⚠️ Warning | Passing contracts do not detect the blocker. |
+| --- | --- | --- | --- |
+| `test/chimeway/release_gate_contract_test.exs` | 1333 | Assertion expects obsolete generic diagnostic for `transport=live` | 🛑 Blocker | The focused release-gate contract required by the phase fails, despite the parser correctly rejecting the unsafe value. |
 
-No unreferenced `TBD`, `FIXME`, or `XXX` markers were found in Phase 94’s modified files. The apparent `placeholder` matches in `doc_contract_test.exs` are assertions against unrelated documentation, not implementation debt.
+No unreferenced `TBD`, `FIXME`, or `XXX` markers were found in Phase 94 implementation files. The `placeholder` references in `doc_contract_test.exs` are unrelated negative documentation assertions, not Phase 94 debt.
 
 ### Gaps Summary
 
-The original two-repo topology gaps are closed: the generated host configures, migrates, supervises, and dynamically routes Chimeway and Mailglass through one `ArtifactConsumer.Repo`, while the guide is mechanically coupled to that topology.
-
-However, the phase goal also requires an explainable, sanitized evidence boundary. The parser treats stdout as untrusted but only validates field names. It accepts a recipient address as `delivery_id` and forged lifecycle/adapter values under approved keys. This is a blocker, not uncertainty: the failing input was executed directly. No later roadmap phase specifically owns repairing the Mailglass proof parser, so it is not deferred.
+The previous blocker is closed in implementation: the Mailglass parser now validates complete values rather than merely field names, preserving atom safety and the trace-only boundary. The one remaining blocker is a test-contract regression introduced by that repair: the parser keeps the established special fake-transport diagnostic, while the generic mutation loop expects a different message. Correct the expectation and rerun the focused release-gate contract; no source/runtime topology or guide work is needed.
 
 ---
 
-_Verified: 2026-08-09T16:22:59Z_
+_Verified: 2026-08-09T17:05:00Z_
 _Verifier: the agent (gsd-verifier)_
