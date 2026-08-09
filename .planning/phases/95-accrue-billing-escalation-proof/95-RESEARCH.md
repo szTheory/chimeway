@@ -89,7 +89,7 @@ The package-legitimacy seam supports npm/PyPI/crates, not Hex; verify release co
 
 `invoice.payment_failed` -> Accrue reducer -> `Accrue.Integrations.Chimeway.start_campaign/3` -> Chimeway workflow/initial delivery -> public waiting evidence -> `invoice.paid` -> `cancel_campaign/3` -> `Signal.track/4` -> signal-router job -> public `signal_received` evidence -> strict proof line. [VERIFIED: Accrue integration; lifecycle test]
 
-Recommended files: `test/support/artifact_consumer_fixture.ex` (generated host, parser, provenance); `test/chimeway/release_gate_contract_test.exs` (serialized E2E/adversarial checks); `test/chimeway/doc_contract_test.exs` and `guides/introduction/accrue-dunning-integration.md` (truthful label wording).
+Recommended files: `scripts/prove-accrue-consumer.exs` (committed adopter-facing command); `test/support/artifact_consumer_fixture.ex` (generated host, parser, provenance); `test/chimeway/release_gate_contract_test.exs` (serialized E2E/runner/adversarial checks); `test/chimeway/doc_contract_test.exs` and `guides/introduction/accrue-dunning-integration.md` (truthful label wording).
 
 ### Strict proof record
 
@@ -113,16 +113,10 @@ Field spelling/order is discretionary, but require exactly one line, a fixed all
 3. **False terminal claim:** `route_signal/1` returns the run to `:active` with `signal_received`, so forbid “workflow completed.” [VERIFIED: workflows API]
 4. **Provenance drift:** CI's `236fa2f1649e771f3b515603495436badeed3c7b` checkout is compatibility evidence only. [VERIFIED: CONTEXT.md D-08; CI workflow]
 
-## Assumptions Log
+## Resolved Questions
 
-| # | Claim | Risk if Wrong |
-|---|---|---|
-| A1 | The generated production-built consumer can use an existing deterministic Oban execution seam. [ASSUMED] | First implementation task must choose a safe queue runner. |
-
-## Open Questions
-
-1. **Exact signal-job execution API:** the integration test drains `:chimeway_signals`, but availability of that test helper in the generated consumer needs a first-task spike. Preserve the public-API-only output rule. [ASSUMED]
-2. **Exact release compile behavior:** Hex `1.3.0` contains the source, but compilation is conditional; make the end-to-end artifact test the release-label gate and fall back to SHA-only label if module loading fails. [VERIFIED: metadata; integration source; CONTEXT.md D-07/D-09]
+1. **Exact signal-job execution API:** Oban 2.x defines public `Oban.drain_queue/1` in `deps/oban/lib/oban.ex`; it uses the configured instance and production execution machinery. The generated host must start Oban with `repo: ArtifactConsumer.Repo`, `testing: :manual`, and `queues: false`, then call `Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true, with_safety: false)` and accept the post-signal proof only when the result equals `%{cancelled: 0, discard: 0, failure: 0, snoozed: 0, success: 1}`. This is available to the clean consumer through its direct Oban dependency and does not require a private test helper. [VERIFIED: Oban public API and drainer source; existing Accrue lifecycle test]
+2. **Exact release compile behavior:** Accrue 1.3.0 metadata includes `lib/accrue/integrations/chimeway.ex`; that file's only module-definition guard is `Code.ensure_loaded?(Chimeway)`. After the generated host and dependencies compile, resolve the source from `Mix.Project.deps_paths()[:accrue]`; when the module is absent, compile that resolved file and require `Code.ensure_loaded?(Accrue.Integrations.Chimeway)`. Missing source or failed loading fails before any proof line. The exact-SHA compatibility branch uses the same resolved-source/load gate plus exact-ref validation. [VERIFIED: Accrue integration source; metadata; existing `test/test_helper.exs` recovery pattern; CONTEXT.md D-07/D-09]
 
 ## Environment Availability
 
@@ -143,10 +137,10 @@ Field spelling/order is discretionary, but require exactly one line, a fixed all
 
 | Req | Test coverage | File exists? |
 |---|---|---|
-| ACCR-01 | End-to-end consumer, strict parser, no-sensitive-output, cleanup | Wave 0 extension |
-| ACCR-02 | Release/SHA branch and guide forbidden-overclaim contracts | Wave 0 extension |
+| ACCR-01 | End-to-end consumer, strict parser, no-sensitive-output, cleanup | Wave 1 proof and Wave 2 doc contracts |
+| ACCR-02 | Release/SHA branch and guide forbidden-overclaim contracts | Wave 1 provenance proof and Wave 2 guide contracts |
 
-Wave 0 must extend the fixture, release-gate contracts, Accrue guide, and doc-contract tests; no new CI lane belongs in this phase. [VERIFIED: CONTEXT.md]
+Wave 1 extends the committed runner, fixture, and release-gate contracts; Wave 2 extends the Accrue guide and doc-contract tests. No new CI lane belongs in this phase. [VERIFIED: CONTEXT.md]
 
 ## Security Domain
 
