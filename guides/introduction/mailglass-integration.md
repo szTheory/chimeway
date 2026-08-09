@@ -42,7 +42,7 @@ mix ecto.migrate
 
 For Chimeway install depth — repo config, supervisor setup, and migration idempotency — see [Installation](installation.md).
 
-Mailglass maintains its own schema and repo. Follow the [Mailglass installation docs](https://hexdocs.pm/mailglass/installation.html) for repo setup, migrations, and Oban queues in your host application. Both libraries typically share the same Postgres database but use separate Ecto repos.
+Mailglass maintains its own schema but uses a host-configured Ecto repo. Follow the [Mailglass installation docs](https://hexdocs.pm/mailglass/installation.html) for repo setup, migrations, and Oban queues in your host application. Your host chooses its persistence topology; the clean-consumer proof below intentionally gives Chimeway and Mailglass one consumer-owned `ArtifactConsumer.Repo`.
 
 ## 3. Runtime config
 
@@ -162,7 +162,17 @@ After delivery, verify explainability:
 
 Runnable demo: `DemoHost.Seeds.seed_invite/0` triggers the same notifier with deterministic idempotency keys for local proof.
 
-As a named proof command, run `mix verify.mailglass` after wiring — it exercises the Mailglass adapter contract, executor routing, webhook pipeline, and demo host delivery proof.
+### Clean-consumer proof boundary
+
+**What happened:** In the unpacked-artifact clean-consumer proof, Fake recorded exactly one host-composed message and Chimeway recorded a successful `Chimeway.Adapters.Mailglass` attempt.
+
+**Why it matters:** The one consumer-owned repo, stable notifier and `render_key` mapping, host mailable selection, adapter routing, and attempt persistence all executed together. This is local composition evidence, not a claim that an email reached a live provider or inbox.
+
+**Next step:** Follow the focused [Mailglass integration blueprint](../recipes/mailglass-integration-blueprint.md) for your host application's wiring.
+
+The proof does not cover real provider acceptance, sender/domain verification, inbox placement/display, production credentials, provider callbacks, or live webhook feedback.
+
+`mix verify.mailglass` is this repository's maintainer regression suite. It exercises the Mailglass adapter contract, executor routing, webhook pipeline, and demo-host proof; it is not a command supplied to Hex consumers.
 
 ## 6. Optional inbound feedback
 
