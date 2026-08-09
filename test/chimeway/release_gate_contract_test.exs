@@ -1,5 +1,7 @@
 defmodule Chimeway.ReleaseGateContractTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
+
+  alias Chimeway.Test.ArtifactConsumerFixture
 
   @moduledoc false
 
@@ -969,6 +971,30 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       refute String.contains?(inbox_guide, ~S({:chimeway_inbox, "~> 1.0"})),
              "unpacked inbox guide must not carry a current-Hex chimeway_inbox install claim"
+    end
+  end
+
+  describe "unpacked artifact Core adopter proof (PROOF-01/PROOF-02/PROOF-03/CORE-01)" do
+    # Serialization is intentional: the artifact build and temporary PostgreSQL
+    # lifecycle are expensive shared external resources. The fixture still gives
+    # every invocation unique filesystem and database identities.
+    setup do
+      output = build_unpacked_package!()
+      on_exit(fn -> File.rm_rf(output) end)
+      %{root: unpacked_package_root!(output)}
+    end
+
+    @tag timeout: 120_000
+    test "a clean consumer proves one public Core lifecycle from only the unpacked artifact", %{
+      root: root
+    } do
+      proof = ArtifactConsumerFixture.prove_core!(root)
+
+      assert proof.output =~ "CHIMEWAY_CORE_PROOF"
+      assert proof.output =~ "artifact_consumer.core_trace"
+      assert proof.output =~ "notification_version=1"
+      assert proof.output =~ "status=succeeded"
+      assert proof.output =~ "last_attempt_outcome=succeeded"
     end
   end
 
