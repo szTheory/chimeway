@@ -19,14 +19,14 @@ created: 2026-08-08
 | **Config file** | `mix.exs` |
 | **Quick run command** | `mix test test/chimeway/release_gate_contract_test.exs test/chimeway/doc_contract_test.exs` |
 | **Full suite command** | `mix ci.verify_gates` |
-| **Estimated runtime** | ~60 seconds |
+| **Estimated full-suite runtime** | ~60 seconds |
 
 ## Sampling Rate
 
 - **After every task commit:** Run `mix test test/chimeway/release_gate_contract_test.exs test/chimeway/doc_contract_test.exs`
 - **After every plan wave:** Run `mix ci.verify_gates`
 - **Before phase verification:** `mix ci.verify_gates` must be green.
-- **Max feedback latency:** 60 seconds
+- **Max task-feedback latency:** 30 seconds; the ~60-second full gate runs only after each wave and before phase verification.
 
 ## Per-Task Verification Map
 
@@ -35,7 +35,7 @@ created: 2026-08-08
 | 94-01-01 | 01 | 1 | MAIL-01, MAIL-02 | T-94-01, T-94-03, T-94-04, T-94-05 | The unpacked-artifact tracer proves the exact host-owned Mailglass path, sanitized public trace, provenance, Fake ownership, and cleanup. | integration / release-gate contract | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
 | 94-01-02 | 01 | 1 | MAIL-01, MAIL-02 | T-94-02, T-94-04 | The strict parser rejects unknown, duplicate, missing, malformed, repeated-prefix, and unsafe evidence without atom creation or leaked resources. | integration / release-gate contract | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
 | 94-02-01 | 02 | 2 | MAIL-02 | T-94-06, T-94-07, T-94-08 | Documentation contracts require one-repo ownership, the exact Fake/adapter-attempt distinction, all live-provider exclusions, and the blueprint link. | documentation contract | `MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
-| 94-02-02 | 02 | 2 | MAIL-02 | T-94-06, T-94-09 | Negative documentation contracts reject live-delivery overclaims and Hex-consumer presentation of the maintainer-only suite; release/doc gates remain in parity. | documentation contract / gate suite | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs test/chimeway/doc_contract_test.exs --warnings-as-errors && mix ci.verify_gates` | ✅ | ⬜ pending |
+| 94-02-02 | 02 | 2 | MAIL-02 | T-94-06, T-94-09 | Negative documentation contracts reject live-delivery overclaims and Hex-consumer presentation of the maintainer-only suite; release/doc gates remain in parity. | documentation contract | `MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs test/chimeway/doc_contract_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -53,7 +53,7 @@ All phase behaviors have automated verification.
 - [x] Sampling continuity: no 3 consecutive tasks without automated verification.
 - [x] Existing infrastructure covers all requirements.
 - [x] No watch-mode flags.
-- [x] Feedback latency < 60 seconds.
+- [x] Task-feedback latency is at most 30 seconds; the ~60-second full gate is wave/phase scoped.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
 **Approval:** pending
