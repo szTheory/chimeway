@@ -2394,6 +2394,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       "mix",
       [
         "run",
+        "--no-start",
         "scripts/prove-accrue-consumer.exs",
         "--",
         "--artifact-archive",
