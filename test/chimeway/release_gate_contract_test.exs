@@ -1575,6 +1575,40 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       refute File.read!("scripts/prove-accrue-consumer.exs") =~ "CHIMEWAY_ACCRUE_PROOF"
     end
+
+    test "Accrue parser rejects every sensitive boundary key and malformed lifecycle pair" do
+      line = accrue_evidence_line()
+
+      for unsafe_key <- ~w[
+            workflow_id delivery_id signal_id tenant_id customer_id subscription_id invoice_id
+            recipient email amount currency payload context metadata secret token credential
+            raw_struct inspect sql ecto_result database_result
+          ] do
+        assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(line <> " #{unsafe_key}=private")
+        end
+      end
+
+      for malformed <- [
+            "CHIMEWAY_ACCRUE_PROOF",
+            "CHIMEWAY_ACCRUE_PROOF malformed",
+            String.replace(line, "provenance=released_package", "provenance=unknown"),
+            String.replace(
+              line,
+              "timeline_reasons=waiting_for_step_progression,signal_received",
+              "timeline_reasons=waiting_for_step_progression,signal_received,signal_received"
+            ),
+            String.replace(
+              line,
+              "workflow_key=accrue.dunning",
+              "workflow_key=accrue.dunning.completed"
+            )
+          ] do
+        assert_raise RuntimeError, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(malformed)
+        end
+      end
+    end
   end
 
   defmodule CoreProofNotifier do
