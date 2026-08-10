@@ -2050,10 +2050,10 @@ defmodule Chimeway.DocContractTest do
                "selector must contain exactly one safe #{prefix} example"
       end
 
-      refute String.contains?(
-               String.replace(selector, "**Does not cover:**", "", global: false),
-               "**Does not cover:**"
-             )
+      missing_boundary = String.replace(selector, "**Does not cover:**", "", global: false)
+
+      refute String.contains?(selector_section!(missing_boundary, "Core"), "**Does not cover:**"),
+             "a selector mutation that removes the Core boundary marker must not satisfy its row contract"
     end
   end
 

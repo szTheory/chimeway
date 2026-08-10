@@ -18,7 +18,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
   @release_please_config "release-please-config.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract test_floor_1_17)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths test_floor_1_17)
   @pr_gate_lanes ~w(lint test verify_gates verify_docs)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
@@ -501,7 +501,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 14 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
+    test "ci-gate needs stays 15 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -509,9 +509,9 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 14,
-             "ci-gate needs must remain exactly 14 lanes (verify_admin removed in 90-02; " <>
-               "test_floor_1_17 added in 91-03 to close the CI<->release Elixir skew, D-15)"
+      assert length(needs) == 15,
+             "ci-gate needs must remain exactly 15 lanes after the bounded adoption proof lane joins " <>
+               "the non-PR release gate"
 
       assert "test_floor_1_17" in needs,
              "ci-gate must need test_floor_1_17 so the 1.17 floor genuinely gates on push (D-15)"
@@ -1891,6 +1891,74 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "adoption paths CI contract (GATE-02/DOCS-01)" do
+    @tag :adoption_paths_ci_contract
+    test "runs exactly one bounded non-PR PostgreSQL aggregate proof lane" do
+      ci_yml = File.read!(@ci_yml)
+      job = extract_ci_job_block(ci_yml, "verify_adoption_paths")
+
+      assert length(Regex.scan(~r/^  verify_adoption_paths:/m, ci_yml)) == 1
+
+      for required <- [
+            "timeout-minutes: 30",
+            "github.event_name != 'pull_request'",
+            "image: postgres:15",
+            "--health-cmd pg_isready",
+            "- 5432:5432",
+            "DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test",
+            "mix verify.adoption_paths"
+          ] do
+        assert job =~ required, "adoption proof job must contain #{required}"
+      end
+
+      for forbidden <- [
+            "matrix:",
+            "verify.mailglass",
+            "verify.accrue",
+            "ACCRUE_PATH",
+            "THREADLINE_PATH",
+            "SIGRA_PATH",
+            "docker compose",
+            "registry"
+          ] do
+        refute job =~ forbidden, "adoption proof job must not contain #{forbidden}"
+      end
+    end
+
+    @tag :adoption_paths_ci_contract
+    test "couples the lane to ci-gate in all three places and excludes pr-gate" do
+      ci_yml = File.read!(@ci_yml)
+      ci_gate = extract_ci_job_block(ci_yml, "ci-gate")
+
+      assert "verify_adoption_paths" in extract_ci_gate_needs(ci_yml)
+      refute "verify_adoption_paths" in extract_pr_gate_needs(ci_yml)
+      assert ci_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}"
+      assert ci_gate =~ "aggregate-gate.sh"
+      assert ci_gate =~ "VERIFY_ADOPTION_PATHS"
+
+      for mutated <- [
+            String.replace(ci_yml, "verify_adoption_paths:", "verify_adoption_path:",
+              global: false
+            ),
+            replace_adoption_job(
+              ci_yml,
+              &String.replace(&1, "image: postgres:15", "", global: false)
+            ),
+            replace_adoption_job(
+              ci_yml,
+              &String.replace(&1, "timeout-minutes: 30", "", global: false)
+            ),
+            replace_adoption_job(
+              ci_yml,
+              &String.replace(&1, "mix verify.adoption_paths", "", global: false)
+            ),
+            String.replace(ci_yml, "VERIFY_ADOPTION_PATHS", "", global: false)
+          ] do
+        refute ci_topology_intact?(mutated)
+      end
+    end
+  end
+
   defmodule CoreProofNotifier do
     def notification_key, do: "artifact_consumer.core_trace"
     def version, do: 1
@@ -2053,6 +2121,33 @@ defmodule Chimeway.ReleaseGateContractTest do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
     end
+  end
+
+  defp ci_topology_intact?(ci_yml) do
+    with job when is_binary(job) <- ci_job_block(ci_yml, "verify_adoption_paths"),
+         gate when is_binary(gate) <- ci_job_block(ci_yml, "ci-gate"),
+         pr_gate when is_binary(pr_gate) <- ci_job_block(ci_yml, "pr-gate") do
+      job =~ "timeout-minutes: 30" and job =~ "image: postgres:15" and
+        job =~ "mix verify.adoption_paths" and
+        "verify_adoption_paths" in extract_ci_gate_needs(ci_yml) and
+        gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}" and
+        gate =~ "INSTALL_GOLDEN VERIFY_ADOPTION_PATHS TEST_FLOOR_1_17" and
+        not (pr_gate =~ "verify_adoption_paths")
+    else
+      _ -> false
+    end
+  end
+
+  defp ci_job_block(yml, job_id) do
+    case Regex.run(~r/^  #{job_id}:(.*?)(?:\n  [a-z0-9_]+:|\z)/ms, yml) do
+      [_, block] -> block
+      _ -> nil
+    end
+  end
+
+  defp replace_adoption_job(ci_yml, replace) do
+    job = extract_ci_job_block(ci_yml, "verify_adoption_paths")
+    String.replace(ci_yml, job, replace.(job), global: false)
   end
 
   defp extract_ci_gate_needs(ci_yml) do
