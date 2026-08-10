@@ -123,15 +123,35 @@ Accrue.Test.trigger_event(:invoice_paid, %{
 })
 ```
 
+## Clean-consumer proof
+
+Use the packaged-consumer proof when you need adoption evidence from an already-unpacked Chimeway package, rather than from this repository source tree:
+
+```bash
+MIX_ENV=test mix run scripts/prove-accrue-consumer.exs -- --artifact-root /absolute/path/to/unpacked/chimeway
+```
+
+`--artifact-root` must identify an already-unpacked Chimeway package, not a source checkout. The runner builds an isolated temporary host and database, and the supplied artifact is its only `:chimeway` dependency. On success it emits exactly one `CHIMEWAY_ACCRUE_PROOF` record. Invalid input, or any provenance, lifecycle, or cleanup failure, exits nonzero without a proof record.
+
+Accrue owns both event boundaries: `invoice.payment_failed` starts its campaign, public workflow evidence reaches `waiting / waiting_for_step_progression`, and `invoice.paid` routes the outcome signal. The resulting public evidence is `active / signal_received`:
+
+```text
+CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received
+```
+
+The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed or entered a terminal state. This proof uses Accrue events and public workflow evidence, never a direct notifier or signal call.
+
 ## 6. Verification
 
-After wiring dependencies and config, run the named proof command:
+### Repository-maintainer regression analogs (not packaged-consumer proof)
+
+After changing this repository's integration code, maintainers can run the named regression command:
 
 ```bash
 ACCRUE_PATH=../accrue/accrue mix verify.accrue --warnings-as-errors
 ```
 
-This exercises ECOS-06 lifecycle proof at the Chimeway root and DEMO-07 demo host proof.
+`mix verify.accrue`, `ACCRUE_PATH`, the sibling checkout, and CI checkout are repository-maintainer regression mechanics. They exercise ECOS-06 lifecycle proof at the Chimeway root and the DEMO-07 demo host proof; they are not independent packaged-consumer provenance.
 
 Seed the demo host dunning scenario:
 

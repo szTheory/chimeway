@@ -835,6 +835,13 @@ defmodule Chimeway.DocContractTest do
     end
 
     test "documents the public Accrue lifecycle without false completion semantics", %{content: content} do
+      clean_consumer =
+        content
+        |> String.split("## Clean-consumer proof", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
       lifecycle = [
         "invoice.payment_failed",
         "waiting / waiting_for_step_progression",
@@ -844,7 +851,7 @@ defmodule Chimeway.DocContractTest do
 
       indices =
         Enum.map(lifecycle, fn phrase ->
-          case :binary.match(content, phrase) do
+          case :binary.match(clean_consumer, phrase) do
             {index, _} -> index
             :nomatch -> flunk("accrue guide must document #{phrase}")
           end
