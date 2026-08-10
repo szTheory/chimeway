@@ -897,7 +897,7 @@ defmodule Chimeway.DocContractTest do
       assert String.contains?(content, "released_package")
       assert String.contains?(content, "exact Accrue `1.3.0`")
       assert String.contains?(content, "`Accrue.Integrations.Chimeway`")
-      assert String.contains?(content, "resolved Chimeway artifact version")
+      assert String.contains?(content, "exact Chimeway artifact version")
       assert String.contains?(content, "executable check, not optimistic prose")
       refute String.contains?(content, "Production adopters use `{:accrue, \"~> 1.3\"}` from Hex.")
     end
@@ -907,7 +907,8 @@ defmodule Chimeway.DocContractTest do
 
       assert String.contains?(content, sha)
       assert String.contains?(content, "compatibility evidence only")
-      assert String.contains?(content, "not released-package proof or installation guidance")
+      assert String.contains?(content, "not released-package proof")
+      assert String.contains?(content, "not installation guidance")
 
       sha_code_blocks =
         Regex.scan(~r/```[^`]*#{sha}[^`]*```/s, content)

@@ -25,7 +25,7 @@ def deps do
 end
 ```
 
-This normal Hex dependency declaration is installation guidance, not a provenance claim. The executable clean-consumer check may label its record `released_package` only after the generated consumer resolves exact Accrue `1.3.0`, finds and loads `Accrue.Integrations.Chimeway` from that resolved package, and reports the resolved Chimeway artifact version. The executable check, not optimistic prose, authorizes that label.
+This normal Hex dependency declaration is installation guidance, not a provenance claim. The executable clean-consumer check may label its record `released_package` only after the generated consumer resolves exact Accrue `1.3.0`, validates its resolved Hex metadata, validates the integration module origin for `Accrue.Integrations.Chimeway`, and reports the exact Chimeway artifact version. Source or module presence without resolved metadata does not authorize released-package proof. The executable check, not optimistic prose, authorizes that label.
 
 Repository maintainers use the sibling checkout and `ACCRUE_PATH` only for regression work; see [Verification](#6-verification). Those mechanics do not establish packaged-consumer provenance.
 
@@ -128,11 +128,11 @@ Accrue owns both event boundaries: `invoice.payment_failed` enters its campaign,
 CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received
 ```
 
-The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed or entered a terminal state. The Fake processor coverage is deterministic local orchestration only; live provider credentials, webhooks, and Phase 96 CI/front-door work remain outside this proof.
+The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed. It does not mean the workflow entered a terminal state. The Fake processor coverage is deterministic local orchestration only; live provider credentials, webhooks, and Phase 96 CI/front-door work remain outside this proof.
 
 ### Provenance labels
 
-If the resolved-package source/module validation above cannot establish the released package branch, the proof reports the immutable Accrue ref `236fa2f1649e771f3b515603495436badeed3c7b` as **compatibility evidence only**. It is not released-package proof or installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block.
+If the resolved-package classifier above cannot establish the released package branch, the proof reports the immutable Accrue ref `236fa2f1649e771f3b515603495436badeed3c7b` as **compatibility evidence only**. It is not released-package proof. It is not installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block. The release and compatibility records are mutually exclusive: release evidence contains `accrue_version=1.3.0` plus the exact Chimeway artifact version, while compatibility evidence contains only `accrue_ref`.
 
 ## 6. Verification
 
