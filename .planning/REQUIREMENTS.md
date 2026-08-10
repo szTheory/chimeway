@@ -33,9 +33,9 @@
 
 ### Verification and Documentation
 
-- [ ] **GATE-01**: `mix verify.adoption_paths` runs the clean-room proofs without duplicating the detailed existing integration suites.
+- [x] **GATE-01**: `mix verify.adoption_paths` runs the clean-room proofs without duplicating the detailed existing integration suites.
 - [ ] **GATE-02**: CI executes the adopter-proof entrypoint in a dedicated PostgreSQL-backed lane with useful failure diagnostics.
-- [ ] **DOCS-01**: The adoption front door, fixture commands, and CI entrypoint are contract-checked so copyable guidance cannot silently drift.
+- [x] **DOCS-01**: The adoption front door, fixture commands, and CI entrypoint are contract-checked so copyable guidance cannot silently drift.
 
 ## Future Requirements
 
@@ -68,9 +68,9 @@
 | MAIL-02 | Phase 94 | Complete |
 | ACCR-01 | Phase 95 | Complete |
 | ACCR-02 | Phase 95 | Complete |
-| GATE-01 | Phase 96 | Pending |
+| GATE-01 | Phase 96 | Complete |
 | GATE-02 | Phase 96 | Pending |
-| DOCS-01 | Phase 96 | Pending |
+| DOCS-01 | Phase 96 | Complete |
 
 **Coverage:**
 
