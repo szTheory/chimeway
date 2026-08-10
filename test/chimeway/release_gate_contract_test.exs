@@ -1500,6 +1500,81 @@ defmodule Chimeway.ReleaseGateContractTest do
                  ArtifactConsumerFixture.database_config(identity.database)
                )
     end
+
+    test "Accrue evidence accepts only fixed lifecycle and released-package provenance" do
+      line = accrue_evidence_line()
+
+      assert %{
+               provenance: "released_package",
+               accrue_version: "1.3.0",
+               workflow_key: "accrue.dunning"
+             } =
+               ArtifactConsumerFixture.parse_accrue_evidence!(line)
+
+      for {key, value} <- [
+            {"waiting_state", "active"},
+            {"waiting_reason", "completed"},
+            {"outcome_event", "invoice.failed"},
+            {"outcome_state", "terminal"},
+            {"outcome_reason", "completed"},
+            {"timeline_reasons", "signal_received,waiting_for_step_progression"},
+            {"accrue_version", "1.3.1"}
+          ] do
+        assert_raise RuntimeError, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(
+            replace_accrue_evidence_value(line, key, value)
+          )
+        end
+      end
+    end
+
+    test "Accrue evidence rejects unknown, duplicate, mixed, and atomizing records" do
+      line = accrue_evidence_line()
+      unknown = "untrusted_accrue_key_#{System.unique_integer([:positive])}"
+
+      for forged <- [
+            line <> " #{unknown}=value",
+            line <> " outcome_state=active",
+            line <> " accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b",
+            String.replace(line, " chimeway_version=1.0.0", ""),
+            line <> "\n" <> line,
+            line <> " customer_id=private",
+            line <> " payload=private",
+            line <> " credential=private"
+          ] do
+        assert_raise RuntimeError, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(forged)
+        end
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown) end
+    end
+
+    test "Accrue compatibility is SHA-only and proof source is event-to-signal shaped" do
+      compatibility =
+        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b " <>
+          "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
+          "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid " <>
+          "outcome_state=active outcome_reason=signal_received " <>
+          "timeline_reasons=waiting_for_step_progression,signal_received"
+
+      assert %{provenance: "compatibility"} =
+               ArtifactConsumerFixture.parse_accrue_evidence!(compatibility)
+
+      assert_raise RuntimeError, fn ->
+        ArtifactConsumerFixture.parse_accrue_evidence!(compatibility <> " accrue_version=1.3.0")
+      end
+
+      assert File.read!("scripts/prove-accrue-consumer.exs") =~ "--artifact-root"
+
+      assert File.read!("test/support/artifact_consumer_fixture.ex") =~
+               "Accrue.Test.trigger_event(:invoice_payment_failed"
+
+      assert File.read!("test/support/artifact_consumer_fixture.ex") =~
+               "Accrue.Test.trigger_event(:invoice_paid"
+
+      refute File.read!("scripts/prove-accrue-consumer.exs") =~ "CHIMEWAY_ACCRUE_PROOF"
+    end
   end
 
   defmodule CoreProofNotifier do
@@ -1573,6 +1648,17 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp replace_mailglass_evidence_value(line, key, value) do
+    Regex.replace(~r/(^|\s)#{Regex.escape(key)}=[^\s]*/, line, "\\1#{key}=#{value}")
+  end
+
+  defp accrue_evidence_line do
+    "CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 " <>
+      "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
+      "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active " <>
+      "outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received"
+  end
+
+  defp replace_accrue_evidence_value(line, key, value) do
     Regex.replace(~r/(^|\s)#{Regex.escape(key)}=[^\s]*/, line, "\\1#{key}=#{value}")
   end
 

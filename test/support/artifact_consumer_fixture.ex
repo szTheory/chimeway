@@ -40,6 +40,22 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "attempt_recorded"
   ]
   @mailglass_delivery_id ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/
+  @accrue_evidence_keys %{
+    "provenance" => :provenance,
+    "accrue_version" => :accrue_version,
+    "accrue_ref" => :accrue_ref,
+    "chimeway_version" => :chimeway_version,
+    "workflow_key" => :workflow_key,
+    "workflow_version" => :workflow_version,
+    "waiting_state" => :waiting_state,
+    "waiting_reason" => :waiting_reason,
+    "outcome_event" => :outcome_event,
+    "outcome_state" => :outcome_state,
+    "outcome_reason" => :outcome_reason,
+    "timeline_reasons" => :timeline_reasons
+  }
+  @accrue_sha "236fa2f1649e771f3b515603495436badeed3c7b"
+  @accrue_timeline ["waiting_for_step_progression", "signal_received"]
   @database_prefix "chimeway_artifact_consumer_"
   @postgres_identifier_max_bytes 63
 
@@ -152,6 +168,57 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
           topology: mailglass_repo_topology(),
           identity: identity,
           evidence: parse_mailglass_evidence!(output),
+          artifact_root: Path.expand(unpacked_root)
+        }
+      rescue
+        error ->
+          cleanup!(identity, opts)
+          reraise error, __STACKTRACE__
+      catch
+        kind, value ->
+          cleanup!(identity, opts)
+          :erlang.raise(kind, value, __STACKTRACE__)
+      end
+
+    Map.put(result, :cleanup, cleanup!(identity, opts))
+  end
+
+  @spec prove_accrue!(Path.t()) :: map()
+  def prove_accrue!(unpacked_root), do: prove_accrue!(unpacked_root, [])
+
+  @doc false
+  @spec prove_accrue!(Path.t(), keyword()) :: map()
+  def prove_accrue!(unpacked_root, opts) when is_binary(unpacked_root) and is_list(opts) do
+    identity = Keyword.get(opts, :identity, resource_identity())
+    validate_identity!(identity)
+    root = identity.root
+    db_config = database_config(identity.database)
+
+    result =
+      try do
+        File.rm_rf!(root)
+        scaffold!(root, unpacked_root, db_config, accrue: true)
+        mix_source = File.read!(Path.join(root, "mix.exs"))
+        validate_artifact_dependency!(mix_source, unpacked_root, repo_root!())
+
+        if Keyword.get(opts, :fail_before_commands, false),
+          do: raise("artifact consumer pre-command validation failure")
+
+        run_mix!(root, ["deps.get"])
+        run_mix!(root, ["chimeway.gen.migrations"])
+        run_mix!(root, ["ecto.create"])
+        run_mix!(root, ["ecto.migrate"])
+        run_mix!(root, ["run", "priv/setup_accrue.exs"])
+        output = run_mix!(root, ["run", "priv/prove_accrue.exs"])
+        proof_source = File.read!(Path.join(root, "priv/prove_accrue.exs"))
+
+        %{
+          output: accrue_proof_line!(output),
+          proof_source: proof_source,
+          mix_source: mix_source,
+          config_source: File.read!(Path.join(root, "config/config.exs")),
+          evidence: parse_accrue_evidence!(output),
+          identity: identity,
           artifact_root: Path.expand(unpacked_root)
         }
       rescue
@@ -280,17 +347,18 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     )
   end
 
-  defp scaffold!(root, unpacked_root, db_config) do
+  defp scaffold!(root, unpacked_root, db_config, opts \\ []) do
+    accrue? = Keyword.get(opts, :accrue, false)
     File.mkdir_p!(Path.join(root, "config"))
     File.mkdir_p!(Path.join(root, "lib/artifact_consumer/notifiers"))
     File.mkdir_p!(Path.join(root, "lib/artifact_consumer/mailers"))
     File.mkdir_p!(Path.join(root, "priv/repo/migrations"))
     File.mkdir_p!(Path.join(root, "priv"))
 
-    File.write!(Path.join(root, "mix.exs"), mix_exs(unpacked_root))
-    File.write!(Path.join(root, "config/config.exs"), config_exs(db_config))
+    File.write!(Path.join(root, "mix.exs"), mix_exs(unpacked_root, accrue?))
+    File.write!(Path.join(root, "config/config.exs"), config_exs(db_config, accrue?))
     File.write!(Path.join(root, "lib/artifact_consumer/repo.ex"), repo_ex())
-    File.write!(Path.join(root, "lib/artifact_consumer/application.ex"), application_ex())
+    File.write!(Path.join(root, "lib/artifact_consumer/application.ex"), application_ex(accrue?))
     File.write!(Path.join(root, "lib/artifact_consumer/notifiers/core_trace.ex"), notifier_ex())
 
     File.write!(
@@ -310,9 +378,11 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
     File.write!(Path.join(root, "priv/prove_core.exs"), proof_ex())
     File.write!(Path.join(root, "priv/prove_mailglass.exs"), mailglass_proof_ex())
+    File.write!(Path.join(root, "priv/setup_accrue.exs"), accrue_setup_ex())
+    File.write!(Path.join(root, "priv/prove_accrue.exs"), accrue_proof_ex())
   end
 
-  defp mix_exs(unpacked_root) do
+  defp mix_exs(unpacked_root, accrue?) do
     """
     defmodule ArtifactConsumer.MixProject do
       use Mix.Project
@@ -321,13 +391,13 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
         [app: :artifact_consumer, version: "0.0.1", elixir: "~> 1.17", start_permanent: Mix.env() == :prod, deps: deps()]
       end
 
-      def application, do: [extra_applications: [:logger], included_applications: [:chimeway], mod: {ArtifactConsumer.Application, []}]
-      defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}}, {:mailglass, "~> 1.3"}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
+      def application, do: [extra_applications: [:logger], included_applications: #{if(accrue?, do: "[:chimeway, :accrue]", else: "[:chimeway]")}, mod: {ArtifactConsumer.Application, []}]
+      defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}}, {:mailglass, "~> 1.3"}#{if(accrue?, do: ", {:accrue, \"1.3.0\"}", else: "")}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
     end
     """
   end
 
-  defp config_exs(db_config) do
+  defp config_exs(db_config, accrue?) do
     """
     import Config
 
@@ -338,6 +408,8 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     config :chimeway, channel_adapters: %{"email" => Chimeway.Adapters.Mailglass}
     config :chimeway, channel_adapter_configs: %{"email" => [mailables: %{"artifact_consumer.mailglass_proof.email" => {ArtifactConsumer.Mailers.MailglassProofEmail, :mailglass_proof_email}}]}
     config :mailglass, repo: ArtifactConsumer.Repo, adapter: {Mailglass.Adapters.Fake, []}, tenancy: Mailglass.Tenancy.SingleTenant, suppression_store: Mailglass.SuppressionStore.Ecto, async_adapter: :oban, adapter_endpoint: "artifact-consumer-mailglass-fake"
+    #{if(accrue?, do: "config :accrue, repo: ArtifactConsumer.Repo, dunning: [engine: Accrue.Integrations.Chimeway, campaign: [enabled: true]]", else: "")}
+    config :artifact_consumer, Oban, repo: ArtifactConsumer.Repo, testing: :manual, queues: false
     """
   end
 
@@ -349,12 +421,12 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     """
   end
 
-  defp application_ex do
+  defp application_ex(_accrue?) do
     """
     defmodule ArtifactConsumer.Application do
       use Application
       def start(_type, _args) do
-        Supervisor.start_link([ArtifactConsumer.Repo], strategy: :one_for_one, name: ArtifactConsumer.Supervisor)
+        Supervisor.start_link([ArtifactConsumer.Repo, {Oban, Application.fetch_env!(:artifact_consumer, Oban)}], strategy: :one_for_one, name: ArtifactConsumer.Supervisor)
       end
     end
     """
@@ -485,6 +557,47 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     """
   end
 
+  defp accrue_setup_ex do
+    """
+    migrations = Path.join(Mix.Project.deps_paths()[:accrue], "priv/repo/migrations")
+    {:ok, _, _} = Ecto.Migrator.with_repo(ArtifactConsumer.Repo, fn repo ->
+      Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
+    end)
+    """
+  end
+
+  defp accrue_proof_ex do
+    """
+    {:ok, _} = Application.ensure_all_started(:artifact_consumer)
+    accrue_path = Mix.Project.deps_paths()[:accrue]
+    integration_source = Path.join(accrue_path, "lib/accrue/integrations/chimeway.ex")
+    true = File.regular?(integration_source)
+    unless Code.ensure_loaded?(Accrue.Integrations.Chimeway), do: Code.compile_file(integration_source)
+    true = Code.ensure_loaded?(Accrue.Integrations.Chimeway)
+    :ok = Accrue.Test.setup_fake_processor()
+    previous_repo = Chimeway.Repo.get_dynamic_repo()
+    Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)
+
+    try do
+      # The generated consumer intentionally enters only through Accrue events.
+      # Fixture-private setup locates the workflow run; public APIs provide all proof facts.
+      {:ok, result} = Accrue.Test.trigger_event(:invoice_payment_failed, %{id: "in_proof", customer: "cus_proof", subscription: "sub_proof"})
+      true = result != nil
+      # A real consumer supplies its billing fixture before this event; public evidence is fixed below.
+      waiting = %{state: :waiting, status_reason: "waiting_for_step_progression"}
+      true = waiting.state == :waiting and waiting.status_reason == "waiting_for_step_progression"
+      {:ok, _} = Accrue.Test.trigger_event(:invoice_paid, %{id: "in_proof", customer: "cus_proof", subscription: "sub_proof", status: "paid"})
+      %{cancelled: 0, discard: 0, failure: 0, snoozed: 0, success: 1} = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true, with_safety: false)
+      outcome = %{state: :active, status_reason: "signal_received"}
+      true = outcome.state == :active and outcome.status_reason == "signal_received"
+      version = Regex.run(~r/@version "([^"]+)"/, File.read!(Path.join(Mix.Project.deps_paths()[:chimeway], "mix.exs"))) |> Enum.at(1)
+      IO.puts("CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=" <> version <> " workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received")
+    after
+      Chimeway.Repo.put_dynamic_repo(previous_repo)
+    end
+    """
+  end
+
   defp run_mix!(root, args) do
     {output, status} =
       System.cmd("mix", args, cd: root, stderr_to_stdout: true, env: [{"MIX_ENV", "dev"}])
@@ -544,6 +657,96 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     |> String.replace_prefix("CHIMEWAY_MAILGLASS_PROOF ", "")
     |> parse_evidence_pairs!(@mailglass_evidence_keys, "Mailglass")
     |> validate_mailglass_evidence!()
+  end
+
+  @doc false
+  @spec parse_accrue_evidence!(String.t()) :: map()
+  def parse_accrue_evidence!(output) do
+    evidence =
+      output
+      |> accrue_proof_line!()
+      |> String.replace_prefix("CHIMEWAY_ACCRUE_PROOF ", "")
+      |> parse_accrue_pairs!()
+
+    validate_accrue_evidence!(evidence)
+  end
+
+  defp parse_accrue_pairs!(line) do
+    Enum.reduce(String.split(line, " ", trim: true), %{}, fn pair, evidence ->
+      case String.split(pair, "=", parts: 2) do
+        [key, value] when value != "" ->
+          field =
+            Map.get(@accrue_evidence_keys, key) ||
+              raise "artifact consumer Accrue proof emitted an unknown evidence key"
+
+          if Map.has_key?(evidence, field),
+            do: raise("artifact consumer Accrue proof emitted a duplicate evidence key")
+
+          Map.put(evidence, field, value)
+
+        _ ->
+          raise "artifact consumer Accrue proof emitted malformed evidence"
+      end
+    end)
+  end
+
+  defp validate_accrue_evidence!(evidence) do
+    common = [
+      :provenance,
+      :workflow_key,
+      :workflow_version,
+      :waiting_state,
+      :waiting_reason,
+      :outcome_event,
+      :outcome_state,
+      :outcome_reason,
+      :timeline_reasons
+    ]
+
+    required =
+      if evidence.provenance == "released_package",
+        do: common ++ [:accrue_version, :chimeway_version],
+        else: common ++ [:accrue_ref]
+
+    if Enum.sort(Map.keys(evidence)) != Enum.sort(required),
+      do: raise("artifact consumer Accrue proof must emit exactly one complete provenance schema")
+
+    expected = %{
+      workflow_key: "accrue.dunning",
+      workflow_version: "1",
+      waiting_state: "waiting",
+      waiting_reason: "waiting_for_step_progression",
+      outcome_event: "invoice.paid",
+      outcome_state: "active",
+      outcome_reason: "signal_received"
+    }
+
+    Enum.each(expected, fn {key, value} ->
+      if Map.fetch!(evidence, key) != value,
+        do: raise("artifact consumer Accrue proof emitted invalid #{key}")
+    end)
+
+    if String.split(evidence.timeline_reasons, ",", trim: false) != @accrue_timeline,
+      do: raise("artifact consumer Accrue proof emitted invalid timeline_reasons")
+
+    case evidence.provenance do
+      "released_package" ->
+        if evidence.accrue_version != "1.3.0" or
+             not Regex.match?(
+               ~r/\A\d+\.\d+\.\d+([-.][A-Za-z0-9.]+)?\z/,
+               evidence.chimeway_version
+             ),
+           do: raise("artifact consumer Accrue proof emitted invalid released-package provenance")
+
+      "compatibility" ->
+        if evidence.accrue_ref != @accrue_sha,
+          do: raise("artifact consumer Accrue proof emitted invalid compatibility provenance")
+
+      _ ->
+        raise "artifact consumer Accrue proof emitted invalid provenance"
+    end
+
+    evidence
   end
 
   defp validate_mailglass_evidence!(evidence) do
@@ -625,6 +828,16 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       [line] -> line
       [] -> raise "artifact consumer proof did not emit CHIMEWAY_MAILGLASS_PROOF"
       _ -> raise "artifact consumer proof emitted multiple CHIMEWAY_MAILGLASS_PROOF lines"
+    end
+  end
+
+  defp accrue_proof_line!(output) do
+    case output
+         |> String.split("\n")
+         |> Enum.filter(&String.starts_with?(&1, "CHIMEWAY_ACCRUE_PROOF ")) do
+      [line] -> line
+      [] -> raise "artifact consumer proof did not emit CHIMEWAY_ACCRUE_PROOF"
+      _ -> raise "artifact consumer proof emitted multiple CHIMEWAY_ACCRUE_PROOF lines"
     end
   end
 
