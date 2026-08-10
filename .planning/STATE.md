@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
-current_phase: 95
-current_phase_name: accrue-billing-escalation-proof
-status: executing
+current_phase: 96
+current_phase_name: Adoption Front Door & Proof Gate
+status: planning
 stopped_at: Phase 95 context gathered (assumptions mode)
-last_updated: "2026-08-10T01:07:03.149Z"
+last_updated: "2026-08-10T02:25:45.112Z"
 last_activity: 2026-08-09
-last_activity_desc: Phase 95 execution started
+last_activity_desc: Phase 95 complete, transitioned to Phase 96
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 7
-  percent: 50
+  completed_plans: 10
+  percent: 75
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: 95 (accrue-billing-escalation-proof) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 95
-Last activity: 2026-08-09 — Phase 95 execution started
+Phase: 96 — Adoption Front Door & Proof Gate
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-09 — Phase 95 complete, transitioned to Phase 96
 
 ## Deferred Items
 

@@ -28,7 +28,7 @@
 
 - [x] **Phase 93: Hermetic Artifact Harness & Core Trace Proof** - A clean consumer proves the core durable notification lifecycle and public trace from an unpacked package artifact. (completed 2026-08-08)
 - [x] **Phase 94: Mailglass Transactional-Email Proof** - A clean consumer proves deterministic Mailglass orchestration and explains exactly what fake transport covers. (completed 2026-08-09)
-- [ ] **Phase 95: Accrue Billing-Escalation Proof** - A clean consumer proves Accrue workflow outcomes with truthful released-package versus pinned-ref provenance.
+- [x] **Phase 95: Accrue Billing-Escalation Proof** - A clean consumer proves Accrue workflow outcomes with truthful released-package versus pinned-ref provenance. (completed 2026-08-09)
 - [ ] **Phase 96: Adoption Front Door & Proof Gate** - Adopters can select, run, and trust the three proof paths through contract-checked guidance and one focused CI lane.
 
 <details>

@@ -28,8 +28,8 @@
 
 ### Billing Escalation Path
 
-- [ ] **ACCR-01**: The Accrue path proves billing-event escalation, workflow progression, termination by outcome signal, and trace evidence.
-- [ ] **ACCR-02**: Accrue documentation and verification accurately distinguish a released-package adopter proof from pinned-ref compatibility evidence.
+- [x] **ACCR-01**: The Accrue path proves billing-event escalation, workflow progression, termination by outcome signal, and trace evidence.
+- [x] **ACCR-02**: Accrue documentation and verification accurately distinguish a released-package adopter proof from pinned-ref compatibility evidence.
 
 ### Verification and Documentation
 
@@ -66,8 +66,8 @@
 | CORE-01 | Phase 93 | Complete |
 | MAIL-01 | Phase 94 | Complete |
 | MAIL-02 | Phase 94 | Complete |
-| ACCR-01 | Phase 95 | Pending |
-| ACCR-02 | Phase 95 | Pending |
+| ACCR-01 | Phase 95 | Complete |
+| ACCR-02 | Phase 95 | Complete |
 | GATE-01 | Phase 96 | Pending |
 | GATE-02 | Phase 96 | Pending |
 | DOCS-01 | Phase 96 | Pending |
