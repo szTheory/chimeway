@@ -1692,6 +1692,64 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "packaged Accrue archive proof CLI (ACCR-01/ACCR-02)" do
+    @tag :accrue_packaged_cli
+    @tag timeout: 600_000
+    test "runs only from a verified archive with package-owned proof support" do
+      archive = build_package_archive!()
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      digest = sha256!(archive)
+      unpacked = build_unpacked_package!()
+      on_exit(fn -> File.rm_rf(unpacked) end)
+      root = unpacked_package_root!(unpacked)
+      metadata = File.read!(Path.join(root, "hex_metadata.config"))
+
+      assert metadata =~ "scripts/prove-accrue-consumer.exs"
+      assert metadata =~ "priv/adoption_proof/artifact_consumer_fixture.ex"
+      refute metadata =~ "test/"
+
+      {deps_output, deps_status} =
+        System.cmd("mix", ["deps.get"],
+          cd: root,
+          stderr_to_stdout: true,
+          env: [{"MIX_ENV", "prod"}]
+        )
+
+      assert deps_status == 0, deps_output
+
+      {output, status} = packaged_accrue_cli(root, archive, digest)
+      assert status == 0, output
+
+      lines = Regex.scan(~r/^CHIMEWAY_ACCRUE_PROOF .+$/m, output) |> List.flatten()
+      assert [line] = lines
+
+      assert %{provenance: "released_package"} =
+               ArtifactConsumerFixture.parse_accrue_evidence!(line)
+
+      refute output =~ "test/support"
+      refute File.read!(Path.join(root, "scripts/prove-accrue-consumer.exs")) =~ "../test/support"
+    end
+
+    @tag :accrue_packaged_cli
+    test "rejects malformed archive provenance without a proof line" do
+      archive = build_package_archive!()
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      unpacked = build_unpacked_package!()
+      on_exit(fn -> File.rm_rf(unpacked) end)
+      root = unpacked_package_root!(unpacked)
+
+      for {path, digest} <- [
+            {"relative.tar", String.duplicate("a", 64)},
+            {archive, String.duplicate("0", 64)},
+            {archive, "ABC"}
+          ] do
+        {output, status} = packaged_accrue_cli(root, path, digest)
+        assert status != 0
+        refute output =~ "CHIMEWAY_ACCRUE_PROOF"
+      end
+    end
+  end
+
   defmodule CoreProofNotifier do
     def notification_key, do: "artifact_consumer.core_trace"
     def version, do: 1
@@ -1717,6 +1775,46 @@ defmodule Chimeway.ReleaseGateContractTest do
            "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
 
     output
+  end
+
+  defp build_package_archive! do
+    output =
+      Path.join(
+        System.tmp_dir!(),
+        "chimeway_release_archive_#{System.unique_integer([:positive])}"
+      )
+
+    File.mkdir_p!(output)
+    archive = Path.join(output, "chimeway.tar")
+
+    {out, status} =
+      System.cmd("mix", ["hex.build", "--output", archive],
+        stderr_to_stdout: true,
+        env: [{"MIX_ENV", "prod"}]
+      )
+
+    assert status == 0, out
+    archive
+  end
+
+  defp sha256!(path), do: :crypto.hash(:sha256, File.read!(path)) |> Base.encode16(case: :lower)
+
+  defp packaged_accrue_cli(root, archive, digest) do
+    System.cmd(
+      "mix",
+      [
+        "run",
+        "scripts/prove-accrue-consumer.exs",
+        "--",
+        "--artifact-archive",
+        archive,
+        "--sha256",
+        digest
+      ],
+      cd: root,
+      stderr_to_stdout: true,
+      env: [{"MIX_ENV", "prod"}]
+    )
   end
 
   # Hex task output shape varies by version: files may land directly in the
