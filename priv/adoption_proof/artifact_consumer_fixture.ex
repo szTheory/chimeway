@@ -37,7 +37,8 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "event_created",
     "notification_created",
     "delivery_planned",
-    "attempt_recorded"
+    "attempt_recorded",
+    "webhook_received"
   ]
   @mailglass_delivery_id ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/
   @accrue_evidence_keys %{
@@ -447,12 +448,19 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     """
   end
 
-  defp application_ex(_accrue?) do
+  defp application_ex(accrue?) do
+    children =
+      if accrue? do
+        "[ArtifactConsumer.Repo, {Oban, Application.fetch_env!(:artifact_consumer, Oban)}]"
+      else
+        "[ArtifactConsumer.Repo]"
+      end
+
     """
     defmodule ArtifactConsumer.Application do
       use Application
       def start(_type, _args) do
-        Supervisor.start_link([ArtifactConsumer.Repo], strategy: :one_for_one, name: ArtifactConsumer.Supervisor)
+        Supervisor.start_link(#{children}, strategy: :one_for_one, name: ArtifactConsumer.Supervisor)
       end
     end
     """
