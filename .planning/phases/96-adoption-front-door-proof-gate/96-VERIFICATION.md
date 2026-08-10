@@ -1,42 +1,60 @@
 ---
 phase: 96-adoption-front-door-proof-gate
-verified: 2026-08-10T00:00:00Z
+verified: 2026-08-10T17:15:00-04:00
 status: gaps_found
-score: 4/6 must-haves verified
+score: 3/7 must-haves verified
 behavior_unverified: 1
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
   previous_score: 4/6
-  gaps_closed: []
+  gaps_closed:
+    - "Link-bearing archive members are rejected before filesystem materialization or fixture loading."
   gaps_remaining:
-    - "The shared archive-validation seam safely validates and unpacks proof artifacts before fixture code is loaded."
+    - "Archive validation and the standalone Accrue command still fail unsafe-input trust boundaries."
+    - "mix ci.verify_gates is not green."
   regressions: []
 gaps:
-  - truth: "The shared archive-validation seam safely validates and unpacks proof artifacts before fixture code is loaded."
+  - truth: "The clean-room aggregate proof is safe and redacts failures across its Core, Mailglass, and Accrue entrypoints."
     status: failed
-    reason: "CR-01 is confirmed by source: tar member names receive only lexical checks before :erl_tar.extract/2 extracts all member types. Subsequent File.regular?/1, File.read!/1, and Code.require_file/1 operations follow links; the caller-controlled SHA-256 only proves equality with caller input, not archive trust."
+    reason: "The standalone Accrue CLI does not match ArtifactArchive's {:error, reason} result, so an invalid digest raises WithClauseError and prints a stacktrace. The archive validator also fully gunzips caller-controlled contents before any size/member limit is enforced."
+    artifacts:
+      - path: "scripts/prove-accrue-consumer.exs"
+        issue: "The with else only matches {:usage, message} and {:provenance, message}; a validator {:error, message} is unhandled."
+      - path: "priv/adoption_proof/artifact_archive.ex"
+        issue: ":zlib.gunzip/1 expands the entire untrusted contents.tar.gz with no compressed/decompressed byte, member-count, or member-size limit."
+    missing:
+      - "Translate {:error, reason} to the fixed provenance diagnostic and add CLI-level malformed/digest regression tests requiring no stacktrace or proof record."
+      - "Bound compressed and decompressed archive input, member count, and member size before materializing or parsing the contents."
+  - truth: "The Phase 96 release-gate evidence is green."
+    status: failed
+    reason: "The verifier ran mix ci.verify_gates and it failed in release_gate_contract_test.exs:1622. Execution records also identify a Mailglass contract failure near :1228; no accepted override exists."
+    artifacts:
+      - path: "test/chimeway/release_gate_contract_test.exs"
+        issue: "The full release-gate entrypoint is red, so it cannot certify the phase's contract-checked guidance/release-gate parity."
+    missing:
+      - "Resolve the failing release-gate contract cases and rerun mix ci.verify_gates successfully."
+  - truth: "The archive digest protects the exact bytes that are extracted."
+    status: partial
+    reason: "The validator hashes File.read!(archive) and separately reopens archive by pathname for :erl_tar.extract/2. A replacement between those operations can make the validated bytes differ from the extracted bytes."
     artifacts:
       - path: "priv/adoption_proof/artifact_archive.ex"
-        issue: "Lines 89-106 validate member names but do not reject symlinks, hard links, devices, FIFOs, or other non-regular/non-directory entries before extraction. Lines 120-129 use lexical containment and link-following file operations."
-      - path: "test/chimeway/release_gate_contract_test.exs"
-        issue: "The archive cases cover malformed/digest-altered archives but no symlink or hard-link escape case."
+        issue: "Digest and extraction use separate reads of a mutable pathname."
     missing:
-      - "Reject every non-regular/non-directory tar member before extraction, including symbolic and hard links."
-      - "Use link-safe extraction or real-path containment and add adversarial tests proving a link cannot create, read, or load a file outside scratch."
+      - "Extract from the already validated archive binary (or hold one file descriptor) and add a replacement-race regression test."
 behavior_unverified_items:
   - truth: "CI executes the dedicated adoption proof lane successfully in its PostgreSQL-backed GitHub Actions environment."
     test: "Push the current branch or dispatch CI and inspect the verify_adoption_paths job."
-    expected: "The job runs mix verify.adoption_paths once, emits bounded per-path diagnostics on failure, and ci-gate receives its result."
-    why_human: "Workflow source proves topology only. This report-only recovery did not run tests or CI, and 96-02-SUMMARY.md records the first live CI execution as pending."
+    expected: "The PostgreSQL 15 job runs mix verify.adoption_paths once, emits bounded per-path diagnostics if it fails, and ci-gate receives its result."
+    why_human: "Workflow source and static contract tests prove topology only; no hosted run URL or successful result was supplied."
 ---
 
 # Phase 96: Adoption Front Door & Proof Gate Verification Report
 
 **Phase Goal:** Prospective adopters can choose the right canonical path, understand ownership boundaries, and rely on CI-backed commands and documentation that remain truthful over time.
-**Verified:** 2026-08-10T00:00:00Z
+**Verified:** 2026-08-10T17:15:00-04:00
 **Status:** gaps_found
-**Re-verification:** Yes — report recovery; no tests or long-running commands were run.
+**Re-verification:** Yes — after Plan 96-03 archive-link closure.
 
 ## Goal Achievement
 
@@ -44,63 +62,68 @@ behavior_unverified_items:
 
 | # | Truth | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | Adopters can choose Core, Mailglass, or Accrue and see host, Chimeway, and partner responsibilities. | ✓ VERIFIED | `guides/introduction/adoption-paths.md:5-63` contains exactly those three ordered paths, each with separate responsibility statements. |
-| 2 | Every path provides a copyable proof command, sanitized evidence, and an explicit coverage limit. | ✓ VERIFIED | Each selector section includes its literal focused command, one `CHIMEWAY_*_PROOF` record shape, and `Does not cover` boundary. |
-| 3 | `mix verify.adoption_paths` routes the clean-room proof paths without invoking detailed partner suites. | ✓ VERIFIED | `lib/mix/tasks/verify.adoption_paths.ex:11-24` strictly loads the runner only after parsing; `scripts/prove-adoption-paths.exs:71-80` dispatches only the three fixture proof functions. |
-| 4 | A dedicated PostgreSQL-backed CI lane runs the aggregate command and reports its result to `ci-gate`. | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `.github/workflows/ci.yml:1130-1167` defines a non-PR PostgreSQL 15 job; `:1341-1365` connects its result through all three `ci-gate` edges. No live CI execution was verified. |
-| 5 | Contracts cover selector, command, package surface, and CI topology drift. | ✓ VERIFIED | `test/chimeway/doc_contract_test.exs:1968+` and `test/chimeway/release_gate_contract_test.exs:1846-1958` contain focused static and mutation-oriented contracts for those links. |
-| 6 | The archive-validation boundary is safe before code from an artifact is loaded. | ✗ FAILED — BLOCKER | CR-01 is confirmed: `artifact_archive.ex:89-106` extracts after path-name-only checks; `:120-129` then reads link-following paths. |
+| 1 | An adopter can choose Core, Mailglass, or Accrue and see the host, Chimeway, and partner responsibilities. | ✓ VERIFIED | `guides/introduction/adoption-paths.md` has exactly those three ordered sections and each names all three responsibility boundaries. The focused documentation contract passed. |
+| 2 | Each path supplies a copyable command, sanitized expected evidence, and an explicit coverage limit. | ✓ VERIFIED | Each selector section contains `mix verify.adoption_paths --only <path>`, one matching `CHIMEWAY_*_PROOF` example, and `Does not cover`; `adoption_paths_docs_contract` passed. |
+| 3 | `mix verify.adoption_paths` provides a trustworthy clean-room aggregate without repository partner suites. | ✗ FAILED — BLOCKER | Static dispatch is bounded to the three fixture functions, but the shared archive boundary has an unbounded decompression path and the standalone Accrue consumer leaks raw exception details for ordinary validator errors. |
+| 4 | CI runs the aggregate command in one PostgreSQL-backed adoption lane and surfaces the result. | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `.github/workflows/ci.yml:1130-1184` defines exactly one non-PR PostgreSQL 15 job and `:1344,1363-1365` joins it to `ci-gate`; no hosted execution was observed. |
+| 5 | Contracts keep selector, commands, fixture guidance, and CI topology from silently drifting. | ✓ VERIFIED | Focused doc and CI-topology contracts passed (1 and 2 tests respectively); package, task, runner, selector, service, and gate links are asserted in source. |
+| 6 | Artifact validation is safe before proof fixture code is loaded. | ✗ FAILED — BLOCKER | Plan 96-03 correctly closes the symlink/special-member escape (six focused security tests pass), but whole-input gunzip has no resource limits and mutable-path digest/extract operations retain a TOCTOU gap. |
+| 7 | The phase's release-gate evidence is green. | ✗ FAILED — BLOCKER | `mix ci.verify_gates` was run and failed at `test/chimeway/release_gate_contract_test.exs:1622`; prior phase execution evidence also records a failure near `:1228`. |
 
-**Score:** 4/6 truths verified (1 present, behavior-unverified)
+**Score:** 3/7 truths verified (1 present, behavior-unverified)
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 | --- | --- | --- | --- |
-| `lib/mix/tasks/verify.adoption_paths.ex` | Strict public task | ✓ VERIFIED | Bounded selector parsing occurs before runner loading. |
-| `scripts/prove-adoption-paths.exs` | Build-once serial runner | ✓ VERIFIED | Static Core → Mailglass → Accrue fixture dispatch and fixed framing are present. |
-| `priv/adoption_proof/artifact_archive.ex` | Safe shared digest/unpack seam | ✗ UNSAFE | Substantive and wired, but its extraction boundary permits link-bearing archives. |
-| `guides/introduction/adoption-paths.md` | Canonical selector | ✓ VERIFIED | Three complete selector sections; README and first ExDoc-extra wiring exists. |
-| `.github/workflows/ci.yml` | Dedicated proof lane | ⚠️ WIRED, LIVE RUN UNVERIFIED | Static job/service/aggregation topology exists; it was not executed in this recovery. |
+| `guides/introduction/adoption-paths.md` | Canonical three-path selector | ✓ VERIFIED | Complete static selector and contract coverage. |
+| `lib/mix/tasks/verify.adoption_paths.ex` | Strict task facade | ✓ VERIFIED | Strict selector parsing precedes runner load. |
+| `scripts/prove-adoption-paths.exs` | Build-once serial dispatcher | ✓ VERIFIED | Calls only Core → Mailglass → Accrue fixture proof functions with fixed framing. |
+| `priv/adoption_proof/artifact_archive.ex` | Safe validated archive boundary | ✗ UNSAFE | Link materialization is fixed; unbounded decompression and digest/extraction TOCTOU remain. |
+| `scripts/prove-accrue-consumer.exs` | Redacted standalone Accrue failure surface | ✗ UNSAFE | Invalid digest produces `WithClauseError` stacktrace. |
+| `.github/workflows/ci.yml` | Dedicated PostgreSQL proof lane | ⚠️ WIRED, LIVE RUN UNVERIFIED | Static CI topology contract passes. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
-| --- | --- | --- | --- |
-| `README.md` | adoption selector | Quick Start route | ✓ WIRED | `README.md:102` points to `guides/introduction/adoption-paths.md`. |
-| Mix task | proof runner | `Code.require_file` + `AdoptionProofRunner.run!` | ✓ WIRED | `verify.adoption_paths.ex:12-19`. |
-| proof runner | archive validator | `with_validated_archive/3` | ✗ WIRED BUT UNSAFE | `prove-adoption-paths.exs:14-26` reaches the vulnerable shared seam. |
-| CI job | aggregate task and `ci-gate` | command, needs, env, aggregate args | ✓ WIRED | Source has `mix verify.adoption_paths`, `verify_adoption_paths` need, result env, and aggregate argument. |
+| --- | --- | --- | --- | --- |
+| `README.md` | adoption selector | Quick Start link | ✓ WIRED | README routes to `guides/introduction/adoption-paths.md`. |
+| Mix task | proof runner | `Code.require_file` + `AdoptionProofRunner.run!/1` | ✓ WIRED | `lib/mix/tasks/verify.adoption_paths.ex:11-20`. |
+| proof runner | archive validator | `with_validated_archive/3` | ✗ WIRED BUT UNSAFE | The callback is connected, but its trust boundary has the two blocker defects above. |
+| CI job | aggregate task and `ci-gate` | job command, `needs`, environment, aggregate arguments | ✓ WIRED | Job invokes `mix verify.adoption_paths`; ci-gate consumes `VERIFY_ADOPTION_PATHS`. |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 | --- | --- | --- | --- | --- |
-| adoption runner | `proof.output` | Fixture `prove_*!/2` result | Parsed then emitted directly | ✓ FLOWING |
-| archive validator | `root` | Archive extraction | Can be redirected through accepted link members before `Code.require_file/1` | ✗ UNSAFE FLOW |
+| adoption runner | `proof.output` | `ArtifactConsumerFixture.prove_*!/2` | Parsed then directly emitted | ✓ FLOWING |
+| archive validator | unpacked root | caller archive path | Link-safe materialization passes, but full gzip expansion is unbounded and extraction can use a later file instance | ✗ UNSAFE FLOW |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| Phase 96 runnable behavior | Not run by instruction | Report-only recovery; no tests or long commands executed | ? SKIPPED |
+| Link/special-member archive rejection | focused `adoption_archive_security` release-gate test | 6 tests, 0 failures | ✓ PASS |
+| Phase-owned formatting | `mix format --check-formatted` for Plan 96-03 files | exit 0 | ✓ PASS |
+| Full release-gate entrypoint | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix ci.verify_gates` | failed at `release_gate_contract_test.exs:1622` | ✗ FAIL |
+| Standalone invalid-digest redaction | `elixir scripts/prove-accrue-consumer.exs ... --sha256 000...` | emitted `WithClauseError` and stacktrace | ✗ FAIL |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Status | Evidence |
 | --- | --- | --- | --- |
-| ADPT-01 | 96-02 | ✓ SATISFIED | Source selector presents all three outcome paths and ownership boundaries. |
-| ADPT-02 | 96-02 | ✓ SATISFIED | Each path has a literal command, representative sanitized record, and explicit limitation. |
-| GATE-01 | 96-01 | ✗ BLOCKED | The command avoids partner suites, but its shared artifact trust boundary is unsafe, so the claimed trustworthy clean-room gate is not achieved. |
-| GATE-02 | 96-02 | ? NEEDS HUMAN | The dedicated PostgreSQL topology is wired, but no live GitHub Actions run was verified. |
-| DOCS-01 | 96-01, 96-02 | ✓ SATISFIED | Contract modules statically cover selector, command, package membership, and CI topology drift. |
+| ADPT-01 | 96-02 | ✓ SATISFIED | Selector has all three paths and explicit ownership boundaries. |
+| ADPT-02 | 96-02 | ✓ SATISFIED | Every path exposes a literal command, safe record, and coverage boundary. |
+| GATE-01 | 96-01, 96-03 | ✗ BLOCKED | Dispatch is bounded, but the archive/CLI trust boundary is unsafe. |
+| GATE-02 | 96-02 | ? NEEDS HUMAN | Topology is contract-checked, but no live GitHub Actions proof exists. |
+| DOCS-01 | 96-01, 96-02 | ⚠️ PARTIAL | Focused drift contracts pass, but the required full release-gate entrypoint is red. |
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 | --- | --- | --- | --- | --- |
-| `priv/adoption_proof/artifact_archive.ex` | 89-106 | Extracts after pathname-only validation | 🛑 BLOCKER | Link-bearing tar entries can escape scratch and cause external files to be written, read, or loaded. |
-| `test/chimeway/release_gate_contract_test.exs` | archive tests | No link-escape regression case | 🛑 BLOCKER | The shared boundary lacks a test that would prevent recurrence. |
+| `scripts/prove-accrue-consumer.exs` | 14-35 | Unmatched `{:error, reason}` result | 🛑 BLOCKER | Malformed/digest-invalid input exposes exception details. |
+| `priv/adoption_proof/artifact_archive.ex` | 21-26, 99-105 | Separate digest/extraction reads; whole-buffer `:zlib.gunzip/1` | 🛑 BLOCKER / ⚠️ WARNING | Unbounded resource use and a mutable-path integrity race. |
 
 ### Human Verification Required
 
@@ -108,11 +131,11 @@ behavior_unverified_items:
 
 **Test:** Push or dispatch CI and open `verify_adoption_paths`.
 **Expected:** One PostgreSQL-backed aggregate proof runs and `ci-gate` consumes its result.
-**Why human:** Static workflow inspection cannot establish runner behavior in GitHub Actions.
+**Why human:** Static workflow inspection cannot establish GitHub-hosted execution.
 
 ### Gaps Summary
 
-CR-01 remains a blocking failure. The archive validator's SHA comparison is not provenance because the standalone Accrue CLI accepts both the archive and digest from its caller. An archive with safe-looking names but link-bearing members is extracted before the validator establishes a link-safe containment boundary; later file reads and fixture loading follow those links. No contrary source evidence or symlink/hard-link regression test exists. This is an escalation gate for a developer decision and remediation; Phase 96 must not proceed as passed.
+Plan 96-03 successfully fixed the prior link-bearing archive escape. It did not resolve the separately reviewed unsafe-input paths: an unbounded gzip expansion, a digest/extract TOCTOU window, and an unhandled archive validator result in the standalone Accrue CLI that leaks a stacktrace. The release-gate command is also currently red. These are blockers for a proof gate that adopters are meant to trust; Phase 96 must not be marked passed. No later milestone phase exists to defer these items to.
 
-_Verified: 2026-08-10T00:00:00Z_
+_Verified: 2026-08-10T17:15:00-04:00_
 _Verifier: the agent (gsd-verifier)_
