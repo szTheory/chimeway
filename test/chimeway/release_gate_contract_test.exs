@@ -2095,10 +2095,15 @@ defmodule Chimeway.ReleaseGateContractTest do
     archive = Path.join(output, "malicious.tar")
 
     metadata =
-      ~s([{name, "chimeway"}, {version, "0.0.1"}, {files, ["scripts/prove-accrue-consumer.exs", "priv/adoption_proof/artifact_consumer_fixture.ex"]}].\n)
+      ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [<<"scripts/prove-accrue-consumer.exs">>, <<"priv/adoption_proof/artifact_consumer_fixture.ex">>]}.\n)
 
     contents = contents_entries |> raw_tar() |> :zlib.gzip()
-    File.write!(archive, raw_tar([{"metadata.config", ?0, "", metadata}, {"contents.tar.gz", ?0, "", contents}]))
+
+    File.write!(
+      archive,
+      raw_tar([{"metadata.config", ?0, "", metadata}, {"contents.tar.gz", ?0, "", contents}])
+    )
+
     archive
   end
 
@@ -2109,15 +2114,15 @@ defmodule Chimeway.ReleaseGateContractTest do
   defp raw_tar_entry({name, type, link_name, body}) do
     header = :binary.copy(<<0>>, 512)
     header = put_tar_field(header, 0, 100, name)
-    header = put_tar_field(header, 100, 8, "0000644\\0")
-    header = put_tar_field(header, 108, 8, "0000000\\0")
-    header = put_tar_field(header, 116, 8, "0000000\\0")
+    header = put_tar_field(header, 100, 8, "0000644\0")
+    header = put_tar_field(header, 108, 8, "0000000\0")
+    header = put_tar_field(header, 116, 8, "0000000\0")
     header = put_tar_field(header, 124, 12, tar_octal(byte_size(body), 12))
-    header = put_tar_field(header, 136, 12, "00000000000\\0")
+    header = put_tar_field(header, 136, 12, "00000000000\0")
     header = put_tar_field(header, 148, 8, "        ")
     header = put_tar_field(header, 156, 1, <<type>>)
     header = put_tar_field(header, 157, 100, link_name)
-    header = put_tar_field(header, 257, 6, "ustar\\0")
+    header = put_tar_field(header, 257, 6, "ustar\0")
     header = put_tar_field(header, 263, 2, "00")
     checksum = header |> :binary.bin_to_list() |> Enum.sum() |> tar_checksum()
     header = put_tar_field(header, 148, 8, checksum)
@@ -2127,16 +2132,18 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   defp put_tar_field(binary, offset, width, value) do
     value = IO.iodata_to_binary(value)
+
     binary_part(value, 0, min(byte_size(value), width))
     |> then(fn truncated ->
       :binary.part(binary, 0, offset) <>
-        truncated <> :binary.copy(<<0>>, width - byte_size(truncated)) <>
+        truncated <>
+        :binary.copy(<<0>>, width - byte_size(truncated)) <>
         :binary.part(binary, offset + width, byte_size(binary) - offset - width)
     end)
   end
 
   defp tar_octal(value, width) do
-    value |> Integer.to_string(8) |> String.pad_leading(width - 1, "0") |> Kernel.<>("\\0")
+    value |> Integer.to_string(8) |> String.pad_leading(width - 1, "0") |> Kernel.<>("\0")
   end
 
   defp tar_checksum(value) do
@@ -2144,7 +2151,10 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp temporary_path!(suffix) do
-    Path.join(System.tmp_dir!(), "chimeway_adoption_security_#{System.unique_integer([:positive])}_#{suffix}")
+    Path.join(
+      System.tmp_dir!(),
+      "chimeway_adoption_security_#{System.unique_integer([:positive])}_#{suffix}"
+    )
   end
 
   defp packaged_accrue_cli(root, archive, digest) do
