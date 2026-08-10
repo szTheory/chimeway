@@ -9,6 +9,7 @@ defmodule Chimeway.AdoptionProofRunner do
   @spec run!([:core | :mailglass | :accrue], keyword()) :: non_neg_integer()
   def run!(paths, opts \\ []) when is_list(paths) do
     builder = Keyword.get(opts, :builder, &build_archive!/0)
+    failure_path = List.first(paths) || :core
 
     with_archive =
       Keyword.get(opts, :with_archive, fn archive, digest, callback ->
@@ -25,10 +26,10 @@ defmodule Chimeway.AdoptionProofRunner do
              with_archive.(archive, sha256!(archive), fn root -> run_paths!(paths, root, opts) end) do
         result
       else
-        {:error, _} -> fail(:core, :unpack)
+        {:error, _} -> fail(failure_path, :unpack)
       end
     rescue
-      _ -> fail(:core, :build)
+      _ -> fail(failure_path, :build)
     after
       case Process.delete({__MODULE__, :archive}) do
         nil -> :ok
