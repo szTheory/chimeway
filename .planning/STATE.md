@@ -4,17 +4,17 @@ milestone: v1.17
 milestone_name: Adopter Proof Paths
 current_phase: 96
 current_phase_name: adoption-front-door-proof-gate
-status: executing
-stopped_at: Completed 96-03-PLAN.md
-last_updated: "2026-08-10T21:27:05.242Z"
+status: verifying
+stopped_at: Completed 96-04-PLAN.md
+last_updated: "2026-08-10T21:32:38.334Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 96 execution started
 progress:
   total_phases: 4
-  completed_phases: 4
+  completed_phases: 3
   total_plans: 15
-  completed_plans: 13
-  percent: 100
+  completed_plans: 14
+  percent: 75
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 96 (adoption-front-door-proof-gate) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-10 — Phase 96 execution started
 
 ## Deferred Items
@@ -299,6 +299,7 @@ status: complete
 - [Phase ?]: The selector compares only Core, Mailglass, and Accrue in progressive-complexity order and routes detailed setup to the existing guides.
 - [Phase ?]: The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments.
 - [Phase ?]: Adoption archive members are fully classified before materialization; only regular files and directories are written from memory.
+- [Phase ?]: [96-04]: Adoption archive validation hashes and extracts one bounded immutable binary, with explicit outer/compressed/expanded/member budgets before materialization.
 
 ## Performance
 
@@ -614,8 +615,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-10T20:57:10.326Z
-Stopped at: Completed 96-03-PLAN.md
+Last session: 2026-08-10T21:32:38.326Z
+Stopped at: Completed 96-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -715,3 +716,4 @@ Resume file: None
 | Phase 96-adoption-front-door-proof-gate P01 | 46m | 2 tasks | 7 files |
 | Phase 96 P02 | 20m | 2 tasks | 6 files |
 | Phase 96 P03 | ~45 minutes | 2 tasks | 2 files |
+| Phase 96-adoption-front-door-proof-gate P04 | 18 min | 2 tasks | 2 files |

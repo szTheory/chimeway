@@ -168,7 +168,11 @@ Plans:
   4. CI runs that command in one dedicated PostgreSQL-backed adoption lane and surfaces enough per-path diagnostics to identify a failed proof.
   5. Contract checks prevent the selector, commands, artifact fixture guidance, and CI entrypoint from silently drifting apart.
 
-**Plans**: 3/3 plans executed
+**Plans**: 4/5 plans executed
+
+- [x] 96-04-PLAN.md
+- [ ] 96-05-PLAN.md
+
 **Wave 1**
 
 - [x] 96-01-PLAN.md
