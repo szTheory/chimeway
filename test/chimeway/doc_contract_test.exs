@@ -916,6 +916,90 @@ defmodule Chimeway.DocContractTest do
       refute String.contains?(content, "git: #{sha}")
     end
 
+    test "binds released-package and compatibility claims to the packaged CLI schemas", %{
+      content: content
+    } do
+      release_section =
+        content
+        |> String.split("## 1. Dependencies", parts: 2)
+        |> List.last()
+        |> String.split("## 2. Database / migrations", parts: 2)
+        |> List.first()
+
+      compatibility_section =
+        content
+        |> String.split("### Provenance labels", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
+      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+
+      for required <- [
+            "released_package",
+            "exact Accrue `1.3.0`",
+            "resolved Hex metadata",
+            "integration module origin",
+            "exact Chimeway artifact version"
+          ] do
+        assert String.contains?(release_section, required),
+               "released-package prose must require #{required}"
+      end
+
+      assert String.contains?(compatibility_section, sha)
+      assert String.contains?(compatibility_section, "compatibility evidence only")
+      assert String.contains?(compatibility_section, "not released-package proof")
+      assert String.contains?(compatibility_section, "not installation guidance")
+
+      for forbidden <- ["git: #{sha}", "{:accrue, git:", "mix deps.get #{sha}"] do
+        refute String.contains?(content, forbidden),
+               "compatibility SHA must not become dependency or installation guidance"
+      end
+    end
+
+    test "keeps proof claims scoped to safe public evidence and maintainer mechanics", %{
+      content: content
+    } do
+      clean_consumer =
+        content
+        |> String.split("## Clean-consumer proof", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
+      verification =
+        content
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.last()
+
+      assert String.contains?(clean_consumer, "does not mean the workflow completed")
+      assert String.contains?(clean_consumer, "does not mean the workflow entered a terminal state")
+      refute String.contains?(clean_consumer, "unconditional `~> 1.3` proof")
+      refute String.contains?(clean_consumer, "source/module presence without resolved metadata")
+
+      for forbidden <- [
+            "billing_id=",
+            "recipient=",
+            "tenant_id=",
+            "payload=",
+            "metadata=",
+            "credential=",
+            "raw_struct=",
+            "Ecto.Query",
+            "database inspection"
+          ] do
+        refute String.contains?(clean_consumer, forbidden),
+               "clean-consumer proof must not disclose #{forbidden}"
+      end
+
+      for mechanic <- ["ACCRUE_PATH", "sibling checkout", "DemoHost", "CI checkout", "mix verify.accrue"] do
+        assert String.contains?(verification, mechanic)
+      end
+
+      assert String.contains?(verification, "not independent packaged-consumer provenance")
+      refute String.contains?(verification, "packaged proof")
+    end
+
     test "labels maintainer checkout mechanics separately from proof provenance", %{content: content} do
       verification =
         content
