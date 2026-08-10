@@ -896,8 +896,9 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "unpacked Hex package contains the package file whitelist", %{root: root} do
       entries = top_level_entries(root)
 
-      # Mirrors files: ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs) in mix.exs
-      whitelist = ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs)
+      # Mirrors files: ~w(lib priv guides scripts/prove-accrue-consumer.exs CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs) in mix.exs.
+      # The package-owned Accrue proof runner lives under scripts/.
+      whitelist = ~w(lib priv guides scripts CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs)
 
       for entry <- whitelist do
         assert entry in entries,
@@ -1630,17 +1631,21 @@ defmodule Chimeway.ReleaseGateContractTest do
         ArtifactConsumerFixture.parse_accrue_evidence!(compatibility <> " accrue_version=1.3.0")
       end
 
-      assert File.read!("scripts/prove-accrue-consumer.exs") =~ "--artifact-root"
+      runner = File.read!("scripts/prove-accrue-consumer.exs")
 
-      assert File.read!("test/support/artifact_consumer_fixture.ex") =~
+      assert runner =~ "--artifact-archive"
+      assert runner =~ "--sha256"
+      refute runner =~ "--artifact-root"
+
+      assert File.read!("priv/adoption_proof/artifact_consumer_fixture.ex") =~
                "Accrue.Test.trigger_event(:invoice_payment_failed"
 
-      assert File.read!("test/support/artifact_consumer_fixture.ex") =~
+      assert File.read!("priv/adoption_proof/artifact_consumer_fixture.ex") =~
                "Accrue.Test.trigger_event(:invoice_paid"
 
       refute File.read!("scripts/prove-accrue-consumer.exs") =~ "CHIMEWAY_ACCRUE_PROOF"
 
-      proof_source = File.read!("test/support/artifact_consumer_fixture.ex")
+      proof_source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
 
       for marker <- [
             "\"scm\" => accrue_dep.scm",
