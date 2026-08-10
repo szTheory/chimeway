@@ -114,21 +114,21 @@ Accrue.Test.trigger_event(:invoice_paid, %{
 
 ## Clean-consumer proof
 
-Use the packaged-consumer proof when you need adoption evidence from an already-unpacked Chimeway package, rather than from this repository source tree:
+Use the packaged-consumer proof when you need adoption evidence from an immutable Chimeway package archive, rather than from this repository source tree. Obtain the immutable package archive and SHA-256 from the trusted package or release channel; an arbitrary source checkout or unpacked directory does not establish package provenance.
 
 ```bash
-MIX_ENV=test mix run scripts/prove-accrue-consumer.exs -- --artifact-root /absolute/path/to/unpacked/chimeway
+MIX_ENV=prod mix run scripts/prove-accrue-consumer.exs -- --artifact-archive <absolute-tarball> --sha256 <lowercase-64-hex>
 ```
 
-`--artifact-root` must identify an already-unpacked Chimeway package, not a source checkout. The runner builds an isolated temporary host and database, and the supplied artifact is its only `:chimeway` dependency. On success it emits exactly one `CHIMEWAY_ACCRUE_PROOF` record. Invalid input, or any provenance, lifecycle, or cleanup failure, exits nonzero without a proof record.
+The release-gate contract builds the package, passes its immutable archive and digest to this command, and invokes the runner from the unpacked artifact. The runner verifies the archive digest and package metadata, confirms that the runner and its support fixture are package members, unpacks into owned temporary storage, then creates an isolated temporary host and database. That host uses the unpacked artifact as its only `:chimeway` dependency. Success occurs only after archive, generated-consumer, public lifecycle, provenance, and cleanup checks pass: it emits exactly one `CHIMEWAY_ACCRUE_PROOF` record. Invalid input, or any provenance, lifecycle, or cleanup failure, exits nonzero without a proof record and removes both temporary host/database and archive-unpack storage.
 
-Accrue owns both event boundaries: `invoice.payment_failed` starts its campaign, public workflow evidence reaches `waiting / waiting_for_step_progression`, and `invoice.paid` routes the outcome signal. The resulting public evidence is `active / signal_received`:
+Accrue owns both event boundaries: `invoice.payment_failed` enters its campaign, public workflow evidence reaches `waiting / waiting_for_step_progression`, and `invoice.paid` produces the outcome signal through the integration. The host does not call Chimeway notifier, trigger, or signal APIs for either boundary. Waiting and outcome facts are derived through `Chimeway.Workflows.explain/2` and `Chimeway.Workflows.list_traces/2`. The resulting public evidence is `active / signal_received`:
 
 ```text
 CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received
 ```
 
-The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed or entered a terminal state. This proof uses Accrue events and public workflow evidence, never a direct notifier or signal call.
+The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed or entered a terminal state. The Fake processor coverage is deterministic local orchestration only; live provider credentials, webhooks, and Phase 96 CI/front-door work remain outside this proof.
 
 ### Provenance labels
 
