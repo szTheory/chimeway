@@ -208,7 +208,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
         run_mix!(root, ["chimeway.gen.migrations"])
         run_mix!(root, ["ecto.create"])
         run_mix!(root, ["ecto.migrate"])
-        run_mix!(root, ["run", "priv/setup_accrue.exs"])
+        run_mix!(root, ["run", "--no-start", "priv/setup_accrue.exs"])
         output = run_mix!(root, ["run", "priv/prove_accrue.exs"])
         proof_source = File.read!(Path.join(root, "priv/prove_accrue.exs"))
 
