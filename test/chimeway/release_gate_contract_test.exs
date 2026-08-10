@@ -3,6 +3,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   alias Chimeway.Test.ArtifactConsumerFixture
 
+  Code.require_file("priv/adoption_proof/artifact_archive.ex")
+
   @moduledoc false
 
   @maintaining "MAINTAINING.md"
@@ -1802,6 +1804,85 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "adoption archive security (CR-01/T-96-11..T-96-14)" do
+    @tag :adoption_archive_security
+    test "rejects a valid-digest symbolic-link directory before it can escape scratch" do
+      outside = temporary_path!("outside-created.txt")
+      File.write!(outside, "unchanged")
+      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+
+      archive =
+        malicious_package_archive!([
+          {"escape", ?2, "../outside-created.txt", <<>>},
+          {"escape/payload.txt", ?0, "", "owned"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:error, _} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> send(self(), :callback_invoked) end
+               )
+
+      refute_received :callback_invoked
+      assert File.read!(outside) == "unchanged"
+    end
+
+    @tag :adoption_archive_security
+    test "rejects a required-file symbolic link before validation can read or load its target" do
+      outside = temporary_path!("outside-marker.ex")
+      marker = temporary_path!("outside-marker.txt")
+      File.write!(outside, "File.write!(#{inspect(marker)}, \"loaded\")")
+      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+
+      archive =
+        malicious_package_archive!([
+          {"mix.exs", ?2, outside, <<>>},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:error, _} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> send(self(), :callback_invoked) end
+               )
+
+      refute_received :callback_invoked
+      refute File.exists?(marker)
+    end
+
+    @tag :adoption_archive_security
+    test "materializes a regular production-shaped archive and invokes its callback once" do
+      archive =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn root ->
+                   send(self(), :callback_invoked)
+                   assert File.regular?(Path.join(root, "mix.exs"))
+                   :validated
+                 end
+               )
+
+      assert_received :callback_invoked
+      refute_received :callback_invoked
+    end
+  end
+
   describe "adoption paths contract (GATE-01/D-05..D-08)" do
     @tag :adoption_paths_contract
     @tag timeout: 180_000
@@ -2007,6 +2088,64 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp sha256!(path), do: :crypto.hash(:sha256, File.read!(path)) |> Base.encode16(case: :lower)
+
+  defp malicious_package_archive!(contents_entries) do
+    output = temporary_path!("archive")
+    File.mkdir_p!(output)
+    archive = Path.join(output, "malicious.tar")
+
+    metadata =
+      ~s([{name, "chimeway"}, {version, "0.0.1"}, {files, ["scripts/prove-accrue-consumer.exs", "priv/adoption_proof/artifact_consumer_fixture.ex"]}].\n)
+
+    contents = contents_entries |> raw_tar() |> :zlib.gzip()
+    File.write!(archive, raw_tar([{"metadata.config", ?0, "", metadata}, {"contents.tar.gz", ?0, "", contents}]))
+    archive
+  end
+
+  defp raw_tar(entries) do
+    Enum.map_join(entries, &raw_tar_entry/1) <> :binary.copy(<<0>>, 1024)
+  end
+
+  defp raw_tar_entry({name, type, link_name, body}) do
+    header = :binary.copy(<<0>>, 512)
+    header = put_tar_field(header, 0, 100, name)
+    header = put_tar_field(header, 100, 8, "0000644\\0")
+    header = put_tar_field(header, 108, 8, "0000000\\0")
+    header = put_tar_field(header, 116, 8, "0000000\\0")
+    header = put_tar_field(header, 124, 12, tar_octal(byte_size(body), 12))
+    header = put_tar_field(header, 136, 12, "00000000000\\0")
+    header = put_tar_field(header, 148, 8, "        ")
+    header = put_tar_field(header, 156, 1, <<type>>)
+    header = put_tar_field(header, 157, 100, link_name)
+    header = put_tar_field(header, 257, 6, "ustar\\0")
+    header = put_tar_field(header, 263, 2, "00")
+    checksum = header |> :binary.bin_to_list() |> Enum.sum() |> tar_checksum()
+    header = put_tar_field(header, 148, 8, checksum)
+    padding = rem(512 - rem(byte_size(body), 512), 512)
+    header <> body <> :binary.copy(<<0>>, padding)
+  end
+
+  defp put_tar_field(binary, offset, width, value) do
+    value = IO.iodata_to_binary(value)
+    binary_part(value, 0, min(byte_size(value), width))
+    |> then(fn truncated ->
+      :binary.part(binary, 0, offset) <>
+        truncated <> :binary.copy(<<0>>, width - byte_size(truncated)) <>
+        :binary.part(binary, offset + width, byte_size(binary) - offset - width)
+    end)
+  end
+
+  defp tar_octal(value, width) do
+    value |> Integer.to_string(8) |> String.pad_leading(width - 1, "0") |> Kernel.<>("\\0")
+  end
+
+  defp tar_checksum(value) do
+    value |> Integer.to_string(8) |> String.pad_leading(6, "0") |> Kernel.<>(<<0, 32>>)
+  end
+
+  defp temporary_path!(suffix) do
+    Path.join(System.tmp_dir!(), "chimeway_adoption_security_#{System.unique_integer([:positive])}_#{suffix}")
+  end
 
   defp packaged_accrue_cli(root, archive, digest) do
     System.cmd(
