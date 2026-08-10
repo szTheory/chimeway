@@ -264,7 +264,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
   @spec validate_artifact_dependency!(String.t(), Path.t(), Path.t()) :: :ok
   def validate_artifact_dependency!(mix_source, unpacked_root, repository_root) do
-    declarations = Regex.scan(~r/\{:chimeway\s*,\s*path:\s*(["'])(.*?)\1\}/, mix_source)
+    declarations = Regex.scan(~r/\{:chimeway\s*,\s*path:\s*(["'])(.*?)\1/, mix_source)
 
     if length(declarations) != 1 do
       raise "artifact provenance requires exactly one :chimeway dependency"
@@ -392,7 +392,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       end
 
       def application, do: [extra_applications: [:logger], included_applications: #{if(accrue?, do: "[:chimeway, :accrue]", else: "[:chimeway]")}, mod: {ArtifactConsumer.Application, []}]
-      defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}}, {:mailglass, "~> 1.3"}#{if(accrue?, do: ", {:accrue, \"1.3.0\"}", else: "")}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
+    defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}, override: true}, {:mailglass, "~> 1.3"}#{if(accrue?, do: ", {:accrue, \"1.3.0\"}", else: "")}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
     end
     """
   end
@@ -600,7 +600,11 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
   defp run_mix!(root, args) do
     {output, status} =
-      System.cmd("mix", args, cd: root, stderr_to_stdout: true, env: [{"MIX_ENV", "dev"}])
+      System.cmd("mix", args,
+        cd: root,
+        stderr_to_stdout: true,
+        env: [{"MIX_ENV", "dev"}, {"CHIMEWAY_SKIP_ACCRUE_DEP", "1"}]
+      )
 
     if status != 0 do
       raise "artifact consumer command #{Enum.join(args, " ")} failed (exit #{status}) in #{root}:\n#{output}"

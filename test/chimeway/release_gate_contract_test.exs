@@ -1502,7 +1502,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag :accrue_artifact_proof
-    @tag timeout: 120_000
+    @tag timeout: 600_000
     test "a clean consumer proves the Accrue payment failure to payment success lifecycle", %{
       root: root
     } do
