@@ -1646,7 +1646,16 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert File.read!("priv/adoption_proof/artifact_consumer_fixture.ex") =~
                "Accrue.Test.trigger_event(:invoice_paid"
 
-      refute File.read!("scripts/prove-accrue-consumer.exs") =~ "CHIMEWAY_ACCRUE_PROOF"
+      refute direct_accrue_proof_record_write?(runner)
+
+      assert direct_accrue_proof_record_write?(
+               String.replace(
+                 runner,
+                 "IO.puts(proof.output)",
+                 "IO.puts(\"CHIMEWAY_ACCRUE_PROOF forged=true\")",
+                 global: false
+               )
+             )
 
       proof_source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
 
@@ -1794,6 +1803,13 @@ defmodule Chimeway.ReleaseGateContractTest do
         refute Regex.match?(~r/^CHIMEWAY_ACCRUE_PROOF /m, output)
       end
     end
+  end
+
+  test "test-support fixture compilation tracks its package-owned source" do
+    support_source = File.read!("test/support/artifact_consumer_fixture.ex")
+
+    assert support_source =~ "@external_resource"
+    assert support_source =~ "priv/adoption_proof/artifact_consumer_fixture.ex"
   end
 
   describe "adoption paths tracer (GATE-01/D-05..D-08)" do
@@ -2396,6 +2412,10 @@ defmodule Chimeway.ReleaseGateContractTest do
     System.cmd("elixir", ["scripts/prove-accrue-consumer.exs", "--" | argv],
       stderr_to_stdout: true
     )
+  end
+
+  defp direct_accrue_proof_record_write?(source) do
+    Regex.match?(~r/IO\.(?:puts|binwrite)\([^\n]*["']CHIMEWAY_ACCRUE_PROOF /, source)
   end
 
   # Hex task output shape varies by version: files may land directly in the
