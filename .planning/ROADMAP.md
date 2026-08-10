@@ -139,9 +139,13 @@ Plans:
   3. When the resolved Accrue release contains the integration, the proof identifies the released package versions and labels itself as an independent released-package adopter proof.
   4. If the integration is available only through an immutable pinned reference, the proof identifies the exact ref/SHA and labels itself solely as compatibility evidence, never as released-package installation guidance.
 
-**Plans**: 2/2 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
+
+- [x] 95-03-PLAN.md
+- [ ] 95-04-PLAN.md
+- [ ] 95-05-PLAN.md
 
 **Wave 1**
 
