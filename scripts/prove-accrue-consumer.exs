@@ -32,6 +32,7 @@ defmodule Chimeway.AccrueProofCLI do
     else
       {:usage, message} -> diagnostic(message, @usage)
       {:provenance, message} -> diagnostic(message, @provenance)
+      {:error, _reason} -> diagnostic("archive validation failed", @provenance)
     end
   end
 
