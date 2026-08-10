@@ -8,8 +8,8 @@
 
 ### Adoption Clarity
 
-- [ ] **ADPT-01**: A prospective adopter can choose the Core, Mailglass, or Accrue path from their intended outcome and understand the responsibility boundary between Chimeway and each integration partner.
-- [ ] **ADPT-02**: Each supported path documents its proof command, observable outcome, and explicit coverage boundary.
+- [x] **ADPT-01**: A prospective adopter can choose the Core, Mailglass, or Accrue path from their intended outcome and understand the responsibility boundary between Chimeway and each integration partner.
+- [x] **ADPT-02**: Each supported path documents its proof command, observable outcome, and explicit coverage boundary.
 
 ### Hermetic Proof Foundation
 
@@ -34,7 +34,7 @@
 ### Verification and Documentation
 
 - [x] **GATE-01**: `mix verify.adoption_paths` runs the clean-room proofs without duplicating the detailed existing integration suites.
-- [ ] **GATE-02**: CI executes the adopter-proof entrypoint in a dedicated PostgreSQL-backed lane with useful failure diagnostics.
+- [x] **GATE-02**: CI executes the adopter-proof entrypoint in a dedicated PostgreSQL-backed lane with useful failure diagnostics.
 - [x] **DOCS-01**: The adoption front door, fixture commands, and CI entrypoint are contract-checked so copyable guidance cannot silently drift.
 
 ## Future Requirements
@@ -58,8 +58,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ADPT-01 | Phase 96 | Pending |
-| ADPT-02 | Phase 96 | Pending |
+| ADPT-01 | Phase 96 | Complete |
+| ADPT-02 | Phase 96 | Complete |
 | PROOF-01 | Phase 93 | Complete |
 | PROOF-02 | Phase 93 | Complete |
 | PROOF-03 | Phase 93 | Complete |
@@ -69,7 +69,7 @@
 | ACCR-01 | Phase 95 | Complete |
 | ACCR-02 | Phase 95 | Complete |
 | GATE-01 | Phase 96 | Complete |
-| GATE-02 | Phase 96 | Pending |
+| GATE-02 | Phase 96 | Complete |
 | DOCS-01 | Phase 96 | Complete |
 
 **Coverage:**

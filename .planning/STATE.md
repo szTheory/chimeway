@@ -4,17 +4,17 @@ milestone: v1.17
 milestone_name: Adopter Proof Paths
 current_phase: 96
 current_phase_name: Adoption Front Door & Proof Gate
-status: executing
-stopped_at: Completed 96-01-PLAN.md
-last_updated: "2026-08-10T03:46:59.072Z"
+status: verifying
+stopped_at: Completed 96-02-PLAN.md
+last_updated: "2026-08-10T03:56:47.344Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 96 execution started
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
-  completed_plans: 11
-  percent: 75
+  completed_plans: 12
+  percent: 100
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 96 (Adoption Front Door & Proof Gate) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-09 — Phase 96 execution started
 
 ## Deferred Items
@@ -296,6 +296,8 @@ status: complete
 - [Phase ?]: Chimeway is loaded as an included application and its facade is dynamically bound only around the synchronous proof path.
 - [Phase ?]: Phase 96-01: adoption proofs build one SHA-validated archive and dispatch Core, Mailglass, and Accrue serially.
 - [Phase ?]: Phase 96-01: invalid adoption selectors fail before runner loading or proof output.
+- [Phase ?]: The selector compares only Core, Mailglass, and Accrue in progressive-complexity order and routes detailed setup to the existing guides.
+- [Phase ?]: The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments.
 
 ## Performance
 
@@ -611,8 +613,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-10T03:46:59.060Z
-Stopped at: Completed 96-01-PLAN.md
+Last session: 2026-08-10T03:56:47.313Z
+Stopped at: Completed 96-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -710,3 +712,4 @@ Resume file: None
 | Phase 92 P03 | 15 min | 3 tasks | 4 files |
 | Phase 94-mailglass-transactional-email-proof P03 | 6 min | 2 tasks | 4 files |
 | Phase 96-adoption-front-door-proof-gate P01 | 46m | 2 tasks | 7 files |
+| Phase 96 P02 | 20m | 2 tasks | 6 files |
