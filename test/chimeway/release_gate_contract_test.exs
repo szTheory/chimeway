@@ -1843,6 +1843,54 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "adoption selector package and command contract (ADPT-01/ADPT-02/DOCS-01)" do
+    @tag :adoption_paths_docs_contract
+    test "ships the selector and runner as explicit package surfaces with exact bounded symbols" do
+      mix_exs = File.read!("mix.exs")
+      selector = File.read!("guides/introduction/adoption-paths.md")
+      task = File.read!("lib/mix/tasks/verify.adoption_paths.ex")
+      runner = File.read!("scripts/prove-adoption-paths.exs")
+
+      assert mix_exs =~ "guides/introduction/adoption-paths.md"
+      assert mix_exs =~ "scripts/prove-adoption-paths.exs"
+      assert task =~ "Mix.Tasks.Verify.AdoptionPaths"
+      assert task =~ "OptionParser.parse"
+      assert runner =~ "Chimeway.AdoptionProofRunner"
+
+      for {path, prefix, guide} <- [
+            {"core", "CHIMEWAY_CORE_PROOF", "golden-path.md"},
+            {"mailglass", "CHIMEWAY_MAILGLASS_PROOF", "mailglass-integration.md"},
+            {"accrue", "CHIMEWAY_ACCRUE_PROOF", "accrue-dunning-integration.md"}
+          ] do
+        assert selector =~ "mix verify.adoption_paths --only #{path}"
+        assert selector =~ prefix
+        assert selector =~ guide
+      end
+    end
+
+    @tag :adoption_paths_docs_contract
+    test "makes renamed command, missing package surface, or duplicate unsafe selector evidence observable" do
+      task = File.read!("lib/mix/tasks/verify.adoption_paths.ex")
+      mix_exs = File.read!("mix.exs")
+      selector = File.read!("guides/introduction/adoption-paths.md")
+
+      refute String.contains?(
+               String.replace(task, "verify.adoption_paths", "verify.paths", global: false),
+               "verify.adoption_paths"
+             )
+
+      refute String.contains?(
+               String.replace(mix_exs, "scripts/prove-adoption-paths.exs", "", global: false),
+               "scripts/prove-adoption-paths.exs"
+             )
+
+      for prefix <- ~w(CHIMEWAY_CORE_PROOF CHIMEWAY_MAILGLASS_PROOF CHIMEWAY_ACCRUE_PROOF) do
+        assert length(:binary.matches(selector, prefix)) == 1
+        assert length(:binary.matches(selector <> " " <> prefix, prefix)) == 2
+      end
+    end
+  end
+
   defmodule CoreProofNotifier do
     def notification_key, do: "artifact_consumer.core_trace"
     def version, do: 1

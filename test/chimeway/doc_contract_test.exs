@@ -844,7 +844,9 @@ defmodule Chimeway.DocContractTest do
       refute String.contains?(content, "verify.adoption_paths")
     end
 
-    test "documents the public Accrue lifecycle without false completion semantics", %{content: content} do
+    test "documents the public Accrue lifecycle without false completion semantics", %{
+      content: content
+    } do
       clean_consumer =
         content
         |> String.split("## Clean-consumer proof", parts: 2)
@@ -876,7 +878,11 @@ defmodule Chimeway.DocContractTest do
     test "keeps clean-consumer evidence to the fixed safe proof vocabulary", %{content: content} do
       assert String.contains?(content, "provenance=released_package accrue_version=1.3.0")
       assert String.contains?(content, "workflow_key=accrue.dunning workflow_version=1")
-      assert String.contains?(content, "timeline_reasons=waiting_for_step_progression,signal_received")
+
+      assert String.contains?(
+               content,
+               "timeline_reasons=waiting_for_step_progression,signal_received"
+             )
 
       clean_consumer =
         content
@@ -885,7 +891,16 @@ defmodule Chimeway.DocContractTest do
         |> String.split("## 6. Verification", parts: 2)
         |> List.first()
 
-      for forbidden <- ["tenant_id=", "invoice_id=", "customer_id=", "recipient=", "payload=", "metadata=", "credential=", "Ecto.Query"] do
+      for forbidden <- [
+            "tenant_id=",
+            "invoice_id=",
+            "customer_id=",
+            "recipient=",
+            "payload=",
+            "metadata=",
+            "credential=",
+            "Ecto.Query"
+          ] do
         refute String.contains?(clean_consumer, forbidden),
                "clean-consumer proof must not disclose #{forbidden}"
       end
@@ -899,7 +914,11 @@ defmodule Chimeway.DocContractTest do
       assert String.contains?(content, "`Accrue.Integrations.Chimeway`")
       assert String.contains?(content, "exact Chimeway artifact version")
       assert String.contains?(content, "executable check, not optimistic prose")
-      refute String.contains?(content, "Production adopters use `{:accrue, \"~> 1.3\"}` from Hex.")
+
+      refute String.contains?(
+               content,
+               "Production adopters use `{:accrue, \"~> 1.3\"}` from Hex."
+             )
     end
 
     test "limits the immutable Accrue SHA to compatibility evidence", %{content: content} do
@@ -913,7 +932,9 @@ defmodule Chimeway.DocContractTest do
       sha_code_blocks =
         Regex.scan(~r/```[^`]*#{sha}[^`]*```/s, content)
 
-      assert sha_code_blocks == [], "immutable compatibility SHA must not appear in a copyable code block"
+      assert sha_code_blocks == [],
+             "immutable compatibility SHA must not appear in a copyable code block"
+
       refute String.contains?(content, "git: #{sha}")
     end
 
@@ -974,7 +995,12 @@ defmodule Chimeway.DocContractTest do
         |> List.last()
 
       assert String.contains?(clean_consumer, "does not mean the workflow completed")
-      assert String.contains?(clean_consumer, "does not mean the workflow entered a terminal state")
+
+      assert String.contains?(
+               clean_consumer,
+               "does not mean the workflow entered a terminal state"
+             )
+
       refute String.contains?(clean_consumer, "unconditional `~> 1.3` proof")
       refute String.contains?(clean_consumer, "source/module presence without resolved metadata")
 
@@ -993,7 +1019,13 @@ defmodule Chimeway.DocContractTest do
                "clean-consumer proof must not disclose #{forbidden}"
       end
 
-      for mechanic <- ["ACCRUE_PATH", "sibling checkout", "DemoHost", "CI checkout", "mix verify.accrue"] do
+      for mechanic <- [
+            "ACCRUE_PATH",
+            "sibling checkout",
+            "DemoHost",
+            "CI checkout",
+            "mix verify.accrue"
+          ] do
         assert String.contains?(verification, mechanic)
       end
 
@@ -1001,7 +1033,9 @@ defmodule Chimeway.DocContractTest do
       refute String.contains?(verification, "packaged proof")
     end
 
-    test "labels maintainer checkout mechanics separately from proof provenance", %{content: content} do
+    test "labels maintainer checkout mechanics separately from proof provenance", %{
+      content: content
+    } do
       verification =
         content
         |> String.split("## 6. Verification", parts: 2)
@@ -1928,6 +1962,105 @@ defmodule Chimeway.DocContractTest do
 
       assert threadline_index < sigra_index,
              "HexDocs extras must list threadline integration guide before sigra integration guide"
+    end
+  end
+
+  describe "adoption selector documentation contract (ADPT-01/ADPT-02/DOCS-01)" do
+    @tag :adoption_paths_docs_contract
+    @selector "guides/introduction/adoption-paths.md"
+    @paths [
+      {"Core", "core", "CHIMEWAY_CORE_PROOF", "golden-path.md"},
+      {"Mailglass", "mailglass", "CHIMEWAY_MAILGLASS_PROOF", "mailglass-integration.md"},
+      {"Accrue", "accrue", "CHIMEWAY_ACCRUE_PROOF", "accrue-dunning-integration.md"}
+    ]
+
+    setup do
+      %{
+        selector: File.read!(@selector),
+        readme: File.read!("README.md"),
+        mix_exs: File.read!("mix.exs")
+      }
+    end
+
+    test "is the first ExDoc extra and README routes to it without duplicating selector rows",
+         ctx do
+      assert String.contains?(ctx.readme, @selector)
+      assert String.contains?(ctx.mix_exs, @selector)
+
+      [{selector_index, _}] = :binary.matches(ctx.mix_exs, @selector)
+      {first_extra_index, _} = :binary.match(ctx.mix_exs, "      extras: [")
+      assert first_extra_index < selector_index
+
+      assert selector_index <
+               :binary.match(ctx.mix_exs, "guides/introduction/getting-started.md") |> elem(0)
+
+      refute String.contains?(ctx.readme, "CHIMEWAY_CORE_PROOF")
+      refute String.contains?(ctx.readme, "CHIMEWAY_MAILGLASS_PROOF")
+      refute String.contains?(ctx.readme, "CHIMEWAY_ACCRUE_PROOF")
+    end
+
+    test "keeps exactly three complete comparable paths in stable order", %{selector: selector} do
+      headings = Regex.scan(~r/^## (Core|Mailglass|Accrue)$/m, selector, capture: :all_but_first)
+      assert headings == [["Core"], ["Mailglass"], ["Accrue"]]
+
+      for {name, path, prefix, guide} <- @paths do
+        section = selector_section!(selector, name)
+
+        for marker <- [
+              "**Choose this when:**",
+              "**Host responsibility:**",
+              "**Chimeway responsibility:**",
+              "**Partner responsibility:**",
+              "mix verify.adoption_paths --only #{path}",
+              "#{prefix} ",
+              "**Does not cover:**",
+              "#{guide}",
+              "**Next step:**"
+            ] do
+          assert String.contains?(section, marker), "#{name} selector row must contain #{marker}"
+        end
+      end
+    end
+
+    test "preserves proof boundaries and rejects unsafe, duplicate, or maintainer-facing examples",
+         %{selector: selector} do
+      for marker <- [
+            "external delivery",
+            "Fake proves local host composition",
+            "real provider acceptance",
+            "active / signal_received",
+            "not released-package proof",
+            "compatibility evidence"
+          ] do
+        assert String.contains?(selector, marker)
+      end
+
+      for forbidden <- [
+            "mix verify.mailglass",
+            "mix verify.accrue",
+            "credential=",
+            "payload=",
+            "inspect("
+          ] do
+        refute String.contains?(selector, forbidden)
+      end
+
+      for {_name, _path, prefix, _guide} <- @paths do
+        assert length(:binary.matches(selector, prefix)) == 1,
+               "selector must contain exactly one safe #{prefix} example"
+      end
+
+      refute String.contains?(
+               String.replace(selector, "**Does not cover:**", "", global: false),
+               "**Does not cover:**"
+             )
+    end
+  end
+
+  defp selector_section!(selector, name) do
+    case Regex.run(~r/^## #{name}$\n(.*?)(?=^## |\z)/ms, selector) do
+      [_, section] -> section
+      _ -> flunk("selector must contain #{name} section")
     end
   end
 

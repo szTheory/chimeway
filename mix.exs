@@ -243,6 +243,7 @@ defmodule Chimeway.MixProject do
       source_ref: "v#{@version}",
       source_url: "https://github.com/szTheory/chimeway",
       extras: [
+        "guides/introduction/adoption-paths.md",
         "guides/introduction/getting-started.md",
         "guides/introduction/installation.md",
         "guides/introduction/golden-path.md",
