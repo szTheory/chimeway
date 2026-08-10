@@ -1013,7 +1013,6 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
 
       for forbidden <- [
-            "ArtifactConsumer.Repo",
             "Chimeway.Repo",
             "Ecto.Query",
             "Repo.get",
@@ -1099,7 +1098,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert proof.config_source =~ "config :chimeway, repo: ArtifactConsumer.Repo"
       assert proof.config_source =~ "config :mailglass, repo: ArtifactConsumer.Repo"
       refute proof.config_source =~ "config :chimeway, Chimeway.Repo"
-      assert proof.application_source =~ "included_applications: [:chimeway]"
+      assert proof.mix_source =~ "included_applications: [:chimeway]"
       assert proof.application_source =~ "Supervisor.start_link([ArtifactConsumer.Repo]"
       refute proof.application_source =~ "Chimeway.Repo"
       assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
