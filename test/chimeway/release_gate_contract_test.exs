@@ -1994,6 +1994,27 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "adoption archive resource limits (T-96-17..T-96-19)" do
+    @tag :adoption_archive_limits
+    test "names pre-materialization budgets for every caller-controlled archive dimension" do
+      source = File.read!("priv/adoption_proof/artifact_archive.ex")
+
+      for required <- [
+            "@max_outer_archive_bytes 32 * 1024 * 1024",
+            "@max_compressed_contents_bytes 16 * 1024 * 1024",
+            "@max_decompressed_contents_bytes 64 * 1024 * 1024",
+            "@max_members 4_096",
+            "@max_regular_member_bytes 8 * 1024 * 1024",
+            "inflate_contents!",
+            "safeInflate"
+          ] do
+        assert source =~ required
+      end
+
+      refute source =~ ":zlib.gunzip(contents)"
+    end
+  end
+
   describe "adoption paths contract (GATE-01/D-05..D-08)" do
     @tag :adoption_paths_contract
     @tag timeout: 180_000
