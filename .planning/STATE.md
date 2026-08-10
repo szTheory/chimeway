@@ -4,15 +4,15 @@ milestone: v1.17
 milestone_name: Adopter Proof Paths
 current_phase: 95
 current_phase_name: accrue-billing-escalation-proof
-status: verifying
+status: executing
 stopped_at: Phase 95 context gathered (assumptions mode)
-last_updated: "2026-08-10T00:51:52.647Z"
+last_updated: "2026-08-10T01:05:50.339Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 95 execution resumed (wave continue)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 7
+  total_plans: 10
   completed_plans: 7
   percent: 75
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 95 (accrue-billing-escalation-proof) — EXECUTING
 Plan: 2 of 2
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-08-09 — Phase 95 execution resumed (wave continue)
 
 ## Deferred Items
