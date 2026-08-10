@@ -288,17 +288,14 @@ The final wording must retain the canonical guide’s exact limitation vocabular
 |---|---|---|---|
 | — | None. All implementation recommendations are constrained by locked phase decisions, existing repository seams, or cited official documentation. | — | — |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Safe failure-stage names and runner file/module name**
-   - What we know: these are explicitly discretionary, but output must remain a fixed redacted grammar. [VERIFIED: 96-CONTEXT.md]
-   - What's unclear: preferred vocabulary and whether the runner is a package script or internal module invoked by task.
-   - Recommendation: choose small stable stages such as `build`, `unpack`, `core`, `mailglass`, and `accrue`; keep task logic thin and unit-test the emitted grammar. [VERIFIED: 96-CONTEXT.md]
+   - Resolution: keep `Mix.Tasks.Verify.AdoptionPaths` as the thin CLI facade in `lib/mix/tasks/verify.adoption_paths.ex`; after strict option validation it requires the package-shipped `scripts/prove-adoption-paths.exs` and calls `Chimeway.AdoptionProofRunner.run!/1`. The runner owns build-once/unpack-once serial orchestration while `ArtifactConsumerFixture` remains the proof authority. [VERIFIED: 96-CONTEXT.md; selected in 96-01-PLAN.md]
+   - Stable safe stage vocabulary: exactly `build`, `unpack`, `core`, `mailglass`, and `accrue`. `FAIL` framing may emit only one of these literals as `stage=<stage>`; contracts reject any other stage and any interpolated exception, output, path, database, or private value. [VERIFIED: 96-CONTEXT.md; selected in 96-01-PLAN.md]
 
 2. **CI timeout value**
-   - What we know: exactly one serial lane is locked, and timeout is discretionary. [VERIFIED: 96-CONTEXT.md]
-   - What's unclear: real three-path wall-clock time on GitHub-hosted runners.
-   - Recommendation: begin with an explicit conservative timeout based on existing proof test timeouts, then adjust only from measured runs. [VERIFIED: `test/chimeway/release_gate_contract_test.exs`, 96-CONTEXT.md]
+   - Resolution: set `timeout-minutes: 30` on the `verify_adoption_paths` GitHub Actions job. This bounds the single serial lane while allowing three existing proof paths whose individual release-gate contracts already permit up to ten minutes; future changes require measured CI evidence and a coordinated contract update. [VERIFIED: `test/chimeway/release_gate_contract_test.exs`, 96-CONTEXT.md; selected in 96-02-PLAN.md]
 
 ## Environment Availability
 
