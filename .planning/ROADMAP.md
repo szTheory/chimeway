@@ -139,17 +139,17 @@ Plans:
   3. When the resolved Accrue release contains the integration, the proof identifies the released package versions and labels itself as an independent released-package adopter proof.
   4. If the integration is available only through an immutable pinned reference, the proof identifies the exact ref/SHA and labels itself solely as compatibility evidence, never as released-package installation guidance.
 
-**Plans**: 2 plans
+**Plans**: 2/2 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 95-01-PLAN.md — Prove the unpacked-artifact Accrue event-to-outcome path and strict lifecycle/provenance evidence boundary.
+- [x] 95-01-PLAN.md — Prove the unpacked-artifact Accrue event-to-outcome path and strict lifecycle/provenance evidence boundary.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 95-02-PLAN.md — Lock canonical non-terminal lifecycle and released-package-versus-SHA guidance.
+- [x] 95-02-PLAN.md — Lock canonical non-terminal lifecycle and released-package-versus-SHA guidance.
 
 ### Phase 96: Adoption Front Door & Proof Gate
 
