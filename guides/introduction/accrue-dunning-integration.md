@@ -20,25 +20,14 @@ Add Chimeway and Accrue to your host `mix.exs`:
 def deps do
   [
     {:chimeway, "~> 1.0"},
-    accrue_dep()
+    {:accrue, "~> 1.3", optional: true}
   ]
 end
-
-defp accrue_dep do
-  case System.get_env("ACCRUE_PATH") do
-    nil -> {:accrue, "~> 1.3", optional: true}
-    path -> {:accrue, path: path, runtime: false}
-  end
-end
 ```
 
-For local development and integration proof, check out the Accrue repo as a sibling and point `ACCRUE_PATH` at it — the `Accrue.Integrations.Chimeway` engine module is conditionally compiled in the Accrue package and may require a sibling checkout or `Code.compile_file/1` bootstrap in test harnesses:
+This normal Hex dependency declaration is installation guidance, not a provenance claim. The executable clean-consumer check may label its record `released_package` only after the generated consumer resolves exact Accrue `1.3.0`, finds and loads `Accrue.Integrations.Chimeway` from that resolved package, and reports the resolved Chimeway artifact version. The executable check, not optimistic prose, authorizes that label.
 
-```bash
-ACCRUE_PATH=../accrue/accrue mix deps.get
-```
-
-Production adopters use `{:accrue, "~> 1.3"}` from Hex. Local proof and CI still use a sibling checkout pinned to the integration ref documented in `MAINTAINING.md`.
+Repository maintainers use the sibling checkout and `ACCRUE_PATH` only for regression work; see [Verification](#6-verification). Those mechanics do not establish packaged-consumer provenance.
 
 ## 2. Database / migrations
 
@@ -140,6 +129,10 @@ CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_
 ```
 
 The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed or entered a terminal state. This proof uses Accrue events and public workflow evidence, never a direct notifier or signal call.
+
+### Provenance labels
+
+If the resolved-package source/module validation above cannot establish the released package branch, the proof reports the immutable Accrue ref `236fa2f1649e771f3b515603495436badeed3c7b` as **compatibility evidence only**. It is not released-package proof or installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block.
 
 ## 6. Verification
 
