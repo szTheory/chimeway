@@ -1802,6 +1802,47 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "adoption paths contract (GATE-01/D-05..D-08)" do
+    @tag :adoption_paths_contract
+    @tag timeout: 180_000
+    test "runs the complete packaged proof once in Core, Mailglass, Accrue order" do
+      {output, status} = System.cmd("mix", ["verify.adoption_paths"], stderr_to_stdout: true)
+
+      assert status == 0
+
+      assert Regex.scan(~r/\[adoption:(core|mailglass|accrue)\] START/, output) == [
+               ["[adoption:core] START", "core"],
+               ["[adoption:mailglass] START", "mailglass"],
+               ["[adoption:accrue] START", "accrue"]
+             ]
+
+      for path <- ["CORE", "MAILGLASS", "ACCRUE"] do
+        assert length(Regex.scan(~r/CHIMEWAY_#{path}_PROOF /, output)) == 1
+      end
+    end
+
+    @tag :adoption_paths_contract
+    test "keeps the runner bounded to fixture dispatch and redacted proof framing" do
+      runner = File.read!("scripts/prove-adoption-paths.exs")
+
+      for required <- ["prove_core!", "prove_mailglass!", "prove_accrue!", "[adoption:"] do
+        assert runner =~ required
+      end
+
+      for forbidden <- [
+            "verify.mailglass",
+            "verify.accrue",
+            "sibling checkout",
+            "path dependency",
+            "docker compose",
+            "matrix",
+            "Task.async"
+          ] do
+        refute runner =~ forbidden
+      end
+    end
+  end
+
   defmodule CoreProofNotifier do
     def notification_key, do: "artifact_consumer.core_trace"
     def version, do: 1
@@ -1915,7 +1956,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       "render_key=artifact_consumer.mailglass_proof.email render_version=1 " <>
       "status=succeeded last_attempt_outcome=succeeded last_attempt_number=1 " <>
       "adapter_module=Chimeway.Adapters.Mailglass " <>
-      "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded"
+      "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded,webhook_received"
   end
 
   defp replace_mailglass_evidence_value(line, key, value) do
