@@ -822,15 +822,25 @@ defmodule Chimeway.DocContractTest do
              "accrue dunning integration guide must document Accrue dependency"
     end
 
-    test "documents the unpacked-artifact clean-consumer proof contract", %{content: content} do
+    test "documents the package-executed clean-consumer proof contract", %{content: content} do
       assert String.contains?(
                content,
-               "MIX_ENV=test mix run scripts/prove-accrue-consumer.exs -- --artifact-root /absolute/path/to/unpacked/chimeway"
+               "MIX_ENV=prod mix run scripts/prove-accrue-consumer.exs -- --artifact-archive <absolute-tarball> --sha256 <lowercase-64-hex>"
              )
 
-      assert String.contains?(content, "already-unpacked Chimeway package")
+      assert String.contains?(content, "trusted package or release channel")
+      assert String.contains?(content, "immutable package archive and SHA-256")
+      assert String.contains?(content, "package metadata")
+      assert String.contains?(content, "runner verifies the archive")
+      assert String.contains?(content, "unpacks into owned temporary storage")
+      assert String.contains?(content, "isolated temporary host and database")
+      assert String.contains?(content, "only `:chimeway` dependency")
+      assert String.contains?(content, "runner and its support fixture are package members")
       assert String.contains?(content, "exactly one `CHIMEWAY_ACCRUE_PROOF` record")
       assert String.contains?(content, "exits nonzero without a proof record")
+      assert String.contains?(content, "temporary host/database and archive-unpack storage")
+      refute String.contains?(content, "--artifact-root")
+      refute String.contains?(content, "already-unpacked Chimeway package")
       refute String.contains?(content, "verify.adoption_paths")
     end
 
