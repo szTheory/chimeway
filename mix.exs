@@ -228,7 +228,8 @@ defmodule Chimeway.MixProject do
 
   defp package do
     [
-      files: ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs),
+      files:
+        ~w(lib priv guides scripts/prove-accrue-consumer.exs CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/szTheory/chimeway"}
     ]
