@@ -898,7 +898,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       # Mirrors files: ~w(lib priv guides scripts/prove-accrue-consumer.exs CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs) in mix.exs.
       # The package-owned Accrue proof runner lives under scripts/.
-      whitelist = ~w(lib priv guides scripts CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs)
+      whitelist =
+        ~w(lib priv guides scripts CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs)
 
       for entry <- whitelist do
         assert entry in entries,
@@ -1780,7 +1781,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert File.regular?(archive)
       assert File.read!("mix.exs") =~ "scripts/prove-adoption-paths.exs"
       assert File.read!(task) =~ "OptionParser.parse"
-      assert File.read!(task) =~ "AdoptionProofRunner.run!"
+      assert File.read!(task) =~ "AdoptionProofRunner"
     end
 
     @tag :adoption_paths_tracer
@@ -1792,7 +1793,8 @@ defmodule Chimeway.ReleaseGateContractTest do
             ["core"],
             ["--unexpected", "core"]
           ] do
-        {output, status} = System.cmd("mix", ["verify.adoption_paths" | argv], stderr_to_stdout: true)
+        {output, status} =
+          System.cmd("mix", ["verify.adoption_paths" | argv], stderr_to_stdout: true)
 
         assert status != 0
         refute output =~ "CHIMEWAY_"

@@ -452,7 +452,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     defmodule ArtifactConsumer.Application do
       use Application
       def start(_type, _args) do
-        Supervisor.start_link([ArtifactConsumer.Repo, {Oban, Application.fetch_env!(:artifact_consumer, Oban)}], strategy: :one_for_one, name: ArtifactConsumer.Supervisor)
+        Supervisor.start_link([ArtifactConsumer.Repo], strategy: :one_for_one, name: ArtifactConsumer.Supervisor)
       end
     end
     """
@@ -479,6 +479,10 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   defp proof_ex do
     """
     {:ok, _} = Application.ensure_all_started(:artifact_consumer)
+    previous_repo = Chimeway.Repo.get_dynamic_repo()
+    Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)
+
+    try do
     {:ok, result} = Chimeway.trigger(ArtifactConsumer.Notifiers.CoreTrace, %{user_id: "proof-user"}, tenant_id: "artifact-proof-tenant", idempotency_key: "artifact-core-proof-v1")
     [delivery_id] = result.trace.delivery_ids
     {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id)
@@ -491,6 +495,9 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     true = ordered?
     evidence = %{notification_key: ArtifactConsumer.Notifiers.CoreTrace.notification_key(), notification_version: ArtifactConsumer.Notifiers.CoreTrace.version(), delivery_id: delivery_id, status: explanation.status, last_attempt_outcome: explanation.last_attempt.outcome, timeline_events: Enum.join(timeline_events, ",")}
     IO.puts("CHIMEWAY_CORE_PROOF " <> Enum.map_join([:notification_key, :notification_version, :delivery_id, :status, :last_attempt_outcome, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
+    after
+      Chimeway.Repo.put_dynamic_repo(previous_repo)
+    end
     """
   end
 
