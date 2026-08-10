@@ -1769,6 +1769,31 @@ defmodule Chimeway.ReleaseGateContractTest do
         refute output =~ "password"
       end
     end
+
+    @tag :accrue_packaged_cli
+    test "redacts every archive validator failure to one fixed provenance diagnostic" do
+      archive = build_package_archive!()
+      malformed = Path.join(Path.dirname(archive), "malformed.tar")
+      File.write!(malformed, "not a Hex package archive")
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      for {path, digest} <- [
+            {archive, String.duplicate("0", 64)},
+            {malformed, sha256!(malformed)}
+          ] do
+        {output, status} =
+          invalid_packaged_accrue_cli(["--artifact-archive", path, "--sha256", digest])
+
+        assert status == 65
+        assert output == "Accrue package proof: archive validation failed\n"
+        assert output |> String.split("\n", trim: true) |> length() == 1
+        refute output =~ "WithClauseError"
+        refute output =~ "stacktrace"
+        refute output =~ path
+        refute output =~ digest
+        refute Regex.match?(~r/^CHIMEWAY_ACCRUE_PROOF /m, output)
+      end
+    end
   end
 
   describe "adoption paths tracer (GATE-01/D-05..D-08)" do
