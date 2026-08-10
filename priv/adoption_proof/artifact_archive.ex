@@ -104,7 +104,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     end
   end
 
-  defp scan_members!(contents), do: scan_members!(contents, [], MapSet.new())
+  defp scan_members!(contents), do: scan_members!(contents, [], %{})
 
   defp scan_members!(<<0::size(8192), rest::binary>>, members, _paths) when rest == <<>>,
     do: Enum.reverse(members)
@@ -122,7 +122,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     size = header_size!(header)
     path = normalized_member_path!(name, type)
     validate_member_type!(type)
-    validate_unique_path!(paths, path, type)
+    validate_unique_path!(paths, path)
 
     padding = padding_for!(size)
 
@@ -132,7 +132,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
 
     <<_body::binary-size(size), _padding::binary-size(padding), remaining::binary>> = rest
     member = %{path: path, type: type, size: size}
-    scan_members!(remaining, [member | members], MapSet.put(paths, path))
+    scan_members!(remaining, [member | members], Map.put(paths, path, type))
   end
 
   defp validate_header_checksum!(header) do
@@ -213,14 +213,16 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   defp validate_member_type!(type) when type in [0, ?0, ?5], do: :ok
   defp validate_member_type!(_), do: throw({:provenance, "archive contains unsupported members"})
 
-  defp validate_unique_path!(paths, path, type) do
+  defp validate_unique_path!(paths, path) do
     conflict? =
-      MapSet.member?(paths, path) or
-        Enum.any?(paths, fn existing ->
-          String.starts_with?(existing, path <> "/") or String.starts_with?(path, existing <> "/")
+      Map.has_key?(paths, path) or
+        Enum.any?(paths, fn {existing, existing_type} ->
+          existing_type != ?5 and
+            (String.starts_with?(existing, path <> "/") or
+               String.starts_with?(path, existing <> "/"))
         end)
 
-    if conflict? or (type == ?5 and MapSet.member?(paths, path)),
+    if conflict?,
       do: throw({:provenance, "archive contains conflicting paths"})
   end
 

@@ -1805,6 +1805,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   describe "adoption archive security (CR-01/T-96-11..T-96-14)" do
+    @unsupported_tar_types [?1, ?2, ?3, ?4, ?6, ?7, ?g, ?x, ?L, ?K, ?S]
+
     @tag :adoption_archive_security
     test "rejects a valid-digest symbolic-link directory before it can escape scratch" do
       outside = temporary_path!("outside-created.txt")
@@ -1880,6 +1882,85 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert_received :callback_invoked
       refute_received :callback_invoked
+    end
+
+    @tag :adoption_archive_security
+    test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
+      outside = temporary_path!("outside-special.txt")
+      File.write!(outside, "unchanged")
+      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+
+      for type <- @unsupported_tar_types do
+        archive = malicious_package_archive!([{"special-#{type}", type, outside, <<>>}])
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> send(self(), {:callback_invoked, type}) end
+                 )
+
+        refute_received {:callback_invoked, ^type}
+        assert File.read!(outside) == "unchanged"
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "allows directory parents but rejects duplicate, conflicting, and traversal output paths" do
+      valid =
+        malicious_package_archive!([
+          {"priv", ?5, "", <<>>},
+          {"priv/adoption_proof", ?5, "", <<>>},
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(valid)) end)
+
+      assert {:ok, :valid_directory_tree} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 valid,
+                 sha256!(valid),
+                 fn _root -> :valid_directory_tree end
+               )
+
+      for entries <- [
+            [{"mix.exs", ?0, "", "one"}, {"mix.exs", ?0, "", "two"}],
+            [{"mix.exs", ?0, "", "one"}, {"mix.exs/file", ?0, "", "two"}],
+            [{"../mix.exs", ?0, "", "outside"}],
+            [{"/mix.exs", ?0, "", "outside"}]
+          ] do
+        archive = malicious_package_archive!(entries)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("callback must not run for conflicting archive paths") end
+                 )
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "fails closed on truncated or checksum-invalid contents before the callback" do
+      complete = raw_tar([{"mix.exs", ?0, "", "@version \"0.0.1\"\n"}])
+      truncated = binary_part(complete, 0, byte_size(complete) - 1024)
+      invalid_checksum = put_tar_field(complete, 124, 12, "99999999999\0")
+
+      for contents <- [truncated, invalid_checksum] do
+        archive = malicious_package_archive_from_contents!(contents)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("callback must not run for malformed archive contents") end
+                 )
+      end
     end
   end
 
@@ -2090,6 +2171,10 @@ defmodule Chimeway.ReleaseGateContractTest do
   defp sha256!(path), do: :crypto.hash(:sha256, File.read!(path)) |> Base.encode16(case: :lower)
 
   defp malicious_package_archive!(contents_entries) do
+    contents_entries |> raw_tar() |> malicious_package_archive_from_contents!()
+  end
+
+  defp malicious_package_archive_from_contents!(contents) do
     output = temporary_path!("archive")
     File.mkdir_p!(output)
     archive = Path.join(output, "malicious.tar")
@@ -2097,7 +2182,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     metadata =
       ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [<<"scripts/prove-accrue-consumer.exs">>, <<"priv/adoption_proof/artifact_consumer_fixture.ex">>]}.\n)
 
-    contents = contents_entries |> raw_tar() |> :zlib.gzip()
+    contents = :zlib.gzip(contents)
 
     File.write!(
       archive,
