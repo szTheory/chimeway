@@ -371,10 +371,12 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       mailglass_mailable_ex()
     )
 
-    File.write!(
-      Path.join(root, "priv/repo/migrations/20260808000000_mailglass_init.exs"),
-      mailglass_migration_ex()
-    )
+    unless accrue? do
+      File.write!(
+        Path.join(root, "priv/repo/migrations/20260808000000_mailglass_init.exs"),
+        mailglass_migration_ex()
+      )
+    end
 
     File.write!(Path.join(root, "priv/prove_core.exs"), proof_ex())
     File.write!(Path.join(root, "priv/prove_mailglass.exs"), mailglass_proof_ex())
@@ -574,26 +576,86 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     true = File.regular?(integration_source)
     unless Code.ensure_loaded?(Accrue.Integrations.Chimeway), do: Code.compile_file(integration_source)
     true = Code.ensure_loaded?(Accrue.Integrations.Chimeway)
-    :ok = Accrue.Test.setup_fake_processor()
     previous_repo = Chimeway.Repo.get_dynamic_repo()
     Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)
 
+    {fake_pid, owns_fake?} =
+      case Accrue.Processor.Fake.start_link([]) do
+        {:ok, pid} -> {pid, true}
+        {:error, {:already_started, pid}} when is_pid(pid) -> {pid, false}
+        other -> raise "could not start Accrue fake processor: \#{inspect(other)}"
+      end
+
     try do
-      # The generated consumer intentionally enters only through Accrue events.
-      # Fixture-private setup locates the workflow run; public APIs provide all proof facts.
-      {:ok, result} = Accrue.Test.trigger_event(:invoice_payment_failed, %{id: "in_proof", customer: "cus_proof", subscription: "sub_proof"})
-      true = result != nil
-      # A real consumer supplies its billing fixture before this event; public evidence is fixed below.
-      waiting = %{state: :waiting, status_reason: "waiting_for_step_progression"}
+      :ok = Accrue.Processor.Fake.reset()
+      :ok = Accrue.Test.setup_fake_processor()
+      Application.put_env(:accrue, :dunning, engine: Accrue.Integrations.Chimeway, campaign: [enabled: true])
+      Application.put_env(:chimeway, :channel_adapter_configs, %{"email" => {Chimeway.Adapters.Logger, []}})
+      Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Oban)
+
+      alias Accrue.Billing.{Customer, Invoice, Subscription}
+      alias Chimeway.{Deliveries, Delivery}
+      alias Chimeway.Notifications.Notification
+      alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun}
+      import Ecto.Query
+
+      customer =
+        %Customer{}
+        |> Customer.changeset(%{owner_type: "User", owner_id: Ecto.UUID.generate(), processor: "fake", processor_id: "cus_fake_proof", email: "accrue-proof@example.test", name: "Accrue Proof Customer"})
+        |> ArtifactConsumer.Repo.insert!()
+
+      subscription =
+        %Subscription{customer_id: customer.id, processor: "fake"}
+        |> Subscription.force_status_changeset(%{processor_id: "sub_fake_proof", status: :past_due, past_due_since: Accrue.Clock.utc_now()})
+        |> ArtifactConsumer.Repo.insert!()
+
+      invoice =
+        %Invoice{customer_id: customer.id, subscription_id: subscription.id, processor: "fake"}
+        |> Invoice.force_status_changeset(%{processor_id: "in_fake_proof", status: :open, amount_due_minor: 2_000, total_minor: 2_000, currency: "usd"})
+        |> ArtifactConsumer.Repo.insert!()
+
+      :ok = Accrue.Processor.Fake.stub(:retrieve_invoice, fn id, _opts ->
+        if id == invoice.processor_id, do: {:ok, %{"id" => id, "object" => "invoice", "status" => "open", "customer" => customer.processor_id, "subscription" => subscription.processor_id, "currency" => "usd", "amount_due" => 2_000, "amount_paid" => 0, "amount_remaining" => 2_000, "next_payment_attempt" => DateTime.utc_now() |> DateTime.add(172_800, :second) |> DateTime.to_unix(), "lines" => %{"object" => "list", "data" => []}, "metadata" => %{}}}, else: {:error, :not_found}
+      end)
+      :ok = Accrue.Processor.Fake.stub(:retrieve_subscription, fn id, _opts ->
+        if id == subscription.processor_id, do: {:ok, %{"id" => id, "object" => "subscription", "customer" => customer.processor_id, "status" => "past_due", "cancel_at_period_end" => false, "pause_collection" => nil, "items" => %{"object" => "list", "data" => []}, "metadata" => %{}}}, else: {:error, :not_found}
+      end)
+
+      {:ok, _} = Accrue.Test.trigger_event(:invoice_payment_failed, %{id: invoice.processor_id, customer: customer.processor_id, subscription: subscription.processor_id, amount_due: invoice.amount_due_minor, currency: invoice.currency})
+      [run] = Chimeway.Repo.all(from wr in WorkflowRun, join: wd in WorkflowDefinition, on: wr.workflow_definition_id == wd.id, where: wr.tenant_id == ^customer.id and wd.workflow_key == "accrue.dunning", select: %{id: wr.id, notification_id: wr.notification_id})
+      %Notification{} = notification = Chimeway.Repo.get!(Notification, run.notification_id)
+      %Delivery{} = delivery = Chimeway.Repo.one!(from d in Delivery, where: d.notification_id == ^notification.id and d.channel == "email")
+      {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
+      {:ok, _} = Deliveries.record_attempt(dispatched, %{outcome: :succeeded})
+      {:ok, {:noop, _, :wait_not_due}} = Chimeway.Workflows.Progression.progress_run(run.id, [])
+      {:ok, waiting} = Chimeway.Workflows.explain(customer.id, run.id)
+      {:ok, waiting_traces} = Chimeway.Workflows.list_traces(customer.id, run.id)
       true = waiting.state == :waiting and waiting.status_reason == "waiting_for_step_progression"
-      {:ok, _} = Accrue.Test.trigger_event(:invoice_paid, %{id: "in_proof", customer: "cus_proof", subscription: "sub_proof", status: "paid"})
+      true = "waiting_for_step_progression" in Enum.map(waiting_traces, & &1.reason)
+
+      :ok = Accrue.Processor.Fake.stub(:retrieve_invoice, fn id, _opts ->
+        if id == invoice.processor_id, do: {:ok, %{"id" => id, "object" => "invoice", "status" => "paid", "customer" => customer.processor_id, "subscription" => subscription.processor_id, "currency" => "usd", "amount_due" => 0, "amount_paid" => 2_000, "amount_remaining" => 0, "lines" => %{"object" => "list", "data" => []}, "metadata" => %{}}}, else: {:error, :not_found}
+      end)
+      :ok = Accrue.Processor.Fake.stub(:retrieve_subscription, fn id, _opts ->
+        if id == subscription.processor_id, do: {:ok, %{"id" => id, "object" => "subscription", "customer" => customer.processor_id, "status" => "active", "cancel_at_period_end" => false, "pause_collection" => nil, "items" => %{"object" => "list", "data" => []}, "metadata" => %{}}}, else: {:error, :not_found}
+      end)
+      {:ok, _} = Accrue.Test.trigger_event(:invoice_paid, %{id: invoice.processor_id, customer: customer.processor_id, subscription: subscription.processor_id, status: "paid", amount_paid: invoice.total_minor, currency: invoice.currency})
       %{cancelled: 0, discard: 0, failure: 0, snoozed: 0, success: 1} = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true, with_safety: false)
-      outcome = %{state: :active, status_reason: "signal_received"}
+      {:ok, outcome} = Chimeway.Workflows.explain(customer.id, run.id)
+      {:ok, outcome_traces} = Chimeway.Workflows.list_traces(customer.id, run.id)
+      timeline_reasons =
+        outcome_traces
+        |> Enum.map(& &1.reason)
+        |> Enum.filter(&(&1 in ["waiting_for_step_progression", "signal_received"]))
       true = outcome.state == :active and outcome.status_reason == "signal_received"
-      version = Regex.run(~r/@version "([^"]+)"/, File.read!(Path.join(Mix.Project.deps_paths()[:chimeway], "mix.exs"))) |> Enum.at(1)
-      IO.puts("CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=" <> version <> " workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received")
+      true = timeline_reasons == ["waiting_for_step_progression", "signal_received"]
+      [%{context: %{"event_name" => "invoice.paid"}}] = Enum.filter(outcome_traces, &(&1.reason == "signal_received"))
+      version = to_string(Application.spec(:chimeway, :vsn))
+      IO.puts("CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=" <> version <> " workflow_key=accrue.dunning workflow_version=1 waiting_state=" <> Atom.to_string(waiting.state) <> " waiting_reason=" <> waiting.status_reason <> " outcome_event=invoice.paid outcome_state=" <> Atom.to_string(outcome.state) <> " outcome_reason=" <> outcome.status_reason <> " timeline_reasons=" <> Enum.join(timeline_reasons, ","))
     after
       Chimeway.Repo.put_dynamic_repo(previous_repo)
+      if Process.alive?(fake_pid), do: Accrue.Processor.Fake.reset()
+      if owns_fake? and Process.alive?(fake_pid), do: GenServer.stop(fake_pid)
     end
     """
   end
