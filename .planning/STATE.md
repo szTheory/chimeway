@@ -4,15 +4,15 @@ milestone: v1.17
 milestone_name: Adopter Proof Paths
 current_phase: 95
 current_phase_name: Accrue Billing-Escalation Proof
-status: planning
+status: executing
 stopped_at: Phase 95 context gathered (assumptions mode)
-last_updated: "2026-08-09T17:16:33.112Z"
+last_updated: "2026-08-10T00:28:11.658Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 94 complete, transitioned to Phase 95
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
+  total_plans: 7
   completed_plans: 5
   percent: 50
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 Phase: 95 — Accrue Billing-Escalation Proof
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-09 — Phase 94 complete, transitioned to Phase 95
 
 ## Deferred Items
