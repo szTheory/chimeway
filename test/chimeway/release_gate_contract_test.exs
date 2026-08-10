@@ -2013,6 +2013,60 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       refute source =~ ":zlib.gunzip(contents)"
     end
+
+    @tag :adoption_archive_limits
+    test "fails closed one byte or member past every archive budget before the callback" do
+      outer = malicious_package_archive!([])
+      on_exit(fn -> File.rm_rf(Path.dirname(outer)) end)
+      File.write!(outer, :binary.copy(<<0>>, 32 * 1024 * 1024 + 1), [:append])
+
+      compressed =
+        package_archive_from_compressed_contents!(:crypto.strong_rand_bytes(16 * 1024 * 1024 + 1))
+
+      expanded =
+        malicious_package_archive_from_contents!(:binary.copy(<<0>>, 64 * 1024 * 1024 + 1))
+
+      member_count =
+        malicious_package_archive!(for index <- 1..4_097, do: {"members/#{index}", ?0, "", <<>>})
+
+      member_size =
+        malicious_package_archive!([
+          {"large.bin", ?0, "", :binary.copy(<<0>>, 8 * 1024 * 1024 + 1)}
+        ])
+
+      for archive <- [outer, compressed, expanded, member_count, member_size] do
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> send(self(), :callback_invoked) end
+                 )
+
+        refute_received :callback_invoked
+      end
+    end
+
+    @tag :adoption_archive_limits
+    test "permits a regular member exactly at the documented 8 MiB limit" do
+      archive =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"},
+          {"large.bin", ?0, "", :binary.copy(<<0>>, 8 * 1024 * 1024)}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> :validated end
+               )
+    end
   end
 
   describe "adoption paths contract (GATE-01/D-05..D-08)" do
@@ -2226,14 +2280,16 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp malicious_package_archive_from_contents!(contents) do
+    package_archive_from_compressed_contents!(:zlib.gzip(contents))
+  end
+
+  defp package_archive_from_compressed_contents!(contents) do
     output = temporary_path!("archive")
     File.mkdir_p!(output)
     archive = Path.join(output, "malicious.tar")
 
     metadata =
       ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [<<"scripts/prove-accrue-consumer.exs">>, <<"priv/adoption_proof/artifact_consumer_fixture.ex">>]}.\n)
-
-    contents = :zlib.gzip(contents)
 
     File.write!(
       archive,

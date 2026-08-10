@@ -5,6 +5,10 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   @fixture "priv/adoption_proof/artifact_consumer_fixture.ex"
   @tar_block_size 512
   @max_outer_archive_bytes 32 * 1024 * 1024
+  @max_compressed_contents_bytes 16 * 1024 * 1024
+  @max_decompressed_contents_bytes 64 * 1024 * 1024
+  @max_members 4_096
+  @max_regular_member_bytes 8 * 1024 * 1024
 
   @spec with_validated_archive(Path.t(), String.t(), (Path.t() -> term())) ::
           {:ok, term()} | {:error, String.t()}
@@ -110,8 +114,9 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   end
 
   defp extract_contents!(contents, scratch) do
-    members = contents |> decompress_contents!() |> scan_members!()
-    bodies = extract_regular_bodies!(contents)
+    decompressed_contents = decompress_contents!(contents)
+    members = scan_members!(decompressed_contents)
+    bodies = extract_regular_bodies!(decompressed_contents)
     materialize_members!(members, bodies, scratch)
     validate_materialized_tree!(scratch)
   end
@@ -120,11 +125,89 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   # `:memory` returns bodies for ordinary files; no archive-controlled link or special
   # member is ever allowed to create an object on disk.
   defp decompress_contents!(contents) do
+    if byte_size(contents) > @max_compressed_contents_bytes,
+      do: throw({:provenance, "package contents are malformed"})
+
+    inflate_contents!(contents)
+  end
+
+  defp inflate_contents!(contents) do
+    zlib = :zlib.open()
+
     try do
-      :zlib.gunzip(contents)
+      :ok = :zlib.inflateInit(zlib, 31, :error)
+
+      contents
+      |> binary_chunks()
+      |> Enum.reduce({[], 0}, fn chunk, {chunks, total} ->
+        inflate_chunk!(zlib, chunk, chunks, total)
+      end)
+      |> drain_inflater!(zlib)
+      |> elem(0)
+      |> Enum.reverse()
+      |> IO.iodata_to_binary()
     rescue
       _ -> throw({:provenance, "package contents are malformed"})
+    after
+      :zlib.inflateEnd(zlib)
+      :zlib.close(zlib)
     end
+  end
+
+  defp binary_chunks(binary), do: binary_chunks(binary, [])
+
+  defp binary_chunks(<<>>, chunks), do: Enum.reverse(chunks)
+
+  defp binary_chunks(binary, chunks) do
+    chunk_size = min(byte_size(binary), 64 * 1024)
+    <<chunk::binary-size(chunk_size), rest::binary>> = binary
+    binary_chunks(rest, [chunk | chunks])
+  end
+
+  defp inflate_chunk!(zlib, chunk, chunks, total) do
+    case :zlib.safeInflate(zlib, chunk) do
+      {status, output} when status in [:continue, :finished] ->
+        append_inflated_chunk!(zlib, status, output, chunks, total)
+
+      {:need_dictionary, _adler, _output} ->
+        throw({:provenance, "package contents are malformed"})
+    end
+  end
+
+  defp drain_inflater!({chunks, total}, zlib) do
+    case :zlib.safeInflate(zlib, []) do
+      {:continue, output} ->
+        {chunks, total} = append_inflated_chunk!(zlib, :continue, output, chunks, total)
+        drain_inflater!({chunks, total}, zlib)
+
+      {:finished, output} ->
+        append_inflated_chunk!(zlib, :finished, output, chunks, total)
+
+      {:need_dictionary, _adler, _output} ->
+        throw({:provenance, "package contents are malformed"})
+    end
+  end
+
+  defp append_inflated_chunk!(zlib, :finished, output, chunks, total) do
+    {chunks, total} = append_output!(output, chunks, total)
+
+    case :zlib.safeInflate(zlib, []) do
+      {:finished, []} -> {chunks, total}
+      _ -> throw({:provenance, "package contents are malformed"})
+    end
+  end
+
+  defp append_inflated_chunk!(_zlib, :continue, output, chunks, total),
+    do: append_output!(output, chunks, total)
+
+  defp append_output!(output, chunks, total) do
+    output = IO.iodata_to_binary(output)
+    next_total = total + byte_size(output)
+
+    if next_total > @max_decompressed_contents_bytes,
+      do: throw({:provenance, "package contents are malformed"})
+
+    {[output | chunks], next_total}
   end
 
   defp scan_members!(contents), do: scan_members!(contents, [], %{})
@@ -145,6 +228,8 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     size = header_size!(header)
     path = normalized_member_path!(name, type)
     validate_member_type!(type)
+    validate_member_size!(type, size)
+    validate_member_count!(members)
     validate_unique_path!(paths, path)
 
     padding = padding_for!(size)
@@ -157,6 +242,19 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     member = %{path: path, type: type, size: size}
     scan_members!(remaining, [member | members], Map.put(paths, path, type))
   end
+
+  defp validate_member_size!(?5, 0), do: :ok
+
+  defp validate_member_size!(type, size)
+       when type in [0, ?0] and size <= @max_regular_member_bytes,
+       do: :ok
+
+  defp validate_member_size!(_, _), do: throw({:provenance, "package contents are malformed"})
+
+  defp validate_member_count!(members) when length(members) < @max_members, do: :ok
+
+  defp validate_member_count!(_members),
+    do: throw({:provenance, "package contents are malformed"})
 
   defp validate_header_checksum!(header) do
     expected = header |> binary_part(148, 8) |> tar_octal!()
@@ -253,7 +351,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     do: rem(@tar_block_size - rem(size, @tar_block_size), @tar_block_size)
 
   defp extract_regular_bodies!(contents) do
-    case :erl_tar.extract({:binary, contents}, [:compressed, :memory]) do
+    case :erl_tar.extract({:binary, contents}, [:memory]) do
       {:ok, entries} ->
         Map.new(entries, fn {name, body} -> {List.to_string(name), body} end)
 
