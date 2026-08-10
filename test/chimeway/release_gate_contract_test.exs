@@ -1964,6 +1964,36 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "adoption archive immutable-byte validation (T-96-16)" do
+    @tag :adoption_archive_toctou
+    test "binds the accepted digest and outer extraction to one immutable archive binary" do
+      archive_a =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n# archive-a\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive_a)) end)
+
+      assert {:ok, :archive_a} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive_a,
+                 sha256!(archive_a),
+                 fn root ->
+                   assert File.read!(Path.join(root, "mix.exs")) =~ "archive-a"
+                   :archive_a
+                 end
+               )
+
+      source = File.read!("priv/adoption_proof/artifact_archive.ex")
+
+      assert source =~ "read_bounded_archive!"
+      assert source =~ ":erl_tar.extract({:binary, archive_binary}, [:memory])"
+      refute source =~ ":erl_tar.extract(String.to_charlist(archive), [:memory])"
+    end
+  end
+
   describe "adoption paths contract (GATE-01/D-05..D-08)" do
     @tag :adoption_paths_contract
     @tag timeout: 180_000
