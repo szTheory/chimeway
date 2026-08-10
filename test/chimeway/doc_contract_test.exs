@@ -881,6 +881,45 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
+    test "conditions released-package proof on resolved Accrue source and module validation", %{
+      content: content
+    } do
+      assert String.contains?(content, "released_package")
+      assert String.contains?(content, "exact Accrue `1.3.0`")
+      assert String.contains?(content, "`Accrue.Integrations.Chimeway`")
+      assert String.contains?(content, "resolved Chimeway artifact version")
+      assert String.contains?(content, "executable check, not optimistic prose")
+      refute String.contains?(content, "Production adopters use `{:accrue, \"~> 1.3\"}` from Hex.")
+    end
+
+    test "limits the immutable Accrue SHA to compatibility evidence", %{content: content} do
+      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+
+      assert String.contains?(content, sha)
+      assert String.contains?(content, "compatibility evidence only")
+      assert String.contains?(content, "not released-package proof or installation guidance")
+
+      sha_code_blocks =
+        Regex.scan(~r/```[^`]*#{sha}[^`]*```/s, content)
+
+      assert sha_code_blocks == [], "immutable compatibility SHA must not appear in a copyable code block"
+      refute String.contains?(content, "git: #{sha}")
+    end
+
+    test "labels maintainer checkout mechanics separately from proof provenance", %{content: content} do
+      verification =
+        content
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.last()
+
+      for mechanic <- ["ACCRUE_PATH", "sibling checkout", "CI checkout", "mix verify.accrue"] do
+        assert String.contains?(verification, mechanic)
+      end
+
+      assert String.contains?(verification, "repository-maintainer regression mechanics")
+      assert String.contains?(verification, "not independent packaged-consumer provenance")
+    end
+
     test "sections appear in golden-path order from dependencies through verification", %{
       content: content
     } do
