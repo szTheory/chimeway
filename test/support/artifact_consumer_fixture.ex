@@ -190,14 +190,20 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   @spec prove_accrue!(Path.t(), keyword()) :: map()
   def prove_accrue!(unpacked_root, opts) when is_binary(unpacked_root) and is_list(opts) do
     identity = Keyword.get(opts, :identity, resource_identity())
+    accrue_source = Keyword.get(opts, :accrue_source, :release)
     validate_identity!(identity)
+
+    unless accrue_source in [:release, :compatibility] do
+      raise "artifact consumer Accrue provenance source must be :release or :compatibility"
+    end
+
     root = identity.root
     db_config = database_config(identity.database)
 
     result =
       try do
         File.rm_rf!(root)
-        scaffold!(root, unpacked_root, db_config, accrue: true)
+        scaffold!(root, unpacked_root, db_config, accrue: true, accrue_source: accrue_source)
         mix_source = File.read!(Path.join(root, "mix.exs"))
         validate_artifact_dependency!(mix_source, unpacked_root, repo_root!())
 
@@ -217,6 +223,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
           proof_source: proof_source,
           mix_source: mix_source,
           config_source: File.read!(Path.join(root, "config/config.exs")),
+          provenance_source: accrue_source,
           evidence: parse_accrue_evidence!(output),
           identity: identity,
           artifact_root: Path.expand(unpacked_root)
@@ -355,7 +362,11 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     File.mkdir_p!(Path.join(root, "priv/repo/migrations"))
     File.mkdir_p!(Path.join(root, "priv"))
 
-    File.write!(Path.join(root, "mix.exs"), mix_exs(unpacked_root, accrue?))
+    File.write!(
+      Path.join(root, "mix.exs"),
+      mix_exs(unpacked_root, accrue?, Keyword.get(opts, :accrue_source, :release))
+    )
+
     File.write!(Path.join(root, "config/config.exs"), config_exs(db_config, accrue?))
     File.write!(Path.join(root, "lib/artifact_consumer/repo.ex"), repo_ex())
     File.write!(Path.join(root, "lib/artifact_consumer/application.ex"), application_ex(accrue?))
@@ -384,7 +395,16 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     File.write!(Path.join(root, "priv/prove_accrue.exs"), accrue_proof_ex())
   end
 
-  defp mix_exs(unpacked_root, accrue?) do
+  defp mix_exs(unpacked_root, accrue?, accrue_source) do
+    accrue_dependency =
+      case accrue_source do
+        :release ->
+          ", {:accrue, \"1.3.0\"}"
+
+        :compatibility ->
+          ", {:accrue, git: \"https://github.com/szTheory/accrue.git\", ref: \"#{@accrue_sha}\", sparse: \"accrue\"}"
+      end
+
     """
     defmodule ArtifactConsumer.MixProject do
       use Mix.Project
@@ -394,7 +414,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       end
 
       def application, do: [extra_applications: [:logger], included_applications: #{if(accrue?, do: "[:chimeway, :accrue]", else: "[:chimeway]")}, mod: {ArtifactConsumer.Application, []}]
-    defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}, override: true}, {:mailglass, "~> 1.3"}#{if(accrue?, do: ", {:accrue, \"1.3.0\"}", else: "")}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
+    defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}, override: true}, {:mailglass, "~> 1.3"}#{if(accrue?, do: accrue_dependency, else: "")}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
     end
     """
   end
@@ -650,8 +670,60 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       true = outcome.state == :active and outcome.status_reason == "signal_received"
       true = timeline_reasons == ["waiting_for_step_progression", "signal_received"]
       [%{context: %{"event_name" => "invoice.paid"}}] = Enum.filter(outcome_traces, &(&1.reason == "signal_received"))
+      Mix.Dep.load_and_cache()
+      accrue_dep = Enum.find(Mix.Dep.cached(), &(&1.app == :accrue)) || raise "Accrue dependency is unresolved"
+      lock = Mix.Dep.Lock.read()[:accrue] || raise "Accrue lock is unresolved"
+      metadata_path = Path.join(accrue_path, "hex_metadata.config")
+      metadata =
+        if File.regular?(metadata_path) do
+          {:ok, entries} = :file.consult(String.to_charlist(metadata_path))
+          Map.new(entries)
+        end
+
+      module_source = Accrue.Integrations.Chimeway.module_info(:compile)[:source] |> to_string() |> Path.expand()
+      resolved_root = Path.expand(accrue_path)
+      integration_source = Path.expand(integration_source)
+      integration_relative = Path.relative_to(integration_source, resolved_root)
+      module_relative = Path.relative_to(module_source, resolved_root)
+      true = File.regular?(integration_source)
+      true = not String.starts_with?(integration_relative, "..")
+      true = not String.starts_with?(module_relative, "..")
+      true = module_source == integration_source
+      chimeway_path = Mix.Project.deps_paths()[:chimeway]
       version = to_string(Application.spec(:chimeway, :vsn))
-      IO.puts("CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=" <> version <> " workflow_key=accrue.dunning workflow_version=1 waiting_state=" <> Atom.to_string(waiting.state) <> " waiting_reason=" <> waiting.status_reason <> " outcome_event=invoice.paid outcome_state=" <> Atom.to_string(outcome.state) <> " outcome_reason=" <> outcome.status_reason <> " timeline_reasons=" <> Enum.join(timeline_reasons, ","))
+      [_, package_version] = Regex.run(~r/@version "([^"]+)"/, File.read!(Path.join(chimeway_path, "mix.exs")))
+      true = version == package_version
+
+      descriptor = %{
+        "scm" => accrue_dep.scm,
+        "lock" => lock,
+        "application_version" => to_string(Application.spec(:accrue, :vsn)),
+        "resolved_path" => resolved_root,
+        "metadata" => metadata,
+        "integration_source" => integration_source,
+        "module_source" => module_source
+      }
+
+      provenance =
+        case descriptor["lock"] do
+          {:hex, :accrue, "1.3.0", _, _, _, _, _} ->
+            true = descriptor["scm"] == Hex.SCM
+            true = descriptor["application_version"] == "1.3.0"
+            true = is_map(descriptor["metadata"])
+            true = descriptor["metadata"][<<"version">>] == <<"1.3.0">>
+            true = "lib/accrue/integrations/chimeway.ex" in descriptor["metadata"][<<"files">>]
+            {"released_package", "accrue_version=1.3.0 chimeway_version=" <> version}
+
+          {:git, _, "236fa2f1649e771f3b515603495436badeed3c7b", _} ->
+            true = descriptor["scm"] == Mix.SCM.Git
+            {"compatibility", "accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b"}
+
+          _ ->
+            raise "Accrue provenance is not an exact audited release or immutable compatibility ref"
+        end
+
+      {provenance_label, provenance_fields} = provenance
+      IO.puts("CHIMEWAY_ACCRUE_PROOF provenance=" <> provenance_label <> " " <> provenance_fields <> " workflow_key=accrue.dunning workflow_version=1 waiting_state=" <> Atom.to_string(waiting.state) <> " waiting_reason=" <> waiting.status_reason <> " outcome_event=invoice.paid outcome_state=" <> Atom.to_string(outcome.state) <> " outcome_reason=" <> outcome.status_reason <> " timeline_reasons=" <> Enum.join(timeline_reasons, ","))
     after
       Chimeway.Repo.put_dynamic_repo(previous_repo)
       if Process.alive?(fake_pid), do: Accrue.Processor.Fake.reset()

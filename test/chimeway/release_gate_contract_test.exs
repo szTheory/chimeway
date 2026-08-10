@@ -1526,6 +1526,44 @@ defmodule Chimeway.ReleaseGateContractTest do
       refute File.exists?(proof.identity.root)
     end
 
+    @tag :accrue_artifact_proof
+    @tag timeout: 600_000
+    test "a clean consumer classifies only the exact immutable Accrue checkout as compatibility",
+         %{
+           root: root
+         } do
+      proof = ArtifactConsumerFixture.prove_accrue!(root, accrue_source: :compatibility)
+
+      assert %{
+               provenance: "compatibility",
+               accrue_ref: "236fa2f1649e771f3b515603495436badeed3c7b",
+               workflow_key: "accrue.dunning",
+               waiting_state: "waiting",
+               outcome_state: "active"
+             } = proof.evidence
+
+      refute Map.has_key?(proof.evidence, :accrue_version)
+      refute Map.has_key?(proof.evidence, :chimeway_version)
+      assert proof.provenance_source == :compatibility
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+      refute File.exists?(proof.identity.root)
+    end
+
+    @tag :accrue_artifact_proof
+    test "Accrue provenance rejects an unselected source before it can emit a proof" do
+      identity = ArtifactConsumerFixture.resource_identity("accrue_invalid_provenance")
+
+      assert_raise RuntimeError, ~r/provenance source/, fn ->
+        ArtifactConsumerFixture.prove_accrue!(System.tmp_dir!(),
+          identity: identity,
+          accrue_source: :source_checkout
+        )
+      end
+
+      refute File.exists?(identity.root)
+    end
+
+    @tag :accrue_artifact_proof
     test "Accrue evidence accepts only fixed lifecycle and released-package provenance" do
       line = accrue_evidence_line()
 
@@ -1553,6 +1591,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
+    @tag :accrue_artifact_proof
     test "Accrue evidence rejects unknown, duplicate, mixed, and atomizing records" do
       line = accrue_evidence_line()
       unknown = "untrusted_accrue_key_#{System.unique_integer([:positive])}"
@@ -1575,6 +1614,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert_raise ArgumentError, fn -> String.to_existing_atom(unknown) end
     end
 
+    @tag :accrue_artifact_proof
     test "Accrue compatibility is SHA-only and proof source is event-to-signal shaped" do
       compatibility =
         "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b " <>
@@ -1599,8 +1639,24 @@ defmodule Chimeway.ReleaseGateContractTest do
                "Accrue.Test.trigger_event(:invoice_paid"
 
       refute File.read!("scripts/prove-accrue-consumer.exs") =~ "CHIMEWAY_ACCRUE_PROOF"
+
+      proof_source = File.read!("test/support/artifact_consumer_fixture.ex")
+
+      for marker <- [
+            "\"scm\" => accrue_dep.scm",
+            "\"lock\" => lock",
+            "\"application_version\" => to_string(Application.spec(:accrue, :vsn))",
+            "descriptor[\"scm\"] == Hex.SCM",
+            "descriptor[\"scm\"] == Mix.SCM.Git",
+            "descriptor[\"metadata\"][<<\"version\">>] == <<\"1.3.0\">>",
+            "module_source == integration_source"
+          ] do
+        assert proof_source =~ marker,
+               "generated consumer provenance descriptor must validate #{marker}"
+      end
     end
 
+    @tag :accrue_artifact_proof
     test "Accrue parser rejects every sensitive boundary key and malformed lifecycle pair" do
       line = accrue_evidence_line()
 
