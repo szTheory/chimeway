@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
 current_phase: 96
-current_phase_name: Adoption Front Door & Proof Gate
-status: executing
-stopped_at: Completed 96-02-PLAN.md
-last_updated: "2026-08-10T20:40:53.725Z"
-last_activity: 2026-08-09
+current_phase_name: adoption-front-door-proof-gate
+status: verifying
+stopped_at: Completed 96-03-PLAN.md
+last_updated: "2026-08-10T20:57:21.093Z"
+last_activity: 2026-08-10
 last_activity_desc: Phase 96 execution started
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 96 — Adoption Front Door & Proof Gate
+**Current focus:** Phase 96 — adoption-front-door-proof-gate
 
 ## Current Position
 
-Phase: 96 (Adoption Front Door & Proof Gate) — EXECUTING
+Phase: 96 (adoption-front-door-proof-gate) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-08-09 — Phase 96 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-08-10 — Phase 96 execution started
 
 ## Deferred Items
 
@@ -298,6 +298,7 @@ status: complete
 - [Phase ?]: Phase 96-01: invalid adoption selectors fail before runner loading or proof output.
 - [Phase ?]: The selector compares only Core, Mailglass, and Accrue in progressive-complexity order and routes detailed setup to the existing guides.
 - [Phase ?]: The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments.
+- [Phase ?]: Adoption archive members are fully classified before materialization; only regular files and directories are written from memory.
 
 ## Performance
 
@@ -613,8 +614,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-10T03:56:47.313Z
-Stopped at: Completed 96-02-PLAN.md
+Last session: 2026-08-10T20:57:10.326Z
+Stopped at: Completed 96-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -713,3 +714,4 @@ Resume file: None
 | Phase 94-mailglass-transactional-email-proof P03 | 6 min | 2 tasks | 4 files |
 | Phase 96-adoption-front-door-proof-gate P01 | 46m | 2 tasks | 7 files |
 | Phase 96 P02 | 20m | 2 tasks | 6 files |
+| Phase 96 P03 | ~45 minutes | 2 tasks | 2 files |

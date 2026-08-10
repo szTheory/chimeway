@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 1
+open_count: 2
 waived_count: 1
 fixed_count: 4
-total_count: 6
-last_updated: 2026-08-10T03:56:08.129Z
+total_count: 7
+last_updated: 2026-08-10T20:57:09.536Z
 ---
 
 # Broken Windows Ledger
@@ -21,6 +21,7 @@ last_updated: 2026-08-10T03:56:08.129Z
 | 4 | 92 | unrun-verify | .github/workflows/ci.yml |  | REL-03 backstop: test_seed_zero + nightly-gate wiring is contract-tested locally but not yet observed green on a live -f run_nightly=true dispatch (deferred — phase commits not pushed in this execution session, push out of scope for this executor). | fixed | VERIFIED on nightly-dispatch run 30573935421 @ eff0ba43 — test_seed_zero=success, nightly-gate=success; on the push run 30573877353 test_seed_zero correctly skipped (nightly-only adjacency edge holds). | 2026-07-30T18:33:55.228Z | 2026-07-30T19:26:34.000Z |
 | 5 | 92 | unrun-verify | .planning/CI-HARDENING-BACKLOG.md |  | REL-02 backstop: backlog #2/#3 root causes are pinned but the verified-fixed decision requires a live-CI proof pinned to phase HEAD's own push run; that run does not exist yet (commits not pushed this session). Quarantined behind tracking issue #4 pending push. | fixed | VERIFIED-FIXED on phase-HEAD push run 30573877353 @ eff0ba43 — verify_example, verify_journeys, verify_accrue all success. Backlog #2/#3 flipped to verified-fixed; issue #4 closed. | 2026-07-30T18:33:55.306Z | 2026-07-30T19:26:34.000Z |
 | 6 | 96 | unrun-verify | .github/workflows/ci.yml |  | Live GitHub Actions verify_adoption_paths execution remains required after push. | open |  | 2026-08-10T03:56:08.129Z |  |
+| 7 | 96 | unrun-verify | test/chimeway/release_gate_contract_test.exs |  | mix ci.verify_gates remains red in pre-existing Mailglass timeline and Accrue source-contract cases outside Plan 96-03 files | open |  | 2026-08-10T20:57:09.536Z |  |
 
 ````json
 [
@@ -94,6 +95,18 @@ last_updated: 2026-08-10T03:56:08.129Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-10T03:56:08.129Z",
+    "resolved_at": null
+  },
+  {
+    "id": 7,
+    "kind": "unrun-verify",
+    "phase": "96",
+    "file": "test/chimeway/release_gate_contract_test.exs",
+    "line": null,
+    "description": "mix ci.verify_gates remains red in pre-existing Mailglass timeline and Accrue source-contract cases outside Plan 96-03 files",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-10T20:57:09.536Z",
     "resolved_at": null
   }
 ]
