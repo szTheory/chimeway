@@ -1734,18 +1734,31 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "rejects malformed archive provenance without a proof line" do
       archive = build_package_archive!()
       on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
-      unpacked = build_unpacked_package!()
-      on_exit(fn -> File.rm_rf(unpacked) end)
-      root = unpacked_package_root!(unpacked)
 
-      for {path, digest} <- [
+      altered = Path.join(Path.dirname(archive), "altered.tar")
+      File.cp!(archive, altered)
+      File.write!(altered, "tampered", [:append])
+
+      for argv <- [
+            [],
+            ["--artifact-archive", ".", "--sha256", String.duplicate("a", 64)],
+            ["--artifact-archive", File.cwd!(), "--sha256", String.duplicate("a", 64)],
             {"relative.tar", String.duplicate("a", 64)},
             {archive, String.duplicate("0", 64)},
-            {archive, "ABC"}
+            {archive, "ABC"},
+            {altered, sha256!(altered)}
           ] do
-        {output, status} = packaged_accrue_cli(root, path, digest)
+        argv =
+          case argv do
+            {path, digest} -> ["--artifact-archive", path, "--sha256", digest]
+            arguments -> arguments
+          end
+
+        {output, status} = invalid_packaged_accrue_cli(argv)
         assert status != 0
         refute output =~ "CHIMEWAY_ACCRUE_PROOF"
+        refute output =~ File.cwd!()
+        refute output =~ "password"
       end
     end
   end
@@ -1814,6 +1827,12 @@ defmodule Chimeway.ReleaseGateContractTest do
       cd: root,
       stderr_to_stdout: true,
       env: [{"MIX_ENV", "prod"}]
+    )
+  end
+
+  defp invalid_packaged_accrue_cli(argv) do
+    System.cmd("elixir", ["scripts/prove-accrue-consumer.exs", "--" | argv],
+      stderr_to_stdout: true
     )
   end
 

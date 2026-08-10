@@ -73,7 +73,7 @@ defmodule Chimeway.AccrueProofCLI do
       validate_metadata!(config)
       extract_contents!(contents, scratch)
       root = artifact_root!(scratch)
-      validate_root!(root, config)
+      validate_root!(root, scratch, config)
       {:ok, root}
     rescue
       _ ->
@@ -156,9 +156,10 @@ defmodule Chimeway.AccrueProofCLI do
     end
   end
 
-  defp validate_root!(root, config) do
-    unless Path.expand(root) |> String.starts_with?(Path.expand(Path.dirname(root))),
-      do: throw({:provenance, "package root escaped fixture storage"})
+  defp validate_root!(root, scratch, config) do
+    unless Path.expand(root) == Path.expand(scratch) or
+             String.starts_with?(Path.expand(root), Path.expand(scratch) <> "/"),
+           do: throw({:provenance, "package root escaped fixture storage"})
 
     source = File.read!(Path.join(root, "mix.exs"))
     version = Map.get(config, "version") || Map.get(config, <<"version">>)
