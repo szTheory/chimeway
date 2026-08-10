@@ -1768,6 +1768,38 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "adoption paths tracer (GATE-01/D-05..D-08)" do
+    @tag :adoption_paths_tracer
+    test "ships a strict Core adoption command and shared archive seam" do
+      task = "lib/mix/tasks/verify.adoption_paths.ex"
+      runner = "scripts/prove-adoption-paths.exs"
+      archive = "priv/adoption_proof/artifact_archive.ex"
+
+      assert File.regular?(task)
+      assert File.regular?(runner)
+      assert File.regular?(archive)
+      assert File.read!("mix.exs") =~ "scripts/prove-adoption-paths.exs"
+      assert File.read!(task) =~ "OptionParser.parse"
+      assert File.read!(task) =~ "AdoptionProofRunner.run!"
+    end
+
+    @tag :adoption_paths_tracer
+    test "rejects invalid adoption selectors before any proof record is emitted" do
+      for argv <- [
+            ["--only", "unknown"],
+            ["--only", "core", "--only", "core"],
+            ["--only"],
+            ["core"],
+            ["--unexpected", "core"]
+          ] do
+        {output, status} = System.cmd("mix", ["verify.adoption_paths" | argv], stderr_to_stdout: true)
+
+        assert status != 0
+        refute output =~ "CHIMEWAY_"
+      end
+    end
+  end
+
   defmodule CoreProofNotifier do
     def notification_key, do: "artifact_consumer.core_trace"
     def version, do: 1
