@@ -1011,9 +1011,17 @@ defmodule Chimeway.ReleaseGateContractTest do
                ]
 
       assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+      assert proof.proof_source =~ "Chimeway.Repo.get_dynamic_repo()"
+      assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
+
+      proof_source_without_dynamic_repo_handoff =
+        proof.proof_source
+        |> String.replace("Chimeway.Repo.get_dynamic_repo()", "")
+        |> String.replace("Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)", "")
+        |> String.replace("Chimeway.Repo.put_dynamic_repo(previous_repo)", "")
 
       for forbidden <- [
-            "Chimeway.Repo",
+            "Chimeway.Repo.",
             "Ecto.Query",
             "Repo.get",
             "Repo.one",
@@ -1027,7 +1035,7 @@ defmodule Chimeway.ReleaseGateContractTest do
             "password",
             "secret"
           ] do
-        refute proof.proof_source =~ forbidden
+        refute proof_source_without_dynamic_repo_handoff =~ forbidden
         refute proof.output =~ forbidden
       end
 
