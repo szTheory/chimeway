@@ -822,6 +822,58 @@ defmodule Chimeway.DocContractTest do
              "accrue dunning integration guide must document Accrue dependency"
     end
 
+    test "documents the unpacked-artifact clean-consumer proof contract", %{content: content} do
+      assert String.contains?(
+               content,
+               "MIX_ENV=test mix run scripts/prove-accrue-consumer.exs -- --artifact-root /absolute/path/to/unpacked/chimeway"
+             )
+
+      assert String.contains?(content, "already-unpacked Chimeway package")
+      assert String.contains?(content, "exactly one `CHIMEWAY_ACCRUE_PROOF` record")
+      assert String.contains?(content, "exits nonzero without a proof record")
+      refute String.contains?(content, "verify.adoption_paths")
+    end
+
+    test "documents the public Accrue lifecycle without false completion semantics", %{content: content} do
+      lifecycle = [
+        "invoice.payment_failed",
+        "waiting / waiting_for_step_progression",
+        "invoice.paid",
+        "active / signal_received"
+      ]
+
+      indices =
+        Enum.map(lifecycle, fn phrase ->
+          case :binary.match(content, phrase) do
+            {index, _} -> index
+            :nomatch -> flunk("accrue guide must document #{phrase}")
+          end
+        end)
+
+      assert indices == Enum.sort(indices)
+
+      assert String.contains?(content, "outcome signal ended the waiting escalation path")
+      assert String.contains?(content, "does not mean the workflow completed")
+    end
+
+    test "keeps clean-consumer evidence to the fixed safe proof vocabulary", %{content: content} do
+      assert String.contains?(content, "provenance=released_package accrue_version=1.3.0")
+      assert String.contains?(content, "workflow_key=accrue.dunning workflow_version=1")
+      assert String.contains?(content, "timeline_reasons=waiting_for_step_progression,signal_received")
+
+      clean_consumer =
+        content
+        |> String.split("## Clean-consumer proof", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
+      for forbidden <- ["tenant_id=", "invoice_id=", "customer_id=", "recipient=", "payload=", "metadata=", "credential=", "Ecto.Query"] do
+        refute String.contains?(clean_consumer, forbidden),
+               "clean-consumer proof must not disclose #{forbidden}"
+      end
+    end
+
     test "sections appear in golden-path order from dependencies through verification", %{
       content: content
     } do
