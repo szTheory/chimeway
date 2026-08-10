@@ -1501,6 +1501,31 @@ defmodule Chimeway.ReleaseGateContractTest do
                )
     end
 
+    @tag :accrue_artifact_proof
+    @tag timeout: 120_000
+    test "a clean consumer proves the Accrue payment failure to payment success lifecycle", %{
+      root: root
+    } do
+      proof = ArtifactConsumerFixture.prove_accrue!(root)
+
+      assert proof.output =~ "CHIMEWAY_ACCRUE_PROOF"
+
+      assert %{
+               provenance: "released_package",
+               accrue_version: "1.3.0",
+               workflow_key: "accrue.dunning",
+               waiting_state: "waiting",
+               waiting_reason: "waiting_for_step_progression",
+               outcome_event: "invoice.paid",
+               outcome_state: "active",
+               outcome_reason: "signal_received",
+               timeline_reasons: "waiting_for_step_progression,signal_received"
+             } = proof.evidence
+
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+      refute File.exists?(proof.identity.root)
+    end
+
     test "Accrue evidence accepts only fixed lifecycle and released-package provenance" do
       line = accrue_evidence_line()
 
