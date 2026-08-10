@@ -4,6 +4,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   @runner "scripts/prove-accrue-consumer.exs"
   @fixture "priv/adoption_proof/artifact_consumer_fixture.ex"
   @tar_block_size 512
+  @max_outer_archive_bytes 32 * 1024 * 1024
 
   @spec with_validated_archive(Path.t(), String.t(), (Path.t() -> term())) ::
           {:ok, term()} | {:error, String.t()}
@@ -18,12 +19,13 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     File.mkdir_p!(scratch)
 
     try do
-      actual_digest = :crypto.hash(:sha256, File.read!(archive)) |> Base.encode16(case: :lower)
+      archive_binary = read_bounded_archive!(archive)
+      actual_digest = :crypto.hash(:sha256, archive_binary) |> Base.encode16(case: :lower)
 
       if not secure_equal?(actual_digest, expected_digest),
         do: throw({:provenance, "archive digest mismatch"})
 
-      entries = :erl_tar.extract(String.to_charlist(archive), [:memory])
+      entries = :erl_tar.extract({:binary, archive_binary}, [:memory])
       metadata = fetch_entry!(entries, ~c"metadata.config")
       contents = fetch_entry!(entries, ~c"contents.tar.gz")
       config = parse_metadata!(metadata)
@@ -46,6 +48,27 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     do: :crypto.hash(:sha256, left) == :crypto.hash(:sha256, right)
 
   def secure_equal?(_, _), do: false
+
+  defp read_bounded_archive!(archive) do
+    archive
+    |> File.open!([:read, :binary])
+    |> then(fn device ->
+      try do
+        case IO.binread(device, @max_outer_archive_bytes + 1) do
+          :eof ->
+            throw({:provenance, "archive extraction failed"})
+
+          binary when byte_size(binary) > @max_outer_archive_bytes ->
+            throw({:provenance, "archive validation failed"})
+
+          binary when is_binary(binary) ->
+            binary
+        end
+      after
+        File.close(device)
+      end
+    end)
+  end
 
   defp fetch_entry!({:ok, entries}, name) do
     case Enum.find(entries, fn {entry, _} -> entry == name end) do
