@@ -1977,6 +1977,81 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag :adoption_archive_security
+    test "accepts bounded canonical unknown metadata values while retaining only proof fields" do
+      metadata =
+        default_metadata() <>
+          ~s({<<"links">>, [{<<"GitHub">>, <<"https://github.com/szTheory/chimeway">>}]} .\n) <>
+          ~s({<<"retired">>, false}.\n) <>
+          ~s({<<"labels">>, [<<"atom_looking_value">>, <<"still_binary">>]}.\n)
+
+      archive = malicious_package_archive!(valid_proof_entries(), metadata)
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> :validated end
+               )
+    end
+
+    @tag :adoption_archive_security
+    test "rejects unsupported metadata syntax, duplicate selected fields, and parser limit breaches" do
+      oversized_version = :binary.copy("v", 256)
+
+      invalid_metadata = [
+        ~s({<<"unknown">>, bare_atom}.\n),
+        ~s({<<"unknown">>, 'quoted_atom'}.\n),
+        ~s({<<"unknown">>, Variable}.\n),
+        ~s({<<"unknown">>, 1}.\n),
+        ~s({<<"unknown">>, [<<"value">> | <<"tail">>]}.\n),
+        ~s({<<"name">>, <<"chimeway">>}.\n),
+        ~s({<<"unknown">>, <<"unterminated>>}.\n),
+        ~s({<<"unknown">>, <<"value">>}. trailing),
+        ~s({<<"version">>, <<"#{oversized_version}">>}.\n),
+        :binary.copy(" ", 1 * 1024 * 1024 + 1)
+      ]
+
+      for suffix <- invalid_metadata do
+        archive = malicious_package_archive!(valid_proof_entries(), default_metadata() <> suffix)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, "package metadata is malformed"} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("metadata rejection must precede callback") end
+                 )
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "validates a freshly built Hex archive through the metadata parser exactly once" do
+      archive = build_package_archive!()
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn root ->
+                   assert File.regular?(Path.join(root, "mix.exs"))
+                   assert File.regular?(Path.join(root, "scripts/prove-accrue-consumer.exs"))
+
+                   assert File.regular?(
+                            Path.join(root, "priv/adoption_proof/artifact_consumer_fixture.ex")
+                          )
+
+                   send(self(), :real_archive_callback)
+                   :validated
+                 end
+               )
+
+      assert_received :real_archive_callback
+      refute_received :real_archive_callback
+    end
+
+    @tag :adoption_archive_security
     test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
       outside = temporary_path!("outside-special.txt")
       File.write!(outside, "unchanged")
