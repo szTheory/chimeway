@@ -2,11 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
-status: Awaiting next milestone
+status: "Milestone v1.17 shipped — PR #20"
 stopped_at: Completed 96.1-01-PLAN.md
-last_updated: "2026-08-11T21:47:00.803Z"
+last_updated: "2026-08-11T22:02:33.507Z"
 last_activity: 2026-08-11
-last_activity_desc: Milestone v1.17 completed and archived
 progress:
   total_phases: 5
   completed_phases: 5
@@ -15,6 +14,7 @@ progress:
   percent: 100
 current_phase: null
 current_phase_name: null
+last_activity_desc: Milestone v1.17 completed and archived
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-08-11 after v1.17 milestone close)
 
 Phase: Milestone v1.17 complete
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-11 — Milestone v1.17 completed and archived
+Status: Milestone v1.17 shipped — PR #20
+Last activity: 2026-08-11
 
 ## Deferred Items
 
