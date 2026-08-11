@@ -4,15 +4,15 @@ milestone: v1.17
 milestone_name: Adopter Proof Paths
 current_phase: 96.1
 current_phase_name: close-gap-archive-atom-01-atom-safe-archive-metadata-parsing
-status: planning
-stopped_at: Phase 96.1 context gathered (assumptions mode)
-last_updated: "2026-08-11T14:42:35.729Z"
+status: ready_to_execute
+stopped_at: Phase 96.1 planned — ready to execute
+last_updated: "2026-08-11T15:22:21.222Z"
 last_activity: 2026-08-11
-last_activity_desc: Phase 96.1 inserted
+last_activity_desc: Phase 96.1 planning complete — 1 plan ready
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 15
+  total_plans: 16
   completed_plans: 15
   percent: 80
 ---
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: 96.1 (close-gap-archive-atom-01-atom-safe-archive-metadata-parsing) — NOT PLANNED
-Plan: 0 of TBD
-Status: Not planned — ready for planning
-Last activity: 2026-08-11 — Phase 96.1 inserted
+Phase: 96.1 (close-gap-archive-atom-01-atom-safe-archive-metadata-parsing) — PLANNED
+Plan: 0 of 1
+Status: Ready to execute
+Last activity: 2026-08-11 — Phase 96.1 planning complete
 
 ## Deferred Items
 
