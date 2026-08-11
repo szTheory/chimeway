@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
-current_phase: 96
-current_phase_name: adoption-front-door-proof-gate
-status: verifying
-stopped_at: Completed 96-05-PLAN.md
-last_updated: "2026-08-10T23:20:55.694Z"
-last_activity: 2026-08-10
-last_activity_desc: Phase 96 execution started
+current_phase: 96.1
+current_phase_name: close-gap-archive-atom-01-atom-safe-archive-metadata-parsing
+status: planning
+stopped_at: Phase 96.1 context gathered (assumptions mode)
+last_updated: "2026-08-11T14:42:35.729Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 96.1 inserted
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 15
   completed_plans: 15
-  percent: 100
+  percent: 80
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 96 — adoption-front-door-proof-gate
+**Current focus:** Phase 96.1 — close-gap-archive-atom-01-atom-safe-archive-metadata-parsing
 
 ## Current Position
 
-Phase: 96 (adoption-front-door-proof-gate) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-08-10 — Phase 96 execution started
+Phase: 96.1 (close-gap-archive-atom-01-atom-safe-archive-metadata-parsing) — NOT PLANNED
+Plan: 0 of TBD
+Status: Not planned — ready for planning
+Last activity: 2026-08-11 — Phase 96.1 inserted
 
 ## Deferred Items
 
@@ -300,6 +300,10 @@ status: complete
 - [Phase ?]: The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments.
 - [Phase ?]: Adoption archive members are fully classified before materialization; only regular files and directories are written from memory.
 - [Phase ?]: [96-04]: Adoption archive validation hashes and extracts one bounded immutable binary, with explicit outer/compressed/expanded/member budgets before materialization.
+
+### Roadmap Evolution
+
+- Phase 96.1 inserted after Phase 96: Close gap: ARCHIVE-ATOM-01 — atom-safe archive metadata parsing (URGENT)
 
 ## Performance
 
@@ -615,9 +619,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-10T23:20:55.685Z
-Stopped at: Completed 96-05-PLAN.md
-Resume file: None
+Last session: 2026-08-11T14:42:35.717Z
+Stopped at: Phase 96.1 context gathered (assumptions mode)
+Resume file: .planning/phases/96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing/96.1-CONTEXT.md
 
 ## Operator Next Steps
 
