@@ -2052,6 +2052,26 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag :adoption_archive_security
+    test "keeps archive metadata away from source parsers, evaluators, and atom creators" do
+      source = File.read!("priv/adoption_proof/artifact_archive.ex")
+
+      for forbidden <- [
+            ":file.consult",
+            ":erl_scan",
+            ":erl_parse",
+            "Code.string_to_quoted",
+            "String.to_atom",
+            "List.to_atom"
+          ] do
+        refute source =~ forbidden, "archive parser must not use #{forbidden}"
+      end
+
+      assert source =~ "@max_metadata_bytes 1 * 1024 * 1024"
+      assert source =~ "parse_metadata!"
+      assert source =~ "secure_equal?"
+    end
+
+    @tag :adoption_archive_security
     test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
       outside = temporary_path!("outside-special.txt")
       File.write!(outside, "unchanged")
