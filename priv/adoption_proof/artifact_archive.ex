@@ -7,6 +7,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   @max_outer_archive_bytes 32 * 1024 * 1024
   @max_compressed_contents_bytes 16 * 1024 * 1024
   @max_decompressed_contents_bytes 64 * 1024 * 1024
+  @max_metadata_bytes 1 * 1024 * 1024
   @max_members 4_096
   @max_regular_member_bytes 8 * 1024 * 1024
 
@@ -100,23 +101,127 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   defp fetch_entry!(_, _), do: throw({:provenance, "archive extraction failed"})
 
   defp parse_metadata!(metadata) do
-    path =
-      Path.join(
-        System.tmp_dir!(),
-        "chimeway_adoption_metadata_#{System.unique_integer([:positive])}"
-      )
+    if byte_size(metadata) > @max_metadata_bytes, do: metadata_error!()
 
-    File.write!(path, metadata)
+    metadata
+    |> parse_metadata_whitespace!()
+    |> parse_metadata_forms!(%{})
+  end
 
-    try do
-      case :file.consult(String.to_charlist(path)) do
-        {:ok, terms} when is_list(terms) -> Map.new(terms)
-        _ -> throw({:provenance, "package metadata is malformed"})
-      end
-    after
-      File.rm(path)
+  defp parse_metadata_forms!(<<>>, config), do: config
+
+  defp parse_metadata_forms!(metadata, config) do
+    {key, value, rest} = parse_metadata_pair!(metadata)
+
+    rest =
+      rest
+      |> parse_metadata_whitespace!()
+      |> parse_metadata_dot!()
+      |> parse_metadata_whitespace!()
+
+    config = put_selected_metadata!(config, key, value)
+    parse_metadata_forms!(rest, config)
+  end
+
+  defp parse_metadata_pair!(metadata) do
+    metadata = parse_metadata_open!(metadata, "{") |> parse_metadata_whitespace!()
+    {key, metadata} = parse_metadata_binary!(metadata)
+
+    metadata =
+      parse_metadata_comma!(parse_metadata_whitespace!(metadata)) |> parse_metadata_whitespace!()
+
+    {value, metadata} = parse_metadata_value!(metadata)
+    metadata = parse_metadata_close!(parse_metadata_whitespace!(metadata), "}")
+    {key, value, metadata}
+  end
+
+  defp parse_metadata_value!(metadata) do
+    case metadata do
+      <<"<<\"", _::binary>> ->
+        {value, rest} = parse_metadata_binary!(metadata)
+        {{:binary, value}, rest}
+
+      <<"[", _::binary>> ->
+        parse_metadata_binary_list!(metadata)
+
+      _ ->
+        metadata_error!()
     end
   end
+
+  defp parse_metadata_binary_list!(<<"[", metadata::binary>>) do
+    metadata = parse_metadata_whitespace!(metadata)
+    parse_metadata_binary_list_items!(metadata, [])
+  end
+
+  defp parse_metadata_binary_list_items!(<<"]", rest::binary>>, items),
+    do: {{:list, Enum.reverse(items)}, rest}
+
+  defp parse_metadata_binary_list_items!(metadata, items) do
+    {item, metadata} = parse_metadata_binary!(metadata)
+    metadata = parse_metadata_whitespace!(metadata)
+
+    case metadata do
+      <<",", rest::binary>> ->
+        parse_metadata_binary_list_items!(parse_metadata_whitespace!(rest), [item | items])
+
+      <<"]", rest::binary>> ->
+        {{:list, Enum.reverse([item | items])}, rest}
+
+      _ ->
+        metadata_error!()
+    end
+  end
+
+  defp parse_metadata_binary!(<<"<<\"", metadata::binary>>) do
+    {value, rest} = parse_metadata_binary_bytes!(metadata, [])
+    unless String.valid?(value), do: metadata_error!()
+    {value, rest}
+  end
+
+  defp parse_metadata_binary!(_metadata), do: metadata_error!()
+
+  defp parse_metadata_binary_bytes!(<<"\">>", rest::binary>>, bytes),
+    do: {bytes |> Enum.reverse() |> IO.iodata_to_binary(), rest}
+
+  defp parse_metadata_binary_bytes!(<<byte, rest::binary>>, bytes)
+       when byte >= 32 and byte <= 126 and byte not in [?\\, ?"],
+       do: parse_metadata_binary_bytes!(rest, [<<byte>> | bytes])
+
+  defp parse_metadata_binary_bytes!(_metadata, _bytes), do: metadata_error!()
+
+  defp put_selected_metadata!(config, key, value)
+       when key in [<<"name">>, <<"version">>, <<"files">>] do
+    if Map.has_key?(config, key), do: metadata_error!()
+    Map.put(config, key, selected_metadata_value!(key, value))
+  end
+
+  defp put_selected_metadata!(config, _key, _value), do: config
+
+  defp selected_metadata_value!(key, {:binary, value}) when key in [<<"name">>, <<"version">>],
+    do: value
+
+  defp selected_metadata_value!(<<"files">>, {:list, files}), do: files
+  defp selected_metadata_value!(_key, _value), do: metadata_error!()
+
+  defp parse_metadata_whitespace!(<<byte, rest::binary>>) when byte in [9, 10, 13, 32],
+    do: parse_metadata_whitespace!(rest)
+
+  defp parse_metadata_whitespace!(metadata), do: metadata
+
+  defp parse_metadata_open!(<<expected, rest::binary>>, <<expected>>), do: rest
+  defp parse_metadata_open!(_metadata, _expected), do: metadata_error!()
+
+  defp parse_metadata_close!(<<expected, rest::binary>>, <<expected>>), do: rest
+  defp parse_metadata_close!(_metadata, _expected), do: metadata_error!()
+
+  defp parse_metadata_comma!(<<",", rest::binary>>), do: rest
+  defp parse_metadata_comma!(_metadata), do: metadata_error!()
+
+  defp parse_metadata_dot!(<<".", rest::binary>>), do: rest
+  defp parse_metadata_dot!(_metadata), do: metadata_error!()
+
+  defp metadata_error!, do: throw({:provenance, "package metadata is malformed"})
 
   defp validate_metadata!(config) do
     files = Map.get(config, "files") || Map.get(config, <<"files">>)
