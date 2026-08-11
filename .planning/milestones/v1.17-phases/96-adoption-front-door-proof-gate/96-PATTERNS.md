@@ -176,7 +176,7 @@ For the new runner, print only `[adoption:<path>] START`, the fixture's already-
 
 **Analog:** `install_golden_contract` job and `ci-gate` aggregation.
 
-**Non-PR PostgreSQL root lane pattern** ([`.github/workflows/ci.yml:1043`](/Users/jon/projects/chimeway/.github/workflows/ci.yml:1043)):
+**PostgreSQL root lane pattern** ([`.github/workflows/ci.yml:1043`](/Users/jon/projects/chimeway/.github/workflows/ci.yml:1043)):
 
 ```yaml
 install_golden_contract:
@@ -197,7 +197,7 @@ install_golden_contract:
         --health-retries 5
 ```
 
-Copy checkout, setup-beam, root deps/cache/compile, and database preparation from this root-lane family; name the job `verify_adoption_paths`; final behavior step must be `mix verify.adoption_paths`; no partner checkout, matrix, or PR membership.
+Copy checkout, setup-beam, root deps/cache/compile, and database preparation from this root-lane family; name the job `verify_adoption_paths`; final behavior step must be `mix verify.adoption_paths`; no partner checkout or matrix, and run the lane on every CI event.
 
 **Gate wiring pattern** ([`.github/workflows/ci.yml:1277`](/Users/jon/projects/chimeway/.github/workflows/ci.yml:1277)):
 
@@ -212,7 +212,7 @@ ci-gate:
   run: scripts/ci/aggregate-gate.sh ... VERIFY_ACCRUE ...
 ```
 
-Add the job to all three coupled locations: `needs`, upper-case environment result, and `aggregate-gate.sh` argument list. Do not add it to `pr-gate`.
+Add the job to all three coupled locations in both gates: `needs`, upper-case environment result, and `aggregate-gate.sh` argument list.
 
 ---
 
@@ -288,7 +288,7 @@ for unsafe_key <- ~w[... payload ... credential raw_struct inspect sql ...] do
 end
 ```
 
-Add direct runner/task tests (or structural source assertions plus controlled invocation) for invalid and duplicate `--only` failing before proof output; aggregate dispatching every path once; focused dispatching only one; single safe proof record and framing; no partner-suite commands. Also bind `verify_adoption_paths`, PostgreSQL 15, aggregate command, non-PR guard, presence in `ci-gate`, and absence from `pr-gate`.
+Add direct runner/task tests (or structural source assertions plus controlled invocation) for invalid and duplicate `--only` failing before proof output; aggregate dispatching every path once; focused dispatching only one; single safe proof record and framing; no partner-suite commands. Also bind `verify_adoption_paths`, PostgreSQL 15, aggregate command, every-event execution, and presence in both `pr-gate` and `ci-gate`.
 
 ## Shared Patterns
 
@@ -336,7 +336,7 @@ Retain original fixture `proof.output` as the authoritative evidence line. The e
 ### CI aggregation parity
 
 **Source:** `.github/workflows/ci.yml:1277-1300`; `scripts/ci/aggregate-gate.sh:14-28`  
-**Apply to:** dedicated adoption job and its `ci-gate` membership.
+**Apply to:** dedicated adoption job and its `pr-gate`/`ci-gate` membership.
 
 ```bash
 for lane in "$@"; do

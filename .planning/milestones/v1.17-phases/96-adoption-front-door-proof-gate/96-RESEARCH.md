@@ -19,9 +19,9 @@
 - **D-08:** Never present `verify.mailglass` or `verify.accrue` as adopter proof commands: they remain broader repository-maintainer regression suites. Do not dump generated-host output, database URLs/names, archive or temporary paths, payloads, recipients, credentials, provider responses, raw structs, SQL, or full exceptions.
 - **D-09:** Preserve the prior proof truth boundaries verbatim in selector-facing language: Core proves a durable lifecycle/public trace, not external delivery; Mailglass Fake proves local host composition and Chimeway adapter orchestration, not provider acceptance/sender verification/inbox placement/live feedback; Accrue preserves its event-to-signal and non-terminal `active / signal_received` semantics plus released-package versus SHA-qualified compatibility terminology.
 - **D-10:** Add exactly one dedicated PostgreSQL 15-backed `verify_adoption_paths` CI job that invokes the aggregate `mix verify.adoption_paths` command, uses the established root setup/cache/service-container patterns, retains bounded per-path diagnostics, and runs serially.
-- **D-11:** Add the job to the full push/dispatch `ci-gate` release-confidence topology while leaving the fast PR gate focused on cheap structural contracts. This respects the existing CI-tiering decision that expensive ecosystem-style proofs stay out of the PR fast path while behavior is continuously verified on main/release paths.
+- **D-11:** Run the dedicated adoption job on every CI event and make both `pr-gate` and full push/dispatch `ci-gate` consume it. The clean-room adopter proof is a release-critical contract whose exact-SHA behavior must be visible before merge as well as on main/release paths.
 - **D-12:** Do not run detailed partner suites, check out sibling partner repositories, add a local registry/Compose stack/source-path fallback, cache generated temporary hosts/databases, or split into three jobs/matrix legs. One lane is the lower-risk baseline; split later only if measured timing and failure isolation justify it.
-- **D-13:** Extend the existing documentation and release-gate ExUnit contracts rather than creating a parallel shell truth checker. Contract coverage must bind all-and-only the three path keys, selector wording, guide locations, responsibility/limitation anchors, exact command forms, safe evidence tokens, fixture capabilities, Mix task option validation, CI job/service/command, and `ci-gate` aggregation.
+- **D-13:** Extend the existing documentation and release-gate ExUnit contracts rather than creating a parallel shell truth checker. Contract coverage must bind all-and-only the three path keys, selector wording, guide locations, responsibility/limitation anchors, exact command forms, safe evidence tokens, fixture capabilities, Mix task option validation, CI job/service/command, and both `pr-gate` and `ci-gate` aggregation.
 - **D-14:** Include negative drift cases: unknown/duplicate `--only` values fail without a proof record; an aggregate run invokes each path once; focused runs invoke only their selected path; commands cannot regress to partner suites; unsafe/duplicate proof records, missing selector links, missing PostgreSQL CI service, removed aggregator membership, or renamed job/task fail the contract.
 - **D-15:** Keep behavioral execution and structural contracts separate: contracts protect low-cost textual/config parity on PRs; the adoption CI lane proves the actual three clean-room behaviors from a built/unpacked artifact. Neither is a substitute for the other.
 
@@ -32,7 +32,7 @@
 ### Deferred Ideas (OUT OF SCOPE)
 
 - A visual/browser adoption chooser, cards, responsive UI, or admin/operator proof — outside this documentation and CI phase.
-- Three parallel/matrix adoption CI jobs, per-path required checks, or running the full adoption lane on PRs — defer unless measured runtime/failure-isolation needs outweigh the existing fast-PR tiering decision.
+- Three parallel/matrix adoption CI jobs or per-path required checks — defer unless measured runtime/failure-isolation needs justify expanding the current single required lane.
 - A broadly supported Hex-consumer CLI, arbitrary path selectors, JSON reporting, or user-facing task APIs beyond bounded repository proof invocation — reconsider only if a later milestone establishes that support contract.
 - Live provider/payment acceptance, credentials, sender/domain verification, inbox placement, webhooks, and production partner feedback — remain host/provider responsibility outside deterministic proofs.
 - Sigra, Threadline, Inbox, and other future adoption paths — future ADPT-03 work after the three primary paths establish the reusable model.
@@ -46,7 +46,7 @@
 | ADPT-01 | Adopter chooses Core, Mailglass, or Accrue and understands Chimeway/partner responsibility. | Selector is one first-listed ExDoc extra with exactly three canonical-path rows and responsibility/limitation anchors. [VERIFIED: 96-CONTEXT.md] |
 | ADPT-02 | Each path documents a proof command, observable outcome, and coverage boundary. | Preserve the fixture parsers’ fixed safe records and canonical guide boundaries; selector links through rather than reproducing setup. [VERIFIED: `priv/adoption_proof/artifact_consumer_fixture.ex`, `guides/introduction/*.md`] |
 | GATE-01 | `mix verify.adoption_paths` runs clean-room proofs without partner-suite duplication. | A Mix task plus a local runner should build/unpack once and call fixture `prove_core!/2`, `prove_mailglass!/2`, and `prove_accrue!/2` serially. [VERIFIED: `priv/adoption_proof/artifact_consumer_fixture.ex`, 96-CONTEXT.md] |
-| GATE-02 | CI has a dedicated PostgreSQL adopter-proof lane with useful diagnostics. | Clone the existing non-PR PostgreSQL 15 root-lane shape; add one lane to `ci-gate`, not `pr-gate`. [VERIFIED: `.github/workflows/ci.yml`, 96-CONTEXT.md] |
+| GATE-02 | CI has a dedicated PostgreSQL adopter-proof lane with useful diagnostics. | Reuse the PostgreSQL 15 root-lane shape; run one bounded lane on every CI event and require it from both `pr-gate` and `ci-gate`. [VERIFIED: `.github/workflows/ci.yml`, 96-CONTEXT.md] |
 | DOCS-01 | Selector, commands, fixture guidance, and CI entrypoint cannot silently drift. | Extend the two existing ExUnit contract modules with positive and negative parity cases. [VERIFIED: `test/chimeway/doc_contract_test.exs`, `test/chimeway/release_gate_contract_test.exs`] |
 </phase_requirements>
 
@@ -63,7 +63,7 @@ Phase 96 should compose, not recreate, the three completed artifact-consumer pro
 
 The documentation front door should be a short, static Markdown selector placed first in `mix.exs` ExDoc Introduction extras and linked from README. Its job is decision and proof evaluation, while the existing Core, Mailglass, and Accrue guides retain installation/lifecycle detail. ExDoc explicitly supports ordered Markdown extras, which fits this constrained information architecture. [VERIFIED: `mix.exs`; CITED: https://ex-doc.hexdocs.pm/ExDoc.html]
 
-The new CI behavior belongs in one push/dispatch-only PostgreSQL 15 lane and must join `ci-gate`, while the low-cost `verify_gates` contracts remain in `pr-gate`. This mirrors the project’s existing tiering and makes behavioral evidence continuous without turning every PR into an expensive three-path clean-room run. GitHub’s service-container guidance supports the repository’s existing Ubuntu + mapped PostgreSQL service pattern. [VERIFIED: `.github/workflows/ci.yml`, 96-CONTEXT.md; CITED: https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers]
+The new CI behavior belongs in one PostgreSQL 15 lane that runs on every CI event and is required by both `pr-gate` and `ci-gate`. The bounded clean-room proof is an adopter-facing release contract, so exact behavior is proven before merge as well as on main/release paths; the structural `verify_gates` contracts remain a separate, cheaper parity check. GitHub’s service-container guidance supports the repository’s existing Ubuntu + mapped PostgreSQL service pattern. [VERIFIED: `.github/workflows/ci.yml`, 96-CONTEXT.md; CITED: https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers]
 
 **Primary recommendation:** Implement a bounded `Mix.Tasks.Verify.AdoptionPaths` façade backed by one artifact-build/dispatch runner, then atomically add selector/docs, the single CI lane, and structural ExUnit drift contracts.
 
@@ -75,7 +75,7 @@ The new CI behavior belongs in one push/dispatch-only PostgreSQL 15 lane and mus
 | Path parsing and aggregate command behavior | API / Backend (Mix task) | Local runner | The repository command owns bounded CLI validation and orchestration; it is not a browser or host-app feature. [VERIFIED: 96-CONTEXT.md] |
 | Artifact build, clean-host lifecycle, evidence parsing, cleanup | Package-owned fixture | PostgreSQL storage | Existing fixture already owns provenance, generated consumer, lifecycle assertions, and cleanup. [VERIFIED: `priv/adoption_proof/artifact_consumer_fixture.ex`] |
 | Durable lifecycle persistence | Generated consumer PostgreSQL database | Fixture | Each proof migrates a unique temporary database and removes it afterward. [VERIFIED: `priv/adoption_proof/artifact_consumer_fixture.ex`] |
-| CI execution and aggregation | GitHub Actions | PostgreSQL service container | The workflow owns runner/service/cache setup and `ci-gate` membership. [VERIFIED: `.github/workflows/ci.yml`] |
+| CI execution and aggregation | GitHub Actions | PostgreSQL service container | The workflow owns runner/service/cache setup and membership in both `pr-gate` and `ci-gate`. [VERIFIED: `.github/workflows/ci.yml`] |
 | Drift prevention | ExUnit contract suites | PR gate | Existing doc and release-gate contracts already test file/CI/package truth and run through `mix ci.verify_gates`. [VERIFIED: `mix.exs`, `test/chimeway/doc_contract_test.exs`, `test/chimeway/release_gate_contract_test.exs`] |
 
 ## Standard Stack
@@ -88,14 +88,14 @@ The new CI behavior belongs in one push/dispatch-only PostgreSQL 15 lane and mus
 | Existing `ArtifactConsumerFixture` | package-owned local module | Executes and validates all three clean-room proofs. | It already exposes the exact Core/Mailglass/Accrue paths and strict proof parsers; duplicating the proofs would weaken parity. [VERIFIED: `priv/adoption_proof/artifact_consumer_fixture.ex`] |
 | ExUnit contract suites | existing | Enforce doc, task, fixture, workflow, and aggregate truth. | `ci.verify_gates` already executes the two established contract modules. [VERIFIED: `mix.exs`, `test/chimeway/doc_contract_test.exs`, `test/chimeway/release_gate_contract_test.exs`] |
 | ExDoc extras | existing `ex_doc ~> 0.31` | Canonical selector navigation. | ExDoc supports ordered Markdown extras and the repository already groups Introduction guides through `groups_extras`. [VERIFIED: `mix.exs`; CITED: https://ex-doc.hexdocs.pm/ExDoc.html] |
-| GitHub Actions + PostgreSQL 15 service | existing | Aggregate behavioral proof lane. | Current non-PR jobs already use this exact service health-check and `localhost` configuration. [VERIFIED: `.github/workflows/ci.yml`; CITED: https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers] |
+| GitHub Actions + PostgreSQL 15 service | existing | Aggregate behavioral proof lane. | Existing root jobs provide the service health-check and `localhost` configuration; this lane applies the shape on every event. [VERIFIED: `.github/workflows/ci.yml`; CITED: https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers] |
 
 ### Supporting
 
 | Facility | Version | Purpose | When to Use |
 |---|---:|---|---|
 | `scripts/test-db` | existing | Starts the project-scoped Docker PostgreSQL service for local test commands when no `DATABASE_URL` is set. | Use for contract tests/local verification; do not make it a second adoption orchestration stack. [VERIFIED: `scripts/test-db`] |
-| `scripts/ci/aggregate-gate.sh` | existing | Fails an aggregate job when a required dependency fails. | Extend the existing `ci-gate` environment/argument list with the new job’s result. [VERIFIED: `.github/workflows/ci.yml`, `scripts/ci/aggregate-gate.sh`] |
+| `scripts/ci/aggregate-gate.sh` | existing | Fails an aggregate job when a required dependency fails. | Extend both aggregate gates' environment/argument lists with the new job’s result. [VERIFIED: `.github/workflows/ci.yml`, `scripts/ci/aggregate-gate.sh`] |
 
 ### Alternatives Considered
 
@@ -135,7 +135,7 @@ local runner: build/unpack artifact once; serially dispatch selected paths
 redacted START / PASS / FAIL framing + safe rerun command
           |
           +--> local focused recovery
-          \--> verify_adoption_paths CI job (PostgreSQL 15) --> ci-gate
+          \--> verify_adoption_paths CI job (PostgreSQL 15) --> pr-gate + ci-gate
 
 doc_contract_test + release_gate_contract_test ---------> enforce selector/task/fixture/CI parity
 ```
@@ -154,7 +154,7 @@ guides/introduction/
 
 test/chimeway/
 ├── doc_contract_test.exs             # selector/README/guide anchors and limitations
-└── release_gate_contract_test.exs    # task/runner/fixture/CI/ci-gate + negative drift
+└── release_gate_contract_test.exs    # task/runner/fixture/CI/both gates + negative drift
 ```
 
 ### Pattern 1: Thin bounded task, stateful local runner
@@ -225,9 +225,9 @@ Do not use a permissive parser: `OptionParser` returns invalid options separatel
 
 ### Pitfall 3: CI gate wiring drifts while the job still exists
 
-**What goes wrong:** `verify_adoption_paths` is added but omitted from `ci-gate`, added to `pr-gate`, or is skipped on an event where the aggregate runs. [VERIFIED: `.github/workflows/ci.yml`, 96-CONTEXT.md]
+**What goes wrong:** `verify_adoption_paths` exists but is omitted from either aggregate gate or skipped on an event where that gate runs. [VERIFIED: `.github/workflows/ci.yml`, 96-CONTEXT.md]
 
-**How to avoid:** Contract-test job ID, PostgreSQL 15 service, aggregate command, non-PR condition, `ci-gate` needs/env/argument membership, and absence from `pr-gate`. [VERIFIED: 96-CONTEXT.md]
+**How to avoid:** Contract-test job ID, PostgreSQL 15 service, aggregate command, every-event execution, and needs/env/argument membership in both `pr-gate` and `ci-gate`. [VERIFIED: 96-CONTEXT.md]
 
 ### Pitfall 4: Building/unpacking separately for each path
 
@@ -244,7 +244,6 @@ Do not use a permissive parser: `OptionParser` returns invalid options separatel
 verify_adoption_paths:
   name: Adoption proof paths
   runs-on: ubuntu-latest
-  if: github.event_name != 'pull_request'
   services:
     postgres:
       image: postgres:15
@@ -326,7 +325,7 @@ The final wording must retain the canonical guide’s exact limitation vocabular
 | ADPT-01 | Selector has all-and-only three paths, ownership splits, README link, first ExDoc extra, and canonical guide links. | documentation contract | `mix ci.verify_gates` | ✅ extend existing contracts |
 | ADPT-02 | Every selector row has exact focused command, one safe evidence shape, and canonical limitation wording. | documentation/release contract | `mix ci.verify_gates` | ✅ extend existing contracts |
 | GATE-01 | No-option aggregate invokes each path once; `--only` invokes exactly one; invalid/duplicate selectors fail before a proof record; no partner suite commands. | task/runner contract + integration | `mix ci.verify_gates`; `mix verify.adoption_paths` | ✅ extend existing contracts; runner tests are Wave 0 additions |
-| GATE-02 | One non-PR PostgreSQL-15 job invokes aggregate command and is a `ci-gate` dependency, not a PR-gate dependency. | CI topology contract | `mix ci.verify_gates` | ✅ extend `release_gate_contract_test.exs` |
+| GATE-02 | One every-event PostgreSQL-15 job invokes the aggregate command and is required by both `pr-gate` and `ci-gate`. | CI topology contract | `mix ci.verify_gates` | ✅ extend `release_gate_contract_test.exs` |
 | DOCS-01 | Negative drift cases reject unsafe/duplicate records, missing links/service, task/job rename, or removed aggregation. | negative contract | `mix ci.verify_gates` | ✅ extend existing contracts |
 
 ### Sampling Rate
@@ -360,7 +359,7 @@ The final wording must retain the canonical guide’s exact limitation vocabular
 | CLI option expands proof scope or invokes an unintended path | Tampering | Literal allowlist and failure-before-output contracts. [VERIFIED: 96-CONTEXT.md] |
 | Generated-host/proof error discloses private details | Information disclosure | Fixed safe stage grammar; no raw output, exception, archive, temp path, DB, payload, recipient, credential, SQL, or struct output. [VERIFIED: 96-CONTEXT.md] |
 | Forged/malformed evidence record is treated as proof | Tampering | Existing exact-one-line parsers reject unknown, duplicate, malformed, and unsafe values. [VERIFIED: `priv/adoption_proof/artifact_consumer_fixture.ex`] |
-| CI workflow appears gated while the job is omitted/skipped | Tampering / repudiation | Structural contracts bind job/service/command/event condition plus `ci-gate` aggregate membership. [VERIFIED: 96-CONTEXT.md] |
+| CI workflow appears gated while the job is omitted/skipped | Tampering / repudiation | Structural contracts bind job/service/command/every-event execution plus both aggregate-gate memberships. [VERIFIED: 96-CONTEXT.md] |
 
 ## Sources
 

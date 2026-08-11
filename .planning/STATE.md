@@ -2,36 +2,36 @@
 gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
-current_phase: null
-current_phase_name: null
-status: all phases complete
+status: Awaiting next milestone
 stopped_at: Completed 96.1-01-PLAN.md
-last_updated: "2026-08-11T16:33:49.796Z"
+last_updated: "2026-08-11T21:47:00.803Z"
 last_activity: 2026-08-11
-last_activity_desc: Phase 96.1 complete; all v1.17 phases verified
+last_activity_desc: Milestone v1.17 completed and archived
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 16
   completed_plans: 16
   percent: 100
+current_phase: null
+current_phase_name: null
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-11 after Phase 96.1 completion)
+See: .planning/PROJECT.md (updated 2026-08-11 after v1.17 milestone close)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.17 milestone audit and completion
+**Current focus:** Select and define the next milestone
 
 ## Current Position
 
-Phase: All 5 v1.17 phases complete
-Plan: 16 of 16 complete
-Status: Ready for milestone audit and completion
-Last activity: 2026-08-11 — Phase 96.1 complete; all v1.17 phases verified
+Phase: Milestone v1.17 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-11 — Milestone v1.17 completed and archived
 
 ## Deferred Items
 
@@ -297,7 +297,7 @@ status: complete
 - [Phase ?]: Phase 96-01: adoption proofs build one SHA-validated archive and dispatch Core, Mailglass, and Accrue serially.
 - [Phase ?]: Phase 96-01: invalid adoption selectors fail before runner loading or proof output.
 - [Phase ?]: The selector compares only Core, Mailglass, and Accrue in progressive-complexity order and routes detailed setup to the existing guides.
-- [Phase ?]: The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments.
+- [Phase 96]: The aggregate artifact proof runs once in a serial PostgreSQL 15 job on every workflow event and is required by both pr-gate and ci-gate through their needs and aggregate arguments.
 - [Phase ?]: Adoption archive members are fully classified before materialization; only regular files and directories are written from memory.
 - [Phase ?]: [96-04]: Adoption archive validation hashes and extracts one bounded immutable binary, with explicit outer/compressed/expanded/member budgets before materialization.
 - [Phase ?]: [96.1-01]: Archive metadata is parsed in-memory with a bounded binary-only canonical Hex grammar; no source-term parser or input-derived atom conversion is permitted.
@@ -627,7 +627,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Approve the v1.17 roadmap, then plan Phase 93 with /gsd-plan-phase 93
+- Start the next milestone with /gsd-new-milestone
 
 ## Performance Metrics
 
