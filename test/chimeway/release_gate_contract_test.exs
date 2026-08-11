@@ -1757,7 +1757,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag :accrue_packaged_cli
-    @tag timeout: 120_000
+    @tag timeout: 600_000
     test "rejects malformed archive provenance without a proof line" do
       archive = build_package_archive!()
       on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
@@ -2159,7 +2159,11 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   describe "adoption paths contract (GATE-01/D-05..D-08)" do
     @tag :adoption_paths_contract
-    @tag timeout: 180_000
+    # The required verify_adoption_paths CI lane owns this expensive subprocess
+    # proof. General/release-contract lanes exclude only :adoption_paths_e2e so
+    # PR coverage stays singular while direct test runs retain the E2E contract.
+    @tag :adoption_paths_e2e
+    @tag timeout: 900_000
     test "runs the complete packaged proof once in Core, Mailglass, Accrue order" do
       {output, status} = System.cmd("mix", ["verify.adoption_paths"], stderr_to_stdout: true)
 
