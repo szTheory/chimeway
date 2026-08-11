@@ -22,7 +22,7 @@ key-files:
 decisions:
   - "Matching caller-provided SHA-256 is transport integrity only; tar member type and path validation remains mandatory."
   - "Only regular-file and directory headers may reach memory extraction and explicit contained writes."
-  - "GitHub Actions verify_adoption_paths remains pending external human verification until a hosted run is recorded."
+  - "Hosted verify_adoption_paths evidence is machine-checked at an exact implementation SHA together with its required pr-gate consumer."
 metrics:
   tasks_completed: 2
   files_modified: 2
@@ -53,7 +53,7 @@ status: complete
 - PASS — mix format --check-formatted for both plan-owned files.
 - PARTIAL — the real packaged Core command reached [adoption:core] START, confirming the new validator accepted a built package before the runner began; its terminal result was not captured by the execution harness.
 - FAIL (unrelated to Plan 03 files; retried) — mix ci.verify_gates failed existing release-gate cases at release_gate_contract_test.exs:1228 (Mailglass fixture timeline_events) and :1622 (existing Accrue proof source assertion). Neither owning file was modified by this plan.
-- PENDING LIVE CI — GitHub Actions verify_adoption_paths remains an external human verification item. No hosted run URL or result was supplied.
+- PASS — exact-SHA GitHub Actions run `31449129603` recorded successful `verify_adoption_paths` and `pr-gate` jobs at `c13bae7c92c537f3e758330703168119703a301b`.
 
 ## Deviations from Plan
 
@@ -69,7 +69,7 @@ status: complete
 ### Deferred Verification
 
 - mix ci.verify_gates is red in pre-existing Mailglass/Accrue release-gate contracts outside this plan's files. It was retried without change; no unrelated fix was applied.
-- Live verify_adoption_paths GitHub Actions execution remains pending external human verification.
+- Live verify_adoption_paths GitHub Actions execution was subsequently closed by the exact-SHA machine-readable evidence above.
 
 ## Known Stubs
 

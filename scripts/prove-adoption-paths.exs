@@ -99,11 +99,14 @@ defmodule Chimeway.AdoptionProofRunner do
       raise "invalid proof output"
     end
 
-    case path do
-      :core -> Chimeway.Test.ArtifactConsumerFixture.parse_evidence!(output)
-      :mailglass -> Chimeway.Test.ArtifactConsumerFixture.parse_mailglass_evidence!(output)
-      :accrue -> Chimeway.Test.ArtifactConsumerFixture.parse_accrue_evidence!(output)
-    end
+    parser =
+      case path do
+        :core -> :parse_evidence!
+        :mailglass -> :parse_mailglass_evidence!
+        :accrue -> :parse_accrue_evidence!
+      end
+
+    apply(Chimeway.Test.ArtifactConsumerFixture, parser, [output])
   end
 
   defp validate_output!(_, _), do: raise("invalid proof output")

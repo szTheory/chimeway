@@ -574,6 +574,52 @@
 
 ---
 
+## Milestone: v1.17 — Adopter Proof Paths
+
+**Shipped:** 2026-08-11 (verified closeout)
+**Phases:** 5 (93–96.1) | **Plans:** 16 | **Requirements:** 13/13
+
+### What Was Built
+
+- Hermetic Core, Mailglass, and Accrue clean-consumer proofs that resolve Chimeway from one SHA-validated package artifact and expose bounded public evidence.
+- A canonical adoption selector plus `mix verify.adoption_paths`, with a dedicated PostgreSQL-backed CI job required by both `pr-gate` and `ci-gate` on every workflow event.
+- Exact responsibility and provenance contracts: Mailglass Fake transport does not imply provider acceptance, and Accrue pinned-SHA compatibility does not imply released-package support.
+- Immutable, resource-bounded archive extraction and a binary-only Hex metadata parser that reject links, special members, hostile terms, and input-derived atom creation before callbacks.
+
+### What Worked
+
+- Building the artifact once made all three proofs answer the same release-truth question and removed source-tree ambiguity.
+- Strict allowlisted evidence schemas made sanitization and explainability objectively testable instead of dependent on visual inspection.
+- The audit found a real atom-safety issue; the inserted Phase 96.1 closed it with adversarial tests, security review, and exact-SHA hosted evidence.
+- The final executable rerun (`mix ci.verify_gates`: 618 tests, 0 failures; `mix verify.adoption_paths`: 3/3 paths) let objective UAT remain fully automated.
+
+### What Was Inefficient
+
+- Summary frontmatter and roadmap counters drifted from the completed Phase 96 plan set, forcing reconciliation at milestone close.
+- The CI topology narrative lagged the implemented every-event contract and still described a non-PR-only lane.
+- Updating metadata after verification made Phase 96 appear stale, so the full release gate and adoption proof had to be rerun before close.
+
+### Patterns Established
+
+- Adoption evidence is built once from immutable bytes, then consumed serially by path-specific proofs.
+- Proof output is a fixed redacted schema; unexpected keys, values, ordering, or provenance fail closed.
+- Untrusted package metadata remains binary data throughout parsing; no source evaluation or input-derived atom conversion is permitted.
+- CI topology claims are contract-tested against both aggregate gates, not inferred from prose.
+
+### Key Lessons
+
+1. Summary metadata is part of the verification graph; reconcile it when a plan lands, not only at milestone audit.
+2. Workflow topology needs one explicit contract owner because event conditions and aggregate dependencies can drift independently.
+3. Artifact parsers need threat modeling at the byte boundary, including decompression limits, member classes, metadata grammar, and VM-global atom effects.
+
+### Cost Observations
+
+- Model mix and session count were not instrumented.
+- The milestone ran 2026-08-08 → 2026-08-11 across 5 phases and 16 plans; repository history recorded 166 commits in the milestone range.
+- The comprehensive release gate takes roughly eight minutes locally, so stale verification metadata is materially expensive.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -593,6 +639,7 @@
 | v1.10 | 63–67 | Threadline/Sigra ecosystem completions |
 | v1.11 | 68–72 | Operator console polish, safety, redaction, and admin gate |
 | v1.13 | 73–76.1 | Storage isolation, prefixed migrations, runtime prefix propagation, and schema proof |
+| v1.17 | 93–96.1 | Immutable packaged-adopter proofs, every-event CI topology, and atom-safe archive parsing |
 
 ### Cumulative Quality
 

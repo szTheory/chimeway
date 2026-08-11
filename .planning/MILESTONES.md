@@ -1,5 +1,26 @@
 # Milestones
 
+## v1.17 Adopter Proof Paths (Shipped: 2026-08-11)
+
+**Delivered:** Prospective adopters can select and run truthful Core, Mailglass, or Accrue clean-room proofs from one immutable packaged artifact, with bounded redacted evidence and CI-enforced documentation/topology contracts.
+
+**Phases completed:** 5 phases (93–96.1), 16 plans, 15 indexed tasks
+**Requirements:** 13/13 satisfied
+**Closeout:** verified_closeout — 5/5 phase verifications passed; audit passed at 11/11 integration connections and 4/4 end-to-end flows
+**Audit:** [v1.17-MILESTONE-AUDIT.md](milestones/v1.17-MILESTONE-AUDIT.md)
+**Timeline:** 2026-08-08 → 2026-08-11
+
+**Key accomplishments:**
+
+- A hermetic Core proof boots a disposable Ecto host, completes a synchronous delivery, and emits only sanitized public trace evidence.
+- A host-owned Mailglass proof validates its exact Fake-transport lifecycle schema while documenting live-provider exclusions.
+- An Accrue proof exercises the natural billing event-to-outcome path and distinguishes released-package provenance from immutable pinned-SHA compatibility.
+- `mix verify.adoption_paths` builds one SHA-validated artifact and dispatches Core, Mailglass, and Accrue serially with per-path diagnostics.
+- The PostgreSQL-backed adoption job is required by both `pr-gate` and `ci-gate`, and contract tests lock selector, docs, fixture commands, and workflow topology together.
+- Archive handling rejects links, special members, oversized payloads, hostile metadata, and input-derived atom creation before callbacks or materialization.
+
+---
+
 ## v1.16 CI/CD Performance & Reliability (Shipped: 2026-07-30)
 
 **Phases completed:** 6 phases (87–92), 21 plans. **Closeout:** override_closeout (accepted-risk). **Requirements delivered:** 25/26. **Scope:** doc/config/CI/test-only — zero `lib/` runtime changes across the milestone. Range: `feat(87-01)` (`83db6d2`) → `docs(phase-92)` (`e8a9936`); ~42 CI/config/test files, +2175/−145.

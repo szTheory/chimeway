@@ -8,18 +8,19 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
-## Current Milestone: v1.17 Adopter Proof Paths
+## Latest Shipped Milestone: v1.17 Adopter Proof Paths
 
-**Goal:** Let a prospective Elixir/Phoenix adopter choose a relevant end-to-end Chimeway use case, run a clean, trustworthy proof of it, and understand the boundary between Chimeway and its integration partners.
+**Status:** ✅ SHIPPED 2026-08-11 — verified closeout; 5 phases, 16 plans, 13/13 requirements. The milestone audit passed with 11/11 integration connections and 4/4 end-to-end flows.
 
-**Target features:**
-- **Adoption front door:** a concise path selector that guides adopters from their goal to the right canonical integration journey and makes Chimeway's responsibility explicit.
-- **Clean-room tracer bullets:** reproducible install-to-outcome proofs for the core notification-and-trace, Mailglass transactional-email, and Accrue billing-escalation paths.
-- **Executable documentation:** CI-backed proof commands that validate the documented paths against a packaged/local-release artifact, so instructional guidance stays copyable and true.
+**Delivered:**
+- **Adoption front door:** a concise Core/Mailglass/Accrue selector with explicit host, Chimeway, and partner responsibility boundaries.
+- **Hermetic tracer bullets:** reproducible clean-consumer proofs from one SHA-validated package artifact for core notification-and-trace, Mailglass transactional email, and Accrue billing escalation.
+- **Executable truth:** `mix verify.adoption_paths`, contract-checked guidance, and a PostgreSQL-backed CI job required by both `pr-gate` and `ci-gate` on every workflow event.
+- **Archive hardening:** bounded immutable archive handling and binary-only Hex metadata parsing reject hostile members, resource abuse, and atom-table growth before callbacks or materialization.
 
-**Key context:** Existing guides and `verify.*` lanes already cover Golden Path, Mailglass, Accrue, Inbox, Threadline, and Sigra. This milestone consolidates and strengthens the highest-value adopter evaluation paths rather than expanding UI, adding recipient inbox behavior, or optimizing CI wall-clock further.
+**Evidence:** `mix ci.verify_gates` passed 618 tests (0 failures, 1 excluded); `mix verify.adoption_paths` passed Core, Mailglass, and Accrue; the archived audit is `.planning/milestones/v1.17-MILESTONE-AUDIT.md`.
 
-## Latest Shipped Milestone: v1.16 CI/CD Performance & Reliability
+## Prior Milestone: v1.16 CI/CD Performance & Reliability
 
 **Status:** ✅ SHIPPED 2026-07-30 (accepted-risk close) — 25/26 requirements. Phases 87–92, 21 plans. **CACHE-05 deferred:** cache *correctness* (CACHE-01..04) shipped and proven (caches HIT on warm runs, `MIX_ENV` collision fixed), but the headline sub-3-min warm `ci-gate` target was **not** met — warm wall-clock regressed ~373s→~648s (serial `build` producer runs ahead of consumers that still recompile ex_cldr/rebar/app). Owner banked the correctness win 2026-07-29 and relegated compile-once to a spike (`CI-HARDENING-BACKLOG.md` #4).
 
@@ -41,6 +42,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.17 Adopter Proof Paths — ADPT-01/02, PROOF-01/02/03, CORE-01, MAIL-01/02, ACCR-01/02, GATE-01/02, and DOCS-01 are satisfied. Five phase verifications and the milestone audit pass; the aggregate proof builds once and runs all three clean-room paths against the same immutable artifact.
 - ✓ v1.17 Phase 96.1 Atom-Safe Archive Metadata Parsing — ARCHIVE-ATOM-01: caller-controlled Hex metadata now passes through a bounded binary-only parser with no source evaluation or input-derived atom creation. Exact in-process atom-count, grammar/resource-boundary, callback/redaction, real Hex archive, local release/adoption gate, security audit, and hosted exact-SHA PR evidence all pass (GitHub Actions run `31509666185`; 5/5 must-haves, 5/5 STRIDE threats closed, zero human UAT).
 - ✓ v1.17 Phase 94 Mailglass Transactional-Email Proof — MAIL-01/02: the clean consumer proves the host-owned Mailglass adapter path through a deterministic fake transport, with one trace-derived, strictly schema-validated public evidence line. The parser rejects forged, sensitive, malformed, reordered, and atom-creating values; guidance explicitly distinguishes local composition/orchestration proof from live provider acceptance, sender verification, and feedback. **Verified 10/10 must-haves** by focused release-gate and `mix ci.verify_gates` checks (isolated project test database).
 - ✓ v1.16 Phase 92 Reliability Triage & Determinism — REL-01/02/03/04: `scripts/ci/reliability-report.sh` classifies push-on-`main` `ci-gate` **job** conclusions (cancelled/skipped excluded from the denominator) with a strict integer-arithmetic bar (failure_rate < 10% AND green-streak ≥ 5), durably snapshotted in `.planning/CI-RELIABILITY-REPORT.md` (measured `rate=6% streak=10` over 30 runs); the two CI-only backlog issues (`demo.up --check` dev-DB hang, Accrue path-dep compile) are **verified-fixed** with pinned root-cause mechanisms (tracking issue #4 closed); a nightly-only `test_seed_zero` (`mix test --seed 0`) lane wired into `nightly-gate` guards test-ordering coupling without pinning a global ExUnit seed (correctly skipped on PR/push); and `Chimeway.TestSupport.EnvHelper.put_env_isolated/3` provides a capture/restore app-env helper (restore-when-present, delete-when-absent) adopted in the one async `DataCase` hazard, with a contract guard against bare `Application.put_env/3` in async modules. **Verified 12/12 must-haves + AUTOMATED live-CI proof** pinned to phase HEAD `eff0ba43`: push run 30573877353 = `ci-gate` fully green (`verify_example`/`verify_journeys`/`verify_accrue` + `Lint` all success, `test_seed_zero` skipped on push), nightly-dispatch 30573935421 = `test_seed_zero` + `nightly-gate` green. `lib/` untouched across the phase (doc/config/test-only milestone invariant).
@@ -113,6 +115,8 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 
 ## Current State
 
+**v1.17 Adopter Proof Paths shipped (2026-08-11):** The milestone is archived with all 13 requirements satisfied and no open audit gaps. Core, Mailglass, and Accrue now run as bounded clean-room proofs from one SHA-validated package artifact; documentation, runtime dispatch, and the every-event CI topology agree. No milestone is currently active.
+
 **v1.17 Phase 96.1 Atom-Safe Archive Metadata Parsing complete (2026-08-11):** The audit gap ARCHIVE-ATOM-01 is closed by a bounded, binary-only private parser. Hostile correctly digested metadata cannot grow the BEAM atom table or reach callbacks; resource, grammar, duplicate-field, redaction, real-package, and unchanged-caller contracts are executable. Local gates, security audit, and exact-SHA hosted PR evidence are green in run `31509666185`; 5/5 must-haves passed with zero human UAT.
 
 **v1.17 Phase 94 Mailglass Transactional-Email Proof complete (2026-08-09):** The clean artifact consumer now proves deterministic Mailglass orchestration with fixed trace-derived public evidence. The stdout boundary validates all twelve allowlisted fields—stable identities, numeric `1` values, UUID delivery ID, and exact succeeded lifecycle—and fails closed without atomizing untrusted keys or timeline values. MAIL-01/02 are verified 10/10; Phase 95 is next.
@@ -159,10 +163,15 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.12 Quality Readiness Audit` — planning-only audit pass that identified storage isolation, release/package truth, CI/DX, README, tenant, privacy, and reliability seams (2026-06-30).
 - `v1.13 Storage Isolation and Upgrade Path` — Chimeway-owned Postgres schema support and upgrade-safe public compatibility (shipped 2026-07-02).
 - `v1.14 Public Truth and Verification Architecture` — package/release truth, README/docs front door, fast PR gate, full release gate parity, and clean adoption proof (shipped 2026-07-03).
+- `v1.15 Brand Identity & Brand Book` — reusable visual identity, accessible brandbook, and repository integration (shipped 2026-07-28).
+- `v1.16 CI/CD Performance & Reliability` — cache correctness, CI observability, tiering, supply-chain, and reliability controls (shipped 2026-07-30; CACHE-05 deferred).
+- `v1.17 Adopter Proof Paths` — hermetic Core/Mailglass/Accrue package proofs, adoption selector, every-event CI gate, and atom-safe archive parsing (shipped 2026-08-11).
 
 ## Next Milestone Goals
 
-**Latest shipped:** v1.16 CI/CD Performance & Reliability (2026-07-30, accepted-risk — 25/26).
+**Latest shipped:** v1.17 Adopter Proof Paths (2026-08-11, verified closeout — 13/13).
+
+**Next milestone:** Not selected. Start a new planning cycle with `$gsd-new-milestone`; the candidates below remain context, not committed scope.
 
 **Top carried-forward candidate (from v1.16 deferral):**
 - **CACHE-05 compile-once spike** (`CI-HARDENING-BACKLOG.md` #4) — the one requirement v1.16 did not deliver. Cache correctness is done and proven; the remaining problem is that warm `ci-gate` still recompiles ex_cldr (~86s) + rebar deps + the ~93-file app on every consumer, so the serial `build` producer regressed wall-clock rather than cutting it. First hypothesis: re-unify the `deps`+`_build` cache to stop the ex_cldr/`_build`-split rebuild. This is a spike, not a planned milestone, until the mechanism is understood.
@@ -312,6 +321,9 @@ Prior context includes:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| Build adoption proofs once from one immutable package artifact | All three paths must demonstrate the same releasable bytes rather than source-tree behavior or independently rebuilt inputs | Shipped v1.17: `mix verify.adoption_paths` validates one SHA and dispatches Core, Mailglass, and Accrue serially |
+| Require the adoption proof on every CI event | Adopter-facing commands and topology are release truth, so neither PR nor full CI may omit the lane | Shipped v1.17: the PostgreSQL-backed job is required by both `pr-gate` and `ci-gate` |
+| Parse Hex archive metadata with a bounded binary-only grammar | Caller-controlled metadata must not evaluate source terms, intern input-derived atoms, or bypass resource limits | Shipped v1.17 Phase 96.1; hostile metadata fails before callbacks or materialization |
 | Advisory-only dependency audit (`continue-on-error`) | Surface disclosed CVEs (hackney/decimal) in CI output without blocking the gate on unfixable transitive advisories (D-12 / `DEF-AUDIT-BLOCK`) | Phase 91: `mix ci.audit` = `[hex.audit, deps.audit]`, both scan, Lint stays green; accepted-risk AR-91-02 |
 | Verify live-CI backstops by automated assertion, not human UAT | Shift-left / DevOps: push the phase to CI and assert run logs programmatically (`gh` + `/jobs` API) — zero manual inspection | Phase 91: 5/5 QUAL backstops verified across push/nightly/PR runs; UAT auto-completed |
 | Persist stable notification keys as data identity | Survives module renames and preserves historical traceability | Implemented in Phase 01 notifier contract + persistence flow |
@@ -598,4 +610,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-11 after completing Phase 96.1 atom-safe archive metadata parsing.*
+*Last updated: 2026-08-11 after archiving v1.17 Adopter Proof Paths.*

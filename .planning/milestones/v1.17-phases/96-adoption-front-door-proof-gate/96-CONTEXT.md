@@ -27,13 +27,13 @@ Deliver a concise, documentation-first adoption selector for the existing Core, 
 
 ### Focused CI and Operational Posture
 - **D-10:** Add exactly one dedicated PostgreSQL 15-backed `verify_adoption_paths` CI job that invokes the aggregate `mix verify.adoption_paths` command, uses the established root setup/cache/service-container patterns, retains bounded per-path diagnostics, and runs serially.
-- **D-11:** Add the job to the full push/dispatch `ci-gate` release-confidence topology while leaving the fast PR gate focused on cheap structural contracts. This respects the existing CI-tiering decision that expensive ecosystem-style proofs stay out of the PR fast path while behavior is continuously verified on main/release paths.
+- **D-11:** Run the dedicated adoption job on every CI event and make both `pr-gate` and full push/dispatch `ci-gate` consume it. The clean-room adopter proof is a release-critical contract whose exact-SHA behavior must be visible before merge as well as on main/release paths.
 - **D-12:** Do not run detailed partner suites, check out sibling partner repositories, add a local registry/Compose stack/source-path fallback, cache generated temporary hosts/databases, or split into three jobs/matrix legs. One lane is the lower-risk baseline; split later only if measured timing and failure isolation justify it.
 
 ### Drift Contracts and Release Truth
-- **D-13:** Extend the existing documentation and release-gate ExUnit contracts rather than creating a parallel shell truth checker. Contract coverage must bind all-and-only the three path keys, selector wording, guide locations, responsibility/limitation anchors, exact command forms, safe evidence tokens, fixture capabilities, Mix task option validation, CI job/service/command, and `ci-gate` aggregation.
+- **D-13:** Extend the existing documentation and release-gate ExUnit contracts rather than creating a parallel shell truth checker. Contract coverage must bind all-and-only the three path keys, selector wording, guide locations, responsibility/limitation anchors, exact command forms, safe evidence tokens, fixture capabilities, Mix task option validation, CI job/service/command, and both `pr-gate` and `ci-gate` aggregation.
 - **D-14:** Include negative drift cases: unknown/duplicate `--only` values fail without a proof record; an aggregate run invokes each path once; focused runs invoke only their selected path; commands cannot regress to partner suites; unsafe/duplicate proof records, missing selector links, missing PostgreSQL CI service, removed aggregator membership, or renamed job/task fail the contract.
-- **D-15:** Keep behavioral execution and structural contracts separate: contracts protect low-cost textual/config parity on PRs; the adoption CI lane proves the actual three clean-room behaviors from a built/unpacked artifact. Neither is a substitute for the other.
+- **D-15:** Keep behavioral execution and structural contracts separate even though both run on PRs: low-cost contracts protect textual/config parity, while the dedicated adoption lane proves the actual three clean-room behaviors from a built/unpacked artifact. Neither is a substitute for the other.
 
 ### the agent's Discretion
 - Exact guide filename/title, table markup, ordered headings, task/runner module and script names, safe diagnostic stage vocabulary, focused test-module placement, CI timeout, and cache-key spelling, provided the locked command semantics, redaction boundary, one-lane topology, and contracts remain intact.
@@ -89,14 +89,14 @@ Deliver a concise, documentation-first adoption selector for the existing Core, 
 ### Established Patterns
 - Adoption proofs are artifact-consumer evidence, not in-repository DemoHost or partner regression tests.
 - ExUnit contract suites protect package, documentation, CI, and evidence truth; behavioral proof remains a real integration execution.
-- CI tiering keeps expensive integration/ecosystem work on push/main while PR feedback favors cheaper gates.
+- CI tiering generally keeps expensive ecosystem work on push/main, but this milestone deliberately promotes the bounded adoption proof to a required PR and full-CI lane because it is the adopter-facing release contract.
 - Safe operator/developer output is explicit and allowlisted, not an accidental dump of otherwise available backend state.
 - New docs use semantic Markdown, normal code blocks, named links, and progressive disclosure; no visual frontend is needed for documentation selection.
 
 ### Integration Points
 - The selector must compose README, ExDoc extras, three existing canonical guides, and a new documented Mix task without creating competing guidance.
 - The task/runner must map bounded path names to existing fixture proof functions and preserve their proof evidence/cleanup contracts.
-- The CI job must use the repository’s PostgreSQL/cache/aggregate patterns and be included in `ci-gate` without importing partner checkout/suite behavior.
+- The CI job must use the repository’s PostgreSQL/cache/aggregate patterns and be included in both `pr-gate` and `ci-gate` without importing partner checkout/suite behavior.
 - Doc/release contracts must be updated atomically with command, fixture mapping, guide, and CI changes so future edits cannot silently create a false adopter promise.
 </code_context>
 
@@ -113,7 +113,7 @@ Deliver a concise, documentation-first adoption selector for the existing Core, 
 ## Deferred Ideas
 
 - A visual/browser adoption chooser, cards, responsive UI, or admin/operator proof — outside this documentation and CI phase.
-- Three parallel/matrix adoption CI jobs, per-path required checks, or running the full adoption lane on PRs — defer unless measured runtime/failure-isolation needs outweigh the existing fast-PR tiering decision.
+- Three parallel/matrix adoption CI jobs or per-path required checks — defer unless measured runtime/failure-isolation needs justify expanding the current single required lane.
 - A broadly supported Hex-consumer CLI, arbitrary path selectors, JSON reporting, or user-facing task APIs beyond bounded repository proof invocation — reconsider only if a later milestone establishes that support contract.
 - Live provider/payment acceptance, credentials, sender/domain verification, inbox placement, webhooks, and production partner feedback — remain host/provider responsibility outside deterministic proofs.
 - Sigra, Threadline, Inbox, and other future adoption paths — future ADPT-03 work after the three primary paths establish the reusable model.

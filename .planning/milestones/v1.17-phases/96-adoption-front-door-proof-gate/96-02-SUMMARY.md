@@ -8,12 +8,12 @@ requires:
     provides: bounded Core, Mailglass, and Accrue artifact proof task
 provides:
   - canonical three-path adoption selector with bounded focused commands
-  - non-PR PostgreSQL adoption-proof lane wired into ci-gate
+  - PostgreSQL adoption-proof lane wired into pr-gate and ci-gate
   - structural ExUnit contracts for selector and workflow topology
 affects: [ADPT-01, ADPT-02, GATE-02, DOCS-01]
 tech-stack:
   added: []
-  patterns: [first ExDoc selector, safe proof-record examples, ci-gate three-edge coupling]
+  patterns: [first ExDoc selector, safe proof-record examples, two-gate CI coupling]
 key-files:
   created:
     - guides/introduction/adoption-paths.md
@@ -25,7 +25,8 @@ key-files:
     - test/chimeway/release_gate_contract_test.exs
 decisions:
   - "The selector compares only Core, Mailglass, and Accrue in progressive-complexity order and routes detailed setup to the existing guides."
-  - "The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments."
+  - "The aggregate artifact proof runs once in a serial PostgreSQL 15 lane on every CI event and gates both pr-gate and ci-gate through needs, environment, and aggregate arguments."
+requirements-completed: [ADPT-01, ADPT-02, GATE-02, DOCS-01]
 metrics:
   duration: "~20 minutes"
   tasks_completed: 2
@@ -36,14 +37,14 @@ status: complete
 
 # Phase 96 Plan 02: Adoption Front Door & Proof Gate Summary
 
-**A concise selector now directs adopters to one of three bounded clean-room proofs, while a PostgreSQL-backed CI lane continuously verifies the aggregate command outside pull requests.**
+**A concise selector now directs adopters to one of three bounded clean-room proofs, while a PostgreSQL-backed CI lane continuously verifies the aggregate command on pull requests and full CI runs.**
 
 ## Accomplishments
 
 - Added the first ExDoc Introduction guide, with comparable Core, Mailglass, and Accrue sections that pin ownership, exact commands, safe proof shapes, limits, and canonical next steps.
 - Routed README users to the selector without duplicating its decision content and retained explicit packaged-runner membership.
-- Added `verify_adoption_paths`, a serial PostgreSQL 15 job with a 30-minute limit, non-PR guard, root cache/compile preparation, and `mix verify.adoption_paths` execution.
-- Wired the lane through `ci-gate` needs, result environment, and aggregate-gate arguments, while keeping `pr-gate` unchanged.
+- Added `verify_adoption_paths`, a serial PostgreSQL 15 job with a 30-minute limit, root cache/compile preparation, and `mix verify.adoption_paths` execution on every CI event.
+- Wired the lane through both `pr-gate` and `ci-gate` needs, result environments, and aggregate-gate arguments.
 - Extended established doc/release-gate contracts with selector, package surface, workflow topology, and mutation-oriented drift checks.
 
 ## Task Commits
@@ -58,7 +59,7 @@ status: complete
 - PASS — `mix ci.verify_gates`.
 - PASS — `mix format --check-formatted mix.exs test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs`.
 - PASS — `mix docs --warnings-as-errors`.
-- PENDING LIVE CI — GitHub Actions must execute `verify_adoption_paths` successfully after the branch is pushed. This is recorded in `.planning/WINDOWS.md` entry 6.
+- PASS — exact-SHA GitHub Actions run `31449129603` executed `verify_adoption_paths` and its required `pr-gate` consumer successfully at `c13bae7c92c537f3e758330703168119703a301b`.
 
 ## Deviations from Plan
 
