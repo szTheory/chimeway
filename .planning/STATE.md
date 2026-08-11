@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.17
 milestone_name: Adopter Proof Paths
-current_phase: 96
-current_phase_name: Adoption Front Door & Proof Gate
-status: planning
+current_phase: null
+current_phase_name: null
+status: all phases complete
 stopped_at: Completed 96.1-01-PLAN.md
 last_updated: "2026-08-11T16:33:49.796Z"
 last_activity: 2026-08-11
-last_activity_desc: Phase 96.1 complete, transitioned to Phase 96
+last_activity_desc: Phase 96.1 complete; all v1.17 phases verified
 progress:
   total_phases: 5
   completed_phases: 5
@@ -21,17 +21,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
+See: .planning/PROJECT.md (updated 2026-08-11 after Phase 96.1 completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 96.1 — close-gap-archive-atom-01-atom-safe-archive-metadata-parsing
+**Current focus:** v1.17 milestone audit and completion
 
 ## Current Position
 
-Phase: 96 — Adoption Front Door & Proof Gate
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-11 — Phase 96.1 complete, transitioned to Phase 96
+Phase: All 5 v1.17 phases complete
+Plan: 16 of 16 complete
+Status: Ready for milestone audit and completion
+Last activity: 2026-08-11 — Phase 96.1 complete; all v1.17 phases verified
 
 ## Deferred Items
 
