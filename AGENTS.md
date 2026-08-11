@@ -28,6 +28,7 @@ Core value: every notification decision must be explainable ("why was this sent,
 - Keep CI and local scripts in parity.
 - Avoid leaking sensitive payload fields in telemetry and operator surfaces.
 - **Docs/release-gate phases** (57, 60, 62): acceptance = green `mix ci.verify_gates` (doc-contract + release gate parity) + ecosystem `verify.*` CI jobs. Skip `/gsd-verify-work`; auto-sign UAT from contract test evidence.
+- Route objectively machine-testable verification to executable evidence, never conversational UAT. For live-CI backstops, assert GitHub run/job/step results programmatically against the implementation SHA (or a documented implementation ancestor followed only by verification artifacts); reserve human UAT for subjective judgment or systems with no machine-readable evidence.
 
 ## Planning Source of Truth
 

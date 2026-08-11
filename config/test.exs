@@ -17,19 +17,40 @@ import Config
 # mild client-side queueing costs).
 pool_size = min(System.schedulers_online() * 2 + 10, 24)
 
+postgres_port =
+  case System.get_env("POSTGRES_PORT") || System.get_env("PGPORT") do
+    nil -> nil
+    port -> String.to_integer(port)
+  end
+
+postgres_connection =
+  [
+    username:
+      System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
+        System.get_env("USER") || "postgres",
+    password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD"),
+    hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost"
+  ]
+  |> then(fn config ->
+    if postgres_port, do: Keyword.put(config, :port, postgres_port), else: config
+  end)
+
+partner_postgres_connection =
+  Keyword.put_new(
+    postgres_connection,
+    :password,
+    System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres"
+  )
+
 repo_config =
   case System.get_env("DATABASE_URL") do
     nil ->
-      pg_user = System.get_env("PGUSER") || System.get_env("USER") || "postgres"
-
-      [
-        username: pg_user,
-        password: System.get_env("PGPASSWORD"),
-        hostname: System.get_env("PGHOST") || "localhost",
-        database: "chimeway_test#{System.get_env("MIX_TEST_PARTITION")}",
-        pool: Ecto.Adapters.SQL.Sandbox,
-        pool_size: pool_size
-      ]
+      postgres_connection ++
+        [
+          database: "chimeway_test#{System.get_env("MIX_TEST_PARTITION")}",
+          pool: Ecto.Adapters.SQL.Sandbox,
+          pool_size: pool_size
+        ]
 
     database_url ->
       [url: database_url, pool: Ecto.Adapters.SQL.Sandbox, pool_size: pool_size]
@@ -59,17 +80,16 @@ config :mailglass, :tracking,
   host: "localhost:4000",
   salts: ["test-salt"]
 
-config :mailglass, Mailglass.TestRepo,
-  username:
-    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
-      System.get_env("USER") || "postgres",
-  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
-  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
-  database: "chimeway_mailglass_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 10,
-  prepare: :unnamed,
-  disconnect_on_error_codes: [:internal_error]
+config :mailglass,
+       Mailglass.TestRepo,
+       partner_postgres_connection ++
+         [
+           database: "chimeway_mailglass_test#{System.get_env("MIX_TEST_PARTITION")}",
+           pool: Ecto.Adapters.SQL.Sandbox,
+           pool_size: 10,
+           prepare: :unnamed,
+           disconnect_on_error_codes: [:internal_error]
+         ]
 
 # Accrue harness config is unconditional (mirrors Mailglass — config loads before
 # optional dep compile). verify.accrue recompiles accrue so Accrue.Integrations.Chimeway
@@ -101,25 +121,23 @@ config :accrue, Oban,
   testing: :manual,
   queues: [accrue_webhooks: 10, accrue_mailers: 10]
 
-config :accrue, Accrue.TestRepo,
-  username:
-    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
-      System.get_env("USER") || "postgres",
-  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
-  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
-  database: "chimeway_accrue_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox
+config :accrue,
+       Accrue.TestRepo,
+       partner_postgres_connection ++
+         [
+           database: "chimeway_accrue_test#{System.get_env("MIX_TEST_PARTITION")}",
+           pool: Ecto.Adapters.SQL.Sandbox
+         ]
 
 config :threadline, ecto_repos: [Threadline.Test.Repo]
 
-config :threadline, Threadline.Test.Repo,
-  username:
-    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
-      System.get_env("USER") || "postgres",
-  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
-  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
-  database: "chimeway_threadline_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox
+config :threadline,
+       Threadline.Test.Repo,
+       partner_postgres_connection ++
+         [
+           database: "chimeway_threadline_test#{System.get_env("MIX_TEST_PARTITION")}",
+           pool: Ecto.Adapters.SQL.Sandbox
+         ]
 
 # Sigra harness config is unconditional (mirrors Accrue/Threadline — config loads before
 # optional dep compile). Integration :chimeway config is set in test fixtures (Wave 64-02).
@@ -128,11 +146,10 @@ config :sigra, repo: Sigra.TestRepo
 config :sigra, :user_schema, Chimeway.TestSupport.Sigra.User
 config :sigra, :user_token_schema, Chimeway.TestSupport.Sigra.UserToken
 
-config :sigra, Sigra.TestRepo,
-  username:
-    System.get_env("POSTGRES_USER") || System.get_env("PGUSER") ||
-      System.get_env("USER") || "postgres",
-  password: System.get_env("POSTGRES_PASSWORD") || System.get_env("PGPASSWORD") || "postgres",
-  hostname: System.get_env("POSTGRES_HOST") || System.get_env("PGHOST") || "localhost",
-  database: "chimeway_sigra_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox
+config :sigra,
+       Sigra.TestRepo,
+       partner_postgres_connection ++
+         [
+           database: "chimeway_sigra_test#{System.get_env("MIX_TEST_PARTITION")}",
+           pool: Ecto.Adapters.SQL.Sandbox
+         ]

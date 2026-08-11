@@ -1,6 +1,8 @@
 defmodule Chimeway.DocContractTest do
   use ExUnit.Case, async: true
 
+  alias Chimeway.Test.ArtifactConsumerFixture
+
   @moduledoc false
 
   @public_modules [
@@ -638,6 +640,66 @@ defmodule Chimeway.DocContractTest do
              "mailglass integration guide must document Chimeway.Adapters.Mailglass for email delivery"
     end
 
+    test "couples clean-consumer repo guidance to the executable fixture topology", %{
+      content: content
+    } do
+      topology = ArtifactConsumerFixture.mailglass_repo_topology()
+      repo = inspect(topology.chimeway_repo)
+
+      assert topology.ecto_repos == [topology.chimeway_repo]
+      assert topology.chimeway_repo == topology.mailglass_repo
+      assert topology.mailglass_repo == topology.active_repo
+      assert topology.active_repo == topology.supervised_repo
+      assert String.contains?(content, "config :artifact_consumer, ecto_repos: [#{repo}]")
+      assert String.contains?(content, "config :chimeway, repo: #{repo}")
+      assert String.contains?(content, "config :mailglass, repo: #{repo}")
+      assert String.contains?(content, "included_applications: [:chimeway]")
+      assert String.contains?(content, "without separately starting `Chimeway.Repo`")
+      assert String.contains?(content, "Chimeway.Repo.put_dynamic_repo(#{repo})")
+    end
+
+    @mailglass_proof_required [
+      "host-configured Ecto repo",
+      "one consumer-owned `ArtifactConsumer.Repo`",
+      "Fake recorded exactly one host-composed message",
+      "successful `Chimeway.Adapters.Mailglass` attempt",
+      "real provider acceptance",
+      "sender/domain verification",
+      "inbox placement/display",
+      "production credentials",
+      "provider callbacks",
+      "live webhook feedback",
+      "../recipes/mailglass-integration-blueprint.md"
+    ]
+
+    for required <- @mailglass_proof_required do
+      test "requires Mailglass clean-consumer proof boundary: #{required}", %{content: content} do
+        assert String.contains?(content, unquote(required)),
+               "mailglass integration guide must document #{unquote(required)} for the clean-consumer proof"
+      end
+    end
+
+    @mailglass_proof_forbidden [
+      "Fake recorded exactly one host-composed message and email delivered",
+      "successful Chimeway.Adapters.Mailglass attempt means the email was delivered",
+      "Hex consumers should run `mix verify.mailglass`",
+      "run `mix verify.mailglass` after adding `{:chimeway"
+    ]
+
+    for forbidden <- @mailglass_proof_forbidden do
+      test "forbids Mailglass proof overclaim: #{forbidden}", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "mailglass integration guide must not overclaim Fake proof or present maintainer commands to consumers"
+      end
+    end
+
+    test "labels mix verify.mailglass as a repository-maintainer regression suite", %{
+      content: content
+    } do
+      assert String.contains?(content, "repository-maintainer regression suite"),
+             "mailglass integration guide must identify mix verify.mailglass as maintainer-only"
+    end
+
     @mailglass_webhook_forbidden [
       ~s(process("mailglass"),
       "conn.params",
@@ -758,6 +820,233 @@ defmodule Chimeway.DocContractTest do
 
       assert String.contains?(content, "accrue") or String.contains?(content, "Accrue"),
              "accrue dunning integration guide must document Accrue dependency"
+    end
+
+    test "documents the package-executed clean-consumer proof contract", %{content: content} do
+      assert String.contains?(
+               content,
+               "MIX_ENV=prod mix run scripts/prove-accrue-consumer.exs -- --artifact-archive <absolute-tarball> --sha256 <lowercase-64-hex>"
+             )
+
+      assert String.contains?(content, "trusted package or release channel")
+      assert String.contains?(content, "immutable package archive and SHA-256")
+      assert String.contains?(content, "package metadata")
+      assert String.contains?(content, "runner verifies the archive")
+      assert String.contains?(content, "unpacks into owned temporary storage")
+      assert String.contains?(content, "isolated temporary host and database")
+      assert String.contains?(content, "only `:chimeway` dependency")
+      assert String.contains?(content, "runner and its support fixture are package members")
+      assert String.contains?(content, "exactly one `CHIMEWAY_ACCRUE_PROOF` record")
+      assert String.contains?(content, "exits nonzero without a proof record")
+      assert String.contains?(content, "temporary host/database and archive-unpack storage")
+      refute String.contains?(content, "--artifact-root")
+      refute String.contains?(content, "already-unpacked Chimeway package")
+      refute String.contains?(content, "verify.adoption_paths")
+    end
+
+    test "documents the public Accrue lifecycle without false completion semantics", %{
+      content: content
+    } do
+      clean_consumer =
+        content
+        |> String.split("## Clean-consumer proof", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
+      lifecycle = [
+        "invoice.payment_failed",
+        "waiting / waiting_for_step_progression",
+        "invoice.paid",
+        "active / signal_received"
+      ]
+
+      indices =
+        Enum.map(lifecycle, fn phrase ->
+          case :binary.match(clean_consumer, phrase) do
+            {index, _} -> index
+            :nomatch -> flunk("accrue guide must document #{phrase}")
+          end
+        end)
+
+      assert indices == Enum.sort(indices)
+
+      assert String.contains?(content, "outcome signal ended the waiting escalation path")
+      assert String.contains?(content, "does not mean the workflow completed")
+    end
+
+    test "keeps clean-consumer evidence to the fixed safe proof vocabulary", %{content: content} do
+      assert String.contains?(content, "provenance=released_package accrue_version=1.3.0")
+      assert String.contains?(content, "workflow_key=accrue.dunning workflow_version=1")
+
+      assert String.contains?(
+               content,
+               "timeline_reasons=waiting_for_step_progression,signal_received"
+             )
+
+      clean_consumer =
+        content
+        |> String.split("## Clean-consumer proof", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
+      for forbidden <- [
+            "tenant_id=",
+            "invoice_id=",
+            "customer_id=",
+            "recipient=",
+            "payload=",
+            "metadata=",
+            "credential=",
+            "Ecto.Query"
+          ] do
+        refute String.contains?(clean_consumer, forbidden),
+               "clean-consumer proof must not disclose #{forbidden}"
+      end
+    end
+
+    test "conditions released-package proof on resolved Accrue source and module validation", %{
+      content: content
+    } do
+      assert String.contains?(content, "released_package")
+      assert String.contains?(content, "exact Accrue `1.3.0`")
+      assert String.contains?(content, "`Accrue.Integrations.Chimeway`")
+      assert String.contains?(content, "exact Chimeway artifact version")
+      assert String.contains?(content, "executable check, not optimistic prose")
+
+      refute String.contains?(
+               content,
+               "Production adopters use `{:accrue, \"~> 1.3\"}` from Hex."
+             )
+    end
+
+    test "limits the immutable Accrue SHA to compatibility evidence", %{content: content} do
+      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+
+      assert String.contains?(content, sha)
+      assert String.contains?(content, "compatibility evidence only")
+      assert String.contains?(content, "not released-package proof")
+      assert String.contains?(content, "not installation guidance")
+
+      sha_code_blocks =
+        Regex.scan(~r/```[^`]*#{sha}[^`]*```/s, content)
+
+      assert sha_code_blocks == [],
+             "immutable compatibility SHA must not appear in a copyable code block"
+
+      refute String.contains?(content, "git: #{sha}")
+    end
+
+    test "binds released-package and compatibility claims to the packaged CLI schemas", %{
+      content: content
+    } do
+      release_section =
+        content
+        |> String.split("## 1. Dependencies", parts: 2)
+        |> List.last()
+        |> String.split("## 2. Database / migrations", parts: 2)
+        |> List.first()
+
+      compatibility_section =
+        content
+        |> String.split("### Provenance labels", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
+      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+
+      for required <- [
+            "released_package",
+            "exact Accrue `1.3.0`",
+            "resolved Hex metadata",
+            "integration module origin",
+            "exact Chimeway artifact version"
+          ] do
+        assert String.contains?(release_section, required),
+               "released-package prose must require #{required}"
+      end
+
+      assert String.contains?(compatibility_section, sha)
+      assert String.contains?(compatibility_section, "compatibility evidence only")
+      assert String.contains?(compatibility_section, "not released-package proof")
+      assert String.contains?(compatibility_section, "not installation guidance")
+
+      for forbidden <- ["git: #{sha}", "{:accrue, git:", "mix deps.get #{sha}"] do
+        refute String.contains?(content, forbidden),
+               "compatibility SHA must not become dependency or installation guidance"
+      end
+    end
+
+    test "keeps proof claims scoped to safe public evidence and maintainer mechanics", %{
+      content: content
+    } do
+      clean_consumer =
+        content
+        |> String.split("## Clean-consumer proof", parts: 2)
+        |> List.last()
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.first()
+
+      verification =
+        content
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.last()
+
+      assert String.contains?(clean_consumer, "does not mean the workflow completed")
+
+      assert String.contains?(
+               clean_consumer,
+               "does not mean the workflow entered a terminal state"
+             )
+
+      refute String.contains?(clean_consumer, "unconditional `~> 1.3` proof")
+      refute String.contains?(clean_consumer, "source/module presence without resolved metadata")
+
+      for forbidden <- [
+            "billing_id=",
+            "recipient=",
+            "tenant_id=",
+            "payload=",
+            "metadata=",
+            "credential=",
+            "raw_struct=",
+            "Ecto.Query",
+            "database inspection"
+          ] do
+        refute String.contains?(clean_consumer, forbidden),
+               "clean-consumer proof must not disclose #{forbidden}"
+      end
+
+      for mechanic <- [
+            "ACCRUE_PATH",
+            "sibling checkout",
+            "DemoHost",
+            "CI checkout",
+            "mix verify.accrue"
+          ] do
+        assert String.contains?(verification, mechanic)
+      end
+
+      assert String.contains?(verification, "not independent packaged-consumer provenance")
+      refute String.contains?(verification, "packaged proof")
+    end
+
+    test "labels maintainer checkout mechanics separately from proof provenance", %{
+      content: content
+    } do
+      verification =
+        content
+        |> String.split("## 6. Verification", parts: 2)
+        |> List.last()
+
+      for mechanic <- ["ACCRUE_PATH", "sibling checkout", "CI checkout", "mix verify.accrue"] do
+        assert String.contains?(verification, mechanic)
+      end
+
+      assert String.contains?(verification, "repository-maintainer regression mechanics")
+      assert String.contains?(verification, "not independent packaged-consumer provenance")
     end
 
     test "sections appear in golden-path order from dependencies through verification", %{
@@ -1673,6 +1962,105 @@ defmodule Chimeway.DocContractTest do
 
       assert threadline_index < sigra_index,
              "HexDocs extras must list threadline integration guide before sigra integration guide"
+    end
+  end
+
+  describe "adoption selector documentation contract (ADPT-01/ADPT-02/DOCS-01)" do
+    @tag :adoption_paths_docs_contract
+    @selector "guides/introduction/adoption-paths.md"
+    @paths [
+      {"Core", "core", "CHIMEWAY_CORE_PROOF", "golden-path.md"},
+      {"Mailglass", "mailglass", "CHIMEWAY_MAILGLASS_PROOF", "mailglass-integration.md"},
+      {"Accrue", "accrue", "CHIMEWAY_ACCRUE_PROOF", "accrue-dunning-integration.md"}
+    ]
+
+    setup do
+      %{
+        selector: File.read!(@selector),
+        readme: File.read!("README.md"),
+        mix_exs: File.read!("mix.exs")
+      }
+    end
+
+    test "is the first ExDoc extra and README routes to it without duplicating selector rows",
+         ctx do
+      assert String.contains?(ctx.readme, @selector)
+      assert String.contains?(ctx.mix_exs, @selector)
+
+      [{selector_index, _}] = :binary.matches(ctx.mix_exs, @selector)
+      {first_extra_index, _} = :binary.match(ctx.mix_exs, "      extras: [")
+      assert first_extra_index < selector_index
+
+      assert selector_index <
+               :binary.match(ctx.mix_exs, "guides/introduction/getting-started.md") |> elem(0)
+
+      refute String.contains?(ctx.readme, "CHIMEWAY_CORE_PROOF")
+      refute String.contains?(ctx.readme, "CHIMEWAY_MAILGLASS_PROOF")
+      refute String.contains?(ctx.readme, "CHIMEWAY_ACCRUE_PROOF")
+    end
+
+    test "keeps exactly three complete comparable paths in stable order", %{selector: selector} do
+      headings = Regex.scan(~r/^## (Core|Mailglass|Accrue)$/m, selector, capture: :all_but_first)
+      assert headings == [["Core"], ["Mailglass"], ["Accrue"]]
+
+      for {name, path, prefix, guide} <- @paths do
+        section = selector_section!(selector, name)
+
+        for marker <- [
+              "**Choose this when:**",
+              "**Host responsibility:**",
+              "**Chimeway responsibility:**",
+              "**Partner responsibility:**",
+              "mix verify.adoption_paths --only #{path}",
+              "#{prefix} ",
+              "**Does not cover:**",
+              "#{guide}",
+              "**Next step:**"
+            ] do
+          assert String.contains?(section, marker), "#{name} selector row must contain #{marker}"
+        end
+      end
+    end
+
+    test "preserves proof boundaries and rejects unsafe, duplicate, or maintainer-facing examples",
+         %{selector: selector} do
+      for marker <- [
+            "external delivery",
+            "Fake proves local host composition",
+            "real provider acceptance",
+            "active / signal_received",
+            "not released-package proof",
+            "compatibility evidence"
+          ] do
+        assert String.contains?(selector, marker)
+      end
+
+      for forbidden <- [
+            "mix verify.mailglass",
+            "mix verify.accrue",
+            "credential=",
+            "payload=",
+            "inspect("
+          ] do
+        refute String.contains?(selector, forbidden)
+      end
+
+      for {_name, _path, prefix, _guide} <- @paths do
+        assert length(:binary.matches(selector, prefix)) == 1,
+               "selector must contain exactly one safe #{prefix} example"
+      end
+
+      missing_boundary = String.replace(selector, "**Does not cover:**", "", global: false)
+
+      refute String.contains?(selector_section!(missing_boundary, "Core"), "**Does not cover:**"),
+             "a selector mutation that removes the Core boundary marker must not satisfy its row contract"
+    end
+  end
+
+  defp selector_section!(selector, name) do
+    case Regex.run(~r/^## #{name}$\n(.*?)(?=^## |\z)/ms, selector) do
+      [_, section] -> section
+      _ -> flunk("selector must contain #{name} section")
     end
   end
 

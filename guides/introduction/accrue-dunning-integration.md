@@ -20,25 +20,14 @@ Add Chimeway and Accrue to your host `mix.exs`:
 def deps do
   [
     {:chimeway, "~> 1.0"},
-    accrue_dep()
+    {:accrue, "~> 1.3", optional: true}
   ]
 end
-
-defp accrue_dep do
-  case System.get_env("ACCRUE_PATH") do
-    nil -> {:accrue, "~> 1.3", optional: true}
-    path -> {:accrue, path: path, runtime: false}
-  end
-end
 ```
 
-For local development and integration proof, check out the Accrue repo as a sibling and point `ACCRUE_PATH` at it — the `Accrue.Integrations.Chimeway` engine module is conditionally compiled in the Accrue package and may require a sibling checkout or `Code.compile_file/1` bootstrap in test harnesses:
+This normal Hex dependency declaration is installation guidance, not a provenance claim. The executable clean-consumer check may label its record `released_package` only after the generated consumer resolves exact Accrue `1.3.0`, validates its resolved Hex metadata, validates the integration module origin for `Accrue.Integrations.Chimeway`, and reports the exact Chimeway artifact version. Source or module presence without resolved metadata does not authorize released-package proof. The executable check, not optimistic prose, authorizes that label.
 
-```bash
-ACCRUE_PATH=../accrue/accrue mix deps.get
-```
-
-Production adopters use `{:accrue, "~> 1.3"}` from Hex. Local proof and CI still use a sibling checkout pinned to the integration ref documented in `MAINTAINING.md`.
+Repository maintainers use the sibling checkout and `ACCRUE_PATH` only for regression work; see [Verification](#6-verification). Those mechanics do not establish packaged-consumer provenance.
 
 ## 2. Database / migrations
 
@@ -123,15 +112,39 @@ Accrue.Test.trigger_event(:invoice_paid, %{
 })
 ```
 
+## Clean-consumer proof
+
+Use the packaged-consumer proof when you need adoption evidence from an immutable Chimeway package archive, rather than from this repository source tree. Obtain the immutable package archive and SHA-256 from the trusted package or release channel; an arbitrary source checkout or unpacked directory does not establish package provenance.
+
+```bash
+MIX_ENV=prod mix run scripts/prove-accrue-consumer.exs -- --artifact-archive <absolute-tarball> --sha256 <lowercase-64-hex>
+```
+
+The release-gate contract builds the package, passes its immutable archive and digest to this command, and invokes the runner from the unpacked artifact. The runner verifies the archive digest and package metadata, confirms that the runner and its support fixture are package members, unpacks into owned temporary storage, then creates an isolated temporary host and database. That host uses the unpacked artifact as its only `:chimeway` dependency. Success occurs only after archive, generated-consumer, public lifecycle, provenance, and cleanup checks pass: it emits exactly one `CHIMEWAY_ACCRUE_PROOF` record. Invalid input, or any provenance, lifecycle, or cleanup failure, exits nonzero without a proof record and removes both temporary host/database and archive-unpack storage.
+
+Accrue owns both event boundaries: `invoice.payment_failed` enters its campaign, public workflow evidence reaches `waiting / waiting_for_step_progression`, and `invoice.paid` produces the outcome signal through the integration. The host does not call Chimeway notifier, trigger, or signal APIs for either boundary. Waiting and outcome facts are derived through `Chimeway.Workflows.explain/2` and `Chimeway.Workflows.list_traces/2`. The resulting public evidence is `active / signal_received`:
+
+```text
+CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received
+```
+
+The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed. It does not mean the workflow entered a terminal state. The Fake processor coverage is deterministic local orchestration only; live provider credentials, webhooks, and Phase 96 CI/front-door work remain outside this proof.
+
+### Provenance labels
+
+If the resolved-package classifier above cannot establish the released package branch, the proof reports the immutable Accrue ref `236fa2f1649e771f3b515603495436badeed3c7b` as **compatibility evidence only**. It is not released-package proof. It is not installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block. The release and compatibility records are mutually exclusive: release evidence contains `accrue_version=1.3.0` plus the exact Chimeway artifact version, while compatibility evidence contains only `accrue_ref`.
+
 ## 6. Verification
 
-After wiring dependencies and config, run the named proof command:
+### Repository-maintainer regression analogs (not packaged-consumer proof)
+
+After changing this repository's integration code, maintainers can run the named regression command:
 
 ```bash
 ACCRUE_PATH=../accrue/accrue mix verify.accrue --warnings-as-errors
 ```
 
-This exercises ECOS-06 lifecycle proof at the Chimeway root and DEMO-07 demo host proof.
+`mix verify.accrue`, `ACCRUE_PATH`, the sibling checkout, and CI checkout are repository-maintainer regression mechanics. They exercise ECOS-06 lifecycle proof at the Chimeway root and the DEMO-07 demo host proof; they are not independent packaged-consumer provenance.
 
 Seed the demo host dunning scenario:
 

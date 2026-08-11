@@ -1,37 +1,37 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.16
-milestone_name: CI/CD Performance & Reliability
-status: Awaiting next milestone
-stopped_at: Completed 92-03-PLAN.md
-last_updated: "2026-07-30T19:58:15.410Z"
-last_activity: 2026-07-30
-last_activity_desc: Milestone v1.16 completed and archived
+milestone: v1.17
+milestone_name: Adopter Proof Paths
+current_phase: null
+current_phase_name: null
+status: all phases complete
+stopped_at: Completed 96.1-01-PLAN.md
+last_updated: "2026-08-11T16:33:49.796Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 96.1 complete; all v1.17 phases verified
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 21
-  completed_plans: 21
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 16
+  completed_plans: 16
   percent: 100
-current_phase: 92
-current_phase_name: reliability-triage-determinism
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
+See: .planning/PROJECT.md (updated 2026-08-11 after Phase 96.1 completion)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Milestone complete
+**Current focus:** v1.17 milestone audit and completion
 
 ## Current Position
 
-Phase: Milestone v1.16 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-30 — Milestone v1.16 completed and archived
+Phase: All 5 v1.17 phases complete
+Plan: 16 of 16 complete
+Status: Ready for milestone audit and completion
+Last activity: 2026-08-11 — Phase 96.1 complete; all v1.17 phases verified
 
 ## Deferred Items
 
@@ -292,6 +292,20 @@ status: complete
 - [Phase ?]: [92-03]: test_seed_zero mirrors test_floor_1_17 structurally (own postgres service, own cache namespace, no obs-summary, exempt from @build_lanes) and uses standard .tool-versions toolchain rather than a pinned floor
 - [Phase ?]: [92-03]: Live-CI proof for REL-03 nightly dispatch and REL-02 phase-HEAD push run deferred this session (push out of scope for executor); documented via CI-HARDENING-BACKLOG.md quarantine, GitHub issue #4 comment, and WINDOWS.md ledger entries #4/#5 rather than silently gapped
 - [Phase ?]: [92-03]: Reused existing open tracking issue #4 for the REL-02 quarantine link instead of creating a duplicate issue; demo_up_test.exs timeout tighten deferred to the same future push-verification pass
+- [Phase ?]: ArtifactConsumer.Repo is the sole configured, migrated, supervised, and active repository for the generated Mailglass proof.
+- [Phase ?]: Chimeway is loaded as an included application and its facade is dynamically bound only around the synchronous proof path.
+- [Phase ?]: Phase 96-01: adoption proofs build one SHA-validated archive and dispatch Core, Mailglass, and Accrue serially.
+- [Phase ?]: Phase 96-01: invalid adoption selectors fail before runner loading or proof output.
+- [Phase ?]: The selector compares only Core, Mailglass, and Accrue in progressive-complexity order and routes detailed setup to the existing guides.
+- [Phase ?]: The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments.
+- [Phase ?]: Adoption archive members are fully classified before materialization; only regular files and directories are written from memory.
+- [Phase ?]: [96-04]: Adoption archive validation hashes and extracts one bounded immutable binary, with explicit outer/compressed/expanded/member budgets before materialization.
+- [Phase ?]: [96.1-01]: Archive metadata is parsed in-memory with a bounded binary-only canonical Hex grammar; no source-term parser or input-derived atom conversion is permitted.
+- [Phase ?]: [96.1-01]: Caller-supplied SHA-256 remains an immutable-byte integrity check, while callback execution remains gated after metadata, archive-root, and version validation.
+
+### Roadmap Evolution
+
+- Phase 96.1 inserted after Phase 96: Close gap: ARCHIVE-ATOM-01 — atom-safe archive metadata parsing (URGENT)
 
 ## Performance
 
@@ -607,13 +621,13 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-07-30T18:38:56.225Z
-Stopped at: Completed 92-03-PLAN.md
+Last session: 2026-08-11T15:33:18.961Z
+Stopped at: Completed 96.1-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Approve the v1.17 roadmap, then plan Phase 93 with /gsd-plan-phase 93
 
 ## Performance Metrics
 
@@ -704,3 +718,10 @@ Resume file: None
 | Phase 92 P01 | 12 min | 2 tasks | 4 files |
 | Phase 92 P02 | 15 min | 2 tasks | 4 files |
 | Phase 92 P03 | 15 min | 3 tasks | 4 files |
+| Phase 94-mailglass-transactional-email-proof P03 | 6 min | 2 tasks | 4 files |
+| Phase 96-adoption-front-door-proof-gate P01 | 46m | 2 tasks | 7 files |
+| Phase 96 P02 | 20m | 2 tasks | 6 files |
+| Phase 96 P03 | ~45 minutes | 2 tasks | 2 files |
+| Phase 96-adoption-front-door-proof-gate P04 | 18 min | 2 tasks | 2 files |
+| Phase 96-adoption-front-door-proof-gate P05 | 25m | 2 tasks | 3 files |
+| Phase 96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing P01 | 8 min | 3 tasks | 2 files |

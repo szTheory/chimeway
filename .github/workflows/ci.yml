@@ -299,7 +299,7 @@ jobs:
   pr-gate:
     name: pr-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs]
+    needs: [lint, test, verify_gates, verify_docs, verify_adoption_paths]
     if: always()
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -309,7 +309,8 @@ jobs:
           TEST: ${{ needs.test.result }}
           VERIFY_GATES: ${{ needs.verify_gates.result }}
           VERIFY_DOCS: ${{ needs.verify_docs.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS
+          VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS
 
   verify_example:
     name: Example host + admin smoke
@@ -1127,6 +1128,70 @@ jobs:
           CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
         run: scripts/ci/obs-summary.sh
 
+  verify_adoption_paths:
+    name: Adoption proof paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGHOST: localhost
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache_main
+        with:
+          path: |
+            deps
+            _build
+          key: build-test-adoption-paths-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            build-test-adoption-paths-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - name: Compile (instrumented — deps then app)
+        shell: bash
+        run: scripts/ci/obs-recompile.sh
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - name: Run adoption proof paths
+        run: mix verify.adoption_paths
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          CACHE_MAIN_HIT: ${{ steps.cache_main.outputs.cache-hit }}
+          CACHE_MAIN_MATCHED: ${{ steps.cache_main.outputs.cache-matched-key }}
+          CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
+        run: scripts/ci/obs-summary.sh
+
   nightly_cold_build:
     name: Nightly cold build (cache-correctness backstop)
     runs-on: ubuntu-latest
@@ -1277,7 +1342,7 @@ jobs:
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, test_floor_1_17]
+    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, verify_adoption_paths, test_floor_1_17]
     if: always() && github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -1296,8 +1361,9 @@ jobs:
           VERIFY_THREADLINE: ${{ needs.verify_threadline.result }}
           VERIFY_SIGRA: ${{ needs.verify_sigra.result }}
           INSTALL_GOLDEN: ${{ needs.install_golden_contract.result }}
+          VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}
           TEST_FLOOR_1_17: ${{ needs.test_floor_1_17.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN TEST_FLOOR_1_17
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN VERIFY_ADOPTION_PATHS TEST_FLOOR_1_17
 
   # nightly-gate mirrors ci-gate's aggregate pass/fail contract, scoped to
   # exactly the relocated/nightly-composition lanes (TIER-04). It gives a

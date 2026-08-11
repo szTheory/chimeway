@@ -1,5 +1,9 @@
 defmodule Chimeway.ReleaseGateContractTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
+
+  alias Chimeway.Test.ArtifactConsumerFixture
+
+  Code.require_file("priv/adoption_proof/artifact_archive.ex")
 
   @moduledoc false
 
@@ -15,9 +19,11 @@ defmodule Chimeway.ReleaseGateContractTest do
   @legacy_repo_url "https://github.com/jonlunsford/chimeway"
   @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
   @release_please_config "release-please-config.json"
+  @adoption_run_assertion "scripts/ci/assert-adoption-run.sh"
+  @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract test_floor_1_17)
-  @pr_gate_lanes ~w(lint test verify_gates verify_docs)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths test_floor_1_17)
+  @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
   # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
@@ -499,7 +505,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 14 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
+    test "ci-gate needs stays 15 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -507,9 +513,9 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 14,
-             "ci-gate needs must remain exactly 14 lanes (verify_admin removed in 90-02; " <>
-               "test_floor_1_17 added in 91-03 to close the CI<->release Elixir skew, D-15)"
+      assert length(needs) == 15,
+             "ci-gate needs must remain exactly 15 lanes after the bounded adoption proof lane joins " <>
+               "the non-PR release gate"
 
       assert "test_floor_1_17" in needs,
              "ci-gate must need test_floor_1_17 so the 1.17 floor genuinely gates on push (D-15)"
@@ -894,8 +900,10 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "unpacked Hex package contains the package file whitelist", %{root: root} do
       entries = top_level_entries(root)
 
-      # Mirrors files: ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs) in mix.exs
-      whitelist = ~w(lib priv guides CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs)
+      # Mirrors files: ~w(lib priv guides scripts/prove-accrue-consumer.exs CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs) in mix.exs.
+      # The package-owned Accrue proof runner lives under scripts/.
+      whitelist =
+        ~w(lib priv guides scripts CHANGELOG.md LICENSE.md README.md mix.exs .formatter.exs)
 
       for entry <- whitelist do
         assert entry in entries,
@@ -972,6 +980,1605 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "unpacked artifact Core adopter proof (PROOF-01/PROOF-02/PROOF-03/CORE-01)" do
+    # Serialization is intentional: the artifact build and temporary PostgreSQL
+    # lifecycle are expensive shared external resources. The fixture still gives
+    # every invocation unique filesystem and database identities.
+    setup do
+      output = build_unpacked_package!()
+      on_exit(fn -> File.rm_rf(output) end)
+      %{root: unpacked_package_root!(output)}
+    end
+
+    @tag timeout: 120_000
+    test "a clean consumer proves one public Core lifecycle from only the unpacked artifact", %{
+      root: root
+    } do
+      proof = ArtifactConsumerFixture.prove_core!(root)
+
+      assert proof.output =~ "CHIMEWAY_CORE_PROOF"
+      assert proof.output =~ "artifact_consumer.core_trace"
+      assert proof.output =~ "notification_version=1"
+      assert proof.output =~ "status=succeeded"
+      assert proof.output =~ "last_attempt_outcome=succeeded"
+
+      assert Map.keys(proof.evidence) |> Enum.sort() ==
+               [
+                 :delivery_id,
+                 :last_attempt_outcome,
+                 :notification_key,
+                 :notification_version,
+                 :status,
+                 :timeline_events
+               ]
+
+      assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+      assert proof.proof_source =~ "Chimeway.Repo.get_dynamic_repo()"
+      assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
+
+      proof_source_without_dynamic_repo_handoff =
+        proof.proof_source
+        |> String.replace("Chimeway.Repo.get_dynamic_repo()", "")
+        |> String.replace("Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)", "")
+        |> String.replace("Chimeway.Repo.put_dynamic_repo(previous_repo)", "")
+
+      for forbidden <- [
+            "Chimeway.Repo.",
+            "Ecto.Query",
+            "Repo.get",
+            "Repo.one",
+            "Ecto.Adapters.SQL",
+            "payload",
+            "recipient_identity",
+            "email",
+            "phone",
+            "provider_response",
+            "DATABASE_URL",
+            "password",
+            "secret"
+          ] do
+        refute proof_source_without_dynamic_repo_handoff =~ forbidden
+        refute proof.output =~ forbidden
+      end
+
+      refute File.exists?(proof.identity.root)
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_up(
+                 ArtifactConsumerFixture.database_config(proof.identity.database)
+               )
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_down(
+                 ArtifactConsumerFixture.database_config(proof.identity.database)
+               )
+    end
+
+    @tag timeout: 120_000
+    test "a clean consumer proves one host-owned Mailglass transaction from only the unpacked artifact",
+         %{
+           root: root
+         } do
+      proof = ArtifactConsumerFixture.prove_mailglass!(root)
+
+      assert proof.output =~ "CHIMEWAY_MAILGLASS_PROOF"
+      assert proof.output =~ "transport=fake"
+
+      assert Map.keys(proof.evidence) |> Enum.sort() ==
+               [
+                 :adapter_module,
+                 :channel,
+                 :delivery_id,
+                 :last_attempt_number,
+                 :last_attempt_outcome,
+                 :notification_key,
+                 :notification_version,
+                 :render_key,
+                 :render_version,
+                 :status,
+                 :timeline_events,
+                 :transport
+               ]
+
+      assert proof.evidence.transport == "fake"
+      assert proof.evidence.channel == "email"
+      assert proof.evidence.notification_key == "artifact_consumer.mailglass_proof"
+      assert proof.evidence.notification_version == "1"
+      assert proof.evidence.render_key == "artifact_consumer.mailglass_proof.email"
+      assert proof.evidence.render_version == "1"
+      assert proof.evidence.status == "succeeded"
+      assert proof.evidence.last_attempt_outcome == "succeeded"
+      assert proof.evidence.adapter_module == "Chimeway.Adapters.Mailglass"
+      assert proof.evidence.last_attempt_number == "1"
+
+      assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+      assert proof.proof_source =~ "Mailglass.Adapters.Fake.checkout()"
+      assert proof.proof_source =~ "Mailglass.Adapters.Fake.set_shared(self())"
+      assert proof.proof_source =~ "length(Mailglass.Adapters.Fake.deliveries()) == 1"
+      assert proof.migration_source =~ "Mailglass.Migration.up()"
+      assert proof.migration_source =~ "Mailglass.Migration.down()"
+      assert proof.mix_source =~ "{:mailglass, \"~> 1.3\"}"
+
+      assert proof.topology == ArtifactConsumerFixture.mailglass_repo_topology()
+
+      assert proof.config_source =~
+               "config :artifact_consumer, ecto_repos: [ArtifactConsumer.Repo]"
+
+      assert proof.config_source =~ "config :chimeway, repo: ArtifactConsumer.Repo"
+      assert proof.config_source =~ "config :mailglass, repo: ArtifactConsumer.Repo"
+      refute proof.config_source =~ "config :chimeway, Chimeway.Repo"
+      assert proof.mix_source =~ "included_applications: [:chimeway]"
+      assert proof.application_source =~ "Supervisor.start_link([ArtifactConsumer.Repo]"
+      refute proof.application_source =~ "Chimeway.Repo"
+      assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
+      assert proof.proof_source =~ "Process.whereis(ArtifactConsumer.Repo)"
+      assert proof.proof_source =~ "Process.whereis(Chimeway.Repo) == nil"
+
+      for forbidden <- [
+            "ArtifactConsumer.Repo",
+            "Chimeway.Repo",
+            "Ecto.Query",
+            "Repo.get",
+            "Repo.one",
+            "Ecto.Adapters.SQL",
+            "recipient",
+            "subject",
+            "html_body",
+            "text_body",
+            "assigns",
+            "password",
+            "secret",
+            "provider_response",
+            "metadata"
+          ] do
+        refute proof.output =~ forbidden
+      end
+
+      refute File.exists?(proof.identity.root)
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+    end
+
+    test "provenance validation accepts only one unpacked artifact dependency" do
+      unpacked_root = Path.join(System.tmp_dir!(), "artifact-unpacked")
+      source = "defp deps, do: [{:chimeway, path: #{inspect(unpacked_root)}}]"
+
+      assert :ok =
+               ArtifactConsumerFixture.validate_artifact_dependency!(
+                 source,
+                 unpacked_root,
+                 "/repo/root"
+               )
+
+      assert_raise RuntimeError, ~r/repository source root/, fn ->
+        ArtifactConsumerFixture.validate_artifact_dependency!(
+          source,
+          unpacked_root,
+          unpacked_root
+        )
+      end
+
+      assert_raise RuntimeError, ~r/exactly one :chimeway dependency/, fn ->
+        ArtifactConsumerFixture.validate_artifact_dependency!(
+          source <> ", {:chimeway, path: \"/other\"}",
+          unpacked_root,
+          "/repo/root"
+        )
+      end
+
+      assert_raise RuntimeError, ~r/unpacked artifact root/, fn ->
+        ArtifactConsumerFixture.validate_artifact_dependency!(
+          "defp deps, do: [{:chimeway, path: \"/other\"}]",
+          unpacked_root,
+          "/repo/root"
+        )
+      end
+    end
+
+    test "public evidence rejects empty or incomplete trace data" do
+      complete = %Chimeway.Traces.Explanation{
+        delivery_id: "delivery-id",
+        status: :succeeded,
+        last_attempt: %{outcome: :succeeded},
+        timeline:
+          Enum.map(
+            [:event_created, :notification_created, :delivery_planned, :attempt_recorded],
+            &%{event: &1}
+          )
+      }
+
+      assert %{notification_key: "artifact_consumer.core_trace"} =
+               ArtifactConsumerFixture.build_safe_evidence!(
+                 Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+                 complete
+               )
+
+      assert_raise RuntimeError, ~r/delivery ID/, fn ->
+        ArtifactConsumerFixture.build_safe_evidence!(
+          Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+          %{complete | delivery_id: ""}
+        )
+      end
+
+      assert_raise RuntimeError, ~r/non-empty explanation timeline/, fn ->
+        ArtifactConsumerFixture.build_safe_evidence!(
+          Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+          %{complete | timeline: []}
+        )
+      end
+
+      assert_raise RuntimeError, ~r/last attempt outcome/, fn ->
+        ArtifactConsumerFixture.build_safe_evidence!(
+          Chimeway.ReleaseGateContractTest.CoreProofNotifier,
+          %{complete | last_attempt: nil}
+        )
+      end
+    end
+
+    test "subprocess evidence rejects unknown and duplicate string keys without atomizing them" do
+      unknown_key = "untrusted_key_#{System.unique_integer([:positive])}"
+
+      assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+        ArtifactConsumerFixture.parse_evidence!("CHIMEWAY_CORE_PROOF #{unknown_key}=value")
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_key) end
+
+      duplicate =
+        "CHIMEWAY_CORE_PROOF notification_key=one notification_key=two " <>
+          "notification_version=1 delivery_id=id status=succeeded " <>
+          "last_attempt_outcome=succeeded timeline_events=attempt_recorded"
+
+      assert_raise RuntimeError, ~r/duplicate evidence key/, fn ->
+        ArtifactConsumerFixture.parse_evidence!(duplicate)
+      end
+    end
+
+    test "Mailglass proof evidence accepts only one complete safe allowlist without atomizing keys" do
+      complete = mailglass_evidence_line()
+
+      assert Map.keys(ArtifactConsumerFixture.parse_mailglass_evidence!(complete)) |> Enum.sort() ==
+               [
+                 :adapter_module,
+                 :channel,
+                 :delivery_id,
+                 :last_attempt_number,
+                 :last_attempt_outcome,
+                 :notification_key,
+                 :notification_version,
+                 :render_key,
+                 :render_version,
+                 :status,
+                 :timeline_events,
+                 :transport
+               ]
+
+      unknown_key = "untrusted_mailglass_key_#{System.unique_integer([:positive])}"
+
+      assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " #{unknown_key}=value")
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_key) end
+
+      assert_raise RuntimeError, ~r/duplicate evidence key/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " status=succeeded")
+      end
+
+      assert_raise RuntimeError, ~r/exactly the safe evidence allowlist/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          String.replace(complete, " adapter_module=Chimeway.Adapters.Mailglass", "")
+        )
+      end
+
+      assert_raise RuntimeError, ~r/malformed evidence/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " malformed")
+      end
+
+      assert_raise RuntimeError, ~r/multiple CHIMEWAY_MAILGLASS_PROOF lines/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> "\n" <> complete)
+      end
+
+      assert_raise RuntimeError, ~r/fake transport/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          String.replace(complete, "transport=fake", "transport=live")
+        )
+      end
+    end
+
+    test "Mailglass proof evidence accepts the canonical schema but rejects recipient-shaped delivery IDs" do
+      complete = mailglass_evidence_line()
+
+      assert %{delivery_id: "2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e"} =
+               ArtifactConsumerFixture.parse_mailglass_evidence!(complete)
+
+      assert_raise RuntimeError, ~r/delivery_id/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          replace_mailglass_evidence_value(complete, "delivery_id", "recipient@example.test")
+        )
+      end
+    end
+
+    test "Mailglass proof evidence rejects every sensitive output category" do
+      for unsafe_key <- [
+            "recipient",
+            "to",
+            "subject",
+            "body",
+            "html_body",
+            "text_body",
+            "assigns",
+            "password",
+            "secret",
+            "credential",
+            "api_key",
+            "raw_mailglass",
+            "provider_id",
+            "provider_response",
+            "metadata"
+          ] do
+        assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            mailglass_evidence_line() <> " #{unsafe_key}=private"
+          )
+        end
+      end
+    end
+
+    test "Mailglass proof evidence rejects forged values beneath every allowlisted key" do
+      complete = mailglass_evidence_line()
+
+      assert_raise RuntimeError, ~r/must declare fake transport/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(
+          replace_mailglass_evidence_value(complete, "transport", "live")
+        )
+      end
+
+      mutations = [
+        {"notification_key", "recipient@example.test"},
+        {"notification_version", "2"},
+        {"delivery_id", "provider-message-123"},
+        {"channel", "sms"},
+        {"render_key", "recipient@example.test"},
+        {"render_version", "2"},
+        {"status", "failed"},
+        {"last_attempt_outcome", "failed"},
+        {"last_attempt_number", "2"},
+        {"adapter_module", "provider-secret"}
+      ]
+
+      for {key, value} <- mutations do
+        assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, key, value)
+          )
+        end
+      end
+    end
+
+    test "Mailglass proof evidence requires canonical numeric values and a UUID-shaped delivery ID" do
+      complete = mailglass_evidence_line()
+
+      for key <- ["notification_version", "render_version", "last_attempt_number"],
+          value <- ["0", "-1", "+1", "01", "1.0", "one", "2"] do
+        assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, key, value)
+          )
+        end
+      end
+
+      for malformed_id <- [
+            "recipient@example.test",
+            "provider-message-123",
+            "2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7",
+            "2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e0",
+            "2f1c8b943a5e4d708c162e3a4b5c6d7e"
+          ] do
+        assert_raise RuntimeError, ~r/invalid delivery_id/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, "delivery_id", malformed_id)
+          )
+        end
+      end
+    end
+
+    test "Mailglass proof evidence accepts only the canonical ordered binary timeline without atomizing it" do
+      complete = mailglass_evidence_line()
+      unknown_token = "untrusted_timeline_#{System.unique_integer([:positive])}"
+
+      for timeline <- [
+            "event_created,notification_created,delivery_planned,recipient@example.test",
+            "event_created,notification_created,delivery_planned,provider-secret",
+            "event_created,notification_created,delivery_planned,#{unknown_token}",
+            "event_created,,delivery_planned,attempt_recorded",
+            "event_created,notification_created,attempt_recorded",
+            "event_created,notification_created,delivery_planned,delivery_planned,attempt_recorded",
+            "notification_created,event_created,delivery_planned,attempt_recorded"
+          ] do
+        assert_raise RuntimeError, ~r/invalid timeline_events/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, "timeline_events", timeline)
+          )
+        end
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_token) end
+    end
+
+    test "timeline evidence allows interposed public events but enforces required order" do
+      required = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
+
+      assert ArtifactConsumerFixture.ordered_subsequence?(required, [
+               :event_created,
+               :notification_created,
+               :deferred,
+               :delivery_planned,
+               :webhook_received,
+               :attempt_recorded
+             ])
+
+      refute ArtifactConsumerFixture.ordered_subsequence?(required, [
+               :event_created,
+               :delivery_planned,
+               :notification_created,
+               :attempt_recorded
+             ])
+
+      refute ArtifactConsumerFixture.ordered_subsequence?(required, [
+               :event_created,
+               :notification_created,
+               :delivery_planned
+             ])
+    end
+
+    test "fixture resources have VM-safe namespaces and cleanup accepts only fixture-owned identities" do
+      first = ArtifactConsumerFixture.resource_identity("vm_one")
+      second = ArtifactConsumerFixture.resource_identity("vm_two")
+      refute first.root == second.root
+      refute first.database == second.database
+      assert first.root =~ "chimeway_artifact_consumer_vm_one_"
+      assert second.root =~ "chimeway_artifact_consumer_vm_two_"
+
+      forged = %{first | root: Path.join(System.tmp_dir!(), "not_fixture_owned")}
+
+      assert_raise ArgumentError, ~r/fixture-owned resource identity/, fn ->
+        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(),
+          identity: forged,
+          fail_before_commands: true
+        )
+      end
+
+      assert_raise RuntimeError, ~r/pre-command validation failure/, fn ->
+        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(),
+          identity: first,
+          fail_before_commands: true
+        )
+      end
+
+      refute File.exists?(first.root)
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_up(
+                 ArtifactConsumerFixture.database_config(first.database)
+               )
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_down(
+                 ArtifactConsumerFixture.database_config(first.database)
+               )
+    end
+
+    test "fixture database identities retain entropy within PostgreSQL's 63-byte identifier limit" do
+      identity = ArtifactConsumerFixture.resource_identity(String.duplicate("vm_boundary_", 12))
+
+      assert byte_size(identity.database) <= 63
+      assert identity.database =~ ~r/^chimeway_artifact_consumer_[a-z2-7]+$/
+      assert identity.root =~ "chimeway_artifact_consumer_vm_boundary_"
+    end
+
+    test "a database teardown failure fails closed and still removes the fixture tree" do
+      identity = ArtifactConsumerFixture.resource_identity("cleanup_failure")
+
+      assert_raise RuntimeError, ~r/database cleanup failed/, fn ->
+        ArtifactConsumerFixture.prove_core!(System.tmp_dir!(),
+          identity: identity,
+          fail_before_commands: true,
+          storage_down: fn _config -> {:error, :controlled_failure} end
+        )
+      end
+
+      refute File.exists?(identity.root)
+    end
+
+    test "Mailglass proof failure cleans its temporary filesystem and database resources" do
+      identity = ArtifactConsumerFixture.resource_identity("mailglass_cleanup_failure")
+
+      assert_raise RuntimeError, ~r/pre-command validation failure/, fn ->
+        ArtifactConsumerFixture.prove_mailglass!(System.tmp_dir!(),
+          identity: identity,
+          fail_before_commands: true
+        )
+      end
+
+      refute File.exists?(identity.root)
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_up(
+                 ArtifactConsumerFixture.database_config(identity.database)
+               )
+
+      assert :ok =
+               Ecto.Adapters.Postgres.storage_down(
+                 ArtifactConsumerFixture.database_config(identity.database)
+               )
+    end
+
+    @tag :accrue_artifact_proof
+    @tag timeout: 600_000
+    test "a clean consumer proves the Accrue payment failure to payment success lifecycle", %{
+      root: root
+    } do
+      proof = ArtifactConsumerFixture.prove_accrue!(root)
+
+      assert proof.output =~ "CHIMEWAY_ACCRUE_PROOF"
+
+      assert %{
+               provenance: "released_package",
+               accrue_version: "1.3.0",
+               workflow_key: "accrue.dunning",
+               waiting_state: "waiting",
+               waiting_reason: "waiting_for_step_progression",
+               outcome_event: "invoice.paid",
+               outcome_state: "active",
+               outcome_reason: "signal_received",
+               timeline_reasons: "waiting_for_step_progression,signal_received"
+             } = proof.evidence
+
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+      refute File.exists?(proof.identity.root)
+    end
+
+    @tag :accrue_artifact_proof
+    @tag timeout: 600_000
+    test "a clean consumer classifies only the exact immutable Accrue checkout as compatibility",
+         %{
+           root: root
+         } do
+      proof = ArtifactConsumerFixture.prove_accrue!(root, accrue_source: :compatibility)
+
+      assert %{
+               provenance: "compatibility",
+               accrue_ref: "236fa2f1649e771f3b515603495436badeed3c7b",
+               workflow_key: "accrue.dunning",
+               waiting_state: "waiting",
+               outcome_state: "active"
+             } = proof.evidence
+
+      refute Map.has_key?(proof.evidence, :accrue_version)
+      refute Map.has_key?(proof.evidence, :chimeway_version)
+      assert proof.provenance_source == :compatibility
+      assert proof.cleanup == %{root_removed?: true, database_down?: true}
+      refute File.exists?(proof.identity.root)
+    end
+
+    @tag :accrue_artifact_proof
+    test "Accrue provenance rejects an unselected source before it can emit a proof" do
+      identity = ArtifactConsumerFixture.resource_identity("accrue_invalid_provenance")
+
+      assert_raise RuntimeError, ~r/provenance source/, fn ->
+        ArtifactConsumerFixture.prove_accrue!(System.tmp_dir!(),
+          identity: identity,
+          accrue_source: :source_checkout
+        )
+      end
+
+      refute File.exists?(identity.root)
+    end
+
+    @tag :accrue_artifact_proof
+    test "Accrue evidence accepts only fixed lifecycle and released-package provenance" do
+      line = accrue_evidence_line()
+
+      assert %{
+               provenance: "released_package",
+               accrue_version: "1.3.0",
+               workflow_key: "accrue.dunning"
+             } =
+               ArtifactConsumerFixture.parse_accrue_evidence!(line)
+
+      for {key, value} <- [
+            {"waiting_state", "active"},
+            {"waiting_reason", "completed"},
+            {"outcome_event", "invoice.failed"},
+            {"outcome_state", "terminal"},
+            {"outcome_reason", "completed"},
+            {"timeline_reasons", "signal_received,waiting_for_step_progression"},
+            {"accrue_version", "1.3.1"}
+          ] do
+        assert_raise RuntimeError, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(
+            replace_accrue_evidence_value(line, key, value)
+          )
+        end
+      end
+    end
+
+    @tag :accrue_artifact_proof
+    test "Accrue evidence rejects unknown, duplicate, mixed, and atomizing records" do
+      line = accrue_evidence_line()
+      unknown = "untrusted_accrue_key_#{System.unique_integer([:positive])}"
+
+      for forged <- [
+            line <> " #{unknown}=value",
+            line <> " outcome_state=active",
+            line <> " accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b",
+            String.replace(line, " chimeway_version=1.0.0", ""),
+            line <> "\n" <> line,
+            line <> " customer_id=private",
+            line <> " payload=private",
+            line <> " credential=private"
+          ] do
+        assert_raise RuntimeError, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(forged)
+        end
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown) end
+    end
+
+    @tag :accrue_artifact_proof
+    test "Accrue compatibility is SHA-only and proof source is event-to-signal shaped" do
+      compatibility =
+        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b " <>
+          "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
+          "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid " <>
+          "outcome_state=active outcome_reason=signal_received " <>
+          "timeline_reasons=waiting_for_step_progression,signal_received"
+
+      assert %{provenance: "compatibility"} =
+               ArtifactConsumerFixture.parse_accrue_evidence!(compatibility)
+
+      assert_raise RuntimeError, fn ->
+        ArtifactConsumerFixture.parse_accrue_evidence!(compatibility <> " accrue_version=1.3.0")
+      end
+
+      runner = File.read!("scripts/prove-accrue-consumer.exs")
+
+      assert runner =~ "--artifact-archive"
+      assert runner =~ "--sha256"
+      refute runner =~ "--artifact-root"
+
+      assert File.read!("priv/adoption_proof/artifact_consumer_fixture.ex") =~
+               "Accrue.Test.trigger_event(:invoice_payment_failed"
+
+      assert File.read!("priv/adoption_proof/artifact_consumer_fixture.ex") =~
+               "Accrue.Test.trigger_event(:invoice_paid"
+
+      refute direct_accrue_proof_record_write?(runner)
+
+      assert direct_accrue_proof_record_write?(
+               String.replace(
+                 runner,
+                 "IO.puts(proof.output)",
+                 "IO.puts(\"CHIMEWAY_ACCRUE_PROOF forged=true\")",
+                 global: false
+               )
+             )
+
+      proof_source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
+
+      for marker <- [
+            "\"scm\" => accrue_dep.scm",
+            "\"lock\" => lock",
+            "\"application_version\" => to_string(Application.spec(:accrue, :vsn))",
+            "descriptor[\"scm\"] == Hex.SCM",
+            "descriptor[\"scm\"] == Mix.SCM.Git",
+            "descriptor[\"metadata\"][<<\"version\">>] == <<\"1.3.0\">>",
+            "module_source == integration_source"
+          ] do
+        assert proof_source =~ marker,
+               "generated consumer provenance descriptor must validate #{marker}"
+      end
+    end
+
+    @tag :accrue_artifact_proof
+    test "Accrue parser rejects every sensitive boundary key and malformed lifecycle pair" do
+      line = accrue_evidence_line()
+
+      for unsafe_key <- ~w[
+            workflow_id delivery_id signal_id tenant_id customer_id subscription_id invoice_id
+            recipient email amount currency payload context metadata secret token credential
+            raw_struct inspect sql ecto_result database_result
+          ] do
+        assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(line <> " #{unsafe_key}=private")
+        end
+      end
+
+      for malformed <- [
+            "CHIMEWAY_ACCRUE_PROOF",
+            "CHIMEWAY_ACCRUE_PROOF malformed",
+            String.replace(line, "provenance=released_package", "provenance=unknown"),
+            String.replace(
+              line,
+              "timeline_reasons=waiting_for_step_progression,signal_received",
+              "timeline_reasons=waiting_for_step_progression,signal_received,signal_received"
+            ),
+            String.replace(
+              line,
+              "workflow_key=accrue.dunning",
+              "workflow_key=accrue.dunning.completed"
+            )
+          ] do
+        assert_raise RuntimeError, fn ->
+          ArtifactConsumerFixture.parse_accrue_evidence!(malformed)
+        end
+      end
+    end
+  end
+
+  describe "packaged Accrue archive proof CLI (ACCR-01/ACCR-02)" do
+    @tag :accrue_packaged_cli
+    @tag timeout: 600_000
+    test "runs only from a verified archive with package-owned proof support" do
+      archive = build_package_archive!()
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      digest = sha256!(archive)
+      unpacked = build_unpacked_package!()
+      on_exit(fn -> File.rm_rf(unpacked) end)
+      root = unpacked_package_root!(unpacked)
+      metadata = File.read!(Path.join(root, "hex_metadata.config"))
+
+      assert metadata =~ "scripts/prove-accrue-consumer.exs"
+      assert metadata =~ "priv/adoption_proof/artifact_consumer_fixture.ex"
+      refute metadata =~ "test/"
+
+      {deps_output, deps_status} =
+        System.cmd("mix", ["deps.get"],
+          cd: root,
+          stderr_to_stdout: true,
+          env: [{"MIX_ENV", "prod"}]
+        )
+
+      assert deps_status == 0, deps_output
+
+      {output, status} = packaged_accrue_cli(root, archive, digest)
+      assert status == 0, output
+
+      lines = Regex.scan(~r/^CHIMEWAY_ACCRUE_PROOF .+$/m, output) |> List.flatten()
+      assert [line] = lines
+
+      assert %{provenance: "released_package"} =
+               ArtifactConsumerFixture.parse_accrue_evidence!(line)
+
+      refute output =~ "test/support"
+      refute File.read!(Path.join(root, "scripts/prove-accrue-consumer.exs")) =~ "../test/support"
+    end
+
+    @tag :accrue_packaged_cli
+    @tag timeout: 600_000
+    test "rejects malformed archive provenance without a proof line" do
+      archive = build_package_archive!()
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      altered = Path.join(Path.dirname(archive), "altered.tar")
+      File.cp!(archive, altered)
+      File.write!(altered, "tampered", [:append])
+
+      for argv <- [
+            [],
+            ["--artifact-archive", ".", "--sha256", String.duplicate("a", 64)],
+            ["--artifact-archive", File.cwd!(), "--sha256", String.duplicate("a", 64)],
+            {"relative.tar", String.duplicate("a", 64)},
+            {archive, String.duplicate("0", 64)},
+            {archive, "ABC"},
+            {altered, sha256!(altered)}
+          ] do
+        argv =
+          case argv do
+            {path, digest} -> ["--artifact-archive", path, "--sha256", digest]
+            arguments -> arguments
+          end
+
+        {output, status} = invalid_packaged_accrue_cli(argv)
+        assert status != 0
+        refute output =~ "CHIMEWAY_ACCRUE_PROOF"
+        refute output =~ File.cwd!()
+        refute output =~ "password"
+      end
+    end
+
+    @tag :accrue_packaged_cli
+    test "redacts every archive validator failure to one fixed provenance diagnostic" do
+      archive = build_package_archive!()
+      malformed = Path.join(Path.dirname(archive), "malformed.tar")
+      File.write!(malformed, "not a Hex package archive")
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      for {path, digest} <- [
+            {archive, String.duplicate("0", 64)},
+            {malformed, sha256!(malformed)}
+          ] do
+        {output, status} =
+          invalid_packaged_accrue_cli(["--artifact-archive", path, "--sha256", digest])
+
+        assert status == 65
+        assert output == "Accrue package proof: archive validation failed\n"
+        assert output |> String.split("\n", trim: true) |> length() == 1
+        refute output =~ "WithClauseError"
+        refute output =~ "stacktrace"
+        refute output =~ path
+        refute output =~ digest
+        refute Regex.match?(~r/^CHIMEWAY_ACCRUE_PROOF /m, output)
+      end
+    end
+  end
+
+  test "test-support fixture compilation tracks its package-owned source" do
+    support_source = File.read!("test/support/artifact_consumer_fixture.ex")
+
+    assert support_source =~ "@external_resource"
+    assert support_source =~ "priv/adoption_proof/artifact_consumer_fixture.ex"
+  end
+
+  describe "adoption paths tracer (GATE-01/D-05..D-08)" do
+    @tag :adoption_paths_tracer
+    test "ships a strict Core adoption command and shared archive seam" do
+      task = "lib/mix/tasks/verify.adoption_paths.ex"
+      runner = "scripts/prove-adoption-paths.exs"
+      archive = "priv/adoption_proof/artifact_archive.ex"
+
+      assert File.regular?(task)
+      assert File.regular?(runner)
+      assert File.regular?(archive)
+      assert File.read!("mix.exs") =~ "scripts/prove-adoption-paths.exs"
+      assert File.read!(task) =~ "OptionParser.parse"
+      assert File.read!(task) =~ "AdoptionProofRunner"
+    end
+
+    @tag :adoption_paths_tracer
+    test "rejects invalid adoption selectors before any proof record is emitted" do
+      for argv <- [
+            ["--only", "unknown"],
+            ["--only", "core", "--only", "core"],
+            ["--only"],
+            ["core"],
+            ["--unexpected", "core"]
+          ] do
+        {output, status} =
+          System.cmd("mix", ["verify.adoption_paths" | argv], stderr_to_stdout: true)
+
+        assert status != 0
+        refute output =~ "CHIMEWAY_"
+      end
+    end
+  end
+
+  describe "adoption archive security (CR-01/T-96-11..T-96-14)" do
+    @unsupported_tar_types [?1, ?2, ?3, ?4, ?6, ?7, ?g, ?x, ?L, ?K, ?S]
+
+    @tag :adoption_archive_security
+    test "rejects a valid-digest symbolic-link directory before it can escape scratch" do
+      outside = temporary_path!("outside-created.txt")
+      File.write!(outside, "unchanged")
+      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+
+      archive =
+        malicious_package_archive!([
+          {"escape", ?2, "../outside-created.txt", <<>>},
+          {"escape/payload.txt", ?0, "", "owned"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:error, _} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> send(self(), :callback_invoked) end
+               )
+
+      refute_received :callback_invoked
+      assert File.read!(outside) == "unchanged"
+    end
+
+    @tag :adoption_archive_security
+    test "rejects a required-file symbolic link before validation can read or load its target" do
+      outside = temporary_path!("outside-marker.ex")
+      marker = temporary_path!("outside-marker.txt")
+      File.write!(outside, "File.write!(#{inspect(marker)}, \"loaded\")")
+      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+
+      archive =
+        malicious_package_archive!([
+          {"mix.exs", ?2, outside, <<>>},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:error, _} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> send(self(), :callback_invoked) end
+               )
+
+      refute_received :callback_invoked
+      refute File.exists?(marker)
+    end
+
+    @tag :adoption_archive_security
+    test "materializes a regular production-shaped archive and invokes its callback once" do
+      archive =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn root ->
+                   send(self(), :callback_invoked)
+                   assert File.regular?(Path.join(root, "mix.exs"))
+                   :validated
+                 end
+               )
+
+      assert_received :callback_invoked
+      refute_received :callback_invoked
+    end
+
+    @tag :adoption_archive_security
+    test "rejects correctly digested hostile metadata without interning atoms or invoking its callback" do
+      warm_archive = malicious_package_archive!(valid_proof_entries())
+      on_exit(fn -> File.rm_rf(Path.dirname(warm_archive)) end)
+
+      assert {:ok, :warmed} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 warm_archive,
+                 sha256!(warm_archive),
+                 fn _root -> :warmed end
+               )
+
+      tokens = hostile_atom_tokens(300)
+
+      metadata =
+        default_metadata() <>
+          ~s({<<"hostile">>, [#{Enum.join(tokens, ", ")}]} .\n)
+
+      archive =
+        valid_proof_entries()
+        |> malicious_package_archive!(metadata)
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      before_count = :erlang.system_info(:atom_count)
+
+      assert {:error, _} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> send(self(), :hostile_callback_invoked) end
+               )
+
+      assert :erlang.system_info(:atom_count) == before_count
+      refute_received :hostile_callback_invoked
+
+      for token <- Enum.take_every(tokens, 50) do
+        assert_raise ArgumentError, fn -> String.to_existing_atom(token) end
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "accepts bounded canonical unknown metadata values while retaining only proof fields" do
+      metadata =
+        default_metadata() <>
+          ~s({<<"links">>, [{<<"GitHub">>, <<"https://github.com/szTheory/chimeway">>}]} .\n) <>
+          ~s({<<"retired">>, false}.\n) <>
+          ~s({<<"labels">>, [<<"atom_looking_value">>, <<"still_binary">>]}.\n)
+
+      archive = malicious_package_archive!(valid_proof_entries(), metadata)
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> :validated end
+               )
+    end
+
+    @tag :adoption_archive_security
+    test "rejects unsupported metadata syntax, duplicate selected fields, and parser limit breaches" do
+      oversized_version = :binary.copy("v", 256)
+
+      invalid_metadata = [
+        ~s({<<"unknown">>, bare_atom}.\n),
+        ~s({<<"unknown">>, 'quoted_atom'}.\n),
+        ~s({<<"unknown">>, Variable}.\n),
+        ~s({<<"unknown">>, 1}.\n),
+        ~s({<<"unknown">>, [<<"value">> | <<"tail">>]}.\n),
+        ~s({<<"name">>, <<"chimeway">>}.\n),
+        ~s({<<"unknown">>, <<"unterminated>>}.\n),
+        ~s({<<"unknown">>, <<"value">>}. trailing),
+        ~s({<<"version">>, <<"#{oversized_version}">>}.\n),
+        :binary.copy(" ", 1 * 1024 * 1024 + 1)
+      ]
+
+      for suffix <- invalid_metadata do
+        archive = malicious_package_archive!(valid_proof_entries(), default_metadata() <> suffix)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, "package metadata is malformed"} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("metadata rejection must precede callback") end
+                 )
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "validates a freshly built Hex archive through the metadata parser exactly once" do
+      archive = build_package_archive!()
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn root ->
+                   assert File.regular?(Path.join(root, "mix.exs"))
+                   assert File.regular?(Path.join(root, "scripts/prove-accrue-consumer.exs"))
+
+                   assert File.regular?(
+                            Path.join(root, "priv/adoption_proof/artifact_consumer_fixture.ex")
+                          )
+
+                   send(self(), :real_archive_callback)
+                   :validated
+                 end
+               )
+
+      assert_received :real_archive_callback
+      refute_received :real_archive_callback
+    end
+
+    @tag :adoption_archive_security
+    test "keeps archive metadata away from source parsers, evaluators, and atom creators" do
+      source = File.read!("priv/adoption_proof/artifact_archive.ex")
+
+      for forbidden <- [
+            ":file.consult",
+            ":erl_scan",
+            ":erl_parse",
+            "Code.string_to_quoted",
+            "String.to_atom",
+            "List.to_atom"
+          ] do
+        refute source =~ forbidden, "archive parser must not use #{forbidden}"
+      end
+
+      assert source =~ "@max_metadata_bytes 1 * 1024 * 1024"
+      assert source =~ "parse_metadata!"
+      assert source =~ "secure_equal?"
+    end
+
+    @tag :adoption_archive_security
+    test "enforces metadata nesting and selected files boundaries before callback" do
+      accepted_metadata =
+        default_metadata() <>
+          ~s({<<"nested">>, #{nested_metadata_value(30)}}.\n)
+
+      accepted_archive = malicious_package_archive!(valid_proof_entries(), accepted_metadata)
+      on_exit(fn -> File.rm_rf(Path.dirname(accepted_archive)) end)
+
+      assert {:ok, :nested_boundary} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 accepted_archive,
+                 sha256!(accepted_archive),
+                 fn _root -> :nested_boundary end
+               )
+
+      for metadata <- [
+            default_metadata() <> ~s({<<"nested">>, #{nested_metadata_value(33)}}.\n),
+            metadata_with_files(4_097)
+          ] do
+        archive = malicious_package_archive!(valid_proof_entries(), metadata)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, "package metadata is malformed"} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("metadata limit must precede callback") end
+                 )
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
+      outside = temporary_path!("outside-special.txt")
+      File.write!(outside, "unchanged")
+      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+
+      for type <- @unsupported_tar_types do
+        archive = malicious_package_archive!([{"special-#{type}", type, outside, <<>>}])
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> send(self(), {:callback_invoked, type}) end
+                 )
+
+        refute_received {:callback_invoked, ^type}
+        assert File.read!(outside) == "unchanged"
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "allows directory parents but rejects duplicate, conflicting, and traversal output paths" do
+      valid =
+        malicious_package_archive!([
+          {"priv", ?5, "", <<>>},
+          {"priv/adoption_proof", ?5, "", <<>>},
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(valid)) end)
+
+      assert {:ok, :valid_directory_tree} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 valid,
+                 sha256!(valid),
+                 fn _root -> :valid_directory_tree end
+               )
+
+      for entries <- [
+            [{"mix.exs", ?0, "", "one"}, {"mix.exs", ?0, "", "two"}],
+            [{"mix.exs", ?0, "", "one"}, {"mix.exs/file", ?0, "", "two"}],
+            [{"../mix.exs", ?0, "", "outside"}],
+            [{"/mix.exs", ?0, "", "outside"}]
+          ] do
+        archive = malicious_package_archive!(entries)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("callback must not run for conflicting archive paths") end
+                 )
+      end
+    end
+
+    @tag :adoption_archive_security
+    test "fails closed on truncated or checksum-invalid contents before the callback" do
+      complete = raw_tar([{"mix.exs", ?0, "", "@version \"0.0.1\"\n"}])
+      truncated = binary_part(complete, 0, byte_size(complete) - 1024)
+      invalid_checksum = put_tar_field(complete, 124, 12, "99999999999\0")
+
+      for contents <- [truncated, invalid_checksum] do
+        archive = malicious_package_archive_from_contents!(contents)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("callback must not run for malformed archive contents") end
+                 )
+      end
+    end
+  end
+
+  describe "adoption archive immutable-byte validation (T-96-16)" do
+    @tag :adoption_archive_toctou
+    test "binds the accepted digest and outer extraction to the opened archive when its pathname is replaced" do
+      archive_a =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n# archive-a\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      archive_b =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n# archive-b\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      replacement = archive_a <> ".replacement"
+      File.cp!(archive_b, replacement)
+      accepted_digest = sha256!(archive_a)
+      replacement_digest = sha256!(replacement)
+      parent = self()
+
+      on_exit(fn ->
+        File.rm_rf(Path.dirname(archive_a))
+        File.rm_rf(Path.dirname(archive_b))
+      end)
+
+      validator =
+        Task.async(fn ->
+          Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+            archive_a,
+            accepted_digest,
+            fn root ->
+              source = File.read!(Path.join(root, "mix.exs"))
+              assert source =~ "archive-a"
+              refute source =~ "archive-b"
+              :archive_a
+            end,
+            archive_opened: fn ->
+              send(parent, {:archive_opened, self()})
+
+              receive do
+                :resume_archive_read -> :ok
+              after
+                5_000 -> raise "timed out waiting to resume archive read"
+              end
+            end
+          )
+        end)
+
+      assert_receive {:archive_opened, validator_pid}, 5_000
+      assert :ok = File.rename(replacement, archive_a)
+      assert sha256!(archive_a) == replacement_digest
+      send(validator_pid, :resume_archive_read)
+
+      assert {:ok, :archive_a} =
+               Task.await(validator, 15_000)
+
+      source = File.read!("priv/adoption_proof/artifact_archive.ex")
+
+      assert source =~ "read_bounded_archive!"
+      assert source =~ ":erl_tar.extract({:binary, archive_binary}, [:memory])"
+      refute source =~ ":erl_tar.extract(String.to_charlist(archive), [:memory])"
+    end
+  end
+
+  describe "adoption archive resource limits (T-96-17..T-96-19)" do
+    @tag :adoption_archive_limits
+    test "names pre-materialization budgets for every caller-controlled archive dimension" do
+      source = File.read!("priv/adoption_proof/artifact_archive.ex")
+
+      for required <- [
+            "@max_outer_archive_bytes 32 * 1024 * 1024",
+            "@max_compressed_contents_bytes 16 * 1024 * 1024",
+            "@max_decompressed_contents_bytes 64 * 1024 * 1024",
+            "@max_members 4_096",
+            "@max_regular_member_bytes 8 * 1024 * 1024",
+            "inflate_contents!",
+            "safeInflate"
+          ] do
+        assert source =~ required
+      end
+
+      refute source =~ ":zlib.gunzip(contents)"
+    end
+
+    @tag :adoption_archive_limits
+    test "fails closed one byte or member past every archive budget before the callback" do
+      outer = malicious_package_archive!([])
+      on_exit(fn -> File.rm_rf(Path.dirname(outer)) end)
+      File.write!(outer, :binary.copy(<<0>>, 32 * 1024 * 1024 + 1), [:append])
+
+      compressed =
+        package_archive_from_compressed_contents!(:crypto.strong_rand_bytes(16 * 1024 * 1024 + 1))
+
+      expanded =
+        malicious_package_archive_from_contents!(:binary.copy(<<0>>, 64 * 1024 * 1024 + 1))
+
+      member_count =
+        malicious_package_archive!(for index <- 1..4_097, do: {"members/#{index}", ?0, "", <<>>})
+
+      member_size =
+        malicious_package_archive!([
+          {"large.bin", ?0, "", :binary.copy(<<0>>, 8 * 1024 * 1024 + 1)}
+        ])
+
+      for archive <- [outer, compressed, expanded, member_count, member_size] do
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, _} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> send(self(), :callback_invoked) end
+                 )
+
+        refute_received :callback_invoked
+      end
+    end
+
+    @tag :adoption_archive_limits
+    test "permits a regular member exactly at the documented 8 MiB limit" do
+      archive =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"},
+          {"large.bin", ?0, "", :binary.copy(<<0>>, 8 * 1024 * 1024)}
+        ])
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      assert {:ok, :validated} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> :validated end
+               )
+    end
+  end
+
+  describe "adoption paths contract (GATE-01/D-05..D-08)" do
+    @tag :adoption_paths_contract
+    # The required verify_adoption_paths CI lane owns this expensive subprocess
+    # proof. General/release-contract lanes exclude only :adoption_paths_e2e so
+    # PR coverage stays singular while direct test runs retain the E2E contract.
+    @tag :adoption_paths_e2e
+    @tag timeout: 900_000
+    test "runs the complete packaged proof once in Core, Mailglass, Accrue order" do
+      {output, status} = System.cmd("mix", ["verify.adoption_paths"], stderr_to_stdout: true)
+
+      assert status == 0
+
+      assert Regex.scan(~r/\[adoption:(core|mailglass|accrue)\] START/, output) == [
+               ["[adoption:core] START", "core"],
+               ["[adoption:mailglass] START", "mailglass"],
+               ["[adoption:accrue] START", "accrue"]
+             ]
+
+      for path <- ["CORE", "MAILGLASS", "ACCRUE"] do
+        assert length(Regex.scan(~r/CHIMEWAY_#{path}_PROOF /, output)) == 1
+      end
+    end
+
+    @tag :adoption_paths_contract
+    test "keeps the runner bounded to fixture dispatch and redacted proof framing" do
+      runner = File.read!("scripts/prove-adoption-paths.exs")
+
+      for required <- ["prove_core!", "prove_mailglass!", "prove_accrue!", "[adoption:"] do
+        assert runner =~ required
+      end
+
+      for forbidden <- [
+            "verify.mailglass",
+            "verify.accrue",
+            "sibling checkout",
+            "path dependency",
+            "docker compose",
+            "matrix",
+            "Task.async"
+          ] do
+        refute runner =~ forbidden
+      end
+    end
+  end
+
+  describe "adoption selector package and command contract (ADPT-01/ADPT-02/DOCS-01)" do
+    @tag :adoption_paths_docs_contract
+    test "ships the selector and runner as explicit package surfaces with exact bounded symbols" do
+      mix_exs = File.read!("mix.exs")
+      selector = File.read!("guides/introduction/adoption-paths.md")
+      task = File.read!("lib/mix/tasks/verify.adoption_paths.ex")
+      runner = File.read!("scripts/prove-adoption-paths.exs")
+
+      assert mix_exs =~ "guides/introduction/adoption-paths.md"
+      assert mix_exs =~ "scripts/prove-adoption-paths.exs"
+      assert task =~ "Mix.Tasks.Verify.AdoptionPaths"
+      assert task =~ "OptionParser.parse"
+      assert runner =~ "Chimeway.AdoptionProofRunner"
+
+      for {path, prefix, guide} <- [
+            {"core", "CHIMEWAY_CORE_PROOF", "golden-path.md"},
+            {"mailglass", "CHIMEWAY_MAILGLASS_PROOF", "mailglass-integration.md"},
+            {"accrue", "CHIMEWAY_ACCRUE_PROOF", "accrue-dunning-integration.md"}
+          ] do
+        assert selector =~ "mix verify.adoption_paths --only #{path}"
+        assert selector =~ prefix
+        assert selector =~ guide
+      end
+    end
+
+    @tag :adoption_paths_docs_contract
+    test "makes renamed command, missing package surface, or duplicate unsafe selector evidence observable" do
+      task = File.read!("lib/mix/tasks/verify.adoption_paths.ex")
+      mix_exs = File.read!("mix.exs")
+      selector = File.read!("guides/introduction/adoption-paths.md")
+
+      refute String.contains?(
+               String.replace(task, "verify.adoption_paths", "verify.paths", global: false),
+               "verify.adoption_paths"
+             )
+
+      refute String.contains?(
+               String.replace(mix_exs, "scripts/prove-adoption-paths.exs", "", global: false),
+               "scripts/prove-adoption-paths.exs"
+             )
+
+      for prefix <- ~w(CHIMEWAY_CORE_PROOF CHIMEWAY_MAILGLASS_PROOF CHIMEWAY_ACCRUE_PROOF) do
+        assert length(:binary.matches(selector, prefix)) == 1
+        assert length(:binary.matches(selector <> " " <> prefix, prefix)) == 2
+      end
+    end
+  end
+
+  describe "adoption paths CI contract (GATE-02/DOCS-01)" do
+    @tag :adoption_paths_ci_contract
+    test "runs exactly one bounded PostgreSQL aggregate proof lane on every CI event" do
+      ci_yml = File.read!(@ci_yml)
+      job = extract_ci_job_block(ci_yml, "verify_adoption_paths")
+
+      assert length(Regex.scan(~r/^  verify_adoption_paths:/m, ci_yml)) == 1
+
+      for required <- [
+            "timeout-minutes: 30",
+            "image: postgres:15",
+            "--health-cmd pg_isready",
+            "- 5432:5432",
+            "DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test",
+            "name: Run adoption proof paths",
+            "mix verify.adoption_paths"
+          ] do
+        assert job =~ required, "adoption proof job must contain #{required}"
+      end
+
+      for forbidden <- [
+            "matrix:",
+            "verify.mailglass",
+            "verify.accrue",
+            "ACCRUE_PATH",
+            "THREADLINE_PATH",
+            "SIGRA_PATH",
+            "docker compose",
+            "registry",
+            "github.event_name != 'pull_request'"
+          ] do
+        refute job =~ forbidden, "adoption proof job must not contain #{forbidden}"
+      end
+    end
+
+    @tag :adoption_paths_ci_contract
+    test "couples the lane to both aggregate gates in every required place" do
+      ci_yml = File.read!(@ci_yml)
+      ci_gate = extract_ci_job_block(ci_yml, "ci-gate")
+      pr_gate = extract_ci_job_block(ci_yml, "pr-gate")
+
+      assert "verify_adoption_paths" in extract_ci_gate_needs(ci_yml)
+      assert "verify_adoption_paths" in extract_pr_gate_needs(ci_yml)
+      assert ci_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}"
+      assert ci_gate =~ "aggregate-gate.sh"
+      assert ci_gate =~ "VERIFY_ADOPTION_PATHS"
+      assert pr_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}"
+
+      assert pr_gate =~
+               "aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS"
+
+      for mutated <- [
+            String.replace(ci_yml, "verify_adoption_paths:", "verify_adoption_path:",
+              global: false
+            ),
+            replace_adoption_job(
+              ci_yml,
+              &String.replace(&1, "image: postgres:15", "", global: false)
+            ),
+            replace_adoption_job(
+              ci_yml,
+              &String.replace(&1, "timeout-minutes: 30", "", global: false)
+            ),
+            replace_adoption_job(
+              ci_yml,
+              &String.replace(&1, "mix verify.adoption_paths", "", global: false)
+            ),
+            String.replace(ci_yml, "VERIFY_ADOPTION_PATHS", "", global: false)
+          ] do
+        refute ci_topology_intact?(mutated)
+      end
+    end
+
+    @tag :adoption_paths_ci_contract
+    test "asserts one exact-SHA successful PR run without leaking environment secrets" do
+      {syntax_output, syntax_status} =
+        System.cmd("bash", ["-n", @adoption_run_assertion], stderr_to_stdout: true)
+
+      assert syntax_status == 0, syntax_output
+
+      executable_source =
+        @adoption_run_assertion
+        |> File.read!()
+        |> String.split("\n")
+        |> Enum.reject(&String.starts_with?(String.trim_leading(&1), "#"))
+        |> Enum.join("\n")
+
+      refute executable_source =~ "eval"
+
+      {output, status} =
+        run_adoption_assertion!(@adoption_run_fixture,
+          extra_env: [
+            {"GH_TOKEN", "phase-96-secret-token"},
+            {"DATABASE_URL", "postgres://user:phase-96-secret@localhost/db"}
+          ]
+        )
+
+      assert status == 0, output
+
+      assert output ==
+               "ADOPTION_RUN_PROOF sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa " <>
+                 "run_id=42424242 adoption=success pr_gate=success " <>
+                 "url=https://github.com/szTheory/chimeway/actions/runs/42424242\n"
+
+      refute output =~ "phase-96-secret"
+      refute output =~ "DATABASE_URL"
+    end
+
+    @tag :adoption_paths_ci_contract
+    test "fails closed when live-run identity, completion, proof, or gate evidence is absent" do
+      fixture = @adoption_run_fixture |> File.read!() |> Jason.decode!()
+
+      mutations = [
+        {"wrong SHA", fn payload -> Map.put(payload, "headSha", String.duplicate("b", 40)) end},
+        {"wrong event", fn payload -> Map.put(payload, "event", "push") end},
+        {"pending run", fn payload -> Map.put(payload, "status", "in_progress") end},
+        {"failed run", fn payload -> Map.put(payload, "conclusion", "failure") end},
+        {"missing adoption job",
+         fn payload ->
+           Map.update!(
+             payload,
+             "jobs",
+             &Enum.reject(&1, fn job -> job["name"] == "Adoption proof paths" end)
+           )
+         end},
+        {"failed adoption job",
+         fn payload ->
+           update_adoption_job(payload, &Map.put(&1, "conclusion", "failure"))
+         end},
+        {"skipped proof step",
+         fn payload ->
+           update_adoption_job(payload, fn job ->
+             Map.update!(job, "steps", fn [step] -> [Map.put(step, "conclusion", "skipped")] end)
+           end)
+         end},
+        {"failed pr-gate",
+         fn payload ->
+           Map.update!(payload, "jobs", fn jobs ->
+             Enum.map(jobs, fn
+               %{"name" => "pr-gate"} = job -> Map.put(job, "conclusion", "failure")
+               job -> job
+             end)
+           end)
+         end}
+      ]
+
+      for {label, mutate} <- mutations do
+        fixture_path = write_adoption_run_fixture!(mutate.(fixture))
+        {output, status} = run_adoption_assertion!(fixture_path)
+
+        assert status != 0, "#{label} must fail closed:\n#{output}"
+        assert output =~ "adoption run proof failed:"
+      end
+    end
+  end
+
+  defmodule CoreProofNotifier do
+    def notification_key, do: "artifact_consumer.core_trace"
+    def version, do: 1
+  end
+
   # Builds the default root Hex package into a unique temp dir and unpacks it.
   # Runs in a separate OS process under MIX_ENV=prod: the prod package build omits
   # the dev/test-only Sigra override, so `mix hex.build` succeeds exactly as it does
@@ -992,6 +2599,157 @@ defmodule Chimeway.ReleaseGateContractTest do
            "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
 
     output
+  end
+
+  defp build_package_archive! do
+    output =
+      Path.join(
+        System.tmp_dir!(),
+        "chimeway_release_archive_#{System.unique_integer([:positive])}"
+      )
+
+    File.mkdir_p!(output)
+    archive = Path.join(output, "chimeway.tar")
+
+    {out, status} =
+      System.cmd("mix", ["hex.build", "--output", archive],
+        stderr_to_stdout: true,
+        env: [{"MIX_ENV", "prod"}]
+      )
+
+    assert status == 0, out
+    archive
+  end
+
+  defp sha256!(path), do: :crypto.hash(:sha256, File.read!(path)) |> Base.encode16(case: :lower)
+
+  defp malicious_package_archive!(contents_entries, metadata \\ default_metadata()) do
+    contents_entries |> raw_tar() |> malicious_package_archive_from_contents!(metadata)
+  end
+
+  defp malicious_package_archive_from_contents!(contents, metadata \\ default_metadata()) do
+    package_archive_from_compressed_contents!(:zlib.gzip(contents), metadata)
+  end
+
+  defp package_archive_from_compressed_contents!(contents, metadata \\ default_metadata()) do
+    output = temporary_path!("archive")
+    File.mkdir_p!(output)
+    archive = Path.join(output, "malicious.tar")
+
+    File.write!(
+      archive,
+      raw_tar([{"metadata.config", ?0, "", metadata}, {"contents.tar.gz", ?0, "", contents}])
+    )
+
+    archive
+  end
+
+  defp default_metadata do
+    ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [<<"scripts/prove-accrue-consumer.exs">>, <<"priv/adoption_proof/artifact_consumer_fixture.ex">>]}.\n)
+  end
+
+  defp valid_proof_entries do
+    [
+      {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+      {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+      {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+    ]
+  end
+
+  defp hostile_atom_tokens(count) do
+    for index <- 1..count do
+      "chimeway_archive_atom_#{System.unique_integer([:positive])}_#{index}"
+    end
+  end
+
+  defp nested_metadata_value(depth),
+    do: String.duplicate("[", depth) <> "<<\"leaf\">>" <> String.duplicate("]", depth)
+
+  defp metadata_with_files(count) do
+    files =
+      ["scripts/prove-accrue-consumer.exs", "priv/adoption_proof/artifact_consumer_fixture.ex"] ++
+        Enum.map(1..(count - 2), &"file-#{&1}")
+
+    ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [#{Enum.map_join(files, ", ", &"<<\"#{&1}\">>")}]}.\n)
+  end
+
+  defp raw_tar(entries) do
+    Enum.map_join(entries, &raw_tar_entry/1) <> :binary.copy(<<0>>, 1024)
+  end
+
+  defp raw_tar_entry({name, type, link_name, body}) do
+    header = :binary.copy(<<0>>, 512)
+    header = put_tar_field(header, 0, 100, name)
+    header = put_tar_field(header, 100, 8, "0000644\0")
+    header = put_tar_field(header, 108, 8, "0000000\0")
+    header = put_tar_field(header, 116, 8, "0000000\0")
+    header = put_tar_field(header, 124, 12, tar_octal(byte_size(body), 12))
+    header = put_tar_field(header, 136, 12, "00000000000\0")
+    header = put_tar_field(header, 148, 8, "        ")
+    header = put_tar_field(header, 156, 1, <<type>>)
+    header = put_tar_field(header, 157, 100, link_name)
+    header = put_tar_field(header, 257, 6, "ustar\0")
+    header = put_tar_field(header, 263, 2, "00")
+    checksum = header |> :binary.bin_to_list() |> Enum.sum() |> tar_checksum()
+    header = put_tar_field(header, 148, 8, checksum)
+    padding = rem(512 - rem(byte_size(body), 512), 512)
+    header <> body <> :binary.copy(<<0>>, padding)
+  end
+
+  defp put_tar_field(binary, offset, width, value) do
+    value = IO.iodata_to_binary(value)
+
+    binary_part(value, 0, min(byte_size(value), width))
+    |> then(fn truncated ->
+      :binary.part(binary, 0, offset) <>
+        truncated <>
+        :binary.copy(<<0>>, width - byte_size(truncated)) <>
+        :binary.part(binary, offset + width, byte_size(binary) - offset - width)
+    end)
+  end
+
+  defp tar_octal(value, width) do
+    value |> Integer.to_string(8) |> String.pad_leading(width - 1, "0") |> Kernel.<>("\0")
+  end
+
+  defp tar_checksum(value) do
+    value |> Integer.to_string(8) |> String.pad_leading(6, "0") |> Kernel.<>(<<0, 32>>)
+  end
+
+  defp temporary_path!(suffix) do
+    Path.join(
+      System.tmp_dir!(),
+      "chimeway_adoption_security_#{System.unique_integer([:positive])}_#{suffix}"
+    )
+  end
+
+  defp packaged_accrue_cli(root, archive, digest) do
+    System.cmd(
+      "mix",
+      [
+        "run",
+        "--no-start",
+        "scripts/prove-accrue-consumer.exs",
+        "--",
+        "--artifact-archive",
+        archive,
+        "--sha256",
+        digest
+      ],
+      cd: root,
+      stderr_to_stdout: true,
+      env: [{"MIX_ENV", "prod"}]
+    )
+  end
+
+  defp invalid_packaged_accrue_cli(argv) do
+    System.cmd("elixir", ["scripts/prove-accrue-consumer.exs", "--" | argv],
+      stderr_to_stdout: true
+    )
+  end
+
+  defp direct_accrue_proof_record_write?(source) do
+    Regex.match?(~r/IO\.(?:puts|binwrite)\([^\n]*["']CHIMEWAY_ACCRUE_PROOF /, source)
   end
 
   # Hex task output shape varies by version: files may land directly in the
@@ -1027,6 +2785,31 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  defp mailglass_evidence_line do
+    "CHIMEWAY_MAILGLASS_PROOF " <>
+      "transport=fake notification_key=artifact_consumer.mailglass_proof " <>
+      "notification_version=1 delivery_id=2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e channel=email " <>
+      "render_key=artifact_consumer.mailglass_proof.email render_version=1 " <>
+      "status=succeeded last_attempt_outcome=succeeded last_attempt_number=1 " <>
+      "adapter_module=Chimeway.Adapters.Mailglass " <>
+      "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded,webhook_received"
+  end
+
+  defp replace_mailglass_evidence_value(line, key, value) do
+    Regex.replace(~r/(^|\s)#{Regex.escape(key)}=[^\s]*/, line, "\\1#{key}=#{value}")
+  end
+
+  defp accrue_evidence_line do
+    "CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 " <>
+      "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
+      "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active " <>
+      "outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received"
+  end
+
+  defp replace_accrue_evidence_value(line, key, value) do
+    Regex.replace(~r/(^|\s)#{Regex.escape(key)}=[^\s]*/, line, "\\1#{key}=#{value}")
+  end
+
   defp count_tests(files) do
     Enum.reduce(files, 0, fn file, acc ->
       content = File.read!(file)
@@ -1060,6 +2843,36 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  defp ci_topology_intact?(ci_yml) do
+    with job when is_binary(job) <- ci_job_block(ci_yml, "verify_adoption_paths"),
+         gate when is_binary(gate) <- ci_job_block(ci_yml, "ci-gate"),
+         pr_gate when is_binary(pr_gate) <- ci_job_block(ci_yml, "pr-gate") do
+      job =~ "timeout-minutes: 30" and job =~ "image: postgres:15" and
+        job =~ "mix verify.adoption_paths" and
+        not (job =~ "github.event_name != 'pull_request'") and
+        "verify_adoption_paths" in extract_ci_gate_needs(ci_yml) and
+        "verify_adoption_paths" in extract_pr_gate_needs(ci_yml) and
+        gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}" and
+        gate =~ "INSTALL_GOLDEN VERIFY_ADOPTION_PATHS TEST_FLOOR_1_17" and
+        pr_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}" and
+        pr_gate =~ "VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS"
+    else
+      _ -> false
+    end
+  end
+
+  defp ci_job_block(yml, job_id) do
+    case Regex.run(~r/^  #{job_id}:(.*?)(?:\n  [a-z0-9_]+:|\z)/ms, yml) do
+      [_, block] -> block
+      _ -> nil
+    end
+  end
+
+  defp replace_adoption_job(ci_yml, replace) do
+    job = extract_ci_job_block(ci_yml, "verify_adoption_paths")
+    String.replace(ci_yml, job, replace.(job), global: false)
+  end
+
   defp extract_ci_gate_needs(ci_yml) do
     case Regex.run(~r/ci-gate:.*?needs:\s*\[(.*?)\]/s, ci_yml) do
       [_, needs_str] ->
@@ -1084,5 +2897,44 @@ defmodule Chimeway.ReleaseGateContractTest do
       _ ->
         flunk("Could not extract pr-gate needs from ci.yml")
     end
+  end
+
+  defp run_adoption_assertion!(fixture_path, opts \\ []) do
+    env =
+      [
+        {"ADOPTION_RUN_JSON", fixture_path},
+        {"GITHUB_REPOSITORY", "szTheory/chimeway"}
+      ] ++ Keyword.get(opts, :extra_env, [])
+
+    System.cmd(
+      "bash",
+      [@adoption_run_assertion, String.duplicate("a", 40)],
+      stderr_to_stdout: true,
+      env: env
+    )
+  end
+
+  defp write_adoption_run_fixture!(payload) do
+    directory =
+      Path.join(
+        System.tmp_dir!(),
+        "chimeway_adoption_run_#{System.unique_integer([:positive])}"
+      )
+
+    File.mkdir_p!(directory)
+    on_exit(fn -> File.rm_rf!(directory) end)
+
+    path = Path.join(directory, "run.json")
+    File.write!(path, Jason.encode!(payload))
+    path
+  end
+
+  defp update_adoption_job(payload, update) do
+    Map.update!(payload, "jobs", fn jobs ->
+      Enum.map(jobs, fn
+        %{"name" => "Adoption proof paths"} = job -> update.(job)
+        job -> job
+      end)
+    end)
   end
 end

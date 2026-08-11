@@ -1,180 +1,181 @@
 # Project Research Summary
 
-**Project:** Chimeway — v1.15 Brand Identity & Brand Book
-**Domain:** Self-contained, vector-first OSS brand/design-system package (`brandbook/`) for an Elixir/Phoenix library — zero build step, opens via `file://`
-**Researched:** 2026-07-09
-**Confidence:** HIGH
+**Project:** Chimeway v1.17 Adopter Proof Paths
+**Domain:** Clean-room adoption evaluation for an embedded Elixir/Phoenix notification library
+**Researched:** 2026-08-08
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-This milestone ships a self-contained `brandbook/` folder — SVG logos, a reconciled `--cw-*` token file (JSON + CSS), a standalone HTML brand book, copy-paste component examples, and decision/accessibility notes — plus two tiny repo-integration edits (README header, `mix.exs` `docs()` logo/favicon). It is **doc/asset-only**: no runtime code, no CI changes, no touching `chimeway_admin`. The single most important reframing from the research is that the token work is **not** a design exercise — the shipped `chimeway_admin.css` primitive palette (15 `--cw-*` colors) already matches brand-book §14 **byte-for-byte, zero drift**. The real work is (a) *documenting* that agreement into a canonical, copy-safe `tokens.css`/`tokens.json`, and (b) *recording* the handful of sub-primitive conflicts as deferred decisions — not patching them into shipped admin CSS this milestone.
+Chimeway v1.17 should make adoption *provable*, not add product surface. The product already has canonical guides, a rich demo host, partner verification lanes, package-file parity checks, and explainable notification primitives. The missing link is a prospective adopter's trustworthy path from a stated goal to an independent, artifact-consuming outcome. Build exactly three clean-room tracer bullets: core notification plus trace, Mailglass transactional email, and Accrue billing escalation.
 
-Experts build this kind of artifact the way Fly.io and Vercel Geist do at OSS/dev-tool scale: a small, practical, HTML-first brand page (not a PDF, not a Figma file, not a CMS microsite), a compact token set (~40-50 tokens, not Carbon's hundreds), a two-tier primitive→semantic token model (reject the third component tier), and a tight logo lockup family. The recommended approach here is deliberately zero-build: hand-authored SVG/CSS/HTML/JSON/MD, `svgo` used once during authoring as a throwaway CLI (never a repo dependency), and `color.js` vendored as a single ES module so the book's live contrast matrix works from a plain file open. The whole stack reuses patterns `chimeway_admin.css` already proves in production (`@layer` cascade order, `:where()` zero-specificity scoping, focus-visible, reduced-motion).
+The recommended implementation is one small committed Phoenix/Ecto-shaped fixture scaffold and one root-owned runner. For every path, the runner builds Chimeway in production mode with `mix hex.build --unpack`, copies the fixture to a new temporary location outside the checkout, resolves Chimeway only from that artifact, creates and migrates a fresh PostgreSQL database, then makes a public-API assertion on `Chimeway.Traces.explain_delivery/1`. Existing `verify.*` suites remain the behavioral authorities; the new proof answers the narrower and more valuable question: can an adopter follow the documented path using what the package actually contains?
 
-The two dominant risk clusters are **logo craft** and **token reconciliation discipline**. On logos, the user's hard taste constraints are non-negotiable and repeated across three source docs: no rectangular background cages, mark+wordmark visually unified (not "icon-left/text-right"), ≥1 genuinely integrated typemark (a modified letterform, not a font choice), multiple directions with rationale to choose from, no literal music/bell iconography (route "chime" through the path/signal/trace metaphor set), and every mark must survive mono, inverse, and 16px. On tokens, the trap is forking a second source of truth; the mitigation is to copy the 15 primitives verbatim and log every conflict (radius-sm 5px vs 4px; info/cancelled/sending/expired status triads; missing `--cw-info`; missing motion + z-index tokens) as DOCUMENTED/DEFERRED, not fixed. Accessibility is checked against named WCAG 2.2 criteria throughout, and a final red-team pass guards the `brandbook/`-only scope boundary.
+The central risks are false clean-room claims from path dependencies or inherited state, overclaiming local fake-email coverage as provider E2E, and presenting an Accrue pinned-ref compatibility check as a released-package proof. Mitigate them with hermetic process/environment setup, explicit source provenance, synthetic/redacted fixture data, a public explainability assertion on every path, and two distinct Accrue labels/contracts: a released-package adopter proof only when the required integration is present in the resolved release, otherwise an immutable pinned-ref compatibility proof.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is generation-time tooling, not a runtime dependency — nothing here becomes a dependency of `chimeway` core, `chimeway_admin`, or the shipped Hex tarball. The brand book itself is plain files a browser opens directly. Tooling follows the existing repo precedent (root `package.json` carries Playwright as a devDependency for a one-off script, never a build pipeline). Confidence is HIGH: versions were verified against the live npm registry and the DTCG spec status confirmed against the W3C Community Group's official first-stable-release announcement (2025-10-28).
+Use the existing supported platform rather than inventing proof infrastructure: Elixir 1.17+ / the repository's strict CI toolchain, Phoenix/Ecto with PostgreSQL 15, ExUnit, existing Mix aliases, and a short shell runner. Build the root in `MIX_ENV=prod` and use Hex's local `--unpack` artifact as the dependency boundary. The fixture is a deliberately minimal host, not a second DemoHost or generated application on every run.
 
 **Core technologies:**
-- **Plain Node `.mjs` generation script** — emit SVG (logos, favicon, social card) as template-literal strings; zero framework, SVG is just XML text.
-- **SVGO 4.0.1 (devDependency only)** — one-shot optimization of generated/hand-tuned SVGs via a committed `svgo.config.mjs` (`removeViewBox: false`, `floatPrecision: 2-3`, `multipass: true`) for byte-deterministic, diff-friendly output. Never a view-time dependency.
-- **DTCG-shaped `tokens.json` + hand-authored `tokens.css`** — `tokens.json` (`$value`/`$type`/`$description`) is forward-compatible with Style Dictionary/Terrazzo without adopting a build tool now; `tokens.css` reuses the exact `--cw-*` names already live in `chimeway_admin.css`.
-- **Hand-authored cascade-layered CSS (`@layer`) + `@scope`** — mirrors `chimeway_admin.css`'s five-layer pattern; `@scope` (Baseline since Dec 2025) contains live demo blocks. `@layer` = macro order, `@scope` = micro containment — complementary, not redundant.
-- **Vendored `color.js` 0.6.1 (single ES module, not npm-installed)** — live WCAG 2.1 + APCA contrast matrix embedded in the book, works from `file://` with no `node_modules`.
-- **One rasterizer — `@resvg/resvg-js` 2.6.2 OR `sharp` 0.35.3 (pick one)** — only for the 2-3 surfaces that structurally require raster (OG/social card, apple-touch-icon, `favicon.ico`).
-- **SVG `feColorMatrix` CVD filters + MIT icon path data (Heroicons/Octicons)** — copy the specific matrices/paths needed into inline `<defs>`/a `<symbol>` sprite; no packages installed.
 
-**What NOT to add (preserved verbatim as a hard boundary):**
-- **No build system / bundler** (Vite, Webpack, Parcel, esbuild, Tailwind/PostCSS) — defeats `file://`, adds `node_modules` for a static doc.
-- **No Style Dictionary/Tokens Studio as a required build step** — overkill for ~40-50 hand-maintained tokens with two output targets.
-- **No font binaries** (`.woff2`/`.ttf`/`.otf`) — system font stack primary; Inter/IBM Plex Mono/Source Serif 4 documented as a *recommendation* only; wordmark/typemark shipped as SVG outlines.
-- **No PDF pipeline** (Puppeteer/WeasyPrint/Prince) — HTML is the deliverable; native browser print-to-PDF against `@media print` if ever wanted.
-- **No Figma/AI/Sketch source files, no icon webfont, no Shadow DOM, no axe/pa11y in CI** this milestone.
+- **Elixir/Mix + Hex `mix hex.build --unpack`:** creates the pre-publish artifact boundary an adopter can consume.
+- **Minimal Phoenix/Ecto fixture + PostgreSQL 15:** supplies host-owned repo, config, supervision, and fresh migration conditions without UI or assets.
+- **ExUnit:** verifies installation, the natural path entrypoint, durable outcome, and public trace evidence deterministically.
+- **Mailglass `~> 1.3`:** exercises transactional-email composition through a safe fake/test transport, never credentials or provider networking.
+- **Accrue:** supports event-driven billing dunning, but release availability of `Accrue.Integrations.Chimeway` must be checked before making a released-package claim.
 
 ### Expected Features
 
-The written brand spec (`prompts/chimeway-brand-book.md`, §1-35) already contains ~90% of the *content*; most of the milestone is extraction, visualization, and reconciliation — not net-new brand strategy. Confidence is HIGH against mature design-system precedent (Primer's Brand/Product split is the exact mental model: the brandbook is a new brand-facing system that *reconciles with*, not forks, the existing product tokens).
+**Must have (table stakes):**
 
-**Must have (table stakes for this project):**
-- **Logo system** — primary horizontal lockup, icon-only mark, wordmark, integrated typemark, stacked lockup, mono, inverse, simplified favicon, optional-tagline secondary, clear-space + min-size rules, do/don't grid, OG crop. Full 10-variant matrix for the *finalist* only; mark+wordmark+one lockup for the non-selected directions.
-- **Reconciled tokens** (`tokens.json` + `tokens.css`) covering color, type, spacing, radius, border, shadow, motion, focus-ring, z-index — the assembly point everything downstream depends on.
-- **Standalone HTML brand book** (`index.html`) — the primary deliverable and assembly layer with no content of its own.
-- **Brand voice & microcopy section** — transcribe §9-11/§21-26/§33, plus one net-new differentiator: a named, fillable "what happened / why it matters / how to fix" error-pattern template (GOV.UK/Polaris caliber).
-- **Component states** (hover/focus/active/disabled/loading/error/empty/skeleton/selected) as *static* HTML/CSS that documents states already shipped in `chimeway_admin` (loading/skeleton is the only genuinely net-new pattern).
-- **Decision + accessibility notes** (`decision-log.md`, `logo-options.md`, `accessibility-checks.md`) + red-team pass.
+- A concise adoption selector mapping evaluator intent to Core, Mailglass, or Accrue, with prerequisites, expected result, and ownership boundaries.
+- One packed/artifact-consuming clean-room fixture for each of the three paths, with a fresh database and no source-tree dependency.
+- A public explainability assertion per path: core lifecycle trace, Mailglass adapter/attempt trace, and Accrue campaign/signal outcome trace.
+- Copyable named commands, human-readable but redacted evidence output, and CI-backed docs-to-command contracts.
 
-**Should have (differentiators at OSS scale):**
-- The integrated typemark (no surveyed system does this — genuine differentiation; here it's a hard requirement).
-- Multiple pre-vetted logo directions with rationale/ship-defer-reject recommendations (not a raw gallery).
-- Live in-book contrast matrix + a real dark/light/system toggle (proves tokens work, not just static swatches).
+**Should have (differentiators):**
 
-**Defer (v1.x / v2+):**
-- Full `chimeway_admin` re-theme to consume the reconciled tokens (explicitly deferred per PROJECT.md rollout boundary).
-- Live Storybook/LiveView-wired component demo; adopted webfont; print collateral beyond stickers; i18n voice guide; trademark/legal apparatus; publishing the brandbook as a Hex package.
+- Explainability as the completion condition—not merely a green notification test.
+- A compact Host / Chimeway / Partner responsibility matrix for every route.
+- Stable-identity evidence (notification key/version, tenant, idempotency, correlation identifiers) and one controlled suppression/failure observation where it stays deterministic.
 
-**Reject (not just defer):** component-level token tier (Carbon-style), full 12-step per-hue color scales, multi-brand/theme layering.
+**Explicit anti-features / defer:**
+
+- No new browser/admin evaluation UI, Playwright path, inbox work, or UI assets.
+- No broad CI-performance initiative, CI topology rewrite, or duplicated full `verify.*` suites inside the new lane.
+- No all-integrations mega-demo, new runtime delivery semantics, partner feature expansion, Docker Compose/Testcontainers/local registry, or Hex publishing during CI.
+- No live provider accounts, real recipients, webhook secrets, or live billing accounts in baseline proofs; live provider/webhook validation remains optional future work.
 
 ### Architecture Approach
 
-Two CSS root scopes stay independent by design: `.chimeway-admin` (shipped, untouched) and `.cw-brandbook` (new, static showcase). They share the same primitive `--cw-*` *names and values* (that IS the reconciliation), but nothing in `brandbook/` overwrites, imports, or executes against `chimeway_admin/`. `tokens/tokens.css` is the *only* cross-boundary artifact — the single file designed to be imported by a future host app or the deferred admin re-theme, so that re-theme becomes a one-file dependency change. All `file://` references must be relative (never root-relative), and no `fetch()`/external `<use href="sprite.svg#id">` (Chromium blocks both under `file://`) — inline SVG markup instead.
+One thin adoption-proof harness should map three stable proof IDs to their guide anchors, fixture setup, natural business entrypoint, and expected explanation. It builds and unpacks the production artifact, materializes a fresh host, invokes public APIs and generated migrations, and prints sanitized provenance/evidence. Documentation contracts verify selector-to-guide-to-command reachability; runtime recipes prove behavior. Existing DemoHost, installer golden tests, `verify.mailglass`, and `verify.accrue` retain their deeper specialization and must not be copied or re-run wholesale.
 
 **Major components:**
-1. **`brandbook/tokens/tokens.css` (+ `tokens.json`)** — canonical, copy-safe `--cw-*` custom properties (primitive verbatim + a new *generalized* semantic tier: `--cw-surface`, `--cw-fg`, `--cw-border`, `--cw-focus`, `--cw-status-*`). Scoped to `:root` (declarations only). Reuses the literal `@layer cw.tokens` name so a hypothetical co-load with admin CSS merges to a no-op.
-2. **`brandbook/index.html` + `assets/brandbook.css`** — primary deliverable; book chrome scoped to `.cw-brandbook` under its own `cw.brandbook.*` layer namespace; `.cwb-*` demonstrative components (distinct prefix from admin's real `.cw-*`).
-3. **`brandbook/examples/*.html`** — copy-paste snippets that depend only on `tokens.css` (or nothing), deliberately *no* `@layer` wrapper so they behave predictably in any host app.
-4. **`brandbook/assets/*.svg`** — only *shipped* final vectors; rejected candidate directions live as inline `<svg>` in `notes/logo-options.md` (repo-size discipline).
-5. **Repo integration** — `README.md` header lockup (relative path, GitHub resolves natively); `mix.exs` `docs()` `:logo`/`:favicon` (ExDoc accepts SVG, copied from source tree at `mix docs` time — the correct HexDocs path, not a README hack); optional `package() files:` += `brandbook/assets` so Hex.pm's README preview resolves the image. `chimeway_admin/` untouched.
+
+1. **Adoption selector and canonical guides** — route an evaluator to one journey and state ownership boundaries.
+2. **Proof manifest/recipes** — map `core`, `mailglass`, and `accrue` to stable commands, guide anchors, inputs, and assertions.
+3. **Clean-room fixture host and runner** — build the artifact, isolate environment/database, migrate, execute public path entrypoints, and emit safe diagnostics.
+4. **Doc/release contracts and one adoption CI lane** — keep instructions, package content, aliases, and gate topology truthful without duplicating behavioral suites.
 
 ### Critical Pitfalls
 
-The pitfalls research names 25 pitfalls across logo craft, token reconciliation, accessibility, and scope. The top clusters:
+1. **Repository-path success called a clean install** — always use a copied temporary host, an unpacked production artifact, fresh dependency/build state, and path/provenance assertions.
+2. **Package parity mistaken for runtime adoption proof** — retain `verify.parity` as a prerequisite, then independently resolve, compile, migrate, boot, trigger, and explain from the external host.
+3. **Inherited environment/optional-dependency overrides** — use an allowlisted environment and reject `CHIMEWAY_*_PATH`, `ACCRUE_PATH`, `*_SKIP_*`, and accidental `HEX_*` overrides; record sanitized dependency provenance.
+4. **Fake transport described as provider E2E** — call Mailglass coverage deterministic local composition; make provider acceptance, sender verification, and public webhooks explicit partner/host responsibilities.
+5. **Pinned Accrue source represented as a release proof** — an adopter proof must resolve a declared released Accrue package and assert the integration module; if unavailable, retain a separately named pinned immutable-ref compatibility proof, including the SHA and its limitation.
 
-1. **Logo taste-constraint violations (Pitfalls 1-7)** — generic AI blob, illegible-at-16px, literal music/bell imagery, rectangular background cage, mono/inverse failure, "typemark = font choice," disconnected mark+wordmark. Avoid by anchoring every direction to a named brand metaphor primitive (§13), gating on the 16px + black-and-white tests before shortlisting, hard-rejecting any enclosing `<rect>`/`<circle>`, and requiring the integrated direction to modify ≥1 letterform.
-2. **Token fork instead of reconciliation (Pitfalls 8-9)** — a second source of truth for "what teal is." Avoid by copying the 15 primitives verbatim, keeping the two-tier primitive→semantic taxonomy, and logging every divergence in `decision-log.md`.
-3. **Accessibility misses against named WCAG 2.2 criteria (Pitfalls 11-17)** — text contrast (1.4.3), non-text/UI contrast (1.4.11, the commonly-skipped one), focus visible + not-obscured (2.4.7/2.4.11), reduced motion (2.3.3), colorblind-unsafe status (never color alone), touch targets ≥24×24px (2.5.8), and dark-mode contrast regressions on new tokens. Avoid by reusing `chimeway_admin.css`'s proven focus-visible/reduced-motion blocks, recording every real fg/bg pairing in `accessibility-checks.md`, and contrast-checking every new token's dark value independently (never `filter: invert()`).
-4. **Scope creep beyond `brandbook/` (Pitfalls 21, 25)** — "just quickly" patching `chimeway_admin.css`, rewriting more of the README than the header, or drifting into the full admin re-theme. Avoid by running `git diff --stat` against the allowed file set before every commit and re-affirming the rollout boundary at each phase transition.
-5. **Build-system / binary bloat (Pitfalls 10, 22, 23, 24)** — hardcoded values bypassing tokens, a `package.json`/`node_modules` in `brandbook/`, committed font binaries or oversized rasters, unscoped CSS. Avoid with zero-build discipline, `var(--cw-*)`-only demo CSS, and `:where(.chimeway-brandbook ...)` scoping.
+## Scope Recommendation
+
+Approve v1.17 as **adopter evaluation proof paths**, not a UI milestone and not a broad CI-performance milestone. Its only target journeys are:
+
+1. **Core notification + trace** — public trigger with stable notification identity, tenant/idempotency/correlation inputs, durable lifecycle, and `explain_delivery/1` evidence.
+2. **Mailglass transactional email** — host mailable and `render_key`, safe local/test transport, and redacted adapter/attempt explainability evidence.
+3. **Accrue billing escalation** — payment-failed starts the campaign and payment-paid produces the truthful signal/cancel/progression outcome, without directly calling a notifier.
+
+Every journey must consume a packed/local-release Chimeway artifact from a clean-room host and make an adopter-visible, public explainability assertion. This is the non-negotiable bar for a v1.17 "proof"; source-tree test success or package file-list parity alone is insufficient.
 
 ## Implications for Roadmap
 
-The research converges on a clear dependency-ordered build sequence. The logo-direction selection is a **user checkpoint**, and logo depth is the milestone's largest cost driver. Suggested phase structure (roadmapper to map onto numbers after the current highest phase):
+### Phase 1: Hermetic Artifact Harness and Core Proof
 
-### Phase 1: Design Tokens (Reconciliation + Documentation)
-**Rationale:** Every downstream artifact (logo colors, HTML book, examples, component states) consumes the tokens; the primitives are already zero-drift so this is the highest-confidence, lock-it-first work.
-**Delivers:** `tokens/tokens.json` + `tokens/tokens.css` (15 primitives verbatim + new generalized semantic tier); every sub-primitive conflict logged in `decision-log.md` as DOCUMENTED/DEFERRED (radius-sm 5px vs 4px; info/cancelled/sending/expired status triads; missing `--cw-info`; net-new motion + z-index tokens).
-**Addresses:** Design-tokens table stakes; two-tier taxonomy.
-**Avoids:** Pitfalls 8, 9, 11 (fork, sprawl, dark-mode regression). **Scope guard:** do NOT patch `chimeway_admin.css`.
+**Rationale:** Core establishes the shared clean-room contract before partner complexity can conceal a false installation proof.
 
-### Phase 2: Logo Exploration (3-5 directions)
-**Rationale:** Depends only on Phase 1 colors; independent of the HTML shell, so it can run largely in parallel.
-**Delivers:** `notes/logo-options.md` with 3-5 worked directions (rationale, pros/cons, ship/defer/reject, confidence), rejected candidates inline as `<svg>`.
-**Avoids:** Pitfalls 1-7 — anchored to a brand metaphor, no cage, no literal music, ≥1 integrated typemark, unified mark+wordmark, passes mono/inverse/16px gates before shortlisting.
+**Delivers:** A fixture scaffold, manifest/runner, production `hex.build --unpack` pipeline, isolated process/temp/database setup, dependency provenance guards, core migrations, public `trigger/3` scenario, and `explain_delivery/1` assertion.
 
-### Phase 3: Direction Selection (USER CHECKPOINT)
-**Rationale:** Human taste decision; the largest cost/quality lever in the milestone.
-**Delivers:** chosen direction(s) promoted into `assets/` under canonical names; ship/defer entries in `decision-log.md`.
+**Addresses:** packed-artifact coverage, copyable command contract, stable identity and explainability evidence.
 
-### Phase 4: Favicon + Social Derivatives
-**Rationale:** Small derivatives of the *final* chosen mark, so must follow selection to avoid rework.
-**Delivers:** `favicon.svg` (deliberately simplified, passes 16px test — not the primary mark resized), `social-card.svg` (+ the one justified `.png` raster export).
-**Avoids:** Pitfall 2; integration gotcha on OG raster format.
+**Avoids:** source/path coupling, inherited build/lock/environment state, unpack-only false positives, shared DB/Oban state, and reliance on private test helpers.
 
-### Phase 5: HTML Brandbook
-**Rationale:** The primary deliverable and assembly layer; needs final tokens + final logos. Build the component-showcase `.cwb-*` conventions here once.
-**Delivers:** `index.html` + `assets/brandbook.css`, live dark/light/system toggle, live contrast matrix, do/don't visual pairs.
-**Uses:** hand-authored `@layer`+`@scope` CSS, vendored `color.js`. **Avoids:** Pitfalls 10, 14, 15, 22, 24 (hardcoded values, focus, reduced-motion, build system, unscoped CSS).
+### Phase 2: Mailglass Transactional Email Proof
 
-### Phase 6: Examples
-**Rationale:** Reuses the `.cwb-*` patterns proven in Phase 5.
-**Delivers:** `examples/components.html`, `examples/landing-page-section.html`, `examples/readme-header.md` (only `tokens.css`-dependent).
+**Rationale:** Mailglass extends the validated shared harness through the most direct partner-facing adopter journey while keeping external systems out of CI.
 
-### Phase 7: Repo Integration (README + HexDocs + favicon wiring)
-**Rationale:** Depends on final filenames; do last so config isn't revised mid-flight.
-**Delivers:** README header lockup, `mix.exs` `docs()` `:logo`/`:favicon`, optional `package() files:` += `brandbook/assets`.
-**Avoids:** Pitfall 21; integration gotcha (touch only the README header region; leave v1.14 doc-contract tests passing).
+**Delivers:** A clean-room Mailglass recipe with host-owned mailable mapping and `render_key`, fake/test transport, adapter/attempt trace assertion, sanitized output, and explicit responsibility boundary.
 
-### Phase 8: Notes + Accessibility Audit + Red-Team
-**Rationale:** `accessibility-checks.md` needs *rendered* output to audit; the red-team scope-boundary check is the milestone-close gate.
-**Delivers:** `accessibility-checks.md` (per-pairing WCAG 1.4.3 + 1.4.11 ratios, focus/reduced-motion/touch-target/colorblind verification), `research.md`, final `git diff --stat` scope audit, banlist/CTA grep.
-**Avoids:** Pitfalls 12, 13, 16-20, 25.
+**Addresses:** transactional-email route selection and credential-free evaluation.
+
+**Avoids:** claims of live provider delivery, provider/webhook secrets in logs, and duplication of existing Mailglass webhook/provider-depth coverage.
+
+### Phase 3: Accrue Billing Escalation Proof and Compatibility Truth
+
+**Rationale:** Accrue has the greatest external dependency and should reuse a proven harness, not define its semantics through a path-backed CI checkout.
+
+**Delivers:** A billing-event-driven recipe that proves payment failure initiates the dunning workflow and payment success produces the expected Outcome Signal/termination evidence. It must expose one of two mutually exclusive modes:
+
+- **Released-package adopter proof:** resolves the declared Accrue Hex release, asserts `Accrue.Integrations.Chimeway` exists, and labels the resolved versions.
+- **Pinned-ref compatibility proof:** uses only a recorded immutable Accrue ref/SHA, labels itself as cross-repository compatibility evidence, and never appears as independent released-package installation guidance.
+
+**Addresses:** billing dunning evaluation without bypassing the partner's natural event boundary.
+
+**Avoids:** direct notifier calls, conditional test disappearance, hidden source-only API use, and false public-release claims.
+
+### Phase 4: Adoption Front Door, Executable Docs, and Gate Wiring
+
+**Rationale:** Only expose the selector and assert the complete route-to-command contract after all three recipes have stable, evidence-producing outcomes.
+
+**Delivers:** README/HexDocs selector, responsibility matrices, canonical command/expected-evidence references, doc/release contract tests, `mix verify.adoption_paths`, one observable main/dispatch CI adoption lane, and `ci-gate` aggregation.
+
+**Addresses:** documentation drift, discoverability, package-release parity, and sustainable CI confidence.
+
+**Avoids:** silently skipped paths, duplicate full CI lanes, PR-gate wall-clock expansion, stale version strings, and overclaiming the scope as upgrade or provider acceptance coverage.
 
 ### Phase Ordering Rationale
-- **Tokens first** because the primitive values are already settled (zero-drift) and everything downstream references them — locking them is cheap and de-risks all later work.
-- **Logo is the one track that parallels tokens** (no dependency on token reconciliation), but its *finalization* (Phase 3 checkpoint) must precede favicon/social/README so those aren't redone.
-- **The HTML book is the assembly layer with no content of its own** — it must come after tokens, logo, and voice content are stable, or it gets reworked against moving inputs.
-- **Accessibility runs per-artifact and is *verified* (not discovered) at the end** — deferring all checks to a final pass is an explicit anti-pattern (rework across every finished example).
-- Note: brand-voice extraction (Pitfalls 18-20) is cheap and content-ready; the roadmapper may fold it into Phase 5/6 or run it as a thin parallel track rather than a standalone phase.
+
+- The artifact boundary, environment sanitation, temporary host, and fresh database are prerequisites for every credible route; build and prove them in Core first.
+- Mailglass and Accrue are independent vertical recipes after Phase 1, but Accrue is riskier and must follow the shared harness plus explicit partner provenance policy.
+- Public docs and gate aggregation depend on stable command names and output markers; wire them last while inexpensive doc contracts can protect the work throughout.
+- Keep a single serial adoption lane on main/dispatch with explicit per-path steps and failure artifacts. Preserve fast PR contract checks and measure cost before adding any cache or matrix complexity.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2/3 (Logo):** genuinely hard, taste-driven, iterative — but this is *design* effort, not information research. The `deep-research` step won't help; budget iteration + user checkpoint time instead. Flag for extra planning depth, not extra research.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Tokens):** the diff is already done in ARCHITECTURE.md's conflict table — execute against it.
-- **Phase 5-7 (HTML/Examples/Integration):** patterns are fully documented (reuse `chimeway_admin.css`, verified ExDoc `:logo`/`:favicon` config). No further research needed.
-- **Phase 8 (Accessibility):** WCAG criteria are named and cited; it's a checklist execution, not research.
+- **Phase 1:** validate exact unpacked-package dependency mechanics, fixture migration/configuration seams, and hermetic environment construction against current project helpers.
+- **Phase 3:** release-time verification of the selected Accrue package's integration module and version compatibility; this determines whether the released-package path is admissible.
+- **Phase 4:** inspect existing gate contracts and live CI timing before modifying required-lane topology.
+
+Phases with standard patterns (can skip broad research):
+
+- **Phase 2:** the repository already documents Mailglass adapter/mailable semantics; implementation should use its deterministic fake/test seam rather than research live providers.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Versions verified via live `npm view`; DTCG stable-release + `@scope` Baseline confirmed against primary sources; reuses in-repo Playwright precedent. |
-| Features | HIGH (MEDIUM for Elixir-ecosystem brand examples) | Verified against Primer/Fly.io/Vercel/GOV.UK official pages; Oban/Phoenix have thin public branding so those are negative-space citations. |
-| Architecture | HIGH | Token inventory + scoping rules read directly from shipped `chimeway_admin.css`/`mix.exs`; ExDoc `:logo`/`:favicon` verified against ExDoc docs. |
-| Pitfalls | HIGH | WCAG 2.2 criteria verified against W3C primary sources; constraints sourced from PROJECT.md + both prompt files. |
+| Stack | MEDIUM | Official Hex/Phoenix/GitHub Actions documentation and repository evidence support the artifact fixture; exact Accrue release availability is unresolved. |
+| Features | HIGH | Scope and adoption gap are directly grounded in PROJECT.md, current guides, aliases, and existing verification lanes. |
+| Architecture | HIGH | Component boundaries and existing integration authorities were directly inspected; the proposal intentionally composes established project patterns. |
+| Pitfalls | MEDIUM-HIGH | Root path overrides, package parity limits, CI topology, and partner constraints are direct project evidence; external provider behavior is deliberately out of scope. |
 
-**Overall confidence:** HIGH
+**Overall confidence:** MEDIUM-HIGH
 
-### Gaps to Address / Open Decision Points
-- **Logo-direction depth is the largest cost driver and the one genuinely open creative question.** "Fully worked" should mean "resolved as a coherent concept," not "all 10 export variants produced 5×." Full matrix for the finalist only. Resolve at the Phase 3 user checkpoint.
-- **devDependency housing (root `package.json` vs a scoped `brandbook/package.json`).** Root-level matches the Playwright precedent and avoids a second `node_modules` tree; a scoped one keeps brand tooling self-contained but risks the "package.json inside brandbook/" smell (Pitfall 22). Recommend root-level. Confirm during Phase 1/5 planning.
-- **OG raster export.** Social card authored as SVG, but OG images generally require PNG/JPEG. Ship the `.png` as the one justified raster exception and note in `decision-log.md`; don't claim OG "done" if only SVG exists.
-- **Dark-mode semantic completeness.** The *written* brand book's dark guidance is thin (3 combinations); the shipped admin dark theme is richer. New brandbook semantic tokens each need an independently contrast-checked dark value — real (small) design work, not just transcription.
-- **Rasterizer choice** (`resvg-js` vs `sharp`) — pick exactly one; don't install both.
+### Gaps to Address
+
+- **Accrue release proof status:** Before adopter-facing wording is approved, resolve the intended Hex version in a clean host and verify the Chimeway integration module is packaged. If that fails, ship only the explicitly scoped pinned-ref compatibility proof for v1.17.
+- **Supported Phoenix band:** Pin the fixture to the project's declared/documented support range rather than silently using current generator defaults; a compatibility matrix is future work.
+- **Async determinism:** Select public, deterministic completion seams for delivery/workflow assertions and prove repeatability from a fresh database; do not add sleeps or polling.
+- **Clean-room enforcement:** Decide whether the fixture lockfile is generated or committed, but enforce that runtime dependencies, temp roots, caches, and environment cannot resolve back into the repository.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `chimeway_admin/priv/static/chimeway_admin.css` — shipped `--cw-*` tokens, `@layer`/`:where()` scoping, focus-visible + reduced-motion patterns (the reconciliation source of truth).
-- `mix.exs`, `lib/chimeway.ex`, `README.md` (this repo) — HexDocs/package integration points; confirms HexDocs `main` renders from moduledoc, not README.
-- `prompts/chimeway-brand-book.md` §9-35, `prompts/brand-book-pressure-test.md`, `.planning/PROJECT.md` — brand content, hard taste constraints, rollout boundary, font strategy.
-- [W3C WCAG 2.2 Understanding docs](https://www.w3.org/WAI/WCAG22/) — SC 1.4.3, 1.4.11, 2.4.7, 2.4.11, 2.3.3, 2.5.8 (verified primary sources).
-- [Design Tokens Format Module 2025.10 (W3C DTCG)](https://www.designtokens.org/tr/2025.10/format/) — first stable spec release.
-- [ExDoc `mix docs` config](https://hexdocs.pm/ex_doc/Mix.Tasks.Docs.html) — `:logo`/`:favicon` accept SVG.
-- npm registry (`npm view`) — svgo 4.0.1, colorjs.io 0.6.1, style-dictionary 5.5.0, resvg-js 2.6.2, sharp 0.35.3.
+
+- [Project scope](../PROJECT.md) — v1.17 goal, target paths, and scope boundary.
+- [Stack research](STACK.md) — artifact-consumer fixture, supported tooling, CI topology, and technology constraints.
+- [Feature research](FEATURES.md) — adopter table stakes, explicit anti-features, and route dependency model.
+- [Architecture research](ARCHITECTURE.md) — harness components, ownership boundaries, data flow, and build order.
+- [Pitfalls research](PITFALLS.md) — clean-room, provenance, partner-claim, state-isolation, and CI/documentation risk controls.
 
 ### Secondary (MEDIUM confidence)
-- [GitHub Primer](https://primer.style/) (Brand/Product split), [Fly.io brand](https://fly.io/docs/about/brand/), [Vercel Geist](https://vercel.com/geist/brands), [GOV.UK error-message](https://design-system.service.gov.uk/components/error-message/), [Stripe accessible color systems](https://stripe.com/blog/accessible-color-systems), [Radix Colors](https://www.radix-ui.com/colors) — design-system feature/scale precedent.
-- [EightShapes — Naming Tokens](https://medium.com/eightshapes-llc/naming-tokens-in-design-systems-9e86c7444676), [NN/g — Error-Message Guidelines](https://www.nngroup.com/articles/error-message-guidelines/), favicon/logo craft + colorblind-safe palette syntheses, [MDN @scope](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@scope) / caniuse.
 
-### Detailed research files
-- `.planning/research/STACK.md` · `.planning/research/FEATURES.md` · `.planning/research/ARCHITECTURE.md` · `.planning/research/PITFALLS.md`
+- [Hex `mix hex.build`](https://hex.hexdocs.pm/Mix.Tasks.Hex.Build.html) — local `--unpack` package artifact behavior.
+- [Phoenix `mix phx.new`](https://phoenix.hexdocs.pm/Mix.Tasks.Phx.New.html) — minimal PostgreSQL host generation options.
+- [GitHub Actions PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers) — CI database service pattern.
 
 ---
-*Research completed: 2026-07-09*
+*Research completed: 2026-08-08*
 *Ready for roadmap: yes*

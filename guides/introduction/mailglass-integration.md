@@ -42,7 +42,35 @@ mix ecto.migrate
 
 For Chimeway install depth — repo config, supervisor setup, and migration idempotency — see [Installation](installation.md).
 
-Mailglass maintains its own schema and repo. Follow the [Mailglass installation docs](https://hexdocs.pm/mailglass/installation.html) for repo setup, migrations, and Oban queues in your host application. Both libraries typically share the same Postgres database but use separate Ecto repos.
+Mailglass maintains its own schema but uses a host-configured Ecto repo. Follow the [Mailglass installation docs](https://hexdocs.pm/mailglass/installation.html) for repo setup, migrations, and Oban queues in your host application.
+
+### Clean-consumer repository topology
+
+The generated clean consumer proves the single-host-repo shape with `ArtifactConsumer.Repo`; it does not use the published `Chimeway.Repo` as a second persistence process. Its concrete configuration is:
+
+```elixir
+config :artifact_consumer, ecto_repos: [ArtifactConsumer.Repo]
+config :artifact_consumer, ArtifactConsumer.Repo, repo_config
+config :chimeway, repo: ArtifactConsumer.Repo
+config :mailglass, repo: ArtifactConsumer.Repo
+```
+
+That makes the host module the Ecto migration repo for one `mix ecto.migrate` invocation: generated Chimeway migrations and the public `Mailglass.Migration.up/0` wrapper both run through `ArtifactConsumer.Repo`. The generated host loads Chimeway with `included_applications: [:chimeway]`, so Chimeway modules are available without separately starting `Chimeway.Repo`; `ArtifactConsumer.Application` supervises `ArtifactConsumer.Repo` once.
+
+For the synchronous artifact proof only, the process binds Chimeway's Ecto facade to the host repo before triggering and explaining the delivery, then restores the former dynamic repo afterwards:
+
+```elixir
+previous_repo = Chimeway.Repo.get_dynamic_repo()
+Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)
+
+try do
+  # Chimeway.trigger/3 and Chimeway.Traces.explain_delivery/1 use ArtifactConsumer.Repo.
+after
+  Chimeway.Repo.put_dynamic_repo(previous_repo)
+end
+```
+
+Your host chooses its own persistence topology; the clean-consumer proof intentionally configures, migrates, supervises, and routes both Chimeway and Mailglass through one consumer-owned `ArtifactConsumer.Repo`.
 
 ## 3. Runtime config
 
@@ -162,7 +190,17 @@ After delivery, verify explainability:
 
 Runnable demo: `DemoHost.Seeds.seed_invite/0` triggers the same notifier with deterministic idempotency keys for local proof.
 
-As a named proof command, run `mix verify.mailglass` after wiring — it exercises the Mailglass adapter contract, executor routing, webhook pipeline, and demo host delivery proof.
+### Clean-consumer proof boundary
+
+**What happened:** In the unpacked-artifact clean-consumer proof, Fake recorded exactly one host-composed message and Chimeway recorded a successful `Chimeway.Adapters.Mailglass` attempt.
+
+**Why it matters:** The one consumer-owned repo, stable notifier and `render_key` mapping, host mailable selection, adapter routing, and attempt persistence all executed together. This is local composition evidence, not a claim that an email reached a live provider or inbox.
+
+**Next step:** Follow the focused [Mailglass integration blueprint](../recipes/mailglass-integration-blueprint.md) for your host application's wiring.
+
+The proof does not cover real provider acceptance, sender/domain verification, inbox placement/display, production credentials, provider callbacks, or live webhook feedback.
+
+`mix verify.mailglass` is this repository's repository-maintainer regression suite. It exercises the Mailglass adapter contract, executor routing, webhook pipeline, and demo-host proof; it is not a command supplied to Hex consumers.
 
 ## 6. Optional inbound feedback
 

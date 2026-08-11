@@ -99,6 +99,8 @@ That legacy mode keeps using the existing unprefixed tables and does not move da
 
 Follow the [Golden Path guide](guides/introduction/golden-path.md) for install, notifier setup, and your first explainable trace.
 
+Choosing between the Core, Mailglass, and Accrue clean-room proofs? Start with the concise [Adoption Paths selector](guides/introduction/adoption-paths.md).
+
 ```elixir
 Chimeway.trigger(MyApp.Notifiers.WelcomeUser, %{user_id: "u1", name: "Ada"},
   idempotency_key: "welcome-u1",
@@ -153,6 +155,7 @@ the full timeline — the answer to "why did (or didn't) this notification go ou
 
 ## Documentation
 
+- [Adoption Paths](guides/introduction/adoption-paths.md)
 - [Golden Path Guide](guides/introduction/golden-path.md)
 - [Storage Prefix Upgrade Guide](guides/introduction/storage-prefix-upgrade.md)
 - [Mailglass Integration Guide](guides/introduction/mailglass-integration.md)
