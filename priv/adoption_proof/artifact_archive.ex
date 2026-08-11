@@ -14,6 +14,15 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
           {:ok, term()} | {:error, String.t()}
   def with_validated_archive(archive, expected_digest, callback)
       when is_binary(archive) and is_binary(expected_digest) and is_function(callback, 1) do
+    with_validated_archive(archive, expected_digest, callback, [])
+  end
+
+  @doc false
+  @spec with_validated_archive(Path.t(), String.t(), (Path.t() -> term()), keyword()) ::
+          {:ok, term()} | {:error, String.t()}
+  def with_validated_archive(archive, expected_digest, callback, opts)
+      when is_binary(archive) and is_binary(expected_digest) and is_function(callback, 1) and
+             is_list(opts) do
     scratch =
       Path.join(
         System.tmp_dir!(),
@@ -23,7 +32,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     File.mkdir_p!(scratch)
 
     try do
-      archive_binary = read_bounded_archive!(archive)
+      archive_binary = read_bounded_archive!(archive, opts)
       actual_digest = :crypto.hash(:sha256, archive_binary) |> Base.encode16(case: :lower)
 
       if not secure_equal?(actual_digest, expected_digest),
@@ -53,11 +62,18 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
 
   def secure_equal?(_, _), do: false
 
-  defp read_bounded_archive!(archive) do
+  defp read_bounded_archive!(archive, opts) do
+    archive_opened = Keyword.get(opts, :archive_opened, fn -> :ok end)
+
+    unless is_function(archive_opened, 0),
+      do: throw({:provenance, "archive validation failed"})
+
     archive
     |> File.open!([:read, :binary])
     |> then(fn device ->
       try do
+        archive_opened.()
+
         case IO.binread(device, @max_outer_archive_bytes + 1) do
           :eof ->
             throw({:provenance, "archive extraction failed"})

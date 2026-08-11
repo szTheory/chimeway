@@ -299,7 +299,7 @@ jobs:
   pr-gate:
     name: pr-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs]
+    needs: [lint, test, verify_gates, verify_docs, verify_adoption_paths]
     if: always()
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -309,7 +309,8 @@ jobs:
           TEST: ${{ needs.test.result }}
           VERIFY_GATES: ${{ needs.verify_gates.result }}
           VERIFY_DOCS: ${{ needs.verify_docs.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS
+          VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS
 
   verify_example:
     name: Example host + admin smoke
@@ -1134,7 +1135,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -1179,7 +1179,8 @@ jobs:
       - run: mix compile --warnings-as-errors
       - run: mix ecto.create --quiet
       - run: mix ecto.migrate --quiet
-      - run: mix verify.adoption_paths
+      - name: Run adoption proof paths
+        run: mix verify.adoption_paths
       - name: CI observability summary
         if: always()
         shell: bash

@@ -1,0 +1,28 @@
+{
+  "databaseId": 42424242,
+  "event": "pull_request",
+  "headSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/szTheory/chimeway/actions/runs/42424242",
+  "jobs": [
+    {
+      "name": "Adoption proof paths",
+      "status": "completed",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run adoption proof paths",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "pr-gate",
+      "status": "completed",
+      "conclusion": "success",
+      "steps": []
+    }
+  ]
+}

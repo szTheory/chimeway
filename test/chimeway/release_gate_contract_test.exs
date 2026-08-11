@@ -19,9 +19,11 @@ defmodule Chimeway.ReleaseGateContractTest do
   @legacy_repo_url "https://github.com/jonlunsford/chimeway"
   @package_facing_source_files ~w(mix.exs README.md CHANGELOG.md .github/workflows/release.yml .github/workflows/publish-hex.yml)
   @release_please_config "release-please-config.json"
+  @adoption_run_assertion "scripts/ci/assert-adoption-run.sh"
+  @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
   @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths test_floor_1_17)
-  @pr_gate_lanes ~w(lint test verify_gates verify_docs)
+  @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
   # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
@@ -1755,6 +1757,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag :accrue_packaged_cli
+    @tag timeout: 120_000
     test "rejects malformed archive provenance without a proof line" do
       archive = build_package_archive!()
       on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
@@ -2014,7 +2017,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   describe "adoption archive immutable-byte validation (T-96-16)" do
     @tag :adoption_archive_toctou
-    test "binds the accepted digest and outer extraction to one immutable archive binary" do
+    test "binds the accepted digest and outer extraction to the opened archive when its pathname is replaced" do
       archive_a =
         malicious_package_archive!([
           {"mix.exs", ?0, "", "@version \"0.0.1\"\n# archive-a\n"},
@@ -2022,17 +2025,54 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive_a)) end)
+      archive_b =
+        malicious_package_archive!([
+          {"mix.exs", ?0, "", "@version \"0.0.1\"\n# archive-b\n"},
+          {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+          {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+        ])
+
+      replacement = archive_a <> ".replacement"
+      File.cp!(archive_b, replacement)
+      accepted_digest = sha256!(archive_a)
+      replacement_digest = sha256!(replacement)
+      parent = self()
+
+      on_exit(fn ->
+        File.rm_rf(Path.dirname(archive_a))
+        File.rm_rf(Path.dirname(archive_b))
+      end)
+
+      validator =
+        Task.async(fn ->
+          Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+            archive_a,
+            accepted_digest,
+            fn root ->
+              source = File.read!(Path.join(root, "mix.exs"))
+              assert source =~ "archive-a"
+              refute source =~ "archive-b"
+              :archive_a
+            end,
+            archive_opened: fn ->
+              send(parent, {:archive_opened, self()})
+
+              receive do
+                :resume_archive_read -> :ok
+              after
+                5_000 -> raise "timed out waiting to resume archive read"
+              end
+            end
+          )
+        end)
+
+      assert_receive {:archive_opened, validator_pid}, 5_000
+      assert :ok = File.rename(replacement, archive_a)
+      assert sha256!(archive_a) == replacement_digest
+      send(validator_pid, :resume_archive_read)
 
       assert {:ok, :archive_a} =
-               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
-                 archive_a,
-                 sha256!(archive_a),
-                 fn root ->
-                   assert File.read!(Path.join(root, "mix.exs")) =~ "archive-a"
-                   :archive_a
-                 end
-               )
+               Task.await(validator, 15_000)
 
       source = File.read!("priv/adoption_proof/artifact_archive.ex")
 
@@ -2208,7 +2248,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   describe "adoption paths CI contract (GATE-02/DOCS-01)" do
     @tag :adoption_paths_ci_contract
-    test "runs exactly one bounded non-PR PostgreSQL aggregate proof lane" do
+    test "runs exactly one bounded PostgreSQL aggregate proof lane on every CI event" do
       ci_yml = File.read!(@ci_yml)
       job = extract_ci_job_block(ci_yml, "verify_adoption_paths")
 
@@ -2216,11 +2256,11 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       for required <- [
             "timeout-minutes: 30",
-            "github.event_name != 'pull_request'",
             "image: postgres:15",
             "--health-cmd pg_isready",
             "- 5432:5432",
             "DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test",
+            "name: Run adoption proof paths",
             "mix verify.adoption_paths"
           ] do
         assert job =~ required, "adoption proof job must contain #{required}"
@@ -2234,22 +2274,28 @@ defmodule Chimeway.ReleaseGateContractTest do
             "THREADLINE_PATH",
             "SIGRA_PATH",
             "docker compose",
-            "registry"
+            "registry",
+            "github.event_name != 'pull_request'"
           ] do
         refute job =~ forbidden, "adoption proof job must not contain #{forbidden}"
       end
     end
 
     @tag :adoption_paths_ci_contract
-    test "couples the lane to ci-gate in all three places and excludes pr-gate" do
+    test "couples the lane to both aggregate gates in every required place" do
       ci_yml = File.read!(@ci_yml)
       ci_gate = extract_ci_job_block(ci_yml, "ci-gate")
+      pr_gate = extract_ci_job_block(ci_yml, "pr-gate")
 
       assert "verify_adoption_paths" in extract_ci_gate_needs(ci_yml)
-      refute "verify_adoption_paths" in extract_pr_gate_needs(ci_yml)
+      assert "verify_adoption_paths" in extract_pr_gate_needs(ci_yml)
       assert ci_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}"
       assert ci_gate =~ "aggregate-gate.sh"
       assert ci_gate =~ "VERIFY_ADOPTION_PATHS"
+      assert pr_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}"
+
+      assert pr_gate =~
+               "aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS"
 
       for mutated <- [
             String.replace(ci_yml, "verify_adoption_paths:", "verify_adoption_path:",
@@ -2270,6 +2316,88 @@ defmodule Chimeway.ReleaseGateContractTest do
             String.replace(ci_yml, "VERIFY_ADOPTION_PATHS", "", global: false)
           ] do
         refute ci_topology_intact?(mutated)
+      end
+    end
+
+    @tag :adoption_paths_ci_contract
+    test "asserts one exact-SHA successful PR run without leaking environment secrets" do
+      {syntax_output, syntax_status} =
+        System.cmd("bash", ["-n", @adoption_run_assertion], stderr_to_stdout: true)
+
+      assert syntax_status == 0, syntax_output
+
+      executable_source =
+        @adoption_run_assertion
+        |> File.read!()
+        |> String.split("\n")
+        |> Enum.reject(&String.starts_with?(String.trim_leading(&1), "#"))
+        |> Enum.join("\n")
+
+      refute executable_source =~ "eval"
+
+      {output, status} =
+        run_adoption_assertion!(@adoption_run_fixture,
+          extra_env: [
+            {"GH_TOKEN", "phase-96-secret-token"},
+            {"DATABASE_URL", "postgres://user:phase-96-secret@localhost/db"}
+          ]
+        )
+
+      assert status == 0, output
+
+      assert output ==
+               "ADOPTION_RUN_PROOF sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa " <>
+                 "run_id=42424242 adoption=success pr_gate=success " <>
+                 "url=https://github.com/szTheory/chimeway/actions/runs/42424242\n"
+
+      refute output =~ "phase-96-secret"
+      refute output =~ "DATABASE_URL"
+    end
+
+    @tag :adoption_paths_ci_contract
+    test "fails closed when live-run identity, completion, proof, or gate evidence is absent" do
+      fixture = @adoption_run_fixture |> File.read!() |> Jason.decode!()
+
+      mutations = [
+        {"wrong SHA", fn payload -> Map.put(payload, "headSha", String.duplicate("b", 40)) end},
+        {"wrong event", fn payload -> Map.put(payload, "event", "push") end},
+        {"pending run", fn payload -> Map.put(payload, "status", "in_progress") end},
+        {"failed run", fn payload -> Map.put(payload, "conclusion", "failure") end},
+        {"missing adoption job",
+         fn payload ->
+           Map.update!(
+             payload,
+             "jobs",
+             &Enum.reject(&1, fn job -> job["name"] == "Adoption proof paths" end)
+           )
+         end},
+        {"failed adoption job",
+         fn payload ->
+           update_adoption_job(payload, &Map.put(&1, "conclusion", "failure"))
+         end},
+        {"skipped proof step",
+         fn payload ->
+           update_adoption_job(payload, fn job ->
+             Map.update!(job, "steps", fn [step] -> [Map.put(step, "conclusion", "skipped")] end)
+           end)
+         end},
+        {"failed pr-gate",
+         fn payload ->
+           Map.update!(payload, "jobs", fn jobs ->
+             Enum.map(jobs, fn
+               %{"name" => "pr-gate"} = job -> Map.put(job, "conclusion", "failure")
+               job -> job
+             end)
+           end)
+         end}
+      ]
+
+      for {label, mutate} <- mutations do
+        fixture_path = write_adoption_run_fixture!(mutate.(fixture))
+        {output, status} = run_adoption_assertion!(fixture_path)
+
+        assert status != 0, "#{label} must fail closed:\n#{output}"
+        assert output =~ "adoption run proof failed:"
       end
     end
   end
@@ -2523,10 +2651,13 @@ defmodule Chimeway.ReleaseGateContractTest do
          pr_gate when is_binary(pr_gate) <- ci_job_block(ci_yml, "pr-gate") do
       job =~ "timeout-minutes: 30" and job =~ "image: postgres:15" and
         job =~ "mix verify.adoption_paths" and
+        not (job =~ "github.event_name != 'pull_request'") and
         "verify_adoption_paths" in extract_ci_gate_needs(ci_yml) and
+        "verify_adoption_paths" in extract_pr_gate_needs(ci_yml) and
         gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}" and
         gate =~ "INSTALL_GOLDEN VERIFY_ADOPTION_PATHS TEST_FLOOR_1_17" and
-        not (pr_gate =~ "verify_adoption_paths")
+        pr_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}" and
+        pr_gate =~ "VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS"
     else
       _ -> false
     end
@@ -2568,5 +2699,44 @@ defmodule Chimeway.ReleaseGateContractTest do
       _ ->
         flunk("Could not extract pr-gate needs from ci.yml")
     end
+  end
+
+  defp run_adoption_assertion!(fixture_path, opts \\ []) do
+    env =
+      [
+        {"ADOPTION_RUN_JSON", fixture_path},
+        {"GITHUB_REPOSITORY", "szTheory/chimeway"}
+      ] ++ Keyword.get(opts, :extra_env, [])
+
+    System.cmd(
+      "bash",
+      [@adoption_run_assertion, String.duplicate("a", 40)],
+      stderr_to_stdout: true,
+      env: env
+    )
+  end
+
+  defp write_adoption_run_fixture!(payload) do
+    directory =
+      Path.join(
+        System.tmp_dir!(),
+        "chimeway_adoption_run_#{System.unique_integer([:positive])}"
+      )
+
+    File.mkdir_p!(directory)
+    on_exit(fn -> File.rm_rf!(directory) end)
+
+    path = Path.join(directory, "run.json")
+    File.write!(path, Jason.encode!(payload))
+    path
+  end
+
+  defp update_adoption_job(payload, update) do
+    Map.update!(payload, "jobs", fn jobs ->
+      Enum.map(jobs, fn
+        %{"name" => "Adoption proof paths"} = job -> update.(job)
+        job -> job
+      end)
+    end)
   end
 end
