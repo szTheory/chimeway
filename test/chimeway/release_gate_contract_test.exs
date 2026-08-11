@@ -2072,6 +2072,38 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag :adoption_archive_security
+    test "enforces metadata nesting and selected files boundaries before callback" do
+      accepted_metadata =
+        default_metadata() <>
+          ~s({<<"nested">>, #{nested_metadata_value(30)}}.\n)
+
+      accepted_archive = malicious_package_archive!(valid_proof_entries(), accepted_metadata)
+      on_exit(fn -> File.rm_rf(Path.dirname(accepted_archive)) end)
+
+      assert {:ok, :nested_boundary} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 accepted_archive,
+                 sha256!(accepted_archive),
+                 fn _root -> :nested_boundary end
+               )
+
+      for metadata <- [
+            default_metadata() <> ~s({<<"nested">>, #{nested_metadata_value(33)}}.\n),
+            metadata_with_files(4_097)
+          ] do
+        archive = malicious_package_archive!(valid_proof_entries(), metadata)
+        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+        assert {:error, "package metadata is malformed"} =
+                 Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                   archive,
+                   sha256!(archive),
+                   fn _root -> flunk("metadata limit must precede callback") end
+                 )
+      end
+    end
+
+    @tag :adoption_archive_security
     test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
       outside = temporary_path!("outside-special.txt")
       File.write!(outside, "unchanged")
@@ -2628,6 +2660,17 @@ defmodule Chimeway.ReleaseGateContractTest do
     for index <- 1..count do
       "chimeway_archive_atom_#{System.unique_integer([:positive])}_#{index}"
     end
+  end
+
+  defp nested_metadata_value(depth),
+    do: String.duplicate("[", depth) <> "<<\"leaf\">>" <> String.duplicate("]", depth)
+
+  defp metadata_with_files(count) do
+    files =
+      ["scripts/prove-accrue-consumer.exs", "priv/adoption_proof/artifact_consumer_fixture.ex"] ++
+        Enum.map(1..(count - 2), &"file-#{&1}")
+
+    ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [#{Enum.map_join(files, ", ", &"<<\"#{&1}\">>")}]}.\n)
   end
 
   defp raw_tar(entries) do
