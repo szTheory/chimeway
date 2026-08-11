@@ -4,11 +4,11 @@ milestone: v1.17
 milestone_name: Adopter Proof Paths
 current_phase: 96.1
 current_phase_name: close-gap-archive-atom-01-atom-safe-archive-metadata-parsing
-status: ready_to_execute
-stopped_at: Phase 96.1 planned — ready to execute
-last_updated: "2026-08-11T15:22:21.222Z"
+status: verifying
+stopped_at: Completed 96.1-01-PLAN.md
+last_updated: "2026-08-11T15:33:18.974Z"
 last_activity: 2026-08-11
-last_activity_desc: Phase 96.1 planning complete — 1 plan ready
+last_activity_desc: Phase 96.1 execution started
 progress:
   total_phases: 5
   completed_phases: 4
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-03 after v1.14 milestone completion)
 
 ## Current Position
 
-Phase: 96.1 (close-gap-archive-atom-01-atom-safe-archive-metadata-parsing) — PLANNED
-Plan: 0 of 1
-Status: Ready to execute
-Last activity: 2026-08-11 — Phase 96.1 planning complete
+Phase: 96.1 (close-gap-archive-atom-01-atom-safe-archive-metadata-parsing) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-08-11 — Phase 96.1 execution started
 
 ## Deferred Items
 
@@ -300,6 +300,8 @@ status: complete
 - [Phase ?]: The aggregate artifact proof runs once in a serial, PostgreSQL 15, non-PR CI lane and gates ci-gate through needs, environment, and aggregate arguments.
 - [Phase ?]: Adoption archive members are fully classified before materialization; only regular files and directories are written from memory.
 - [Phase ?]: [96-04]: Adoption archive validation hashes and extracts one bounded immutable binary, with explicit outer/compressed/expanded/member budgets before materialization.
+- [Phase ?]: [96.1-01]: Archive metadata is parsed in-memory with a bounded binary-only canonical Hex grammar; no source-term parser or input-derived atom conversion is permitted.
+- [Phase ?]: [96.1-01]: Caller-supplied SHA-256 remains an immutable-byte integrity check, while callback execution remains gated after metadata, archive-root, and version validation.
 
 ### Roadmap Evolution
 
@@ -619,9 +621,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-11T14:42:35.717Z
-Stopped at: Phase 96.1 context gathered (assumptions mode)
-Resume file: .planning/phases/96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing/96.1-CONTEXT.md
+Last session: 2026-08-11T15:33:18.961Z
+Stopped at: Completed 96.1-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -722,3 +724,4 @@ Resume file: .planning/phases/96.1-close-gap-archive-atom-01-atom-safe-archive-m
 | Phase 96 P03 | ~45 minutes | 2 tasks | 2 files |
 | Phase 96-adoption-front-door-proof-gate P04 | 18 min | 2 tasks | 2 files |
 | Phase 96-adoption-front-door-proof-gate P05 | 25m | 2 tasks | 3 files |
+| Phase 96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing P01 | 8 min | 3 tasks | 2 files |

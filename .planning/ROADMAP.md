@@ -205,10 +205,10 @@ Plans:
 **Goal:** Caller-controlled Hex package metadata is parsed with bounded atom-free semantics while real Chimeway package proofs retain their existing validation, callback, redaction, and release-gate behavior.
 **Requirements**: TBD
 **Depends on:** Phase 96
-**Plans:** 1 plan
+**Plans:** 1/1 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 96.1-01-PLAN.md — Replace unrestricted metadata loading with a bounded atom-free parser and executable hostile/real-archive evidence.
+- [x] 96.1-01-PLAN.md — Replace unrestricted metadata loading with a bounded atom-free parser and executable hostile/real-archive evidence.
