@@ -205,7 +205,7 @@ Plans:
 **Goal:** Caller-controlled Hex package metadata is parsed with bounded atom-free semantics while real Chimeway package proofs retain their existing validation, callback, redaction, and release-gate behavior.
 **Requirements**: TBD
 **Depends on:** Phase 96
-**Plans:** 1/1 plans executed
+**Plans:** 1/1 plans complete
 
 Plans:
 
