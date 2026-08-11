@@ -8,6 +8,8 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   @max_compressed_contents_bytes 16 * 1024 * 1024
   @max_decompressed_contents_bytes 64 * 1024 * 1024
   @max_metadata_bytes 1 * 1024 * 1024
+  @max_metadata_depth 32
+  @max_metadata_selected_bytes 255
   @max_members 4_096
   @max_regular_member_bytes 8 * 1024 * 1024
 
@@ -111,7 +113,7 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   defp parse_metadata_forms!(<<>>, config), do: config
 
   defp parse_metadata_forms!(metadata, config) do
-    {key, value, rest} = parse_metadata_pair!(metadata)
+    {key, value, rest} = parse_metadata_pair!(metadata, 0)
 
     rest =
       rest
@@ -123,47 +125,63 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
     parse_metadata_forms!(rest, config)
   end
 
-  defp parse_metadata_pair!(metadata) do
+  defp parse_metadata_pair!(_metadata, depth) when depth > @max_metadata_depth,
+    do: metadata_error!()
+
+  defp parse_metadata_pair!(metadata, depth) do
     metadata = parse_metadata_open!(metadata, "{") |> parse_metadata_whitespace!()
     {key, metadata} = parse_metadata_binary!(metadata)
 
     metadata =
       parse_metadata_comma!(parse_metadata_whitespace!(metadata)) |> parse_metadata_whitespace!()
 
-    {value, metadata} = parse_metadata_value!(metadata)
+    {value, metadata} = parse_metadata_value!(metadata, depth + 1)
     metadata = parse_metadata_close!(parse_metadata_whitespace!(metadata), "}")
     {key, value, metadata}
   end
 
-  defp parse_metadata_value!(metadata) do
+  defp parse_metadata_value!(_metadata, depth) when depth > @max_metadata_depth,
+    do: metadata_error!()
+
+  defp parse_metadata_value!(metadata, depth) do
     case metadata do
       <<"<<\"", _::binary>> ->
         {value, rest} = parse_metadata_binary!(metadata)
         {{:binary, value}, rest}
 
       <<"[", _::binary>> ->
-        parse_metadata_binary_list!(metadata)
+        parse_metadata_list!(metadata, depth)
+
+      <<"{", _::binary>> ->
+        {key, value, rest} = parse_metadata_pair!(metadata, depth)
+        {{:tuple, key, value}, rest}
+
+      <<"true", rest::binary>> ->
+        {{:boolean, true}, rest}
+
+      <<"false", rest::binary>> ->
+        {{:boolean, false}, rest}
 
       _ ->
         metadata_error!()
     end
   end
 
-  defp parse_metadata_binary_list!(<<"[", metadata::binary>>) do
+  defp parse_metadata_list!(<<"[", metadata::binary>>, depth) do
     metadata = parse_metadata_whitespace!(metadata)
-    parse_metadata_binary_list_items!(metadata, [])
+    parse_metadata_list_items!(metadata, depth, [])
   end
 
-  defp parse_metadata_binary_list_items!(<<"]", rest::binary>>, items),
+  defp parse_metadata_list_items!(<<"]", rest::binary>>, _depth, items),
     do: {{:list, Enum.reverse(items)}, rest}
 
-  defp parse_metadata_binary_list_items!(metadata, items) do
-    {item, metadata} = parse_metadata_binary!(metadata)
+  defp parse_metadata_list_items!(metadata, depth, items) do
+    {item, metadata} = parse_metadata_value!(metadata, depth + 1)
     metadata = parse_metadata_whitespace!(metadata)
 
     case metadata do
       <<",", rest::binary>> ->
-        parse_metadata_binary_list_items!(parse_metadata_whitespace!(rest), [item | items])
+        parse_metadata_list_items!(parse_metadata_whitespace!(rest), depth, [item | items])
 
       <<"]", rest::binary>> ->
         {{:list, Enum.reverse([item | items])}, rest}
@@ -184,8 +202,38 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
   defp parse_metadata_binary_bytes!(<<"\">>", rest::binary>>, bytes),
     do: {bytes |> Enum.reverse() |> IO.iodata_to_binary(), rest}
 
+  defp parse_metadata_binary_bytes!(<<?\\, ?", rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, [<<?">> | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?\\, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, [<<?\\>> | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?n, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, ["\n" | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?r, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, ["\r" | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?t, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, ["\t" | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?b, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, [<<8>> | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?f, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, [<<12>> | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?v, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, [<<11>> | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?e, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, [<<27>> | bytes])
+
+  defp parse_metadata_binary_bytes!(<<?\\, ?s, rest::binary>>, bytes),
+    do: parse_metadata_binary_bytes!(rest, [" " | bytes])
+
   defp parse_metadata_binary_bytes!(<<byte, rest::binary>>, bytes)
-       when byte >= 32 and byte <= 126 and byte not in [?\\, ?"],
+       when byte >= 32 and byte != ?\\ and byte != ?",
        do: parse_metadata_binary_bytes!(rest, [<<byte>> | bytes])
 
   defp parse_metadata_binary_bytes!(_metadata, _bytes), do: metadata_error!()
@@ -198,10 +246,18 @@ defmodule Chimeway.AdoptionProof.ArtifactArchive do
 
   defp put_selected_metadata!(config, _key, _value), do: config
 
-  defp selected_metadata_value!(key, {:binary, value}) when key in [<<"name">>, <<"version">>],
-    do: value
+  defp selected_metadata_value!(key, {:binary, value}) when key in [<<"name">>, <<"version">>] do
+    if byte_size(value) > @max_metadata_selected_bytes, do: metadata_error!()
+    value
+  end
 
-  defp selected_metadata_value!(<<"files">>, {:list, files}), do: files
+  defp selected_metadata_value!(<<"files">>, {:list, files}) do
+    if length(files) > @max_members or not Enum.all?(files, &match?({:binary, _}, &1)),
+      do: metadata_error!()
+
+    Enum.map(files, fn {:binary, file} -> file end)
+  end
+
   defp selected_metadata_value!(_key, _value), do: metadata_error!()
 
   defp parse_metadata_whitespace!(<<byte, rest::binary>>) when byte in [9, 10, 13, 32],
