@@ -1936,6 +1936,47 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
 
     @tag :adoption_archive_security
+    test "rejects correctly digested hostile metadata without interning atoms or invoking its callback" do
+      warm_archive = malicious_package_archive!(valid_proof_entries())
+      on_exit(fn -> File.rm_rf(Path.dirname(warm_archive)) end)
+
+      assert {:ok, :warmed} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 warm_archive,
+                 sha256!(warm_archive),
+                 fn _root -> :warmed end
+               )
+
+      tokens = hostile_atom_tokens(300)
+
+      metadata =
+        default_metadata() <>
+          ~s({<<"hostile">>, [#{Enum.join(tokens, ", ")}]} .\n)
+
+      archive =
+        valid_proof_entries()
+        |> malicious_package_archive!(metadata)
+
+      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+
+      before_count = :erlang.system_info(:atom_count)
+
+      assert {:error, _} =
+               Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
+                 archive,
+                 sha256!(archive),
+                 fn _root -> send(self(), :hostile_callback_invoked) end
+               )
+
+      assert :erlang.system_info(:atom_count) == before_count
+      refute_received :hostile_callback_invoked
+
+      for token <- Enum.take_every(tokens, 50) do
+        assert_raise ArgumentError, fn -> String.to_existing_atom(token) end
+      end
+    end
+
+    @tag :adoption_archive_security
     test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
       outside = temporary_path!("outside-special.txt")
       File.write!(outside, "unchanged")
@@ -2455,21 +2496,18 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   defp sha256!(path), do: :crypto.hash(:sha256, File.read!(path)) |> Base.encode16(case: :lower)
 
-  defp malicious_package_archive!(contents_entries) do
-    contents_entries |> raw_tar() |> malicious_package_archive_from_contents!()
+  defp malicious_package_archive!(contents_entries, metadata \\ default_metadata()) do
+    contents_entries |> raw_tar() |> malicious_package_archive_from_contents!(metadata)
   end
 
-  defp malicious_package_archive_from_contents!(contents) do
-    package_archive_from_compressed_contents!(:zlib.gzip(contents))
+  defp malicious_package_archive_from_contents!(contents, metadata \\ default_metadata()) do
+    package_archive_from_compressed_contents!(:zlib.gzip(contents), metadata)
   end
 
-  defp package_archive_from_compressed_contents!(contents) do
+  defp package_archive_from_compressed_contents!(contents, metadata \\ default_metadata()) do
     output = temporary_path!("archive")
     File.mkdir_p!(output)
     archive = Path.join(output, "malicious.tar")
-
-    metadata =
-      ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [<<"scripts/prove-accrue-consumer.exs">>, <<"priv/adoption_proof/artifact_consumer_fixture.ex">>]}.\n)
 
     File.write!(
       archive,
@@ -2477,6 +2515,24 @@ defmodule Chimeway.ReleaseGateContractTest do
     )
 
     archive
+  end
+
+  defp default_metadata do
+    ~s({<<"name">>, <<"chimeway">>}.\n{<<"version">>, <<"0.0.1">>}.\n{<<"files">>, [<<"scripts/prove-accrue-consumer.exs">>, <<"priv/adoption_proof/artifact_consumer_fixture.ex">>]}.\n)
+  end
+
+  defp valid_proof_entries do
+    [
+      {"mix.exs", ?0, "", "@version \"0.0.1\"\n"},
+      {"scripts/prove-accrue-consumer.exs", ?0, "", "# runner\n"},
+      {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
+    ]
+  end
+
+  defp hostile_atom_tokens(count) do
+    for index <- 1..count do
+      "chimeway_archive_atom_#{System.unique_integer([:positive])}_#{index}"
+    end
   end
 
   defp raw_tar(entries) do
