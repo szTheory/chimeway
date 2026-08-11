@@ -199,3 +199,16 @@ Plans:
 
 ---
 *Roadmap updated: 2026-08-08 — v1.17 Adopter Proof Paths defined: Phases 93–96. All 13 v1.17 requirements are mapped once; Phase 93 is next.*
+
+### Phase 96.1: Close gap: ARCHIVE-ATOM-01 — atom-safe archive metadata parsing (INSERTED)
+
+**Goal:** Caller-controlled Hex package metadata is parsed with bounded atom-free semantics while real Chimeway package proofs retain their existing validation, callback, redaction, and release-gate behavior.
+**Requirements**: TBD
+**Depends on:** Phase 96
+**Plans:** 1 plan
+
+Plans:
+
+**Wave 1**
+
+- [ ] 96.1-01-PLAN.md — Replace unrestricted metadata loading with a bounded atom-free parser and executable hostile/real-archive evidence.
