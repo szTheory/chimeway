@@ -144,6 +144,26 @@ defmodule ChimewayAdmin.LiveAuthTest do
     end
   end
 
+  test "validated contexts always include their tenant in read and recovery options" do
+    socket = %Phoenix.LiveView.Socket{assigns: %{__changed__: %{}}, private: %{}}
+
+    assert {:ok, context} =
+             ChimewayAdmin.Context.build(
+               %{},
+               %{"current_actor" => "ops:1", "tenant_id" => " tenant-a "},
+               socket
+             )
+
+    assert [tenant_id: "tenant-a", limit: 10] =
+             ChimewayAdmin.Context.read_opts(context, limit: 10)
+
+    assert [source: "chimeway_admin", tenant_id: "tenant-a", actor_ref: "ops:1"] =
+             ChimewayAdmin.Context.recovery_opts(context, nil, nil)
+
+    assert {:error, :invalid_tenant} = ChimewayAdmin.Context.read_opts(nil)
+    assert {:error, :invalid_tenant} = ChimewayAdmin.Context.recovery_opts(nil, nil, nil)
+  end
+
   test "passes actor, action, tenant, params, session, and live view into authorization context" do
     Application.put_env(:chimeway_admin, :capture_pid, self())
 

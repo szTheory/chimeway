@@ -28,15 +28,14 @@ defmodule ChimewayAdmin.LiveAuth do
   def on_mount(action, params, session, socket) when action in @actions do
     admin_context = Context.from(params, session, socket)
 
-    case authorize(action, admin_context, %{}) do
-      :ok ->
-        {:cont,
-         socket
-         |> assign(:chimeway_admin_context, admin_context)
-         |> assign(:chimeway_admin_session, session)}
-
-      {:error, _} ->
-        {:halt, redirect(socket, to: unauthorized_redirect())}
+    with :ok <- authorize(action, admin_context, %{}),
+         {:ok, admin_context} <- Context.build(params, session, socket) do
+      {:cont,
+       socket
+       |> assign(:chimeway_admin_context, admin_context)
+       |> assign(:chimeway_admin_session, session)}
+    else
+      {:error, _} -> {:halt, redirect(socket, to: unauthorized_redirect())}
     end
   end
 
@@ -52,14 +51,18 @@ defmodule ChimewayAdmin.LiveAuth do
       Map.get(socket.assigns, :chimeway_admin_context) ||
         Context.from(%{}, Map.get(socket.assigns, :chimeway_admin_session, %{}), socket)
 
-    case authorize(action, admin_context, extra_context) do
-      :ok ->
-        {:ok, socket}
-
-      {:error, _} ->
-        {:error, redirect(socket, to: unauthorized_redirect())}
+    with :ok <- valid_context(admin_context),
+         :ok <- authorize(action, admin_context, extra_context) do
+      {:ok, socket}
+    else
+      {:error, _} -> {:error, redirect(socket, to: unauthorized_redirect())}
     end
   end
+
+  defp valid_context(%{tenant_id: tenant_id}) when is_binary(tenant_id) and tenant_id != "",
+    do: :ok
+
+  defp valid_context(_context), do: {:error, :invalid_tenant}
 
   defp authorize(action, admin_context, extra_context) do
     auth_module = Auth.auth_module()

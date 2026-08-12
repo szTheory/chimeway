@@ -41,14 +41,28 @@ defmodule ChimewayAdmin.Context do
     }
   end
 
-  @spec read_opts(t() | nil, keyword()) :: keyword()
+  @doc """
+  Builds a context only when the host supplied a concrete tenant identity.
+  """
+  @spec build(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, t()} | {:error, :invalid_tenant}
+  def build(params, session, socket) do
+    context = from(params, session, socket)
+
+    if valid_tenant?(context.tenant_id) do
+      {:ok, context}
+    else
+      {:error, :invalid_tenant}
+    end
+  end
+
+  @spec read_opts(t() | nil, keyword()) :: keyword() | {:error, :invalid_tenant}
   def read_opts(context, opts \\ [])
 
-  def read_opts(%{tenant_id: tenant_id}, opts) when is_binary(tenant_id) do
+  def read_opts(%{tenant_id: tenant_id}, opts) when is_binary(tenant_id) and tenant_id != "" do
     Keyword.put(opts, :tenant_id, tenant_id)
   end
 
-  def read_opts(_context, opts), do: opts
+  def read_opts(_context, _opts), do: {:error, :invalid_tenant}
 
   @spec authorize_context(t() | nil, atom(), map()) :: map()
   def authorize_context(context, action, extra_context \\ %{})
@@ -86,26 +100,32 @@ defmodule ChimewayAdmin.Context do
 
   def actor_ref(_value), do: nil
 
-  @spec recovery_opts(t() | nil, String.t() | nil, term()) :: keyword()
-  def recovery_opts(context, reason, confirmation_marker) do
+  @spec recovery_opts(t() | nil, String.t() | nil, term()) ::
+          keyword() | {:error, :invalid_tenant}
+  def recovery_opts(%{tenant_id: tenant_id} = context, reason, confirmation_marker)
+      when is_binary(tenant_id) and tenant_id != "" do
     [
       source: "chimeway_admin",
       reason: normalize_value(reason),
-      tenant_id: Map.get(context || %{}, :tenant_id),
+      tenant_id: tenant_id,
       actor_ref: actor_ref(context),
       confirmation_marker: normalize_value(confirmation_marker)
     ]
     |> Enum.reject(fn {_key, value} -> blank?(value) end)
   end
 
-  defp tenant_id(params, session) do
-    session_value(session, "chimeway_admin_tenant_id") ||
-      session_value(session, "tenant_id") ||
-      session_value(params, "tenant_id")
+  def recovery_opts(_context, _reason, _confirmation_marker) do
+    {:error, :invalid_tenant}
   end
 
-  defp session_value(map, key) when is_map(map), do: normalize_value(Map.get(map, key))
-  defp session_value(_map, _key), do: nil
+  defp tenant_id(params, session) do
+    tenant_value(session, "chimeway_admin_tenant_id") ||
+      tenant_value(session, "tenant_id") ||
+      tenant_value(params, "tenant_id")
+  end
+
+  defp tenant_value(map, key) when is_map(map), do: normalize_tenant(Map.get(map, key))
+  defp tenant_value(_map, _key), do: nil
 
   defp normalize_value(nil), do: nil
 
@@ -123,6 +143,12 @@ defmodule ChimewayAdmin.Context do
 
   defp normalize_value(value) when is_integer(value), do: Integer.to_string(value)
   defp normalize_value(_value), do: nil
+
+  defp normalize_tenant(value) when is_binary(value), do: normalize_value(value)
+  defp normalize_tenant(_value), do: nil
+
+  defp valid_tenant?(tenant_id) when is_binary(tenant_id), do: tenant_id != ""
+  defp valid_tenant?(_tenant_id), do: false
 
   defp blank?(value), do: is_nil(value) or value == ""
 end
