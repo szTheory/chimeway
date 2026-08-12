@@ -10,7 +10,7 @@
 
 - [ ] **TENANT-01**: A host can persist every new event and notification under an immutable `tenant_id`, with event idempotency scoped to `{tenant_id, idempotency_key}`.
 - [x] **TENANT-02**: A host can query or mutate inbox, trace, admin, and recovery state only within an explicit tenant scope; existing single-tenant signatures work only when explicit compatibility mode is configured.
-- [ ] **TENANT-03**: An adopter can migrate existing rows additively, receive a report for ambiguous legacy rows, and reconcile them without Chimeway guessing tenant ownership or changing static storage-prefix behavior.
+- [x] **TENANT-03**: An adopter can migrate existing rows additively, receive a report for ambiguous legacy rows, and reconcile them without Chimeway guessing tenant ownership or changing static storage-prefix behavior.
 
 ### Privacy and Diagnostic Safety
 
