@@ -21,10 +21,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
+See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 97 — tenant-identity-compatible-upgrade
+**Current focus:** Phase 98 — Privacy-Safe Delivery Evidence
 
 ## Current Position
 

@@ -78,9 +78,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TENANT-01 | Phase 97 | Gaps Found |
-| TENANT-02 | Phase 97 | Gaps Found |
-| TENANT-03 | Phase 97 | Gaps Found |
+| TENANT-01 | Phase 97 | Complete |
+| TENANT-02 | Phase 97 | Complete |
+| TENANT-03 | Phase 97 | Complete |
 | PRIV-03 | Phase 98 | Pending |
 | PRIV-04 | Phase 98 | Pending |
 | PUSH-01 | Phase 99 | Pending |
