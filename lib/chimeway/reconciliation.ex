@@ -8,7 +8,7 @@ defmodule Chimeway.Reconciliation do
 
   import Ecto.Query
 
-  alias Chimeway.{Repo, Storage}
+  alias Chimeway.{Delivery, Repo, Storage}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
@@ -81,6 +81,23 @@ defmodule Chimeway.Reconciliation do
       |> lock("FOR UPDATE")
       |> Repo.one(repo_opts)
 
+    notifications =
+      Notification
+      |> where([notification], notification.event_id == ^event_id)
+      |> order_by([notification], asc: notification.id)
+      |> lock("FOR UPDATE")
+      |> Repo.all(repo_opts)
+
+    deliveries =
+      Delivery
+      |> join(:inner, [delivery], notification in Notification,
+        on: notification.id == delivery.notification_id
+      )
+      |> where([_delivery, notification], notification.event_id == ^event_id)
+      |> order_by([delivery], asc: delivery.id)
+      |> lock("FOR UPDATE")
+      |> Repo.all(repo_opts)
+
     case event do
       nil ->
         Repo.rollback(:not_found)
@@ -92,14 +109,8 @@ defmodule Chimeway.Reconciliation do
         Repo.rollback(:ownership_conflict)
 
       %Event{} ->
-        notifications =
-          Notification
-          |> where([notification], notification.event_id == ^event_id)
-          |> order_by([notification], asc: notification.id)
-          |> lock("FOR UPDATE")
-          |> Repo.all(repo_opts)
-
-        if Enum.any?(notifications, &is_binary(&1.tenant_id)) do
+        if Enum.any?(notifications, &is_binary(&1.tenant_id)) or
+             Enum.any?(deliveries, &(is_binary(&1.tenant_id) and &1.tenant_id != tenant_id)) do
           Repo.rollback(:ownership_conflict)
         end
 
@@ -116,12 +127,23 @@ defmodule Chimeway.Reconciliation do
           )
           |> Repo.update_all([set: [tenant_id: tenant_id]], repo_opts)
 
+        {delivery_count, _} =
+          Delivery
+          |> join(:inner, [delivery], notification in Notification,
+            on: notification.id == delivery.notification_id
+          )
+          |> where(
+            [_delivery, notification],
+            notification.event_id == ^event_id and is_nil(_delivery.tenant_id)
+          )
+          |> Repo.update_all([set: [tenant_id: tenant_id]], repo_opts)
+
         %{
           schema_version: @schema_version,
           status: "assigned",
           event_id: event_id,
           tenant_id: tenant_id,
-          counts: %{events: 1, notifications: notification_count}
+          counts: %{events: 1, notifications: notification_count, deliveries: delivery_count}
         }
     end
   end
