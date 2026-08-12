@@ -17,6 +17,20 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     def current_tenant(_session, _context), do: {:error, :missing_tenant}
   end
 
+  defmodule MutableAuth do
+    @behaviour ChimewayInbox.Auth
+
+    @impl true
+    def current_recipient(_session, _context) do
+      {:ok, Application.fetch_env!(:chimeway_inbox, :mutable_auth_recipient)}
+    end
+
+    @impl true
+    def current_tenant(_session, _context) do
+      {:ok, Application.fetch_env!(:chimeway_inbox, :mutable_auth_tenant)}
+    end
+  end
+
   defp mount_bell(conn, session \\ %{"current_actor" => "user:42"}) do
     conn
     |> Phoenix.ConnTest.init_test_session(session)
@@ -64,6 +78,25 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
 
     persisted = Repo.get!(Notification, notification.id)
     assert persisted.read_at
+  end
+
+  test "a changed tenant redirects before mark_read and leaves the notification unread", %{
+    conn: conn
+  } do
+    notification =
+      insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Tenant guarded"}})
+
+    use_mutable_auth!("user:42", "tenant-a")
+
+    {:ok, view, _html} = mount_bell(conn)
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    Application.put_env(:chimeway_inbox, :mutable_auth_tenant, "tenant-b")
+
+    assert {:error, {:redirect, %{to: "/login"}}} =
+             render_click(view, "mark_read", %{"id" => notification.id})
+
+    assert is_nil(Repo.get!(Notification, notification.id).read_at)
   end
 
   test "unauthorized mount redirects without inbox chrome", %{conn: conn} do
@@ -137,6 +170,23 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     panel_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
 
     assert panel_html =~ "Load more notifications"
+  end
+
+  defp use_mutable_auth!(recipient_identity, tenant_id) do
+    previous_auth_module = Application.get_env(:chimeway_inbox, :auth_module)
+    previous_redirect = Application.get_env(:chimeway_inbox, :unauthorized_redirect)
+
+    Application.put_env(:chimeway_inbox, :auth_module, MutableAuth)
+    Application.put_env(:chimeway_inbox, :unauthorized_redirect, "/login")
+    Application.put_env(:chimeway_inbox, :mutable_auth_recipient, recipient_identity)
+    Application.put_env(:chimeway_inbox, :mutable_auth_tenant, tenant_id)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway_inbox, :auth_module, previous_auth_module)
+      Application.put_env(:chimeway_inbox, :unauthorized_redirect, previous_redirect)
+      Application.delete_env(:chimeway_inbox, :mutable_auth_recipient)
+      Application.delete_env(:chimeway_inbox, :mutable_auth_tenant)
+    end)
   end
 
   # mark_seen is not invoked by BellDropdownLive v1.9 (D-08 discretion) — only mark_read
