@@ -12,6 +12,7 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   @impl true
   def mount(_params, _session, socket) do
     recipient_identity = socket.assigns.recipient_identity
+    tenant_id = socket.assigns.tenant_id
 
     socket =
       socket
@@ -23,7 +24,7 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
         load_error: nil,
         item_link_fun: nil
       )
-      |> load_inbox(recipient_identity)
+      |> load_inbox(recipient_identity, tenant_id)
 
     {:ok, socket}
   end
@@ -40,8 +41,9 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   def handle_event("mark_read", %{"id" => id}, socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
       recipient_identity = socket.assigns.recipient_identity
-      _ = Chimeway.mark_read(id, recipient_identity)
-      {:noreply, load_inbox(socket, recipient_identity)}
+      tenant_id = socket.assigns.tenant_id
+      _ = Chimeway.mark_read(id, recipient_identity, tenant_id: tenant_id)
+      {:noreply, load_inbox(socket, recipient_identity, tenant_id)}
     else
       {:error, socket} -> {:noreply, socket}
     end
@@ -50,12 +52,15 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   def handle_event("mark_all_read", _params, socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
       recipient_identity = socket.assigns.recipient_identity
+      tenant_id = socket.assigns.tenant_id
 
       socket.assigns.items
       |> Enum.filter(&unread?/1)
-      |> Enum.each(fn item -> Chimeway.mark_read(item["id"], recipient_identity) end)
+      |> Enum.each(fn item ->
+        Chimeway.mark_read(item["id"], recipient_identity, tenant_id: tenant_id)
+      end)
 
-      {:noreply, load_inbox(socket, recipient_identity)}
+      {:noreply, load_inbox(socket, recipient_identity, tenant_id)}
     else
       {:error, socket} -> {:noreply, socket}
     end
@@ -64,8 +69,9 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   def handle_event("load_more", _params, socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
       recipient_identity = socket.assigns.recipient_identity
+      tenant_id = socket.assigns.tenant_id
 
-      case fetch_page(recipient_identity, cursor_from_last(socket.assigns.items)) do
+      case fetch_page(recipient_identity, tenant_id, cursor_from_last(socket.assigns.items)) do
         {:ok, %{items: items, has_more: has_more}} ->
           {:noreply,
            assign(socket,
@@ -84,7 +90,12 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
 
   def handle_event("retry_load", _params, socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
-      {:noreply, load_inbox(assign(socket, :load_error, nil), socket.assigns.recipient_identity)}
+      {:noreply,
+       load_inbox(
+         assign(socket, :load_error, nil),
+         socket.assigns.recipient_identity,
+         socket.assigns.tenant_id
+       )}
     else
       {:error, socket} -> {:noreply, socket}
     end
@@ -170,17 +181,17 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
     """
   end
 
-  defp load_inbox(socket, recipient_identity) do
+  defp load_inbox(socket, recipient_identity, tenant_id) do
     unread_count =
       try do
-        Chimeway.unread_count(recipient_identity)
+        Chimeway.unread_count(recipient_identity, tenant_id: tenant_id)
       rescue
         _ -> 0
       catch
         _, _ -> 0
       end
 
-    case fetch_page(recipient_identity, []) do
+    case fetch_page(recipient_identity, tenant_id, []) do
       {:ok, %{items: items, has_more: has_more}} ->
         assign(socket,
           unread_count: unread_count,
@@ -199,8 +210,8 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
     end
   end
 
-  defp fetch_page(recipient_identity, cursor_opts) do
-    opts = [limit: page_size()] ++ cursor_opts
+  defp fetch_page(recipient_identity, tenant_id, cursor_opts) do
+    opts = [limit: page_size(), tenant_id: tenant_id] ++ cursor_opts
 
     case Chimeway.list_for_recipient(recipient_identity, opts) do
       %{items: items, has_more: has_more} ->

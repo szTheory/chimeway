@@ -1,9 +1,10 @@
 defmodule ChimewayInbox.LiveAuth do
   @moduledoc """
-  LiveView `on_mount` hook — fail-closed recipient resolution via `ChimewayInbox.Auth`.
+  LiveView `on_mount` hook — fail-closed recipient and tenant resolution via
+  `ChimewayInbox.Auth`.
 
-  Allowed `current_recipient/2` return values: `{:ok, recipient_identity}` or
-  `{:error, :unauthorized}`. Any other return is logged and treated as unauthorized.
+  Both host callbacks must return a nonblank binary identity/tenant or an error.
+  Any unexpected result is logged and treated as unauthorized.
   """
   import Phoenix.Component
   import Phoenix.LiveView
@@ -11,11 +12,12 @@ defmodule ChimewayInbox.LiveAuth do
   alias ChimewayInbox.Auth
 
   def on_mount(:inbox_bell, _params, session, socket) do
-    case resolve_recipient(session, socket) do
-      {:ok, recipient_identity} ->
+    case resolve_context(session, socket) do
+      {:ok, recipient_identity, tenant_id} ->
         {:cont,
          assign(socket,
            recipient_identity: recipient_identity,
+           tenant_id: tenant_id,
            chimeway_inbox_session: session
          )}
 
@@ -34,8 +36,10 @@ defmodule ChimewayInbox.LiveAuth do
   def ensure_authorized(socket, :inbox_bell) do
     session = Map.get(socket.assigns, :chimeway_inbox_session, %{})
 
-    case resolve_recipient(session, socket) do
-      {:ok, _recipient_identity} ->
+    case resolve_context(session, socket) do
+      {:ok, recipient_identity, tenant_id}
+      when recipient_identity == socket.assigns.recipient_identity and
+             tenant_id == socket.assigns.tenant_id ->
         {:ok, socket}
 
       {:error, _} ->
@@ -43,7 +47,7 @@ defmodule ChimewayInbox.LiveAuth do
     end
   end
 
-  defp resolve_recipient(session, socket) do
+  defp resolve_context(session, socket) do
     auth_module = Auth.auth_module()
 
     context = %{
@@ -51,22 +55,39 @@ defmodule ChimewayInbox.LiveAuth do
       session: session
     }
 
-    case auth_module.current_recipient(session, context) do
-      {:ok, recipient_identity} when is_binary(recipient_identity) ->
-        {:ok, recipient_identity}
+    with {:ok, recipient_identity} <-
+           resolve_value(auth_module, :current_recipient, session, context),
+         {:ok, tenant_id} <- resolve_value(auth_module, :current_tenant, session, context) do
+      {:ok, recipient_identity, tenant_id}
+    end
+  end
 
-      {:error, :unauthorized} ->
+  defp resolve_value(auth_module, callback, session, context) do
+    case apply(auth_module, callback, [session, context]) do
+      {:ok, value} when is_binary(value) ->
+        case String.trim(value) do
+          "" -> unexpected_callback(callback, {:ok, value})
+          normalized -> {:ok, normalized}
+        end
+
+      {:error, _reason} ->
         {:error, :unauthorized}
 
       other ->
-        require Logger
-
-        Logger.warning(
-          "ChimewayInbox.Auth.current_recipient/2 returned unexpected #{inspect(other)}; treating as unauthorized"
-        )
-
-        {:error, :unauthorized}
+        unexpected_callback(callback, other)
     end
+  rescue
+    UndefinedFunctionError -> unexpected_callback(callback, :missing_callback)
+  end
+
+  defp unexpected_callback(callback, result) do
+    require Logger
+
+    Logger.warning(
+      "ChimewayInbox.Auth.#{callback}/2 returned unexpected #{inspect(result)}; treating as unauthorized"
+    )
+
+    {:error, :unauthorized}
   end
 
   defp unauthorized_redirect do

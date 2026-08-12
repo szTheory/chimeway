@@ -92,6 +92,28 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     assert {:error, {:redirect, %{to: "/login"}}} = mount_bell(conn)
   end
 
+  test "a notification from another tenant is indistinguishable from an absent row", %{conn: conn} do
+    visible = insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Visible"}})
+
+    hidden =
+      insert_inbox_notification!("user:42", %{
+        tenant_id: "tenant-b",
+        metadata: %{"subject" => "Other tenant"}
+      })
+
+    {:ok, view, _html} = mount_bell(conn)
+    panel_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    assert panel_html =~ ~s(data-notification-id="#{visible.id}")
+    refute panel_html =~ hidden.id
+    refute panel_html =~ "Other tenant"
+
+    unchanged_html = render_click(view, "mark_read", %{"id" => hidden.id})
+    assert unchanged_html =~ ~s(data-notification-id="#{visible.id}")
+
+    assert is_nil(Repo.get!(Notification, hidden.id).read_at)
+  end
+
   test "empty state renders UI-SPEC copy", %{conn: conn} do
     {:ok, view, _html} = mount_bell(conn)
 
