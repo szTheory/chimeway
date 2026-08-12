@@ -99,6 +99,54 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     assert is_nil(Repo.get!(Notification, notification.id).read_at)
   end
 
+  test "a changed recipient redirects before mark_read and leaves both recipient rows unread", %{
+    conn: conn
+  } do
+    mounted_notification =
+      insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Mounted recipient"}})
+
+    changed_recipient_notification =
+      insert_inbox_notification!("user:99", %{metadata: %{"subject" => "Changed recipient"}})
+
+    use_mutable_auth!("user:42", "tenant-a")
+
+    {:ok, view, _html} = mount_bell(conn)
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    Application.put_env(:chimeway_inbox, :mutable_auth_recipient, "user:99")
+
+    assert {:error, {:redirect, %{to: "/login"}}} =
+             render_click(view, "mark_read", %{"id" => mounted_notification.id})
+
+    assert is_nil(Repo.get!(Notification, mounted_notification.id).read_at)
+    assert is_nil(Repo.get!(Notification, changed_recipient_notification.id).read_at)
+  end
+
+  test "a changed recipient and tenant redirect before toggle without loading a new identity", %{
+    conn: conn
+  } do
+    mounted_notification =
+      insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Mounted identity"}})
+
+    changed_identity_notification =
+      insert_inbox_notification!("user:99", %{
+        tenant_id: "tenant-b",
+        metadata: %{"subject" => "Changed identity"}
+      })
+
+    use_mutable_auth!("user:42", "tenant-a")
+
+    {:ok, view, _html} = mount_bell(conn)
+
+    Application.put_env(:chimeway_inbox, :mutable_auth_recipient, "user:99")
+    Application.put_env(:chimeway_inbox, :mutable_auth_tenant, "tenant-b")
+
+    assert {:error, {:redirect, %{to: "/login"}}} = render_click(view, "toggle_panel", %{})
+
+    assert is_nil(Repo.get!(Notification, mounted_notification.id).read_at)
+    assert is_nil(Repo.get!(Notification, changed_identity_notification.id).read_at)
+  end
+
   test "unauthorized mount redirects without inbox chrome", %{conn: conn} do
     previous = Application.get_env(:chimeway_inbox, :auth_module)
     Application.put_env(:chimeway_inbox, :auth_module, DenyAuth)
@@ -182,12 +230,15 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     Application.put_env(:chimeway_inbox, :mutable_auth_tenant, tenant_id)
 
     on_exit(fn ->
-      Application.put_env(:chimeway_inbox, :auth_module, previous_auth_module)
-      Application.put_env(:chimeway_inbox, :unauthorized_redirect, previous_redirect)
+      restore_env(:auth_module, previous_auth_module)
+      restore_env(:unauthorized_redirect, previous_redirect)
       Application.delete_env(:chimeway_inbox, :mutable_auth_recipient)
       Application.delete_env(:chimeway_inbox, :mutable_auth_tenant)
     end)
   end
+
+  defp restore_env(key, nil), do: Application.delete_env(:chimeway_inbox, key)
+  defp restore_env(key, value), do: Application.put_env(:chimeway_inbox, key, value)
 
   # mark_seen is not invoked by BellDropdownLive v1.9 (D-08 discretion) — only mark_read
   # is wired from row actions. Seen lifecycle remains host/API responsibility until a
