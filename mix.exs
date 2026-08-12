@@ -9,6 +9,7 @@ defmodule Chimeway.MixProject do
       version: @version,
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_ignore_filters: [~r{^test/fixtures/}],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),

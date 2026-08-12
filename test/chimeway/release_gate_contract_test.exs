@@ -69,6 +69,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       [_, ci_test] = Regex.run(~r/"ci\.test":\s*\[(.*?)\n\s*\],/s, mix_exs)
 
       assert ci_test =~ "CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1"
+      assert mix_exs =~ "test_ignore_filters: [~r{^test/fixtures/}]"
 
       for excluded <- ~w(mailglass accrue threadline sigra) do
         assert ci_test =~ "--exclude #{excluded}"

@@ -6,10 +6,8 @@ if Code.ensure_loaded?(Accrue) do
 
     @moduletag :accrue
 
-    alias Accrue.Billing.Subscription
     alias Accrue.Config
     alias Accrue.Integrations.Chimeway, as: ChimewayDunningEngine
-    alias Accrue.TestRepo, as: Repo
 
     describe "accrue dunning harness (ECOS-06 wave 1)" do
       setup do
@@ -29,6 +27,9 @@ if Code.ensure_loaded?(Accrue) do
       end
 
       if Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
+        alias Accrue.Billing.Subscription
+        alias Accrue.TestRepo, as: Repo
+
         test "invoice.payment_failed trigger_event reaches DefaultHandler path" do
           customer = insert_customer!()
           subscription = insert_subscription!(customer)
