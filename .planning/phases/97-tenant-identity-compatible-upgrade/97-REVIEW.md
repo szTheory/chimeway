@@ -1,6 +1,6 @@
 ---
 phase: 97-tenant-identity-compatible-upgrade
-reviewed: 2026-08-12T16:14:19Z
+reviewed: 2026-08-12T17:14:06Z
 depth: standard
 files_reviewed: 44
 files_reviewed_list:
@@ -49,63 +49,64 @@ files_reviewed_list:
   - test/support/chimeway/dispatch_helpers.ex
   - test/support/data_case.ex
 findings:
-  critical: 1
-  warning: 2
+  critical: 3
+  warning: 1
   info: 0
-  total: 3
+  total: 4
 status: issues_found
 ---
 
 # Phase 97: Code Review Report
 
-**Reviewed:** 2026-08-12T16:14:19Z
+**Reviewed:** 2026-08-12T17:14:06Z
 **Depth:** standard
 **Files Reviewed:** 44
 **Status:** issues_found
 
 ## Summary
 
-The tenant scope is generally propagated through the new read and recovery paths, but the submitted migration cannot be rolled back after valid multi-tenant activity. Tenant identity is also normalized inconsistently at the trigger write boundary, and an authorized inbox LiveView can crash instead of denying access when its resolved identity changes.
+The tenant scope is applied to most top-level reads and new trigger writes, but the implementation permits inconsistent tenant identities within a lifecycle tree and then exposes or silently breaks those rows in admin and reconciliation paths. One admin event handler also skips the stated per-event authorization check. Focused tenant tests passed, but they do not cover these paths.
 
 ## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01: Tenant migration rollback fails after valid cross-tenant idempotency use
+### CR-01: Reconciliation assigns a partial lifecycle tree and can create cross-tenant ownership
 
-**File:** `priv/repo/migrations/20260812000000_add_tenant_identity_to_events_and_notifications.exs:33`
+**File:** `lib/chimeway/reconciliation.ex:95`
 
-**Issue:** The `up` migration intentionally permits the same `idempotency_key` in different tenants by replacing the global unique index with `(tenant_id, idempotency_key)`. After two such valid events exist, `down` tries to create the old globally-unique index before removing tenant data. PostgreSQL rejects that index creation because duplicate `idempotency_key` values already exist, making rollback impossible precisely after normal use of the new feature. The installer migration has the same defect at `priv/chimeway_migrations/032_add_tenant_identity_to_events_and_notifications.exs:36`.
+**Issue:** The reconciliation transaction locks and checks only notifications, then updates only the event and notification rows (lines 95-117). Deliveries already have `tenant_id` from the earlier delivery migration, but are neither checked nor updated. On an upgrade, assigning a legacy event/notification tree to the host-selected tenant can leave its deliveries owned by a different tenant (commonly the historical default). Tenant-scoped traces and recovery then omit those deliveries, while admin joins can associate them with the newly assigned event. This breaks the durable lifecycle spine and tenant isolation immediately after the supported reconciliation operation.
 
-**Fix:** Make the migration explicitly irreversible after tenant-scoped idempotency is enabled (raise a clear migration error in `down`), or define and document a deterministic, loss-aware downgrade procedure that removes or remaps conflicting rows before recreating the global index. Apply the same behavior to both migration artifacts and add a migration test with two tenants sharing one key.
+**Fix:** Lock the event's deliveries as part of the same transaction. Either reject any delivery whose tenant differs from the requested tenant with `:ownership_conflict`, or, if the documented migration policy permits it, update only `NULL` delivery tenants atomically and include delivery counts in the report/result. Add a test containing an event and notification with `NULL` ownership plus a delivery with a conflicting tenant.
+
+### CR-02: Admin read models join children without requiring the same tenant
+
+**File:** `lib/chimeway/admin.ex:43`
+
+**Issue:** Several admin queries scope only one level of the lifecycle chain: `recent_problem_deliveries/1` scopes only `d` (lines 43-46), `feed/1` scopes only `n` (119-123), `recovery_candidates/1` scopes either only `d` or only `e` (181-215), and `definitions/1` scopes only `e` (80-84). The database does not enforce that a delivery's tenant matches its notification/event tenant, and `Deliveries.plan_delivery/3` accepts an arbitrary `tenant_id` for a notification. A malformed or partially reconciled row therefore lets a tenant's operator see another tenant's recipient, event key, correlation ID, or counts through these joins.
+
+**Fix:** Add `n.tenant_id == ^tenant_id` and `e.tenant_id == ^tenant_id` predicates to every delivery-root query, and equivalent child predicates to event/notification-root queries. Prefer join conditions that also assert tenant equality (`d.tenant_id == n.tenant_id`, `n.tenant_id == e.tenant_id`) as defense in depth. Add adversarial tests using the existing cross-tenant linked-row pattern from `tenant_scope_contract_test.exs` for every admin DTO.
+
+### CR-03: Feed Debug bypasses the required event-time authorization gate
+
+**File:** `chimeway_admin/lib/chimeway_admin/live/feed_live.ex:15`
+
+**Issue:** `handle_event("search", ...)` reads and returns tenant data without calling `ChimewayAdmin.LiveAuth.ensure_authorized/3`. This contradicts `LiveAuth`'s contract that event handlers are re-checked after mount, and differs from Trace Search and Recovery. An actor whose `:view_feed` permission is revoked while the LiveView remains connected can continue to query recipient histories until disconnect.
+
+**Fix:** Wrap the handler in `with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :view_feed)` and return the redirected socket on failure, matching `TraceSearchLive.handle_event/3`. Add a LiveView test whose auth module allows mount but denies the subsequent `:view_feed` check.
 
 ## Warnings
 
-### WR-01: Trigger persists an uncanonical tenant identity that all scoped readers cannot resolve
+### WR-01: Tenant/recipient changes crash the inbox LiveView instead of denying access
 
-**File:** `lib/chimeway/trigger.ex:141-163`
+**File:** `chimeway_inbox/lib/chimeway_inbox/live_auth.ex:39`
 
-**Issue:** `validate_tenant_id/1` accepts a tenant such as `" tenant-a "`, but it returns only `:ok`; `do_trigger/7` subsequently persists the original whitespace-padded value to events and notifications. Every scoped read uses `TenantScope.resolve/1`, which trims the same input to `"tenant-a"` (`lib/chimeway/tenant_scope.ex:19-23`). Consequently, a valid trigger call can create a lifecycle tree that cannot be found, read, or recovered with that tenant identity. It also creates a distinct composite-idempotency namespace for the padded spelling.
+**Issue:** The `case` handles only an exact successful identity/tenant match and `{:error, _}`. If the host auth module successfully resolves a different recipient or tenant (for example after an account/tenant switch), neither clause matches and `ensure_authorized/2` raises `CaseClauseError`. The documented fail-closed behavior should redirect rather than crash the LiveView.
 
-**Fix:** Have `fetch_tenant_id/1` (or `validate_tenant_id/1`) return `{:ok, String.trim(tenant_id)}` and pass that normalized value through the trigger and dispatch options. Add a regression test that triggers with padded input and can retrieve the resulting trace with the canonical tenant ID.
-
-### WR-02: Inbox authorization crashes for a valid but changed recipient or tenant
-
-**File:** `chimeway_inbox/lib/chimeway_inbox/live_auth.ex:39-48`
-
-**Issue:** `ensure_authorized/2` handles a matching resolved context and an error result, but has no clause for `{:ok, recipient_identity, tenant_id}` when either value differs from the original socket assignment. That valid tuple causes `CaseClauseError`, terminating the LiveView instead of redirecting/denying access. This is reachable when a user changes active tenant or authenticates as a different user while a LiveView remains connected.
-
-**Fix:** Add a catch-all valid-context branch that redirects as unauthorized, for example:
-
-```elixir
-      {:ok, _recipient_identity, _tenant_id} ->
-        {:error, redirect(socket, to: unauthorized_redirect())}
-```
-
-Add a LiveView test covering both recipient and tenant changes during an event handler.
+**Fix:** Add a catch-all success clause, e.g. `{:ok, _recipient_identity, _tenant_id} -> {:error, redirect(socket, to: unauthorized_redirect())}`, and cover it with an authorization-change test.
 
 ---
 
-_Reviewed: 2026-08-12T16:14:19Z_
+_Reviewed: 2026-08-12T17:14:06Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
