@@ -43,7 +43,11 @@ defmodule Chimeway.Admin do
       Delivery
       |> join(:inner, [d], n in assoc(d, :notification))
       |> join(:inner, [_d, n], e in assoc(n, :event))
-      |> where([d], d.status in ^@problem_statuses and d.tenant_id == ^tenant_id)
+      |> where(
+        [d, n, e],
+        d.status in ^@problem_statuses and d.tenant_id == ^tenant_id and n.tenant_id == ^tenant_id and
+          e.tenant_id == ^tenant_id
+      )
       |> order_by([d], desc: d.updated_at)
       |> limit(^limit)
       |> select([d, n, e], %{
