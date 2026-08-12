@@ -75,11 +75,11 @@ files_reviewed_list:
   - test/support/data_case.ex
   - test/support/generated_prefixed_runtime_case.ex
 findings:
-  critical: 1
-  warning: 1
+  critical: 0
+  warning: 0
   info: 0
-  total: 2
-status: issues_found
+  total: 0
+status: clean
 ---
 
 # Phase 97: Code Review Report
@@ -87,15 +87,15 @@ status: issues_found
 **Reviewed:** 2026-08-12T00:00:00Z
 **Depth:** standard
 **Files Reviewed:** 70
-**Status:** issues_found
+**Status:** clean
 
 ## Summary
 
-The phase adds comprehensive read-side tenant predicates, migration templates, reconciliation, and PR-gate coverage. However, the delivery-planning write path can still create a delivery whose tenant disagrees with its notification, including via its new implicit `"default"` fallback. That breaks the durable tenant spine and can feed a foreign notification into dispatch/recovery paths. The Admin recovery aggregate also counts foreign deliveries when deciding whether a tenant's event is recoverable.
+The initial review findings were resolved on 2026-08-12. Delivery planning now derives its tenant from the persisted notification and the public delivery boundary verifies the owner before inserting. Admin recovery candidate aggregation now scopes its optional delivery join to the requested tenant. See `97-REVIEW-FIX.md` for commits and verification evidence.
 
 ## Narrative Findings (AI reviewer)
 
-## Critical Issues
+## Resolved Critical Issue
 
 ### CR-01: Delivery planning can write a child under a different tenant than its notification
 
@@ -117,7 +117,9 @@ end
 
 Add regression coverage for a non-default notification planned without opts and for an explicit cross-tenant tenant ID; both must fail without inserting a delivery.
 
-## Warnings
+**Resolution:** Fixed by `75ea6dc` and `e6132e4`; planner and direct-boundary regressions prove the durable notification tenant is used and cross-tenant requests make no insert.
+
+## Resolved Warning
 
 ### WR-01: Recovery candidates treat a foreign delivery as this tenant's planned delivery
 
@@ -129,6 +131,8 @@ Add regression coverage for a non-default notification planned without opts and 
 ```elixir
 |> join(:left, [_e, n], d in assoc(n, :deliveries), on: d.tenant_id == ^tenant_id)
 ```
+
+**Resolution:** Fixed by `75ea6dc` and `e6132e4`; split-tenant recovery regressions prove a foreign delivery does not hide its tenant's recoverable event.
 
 ---
 
