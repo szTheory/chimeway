@@ -39,7 +39,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
   3. A legacy single-tenant host continues only after it explicitly enables the compatibility configuration; otherwise formerly unscoped calls fail closed.
   4. An adopter can apply additive migrations, receive ambiguous-row reconciliation evidence, and assign ownership without Chimeway inferring a tenant or changing its static storage prefix.
 
-**Plans:** 11/14 plans executed
+**Plans:** 12/14 plans executed
 
 Plans:
 **Wave 1**
@@ -70,7 +70,7 @@ Plans:
 
 **Gap Closure Wave 2** *(97-12, 97-13, and 97-14 are independent)*
 
-- [ ] 97-12-PLAN.md — Enforce lifecycle-wide tenant coherence in Admin DTOs and re-authorize Feed searches after mount.
+- [x] 97-12-PLAN.md — Enforce lifecycle-wide tenant coherence in Admin DTOs and re-authorize Feed searches after mount.
 - [ ] 97-13-PLAN.md — Reconcile Delivery ownership atomically with Event and Notification ownership.
 - [ ] 97-14-PLAN.md — Fail closed when Inbox recipient or tenant identity changes after mount.
 
@@ -161,7 +161,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 97. Tenant Identity & Compatible Upgrade | 11/11 | In Progress|  |
+| 97. Tenant Identity & Compatible Upgrade | 12/14 | In Progress|  |
 | 98. Privacy-Safe Delivery Evidence | 0/TBD | Not started | - |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
