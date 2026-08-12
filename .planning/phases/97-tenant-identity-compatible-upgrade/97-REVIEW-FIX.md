@@ -39,6 +39,9 @@ status: all_fixed
 
 - `mix test test/chimeway/orchestration/delivery_planning_test.exs test/chimeway/admin_test.exs test/chimeway/deliveries_test.exs:150 --warnings-as-errors`
 - `mix verify.admin`
+- Phase 97 regression repair commits: `14f3e5a`, `254410c`, `6f72e09`, `09895ed`, `e215b41`.
+- Focused tenant regression suite: 68 tests, 0 failures (`emission`, recovery, traces, inbox pagination, rendering, digest lifecycle, and deliveries).
+- The broad `mix ci.test` repair loop identified legacy trace/inbox callers without tenant scope; those callers are covered by `e215b41` and require the final broad re-run after this report commit.
 
 ---
 
