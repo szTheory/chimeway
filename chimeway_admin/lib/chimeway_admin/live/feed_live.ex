@@ -4,7 +4,7 @@ defmodule ChimewayAdmin.Live.FeedLive do
   """
   use ChimewayAdmin.Live, :live_view
 
-  alias ChimewayAdmin.{Context, Redaction}
+  alias ChimewayAdmin.{Context, LiveAuth, Redaction}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -14,18 +14,25 @@ defmodule ChimewayAdmin.Live.FeedLive do
   @impl true
   def handle_event("search", %{"recipient_id" => recipient_id}, socket) do
     recipient_id = String.trim(recipient_id || "")
-    context = socket.assigns[:chimeway_admin_context]
 
-    rows =
-      if recipient_id == "",
-        do: [],
-        else:
-          context
-          |> Context.read_opts(limit: 50)
-          |> Keyword.put(:recipient_id, recipient_id)
-          |> Chimeway.admin_feed()
+    case LiveAuth.ensure_authorized(socket, :view_feed, %{recipient_id: recipient_id}) do
+      {:ok, socket} ->
+        context = socket.assigns[:chimeway_admin_context]
 
-    {:noreply, assign(socket, query: "", rows: rows, searched: true)}
+        rows =
+          if recipient_id == "",
+            do: [],
+            else:
+              context
+              |> Context.read_opts(limit: 50)
+              |> Keyword.put(:recipient_id, recipient_id)
+              |> Chimeway.admin_feed()
+
+        {:noreply, assign(socket, query: "", rows: rows, searched: true)}
+
+      {:error, redirected_socket} ->
+        {:noreply, redirected_socket}
+    end
   end
 
   @impl true
