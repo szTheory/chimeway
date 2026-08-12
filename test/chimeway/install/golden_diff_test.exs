@@ -48,7 +48,7 @@ defmodule Chimeway.Install.GoldenDiffTest do
 
         stdout = InstallerFixture.normalize_stdout(stdout)
 
-        assert_map_size(tree, 32)
+        assert_map_size(tree, 33)
         assert_no_chimeway_repo_migrations!(tree)
         refute Enum.any?(Map.keys(tree), &String.contains?(&1, "create_oban_jobs_tables"))
         assert_chimeway_migration_markers!(tree)
