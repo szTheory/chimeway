@@ -27,11 +27,11 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
   end
 
   test "renders DB-inferred persisted definition copy and facts", %{conn: conn} do
-    _delivery = definition_delivery()
+    _delivery = definition_delivery(tenant_id: "tenant-definitions-a")
 
     {:ok, _view, html} =
       live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
-        session: %{"current_actor" => "ops:1"},
+        session: session("tenant-definitions-a"),
         on_mount: [{ChimewayAdmin.LiveAuth, :view_definitions}]
       )
 
@@ -48,7 +48,7 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
   } do
     {:ok, _view, html} =
       live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
-        session: %{"current_actor" => "ops:1"},
+        session: session("tenant-definitions-a"),
         on_mount: [{ChimewayAdmin.LiveAuth, :view_definitions}]
       )
 
@@ -62,11 +62,38 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
     assert_no_forbidden_phrases(html)
   end
 
-  defp definition_delivery do
+  test "renders only definitions owned by the authorized tenant", %{conn: conn} do
+    _authorized =
+      definition_delivery(
+        tenant_id: "tenant-definitions-a",
+        notification_key: "definitions.shared.tenant"
+      )
+
+    _other_tenant =
+      definition_delivery(
+        tenant_id: "tenant-definitions-b",
+        notification_key: "definitions.shared.tenant"
+      )
+
+    {:ok, _view, html} =
+      live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
+        session: session("tenant-definitions-a"),
+        on_mount: [{ChimewayAdmin.LiveAuth, :view_definitions}]
+      )
+
+    assert html =~ "definitions.shared.tenant"
+    refute html =~ "<td>2</td>"
+  end
+
+  defp definition_delivery(attrs) do
+    tenant_id = Keyword.fetch!(attrs, :tenant_id)
+    notification_key = Keyword.get(attrs, :notification_key, "definitions.copy.71")
+
     event =
       %Event{}
       |> Event.changeset(%{
-        notification_key: "definitions.copy.71",
+        tenant_id: tenant_id,
+        notification_key: notification_key,
         notification_version: 4,
         idempotency_key: "definitions-copy-#{System.unique_integer([:positive])}",
         payload: %{}
@@ -77,6 +104,7 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: tenant_id,
         recipient_identity: "user:definitions@example.test",
         recipient_type: "user",
         metadata: %{},
@@ -89,11 +117,15 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
 
     {:ok, delivery} =
       Deliveries.plan_delivery(notification.id, :email,
-        tenant_id: "default",
+        tenant_id: tenant_id,
         actor_id: "system"
       )
 
     delivery
+  end
+
+  defp session(tenant_id) do
+    %{"current_actor" => "ops:1", "chimeway_admin_tenant_id" => tenant_id}
   end
 
   defp assert_no_forbidden_phrases(html) do
