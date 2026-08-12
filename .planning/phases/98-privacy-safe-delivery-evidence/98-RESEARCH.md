@@ -308,20 +308,16 @@ end
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | A deterministic opaque reference/fingerprint can be represented using an existing non-reversible, domain-separated mechanism without a new dependency. [ASSUMED] | Architecture Patterns | A planner may need to add a host-supplied opaque ref contract or adopt a vetted crypto primitive before implementation. |
+| A1 | The host supplies each tenant/domain-bound opaque `cw_...` reference; Chimeway validates and persists it but never derives it from raw identity, endpoint, token, credential, correlation, or provider data. [RESOLVED: 98-CONTEXT.md D-04/D-05 and 98-01/98-02 plans] | Architecture Patterns | Rotation/versioning remains host-owned; a changed reference is supplied explicitly and does not require Chimeway to retain source material. |
 | A2 | A single migration can remove/neutralize legacy sensitive JSON without breaking an existing adopter’s required operational behavior. [ASSUMED] | Pattern 3 | Migration may need staged compatibility or explicit host migration documentation. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Opaque-reference source and rotation semantics**
-   - What we know: D-05 requires stable correlation without retaining raw identity, endpoints, or credentials. [VERIFIED: 98-CONTEXT.md]
-   - What's unclear: Whether the host supplies each opaque ref, Chimeway creates it from an already-safe lifecycle ID, or a keyed fingerprint is required for provider correlation. [ASSUMED]
-   - Recommendation: Plan a compile-time/public contract that accepts only pre-opaque host references for host-owned identity/endpoint data; do not derive a fingerprint from raw inputs until its security properties and rotation behavior are specified. [ASSUMED]
+   - Resolution: The host/provider supplies a pre-opaque, domain-tagged, bounded `cw_...` reference. Chimeway validates and persists that value exactly; it never hashes, encrypts, fingerprints, or otherwise derives a reference from raw identity, endpoint, token, credential, correlation, or provider data. Rotation/versioning is therefore host-owned: callers supply a new opaque reference when their correlation key changes. [RESOLVED: 98-CONTEXT.md D-04/D-05; 98-01 Task 1; 98-02 Task 1]
 
 2. **Legacy raw-recipient data required by Inbox compatibility**
-   - What we know: Existing notification, trace, and Admin paths persist/project `recipient_identity`, while D-04/D-08 prohibit raw recipient data at Chimeway-owned write/projection boundaries. [VERIFIED: codebase grep] [VERIFIED: 98-CONTEXT.md]
-   - What's unclear: The intended host-owned replacement lookup contract for current inbox reads. [ASSUMED]
-   - Recommendation: Make this an early plan task/decision: introduce an opaque recipient reference and ensure Inbox/host authorization receives the original identity only outside Chimeway storage; do not silently retain the old column as an exception. [ASSUMED]
+   - Resolution: Inbox list/count and read/seen/archive mutations accept the same validated host-supplied tenant/domain-bound opaque recipient reference that Trigger persists in the existing physical identity column. The predicate is the resolved tenant plus that opaque reference; post-update reloads use the identical predicate. Existing pagination, ordering, idempotency, and wrong-tenant/absent/unknown-recipient result semantics remain unchanged, while raw host identity stays outside Chimeway storage, signals, logs, telemetry, and DTOs. [RESOLVED: 98-CONTEXT.md D-02/D-04/D-08/D-09; 98-02 Task 2]
 
 ## Environment Availability
 
@@ -377,7 +373,7 @@ end
 | V3 Session Management | no | No session protocol is introduced; do not place host session/adopter data in evidence. [VERIFIED: 98-CONTEXT.md] |
 | V4 Access Control | yes | Preserve Phase 97 tenant-scoped core access while projections return only safe evidence. [VERIFIED: codebase grep] |
 | V5 Input Validation | yes | Recursive key comparison plus typed, closed evidence constructors at every write/diagnostic boundary. [VERIFIED: 98-CONTEXT.md] |
-| V6 Cryptography | conditional | Do not hand-roll a fingerprint; use an existing vetted primitive only if the unresolved opaque-ref design requires it. [ASSUMED] |
+| V6 Cryptography | no | The resolved contract accepts host/provider-supplied opaque references and performs no Chimeway-owned fingerprinting, encryption, or derivation from raw values. [RESOLVED: Open Questions; 98-01/98-02 plans] |
 
 ### Known Threat Patterns for Elixir/Ecto diagnostics
 
