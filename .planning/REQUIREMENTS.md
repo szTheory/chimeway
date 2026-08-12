@@ -14,8 +14,8 @@
 
 ### Privacy and Diagnostic Safety
 
-- [ ] **PRIV-03**: Nested maps, lists, and keyword-shaped values are recursively redacted with case-normalized forbidden-key handling before persistence, telemetry, logs, traces, DTOs, and proof output.
-- [ ] **PRIV-04**: Raw device tokens, credentials, recipient or adopter data, trusted deep links, and provider bodies never enter Chimeway-owned storage or diagnostics; only opaque references, fingerprints, stable classifications, and allowlisted provider facts are retained.
+- [x] **PRIV-03**: Nested maps, lists, and keyword-shaped values are recursively redacted with case-normalized forbidden-key handling before persistence, telemetry, logs, traces, DTOs, and proof output.
+- [x] **PRIV-04**: Raw device tokens, credentials, recipient or adopter data, trusted deep links, and provider bodies never enter Chimeway-owned storage or diagnostics; only opaque references, fingerprints, stable classifications, and allowlisted provider facts are retained.
 
 ### Mobile Target Model
 
@@ -81,8 +81,8 @@
 | TENANT-01 | Phase 97 | Complete |
 | TENANT-02 | Phase 97 | Complete |
 | TENANT-03 | Phase 97 | Complete |
-| PRIV-03 | Phase 98 | Pending |
-| PRIV-04 | Phase 98 | Pending |
+| PRIV-03 | Phase 98 | Complete |
+| PRIV-04 | Phase 98 | Complete |
 | PUSH-01 | Phase 99 | Pending |
 | PUSH-02 | Phase 99 | Pending |
 | PUSH-03 | Phase 99 | Pending |
