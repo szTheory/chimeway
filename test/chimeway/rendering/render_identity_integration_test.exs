@@ -118,6 +118,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
           notification_key: "comment.created",
           notification_version: 1,
           idempotency_key: "render_identity_001",
+          tenant_id: "default",
           payload: %{"comment_id" => 123}
         })
         |> Repo.insert!()
@@ -126,6 +127,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
         %Notification{}
         |> Notification.changeset(%{
           event_id: event.id,
+          tenant_id: event.tenant_id,
           recipient_identity: "user:1",
           recipient_type: "user",
           metadata: %{"legacy_subject" => "Comment created"},
@@ -234,6 +236,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
           notification_key: "comment.created.rendering",
           notification_version: 2,
           idempotency_key: "render-planning-001",
+          tenant_id: "default",
           payload: %{"headline" => "Welcome", "body" => "Ada commented"}
         })
         |> Repo.insert!()
@@ -242,6 +245,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
         %Notification{}
         |> Notification.changeset(%{
           event_id: event.id,
+          tenant_id: event.tenant_id,
           recipient_identity: "user:render",
           recipient_type: "user",
           metadata: %{

@@ -187,6 +187,7 @@ defmodule Chimeway.TelemetryIntegrationTest do
           notification_key: "policy.quiet_hours",
           notification_version: 1,
           idempotency_key: "planning-reason-#{System.unique_integer()}",
+          tenant_id: "default",
           payload: %{}
         })
         |> Repo.insert()
@@ -195,6 +196,7 @@ defmodule Chimeway.TelemetryIntegrationTest do
         %Notification{}
         |> Notification.changeset(%{
           event_id: event.id,
+          tenant_id: event.tenant_id,
           recipient_identity: "user-policy-quiet-hours-telem",
           recipient_type: "user",
           metadata: %{"correlation_id" => "test-corr-planning-reason"}

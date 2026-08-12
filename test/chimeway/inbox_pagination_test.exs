@@ -168,6 +168,7 @@ defmodule Chimeway.InboxPaginationTest do
       notification_key: "comment.created",
       notification_version: 1,
       idempotency_key: idempotency_key,
+      tenant_id: "default",
       payload: %{}
     })
     |> Repo.insert!()
@@ -175,7 +176,7 @@ defmodule Chimeway.InboxPaginationTest do
 
   defp insert_notification!(event, attrs) do
     %Notification{}
-    |> Notification.changeset(Map.merge(attrs, %{event_id: event.id}))
+    |> Notification.changeset(Map.merge(attrs, %{event_id: event.id, tenant_id: event.tenant_id}))
     |> Repo.insert!()
   end
 

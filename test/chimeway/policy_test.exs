@@ -17,6 +17,7 @@ defmodule Chimeway.PolicyTest do
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "test-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: payload
       })
       |> Repo.insert()
@@ -29,6 +30,7 @@ defmodule Chimeway.PolicyTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}

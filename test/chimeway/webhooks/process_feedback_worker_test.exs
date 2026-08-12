@@ -31,6 +31,7 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "webhook-test-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: %{}
       })
       |> Repo.insert()
@@ -43,6 +44,7 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}

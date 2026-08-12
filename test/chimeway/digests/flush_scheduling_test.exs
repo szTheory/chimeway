@@ -198,6 +198,7 @@ defmodule Chimeway.Digests.FlushSchedulingTest do
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "flush-scheduling-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: payload
       })
       |> Repo.insert()
@@ -210,6 +211,7 @@ defmodule Chimeway.Digests.FlushSchedulingTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}

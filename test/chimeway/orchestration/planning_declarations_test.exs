@@ -112,6 +112,7 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
         notification_key: "orchestration.test",
         notification_version: 1,
         idempotency_key: "planning-declarations-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: %{}
       })
       |> Repo.insert()
@@ -120,6 +121,7 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{},
