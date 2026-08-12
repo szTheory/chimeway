@@ -15,7 +15,7 @@ defmodule Chimeway.InboxQueryTest do
 
     oldest =
       insert_notification!(oldest_event, %{
-        recipient_identity: "user:42",
+        recipient_identity: "cw_user_42",
         recipient_type: "member",
         metadata: %{"subject" => "oldest"},
         read_at: nil
@@ -23,7 +23,7 @@ defmodule Chimeway.InboxQueryTest do
 
     middle =
       insert_notification!(middle_event, %{
-        recipient_identity: "user:42",
+        recipient_identity: "cw_user_42",
         recipient_type: "member",
         metadata: %{"subject" => "middle"},
         read_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
@@ -31,7 +31,7 @@ defmodule Chimeway.InboxQueryTest do
 
     newest =
       insert_notification!(newest_event, %{
-        recipient_identity: "user:42",
+        recipient_identity: "cw_user_42",
         recipient_type: "member",
         metadata: %{"subject" => "newest"},
         read_at: nil
@@ -39,7 +39,7 @@ defmodule Chimeway.InboxQueryTest do
 
     _other_recipient =
       insert_notification!(other_event, %{
-        recipient_identity: "user:99",
+        recipient_identity: "cw_user_99",
         recipient_type: "member",
         metadata: %{"subject" => "other"},
         read_at: nil
@@ -54,8 +54,8 @@ defmodule Chimeway.InboxQueryTest do
     set_inserted_at!(middle.id, middle_at)
     set_inserted_at!(newest.id, newest_at)
 
-    all_rows = Inbox.list_for_recipient("user:42", tenant_id: "tenant-a")
-    unread_rows = Inbox.list_for_recipient("user:42", unread_only: true, tenant_id: "tenant-a")
+    all_rows = Inbox.list_for_recipient("cw_user_42", tenant_id: "tenant-a")
+    unread_rows = Inbox.list_for_recipient("cw_user_42", unread_only: true, tenant_id: "tenant-a")
 
     assert Enum.map(all_rows, & &1.id) == [newest.id, middle.id, oldest.id]
     assert Enum.map(unread_rows, & &1.id) == [newest.id, oldest.id]
@@ -67,21 +67,21 @@ defmodule Chimeway.InboxQueryTest do
 
     tenant_a =
       insert_notification!(tenant_a_event, %{
-        recipient_identity: "user:42",
+        recipient_identity: "cw_user_42",
         recipient_type: "member"
       })
 
     tenant_b =
       insert_notification!(tenant_b_event, %{
-        recipient_identity: "user:42",
+        recipient_identity: "cw_user_42",
         recipient_type: "member"
       })
 
-    assert [^tenant_a] = Inbox.list_for_recipient("user:42", tenant_id: "tenant-a")
-    assert [^tenant_b] = Inbox.list_for_recipient("user:42", tenant_id: "tenant-b")
-    assert 1 = Inbox.unread_count("user:42", tenant_id: "tenant-a")
-    assert 1 = Inbox.unread_count("user:42", tenant_id: "tenant-b")
-    assert {:error, :tenant_scope_required} = Inbox.list_for_recipient("user:42")
+    assert [^tenant_a] = Inbox.list_for_recipient("cw_user_42", tenant_id: "tenant-a")
+    assert [^tenant_b] = Inbox.list_for_recipient("cw_user_42", tenant_id: "tenant-b")
+    assert 1 = Inbox.unread_count("cw_user_42", tenant_id: "tenant-a")
+    assert 1 = Inbox.unread_count("cw_user_42", tenant_id: "tenant-b")
+    assert {:error, :tenant_scope_required} = Inbox.list_for_recipient("cw_user_42")
   end
 
   defp insert_event!(idempotency_key, tenant_id \\ "tenant-a") do

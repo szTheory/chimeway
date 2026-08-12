@@ -96,10 +96,10 @@ defmodule Chimeway.TenantScopeContractTest do
     notification = insert_tenant_notification!("compat-tenant")
 
     Application.put_env(:chimeway, :single_tenant_compatibility, tenant_id: "compat-tenant")
-    assert :ok = Inbox.mark_read(notification.id, "compat-user")
+    assert :ok = Inbox.mark_read(notification.id, "cw_compat_user")
 
     Application.delete_env(:chimeway, :single_tenant_compatibility)
-    assert {:error, :tenant_scope_required} = Inbox.mark_seen(notification.id, "compat-user")
+    assert {:error, :tenant_scope_required} = Inbox.mark_seen(notification.id, "cw_compat_user")
   end
 
   test "recovery claims treat missing scope, wrong scope, and absent IDs as the same noop" do
@@ -141,7 +141,7 @@ defmodule Chimeway.TenantScopeContractTest do
     Repo.insert!(%Notification{
       event_id: event.id,
       tenant_id: tenant_id,
-      recipient_identity: "compat-user",
+      recipient_identity: "cw_compat_user",
       recipient_type: "user",
       metadata: %{},
       render_assigns: %{},

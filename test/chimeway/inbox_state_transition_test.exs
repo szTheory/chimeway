@@ -14,7 +14,7 @@ defmodule Chimeway.InboxStateTransitionTest do
     notification = insert_notification!("seen-case")
     seen_at = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
-    assert :ok = Inbox.mark_seen(notification.id, "user:42", tenant_id: "acme", at: seen_at)
+    assert :ok = Inbox.mark_seen(notification.id, "cw_user_42", tenant_id: "acme", at: seen_at)
 
     persisted = Repo.get!(Notification, notification.id)
     assert persisted.seen_at == seen_at
@@ -26,7 +26,7 @@ defmodule Chimeway.InboxStateTransitionTest do
     notification = insert_notification!("read-case")
     read_at = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
-    assert :ok = Inbox.mark_read(notification.id, "user:42", tenant_id: "acme", at: read_at)
+    assert :ok = Inbox.mark_read(notification.id, "cw_user_42", tenant_id: "acme", at: read_at)
 
     persisted = Repo.get!(Notification, notification.id)
     assert persisted.read_at == read_at
@@ -38,7 +38,7 @@ defmodule Chimeway.InboxStateTransitionTest do
     notification = insert_notification!("archive-case")
     archived_at = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
-    assert :ok = Inbox.archive(notification.id, "user:42", tenant_id: "acme", at: archived_at)
+    assert :ok = Inbox.archive(notification.id, "cw_user_42", tenant_id: "acme", at: archived_at)
 
     persisted = Repo.get!(Notification, notification.id)
     assert persisted.archived_at == archived_at
@@ -49,7 +49,8 @@ defmodule Chimeway.InboxStateTransitionTest do
   test "state transitions are scoped by notification id and recipient identity" do
     notification = insert_notification!("scope-case")
 
-    assert {:error, :not_found} = Inbox.mark_read(notification.id, "user:404", tenant_id: "acme")
+    assert {:error, :not_found} =
+             Inbox.mark_read(notification.id, "cw_user_404", tenant_id: "acme")
 
     persisted = Repo.get!(Notification, notification.id)
     assert is_nil(persisted.seen_at)
@@ -60,13 +61,13 @@ defmodule Chimeway.InboxStateTransitionTest do
   describe "inbox signal emission (READ-02)" do
     test "first mark_read emits signal and enqueues SignalRouterWorker" do
       notification = insert_notification!("read-signal-case")
-      assert :ok = Inbox.mark_read(notification.id, "user:42", tenant_id: "acme")
+      assert :ok = Inbox.mark_read(notification.id, "cw_user_42", tenant_id: "acme")
 
       assert [%Signal{id: signal_id} = signal] =
                Repo.all(from(s in Signal, where: s.event_name == "chimeway.notification.read"))
 
       assert signal.tenant_id == "acme"
-      assert signal.actor_id == "user:42"
+      assert signal.actor_id == "cw_user_42"
       assert signal.payload["notification_id"] == notification.id
 
       assert_enqueued(worker: SignalRouterWorker, args: %{"signal_id" => signal_id})
@@ -74,8 +75,8 @@ defmodule Chimeway.InboxStateTransitionTest do
 
     test "re-mark read is idempotent — no duplicate signal" do
       notification = insert_notification!("read-idempotent-case")
-      assert :ok = Inbox.mark_read(notification.id, "user:42", tenant_id: "acme")
-      assert :ok = Inbox.mark_read(notification.id, "user:42", tenant_id: "acme")
+      assert :ok = Inbox.mark_read(notification.id, "cw_user_42", tenant_id: "acme")
+      assert :ok = Inbox.mark_read(notification.id, "cw_user_42", tenant_id: "acme")
 
       assert Repo.aggregate(
                from(s in Signal, where: s.event_name == "chimeway.notification.read"),
@@ -85,7 +86,7 @@ defmodule Chimeway.InboxStateTransitionTest do
 
     test "first mark_seen emits distinct chimeway.notification.seen event" do
       notification = insert_notification!("seen-signal-case")
-      assert :ok = Inbox.mark_seen(notification.id, "user:42", tenant_id: "acme")
+      assert :ok = Inbox.mark_seen(notification.id, "cw_user_42", tenant_id: "acme")
 
       assert [%Signal{event_name: "chimeway.notification.seen"}] =
                Repo.all(from(s in Signal, where: s.event_name == "chimeway.notification.seen"))
@@ -96,7 +97,7 @@ defmodule Chimeway.InboxStateTransitionTest do
 
     test "mark_read does not emit seen signal" do
       notification = insert_notification!("read-no-seen-case")
-      assert :ok = Inbox.mark_read(notification.id, "user:42", tenant_id: "acme")
+      assert :ok = Inbox.mark_read(notification.id, "cw_user_42", tenant_id: "acme")
 
       assert Repo.aggregate(
                from(s in Signal, where: s.event_name == "chimeway.notification.seen"),
@@ -111,7 +112,7 @@ defmodule Chimeway.InboxStateTransitionTest do
       notification = insert_notification!("wrong-recipient-case")
 
       assert {:error, :not_found} =
-               Inbox.mark_read(notification.id, "user:wrong", tenant_id: "acme")
+               Inbox.mark_read(notification.id, "cw_user_wrong", tenant_id: "acme")
 
       assert Repo.aggregate(Signal, :count) == 0
     end
@@ -120,7 +121,7 @@ defmodule Chimeway.InboxStateTransitionTest do
       notification = insert_notification!("tenant-skip-case")
 
       assert {:error, :not_found} =
-               Inbox.mark_read(notification.id, "user:42", tenant_id: "other")
+               Inbox.mark_read(notification.id, "cw_user_42", tenant_id: "other")
 
       persisted = Repo.get!(Notification, notification.id)
       assert is_nil(persisted.read_at)
@@ -144,7 +145,7 @@ defmodule Chimeway.InboxStateTransitionTest do
     |> Notification.changeset(%{
       event_id: event.id,
       tenant_id: "acme",
-      recipient_identity: "user:42",
+      recipient_identity: "cw_user_42",
       recipient_type: "member",
       metadata: %{"source" => "test"}
     })

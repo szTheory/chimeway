@@ -8,6 +8,7 @@ defmodule Chimeway.Inbox do
   alias Chimeway.Inbox.Item
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
+  alias Chimeway.SafeEvidence
   alias Chimeway.Signal
   alias Chimeway.TenantScope
 
@@ -15,21 +16,21 @@ defmodule Chimeway.Inbox do
   @seen_event "chimeway.notification.seen"
 
   def list_for_recipient(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
-    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+    with {:ok, tenant_id, recipient_ref} <- recipient_ref(recipient_identity, opts) do
       if paginated?(opts) do
-        list_for_recipient_paginated(recipient_identity, tenant_id, opts)
+        list_for_recipient_paginated(recipient_ref, tenant_id, opts)
       else
-        list_for_recipient_legacy(recipient_identity, tenant_id, opts)
+        list_for_recipient_legacy(recipient_ref, tenant_id, opts)
       end
     end
   end
 
   def unread_count(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
-    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+    with {:ok, tenant_id, recipient_ref} <- recipient_ref(recipient_identity, opts) do
       exclude_archived = exclude_archived?(opts)
 
       Notification
-      |> base_recipient_query(recipient_identity, tenant_id)
+      |> base_recipient_query(recipient_ref, tenant_id)
       |> where([notification], is_nil(notification.read_at))
       |> maybe_exclude_archived(exclude_archived)
       |> select([notification], count(notification.id))
@@ -65,12 +66,12 @@ defmodule Chimeway.Inbox do
     do: transition(notification_id, recipient_identity, [], :archived_at, nil, at)
 
   defp transition(notification_id, recipient_identity, opts, field, event_name \\ nil, at \\ nil) do
-    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+    with {:ok, tenant_id, recipient_ref} <- recipient_ref(recipient_identity, opts) do
       at = at || Keyword.get(opts, :at, DateTime.utc_now())
 
       update_lifecycle_timestamp(
         notification_id,
-        recipient_identity,
+        recipient_ref,
         tenant_id,
         field,
         at,
@@ -224,5 +225,12 @@ defmodule Chimeway.Inbox do
     )
 
     :ok
+  end
+
+  defp recipient_ref(value, opts) do
+    with {:ok, tenant_id} <- TenantScope.resolve(opts),
+         {:ok, reference} <- SafeEvidence.opaque_ref(:recipient, value) do
+      {:ok, tenant_id, reference}
+    end
   end
 end
