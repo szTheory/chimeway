@@ -54,18 +54,24 @@ defmodule Chimeway.Orchestration.DigestExplainabilityTest do
     assert {:ok, %{digest_delivery: emitted}} =
              Digests.emit_bucket(bucket.id, emitted_at: emitted_at, dispatch: :skip)
 
-    assert {:ok, %Explanation{} = included_exp} = Traces.explain_delivery(included.id)
+    assert {:ok, %Explanation{} = included_exp} =
+             Traces.explain_delivery(included.id, tenant_id: included.tenant_id)
+
     assert included_exp.digest["included"] == true
     assert included_exp.digest["digest_delivery_id"] == emitted.id
     assert included_exp.digest["rule_identity"] == "digest.comment.explain:v1"
     assert Enum.any?(included_exp.timeline, &(&1.event == :digested))
 
-    assert {:ok, %Explanation{} = skipped_exp} = Traces.explain_delivery(skipped.id)
+    assert {:ok, %Explanation{} = skipped_exp} =
+             Traces.explain_delivery(skipped.id, tenant_id: skipped.tenant_id)
+
     assert skipped_exp.digest["excluded"] == true
     assert skipped_exp.digest["resolution_reason"] == "recipient_muted"
     assert Enum.any?(skipped_exp.timeline, &(&1.event == :digest_skipped))
 
-    assert {:ok, %Explanation{} = immediate_exp} = Traces.explain_delivery(immediate.id)
+    assert {:ok, %Explanation{} = immediate_exp} =
+             Traces.explain_delivery(immediate.id, tenant_id: immediate.tenant_id)
+
     assert immediate_exp.digest["emitted_immediately"] == true
     assert immediate_exp.digest["resolution_reason"] == "digest_window_expired"
     assert Enum.any?(immediate_exp.timeline, &(&1.event == :emitted_immediately))
@@ -96,7 +102,8 @@ defmodule Chimeway.Orchestration.DigestExplainabilityTest do
     assert {:ok, %{digest_delivery: emitted}} =
              Digests.emit_bucket(bucket.id, emitted_at: emitted_at, dispatch: :skip)
 
-    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(emitted.id)
+    assert {:ok, %Explanation{} = explanation} =
+             Traces.explain_delivery(emitted.id, tenant_id: emitted.tenant_id)
 
     assert explanation.digest["kind"] == "emitted_digest"
     assert explanation.digest["rule_identity"] == "digest.comment.explain:v1"

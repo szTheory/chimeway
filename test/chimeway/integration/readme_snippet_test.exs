@@ -62,7 +62,7 @@ defmodule Chimeway.ReadmeSnippetTest do
 
     # README "4. Explain the delivery"
     [delivery_id | _] = result.trace.delivery_ids
-    {:ok, explanation} = Traces.explain_delivery(delivery_id)
+    {:ok, explanation} = Traces.explain_delivery(delivery_id, tenant_id: "default")
 
     # The documented explanation carries the answer to "why did this go out?"
     assert %Chimeway.Traces.Explanation{} = explanation
