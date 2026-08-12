@@ -1,6 +1,8 @@
 defmodule Chimeway.AdminTest do
   use Chimeway.DataCase, async: true
 
+  import Ecto.Query
+
   alias Chimeway.{Admin, Deliveries, Repo}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -295,6 +297,33 @@ defmodule Chimeway.AdminTest do
              definition.notification_key == "admin.definition" and
                definition.notification_version == 2 and definition.channels == ["email"]
            end)
+  end
+
+  test "recent problems reject a delivery whose notification and event belong to another tenant" do
+    event = insert_event(%{notification_key: "admin.split.parent", tenant_id: "tenant-a"})
+    notification = insert_notification(event, "user:split-parent")
+    delivery = insert_delivery(notification, tenant_id: "tenant-a", status: :failed)
+
+    Repo.update_all(from(n in Notification, where: n.id == ^notification.id),
+      set: [tenant_id: "tenant-b"]
+    )
+
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-a")
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-b")
+    assert delivery.id
+  end
+
+  test "recent problems reject a foreign-tenant delivery attached to a tenant lifecycle" do
+    event = insert_event(%{notification_key: "admin.split.delivery", tenant_id: "tenant-a"})
+    notification = insert_notification(event, "user:split-delivery")
+    delivery = insert_delivery(notification, tenant_id: "tenant-a", status: :failed)
+
+    Repo.update_all(from(d in Chimeway.Delivery, where: d.id == ^delivery.id),
+      set: [tenant_id: "tenant-b"]
+    )
+
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-a")
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-b")
   end
 
   defp insert_event(attrs) do
