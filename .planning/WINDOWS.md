@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 0
+open_count: 1
 waived_count: 1
 fixed_count: 7
-total_count: 8
-last_updated: 2026-08-11T22:01:24.084Z
+total_count: 9
+last_updated: 2026-08-12T17:40:11.227Z
 ---
 
 # Broken Windows Ledger
@@ -23,6 +23,7 @@ last_updated: 2026-08-11T22:01:24.084Z
 | 6 | 96 | unrun-verify | .github/workflows/ci.yml |  | Live GitHub Actions verify_adoption_paths execution remains required after push. | fixed |  | 2026-08-10T03:56:08.129Z | 2026-08-11T22:01:22.438Z |
 | 7 | 96 | unrun-verify | test/chimeway/release_gate_contract_test.exs |  | mix ci.verify_gates remains red in pre-existing Mailglass timeline and Accrue source-contract cases outside Plan 96-03 files | fixed |  | 2026-08-10T20:57:09.536Z | 2026-08-11T22:01:23.413Z |
 | 8 | 96.1 | unrun-verify | scripts/ci/assert-adoption-run.sh |  | Hosted exact-SHA Adoption proof paths evidence unavailable until the implementation commit has a completed pull-request run. | fixed |  | 2026-08-11T15:34:40.947Z | 2026-08-11T22:01:24.084Z |
+| 9 | 97 | deviation | test/chimeway/runtime_prefix_integration_test.exs | 313 | Authorized fixture tenant alignment required for the explicit event-recovery predicate. | open |  | 2026-08-12T17:40:11.227Z |  |
 
 ````json
 [
@@ -121,6 +122,18 @@ last_updated: 2026-08-11T22:01:24.084Z
     "reason": "",
     "recorded_at": "2026-08-11T15:34:40.947Z",
     "resolved_at": "2026-08-11T22:01:24.084Z"
+  },
+  {
+    "id": 9,
+    "kind": "deviation",
+    "phase": "97",
+    "file": "test/chimeway/runtime_prefix_integration_test.exs",
+    "line": 313,
+    "description": "Authorized fixture tenant alignment required for the explicit event-recovery predicate.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-12T17:40:11.227Z",
+    "resolved_at": null
   }
 ]
 ````
