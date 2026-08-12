@@ -7,6 +7,16 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
   alias Chimeway.Repo
   alias ChimewayInbox.TestSupport.DenyAuth
 
+  defmodule MissingTenantAuth do
+    @behaviour ChimewayInbox.Auth
+
+    @impl true
+    def current_recipient(_session, _context), do: {:ok, "user:42"}
+
+    @impl true
+    def current_tenant(_session, _context), do: {:error, :missing_tenant}
+  end
+
   defp mount_bell(conn, session \\ %{"current_actor" => "user:42"}) do
     conn
     |> Phoenix.ConnTest.init_test_session(session)
@@ -59,6 +69,19 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
   test "unauthorized mount redirects without inbox chrome", %{conn: conn} do
     previous = Application.get_env(:chimeway_inbox, :auth_module)
     Application.put_env(:chimeway_inbox, :auth_module, DenyAuth)
+    Application.put_env(:chimeway_inbox, :unauthorized_redirect, "/login")
+
+    on_exit(fn ->
+      Application.put_env(:chimeway_inbox, :auth_module, previous)
+      Application.delete_env(:chimeway_inbox, :unauthorized_redirect)
+    end)
+
+    assert {:error, {:redirect, %{to: "/login"}}} = mount_bell(conn)
+  end
+
+  test "missing host tenant redirects before inbox access", %{conn: conn} do
+    previous = Application.get_env(:chimeway_inbox, :auth_module)
+    Application.put_env(:chimeway_inbox, :auth_module, MissingTenantAuth)
     Application.put_env(:chimeway_inbox, :unauthorized_redirect, "/login")
 
     on_exit(fn ->
