@@ -19,10 +19,12 @@ defmodule Chimeway.ReconciliationTest do
     assert report.counts == %{events: 2, notifications: 2}
     assert report.assignment == "host must explicitly supply tenant_id; no inference performed"
 
-    assert report.events == [
-             %{id: event_a.id, notification_ids: [notification_a.id], tenant_id: nil},
-             %{id: event_b.id, notification_ids: [notification_b.id], tenant_id: nil}
-           ]
+    assert report.events ==
+             [
+               %{id: event_a.id, notification_ids: [notification_a.id], tenant_id: nil},
+               %{id: event_b.id, notification_ids: [notification_b.id], tenant_id: nil}
+             ]
+             |> Enum.sort_by(& &1.id)
 
     refute inspect(report) =~ "reconciliation-a"
     refute inspect(report) =~ "user:a"
