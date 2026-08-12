@@ -221,7 +221,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       create_pending_delivery(
         notification_key: "test.runtime_prefix.admin.problem",
         recipient_identity: recipient_id,
-        channel: :email
+        channel: :email,
+        tenant_id: "acme"
       )
 
     problem_delivery =
@@ -244,7 +245,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       create_pending_delivery(
         notification_key: "test.runtime_prefix.admin.recovery_candidate",
         recipient_identity: recipient_id,
-        channel: :in_app
+        channel: :in_app,
+        tenant_id: "acme"
       )
 
     recovery_candidate_delivery =
@@ -258,7 +260,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       create_pending_delivery(
         notification_key: "test.runtime_prefix.recovery.begin",
         recipient_identity: unique_recipient("recovery-begin"),
-        channel: :email
+        channel: :email,
+        tenant_id: "acme"
       )
 
     begin_candidate_delivery =
@@ -286,7 +289,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       create_pending_delivery(
         notification_key: "test.runtime_prefix.recovery.delivery",
         recipient_identity: unique_recipient("recovery-delivery"),
-        channel: :email
+        channel: :email,
+        tenant_id: "acme"
       )
 
     delivery_recovery_candidate =

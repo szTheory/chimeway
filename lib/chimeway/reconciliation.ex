@@ -37,12 +37,24 @@ defmodule Chimeway.Reconciliation do
       |> Repo.all(repo_opts)
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
 
+    delivery_ids_by_event =
+      Delivery
+      |> join(:inner, [delivery], notification in Notification,
+        on: notification.id == delivery.notification_id
+      )
+      |> where([_delivery, notification], notification.event_id in ^event_ids)
+      |> order_by([delivery, notification], asc: notification.event_id, asc: delivery.id)
+      |> select([delivery, notification], {notification.event_id, delivery.id})
+      |> Repo.all(repo_opts)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+
     report_events =
       Enum.map(events, fn event ->
         %{
           id: event.id,
           tenant_id: nil,
-          notification_ids: Map.get(notification_ids_by_event, event.id, [])
+          notification_ids: Map.get(notification_ids_by_event, event.id, []),
+          delivery_ids: Map.get(delivery_ids_by_event, event.id, [])
         }
       end)
 
@@ -51,7 +63,8 @@ defmodule Chimeway.Reconciliation do
       status: "ambiguous_tenant_ownership",
       counts: %{
         events: length(report_events),
-        notifications: map_size_notification_count(notification_ids_by_event)
+        notifications: map_size_notification_count(notification_ids_by_event),
+        deliveries: map_size_notification_count(delivery_ids_by_event)
       },
       events: report_events,
       assignment: @assignment_instruction

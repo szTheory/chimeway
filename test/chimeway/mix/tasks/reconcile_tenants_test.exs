@@ -15,10 +15,15 @@ defmodule Mix.Tasks.Chimeway.ReconcileTenantsTest do
 
     assert report["schema_version"] == 1
     assert report["status"] == "ambiguous_tenant_ownership"
-    assert report["counts"] == %{"events" => 1, "notifications" => 1}
+    assert report["counts"] == %{"events" => 1, "notifications" => 1, "deliveries" => 0}
 
     assert report["events"] == [
-             %{"id" => event.id, "notification_ids" => [notification.id], "tenant_id" => nil}
+             %{
+               "id" => event.id,
+               "notification_ids" => [notification.id],
+               "delivery_ids" => [],
+               "tenant_id" => nil
+             }
            ]
   end
 
@@ -31,7 +36,7 @@ defmodule Mix.Tasks.Chimeway.ReconcileTenantsTest do
     assert result["status"] == "assigned"
     assert result["event_id"] == event.id
     assert result["tenant_id"] == "tenant-a"
-    assert result["counts"] == %{"events" => 1, "notifications" => 1}
+    assert result["counts"] == %{"events" => 1, "notifications" => 1, "deliveries" => 0}
     assert Repo.get!(Event, event.id).tenant_id == "tenant-a"
     assert Repo.get!(Notification, notification.id).tenant_id == "tenant-a"
   end
