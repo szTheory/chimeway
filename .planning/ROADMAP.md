@@ -85,7 +85,30 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+
+**Wave 1**
+
+- [ ] 98-01-PLAN.md — Prove recursive privacy and safe attempt-to-trace evidence end to end.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 98-02-PLAN.md — Close Trigger, delivery-planning, and Inbox write/query boundaries.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 98-03-PLAN.md — Bound adapter, telemetry, and log failure evidence.
+
+**Wave 4** *(98-04 and 98-05 run independently after Wave 3)*
+
+- [ ] 98-04-PLAN.md — Make trace and core Admin projections independently safe.
+- [ ] 98-05-PLAN.md — Bind machine-readable proof to honest safe evidence.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 98-06-PLAN.md — Purge legacy blobs and prove public/prefixed privacy gates.
 
 ### Phase 99: Multi-Installation Delivery & Recovery
 
@@ -162,7 +185,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
-| 98. Privacy-Safe Delivery Evidence | 0/TBD | Not started | - |
+| 98. Privacy-Safe Delivery Evidence | 0/6 | Not started | - |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
