@@ -39,7 +39,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
   3. A legacy single-tenant host continues only after it explicitly enables the compatibility configuration; otherwise formerly unscoped calls fail closed.
   4. An adopter can apply additive migrations, receive ambiguous-row reconciliation evidence, and assign ownership without Chimeway inferring a tenant or changing its static storage prefix.
 
-**Plans:** 10/10 plans executed
+**Plans:** 10/11 plans executed
 
 Plans:
 **Wave 1**
@@ -62,10 +62,11 @@ Plans:
 - [x] 97-05-PLAN.md — Propagate authorized tenant context through Admin list and aggregate LiveViews.
 - [x] 97-08-PLAN.md — Propagate authorized tenant context through Admin trace and recovery LiveViews.
 
-**Gap Closure Wave 1** *(97-09 and 97-10 are independent)*
+**Gap Closure Wave 1** *(97-09, 97-10, and 97-11 are independent)*
 
 - [x] 97-09-PLAN.md — Canonicalize padded trigger tenant identity through persistence, dispatch, and scoped trace reads.
 - [x] 97-10-PLAN.md — Make migration 032 rollback explicitly irreversible and prove lossless refusal in both static storage modes.
+- [ ] 97-11-PLAN.md — Restore the runtime-prefix recovery gate with explicit tenant scope on all three recovery operations.
 
 ### Phase 98: Privacy-Safe Delivery Evidence
 
