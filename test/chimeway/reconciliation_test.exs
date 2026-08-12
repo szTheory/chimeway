@@ -31,21 +31,28 @@ defmodule Chimeway.ReconciliationTest do
   end
 
   test "returns an empty deterministic report when no legacy ownership is pending" do
-    assert %{counts: %{events: 0, notifications: 0}, events: []} = Reconciliation.report()
+    assert %{counts: %{events: 0, notifications: 0, deliveries: 0}, events: []} =
+             Reconciliation.report()
   end
 
   test "assigns only the named NULL-owned event tree to a trimmed host tenant" do
     event = insert_legacy_event!("assign-target")
     notification = insert_legacy_notification!(event, "user:target")
+    delivery = insert_legacy_delivery!(notification)
     other_event = insert_legacy_event!("assign-other")
     other_notification = insert_legacy_notification!(other_event, "user:other")
 
     assert {:ok,
-            %{status: "assigned", tenant_id: "tenant-a", counts: %{events: 1, notifications: 1}}} =
+            %{
+              status: "assigned",
+              tenant_id: "tenant-a",
+              counts: %{events: 1, notifications: 1, deliveries: 1}
+            }} =
              Reconciliation.assign_event_tree(event.id, " tenant-a ")
 
     assert Repo.get!(Event, event.id).tenant_id == "tenant-a"
     assert Repo.get!(Notification, notification.id).tenant_id == "tenant-a"
+    assert Repo.get!(Delivery, delivery.id).tenant_id == "tenant-a"
     assert Repo.get!(Event, other_event.id).tenant_id == nil
     assert Repo.get!(Notification, other_notification.id).tenant_id == nil
   end
@@ -96,6 +103,23 @@ defmodule Chimeway.ReconciliationTest do
     assert Repo.get!(Event, event.id).tenant_id == nil
     assert Repo.get!(Notification, notification.id).tenant_id == nil
     assert Repo.get!(Delivery, delivery.id).tenant_id == "tenant-b"
+  end
+
+  test "reports deterministic delivery IDs for ambiguous legacy event trees" do
+    event = insert_legacy_event!("delivery-report")
+    notification = insert_legacy_notification!(event, "user:delivery-report")
+    delivery_b = insert_legacy_delivery!(notification, channel: "sms")
+    delivery_a = insert_legacy_delivery!(notification, channel: "email")
+    event_id = event.id
+    notification_id = notification.id
+
+    assert %{counts: %{events: 1, notifications: 1, deliveries: 2}} = Reconciliation.report()
+
+    assert [%{id: ^event_id, notification_ids: [^notification_id], delivery_ids: delivery_ids}] =
+             Reconciliation.report().events
+
+    assert delivery_ids == Enum.sort([delivery_a.id, delivery_b.id])
+    refute inspect(Reconciliation.report()) =~ "user:delivery-report"
   end
 
   test "concurrent conflicting assignments leave the event tree with one coherent owner", %{
@@ -176,5 +200,23 @@ defmodule Chimeway.ReconciliationTest do
       actor_id: "actor:reconciliation"
     })
     |> Repo.insert!()
+  end
+
+  defp insert_legacy_delivery!(notification, attrs \\ []) do
+    delivery =
+      %Delivery{}
+      |> Delivery.changeset(%{
+        notification_id: notification.id,
+        channel: Keyword.get(attrs, :channel, "email"),
+        status: :pending,
+        tenant_id: "seed-tenant",
+        actor_id: "actor:reconciliation"
+      })
+      |> Repo.insert!()
+
+    {1, _} =
+      Repo.update_all(from(d in Delivery, where: d.id == ^delivery.id), set: [tenant_id: nil])
+
+    Repo.get!(Delivery, delivery.id)
   end
 end
