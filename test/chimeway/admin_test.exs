@@ -326,6 +326,41 @@ defmodule Chimeway.AdminTest do
     assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-b")
   end
 
+  test "admin aggregate and recovery DTOs exclude tenant-incoherent lifecycle rows" do
+    old = ~U[2026-01-15 12:00:00.000000Z]
+    now = ~U[2026-01-15 12:05:00.000000Z]
+
+    event =
+      insert_event(%{
+        notification_key: "admin.split.aggregate",
+        tenant_id: "tenant-a",
+        inserted_at: old,
+        updated_at: old
+      })
+
+    notification = insert_notification(event, "user:split-aggregate")
+    foreign_delivery = insert_delivery(notification, tenant_id: "tenant-a", channel: :sms)
+
+    Repo.update_all(from(d in Chimeway.Delivery, where: d.id == ^foreign_delivery.id),
+      set: [tenant_id: "tenant-b", inserted_at: old, updated_at: old]
+    )
+
+    [definition] = Admin.definitions(tenant_id: "tenant-a")
+    assert definition.notification_key == "admin.split.aggregate"
+    assert definition.recipient_count == 1
+    assert definition.delivery_count == 0
+    assert definition.channels == []
+
+    [feed_row] = Admin.feed(tenant_id: "tenant-a", recipient_id: "user:split-aggregate")
+    assert feed_row.delivery_count == 0
+    assert feed_row.channel_summary == []
+    assert feed_row.status_summary == []
+
+    assert [] = Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+    assert [] = Admin.recovery_candidates(tenant_id: "tenant-b", now: now, older_than: 60)
+    assert [] = Admin.command_center(tenant_id: "tenant-b").recovery_candidates
+  end
+
   defp insert_event(attrs) do
     event =
       %Event{}
