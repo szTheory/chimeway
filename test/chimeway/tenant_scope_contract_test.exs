@@ -1,7 +1,7 @@
 defmodule Chimeway.TenantScopeContractTest do
   use Chimeway.DataCase, async: false
 
-  alias Chimeway.{Delivery, Inbox, Repo, Traces}
+  alias Chimeway.{Deliveries, Delivery, Inbox, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.TenantScope
@@ -100,6 +100,32 @@ defmodule Chimeway.TenantScopeContractTest do
 
     Application.delete_env(:chimeway, :single_tenant_compatibility)
     assert {:error, :tenant_scope_required} = Inbox.mark_seen(notification.id, "compat-user")
+  end
+
+  test "recovery claims treat missing scope, wrong scope, and absent IDs as the same noop" do
+    %{delivery: delivery} =
+      Chimeway.Test.DispatchHelpers.create_pending_delivery(tenant_id: "tenant-a")
+
+    delivery =
+      delivery
+      |> Ecto.Changeset.change(updated_at: ~U[2026-01-15 11:00:00.000000Z])
+      |> Repo.update!()
+
+    opts = [now: ~U[2026-01-15 12:30:00Z], older_than: 60]
+
+    assert {:noop, nil} = Deliveries.begin_recovery(delivery.id, opts)
+
+    assert {:noop, nil} =
+             Deliveries.begin_recovery(delivery.id, Keyword.put(opts, :tenant_id, "tenant-b"))
+
+    assert {:noop, nil} =
+             Deliveries.begin_recovery(
+               Ecto.UUID.generate(),
+               Keyword.put(opts, :tenant_id, "tenant-a")
+             )
+
+    reloaded = Repo.get!(Delivery, delivery.id)
+    refute Map.has_key?(reloaded.metadata || %{}, "recovered_at")
   end
 
   defp insert_tenant_notification!(tenant_id) do

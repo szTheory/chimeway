@@ -287,6 +287,58 @@ defmodule Chimeway.Orchestration.RecoveryTest do
   end
 
   describe "recover_event/2" do
+    test "recovery discovery and replanning stay within the resolved tenant" do
+      event =
+        Repo.insert!(%Chimeway.Events.Event{
+          notification_key: "test.recovery.scoped_event",
+          notification_version: 1,
+          idempotency_key: "recovery-scoped-event-#{System.unique_integer()}",
+          tenant_id: "tenant-a",
+          payload: %{},
+          updated_at: ~U[2026-01-15 11:00:00.000000Z]
+        })
+
+      notification =
+        Repo.insert!(%Chimeway.Notifications.Notification{
+          event_id: event.id,
+          tenant_id: "tenant-a",
+          recipient_identity: "user:recovery-scoped-event",
+          recipient_type: "user",
+          metadata: %{},
+          render_assigns: %{},
+          render_channels: %{"email" => %{"render_key" => "test", "render_version" => 1}},
+          updated_at: ~U[2026-01-15 11:00:00.000000Z]
+        })
+
+      assert [^event] =
+               Deliveries.list_recoverable_events(
+                 tenant_id: "tenant-a",
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60
+               )
+
+      assert [] =
+               Deliveries.list_recoverable_events(
+                 tenant_id: "tenant-b",
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60
+               )
+
+      assert {:ok, recovery} =
+               Deliveries.recover_event(event.id,
+                 tenant_id: "tenant-a",
+                 now: ~U[2026-01-15 12:30:00Z],
+                 older_than: 60,
+                 source: "ops_console",
+                 reason: "scoped_replan"
+               )
+
+      assert recovery.event.id == event.id
+      assert Enum.all?(recovery.deliveries, &(&1.tenant_id == "tenant-a"))
+      assert_receive {:dispatch, [notification_id], _}
+      assert notification_id == notification.id
+    end
+
     test "plans deliveries from persisted render_channels and dispatches them without notifier callbacks" do
       %{event: event, notification: notification} =
         DispatchHelpers.create_notification(
