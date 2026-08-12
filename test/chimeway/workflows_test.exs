@@ -30,12 +30,14 @@ defmodule Chimeway.WorkflowsTest do
         notification_key: "test.signal_routing",
         notification_version: 1,
         idempotency_key: "sig-routing-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: %{}
       })
 
     notification =
       Repo.insert!(%Notification{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{},
@@ -131,12 +133,14 @@ defmodule Chimeway.WorkflowsTest do
           notification_key: "test.initial_run",
           notification_version: 1,
           idempotency_key: "initial-run-#{System.unique_integer([:positive])}",
+          tenant_id: "default",
           payload: %{}
         })
 
       notification =
         Repo.insert!(%Notification{
           event_id: event.id,
+          tenant_id: event.tenant_id,
           recipient_identity: "user:#{System.unique_integer([:positive])}",
           recipient_type: "user",
           metadata: %{},
@@ -163,12 +167,14 @@ defmodule Chimeway.WorkflowsTest do
           notification_key: "test.initial_run.invalid",
           notification_version: 1,
           idempotency_key: "initial-run-invalid-#{System.unique_integer([:positive])}",
+          tenant_id: "default",
           payload: %{}
         })
 
       notification =
         Repo.insert!(%Notification{
           event_id: event.id,
+          tenant_id: event.tenant_id,
           recipient_identity: "user:#{System.unique_integer([:positive])}",
           recipient_type: "user",
           metadata: %{},
@@ -339,12 +345,14 @@ defmodule Chimeway.WorkflowsTest do
           notification_key: "test.delivery_link",
           notification_version: 1,
           idempotency_key: "delivery-link-#{System.unique_integer([:positive])}",
+          tenant_id: "default",
           payload: %{}
         })
 
       delivery_notification =
         Repo.insert!(%Notification{
           event_id: delivery_event.id,
+          tenant_id: delivery_event.tenant_id,
           recipient_identity: "user_1",
           recipient_type: "user",
           metadata: %{},

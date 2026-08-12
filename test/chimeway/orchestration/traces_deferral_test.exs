@@ -137,12 +137,14 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
         notification_key: "trace-deferral.test",
         notification_version: 1,
         idempotency_key: "trace-deferral-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: %{"secret" => "not-for-traces"}
       })
 
     {:ok, notification} =
       Repo.insert(%Notification{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}

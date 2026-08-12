@@ -139,12 +139,14 @@ defmodule Chimeway.Orchestration.DigestExplainabilityTest do
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "digest-explain-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: %{"category" => "comment", "secret" => "do-not-leak"}
       })
 
     {:ok, notification} =
       Repo.insert(%Notification{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}
