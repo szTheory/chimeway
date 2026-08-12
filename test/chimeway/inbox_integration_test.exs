@@ -57,9 +57,14 @@ defmodule Chimeway.InboxIntegrationTest do
     read_at = DateTime.add(seen_at, 5, :second)
     archived_at = DateTime.add(read_at, 5, :second)
 
-    assert :ok = Chimeway.mark_seen(notification.id, "user:42", seen_at, tenant_id: "acme")
-    assert :ok = Chimeway.mark_read(notification.id, "user:42", read_at, tenant_id: "acme")
-    assert :ok = Chimeway.archive(notification.id, "user:42", archived_at, tenant_id: "acme")
+    assert :ok =
+             Chimeway.mark_seen(notification.id, "user:42", tenant_id: "acme", at: seen_at)
+
+    assert :ok =
+             Chimeway.mark_read(notification.id, "user:42", tenant_id: "acme", at: read_at)
+
+    assert :ok =
+             Chimeway.archive(notification.id, "user:42", tenant_id: "acme", at: archived_at)
 
     persisted_final = Repo.get!(Notification, notification.id)
     assert persisted_final.seen_at == seen_at

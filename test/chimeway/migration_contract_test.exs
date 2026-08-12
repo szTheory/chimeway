@@ -318,20 +318,20 @@ defmodule Chimeway.MigrationContractTest do
   end
 
   defp run_tenant_identity_rollback_contract!(repo, migrations_path, schema, target_version) do
-    migrated = run_migrations(repo, migrations_path, :up, all: true)
+    migrated = run_migrations(repo, migrations_path, :up, to: target_version)
     assert target_version in migrated
 
     insert_cross_tenant_duplicate_events!(repo, schema)
     state = tenant_identity_state(repo, schema, target_version)
 
     assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
-      run_migrations(repo, migrations_path, :down, to: target_version)
+      run_migrations(repo, migrations_path, :down, step: 1)
     end
 
     assert tenant_identity_state(repo, schema, target_version) == state
 
     assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
-      run_migrations(repo, migrations_path, :down, to: target_version)
+      run_migrations(repo, migrations_path, :down, step: 1)
     end
 
     assert tenant_identity_state(repo, schema, target_version) == state
