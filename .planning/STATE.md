@@ -4,17 +4,17 @@ milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 97
 current_phase_name: Tenant Identity & Compatible Upgrade
-status: executing
-stopped_at: Completed 97-05-PLAN.md
-last_updated: "2026-08-12T16:03:17.046Z"
+status: verifying
+stopped_at: Completed 97-08-PLAN.md
+last_updated: "2026-08-12T16:09:54.797Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 97 execution started
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 8
-  completed_plans: 7
-  percent: 0
+  completed_plans: 8
+  percent: 14
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 
 Phase: 97 (Tenant Identity & Compatible Upgrade) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-12 — Phase 97 execution started
 
 ## Deferred Items
@@ -317,6 +317,8 @@ status: complete
 - [Phase ?]: [97-07] Wrong-tenant, absent, and unresolved recovery claims share the established noop outcome without row disclosure or dispatch.
 - [Phase ?]: [97-05]: Admin LiveViews retrieve core query options only from the mounted validated context.
 - [Phase ?]: [97-05]: Definitions tenant isolation is proven through /definitions so the production LiveAuth hook is exercised.
+- [Phase ?]: [97-08]: Trace search and detail pass only Context.read_opts/2 output to core APIs; invalid context maps to the established empty/not-found states.
+- [Phase ?]: [97-08]: Admin verification fixtures and demo trace proof provide an explicit tenant instead of relying on compatibility scope.
 
 ### Roadmap Evolution
 
@@ -637,8 +639,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T16:03:16.652Z
-Stopped at: Completed 97-05-PLAN.md
+Last session: 2026-08-12T16:09:54.787Z
+Stopped at: Completed 97-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -748,3 +750,4 @@ Resume file: None
 | Phase 97-tenant-identity-compatible-upgrade P06 | 15 min | 2 tasks | 12 files |
 | Phase 97-tenant-identity-compatible-upgrade P07 | 5 min | 1 tasks | 4 files |
 | Phase 97-tenant-identity-compatible-upgrade P05 | 2 min | 1 tasks | 5 files |
+| Phase 97-tenant-identity-compatible-upgrade P08 | 10 min | 1 tasks | 8 files |
