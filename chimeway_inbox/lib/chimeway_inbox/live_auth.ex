@@ -42,6 +42,9 @@ defmodule ChimewayInbox.LiveAuth do
              tenant_id == socket.assigns.tenant_id ->
         {:ok, socket}
 
+      {:ok, _recipient_identity, _tenant_id} ->
+        {:error, redirect(socket, to: unauthorized_redirect())}
+
       {:error, _} ->
         {:error, redirect(socket, to: unauthorized_redirect())}
     end
