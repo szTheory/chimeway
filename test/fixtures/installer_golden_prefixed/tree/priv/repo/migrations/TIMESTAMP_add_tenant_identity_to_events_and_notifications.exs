@@ -27,25 +27,7 @@ defmodule InstallerHost.Repo.Migrations.AddTenantIdentityToEventsAndNotification
   end
 
   def down do
-    drop_if_exists(
-      chimeway_unique_index(:chimeway_events, [:tenant_id, :idempotency_key],
-        name: :chimeway_events_tenant_id_idempotency_key_index
-      )
-    )
-
-    create(
-      chimeway_unique_index(:chimeway_events, [:idempotency_key],
-        name: :chimeway_events_idempotency_key_index
-      )
-    )
-
-    alter chimeway_table(:chimeway_notifications) do
-      remove(:tenant_id)
-    end
-
-    alter chimeway_table(:chimeway_events) do
-      remove(:tenant_id)
-    end
+    raise "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
   end
 
   defp chimeway_prefix_opts(opts \\ []) do

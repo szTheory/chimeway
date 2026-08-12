@@ -6,6 +6,7 @@ defmodule Chimeway.MigrationContractTest do
   @moduletag timeout: 300_000
 
   @tenant_identity_migration_version 20_260_812_000_000
+  @generated_tenant_identity_migration_version 20_260_101_000_032
   @tenant_identity_rollback_error "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
 
   defmodule GeneratedRepo do
@@ -88,7 +89,12 @@ defmodule Chimeway.MigrationContractTest do
     migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
 
     with_isolated_database("repository", fn repo ->
-      run_tenant_identity_rollback_contract!(repo, migrations_path, "public")
+      run_tenant_identity_rollback_contract!(
+        repo,
+        migrations_path,
+        "public",
+        @tenant_identity_migration_version
+      )
     end)
   end
 
@@ -98,7 +104,12 @@ defmodule Chimeway.MigrationContractTest do
     test "#{mode.label} generated migration refuses tenant identity rollback without mutating valid tenant rows",
          %{generated_mode: generated_mode} do
       with_generated_database(generated_mode, fn repo, migrations_path ->
-        run_tenant_identity_rollback_contract!(repo, migrations_path, generated_mode.schema)
+        run_tenant_identity_rollback_contract!(
+          repo,
+          migrations_path,
+          generated_mode.schema,
+          @generated_tenant_identity_migration_version
+        )
       end)
     end
   end
@@ -306,24 +317,24 @@ defmodule Chimeway.MigrationContractTest do
     end
   end
 
-  defp run_tenant_identity_rollback_contract!(repo, migrations_path, schema) do
+  defp run_tenant_identity_rollback_contract!(repo, migrations_path, schema, target_version) do
     migrated = run_migrations(repo, migrations_path, :up, all: true)
-    assert @tenant_identity_migration_version in migrated
+    assert target_version in migrated
 
     insert_cross_tenant_duplicate_events!(repo, schema)
-    state = tenant_identity_state(repo, schema)
+    state = tenant_identity_state(repo, schema, target_version)
 
     assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
-      run_migrations(repo, migrations_path, :down, to: @tenant_identity_migration_version)
+      run_migrations(repo, migrations_path, :down, to: target_version)
     end
 
-    assert tenant_identity_state(repo, schema) == state
+    assert tenant_identity_state(repo, schema, target_version) == state
 
     assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
-      run_migrations(repo, migrations_path, :down, to: @tenant_identity_migration_version)
+      run_migrations(repo, migrations_path, :down, to: target_version)
     end
 
-    assert tenant_identity_state(repo, schema) == state
+    assert tenant_identity_state(repo, schema, target_version) == state
   end
 
   defp run_migrations(repo, migrations_path, direction, opts) do
@@ -356,9 +367,9 @@ defmodule Chimeway.MigrationContractTest do
     )
   end
 
-  defp tenant_identity_state(repo, schema) do
+  defp tenant_identity_state(repo, schema, target_version) do
     %{
-      version: migration_version(repo, @tenant_identity_migration_version),
+      version: migration_version(repo, target_version),
       rows: event_tenant_rows(repo, schema),
       event_tenant_column: column_info(repo, schema, "chimeway_events", "tenant_id"),
       notification_tenant_column:
