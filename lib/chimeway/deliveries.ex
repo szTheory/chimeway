@@ -9,7 +9,7 @@ defmodule Chimeway.Deliveries do
   import Ecto.Changeset, only: [change: 2]
   import Ecto.Query, only: [from: 2]
 
-  alias Chimeway.{Delivery, DeliveryAttempt, Repo, TenantScope, Workflows}
+  alias Chimeway.{Delivery, DeliveryAttempt, Repo, SafeEvidence, TenantScope, Workflows}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Telemetry
@@ -1101,66 +1101,58 @@ defmodule Chimeway.Deliveries do
   end
 
   defp do_record_attempt(%Delivery{} = delivery, attrs) do
-    outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
-    error_class = Map.get(attrs, :error_class) || Map.get(attrs, "error_class")
+    with {:ok, evidence} <- SafeEvidence.attempt_attrs(attrs) do
+      outcome = evidence.outcome
+      error_class = evidence.error_class
+      safe_attrs = Map.put(evidence, :delivery_id, delivery.id)
 
-    safe_attrs =
-      attrs
-      |> coerce_provider_response_to_atom_key()
-      |> Map.update(:provider_response, nil, &sanitize_metadata/1)
-      |> Map.put(:delivery_id, delivery.id)
+      Multi.new()
+      |> Multi.run(:lock_delivery, fn repo, _changes ->
+        # W8 preemptive fix: SELECT FOR UPDATE serializes concurrent
+        # record_attempt/2 callers for the same delivery_id. With this lock,
+        # attempt_number contiguity is invariant under concurrent execution.
+        case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
+          nil -> {:error, :delivery_not_found}
+          locked -> {:ok, locked}
+        end
+      end)
+      |> Multi.run(:next_attempt_number, fn repo, %{lock_delivery: locked} ->
+        next_n =
+          from(a in DeliveryAttempt,
+            where: a.delivery_id == ^locked.id,
+            select: count(a.id)
+          )
+          |> repo.one()
+          |> Kernel.+(1)
 
-    Multi.new()
-    |> Multi.run(:lock_delivery, fn repo, _changes ->
-      # W8 preemptive fix: SELECT FOR UPDATE serializes concurrent
-      # record_attempt/2 callers for the same delivery_id. With this lock,
-      # attempt_number contiguity is invariant under concurrent execution.
-      case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
-        nil -> {:error, :delivery_not_found}
-        locked -> {:ok, locked}
+        {:ok, next_n}
+      end)
+      |> Multi.insert(:attempt, fn %{next_attempt_number: n, lock_delivery: locked} ->
+        attempt_attrs =
+          safe_attrs
+          |> Map.put(:delivery_id, locked.id)
+          |> Map.put(:attempt_number, n)
+
+        DeliveryAttempt.changeset(%DeliveryAttempt{}, attempt_attrs)
+      end)
+      |> Multi.run(:delivery, fn _repo, %{lock_delivery: locked} ->
+        terminal_or_failed_transition(locked, outcome, error_class)
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
+          # Canonical convergence point — drive workflow progression once after
+          # the durable transaction commits so the engine reads the final
+          # delivery row and can take its own FOR UPDATE locks without nesting
+          # SELECT FOR UPDATE inside the attempt-recording lock.
+          maybe_progress_workflow(updated_delivery)
+          {:ok, %{delivery: updated_delivery, attempt: attempt}}
+
+        {:error, step, reason, changes} ->
+          {:error, step, reason, changes}
       end
-    end)
-    |> Multi.run(:next_attempt_number, fn repo, %{lock_delivery: locked} ->
-      next_n =
-        from(a in DeliveryAttempt,
-          where: a.delivery_id == ^locked.id,
-          select: count(a.id)
-        )
-        |> repo.one()
-        |> Kernel.+(1)
-
-      {:ok, next_n}
-    end)
-    |> Multi.insert(:attempt, fn %{next_attempt_number: n, lock_delivery: locked} ->
-      attempt_attrs =
-        safe_attrs
-        |> Map.put(:delivery_id, locked.id)
-        |> Map.put(:attempt_number, n)
-
-      DeliveryAttempt.changeset(%DeliveryAttempt{}, attempt_attrs)
-    end)
-    |> Multi.run(:delivery, fn _repo, %{lock_delivery: locked} ->
-      terminal_or_failed_transition(locked, outcome, error_class)
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
-        # Canonical convergence point — drive workflow progression once after
-        # the durable transaction commits so the engine reads the final
-        # delivery row and can take its own FOR UPDATE locks without nesting
-        # SELECT FOR UPDATE inside the attempt-recording lock.
-        maybe_progress_workflow(updated_delivery)
-        {:ok, %{delivery: updated_delivery, attempt: attempt}}
-
-      {:error, step, reason, changes} ->
-        {:error, step, reason, changes}
-    end
-  end
-
-  defp coerce_provider_response_to_atom_key(attrs) do
-    case Map.pop(attrs, "provider_response") do
-      {nil, attrs} -> attrs
-      {val, attrs} -> Map.put_new(attrs, :provider_response, val)
+    else
+      {:error, :unsafe_evidence, reason} -> {:error, :unsafe_evidence, reason, %{}}
     end
   end
 
@@ -1246,16 +1238,6 @@ defmodule Chimeway.Deliveries do
     end
   end
 
-  @sensitive_keys ~w(password token secret)
-
-  defp sanitize_metadata(map) when is_map(map) do
-    Enum.reduce(map, %{}, fn {key, value}, acc ->
-      if sensitive_key?(key), do: acc, else: Map.put(acc, key, value)
-    end)
-  end
-
-  defp sanitize_metadata(_), do: %{}
-
   defp ensure_metadata_map(map) when is_map(map), do: map
   defp ensure_metadata_map(_), do: %{}
 
@@ -1267,10 +1249,6 @@ defmodule Chimeway.Deliveries do
   defp normalize_checkpoint("planning"), do: "planning"
   defp normalize_checkpoint("perform"), do: "perform"
   defp normalize_checkpoint(_), do: "perform"
-
-  defp sensitive_key?(key) when is_atom(key), do: sensitive_key?(Atom.to_string(key))
-  defp sensitive_key?(key) when is_binary(key), do: String.downcase(key) in @sensitive_keys
-  defp sensitive_key?(_), do: false
 
   # ---- Workflow progression hook ---------------------------------------------
   # All canonical terminal-write paths converge through one of these helpers so

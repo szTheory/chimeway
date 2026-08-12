@@ -30,7 +30,15 @@ defmodule Chimeway.Traces do
 
   import Ecto.Query
 
-  alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Repo, TenantScope}
+  alias Chimeway.{
+    Delivery,
+    Events.Event,
+    Notifications.Notification,
+    Repo,
+    SafeEvidence,
+    TenantScope
+  }
+
   alias Chimeway.Digests.DigestMembership
   alias Chimeway.Traces.Explanation
   alias Chimeway.Workflows.{WorkflowRun, WorkflowStep, WorkflowTransition}
@@ -344,14 +352,7 @@ defmodule Chimeway.Traces do
   end
 
   defp build_last_attempt_map(attempt) do
-    %{
-      outcome: attempt.outcome,
-      inserted_at: attempt.inserted_at,
-      attempt_number: attempt.attempt_number,
-      error_class: attempt.error_class,
-      adapter_module: attempt.adapter_module
-      # Phase 29 D-22 — nil for pre-Phase-29 rows
-    }
+    SafeEvidence.trace_attempt(attempt)
   end
 
   defp build_timeline(event, notification, delivery, attempts, digest_context, repo_opts) do
@@ -469,13 +470,7 @@ defmodule Chimeway.Traces do
         %{
           at: attempt.inserted_at,
           event: :attempt_recorded,
-          detail: %{
-            outcome: attempt.outcome,
-            attempt_number: attempt.attempt_number,
-            error_class: attempt.error_class,
-            adapter_module: attempt.adapter_module
-            # Phase 29 D-22 — nil for pre-Phase-29 rows
-          }
+          detail: SafeEvidence.timeline_detail(attempt)
         }
       end)
 
