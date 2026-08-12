@@ -39,7 +39,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
   3. A legacy single-tenant host continues only after it explicitly enables the compatibility configuration; otherwise formerly unscoped calls fail closed.
   4. An adopter can apply additive migrations, receive ambiguous-row reconciliation evidence, and assign ownership without Chimeway inferring a tenant or changing its static storage prefix.
 
-**Plans:** 2/8 plans executed
+**Plans:** 3/8 plans executed
 
 Plans:
 **Wave 1**
@@ -49,7 +49,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 97-02-PLAN.md — Enforce tenant scope across core Inbox, Admin, and recovery operations.
-- [ ] 97-04-PLAN.md — Deliver callable non-guessing reconciliation and strict JSON automation.
+- [x] 97-04-PLAN.md — Deliver callable non-guessing reconciliation and strict JSON automation.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -149,7 +149,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 97. Tenant Identity & Compatible Upgrade | 2/8 | In Progress|  |
+| 97. Tenant Identity & Compatible Upgrade | 3/8 | In Progress|  |
 | 98. Privacy-Safe Delivery Evidence | 0/TBD | Not started | - |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |

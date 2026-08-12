@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 97
 current_phase_name: Tenant Identity & Compatible Upgrade
 status: executing
-stopped_at: Completed 97-02-PLAN.md
-last_updated: "2026-08-12T15:20:04.619Z"
+stopped_at: Completed 97-04-PLAN.md
+last_updated: "2026-08-12T15:28:42.952Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 97 execution started
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 8
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 ## Current Position
 
 Phase: 97 (Tenant Identity & Compatible Upgrade) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 97 execution started
 
@@ -306,6 +306,9 @@ status: complete
 - [Phase ?]: [97-01] Trace entrypoints resolve one explicit or configured compatibility tenant before every lifecycle query.
 - [Phase ?]: [97-02]: Inbox keyword options carry tenant_id and optional at; DateTime third arguments remain compatibility-only.
 - [Phase ?]: [97-02]: Inbox lifecycle signals use the scoped notification tenant directly; Admin reads fail closed before querying.
+- [Phase ?]: [97-04]: Reconciliation reports only IDs, NULL ownership, counts, status, schema version, and an explicit assignment instruction.
+- [Phase ?]: [97-04]: Assignment locks the named Event and its Notifications, rejects any existing ownership, and writes only a validated host-supplied tenant ID.
+- [Phase ?]: [97-04]: The Mix task accepts exactly report mode or explicit event-and-tenant assignment mode and emits one JSON object.
 
 ### Roadmap Evolution
 
@@ -626,8 +629,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T15:20:04.607Z
-Stopped at: Completed 97-02-PLAN.md
+Last session: 2026-08-12T15:28:42.939Z
+Stopped at: Completed 97-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -732,3 +735,4 @@ Resume file: None
 | Phase 96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing P01 | 8 min | 3 tasks | 2 files |
 | Phase 97-tenant-identity-compatible-upgrade P01 | 24 min | 2 tasks | 11 files |
 | Phase 97 P02 | 3 min | 2 tasks | 7 files |
+| Phase 97-tenant-identity-compatible-upgrade P04 | 12 min | 2 tasks | 4 files |
