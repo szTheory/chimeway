@@ -5,6 +5,9 @@ defmodule Chimeway.MigrationContractTest do
 
   @moduletag timeout: 300_000
 
+  @tenant_identity_migration_version 20_260_812_000_000
+  @tenant_identity_rollback_error "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
+
   defmodule GeneratedRepo do
     use Ecto.Repo,
       otp_app: :chimeway,
@@ -66,7 +69,7 @@ defmodule Chimeway.MigrationContractTest do
 
   for mode <- @generated_modes do
     @tag generated_mode: mode
-    test "#{mode.label} generated migrations run through normal Ecto.Migrator and roll back",
+    test "#{mode.label} generated migrations run through normal Ecto.Migrator",
          %{generated_mode: generated_mode} do
       with_generated_database(generated_mode, fn repo, migrations_path ->
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
@@ -76,16 +79,26 @@ defmodule Chimeway.MigrationContractTest do
         assert_migration_versions!(repo, 32)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
+      end)
+    end
+  end
 
-        rolled_back = run_fixture_migrations(repo, migrations_path, :down)
-        assert length(rolled_back) == 32
-        assert_migration_versions!(repo, 0)
-        refute_chimeway_objects!(repo, generated_mode.schema)
+  @tag migration_copy: :repository
+  test "repository migration refuses tenant identity rollback without mutating valid tenant rows" do
+    migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
 
-        if generated_mode.expect_schema_left do
-          assert schema_exists?(repo, generated_mode.schema),
-                 "prefixed rollback should leave the empty chimeway schema; fixtures must not drop schemas"
-        end
+    with_isolated_database("repository", fn repo ->
+      run_tenant_identity_rollback_contract!(repo, migrations_path, "public")
+    end)
+  end
+
+  for mode <- @generated_modes do
+    @tag migration_copy: :generated
+    @tag generated_mode: mode
+    test "#{mode.label} generated migration refuses tenant identity rollback without mutating valid tenant rows",
+         %{generated_mode: generated_mode} do
+      with_generated_database(generated_mode, fn repo, migrations_path ->
+        run_tenant_identity_rollback_contract!(repo, migrations_path, generated_mode.schema)
       end)
     end
   end
@@ -143,6 +156,30 @@ defmodule Chimeway.MigrationContractTest do
       _ = Ecto.Adapters.Postgres.storage_down(config)
       File.rm_rf!(tmp_root)
       purge_fixture_modules!(mode.fixture_root)
+    end
+  end
+
+  defp with_isolated_database(label, fun) do
+    unique = System.unique_integer([:positive])
+    database = "chimeway_migration_contract_#{label}_#{unique}"
+    config = generated_repo_config(database)
+
+    case Ecto.Adapters.Postgres.storage_up(config) do
+      :ok -> :ok
+      {:error, :already_up} -> :ok
+      {:error, reason} -> flunk("failed to create #{database}: #{inspect(reason)}")
+    end
+
+    try do
+      {:ok, pid} = GeneratedRepo.start_link(config)
+
+      try do
+        fun.(GeneratedRepo)
+      after
+        if Process.alive?(pid), do: GenServer.stop(pid)
+      end
+    after
+      _ = Ecto.Adapters.Postgres.storage_down(config)
     end
   end
 
@@ -269,6 +306,90 @@ defmodule Chimeway.MigrationContractTest do
     end
   end
 
+  defp run_tenant_identity_rollback_contract!(repo, migrations_path, schema) do
+    migrated = run_migrations(repo, migrations_path, :up, all: true)
+    assert @tenant_identity_migration_version in migrated
+
+    insert_cross_tenant_duplicate_events!(repo, schema)
+    state = tenant_identity_state(repo, schema)
+
+    assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
+      run_migrations(repo, migrations_path, :down, to: @tenant_identity_migration_version)
+    end
+
+    assert tenant_identity_state(repo, schema) == state
+
+    assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
+      run_migrations(repo, migrations_path, :down, to: @tenant_identity_migration_version)
+    end
+
+    assert tenant_identity_state(repo, schema) == state
+  end
+
+  defp run_migrations(repo, migrations_path, direction, opts) do
+    parent = self()
+    ref = make_ref()
+
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      result = Ecto.Migrator.run(repo, migrations_path, direction, Keyword.put(opts, :log, false))
+      send(parent, {ref, result})
+    end)
+
+    receive do
+      {^ref, result} -> result
+    end
+  end
+
+  defp insert_cross_tenant_duplicate_events!(repo, schema) do
+    table = quoted_relation(schema, "chimeway_events")
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{table}
+        (id, notification_key, notification_version, idempotency_key, payload, tenant_id, inserted_at, updated_at)
+      VALUES
+        ('11111111-1111-1111-1111-111111111111', 'tenant_identity', 1, 'cross-tenant-key', '{}'::jsonb, 'tenant-a', NOW(), NOW()),
+        ('22222222-2222-2222-2222-222222222222', 'tenant_identity', 1, 'cross-tenant-key', '{}'::jsonb, 'tenant-b', NOW(), NOW())
+      """,
+      []
+    )
+  end
+
+  defp tenant_identity_state(repo, schema) do
+    %{
+      version: migration_version(repo, @tenant_identity_migration_version),
+      rows: event_tenant_rows(repo, schema),
+      event_tenant_column: column_info(repo, schema, "chimeway_events", "tenant_id"),
+      notification_tenant_column:
+        column_info(repo, schema, "chimeway_notifications", "tenant_id"),
+      composite_index: regclass(repo, schema, "chimeway_events_tenant_id_idempotency_key_index"),
+      global_index: regclass(repo, schema, "chimeway_events_idempotency_key_index")
+    }
+  end
+
+  defp migration_version(repo, version) do
+    Ecto.Adapters.SQL.query!(repo, "SELECT version FROM schema_migrations WHERE version = $1", [
+      version
+    ]).rows
+  end
+
+  defp event_tenant_rows(repo, schema) do
+    repo
+    |> Ecto.Adapters.SQL.query!(
+      """
+      SELECT id::text, tenant_id, idempotency_key
+      FROM #{quoted_relation(schema, "chimeway_events")}
+      WHERE idempotency_key = 'cross-tenant-key'
+      ORDER BY id
+      """,
+      []
+    )
+    |> Map.fetch!(:rows)
+  end
+
+  defp quoted_relation(schema, table), do: ~s("#{schema}"."#{table}")
+
   defp assert_generated_objects!(repo, schema) do
     assert schema_exists?(repo, schema)
 
@@ -335,23 +456,6 @@ defmodule Chimeway.MigrationContractTest do
              "chimeway_digest_buckets",
              "chimeway_digest_rules"
            )
-  end
-
-  defp refute_chimeway_objects!(repo, schema) do
-    count =
-      repo
-      |> Ecto.Adapters.SQL.query!(
-        """
-        SELECT count(*)
-        FROM information_schema.tables
-        WHERE table_schema = $1
-          AND table_name LIKE 'chimeway_%'
-        """,
-        [schema]
-      )
-      |> then(fn %{rows: [[count]]} -> count end)
-
-    assert count == 0, "expected rollback to remove generated Chimeway tables from #{schema}"
   end
 
   defp assert_migration_versions!(repo, expected) do
