@@ -54,19 +54,43 @@ defmodule Chimeway.InboxQueryTest do
     set_inserted_at!(middle.id, middle_at)
     set_inserted_at!(newest.id, newest_at)
 
-    all_rows = Inbox.list_for_recipient("user:42")
-    unread_rows = Inbox.list_for_recipient("user:42", unread_only: true)
+    all_rows = Inbox.list_for_recipient("user:42", tenant_id: "tenant-a")
+    unread_rows = Inbox.list_for_recipient("user:42", unread_only: true, tenant_id: "tenant-a")
 
     assert Enum.map(all_rows, & &1.id) == [newest.id, middle.id, oldest.id]
     assert Enum.map(unread_rows, & &1.id) == [newest.id, oldest.id]
   end
 
-  defp insert_event!(idempotency_key) do
+  test "recipient reads and counts are isolated by explicit tenant" do
+    tenant_a_event = insert_event!("inbox-query-tenant-a", "tenant-a")
+    tenant_b_event = insert_event!("inbox-query-tenant-b", "tenant-b")
+
+    tenant_a =
+      insert_notification!(tenant_a_event, %{
+        recipient_identity: "user:42",
+        recipient_type: "member"
+      })
+
+    tenant_b =
+      insert_notification!(tenant_b_event, %{
+        recipient_identity: "user:42",
+        recipient_type: "member"
+      })
+
+    assert [^tenant_a] = Inbox.list_for_recipient("user:42", tenant_id: "tenant-a")
+    assert [^tenant_b] = Inbox.list_for_recipient("user:42", tenant_id: "tenant-b")
+    assert 1 = Inbox.unread_count("user:42", tenant_id: "tenant-a")
+    assert 1 = Inbox.unread_count("user:42", tenant_id: "tenant-b")
+    assert {:error, :tenant_scope_required} = Inbox.list_for_recipient("user:42")
+  end
+
+  defp insert_event!(idempotency_key, tenant_id \\ "tenant-a") do
     %Event{}
     |> Event.changeset(%{
       notification_key: "comment.created",
       notification_version: 1,
       idempotency_key: idempotency_key,
+      tenant_id: tenant_id,
       payload: %{}
     })
     |> Repo.insert!()
@@ -74,7 +98,7 @@ defmodule Chimeway.InboxQueryTest do
 
   defp insert_notification!(event, attrs) do
     %Notification{}
-    |> Notification.changeset(Map.merge(attrs, %{event_id: event.id}))
+    |> Notification.changeset(Map.merge(attrs, %{event_id: event.id, tenant_id: event.tenant_id}))
     |> Repo.insert!()
   end
 

@@ -1,7 +1,7 @@
 defmodule Chimeway.TenantScopeContractTest do
   use Chimeway.DataCase, async: false
 
-  alias Chimeway.{Delivery, Repo, Traces}
+  alias Chimeway.{Delivery, Inbox, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.TenantScope
@@ -90,5 +90,36 @@ defmodule Chimeway.TenantScopeContractTest do
 
     assert {:ok, trace} = Traces.get_trace(event.id, tenant_id: "tenant-a")
     assert [%{deliveries: []}] = trace.notifications
+  end
+
+  test "configured compatibility is the only legacy inbox authority" do
+    notification = insert_tenant_notification!("compat-tenant")
+
+    Application.put_env(:chimeway, :single_tenant_compatibility, tenant_id: "compat-tenant")
+    assert :ok = Inbox.mark_read(notification.id, "compat-user")
+
+    Application.delete_env(:chimeway, :single_tenant_compatibility)
+    assert {:error, :tenant_scope_required} = Inbox.mark_seen(notification.id, "compat-user")
+  end
+
+  defp insert_tenant_notification!(tenant_id) do
+    event =
+      Repo.insert!(%Event{
+        notification_key: "tenant.inbox",
+        notification_version: 1,
+        idempotency_key: "tenant-inbox-#{System.unique_integer()}",
+        tenant_id: tenant_id,
+        payload: %{}
+      })
+
+    Repo.insert!(%Notification{
+      event_id: event.id,
+      tenant_id: tenant_id,
+      recipient_identity: "compat-user",
+      recipient_type: "user",
+      metadata: %{},
+      render_assigns: %{},
+      render_channels: %{}
+    })
   end
 end
