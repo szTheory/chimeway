@@ -291,7 +291,7 @@ defmodule Chimeway.AdminTest do
   test "definitions summarize durable keys and channels" do
     event = insert_event(%{notification_key: "admin.definition", notification_version: 2})
     notification = insert_notification(event, "user:definition")
-    _delivery = insert_delivery(notification, channel: :email)
+    _delivery = insert_delivery(notification, channel: :email, tenant_id: "tenant-a")
 
     assert Enum.any?(Admin.definitions(tenant_id: "tenant-a"), fn definition ->
              definition.notification_key == "admin.definition" and

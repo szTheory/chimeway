@@ -82,8 +82,8 @@ defmodule Chimeway.Admin do
       limit = Keyword.get(opts, :limit, 100)
 
       Event
-      |> join(:left, [e], n in assoc(e, :notifications))
-      |> join(:left, [_e, n], d in assoc(n, :deliveries))
+      |> join(:left, [e], n in assoc(e, :notifications), on: n.tenant_id == ^tenant_id)
+      |> join(:left, [_e, n], d in assoc(n, :deliveries), on: d.tenant_id == ^tenant_id)
       |> where([e], e.tenant_id == ^tenant_id)
       |> group_by([e], [e.notification_key, e.notification_version])
       |> order_by([e], asc: e.notification_key, desc: e.notification_version)
@@ -122,9 +122,9 @@ defmodule Chimeway.Admin do
 
       Notification
       |> join(:inner, [n], e in assoc(n, :event))
-      |> join(:left, [n, _e], d in assoc(n, :deliveries))
+      |> join(:left, [n, _e], d in assoc(n, :deliveries), on: d.tenant_id == ^tenant_id)
       |> maybe_filter_recipient(Keyword.get(opts, :recipient_id))
-      |> where([n], n.tenant_id == ^tenant_id)
+      |> where([n, e], n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id)
       |> group_by([n, e], [
         n.id,
         n.recipient_identity,
@@ -189,7 +189,10 @@ defmodule Chimeway.Admin do
         |> where([d], d.status == :pending and d.orchestration_state == :ready)
         |> where([d], fragment("?->>? IS NULL", d.metadata, ^"recovered_at"))
         |> maybe_older_than(now, Keyword.get(opts, :older_than, 60))
-        |> where([d], d.tenant_id == ^tenant_id)
+        |> where(
+          [d, n, e],
+          d.tenant_id == ^tenant_id and n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id
+        )
         |> order_by([d], asc: d.updated_at, asc: d.inserted_at)
         |> limit(^limit)
         |> select([d, n, e], %{
@@ -213,7 +216,7 @@ defmodule Chimeway.Admin do
 
       event_rows =
         Event
-        |> join(:inner, [e], n in assoc(e, :notifications))
+        |> join(:inner, [e], n in assoc(e, :notifications), on: n.tenant_id == ^tenant_id)
         |> join(:left, [_e, n], d in assoc(n, :deliveries))
         |> maybe_older_event_than(now, Keyword.get(opts, :older_than, 60))
         |> where([e], e.tenant_id == ^tenant_id)
