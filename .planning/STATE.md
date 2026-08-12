@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 97
-current_phase_name: Tenant Identity & Compatible Upgrade
+current_phase_name: tenant-identity-compatible-upgrade
 status: executing
-stopped_at: Completed 97-08-PLAN.md
-last_updated: "2026-08-12T16:55:21.452Z"
+stopped_at: Completed 97-09-PLAN.md
+last_updated: "2026-08-12T17:03:48.204Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 97 execution started
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 0
   total_plans: 10
-  completed_plans: 8
-  percent: 14
+  completed_plans: 9
+  percent: 0
 ---
 
 # Project State
@@ -24,12 +24,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 97 — Tenant Identity & Compatible Upgrade
+**Current focus:** Phase 97 — tenant-identity-compatible-upgrade
 
 ## Current Position
 
-Phase: 97 (Tenant Identity & Compatible Upgrade) — EXECUTING
-Plan: 8 of 8
+Phase: 97 (tenant-identity-compatible-upgrade) — EXECUTING
+Plan: 2 of 10
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 97 execution started
 
@@ -319,6 +319,7 @@ status: complete
 - [Phase ?]: [97-05]: Definitions tenant isolation is proven through /definitions so the production LiveAuth hook is exercised.
 - [Phase ?]: [97-08]: Trace search and detail pass only Context.read_opts/2 output to core APIs; invalid context maps to the established empty/not-found states.
 - [Phase ?]: [97-08]: Admin verification fixtures and demo trace proof provide an explicit tenant instead of relying on compatibility scope.
+- [Phase ?]: [97-09]: Trigger trims only surrounding whitespace and overwrites downstream opts with the canonical tenant before persistence and dispatch.
 
 ### Roadmap Evolution
 
@@ -639,8 +640,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T16:09:54.787Z
-Stopped at: Completed 97-08-PLAN.md
+Last session: 2026-08-12T17:03:48.192Z
+Stopped at: Completed 97-09-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -751,3 +752,4 @@ Resume file: None
 | Phase 97-tenant-identity-compatible-upgrade P07 | 5 min | 1 tasks | 4 files |
 | Phase 97-tenant-identity-compatible-upgrade P05 | 2 min | 1 tasks | 5 files |
 | Phase 97-tenant-identity-compatible-upgrade P08 | 10 min | 1 tasks | 8 files |
+| Phase 97 P09 | 4 min | 1 tasks | 2 files |
