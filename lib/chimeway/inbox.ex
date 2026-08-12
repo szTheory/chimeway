@@ -5,73 +5,100 @@ defmodule Chimeway.Inbox do
 
   import Ecto.Query
 
-  alias Chimeway.Delivery
   alias Chimeway.Inbox.Item
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
   alias Chimeway.Signal
-  alias Chimeway.Workflows.WorkflowRun
+  alias Chimeway.TenantScope
 
   @read_event "chimeway.notification.read"
   @seen_event "chimeway.notification.seen"
 
-  @spec list_for_recipient(String.t(), keyword()) ::
-          [Notification.t()] | %{items: [map()], has_more: boolean()}
   def list_for_recipient(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
-    if paginated?(opts) do
-      list_for_recipient_paginated(recipient_identity, opts)
-    else
-      list_for_recipient_legacy(recipient_identity, opts)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      if paginated?(opts) do
+        list_for_recipient_paginated(recipient_identity, tenant_id, opts)
+      else
+        list_for_recipient_legacy(recipient_identity, tenant_id, opts)
+      end
     end
   end
 
-  @spec unread_count(String.t(), keyword()) :: non_neg_integer()
   def unread_count(recipient_identity, opts \\ []) when is_binary(recipient_identity) do
-    exclude_archived = exclude_archived?(opts)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      exclude_archived = exclude_archived?(opts)
 
-    Notification
-    |> base_recipient_query(recipient_identity)
-    |> where([notification], is_nil(notification.read_at))
-    |> maybe_exclude_archived(exclude_archived)
-    |> select([notification], count(notification.id))
-    |> Repo.one!()
+      Notification
+      |> base_recipient_query(recipient_identity, tenant_id)
+      |> where([notification], is_nil(notification.read_at))
+      |> maybe_exclude_archived(exclude_archived)
+      |> select([notification], count(notification.id))
+      |> Repo.one!()
+    end
   end
 
-  @spec mark_seen(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
-  def mark_seen(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    update_lifecycle_timestamp(notification_id, recipient_identity, :seen_at, at, @seen_event)
+  def mark_seen(notification_id, recipient_identity),
+    do: mark_seen(notification_id, recipient_identity, [])
+
+  def mark_seen(notification_id, recipient_identity, opts) when is_list(opts),
+    do: transition(notification_id, recipient_identity, opts, :seen_at, @seen_event)
+
+  def mark_seen(notification_id, recipient_identity, %DateTime{} = at),
+    do: transition(notification_id, recipient_identity, [], :seen_at, @seen_event, at)
+
+  def mark_read(notification_id, recipient_identity),
+    do: mark_read(notification_id, recipient_identity, [])
+
+  def mark_read(notification_id, recipient_identity, opts) when is_list(opts),
+    do: transition(notification_id, recipient_identity, opts, :read_at, @read_event)
+
+  def mark_read(notification_id, recipient_identity, %DateTime{} = at),
+    do: transition(notification_id, recipient_identity, [], :read_at, @read_event, at)
+
+  def archive(notification_id, recipient_identity),
+    do: archive(notification_id, recipient_identity, [])
+
+  def archive(notification_id, recipient_identity, opts) when is_list(opts),
+    do: transition(notification_id, recipient_identity, opts, :archived_at)
+
+  def archive(notification_id, recipient_identity, %DateTime{} = at),
+    do: transition(notification_id, recipient_identity, [], :archived_at, nil, at)
+
+  defp transition(notification_id, recipient_identity, opts, field, event_name \\ nil, at \\ nil) do
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      at = at || Keyword.get(opts, :at, DateTime.utc_now())
+
+      update_lifecycle_timestamp(
+        notification_id,
+        recipient_identity,
+        tenant_id,
+        field,
+        at,
+        event_name
+      )
+    end
   end
 
-  @spec mark_read(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
-  def mark_read(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    update_lifecycle_timestamp(notification_id, recipient_identity, :read_at, at, @read_event)
-  end
-
-  @spec archive(Ecto.UUID.t(), String.t(), DateTime.t()) :: :ok | {:error, :not_found}
-  def archive(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    update_lifecycle_timestamp(notification_id, recipient_identity, :archived_at, at)
-  end
-
-  defp list_for_recipient_legacy(recipient_identity, opts) do
+  defp list_for_recipient_legacy(recipient_identity, tenant_id, opts) do
     unread_only? = Keyword.get(opts, :unread_only, false)
     exclude_archived = exclude_archived?(opts)
 
     Notification
-    |> base_recipient_query(recipient_identity)
+    |> base_recipient_query(recipient_identity, tenant_id)
     |> maybe_exclude_archived(exclude_archived)
     |> maybe_filter_unread(unread_only?)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
   end
 
-  defp list_for_recipient_paginated(recipient_identity, opts) do
+  defp list_for_recipient_paginated(recipient_identity, tenant_id, opts) do
     limit = Keyword.get(opts, :limit, 20)
     unread_only? = Keyword.get(opts, :unread_only, false)
     exclude_archived = exclude_archived?(opts)
 
     query =
       Notification
-      |> base_recipient_query(recipient_identity)
+      |> base_recipient_query(recipient_identity, tenant_id)
       |> maybe_exclude_archived(exclude_archived)
       |> maybe_filter_unread(unread_only?)
       |> order_by([notification], desc: notification.inserted_at, desc: notification.id)
@@ -109,8 +136,13 @@ defmodule Chimeway.Inbox do
     end
   end
 
-  defp base_recipient_query(query, recipient_identity) do
-    where(query, [notification], notification.recipient_identity == ^recipient_identity)
+  defp base_recipient_query(query, recipient_identity, tenant_id) do
+    where(
+      query,
+      [notification],
+      notification.recipient_identity == ^recipient_identity and
+        notification.tenant_id == ^tenant_id
+    )
   end
 
   defp exclude_archived?(opts), do: Keyword.get(opts, :exclude_archived, true)
@@ -125,13 +157,14 @@ defmodule Chimeway.Inbox do
 
   defp maybe_filter_unread(query, _false), do: query
 
-  defp update_lifecycle_timestamp(notification_id, recipient_identity, field, at) do
+  defp update_lifecycle_timestamp(notification_id, recipient_identity, tenant_id, field, at, nil) do
     timestamp = DateTime.truncate(at, :microsecond)
 
     query =
       Notification
       |> where([notification], notification.id == ^notification_id)
       |> where([notification], notification.recipient_identity == ^recipient_identity)
+      |> where([notification], notification.tenant_id == ^tenant_id)
 
     case Repo.update_all(query, set: [{field, timestamp}, {:updated_at, timestamp}]) do
       {1, _} -> :ok
@@ -139,26 +172,35 @@ defmodule Chimeway.Inbox do
     end
   end
 
-  defp update_lifecycle_timestamp(notification_id, recipient_identity, field, at, event_name) do
+  defp update_lifecycle_timestamp(
+         notification_id,
+         recipient_identity,
+         tenant_id,
+         field,
+         at,
+         event_name
+       ) do
     timestamp = DateTime.truncate(at, :microsecond)
 
     first_transition_query =
       Notification
       |> where([n], n.id == ^notification_id)
       |> where([n], n.recipient_identity == ^recipient_identity)
+      |> where([n], n.tenant_id == ^tenant_id)
       |> where([n], is_nil(field(n, ^field)))
 
     case Repo.update_all(first_transition_query,
            set: [{field, timestamp}, {:updated_at, timestamp}]
          ) do
       {1, _} ->
-        maybe_emit_inbox_signal(notification_id, recipient_identity, event_name)
+        maybe_emit_inbox_signal(notification_id, recipient_identity, tenant_id, event_name)
         :ok
 
       {0, _} ->
         case Repo.get_by(Notification,
                id: notification_id,
-               recipient_identity: recipient_identity
+               recipient_identity: recipient_identity,
+               tenant_id: tenant_id
              ) do
           %Notification{} = notification ->
             if is_nil(Map.get(notification, field)), do: {:error, :not_found}, else: :ok
@@ -169,32 +211,8 @@ defmodule Chimeway.Inbox do
     end
   end
 
-  defp maybe_emit_inbox_signal(notification_id, recipient_identity, event_name) do
-    case resolve_tenant_id(notification_id) do
-      nil -> :ok
-      tenant_id -> emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name)
-    end
-  end
-
-  defp resolve_tenant_id(notification_id) do
-    workflow_tenant =
-      Repo.one(
-        from(wr in WorkflowRun,
-          where: wr.notification_id == ^notification_id,
-          select: wr.tenant_id,
-          limit: 1
-        )
-      )
-
-    workflow_tenant ||
-      Repo.one(
-        from(d in Delivery,
-          where: d.notification_id == ^notification_id,
-          order_by: [asc: d.inserted_at],
-          select: d.tenant_id,
-          limit: 1
-        )
-      )
+  defp maybe_emit_inbox_signal(notification_id, recipient_identity, tenant_id, event_name) do
+    emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name)
   end
 
   defp emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name) do
