@@ -5,7 +5,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
   use ChimewayAdmin.Live, :live_view
 
   alias Chimeway.Traces
-  alias ChimewayAdmin.LiveAuth
+  alias ChimewayAdmin.{Context, LiveAuth}
   alias ChimewayAdmin.Redaction
   alias ChimewayAdmin.Routes
 
@@ -46,13 +46,15 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
     notification_key = String.trim(params["notification_key"] || "")
 
     results =
-      case {mode, query} do
-        {_, ""} ->
+      case {Context.read_opts(socket.assigns[:chimeway_admin_context], limit: @search_limit),
+            mode, query} do
+        {{:error, :invalid_tenant}, _mode, _query} ->
           []
 
-        {"recipient", q} ->
-          opts = [limit: @search_limit]
+        {_opts, _, ""} ->
+          []
 
+        {opts, "recipient", q} ->
           opts =
             if notification_key != "",
               do: Keyword.put(opts, :notification_key, notification_key),
@@ -60,9 +62,9 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
 
           q |> Traces.find_traces_for_recipient(opts) |> flatten_recipient_results()
 
-        {"correlation", q} ->
+        {opts, "correlation", q} ->
           q
-          |> Traces.find_traces_by_correlation_id(limit: @search_limit)
+          |> Traces.find_traces_by_correlation_id(opts)
           |> flatten_correlation_results()
 
         _ ->
