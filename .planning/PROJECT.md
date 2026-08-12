@@ -8,6 +8,18 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
+## Current Milestone: v1.18 Adopter Alpha Mobile Delivery Readiness
+
+**Goal:** Make Chimeway production-ready for an iPhone-first, offline-capable CrossWake adopter through a tenant-safe, explainable APNs delivery path proven by a deterministic digital twin and a physical-iPhone sandbox run.
+
+**Target features:**
+- Tenant-scoped durable identity and idempotency with an explicit single-tenant compatibility mode.
+- Recursive privacy enforcement across persistence, telemetry, operator surfaces, and proof artifacts.
+- One logical push delivery with durable per-installation targets, independent attempts, expiry, invalidation, and explanation.
+- Optional Pigeon-backed APNs dispatch with bounded payloads, reason-aware retry, opt-in collapse, and explicit crash ambiguity.
+- CrossWake registration and fail-closed one-time notification opens, including offline queue and reconnect-time reauthorization.
+- A hermetic Adopter Alpha digital twin in CI followed by redacted physical-iPhone sandbox evidence.
+
 ## Latest Shipped Milestone: v1.17 Adopter Proof Paths
 
 **Status:** ✅ SHIPPED 2026-08-11 — verified closeout; 5 phases, 16 plans, 13/13 requirements. The milestone audit passed with 11/11 integration connections and 4/4 end-to-end flows.
@@ -64,9 +76,9 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-**v1.17 Adopter Proof Paths** (started 2026-08-08) — adoption clarity and clean-room, CI-backed vertical proofs. Requirements and roadmap are being defined.
+**v1.18 Adopter Alpha Mobile Delivery Readiness** (started 2026-08-11) — tenant/privacy foundations, durable per-installation push targets, APNs dispatch, protected CrossWake opens, and twin-to-device production evidence. The live requirements and roadmap define the committed scope.
 
-Carried-forward candidates NOT in v1.16 scope (future milestones): the two accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation — a short in-browser pass); TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
+Carried-forward candidates not in v1.18 scope: the two accepted-risk A11Y manual checks (A11Y-03/A11Y-04), INBX-03 PubSub badges, INT-02/03 inbox timeline and `mark_seen` polish, PKG-01 sibling package promotion, residual low-value CI compilation work, FCM/Android transport, and generic offline inbox sync.
 
 ### Out of Scope
 
@@ -610,4 +622,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-11 after archiving v1.17 Adopter Proof Paths.*
+*Last updated: 2026-08-11 after starting v1.18 Adopter Alpha Mobile Delivery Readiness.*
