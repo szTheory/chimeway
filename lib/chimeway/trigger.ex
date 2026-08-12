@@ -83,7 +83,8 @@ defmodule Chimeway.Trigger do
               notifier,
               idempotency_key,
               params,
-              correlation_id
+              correlation_id,
+              tenant_id
             )
           )
           |> Multi.run(:notifications, fn repo, %{event: event} ->
@@ -107,7 +108,7 @@ defmodule Chimeway.Trigger do
         {result, extra}
       end
     )
-    |> normalize_trigger_result(idempotency_key, normalized_recipients)
+    |> normalize_trigger_result(idempotency_key, normalized_recipients, tenant_id)
     |> then(&plan_deliveries_span(&1, notifier, params, opts))
   end
 
@@ -154,21 +155,23 @@ defmodule Chimeway.Trigger do
 
   defp validate_tenant_id(_tenant_id), do: {:error, :invalid_tenant_id}
 
-  defp event_changeset(notifier, idempotency_key, params, correlation_id) do
+  defp event_changeset(notifier, idempotency_key, params, correlation_id, tenant_id) do
     Event.changeset(%Event{}, %{
       notification_key: notifier.notification_key(),
       notification_version: notifier.version(),
       idempotency_key: idempotency_key,
+      tenant_id: tenant_id,
       payload: sanitize_payload(params),
       correlation_id: correlation_id
     })
     |> Ecto.Changeset.unique_constraint(:idempotency_key,
-      name: :chimeway_events_idempotency_key_idx
+      name: :chimeway_events_tenant_id_idempotency_key_index
     )
   end
 
   defp insert_notifications(repo, notifier, params, event, recipients, tenant_id) do
-    with {:ok, notifications} <- notifications_attrs(repo, notifier, params, event, recipients) do
+    with {:ok, notifications} <-
+           notifications_attrs(repo, notifier, params, event, recipients, tenant_id) do
       try do
         rows = Enum.map(notifications, & &1.row)
         {count, _rows} = repo.insert_all("chimeway_notifications", rows)
@@ -182,7 +185,7 @@ defmodule Chimeway.Trigger do
     end
   end
 
-  defp notifications_attrs(repo, notifier, params, event, recipients) do
+  defp notifications_attrs(repo, notifier, params, event, recipients, tenant_id) do
     timestamp = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
     recipients
@@ -198,6 +201,7 @@ defmodule Chimeway.Trigger do
         row = %{
           id: UUID.generate() |> UUID.dump!(),
           event_id: UUID.dump!(event.id),
+          tenant_id: tenant_id,
           recipient_identity: recipient_identity(recipient),
           recipient_type: recipient_type(recipient),
           metadata: render_assigns,
@@ -222,7 +226,8 @@ defmodule Chimeway.Trigger do
   defp normalize_trigger_result(
          {:ok, %{event: event, notifications: notifications_inserted}},
          _idempotency_key,
-         recipients
+         recipients,
+         _tenant_id
        ) do
     {:ok,
      %{
@@ -245,10 +250,11 @@ defmodule Chimeway.Trigger do
   defp normalize_trigger_result(
          {:error, :event, %Ecto.Changeset{} = changeset, _changes},
          idempotency_key,
-         _recipients
+         _recipients,
+         tenant_id
        ) do
     if idempotency_conflict?(changeset) do
-      case Repo.get_by(Event, idempotency_key: idempotency_key) do
+      case Repo.get_by(Event, tenant_id: tenant_id, idempotency_key: idempotency_key) do
         nil -> {:error, :duplicate_event_not_found}
         existing_event -> {:duplicate, existing_event}
       end
@@ -260,7 +266,8 @@ defmodule Chimeway.Trigger do
   defp normalize_trigger_result(
          {:error, :notifications, reason, _changes},
          _idempotency_key,
-         _recipients
+         _recipients,
+         _tenant_id
        ) do
     {:error, {:notifications_insert_failed, reason}}
   end
@@ -270,10 +277,10 @@ defmodule Chimeway.Trigger do
       {:idempotency_key, {_message, opts}} ->
         opts[:constraint] == :unique and
           opts[:constraint_name] in [
-            :chimeway_events_idempotency_key_index,
-            "chimeway_events_idempotency_key_index",
-            :chimeway_events_idempotency_key_idx,
-            "chimeway_events_idempotency_key_idx"
+            :chimeway_events_tenant_id_idempotency_key_index,
+            "chimeway_events_tenant_id_idempotency_key_index",
+            :chimeway_events_tenant_id_idempotency_key_idx,
+            "chimeway_events_tenant_id_idempotency_key_idx"
           ]
 
       _ ->

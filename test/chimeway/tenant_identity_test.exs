@@ -34,7 +34,10 @@ defmodule Chimeway.TenantIdentityTest do
 
   test "trigger persists its exact tenant through a tenant-scoped trace" do
     assert {:ok, result} =
-             Trigger.trigger(TenantNotifier, %{}, tenant_id: "tenant-a", idempotency_key: "tenant-a-1")
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "tenant-a",
+               idempotency_key: "tenant-a-1"
+             )
 
     assert result.event.tenant_id == "tenant-a"
 
@@ -54,15 +57,24 @@ defmodule Chimeway.TenantIdentityTest do
 
   test "idempotency is scoped by tenant and duplicate recovery retains ownership" do
     assert {:ok, first} =
-             Trigger.trigger(TenantNotifier, %{}, tenant_id: "tenant-a", idempotency_key: "shared-key")
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "tenant-a",
+               idempotency_key: "shared-key"
+             )
 
     assert {:duplicate, duplicate} =
-             Trigger.trigger(TenantNotifier, %{}, tenant_id: "tenant-a", idempotency_key: "shared-key")
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "tenant-a",
+               idempotency_key: "shared-key"
+             )
 
     assert duplicate.id == first.event.id
 
     assert {:ok, second} =
-             Trigger.trigger(TenantNotifier, %{}, tenant_id: "tenant-b", idempotency_key: "shared-key")
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "tenant-b",
+               idempotency_key: "shared-key"
+             )
 
     assert second.event.id != first.event.id
 
@@ -76,6 +88,7 @@ defmodule Chimeway.TenantIdentityTest do
 
   test "tenant ownership is immutable after insertion" do
     event = %Event{
+      id: Ecto.UUID.generate(),
       notification_key: "immutable.event",
       notification_version: 1,
       idempotency_key: "immutable-event",
@@ -84,6 +97,7 @@ defmodule Chimeway.TenantIdentityTest do
     }
 
     notification = %Notification{
+      id: Ecto.UUID.generate(),
       event_id: Ecto.UUID.generate(),
       recipient_identity: "immutable-user",
       recipient_type: "user",

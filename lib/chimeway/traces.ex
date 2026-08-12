@@ -30,7 +30,7 @@ defmodule Chimeway.Traces do
 
   import Ecto.Query
 
-  alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Repo}
+  alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Repo, TenantScope}
   alias Chimeway.Digests.DigestMembership
   alias Chimeway.Traces.Explanation
   alias Chimeway.Workflows.{WorkflowRun, WorkflowStep, WorkflowTransition}
@@ -44,15 +44,30 @@ defmodule Chimeway.Traces do
   """
   @spec get_trace(String.t(), keyword()) :: {:ok, Event.t()} | {:error, :not_found}
   def get_trace(event_id, opts \\ []) do
-    repo_opts = repo_opts(opts)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      repo_opts = repo_opts(opts, [:tenant_id])
 
-    case Repo.get(Event, event_id, repo_opts) do
-      nil ->
-        {:error, :not_found}
+      case Repo.one(
+             from(e in Event, where: e.id == ^event_id and e.tenant_id == ^tenant_id),
+             repo_opts
+           ) do
+        nil ->
+          {:error, :not_found}
 
-      event ->
-        loaded = Repo.preload(event, [notifications: [deliveries: :attempts]], repo_opts)
-        {:ok, loaded}
+        event ->
+          notifications_query = from(n in Notification, where: n.tenant_id == ^tenant_id)
+
+          loaded =
+            Repo.preload(
+              event,
+              [notifications: {notifications_query, [deliveries: :attempts]}],
+              repo_opts
+            )
+
+          {:ok, loaded}
+      end
+    else
+      {:error, _reason} -> {:error, :not_found}
     end
   end
 
@@ -67,28 +82,34 @@ defmodule Chimeway.Traces do
   """
   @spec find_traces_for_recipient(String.t(), keyword()) :: [Notification.t()]
   def find_traces_for_recipient(recipient_id, opts \\ []) do
-    limit = Keyword.get(opts, :limit, 50)
-    notification_key = Keyword.get(opts, :notification_key)
-    repo_opts = repo_opts(opts, [:limit, :notification_key])
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      limit = Keyword.get(opts, :limit, 50)
+      notification_key = Keyword.get(opts, :notification_key)
+      repo_opts = repo_opts(opts, [:limit, :notification_key, :tenant_id])
 
-    query =
-      from(n in Notification,
-        join: e in Event,
-        on: e.id == n.event_id,
-        where: n.recipient_identity == ^recipient_id,
-        order_by: [desc: n.inserted_at],
-        limit: ^limit,
-        preload: [deliveries: :attempts, event: []]
-      )
+      query =
+        from(n in Notification,
+          join: e in Event,
+          on: e.id == n.event_id,
+          where:
+            n.recipient_identity == ^recipient_id and n.tenant_id == ^tenant_id and
+              e.tenant_id == ^tenant_id,
+          order_by: [desc: n.inserted_at],
+          limit: ^limit,
+          preload: [deliveries: :attempts, event: []]
+        )
 
-    query =
-      if notification_key do
-        from([n, e] in query, where: e.notification_key == ^notification_key)
-      else
-        query
-      end
+      query =
+        if notification_key do
+          from([n, e] in query, where: e.notification_key == ^notification_key)
+        else
+          query
+        end
 
-    Repo.all(query, repo_opts)
+      Repo.all(query, repo_opts)
+    else
+      {:error, _reason} -> []
+    end
   end
 
   @doc """
@@ -102,25 +123,28 @@ defmodule Chimeway.Traces do
   """
   @spec find_traces_by_correlation_id(String.t(), keyword()) :: [Event.t()]
   def find_traces_by_correlation_id(correlation_id, opts \\ []) do
-    limit = Keyword.get(opts, :limit)
-    repo_opts = repo_opts(opts, [:limit])
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      limit = Keyword.get(opts, :limit)
+      repo_opts = repo_opts(opts, [:limit, :tenant_id])
 
-    query =
-      from(e in Event,
-        where: e.correlation_id == ^correlation_id,
-        order_by: [desc: e.inserted_at]
+      query =
+        from(e in Event,
+          where: e.correlation_id == ^correlation_id and e.tenant_id == ^tenant_id,
+          order_by: [desc: e.inserted_at]
+        )
+
+      query = if limit, do: from(e in query, limit: ^limit), else: query
+      events = Repo.all(query, repo_opts)
+      notifications_query = from(n in Notification, where: n.tenant_id == ^tenant_id)
+
+      Repo.preload(
+        events,
+        [notifications: {notifications_query, [deliveries: :attempts]}],
+        repo_opts
       )
-
-    query =
-      if limit do
-        from(e in query, limit: ^limit)
-      else
-        query
-      end
-
-    events = Repo.all(query, repo_opts)
-
-    Repo.preload(events, [notifications: [deliveries: :attempts]], repo_opts)
+    else
+      {:error, _reason} -> []
+    end
   end
 
   @doc """
@@ -133,53 +157,62 @@ defmodule Chimeway.Traces do
   """
   @spec explain_delivery(String.t(), keyword()) :: {:ok, Explanation.t()} | {:error, :not_found}
   def explain_delivery(delivery_id, opts \\ []) do
-    repo_opts = repo_opts(opts)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      repo_opts = repo_opts(opts, [:tenant_id])
 
-    delivery =
-      Repo.one(
-        from(d in Delivery,
-          where: d.id == ^delivery_id,
-          preload: [notification: :event, attempts: []]
-        ),
-        repo_opts
-      )
+      delivery =
+        Repo.one(
+          from(d in Delivery,
+            join: n in Notification,
+            on: n.id == d.notification_id,
+            join: e in Event,
+            on: e.id == n.event_id,
+            where:
+              d.id == ^delivery_id and n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id,
+            preload: [notification: :event, attempts: []]
+          ),
+          repo_opts
+        )
 
-    case delivery do
-      nil ->
-        {:error, :not_found}
+      case delivery do
+        nil ->
+          {:error, :not_found}
 
-      %Delivery{notification: notification, attempts: attempts} ->
-        event = notification.event
-        last_attempt = last_attempt_summary(attempts)
-        resume_fields = explanation_resume_fields(delivery)
-        digest_context = digest_context(delivery, repo_opts)
+        %Delivery{notification: notification, attempts: attempts} ->
+          event = notification.event
+          last_attempt = last_attempt_summary(attempts)
+          resume_fields = explanation_resume_fields(delivery)
+          digest_context = digest_context(delivery, repo_opts)
 
-        timeline =
-          build_timeline(event, notification, delivery, attempts, digest_context, repo_opts)
+          timeline =
+            build_timeline(event, notification, delivery, attempts, digest_context, repo_opts)
 
-        explanation = %Explanation{
-          delivery_id: delivery.id,
-          event_id: event.id,
-          correlation_id: event.correlation_id,
-          notification_key: event.notification_key,
-          recipient_id: notification.recipient_identity,
-          channel: delivery.channel,
-          render_key: delivery.render_key,
-          render_version: delivery.render_version,
-          status: delivery.status,
-          planning_reason: delivery.planning_reason,
-          planning_context: explanation_planning_context(delivery),
-          next_eligible_at: delivery.next_eligible_at,
-          resume_source: resume_fields.resume_source,
-          resume_scheduled_at: resume_fields.resume_scheduled_at,
-          resumed_at: resume_fields.resumed_at,
-          suppression_reason: delivery.suppression_reason,
-          digest: digest_context,
-          last_attempt: last_attempt,
-          timeline: timeline
-        }
+          explanation = %Explanation{
+            delivery_id: delivery.id,
+            event_id: event.id,
+            correlation_id: event.correlation_id,
+            notification_key: event.notification_key,
+            recipient_id: notification.recipient_identity,
+            channel: delivery.channel,
+            render_key: delivery.render_key,
+            render_version: delivery.render_version,
+            status: delivery.status,
+            planning_reason: delivery.planning_reason,
+            planning_context: explanation_planning_context(delivery),
+            next_eligible_at: delivery.next_eligible_at,
+            resume_source: resume_fields.resume_source,
+            resume_scheduled_at: resume_fields.resume_scheduled_at,
+            resumed_at: resume_fields.resumed_at,
+            suppression_reason: delivery.suppression_reason,
+            digest: digest_context,
+            last_attempt: last_attempt,
+            timeline: timeline
+          }
 
-        {:ok, explanation}
+          {:ok, explanation}
+      end
+    else
+      {:error, _reason} -> {:error, :not_found}
     end
   end
 
@@ -199,72 +232,78 @@ defmodule Chimeway.Traces do
   """
   @spec aggregate_outcomes(keyword()) :: [map()]
   def aggregate_outcomes(opts \\ []) do
-    repo_opts =
-      repo_opts(opts, [
-        :notification_key,
-        :channel,
-        :outcomes,
-        :inserted_after,
-        :inserted_before,
-        :updated_after,
-        :updated_before
-      ])
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      repo_opts =
+        repo_opts(opts, [
+          :notification_key,
+          :channel,
+          :outcomes,
+          :inserted_after,
+          :inserted_before,
+          :updated_after,
+          :updated_before,
+          :tenant_id
+        ])
 
-    base_query =
-      from(d in Delivery,
-        join: n in Notification,
-        on: n.id == d.notification_id,
-        join: e in Event,
-        on: e.id == n.event_id,
-        select: %{
-          notification_key: e.notification_key,
-          channel: d.channel,
-          outcome:
-            fragment(
-              """
-              CASE
-                WHEN ? = 'succeeded' THEN 'sent'
-                WHEN ? = 'suppressed' THEN 'suppressed'
-                WHEN ? = 'pending' AND ? = 'deferred' THEN 'delayed'
-                WHEN ? = 'digested' THEN 'digested'
-                WHEN ? = 'failed' THEN 'failed'
-                WHEN ? = 'cancelled' AND ? = 'retries_exhausted' THEN 'exhausted'
-                ELSE NULL
-              END
-              """,
-              d.status,
-              d.status,
-              d.status,
-              d.orchestration_state,
-              d.status,
-              d.status,
-              d.status,
-              d.suppression_reason
-            )
-        }
-      )
-      |> maybe_filter_notification_key(Keyword.get(opts, :notification_key))
-      |> maybe_filter_channel(Keyword.get(opts, :channel))
-      |> maybe_filter_delivery_inserted_after(Keyword.get(opts, :inserted_after))
-      |> maybe_filter_delivery_inserted_before(Keyword.get(opts, :inserted_before))
-      |> maybe_filter_delivery_updated_after(Keyword.get(opts, :updated_after))
-      |> maybe_filter_delivery_updated_before(Keyword.get(opts, :updated_before))
+      base_query =
+        from(d in Delivery,
+          join: n in Notification,
+          on: n.id == d.notification_id,
+          join: e in Event,
+          on: e.id == n.event_id,
+          where: n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id,
+          select: %{
+            notification_key: e.notification_key,
+            channel: d.channel,
+            outcome:
+              fragment(
+                """
+                CASE
+                  WHEN ? = 'succeeded' THEN 'sent'
+                  WHEN ? = 'suppressed' THEN 'suppressed'
+                  WHEN ? = 'pending' AND ? = 'deferred' THEN 'delayed'
+                  WHEN ? = 'digested' THEN 'digested'
+                  WHEN ? = 'failed' THEN 'failed'
+                  WHEN ? = 'cancelled' AND ? = 'retries_exhausted' THEN 'exhausted'
+                  ELSE NULL
+                END
+                """,
+                d.status,
+                d.status,
+                d.status,
+                d.orchestration_state,
+                d.status,
+                d.status,
+                d.status,
+                d.suppression_reason
+              )
+          }
+        )
+        |> maybe_filter_notification_key(Keyword.get(opts, :notification_key))
+        |> maybe_filter_channel(Keyword.get(opts, :channel))
+        |> maybe_filter_delivery_inserted_after(Keyword.get(opts, :inserted_after))
+        |> maybe_filter_delivery_inserted_before(Keyword.get(opts, :inserted_before))
+        |> maybe_filter_delivery_updated_after(Keyword.get(opts, :updated_after))
+        |> maybe_filter_delivery_updated_before(Keyword.get(opts, :updated_before))
 
-    aggregate_query =
-      from(row in subquery(base_query),
-        where: not is_nil(row.outcome),
-        group_by: [row.notification_key, row.channel, row.outcome],
-        order_by: [asc: row.notification_key, asc: row.channel, asc: row.outcome],
-        select: %{
-          notification_key: row.notification_key,
-          channel: row.channel,
-          outcome: row.outcome,
-          count: count(row.outcome)
-        }
-      )
-      |> maybe_filter_aggregate_outcomes(Keyword.get(opts, :outcomes))
+      aggregate_query =
+        from(row in subquery(base_query),
+          where: not is_nil(row.outcome),
+          group_by: [row.notification_key, row.channel, row.outcome],
+          order_by: [asc: row.notification_key, asc: row.channel, asc: row.outcome],
+          select: %{
+            notification_key: row.notification_key,
+            channel: row.channel,
+            outcome: row.outcome,
+            count: count(row.outcome)
+          }
+        )
+        |> maybe_filter_aggregate_outcomes(Keyword.get(opts, :outcomes))
 
-    Repo.all(aggregate_query, repo_opts)
+      Repo.all(aggregate_query, repo_opts)
+    else
+      {:error, _reason} -> []
+    end
   end
 
   @doc """
@@ -940,7 +979,7 @@ defmodule Chimeway.Traces do
   defp maybe_put_digest_value(map, key, %DateTime{} = value), do: Map.put(map, key, value)
   defp maybe_put_digest_value(map, key, value), do: Map.put(map, key, value)
 
-  defp repo_opts(opts, drop_keys \\ []) do
+  defp repo_opts(opts, drop_keys) do
     opts
     |> Keyword.drop(drop_keys)
     |> Chimeway.Storage.repo_opts()
