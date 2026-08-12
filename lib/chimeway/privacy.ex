@@ -8,10 +8,10 @@ defmodule Chimeway.Privacy do
   """
 
   @forbidden_keys MapSet.new(~w(
-    authorization auth credential credentials password secret api_key access_token
-    token device_token endpoint recipient recipient_id adopter adopter_id identity
-    email phone url uri link deep_link trusted_link payload content body rendered_body
-    rendered_content provider_body provider_response
+    authorization auth credential credentials password secret apikey accesstoken
+    token devicetoken endpoint recipient recipientid adopter adopterid identity
+    email phone url uri link deeplink trustedlink payload content body renderedbody
+    renderedcontent providerbody providerresponse
   ))
 
   @spec redact(term()) :: term()
@@ -40,7 +40,9 @@ defmodule Chimeway.Privacy do
   def forbidden_key?(key) when is_atom(key), do: key |> Atom.to_string() |> forbidden_key?()
 
   def forbidden_key?(key) when is_binary(key),
-    do: MapSet.member?(@forbidden_keys, String.downcase(key))
+    do: MapSet.member?(@forbidden_keys, canonical_key(key))
 
   def forbidden_key?(_key), do: false
+
+  defp canonical_key(key), do: key |> String.downcase() |> String.replace(~r/[_\-\s]/, "")
 end
