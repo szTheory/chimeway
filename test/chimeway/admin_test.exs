@@ -71,6 +71,7 @@ defmodule Chimeway.AdminTest do
     event =
       insert_event(%{
         notification_key: "admin.privacy.contract",
+        tenant_id: tenant_id,
         notification_version: 7,
         correlation_id: "corr-privacy-71",
         payload: %{
@@ -119,6 +120,7 @@ defmodule Chimeway.AdminTest do
     recovery_event =
       insert_event(%{
         notification_key: "admin.privacy.recovery",
+        tenant_id: tenant_id,
         correlation_id: "corr-recovery-71",
         payload: %{"secret" => "raw-payload-secret-71"},
         inserted_at: old,
@@ -178,7 +180,7 @@ defmodule Chimeway.AdminTest do
     delivery_a =
       insert_delivery(notification_a, tenant_id: "tenant-a", inserted_at: old, updated_at: old)
 
-    event_b = insert_event(%{notification_key: "admin.recover.b"})
+    event_b = insert_event(%{notification_key: "admin.recover.b", tenant_id: "tenant-b"})
     notification_b = insert_notification(event_b, "user:tenant-b@example.test")
 
     _delivery_b =
@@ -223,6 +225,7 @@ defmodule Chimeway.AdminTest do
     event_b =
       insert_event(%{
         notification_key: "admin.tenant.b",
+        tenant_id: "tenant-b",
         notification_version: 2,
         correlation_id: "corr-b"
       })
@@ -261,7 +264,7 @@ defmodule Chimeway.AdminTest do
     refute inspect(Admin.recovery_candidates(opts)) =~ "admin.tenant.b"
   end
 
-  test "tenant-scoped recovery candidates omit no-delivery events without durable tenant proof" do
+  test "tenant-scoped recovery candidates include no-delivery events with durable tenant proof" do
     old = ~U[2026-01-15 12:00:00.000000Z]
     now = ~U[2026-01-15 12:05:00.000000Z]
 
@@ -275,10 +278,12 @@ defmodule Chimeway.AdminTest do
     _notification = insert_notification(no_delivery_event, "user:unknown-tenant@example.test")
 
     assert [%{type: "event", id: event_id}] =
-             Admin.recovery_candidates(now: now, older_than: 60)
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
 
     assert event_id == no_delivery_event.id
-    assert [] = Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+
+    assert [%{type: "event", id: ^event_id, tenant_id: "tenant-a"}] =
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
   end
 
   test "definitions summarize durable keys and channels" do
@@ -286,7 +291,7 @@ defmodule Chimeway.AdminTest do
     notification = insert_notification(event, "user:definition")
     _delivery = insert_delivery(notification, channel: :email)
 
-    assert Enum.any?(Admin.definitions(), fn definition ->
+    assert Enum.any?(Admin.definitions(tenant_id: "tenant-a"), fn definition ->
              definition.notification_key == "admin.definition" and
                definition.notification_version == 2 and definition.channels == ["email"]
            end)
@@ -299,6 +304,7 @@ defmodule Chimeway.AdminTest do
         notification_key: Map.fetch!(attrs, :notification_key),
         notification_version: Map.get(attrs, :notification_version, 1),
         idempotency_key: "admin-test-#{System.unique_integer([:positive])}",
+        tenant_id: Map.get(attrs, :tenant_id, "tenant-a"),
         payload: Map.get(attrs, :payload, %{}),
         correlation_id: Map.get(attrs, :correlation_id)
       })
@@ -327,6 +333,7 @@ defmodule Chimeway.AdminTest do
     %Notification{}
     |> Notification.changeset(%{
       event_id: event.id,
+      tenant_id: event.tenant_id,
       recipient_identity: recipient_identity,
       recipient_type: "user",
       metadata: Map.get(attrs, :metadata, %{}),
@@ -337,6 +344,15 @@ defmodule Chimeway.AdminTest do
         })
     })
     |> Repo.insert!()
+  end
+
+  test "admin reads fail closed without an explicit or configured tenant" do
+    assert {:error, :tenant_scope_required} = Admin.command_center()
+    assert {:error, :tenant_scope_required} = Admin.recent_problem_deliveries()
+    assert {:error, :tenant_scope_required} = Admin.definitions()
+    assert {:error, :tenant_scope_required} = Admin.feed()
+    assert {:error, :tenant_scope_required} = Admin.recovery_candidates()
+    assert {:error, :tenant_scope_required} = Admin.outcome_totals()
   end
 
   defp insert_delivery(notification, attrs) when is_list(attrs),
