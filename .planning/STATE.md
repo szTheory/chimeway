@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 97
 current_phase_name: Tenant Identity & Compatible Upgrade
 status: executing
-stopped_at: Completed 97-01-PLAN.md
-last_updated: "2026-08-12T15:11:50.976Z"
+stopped_at: Completed 97-02-PLAN.md
+last_updated: "2026-08-12T15:20:04.619Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 97 execution started
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 8
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 ## Current Position
 
 Phase: 97 (Tenant Identity & Compatible Upgrade) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 97 execution started
 
@@ -304,6 +304,8 @@ status: complete
 - [Phase ?]: [96.1-01]: Caller-supplied SHA-256 remains an immutable-byte integrity check, while callback execution remains gated after metadata, archive-root, and version validation.
 - [Phase ?]: [97-01] Tenant identity is immutable on new events and notifications; legacy ownership remains NULL until reconciliation.
 - [Phase ?]: [97-01] Trace entrypoints resolve one explicit or configured compatibility tenant before every lifecycle query.
+- [Phase ?]: [97-02]: Inbox keyword options carry tenant_id and optional at; DateTime third arguments remain compatibility-only.
+- [Phase ?]: [97-02]: Inbox lifecycle signals use the scoped notification tenant directly; Admin reads fail closed before querying.
 
 ### Roadmap Evolution
 
@@ -624,8 +626,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T15:11:50.965Z
-Stopped at: Completed 97-01-PLAN.md
+Last session: 2026-08-12T15:20:04.607Z
+Stopped at: Completed 97-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -729,3 +731,4 @@ Resume file: None
 | Phase 96-adoption-front-door-proof-gate P05 | 25m | 2 tasks | 3 files |
 | Phase 96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing P01 | 8 min | 3 tasks | 2 files |
 | Phase 97-tenant-identity-compatible-upgrade P01 | 24 min | 2 tasks | 11 files |
+| Phase 97 P02 | 3 min | 2 tasks | 7 files |
