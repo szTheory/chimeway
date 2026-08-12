@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 97
 current_phase_name: tenant-identity-compatible-upgrade
 status: executing
-stopped_at: Completed 97-09-PLAN.md
-last_updated: "2026-08-12T17:03:48.204Z"
+stopped_at: Completed 97-10-PLAN.md
+last_updated: "2026-08-12T17:09:07.422Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 97 execution started
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 10
-  completed_plans: 9
-  percent: 0
+  completed_plans: 10
+  percent: 14
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 ## Current Position
 
 Phase: 97 (tenant-identity-compatible-upgrade) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 97 execution started
 
@@ -320,6 +320,7 @@ status: complete
 - [Phase ?]: [97-08]: Trace search and detail pass only Context.read_opts/2 output to core APIs; invalid context maps to the established empty/not-found states.
 - [Phase ?]: [97-08]: Admin verification fixtures and demo trace proof provide an explicit tenant instead of relying on compatibility scope.
 - [Phase ?]: [97-09]: Trigger trims only surrounding whitespace and overwrites downstream opts with the canonical tenant before persistence and dispatch.
+- [Phase ?]: [97-10]: Migration 032 refuses rollback before DDL because valid cross-tenant duplicate idempotency keys cannot losslessly return to global uniqueness.
 
 ### Roadmap Evolution
 
@@ -640,8 +641,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T17:03:48.192Z
-Stopped at: Completed 97-09-PLAN.md
+Last session: 2026-08-12T17:09:07.411Z
+Stopped at: Completed 97-10-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -753,3 +754,4 @@ Resume file: None
 | Phase 97-tenant-identity-compatible-upgrade P05 | 2 min | 1 tasks | 5 files |
 | Phase 97-tenant-identity-compatible-upgrade P08 | 10 min | 1 tasks | 8 files |
 | Phase 97 P09 | 4 min | 1 tasks | 2 files |
+| Phase 97-tenant-identity-compatible-upgrade P10 | 2 min | 1 tasks | 5 files |
