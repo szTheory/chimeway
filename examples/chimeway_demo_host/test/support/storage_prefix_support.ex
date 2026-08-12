@@ -10,7 +10,46 @@ defmodule DemoHost.StoragePrefixSupport do
     Ecto.Adapters.SQL.Sandbox.unboxed_run(Repo, fn ->
       create_schema!(@runtime_prefix)
       clone_missing_public_chimeway_tables!()
+      clone_missing_public_chimeway_columns!()
     end)
+  end
+
+  defp clone_missing_public_chimeway_columns! do
+    for table_name <- chimeway_tables(@runtime_prefix),
+        [column_name, data_type] <- missing_columns(table_name) do
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        "ALTER TABLE #{qualified_name(@runtime_prefix, table_name)} ADD COLUMN #{quoted_identifier(column_name)} #{data_type}",
+        []
+      )
+    end
+  end
+
+  defp missing_columns(table_name) do
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        """
+        SELECT source.column_name, source.data_type
+        FROM (
+          SELECT a.attname AS column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+          FROM pg_attribute a
+          JOIN pg_class c ON c.oid = a.attrelid
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'public' AND c.relname = $1
+            AND a.attnum > 0 AND NOT a.attisdropped
+        ) source
+        LEFT JOIN information_schema.columns target
+          ON target.table_schema = $2
+          AND target.table_name = $1
+          AND target.column_name = source.column_name
+        WHERE target.column_name IS NULL
+        ORDER BY source.column_name
+        """,
+        [table_name, @runtime_prefix]
+      )
+
+    rows
   end
 
   defp clone_missing_public_chimeway_tables! do
@@ -64,6 +103,8 @@ defmodule DemoHost.StoragePrefixSupport do
   defp qualified_name(schema, table_name) do
     ~s("#{normalize_identifier!(schema)}"."#{normalize_identifier!(table_name)}")
   end
+
+  defp quoted_identifier(identifier), do: ~s("#{normalize_identifier!(identifier)}")
 
   defp normalize_identifier!(identifier) when is_atom(identifier) do
     identifier

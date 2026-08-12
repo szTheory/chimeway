@@ -20,6 +20,11 @@ defmodule DemoHost.InboxAuth do
     end
   end
 
+  @impl true
+  def current_tenant(_session, _context) do
+    if authorized?(), do: {:ok, DemoHost.Seeds.tenant_id()}, else: {:error, :unauthorized}
+  end
+
   defp authorized? do
     if Mix.env() in [:dev, :test] do
       true

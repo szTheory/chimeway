@@ -43,7 +43,10 @@ defmodule DemoHostWeb.InboxBellProofTest do
   test "DEMO-08 mark_seen via host API" do
     assert {:ok, %{notification_ids: [_first_id, second_id | _]}} = DemoHost.Seeds.seed_inbox()
 
-    assert :ok = Chimeway.mark_seen(second_id, DemoHost.Seeds.alex_identity())
+    assert :ok =
+             Chimeway.mark_seen(second_id, DemoHost.Seeds.alex_identity(),
+               tenant_id: DemoHost.Seeds.tenant_id()
+             )
 
     persisted = Repo.get!(Notification, second_id)
     assert persisted.seen_at
