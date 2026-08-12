@@ -53,11 +53,11 @@ defmodule Chimeway.Trigger do
       end
 
     with {:ok, idempotency_key} <- Keyword.fetch(opts, :idempotency_key),
-         {:ok, tenant_id} <- fetch_tenant_id(opts),
+         {:ok, tenant_id} <- fetch_and_normalize_tenant_id(opts),
          :ok <- validate_idempotency_key(idempotency_key),
-         :ok <- validate_tenant_id(tenant_id),
          :ok <- Notifier.validate_module!(notifier),
          {:ok, recipients} <- notifier.recipients(params) do
+      opts = Keyword.put(opts, :tenant_id, tenant_id)
       do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients, tenant_id)
     else
       :error -> {:error, :missing_idempotency_key}
@@ -138,22 +138,21 @@ defmodule Chimeway.Trigger do
 
   defp validate_idempotency_key(_idempotency_key), do: {:error, :invalid_idempotency_key}
 
-  defp fetch_tenant_id(opts) do
+  defp fetch_and_normalize_tenant_id(opts) do
     case Keyword.fetch(opts, :tenant_id) do
-      {:ok, tenant_id} -> {:ok, tenant_id}
+      {:ok, tenant_id} -> normalize_tenant_id(tenant_id)
       :error -> {:error, :missing_tenant_id}
     end
   end
 
-  defp validate_tenant_id(tenant_id) when is_binary(tenant_id) do
-    if String.trim(tenant_id) == "" do
-      {:error, :invalid_tenant_id}
-    else
-      :ok
+  defp normalize_tenant_id(tenant_id) when is_binary(tenant_id) do
+    case String.trim(tenant_id) do
+      "" -> {:error, :invalid_tenant_id}
+      normalized_tenant_id -> {:ok, normalized_tenant_id}
     end
   end
 
-  defp validate_tenant_id(_tenant_id), do: {:error, :invalid_tenant_id}
+  defp normalize_tenant_id(_tenant_id), do: {:error, :invalid_tenant_id}
 
   defp event_changeset(notifier, idempotency_key, params, correlation_id, tenant_id) do
     Event.changeset(%Event{}, %{

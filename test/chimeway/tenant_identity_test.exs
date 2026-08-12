@@ -170,6 +170,73 @@ defmodule Chimeway.TenantIdentityTest do
              )
   end
 
+  test "padded and canonical retries converge while case-distinct tenant identities remain independent" do
+    assert {:ok, first} =
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "  tenant-a  ",
+               idempotency_key: "padded-duplicate-key"
+             )
+
+    assert {:duplicate, duplicate} =
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "tenant-a",
+               idempotency_key: "padded-duplicate-key"
+             )
+
+    assert duplicate.id == first.event.id
+    assert duplicate.tenant_id == "tenant-a"
+
+    assert {:ok, case_distinct} =
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "Tenant-A",
+               idempotency_key: "padded-duplicate-key"
+             )
+
+    assert case_distinct.event.id != first.event.id
+    assert case_distinct.event.tenant_id == "Tenant-A"
+  end
+
+  test "concurrent padded and canonical submissions converge on one canonical event", %{
+    sandbox_owner: sandbox_owner
+  } do
+    [first, second] =
+      concurrent_triggers(["  tenant-a  ", "tenant-a"], "padded-concurrent-key", sandbox_owner)
+
+    assert Enum.any?([first, second], &match?({:ok, _}, &1))
+    assert Enum.any?([first, second], &match?({:duplicate, _}, &1))
+
+    assert 1 ==
+             Repo.aggregate(
+               from(e in Event,
+                 where: e.idempotency_key == "padded-concurrent-key" and e.tenant_id == "tenant-a"
+               ),
+               :count,
+               :id
+             )
+  end
+
+  test "missing, malformed, and trim-empty tenant input keeps trigger errors and persists no event" do
+    idempotency_key = "invalid-tenant-key"
+
+    assert {:error, :missing_tenant_id} =
+             Trigger.trigger(TenantNotifier, %{}, idempotency_key: idempotency_key)
+
+    for tenant_id <- [nil, 123, "  "] do
+      assert {:error, :invalid_tenant_id} =
+               Trigger.trigger(TenantNotifier, %{},
+                 tenant_id: tenant_id,
+                 idempotency_key: idempotency_key
+               )
+    end
+
+    assert 0 ==
+             Repo.aggregate(
+               from(e in Event, where: e.idempotency_key == ^idempotency_key),
+               :count,
+               :id
+             )
+  end
+
   test "event changeset recognizes both supported composite index names" do
     constraint_names =
       Event.changeset(%Event{}, %{})
@@ -233,9 +300,9 @@ defmodule Chimeway.TenantIdentityTest do
            )
   end
 
-  defp concurrent_triggers(tenant_id, idempotency_key, sandbox_owner) do
+  defp concurrent_triggers(tenant_ids, idempotency_key, sandbox_owner) when is_list(tenant_ids) do
     tasks =
-      for _ <- 1..2 do
+      for tenant_id <- tenant_ids do
         Task.async(fn ->
           receive do
             :trigger ->
@@ -253,5 +320,9 @@ defmodule Chimeway.TenantIdentityTest do
     end)
 
     Enum.map(tasks, &Task.await/1)
+  end
+
+  defp concurrent_triggers(tenant_id, idempotency_key, sandbox_owner) do
+    concurrent_triggers([tenant_id, tenant_id], idempotency_key, sandbox_owner)
   end
 end
