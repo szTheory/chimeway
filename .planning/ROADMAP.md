@@ -3,104 +3,117 @@
 ## Milestones
 
 - ✅ **v1.17 Adopter Proof Paths** — [Archived roadmap](.planning/milestones/v1.17-ROADMAP.md) · [Audit](.planning/milestones/v1.17-MILESTONE-AUDIT.md) (shipped 2026-08-11)
-- ✅ **v1.0** — [Archived roadmap](.planning/milestones/v1.0-ROADMAP.md) (shipped 2026-04-25)
-- ✅ **v1.1** — [Archived roadmap](.planning/milestones/v1.1-ROADMAP.md) (shipped 2026-04-27)
-- ✅ **v1.2** — [Archived roadmap](.planning/milestones/v1.2-ROADMAP.md) (shipped 2026-04-29)
-- ✅ **v1.3** — [Archived roadmap](.planning/milestones/v1.3-ROADMAP.md) (shipped 2026-04-30)
-- ✅ **v1.4** — [Archived roadmap](.planning/milestones/v1.4-ROADMAP.md) · [Audit](.planning/milestones/v1.4-MILESTONE-AUDIT.md) (shipped 2026-05-08, closed 2026-05-28)
-- ✅ **v1.5** — [Archived roadmap](.planning/milestones/v1.5-ROADMAP.md) · [Audit](.planning/milestones/v1.5-MILESTONE-AUDIT.md) (shipped 2026-05-29)
-- ✅ **v1.6** — [Archived roadmap](.planning/milestones/v1.6-ROADMAP.md) · [Audit](.planning/milestones/v1.6-MILESTONE-AUDIT.md) (shipped 2026-05-29)
-- ✅ **v1.7** — [Archived roadmap](.planning/milestones/v1.7-ROADMAP.md) · [Audit](.planning/milestones/v1.7-MILESTONE-AUDIT.md) (shipped 2026-05-29)
-- ✅ **v1.8** — [Archived roadmap](.planning/milestones/v1.8-ROADMAP.md) · [Audit](.planning/milestones/v1.8-MILESTONE-AUDIT.md) (shipped 2026-05-30)
-- ✅ **v1.9** — [Archived roadmap](.planning/milestones/v1.9-ROADMAP.md) · [Audit](.planning/milestones/v1.9-MILESTONE-AUDIT.md) (shipped 2026-05-30)
-- ✅ **v1.10 Ecosystem Completions** — [Archived roadmap](.planning/milestones/v1.10-ROADMAP.md) · [Audit](.planning/milestones/v1.10-MILESTONE-AUDIT.md) (shipped 2026-06-04)
-- ✅ **v1.11 Operator Console Polish & Hardening** — [Archived roadmap](.planning/milestones/v1.11-ROADMAP.md) · [Audit](.planning/milestones/v1.11-MILESTONE-AUDIT.md) (shipped 2026-06-04)
-- ✅ **v1.13 Storage Isolation and Upgrade Path** — [Archived roadmap](.planning/milestones/v1.13-ROADMAP.md) · [Audit](.planning/milestones/v1.13-MILESTONE-AUDIT.md) (shipped 2026-07-02)
-- ✅ **v1.14 Public Truth and Verification Architecture** — [Archived roadmap](.planning/milestones/v1.14-ROADMAP.md) (shipped 2026-07-03)
-- ✅ **v1.15 Brand Identity & Brand Book** — [Archived roadmap](.planning/milestones/v1.15-ROADMAP.md) · [Audit](.planning/milestones/v1.15-MILESTONE-AUDIT.md) (shipped 2026-07-28, accepted-risk close)
-- ✅ **v1.16 CI/CD Performance & Reliability** — [Archived roadmap](.planning/milestones/v1.16-ROADMAP.md) (shipped 2026-07-30, accepted-risk close — 25/26; CACHE-05 deferred)
+- 🚧 **v1.18 Adopter Alpha Mobile Delivery Readiness** — Phases 97–103 (active)
+
+Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
+
+## v1.18 Adopter Alpha Mobile Delivery Readiness
+
+**Goal:** Make Chimeway production-ready for an iPhone-first, offline-capable CrossWake adopter through a tenant-safe, explainable APNs delivery path proven by a deterministic digital twin and a physical-iPhone sandbox run.
+
+**Ownership boundaries:** The host owns raw tokens, binding persistence and authority, identity, eligibility, expiry, and one-time open intents. CrossWake owns native permission/token acquisition, offline open queueing, compiled manifests, and RouteGate activation. Chimeway owns the logical delivery, selected opaque `DeliveryTarget` revisions, attempts, recovery, and explanation.
+
+**Proof rule:** Hermetic digital-twin gates must pass before physical promotion. Physical proof extends CrossWake Phase 162 and remains externally blocked until its Apple signing/provisioning gate is genuinely satisfied. APNs acceptance is provider handoff only; it never claims device display, open, inbox seen, or inbox read.
 
 ## Phases
 
-<details>
-<summary>✅ v1.17 Adopter Proof Paths (Phases 93–96.1) — SHIPPED 2026-08-11</summary>
+- [ ] **Phase 97: Tenant Identity & Compatible Upgrade** — Tenant-safe lifecycle identity and a non-guessing upgrade path.
+- [ ] **Phase 98: Privacy-Safe Delivery Evidence** — Recursive redaction and bounded diagnostics across every observable Chimeway surface.
+- [ ] **Phase 99: Multi-Installation Delivery & Recovery** — One logical delivery with independently explainable opaque installation targets.
+- [ ] **Phase 100: Optional APNs Adapter** — Opt-in, reason-aware APNs dispatch under host token custody.
+- [ ] **Phase 101: CrossWake Registration & Protected Open** — Authenticated registration and fail-closed offline notification activation.
+- [ ] **Phase 102: Alpha Digital Twin & Hermetic Gate** — Deterministic cross-repository production-path proof in CI.
+- [ ] **Phase 103: Physical iPhone & Adoption Truth** — Redacted real-device sandbox evidence and operational adoption guidance.
 
-- [x] Phase 93: Hermetic Artifact Harness & Core Trace Proof (1/1 plan)
-- [x] Phase 94: Mailglass Transactional-Email Proof (4/4 plans)
-- [x] Phase 95: Accrue Billing-Escalation Proof (5/5 plans)
-- [x] Phase 96: Adoption Front Door & Proof Gate (5/5 plans)
-- [x] Phase 96.1: Atom-Safe Archive Metadata Parsing (1/1 plan)
+## Phase Details
 
-Full detail: [milestones/v1.17-ROADMAP.md](.planning/milestones/v1.17-ROADMAP.md) · [audit](.planning/milestones/v1.17-MILESTONE-AUDIT.md)
+### Phase 97: Tenant Identity & Compatible Upgrade
+**Goal**: Hosts can safely identify, query, and upgrade notification lifecycle state within an explicit tenant boundary.
+**Depends on**: Nothing
+**Requirements**: TENANT-01, TENANT-02, TENANT-03
+**Success Criteria** (what must be TRUE):
+  1. A host can create independent events with the same idempotency key in two tenants without collision, and each resulting notification retains its immutable tenant identity.
+  2. A host cannot read or mutate inbox, trace, admin, or recovery state outside the tenant it explicitly supplies.
+  3. A legacy single-tenant host continues only after it explicitly enables the compatibility configuration; otherwise formerly unscoped calls fail closed.
+  4. An adopter can apply additive migrations, receive ambiguous-row reconciliation evidence, and assign ownership without Chimeway inferring a tenant or changing its static storage prefix.
+**Plans**: TBD
 
-</details>
+### Phase 98: Privacy-Safe Delivery Evidence
+**Goal**: Operators can explain delivery behavior without Chimeway retaining or emitting sensitive endpoint, credential, identity, or content data.
+**Depends on**: Phase 97
+**Requirements**: PRIV-03, PRIV-04
+**Success Criteria** (what must be TRUE):
+  1. Nested map, list, and keyword-shaped diagnostics redact forbidden keys consistently regardless of casing before they are persisted or emitted.
+  2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
+  3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
+**Plans**: TBD
 
-<details>
-<summary>✅ v1.16 CI/CD Performance & Reliability (Phases 87-92) — SHIPPED 2026-07-30 (accepted-risk close — 25/26; CACHE-05 deferred → backlog #4)</summary>
+### Phase 99: Multi-Installation Delivery & Recovery
+**Goal**: A host can deliver one notification decision to all eligible opaque installations while preserving independent, tenant-safe target truth and recovery.
+**Depends on**: Phase 98
+**Requirements**: PUSH-01, PUSH-02, PUSH-03, PUSH-04, RECOV-01, RECOV-02
+**Success Criteria** (what must be TRUE):
+  1. A host resolver can return every active eligible installation as an opaque tenant-scoped binding revision, and Chimeway records one durable target for each selected revision.
+  2. Operators can see each target's independent claim, attempt, retry, expiry, invalidation, and trace history beneath one logical delivery.
+  3. Repeated planning, execution, or recovery produces neither a duplicate target nor an unexplained additional provider request; a bounded tenant-scoped worker recovers stranded work with evidence.
+  4. A delivery with no eligible target is suppressed with a stable reason, while mixed terminal target results succeed only when at least one target receives APNs acceptance and retain partial failures.
+  5. A crash after possible provider handoff records an explicit ambiguous outcome from pre-I/O claim and attempt-start evidence rather than silently resending or promising exactly-once delivery.
+**Plans**: TBD
 
-**Goal:** Make CI fast, deterministic, and trustworthy — collapse the ~6.5 min `main` wall-clock toward under ~3 min by fixing compiled-artifact caching, without lowering the quality signal. Doc/config/CI-only; no runtime library behavior changes.
+### Phase 100: Optional APNs Adapter
+**Goal**: An APNs-enabled host can dispatch safe, bounded push requests and receive honest target-specific provider outcomes without adding push dependencies to other hosts.
+**Depends on**: Phase 99
+**Requirements**: APNS-01, APNS-02, APNS-03, APNS-04, APNS-05, APNS-06
+**Success Criteria** (what must be TRUE):
+  1. A non-push Chimeway host runs without Pigeon or APNs configuration, while an opting-in host can use the Pigeon-backed adapter through host-controlled token lookup.
+  2. Each APNs request uses the selected target's correct topic and environment, stable `apns-id`, bounded allowlisted payload, host-supplied expiry, and opaque one-time open reference.
+  3. Operators can distinguish accepted handoff, retryable failure, permanent payload/configuration failure, retry exhaustion, exact-binding invalidation, protected open, inbox seen, and inbox read.
+  4. Expired reminders are suppressed before initial send or retry, and only host-opted replaceable occurrences use an installation-safe collapse key; distinct notifications remain uncoalesced.
+  5. A provider invalidation affects only its exact tenant, environment, and binding revision, never a rotated replacement or another installation.
+**Plans**: TBD
 
-- [x] Phase 87: CI Observability & Cache Diagnostics (3/3 plans) — completed 2026-07-29
-- [x] Phase 88: Cache Correctness & Compile-Once (3/3 plans) — completed 2026-07-29 — accepted-risk: CACHE-01..04 shipped & proven (MIX_ENV collision fixed, caches HIT warm); **CACHE-05 deferred → backlog #4** (warm `ci-gate` regressed ~373s→~648s; compile-once relegated to a spike, owner decision 2026-07-29)
-- [x] Phase 89: Test-Lane Concurrency (6/6 plans) — completed 2026-07-29 — ~20 pure-DB DataCase modules async, explicit pool, `--warnings-as-errors` parity, CONC-04 no-coupling proven (3 green CI runs + local `--seed 0`)
-- [x] Phase 90: Pipeline Tiering (PR/main/nightly) (3/3 plans) — completed 2026-07-30 — `resolve_tiers` fromJSON OTP matrix (PR single-{27}, push/nightly {26,27}); `verify_admin`+cold-build+1.17-floor relocated to a `schedule`/dispatch nightly tier with `nightly-gate`; ci-gate 14→13 lanes
-- [x] Phase 91: Quality & Supply-Chain Polish (3/3 plans) — completed 2026-07-30 — `.tool-versions` strict SSOT, Dependabot (mix+actions), least-privilege token, dual hex+deps audit, 1.17 floor gating on push; 5/5 by automated live-CI assertion
-- [x] Phase 92: Reliability Triage & Determinism (3/3 plans) — completed 2026-07-30 — `reliability-report.sh` (rate=6%/streak=10), nightly-only `test_seed_zero`, `put_env_isolated/3` helper, backlog #2/#3 verified-fixed + issue #4 closed
+### Phase 101: CrossWake Registration & Protected Open
+**Goal**: A CrossWake host can bind APNs registrations and activate notification routes only when current host authority permits it.
+**Depends on**: Phase 99
+**Requirements**: OPEN-01, OPEN-02, OPEN-03, OPEN-04
+**Success Criteria** (what must be TRUE):
+  1. A signed-in user can complete permission, APNs registration, and authenticated host binding; repeated observations, rotation, logout, revocation, and provider invalidation leave only the current binding usable.
+  2. Malformed, absent, or unknown action and route configuration is rejected by a manifest-consistent default-deny policy.
+  3. A notification tap contains only opaque evidence; offline taps queue safely and reconnect only activates a one-time intent after tenant, revision, expiry, session, manifest, and RouteGate reauthorization.
+  4. Replayed, expired, revoked, mismatched, logged-out, tenant-switched, or removed-route opens activate no fallback route and produce sanitized denial evidence.
+**Plans**: TBD
 
-Full detail: [milestones/v1.16-ROADMAP.md](.planning/milestones/v1.16-ROADMAP.md)
+### Phase 102: Alpha Digital Twin & Hermetic Gate
+**Goal**: The full host, Chimeway, and CrossWake mobile path is reproducible in CI without Apple credentials and rejects regressions in safety-critical behavior.
+**Depends on**: Phase 100, Phase 101
+**Requirements**: TWIN-01, TWIN-02, GATE-01
+**Success Criteria** (what must be TRUE):
+  1. A sanitized Adopter Alpha reference host runs real Chimeway persistence with deterministic time, a host token registry, and a scripted fake APNs transport.
+  2. The hermetic proof demonstrates two-installation fan-out, zero-target suppression, rotation/revocation races, classified retry, expiry, collapse, crash recovery, recursive leak prevention, and denied or replayed offline opens.
+  3. Named `mix verify.*` entrypoints run the cross-repository proof in CI without Apple credentials and reject malformed physical-proof evidence.
+**Plans**: TBD
 
-</details>
-
-<details>
-<summary>✅ v1.15 Brand Identity & Brand Book (Phases 81-86) — SHIPPED 2026-07-28 (accepted-risk close)</summary>
-
-- [x] Phase 81: Design Tokens (Reconciliation & Documentation) (3/3 plans) — completed 2026-07-10
-- [x] Phase 82: Logo Exploration & Shortlist (1/1 plan) — completed 2026-07-18
-- [x] Phase 83: Direction Selection & Final Asset Family (User Checkpoint) (3/3 plans) — completed 2026-07-18
-- [x] Phase 84: HTML Brandbook, Voice & Component States (4/4 plans) — completed 2026-07-27
-- [x] Phase 85: Repo Integration (README + HexDocs + Favicon Wiring) (1/1 plan) — completed 2026-07-27
-- [x] Phase 86: Accessibility Audit, Notes & Red-Team Close (4/4 plans) — completed 2026-07-28 — accepted-risk: A11Y-03 (focus-not-obscured) + A11Y-04 (CVD emulation) manual browser checks owner-waived
-
-Full detail: [milestones/v1.15-ROADMAP.md](.planning/milestones/v1.15-ROADMAP.md)
-
-</details>
-
-<details>
-<summary>✅ v1.14 Public Truth and Verification Architecture (Phases 77-80) — SHIPPED 2026-07-03</summary>
-
-- [x] Phase 77: Truth Baseline and Package Model Decision (2/2 plans) — completed 2026-07-03
-- [x] Phase 78: Release and Package Truth (3/3 plans) — completed 2026-07-03
-- [x] Phase 79: Front Door and Docs IA (1/1 plan) — completed 2026-07-03
-- [x] Phase 80: Verification Architecture and CI/DX (4/4 plans) — completed 2026-07-03
-
-Full detail: [milestones/v1.14-ROADMAP.md](.planning/milestones/v1.14-ROADMAP.md)
-
-</details>
-
-<details>
-<summary>✅ v1.13 Storage Isolation and Upgrade Path (Phases 73-76.1) — SHIPPED 2026-07-02</summary>
-
-- [x] Phase 73: Storage Prefix Contract (3/3 plans) — completed 2026-06-30
-- [x] Phase 74: Prefixed Migration Generator (10/10 plans) — completed 2026-06-30
-- [x] Phase 75: Runtime Prefix Propagation (8/8 plans) — completed 2026-07-01
-- [x] Phase 76: Prefix Docs, Demo, and Gates (3/3 plans) — completed 2026-07-02
-- [x] Phase 76.1: Close gap: GATE-01 - generated prefixed migration runtime proof (1/1 plan) — completed 2026-07-02
-
-Full detail: [milestones/v1.13-ROADMAP.md](.planning/milestones/v1.13-ROADMAP.md)
-
-</details>
+### Phase 103: Physical iPhone & Adoption Truth
+**Goal**: Adopter Alpha can present bounded, redacted real-iPhone evidence of the production path and understand its operational limits.
+**Depends on**: Phase 102
+**Requirements**: TWIN-03, DOCS-01
+**Success Criteria** (what must be TRUE):
+  1. Once CrossWake Phase 162's external Apple signing gate is satisfied, a physical-iPhone sandbox run records permission, token registration, APNs acceptance, visible alert confirmation, and one-time protected activation in dated redacted evidence.
+  2. The proof record is machine-validatable and separates the subjective visible-alert observation from executable provider and protected-open assertions.
+  3. Host and operator guidance explains setup, ownership boundaries, compatibility migration, outcome vocabulary, offline-open behavior, proof commands, and explicit non-goals.
+**Plans**: TBD
 
 ## Progress
 
-| Milestone | Phases | Plans | Requirements | Status | Shipped |
-|-----------|--------|-------|--------------|--------|---------|
-| v1.17 Adopter Proof Paths | 93-96.1 | 16/16 | 13/13 | Complete | 2026-08-11 |
-| v1.16 CI/CD Performance & Reliability | 87-92 | 21/21 | 25/26 | Complete (accepted-risk: CACHE-05 deferred → backlog #4) | 2026-07-30 |
-| v1.15 Brand Identity & Brand Book | 81-86 | 16/16 | 30/32 | Complete (accepted-risk: 2 A11Y manual checks owner-waived) | 2026-07-28 |
-| v1.14 Public Truth and Verification Architecture | 77-80 | 10/10 | 14/14 | Complete | 2026-07-03 |
-| v1.13 Storage Isolation and Upgrade Path | 73-76.1 | 25/25 | 20/20 | Complete | 2026-07-02 |
-| v1.11 Operator Console Polish & Hardening | 68-72 | 12/12 | 18/18 | Complete | 2026-06-04 |
-| v1.10 Ecosystem Completions | 63-67 | 13/13 | 8/8 | Complete | 2026-06-04 |
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 97. Tenant Identity & Compatible Upgrade | 0/TBD | Not started | - |
+| 98. Privacy-Safe Delivery Evidence | 0/TBD | Not started | - |
+| 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
+| 100. Optional APNs Adapter | 0/TBD | Not started | - |
+| 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
+| 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |
+| 103. Physical iPhone & Adoption Truth | 0/TBD | Blocked by external Apple signing gate until Phase 162 evidence | - |
 
 ---
-*Roadmap updated: 2026-08-11 — v1.17 archived after verified closeout; no milestone is currently active.*
+*Roadmap updated: 2026-08-11 — v1.18 created with Phases 97–103.*

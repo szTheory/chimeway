@@ -76,16 +76,40 @@
 
 ## Traceability
 
-Roadmap mapping is populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| TENANT-01 | Phase 97 | Pending |
+| TENANT-02 | Phase 97 | Pending |
+| TENANT-03 | Phase 97 | Pending |
+| PRIV-03 | Phase 98 | Pending |
+| PRIV-04 | Phase 98 | Pending |
+| PUSH-01 | Phase 99 | Pending |
+| PUSH-02 | Phase 99 | Pending |
+| PUSH-03 | Phase 99 | Pending |
+| PUSH-04 | Phase 99 | Pending |
+| RECOV-01 | Phase 99 | Pending |
+| RECOV-02 | Phase 99 | Pending |
+| APNS-01 | Phase 100 | Pending |
+| APNS-02 | Phase 100 | Pending |
+| APNS-03 | Phase 100 | Pending |
+| APNS-04 | Phase 100 | Pending |
+| APNS-05 | Phase 100 | Pending |
+| APNS-06 | Phase 100 | Pending |
+| OPEN-01 | Phase 101 | Pending |
+| OPEN-02 | Phase 101 | Pending |
+| OPEN-03 | Phase 101 | Pending |
+| OPEN-04 | Phase 101 | Pending |
+| TWIN-01 | Phase 102 | Pending |
+| TWIN-02 | Phase 102 | Pending |
+| GATE-01 | Phase 102 | Pending |
+| TWIN-03 | Phase 103 | Pending |
+| DOCS-01 | Phase 103 | Pending |
 
 **Coverage:**
 - v1.18 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-08-11*
-*Last updated: 2026-08-11 after requirements approval*
+*Last updated: 2026-08-11 after v1.18 roadmap mapping*

@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
-status: planning
+status: active
 last_updated: "2026-08-12T02:27:11.227Z"
 last_activity: 2026-08-11
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-11 after v1.17 milestone close)
+See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Select and define the next milestone
+**Current focus:** Phase 97 — Tenant Identity & Compatible Upgrade
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 97 of 103 (Tenant Identity & Compatible Upgrade)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-11 — Milestone v1.18 started
+Status: Ready for planning
+Last activity: 2026-08-11 — v1.18 roadmap created; Phase 97 is ready for planning
 
 ## Deferred Items
 
@@ -301,6 +301,7 @@ status: complete
 
 ### Roadmap Evolution
 
+- v1.18 Adopter Alpha Mobile Delivery Readiness roadmap created 2026-08-11 — Phases 97–103 (7 phases, coarse granularity); 26/26 requirements mapped. Dependency chain: 97 → 98 → 99 → {100, 101} → 102 → 103. The host retains raw tokens, binding authority, identity, eligibility, expiry, and one-time open intents; CrossWake owns native acquisition, offline queue, manifest, and RouteGate; Chimeway owns logical delivery, opaque target revisions, attempts, recovery, and explanation. Phase 103 extends CrossWake Phase 162 and is externally blocked pending genuine Apple signing/provisioning evidence.
 - Phase 96.1 inserted after Phase 96: Close gap: ARCHIVE-ATOM-01 — atom-safe archive metadata parsing (URGENT)
 
 ## Performance
@@ -618,12 +619,12 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 ### Session Continuity
 
 Last session: 2026-08-11T15:33:18.961Z
-Stopped at: Completed 96.1-01-PLAN.md
-Resume file: None
+Stopped at: v1.18 roadmap created; Phase 97 ready for planning
+Resume file: .planning/ROADMAP.md
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 97 with /gsd-plan-phase 97
 
 ## Performance Metrics
 
