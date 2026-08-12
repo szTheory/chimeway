@@ -36,6 +36,9 @@ defmodule Chimeway.Events.Event do
     |> unique_constraint(:idempotency_key,
       name: :chimeway_events_tenant_id_idempotency_key_index
     )
+    |> unique_constraint(:idempotency_key,
+      name: :chimeway_events_tenant_id_idempotency_key_idx
+    )
   end
 
   defp fields_for(%__MODULE__{id: nil}),

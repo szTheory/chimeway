@@ -86,6 +86,16 @@ defmodule Chimeway.TenantIdentityTest do
              )
   end
 
+  test "event changeset recognizes both supported composite index names" do
+    constraint_names =
+      Event.changeset(%Event{}, %{})
+      |> Map.fetch!(:constraints)
+      |> Enum.map(& &1.constraint)
+
+    assert "chimeway_events_tenant_id_idempotency_key_index" in constraint_names
+    assert "chimeway_events_tenant_id_idempotency_key_idx" in constraint_names
+  end
+
   test "concurrent same-tenant submissions converge without colliding with another tenant", %{
     sandbox_owner: sandbox_owner
   } do
