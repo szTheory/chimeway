@@ -1,11 +1,22 @@
 defmodule Chimeway.TracesTest do
-  use Chimeway.DataCase, async: true
+  use Chimeway.DataCase, async: false
 
   alias Chimeway.{Deliveries, Delivery, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Traces.Explanation
   alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun, WorkflowStep, WorkflowTransition}
+
+  setup do
+    previous = Application.get_env(:chimeway, :single_tenant_compatibility)
+    Application.put_env(:chimeway, :single_tenant_compatibility, tenant_id: "default")
+
+    on_exit(fn ->
+      if is_nil(previous),
+        do: Application.delete_env(:chimeway, :single_tenant_compatibility),
+        else: Application.put_env(:chimeway, :single_tenant_compatibility, previous)
+    end)
+  end
 
   # --- Helpers ---
 
@@ -15,6 +26,7 @@ defmodule Chimeway.TracesTest do
         notification_key: Map.get(attrs, :notification_key, "test_notifier"),
         notification_version: 1,
         idempotency_key: Map.get(attrs, :idempotency_key, "key-#{System.unique_integer()}"),
+        tenant_id: Map.get(attrs, :tenant_id, "default"),
         payload: %{},
         correlation_id: Map.get(attrs, :correlation_id)
       })
@@ -28,6 +40,7 @@ defmodule Chimeway.TracesTest do
         event_id: event.id,
         recipient_identity: recipient || "user:#{System.unique_integer()}",
         recipient_type: "user",
+        tenant_id: event.tenant_id,
         metadata: %{}
       })
 
@@ -77,6 +90,7 @@ defmodule Chimeway.TracesTest do
         notification_key: "test.phase32",
         notification_version: 1,
         idempotency_key: "phase32-#{System.unique_integer([:positive])}",
+        tenant_id: tenant_id,
         payload: %{}
       })
 
@@ -85,6 +99,7 @@ defmodule Chimeway.TracesTest do
         event_id: run_event.id,
         recipient_identity: "user:phase32-#{System.unique_integer([:positive])}",
         recipient_type: "user",
+        tenant_id: tenant_id,
         metadata: %{}
       })
 
@@ -1155,6 +1170,7 @@ defmodule Chimeway.TracesTest do
         notification_key: "traces.attempt.fields.test",
         notification_version: 1,
         idempotency_key: "traces-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: %{}
       })
 
@@ -1163,6 +1179,7 @@ defmodule Chimeway.TracesTest do
         event_id: event.id,
         recipient_identity: "user:#{System.unique_integer()}",
         recipient_type: "user",
+        tenant_id: "default",
         metadata: %{}
       })
 

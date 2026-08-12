@@ -86,6 +86,30 @@ defmodule Chimeway.TenantIdentityTest do
              )
   end
 
+  test "concurrent same-tenant submissions converge without colliding with another tenant", %{
+    sandbox_owner: sandbox_owner
+  } do
+    [first, second] = concurrent_triggers("tenant-a", "concurrent-key", sandbox_owner)
+
+    assert Enum.any?([first, second], &match?({:ok, _}, &1))
+    assert Enum.any?([first, second], &match?({:duplicate, _}, &1))
+
+    assert {:ok, other_tenant} =
+             Trigger.trigger(TenantNotifier, %{},
+               tenant_id: "tenant-b",
+               idempotency_key: "concurrent-key"
+             )
+
+    assert 2 ==
+             Repo.aggregate(
+               from(e in Event, where: e.idempotency_key == "concurrent-key"),
+               :count,
+               :id
+             )
+
+    assert other_tenant.event.tenant_id == "tenant-b"
+  end
+
   test "tenant ownership is immutable after insertion" do
     event = %Event{
       id: Ecto.UUID.generate(),
@@ -113,5 +137,27 @@ defmodule Chimeway.TenantIdentityTest do
              Notification.changeset(notification, %{tenant_id: "tenant-b"}).changes,
              :tenant_id
            )
+  end
+
+  defp concurrent_triggers(tenant_id, idempotency_key, sandbox_owner) do
+    tasks =
+      for _ <- 1..2 do
+        Task.async(fn ->
+          receive do
+            :trigger ->
+              Trigger.trigger(TenantNotifier, %{},
+                tenant_id: tenant_id,
+                idempotency_key: idempotency_key
+              )
+          end
+        end)
+      end
+
+    Enum.each(tasks, fn task ->
+      :ok = Ecto.Adapters.SQL.Sandbox.allow(Repo, sandbox_owner, task.pid)
+      send(task.pid, :trigger)
+    end)
+
+    Enum.map(tasks, &Task.await/1)
   end
 end

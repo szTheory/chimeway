@@ -56,11 +56,12 @@ defmodule Chimeway.Traces do
 
         event ->
           notifications_query = from(n in Notification, where: n.tenant_id == ^tenant_id)
+          deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
 
           loaded =
             Repo.preload(
               event,
-              [notifications: {notifications_query, [deliveries: :attempts]}],
+              [notifications: {notifications_query, [deliveries: {deliveries_query, :attempts}]}],
               repo_opts
             )
 
@@ -96,7 +97,7 @@ defmodule Chimeway.Traces do
               e.tenant_id == ^tenant_id,
           order_by: [desc: n.inserted_at],
           limit: ^limit,
-          preload: [deliveries: :attempts, event: []]
+          preload: [event: []]
         )
 
       query =
@@ -106,7 +107,10 @@ defmodule Chimeway.Traces do
           query
         end
 
+      deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
+
       Repo.all(query, repo_opts)
+      |> Repo.preload([deliveries: {deliveries_query, :attempts}], repo_opts)
     else
       {:error, _reason} -> []
     end
@@ -136,10 +140,11 @@ defmodule Chimeway.Traces do
       query = if limit, do: from(e in query, limit: ^limit), else: query
       events = Repo.all(query, repo_opts)
       notifications_query = from(n in Notification, where: n.tenant_id == ^tenant_id)
+      deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
 
       Repo.preload(
         events,
-        [notifications: {notifications_query, [deliveries: :attempts]}],
+        [notifications: {notifications_query, [deliveries: {deliveries_query, :attempts}]}],
         repo_opts
       )
     else
@@ -168,7 +173,8 @@ defmodule Chimeway.Traces do
             join: e in Event,
             on: e.id == n.event_id,
             where:
-              d.id == ^delivery_id and n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id,
+              d.id == ^delivery_id and d.tenant_id == ^tenant_id and n.tenant_id == ^tenant_id and
+                e.tenant_id == ^tenant_id,
             preload: [notification: :event, attempts: []]
           ),
           repo_opts
@@ -251,7 +257,8 @@ defmodule Chimeway.Traces do
           on: n.id == d.notification_id,
           join: e in Event,
           on: e.id == n.event_id,
-          where: n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id,
+          where:
+            d.tenant_id == ^tenant_id and n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id,
           select: %{
             notification_key: e.notification_key,
             channel: d.channel,
