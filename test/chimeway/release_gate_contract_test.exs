@@ -23,7 +23,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
   @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths test_floor_1_17)
-  @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths)
+  @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths verify_inbox)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
   # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
@@ -286,6 +286,16 @@ defmodule Chimeway.ReleaseGateContractTest do
         refute String.contains?(job_block, "paths-ignore:"),
                "#{lane} job must not carry a paths-ignore: filter (would strand required pr-gate)"
       end
+    end
+
+    test "verify_inbox is an unfiltered required PR lane", %{ci_yml: ci_yml} do
+      needs = extract_pr_gate_needs(ci_yml)
+      inbox_block = extract_ci_job_block(ci_yml, "verify_inbox")
+
+      assert "verify_inbox" in needs
+
+      refute String.contains?(inbox_block, "if: github.event_name != 'pull_request'"),
+             "verify_inbox must run on pull requests so pr-gate never accepts a skipped Inbox lane"
     end
 
     test "ci-gate is push/dispatch-only and keeps its literal name (CI-02)", %{ci_yml: ci_yml} do
