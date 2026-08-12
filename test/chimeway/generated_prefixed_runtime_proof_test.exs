@@ -49,7 +49,7 @@ end
 defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
   use Chimeway.GeneratedPrefixedRuntimeCase
 
-  alias Chimeway.Traces
+  alias Chimeway.{Reconciliation, Traces}
 
   setup do
     previous_adapter = Application.fetch_env(:chimeway, :adapter)
@@ -70,7 +70,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
 
   test "generated prefixed migrations support trigger-to-trace runtime behavior through Chimeway.Repo" do
     assert_generated_prefixed_runtime_tables!()
-    assert generated_migration_count() == 31
+    assert generated_migration_count() == 32
 
     recipient_id = unique_recipient("trigger")
 
@@ -81,13 +81,14 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
                trigger_opts("trigger")
              )
 
-    assert {:ok, reloaded_event} = Traces.get_trace(result.event.id)
+    assert {:ok, reloaded_event} = Traces.get_trace(result.event.id, tenant_id: "acme")
     assert reloaded_event.id == result.event.id
 
     assert_prefixed_only("chimeway_events", 1)
     assert_prefixed_only("chimeway_notifications", 1)
     assert_prefixed_only("chimeway_deliveries", 2)
     assert_prefixed_only("chimeway_delivery_attempts", 2)
+    assert %{events: 0, notifications: 0} = Reconciliation.report().counts
   end
 
   defp trigger_opts(label) do

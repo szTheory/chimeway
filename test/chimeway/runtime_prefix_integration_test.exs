@@ -125,7 +125,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
   import Ecto.Query
 
-  alias Chimeway.{Admin, Deliveries, Delivery, Preferences, Repo, Signal, Traces}
+  alias Chimeway.{Admin, Deliveries, Delivery, Preferences, Reconciliation, Repo, Signal, Traces}
 
   alias Chimeway.Dispatch.{
     DeferredResumeWorker,
@@ -206,14 +206,16 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
                trigger_opts("operator")
              )
 
-    assert [%Notification{id: notification_id}] = Chimeway.list_for_recipient(recipient_id)
+    assert [%Notification{id: notification_id}] =
+             Chimeway.list_for_recipient(recipient_id, tenant_id: "acme")
 
-    assert :ok = Chimeway.mark_seen(notification_id, recipient_id)
-    assert :ok = Chimeway.mark_read(notification_id, recipient_id)
+    assert :ok = Chimeway.mark_seen(notification_id, recipient_id, tenant_id: "acme")
+    assert :ok = Chimeway.mark_read(notification_id, recipient_id, tenant_id: "acme")
 
-    assert Chimeway.unread_count(recipient_id) == 0
+    assert Chimeway.unread_count(recipient_id, tenant_id: "acme") == 0
 
-    assert {:ok, %Event{notifications: [_notification]}} = Traces.get_trace(event.id)
+    assert {:ok, %Event{notifications: [_notification]}} =
+             Traces.get_trace(event.id, tenant_id: "acme")
 
     problem =
       create_pending_delivery(
@@ -718,6 +720,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       assert prefixed_count("chimeway_events") == 0
       assert prefixed_count("chimeway_notifications") == 0
       assert prefixed_count("chimeway_deliveries") == 0
+      assert %{events: 0, notifications: 0} = Reconciliation.report().counts
     end)
   end
 

@@ -48,7 +48,8 @@ defmodule Chimeway.MigrationContractTest do
     assert regclass("chimeway_events")
     assert regclass("chimeway_notifications")
 
-    assert regclass("chimeway_events_idempotency_key_index")
+    refute regclass("chimeway_events_idempotency_key_index")
+    assert regclass("chimeway_events_tenant_id_idempotency_key_index")
 
     assert regclass("chimeway_notifications_event_recipient_index")
     assert regclass("chimeway_notifications_inbox_read_inserted_index")
@@ -71,13 +72,13 @@ defmodule Chimeway.MigrationContractTest do
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
         migrated = run_fixture_migrations(repo, migrations_path, :up)
-        assert length(migrated) == 31
-        assert_migration_versions!(repo, 31)
+        assert length(migrated) == 32
+        assert_migration_versions!(repo, 32)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
 
         rolled_back = run_fixture_migrations(repo, migrations_path, :down)
-        assert length(rolled_back) == 31
+        assert length(rolled_back) == 32
         assert_migration_versions!(repo, 0)
         refute_chimeway_objects!(repo, generated_mode.schema)
 
@@ -282,8 +283,11 @@ defmodule Chimeway.MigrationContractTest do
       assert regclass(repo, schema, table), "expected #{schema}.#{table} to exist"
     end
 
+    refute regclass(repo, schema, "chimeway_events_idempotency_key_index"),
+           "template 032 must replace global idempotency uniqueness"
+
     for index <- [
-          "chimeway_events_idempotency_key_index",
+          "chimeway_events_tenant_id_idempotency_key_index",
           "chimeway_notifications_event_recipient_index",
           "chimeway_digest_buckets_identity_index",
           "chimeway_webhook_ingress_adapter_provider_event_uniq"
@@ -302,6 +306,12 @@ defmodule Chimeway.MigrationContractTest do
 
     assert column_info(repo, schema, "chimeway_deliveries", "tenant_id") ==
              {false, "character varying"}
+
+    assert column_info(repo, schema, "chimeway_events", "tenant_id") ==
+             {true, "character varying"}
+
+    assert column_info(repo, schema, "chimeway_notifications", "tenant_id") ==
+             {true, "character varying"}
   end
 
   defp assert_generated_foreign_keys!(repo, schema) do
