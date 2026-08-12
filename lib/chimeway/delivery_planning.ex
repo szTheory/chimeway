@@ -104,11 +104,12 @@ defmodule Chimeway.DeliveryPlanning do
     recipient = notification_recipient(notification)
     workflow_linkage = resolve_workflow_linkage(notification, channel, opts)
 
-    with {:ok, render_result} <-
+    with {:ok, tenant_id} <- resolve_delivery_tenant(notification, opts),
+         {:ok, render_result} <-
            resolve_render_result(notification, channel, trigger_params, opts),
          {:ok, delivery} <-
            Deliveries.plan_delivery(notification.id, channel,
-             tenant_id: Keyword.get(opts, :tenant_id, "default"),
+             tenant_id: tenant_id,
              actor_id: notification.recipient_identity || "system",
              delay_fallback: delay_fallback,
              delayed_fallback_source: source,
@@ -132,6 +133,17 @@ defmodule Chimeway.DeliveryPlanning do
       end
     end
   end
+
+  defp resolve_delivery_tenant(%Notification{tenant_id: tenant_id}, opts)
+       when is_binary(tenant_id) and byte_size(tenant_id) > 0 do
+    case Keyword.fetch(opts, :tenant_id) do
+      :error -> {:ok, tenant_id}
+      {:ok, ^tenant_id} -> {:ok, tenant_id}
+      {:ok, _other_tenant_id} -> {:error, :tenant_mismatch}
+    end
+  end
+
+  defp resolve_delivery_tenant(%Notification{}, _opts), do: {:error, :tenant_mismatch}
 
   defp resolve_channels(notification, opts) do
     notifier = Keyword.get(opts, :notifier)

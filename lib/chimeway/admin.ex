@@ -217,7 +217,7 @@ defmodule Chimeway.Admin do
       event_rows =
         Event
         |> join(:inner, [e], n in assoc(e, :notifications), on: n.tenant_id == ^tenant_id)
-        |> join(:left, [_e, n], d in assoc(n, :deliveries))
+        |> join(:left, [_e, n], d in assoc(n, :deliveries), on: d.tenant_id == ^tenant_id)
         |> maybe_older_event_than(now, Keyword.get(opts, :older_than, 60))
         |> where([e], e.tenant_id == ^tenant_id)
         |> group_by([e], [

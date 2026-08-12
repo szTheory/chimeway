@@ -383,7 +383,10 @@ defmodule Chimeway.AdminTest do
     assert feed_row.channel_summary == []
     assert feed_row.status_summary == []
 
-    assert [] = Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+    assert [%{type: "event", id: event_id}] =
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+
+    assert event_id == event.id
     assert [] = Admin.recovery_candidates(tenant_id: "tenant-b", now: now, older_than: 60)
     assert [] = Admin.command_center(tenant_id: "tenant-b").recovery_candidates
   end

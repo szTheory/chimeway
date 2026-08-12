@@ -299,6 +299,7 @@ defmodule Chimeway.Deliveries do
     channel_str = if is_atom(channel), do: Atom.to_string(channel), else: channel
 
     with {:ok, tenant_id} <- normalize_tenant_id(Keyword.get(opts, :tenant_id)),
+         :ok <- ensure_notification_tenant(notification_id, tenant_id),
          {:ok, actor_id} <- normalize_actor_id(Keyword.get(opts, :actor_id)),
          {:ok, delay_fallback} <-
            normalize_delay_fallback(Keyword.get(opts, :delay_fallback, false)),
@@ -360,6 +361,22 @@ defmodule Chimeway.Deliveries do
 
   defp normalize_tenant_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
   defp normalize_tenant_id(value), do: {:error, {:invalid_tenant_id, value}}
+
+  defp ensure_notification_tenant(notification_id, tenant_id) do
+    notification_tenant =
+      Repo.one(
+        from(n in Notification,
+          where: n.id == ^notification_id,
+          select: %{id: n.id, tenant_id: n.tenant_id}
+        )
+      )
+
+    case notification_tenant do
+      %{tenant_id: ^tenant_id} -> :ok
+      nil -> {:error, :notification_not_found}
+      _notification -> {:error, :tenant_mismatch}
+    end
+  end
 
   defp normalize_actor_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
   defp normalize_actor_id(value), do: {:error, {:invalid_actor_id, value}}
