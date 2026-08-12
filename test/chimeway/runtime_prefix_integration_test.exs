@@ -270,6 +270,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert {:ok, claimed_delivery} =
              Deliveries.begin_recovery(begin_candidate_delivery.id,
+               tenant_id: "acme",
                now: now,
                older_than: 60,
                source: "runtime_prefix_operator",
@@ -297,6 +298,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert {:ok, recovered_delivery} =
              Deliveries.recover_delivery(delivery_recovery_candidate.id,
+               tenant_id: "acme",
                now: now,
                older_than: 60,
                source: "runtime_prefix_operator",
@@ -311,7 +313,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     event_recovery =
       create_notification(
         notification_key: "test.runtime_prefix.recovery.event",
-        recipient_identity: unique_recipient("recovery-event")
+        recipient_identity: unique_recipient("recovery-event"),
+        tenant_id: "acme"
       )
 
     event_recovery.event
@@ -322,6 +325,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert {:ok, recovered_event} =
              Deliveries.recover_event(event_recovery.event.id,
+               tenant_id: "acme",
                now: now,
                older_than: 60,
                source: "runtime_prefix_operator",
