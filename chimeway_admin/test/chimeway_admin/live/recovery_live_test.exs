@@ -127,7 +127,8 @@ defmodule ChimewayAdmin.Live.RecoveryLiveTest do
     {:ok, _result} =
       Chimeway.recover_delivery(delivery.id,
         source: "chimeway_admin",
-        reason: "already recovered"
+        reason: "already recovered",
+        tenant_id: "tenant-a"
       )
 
     html =
@@ -164,6 +165,32 @@ defmodule ChimewayAdmin.Live.RecoveryLiveTest do
     assert [_] = Floki.find(document, ".cw-button--danger")
   end
 
+  test "wrong-tenant recovery candidates are absent and cannot mutate", %{conn: conn} do
+    delivery =
+      recoverable_delivery(tenant_id: "tenant-a", notification_key: "recovery.wrong-tenant")
+
+    {:ok, view, html} = mount_recovery(conn, tenant_id: "tenant-b")
+
+    assert html =~ "No recoverable work"
+    refute html =~ delivery.id
+    refute html =~ "recovery.wrong-tenant"
+
+    html =
+      view
+      |> render_hook("recover", %{
+        "candidate_id" => delivery.id,
+        "type" => "delivery",
+        "reason" => "operator checked row",
+        "confirmation_marker" => "operator_confirmed_recovery"
+      })
+
+    assert html =~ "Recovery skipped"
+    refute_receive {:authorized, _actor, :recover_delivery, _context}, 50
+
+    reloaded = Repo.get!(Chimeway.Delivery, delivery.id)
+    refute Map.has_key?(reloaded.metadata || %{}, "recovered_at")
+  end
+
   defp mount_recovery(conn, opts) do
     tenant_id = Keyword.fetch!(opts, :tenant_id)
     session_extra = Keyword.get(opts, :session_extra, %{})
@@ -188,7 +215,8 @@ defmodule ChimewayAdmin.Live.RecoveryLiveTest do
         notification_version: 1,
         idempotency_key: "recovery-live-#{System.unique_integer([:positive])}",
         payload: %{},
-        correlation_id: "corr-#{System.unique_integer([:positive])}"
+        correlation_id: "corr-#{System.unique_integer([:positive])}",
+        tenant_id: Keyword.fetch!(attrs, :tenant_id)
       })
       |> Repo.insert!()
 
@@ -198,6 +226,7 @@ defmodule ChimewayAdmin.Live.RecoveryLiveTest do
         event_id: event.id,
         recipient_identity: "user:recovery@example.test",
         recipient_type: "user",
+        tenant_id: Keyword.fetch!(attrs, :tenant_id),
         metadata: %{},
         render_assigns: %{},
         render_channels: %{"email" => %{"render_key" => "recovery.email", "render_version" => 1}}

@@ -10,7 +10,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
   test "mounts search form with empty results", %{conn: conn} do
     {:ok, _view, html} =
       live_isolated(conn, ChimewayAdmin.Live.TraceSearchLive,
-        session: %{"current_actor" => "ops:1"},
+        session: %{"current_actor" => "ops:1", "chimeway_admin_tenant_id" => "tenant-a"},
         on_mount: [{ChimewayAdmin.LiveAuth, :search_traces}]
       )
 
@@ -19,11 +19,8 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
   end
 
   test "dashboard mounts command center", %{conn: conn} do
-    {:ok, _view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.DashboardLive,
-        session: %{"current_actor" => "ops:1"},
-        on_mount: [{ChimewayAdmin.LiveAuth, :search_traces}]
-      )
+    conn = tenant_session(conn, "tenant-a")
+    {:ok, _view, html} = live(conn, "/")
 
     assert html =~ "Command Center"
     assert html =~ "Open Trace Lookup"
@@ -36,12 +33,8 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
 
   test "dashboard labels succeeded metric as provider accepted", %{conn: conn} do
     _delivery = succeeded_delivery("dashboard.provider.accepted")
-
-    {:ok, _view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.DashboardLive,
-        session: %{"current_actor" => "ops:1"},
-        on_mount: [{ChimewayAdmin.LiveAuth, :search_traces}]
-      )
+    conn = tenant_session(conn, "tenant-a")
+    {:ok, _view, html} = live(conn, "/")
 
     assert html =~ "Provider accepted"
     refute html =~ "Delivered"
@@ -51,7 +44,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
     conn: conn
   } do
     delivery = succeeded_delivery("trace.provider.accepted")
-    conn = Plug.Test.init_test_session(conn, %{"current_actor" => "ops:1"})
+    conn = tenant_session(conn, "tenant-a")
 
     {:ok, _view, html} = live(conn, "/deliveries/#{delivery.id}")
 
@@ -59,20 +52,32 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
     refute html =~ "Delivered"
   end
 
+  test "trace detail treats a wrong-tenant delivery as absent", %{conn: conn} do
+    delivery = succeeded_delivery("trace.wrong-tenant")
+
+    conn =
+      Plug.Test.init_test_session(conn, %{
+        "current_actor" => "ops:1",
+        "chimeway_admin_tenant_id" => "tenant-b"
+      })
+
+    {:ok, _view, html} = live(conn, "/deliveries/#{delivery.id}")
+
+    assert html =~ "Trace not found"
+    assert html =~ "No delivery exists"
+    refute html =~ "trace.wrong-tenant"
+  end
+
   test "pillar pages mount", %{conn: conn} do
     pages = [
-      {ChimewayAdmin.Live.FeedLive, :view_feed, "Feed Debug"},
-      {ChimewayAdmin.Live.DefinitionsLive, :view_definitions, "Definitions"},
-      {ChimewayAdmin.Live.HealthLive, :view_health, "Health"},
-      {ChimewayAdmin.Live.RecoveryLive, :list_recovery_candidates, "Recovery"}
+      {"/feed", "Feed Debug"},
+      {"/definitions", "Definitions"},
+      {"/health", "Health"},
+      {"/recovery", "Recovery"}
     ]
 
-    for {live_view, action, text} <- pages do
-      {:ok, _view, html} =
-        live_isolated(conn, live_view,
-          session: %{"current_actor" => "ops:1"},
-          on_mount: [{ChimewayAdmin.LiveAuth, action}]
-        )
+    for {path, text} <- pages do
+      {:ok, _view, html} = conn |> tenant_session("tenant-a") |> live(path)
 
       assert html =~ text
       assert_sidebar_labels(html)
@@ -88,6 +93,13 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
     assert html =~ "Recovery"
   end
 
+  defp tenant_session(conn, tenant_id) do
+    Plug.Test.init_test_session(conn, %{
+      "current_actor" => "ops:1",
+      "chimeway_admin_tenant_id" => tenant_id
+    })
+  end
+
   defp succeeded_delivery(notification_key) do
     event =
       %Event{}
@@ -95,7 +107,8 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "#{notification_key}-#{System.unique_integer([:positive])}",
-        payload: %{}
+        payload: %{},
+        tenant_id: "tenant-a"
       })
       |> Repo.insert!()
 
@@ -105,6 +118,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
         event_id: event.id,
         recipient_identity: "user:provider@example.test",
         recipient_type: "user",
+        tenant_id: "tenant-a",
         metadata: %{},
         render_assigns: %{},
         render_channels: %{"email" => %{"render_key" => "provider.email", "render_version" => 1}}
@@ -112,7 +126,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLiveTest do
       |> Repo.insert!()
 
     {:ok, delivery} =
-      Deliveries.plan_delivery(notification.id, :email, tenant_id: "default", actor_id: "system")
+      Deliveries.plan_delivery(notification.id, :email, tenant_id: "tenant-a", actor_id: "system")
 
     {:ok, dispatched} = Deliveries.transition_status(delivery, :dispatched)
 
