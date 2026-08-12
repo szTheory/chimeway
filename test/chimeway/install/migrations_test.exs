@@ -265,7 +265,7 @@ defmodule Chimeway.Install.MigrationsTest do
   end
 
   describe "run/1 in tmp host" do
-    test "first run creates 32 files with host namespaces" do
+    test "first run creates 33 files with host namespaces" do
       tmp = scaffold_tmp_host!(include_config: true)
       restore_repo_env()
 
@@ -281,7 +281,7 @@ defmodule Chimeway.Install.MigrationsTest do
       migrations_dir = Path.join(tmp, "priv/repo/migrations")
       files = File.ls!(migrations_dir)
 
-      assert length(files) == 32
+      assert length(files) == 33
       refute Enum.any?(files, &String.contains?(&1, "create_oban_jobs_tables"))
 
       Enum.each(files, fn file ->
@@ -295,7 +295,7 @@ defmodule Chimeway.Install.MigrationsTest do
         |> String.split("\n", trim: true)
         |> Enum.filter(&String.starts_with?(&1, "created "))
 
-      assert length(created_lines) == 32
+      assert length(created_lines) == 33
       assert Enum.all?(created_lines, &String.contains?(&1, "priv/repo/migrations/"))
     end
 
@@ -309,7 +309,7 @@ defmodule Chimeway.Install.MigrationsTest do
       end)
 
       migrations_dir = Path.join(tmp, "priv/repo/migrations")
-      assert length(File.ls!(migrations_dir)) == 32
+      assert length(File.ls!(migrations_dir)) == 33
 
       [sample | _] = File.ls!(migrations_dir)
       content = File.read!(Path.join(migrations_dir, sample))
@@ -329,14 +329,14 @@ defmodule Chimeway.Install.MigrationsTest do
             assert :ok = Migrations.run()
           end)
 
-        assert length(File.ls!("priv/repo/migrations")) == 32
+        assert length(File.ls!("priv/repo/migrations")) == 33
 
         lines = second_output |> String.split("\n", trim: true)
 
         unchanged_lines = Enum.filter(lines, &String.starts_with?(&1, "unchanged "))
         created_lines = Enum.filter(lines, &String.starts_with?(&1, "created "))
 
-        assert length(unchanged_lines) == 32
+        assert length(unchanged_lines) == 33
         assert created_lines == []
       end)
     end
@@ -357,7 +357,7 @@ defmodule Chimeway.Install.MigrationsTest do
       end
 
       migrations_dir = Path.join(tmp, "priv/repo/migrations")
-      assert length(File.ls!(migrations_dir)) == 32
+      assert length(File.ls!(migrations_dir)) == 33
     end
 
     test "invalid generation prefix inputs fail with actionable accepted flags" do
