@@ -65,6 +65,16 @@ defmodule Chimeway.ReleaseGateContractTest do
       }
     end
 
+    test "ci.test skips partner repo setup owned by excluded verify lanes", %{mix_exs: mix_exs} do
+      [_, ci_test] = Regex.run(~r/"ci\.test":\s*\[(.*?)\n\s*\],/s, mix_exs)
+
+      assert ci_test =~ "CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1"
+
+      for excluded <- ~w(mailglass accrue threadline sigra) do
+        assert ci_test =~ "--exclude #{excluded}"
+      end
+    end
+
     for {_alias, slug, command} <- @pre_ship_verify_commands do
       test "MAINTAINING pre-ship block lists #{slug} gate", %{pre_ship_block: pre_ship_block} do
         assert String.contains?(pre_ship_block, unquote(command)),
@@ -1023,6 +1033,10 @@ defmodule Chimeway.ReleaseGateContractTest do
                ]
 
       assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+
+      assert proof.proof_source =~
+               "explain_delivery(delivery_id, tenant_id: \"artifact-proof-tenant\")"
+
       assert proof.proof_source =~ "Chimeway.Repo.get_dynamic_repo()"
       assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
 
@@ -1103,6 +1117,10 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert proof.evidence.last_attempt_number == "1"
 
       assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+
+      assert proof.proof_source =~
+               "explain_delivery(delivery_id, tenant_id: \"artifact-proof-tenant\")"
+
       assert proof.proof_source =~ "Mailglass.Adapters.Fake.checkout()"
       assert proof.proof_source =~ "Mailglass.Adapters.Fake.set_shared(self())"
       assert proof.proof_source =~ "length(Mailglass.Adapters.Fake.deliveries()) == 1"

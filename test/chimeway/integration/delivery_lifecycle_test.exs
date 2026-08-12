@@ -782,7 +782,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert delivery.status == :succeeded
 
       assert {:ok, %Chimeway.Traces.Explanation{channel: "webhook_partner", timeline: timeline}} =
-               Traces.explain_delivery(delivery.id)
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
       assert :delivery_planned in Enum.map(timeline, & &1.event)
     end
@@ -805,10 +805,12 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert Map.has_key?(result.trace, :correlation_id)
       assert is_list(result.trace.delivery_ids)
 
-      assert {:ok, trace_event} = Traces.get_trace(result.trace.event_id)
+      assert {:ok, trace_event} = Traces.get_trace(result.trace.event_id, tenant_id: "acme")
       assert trace_event.id == result.event.id
 
-      events = Traces.find_traces_by_correlation_id(result.trace.correlation_id)
+      events =
+        Traces.find_traces_by_correlation_id(result.trace.correlation_id, tenant_id: "acme")
+
       assert Enum.any?(events, &(&1.id == result.event.id))
 
       notification_ids =
@@ -866,7 +868,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert DateTime.compare(delivery.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
       assert attempt_count(delivery.id) == 0
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.status == :pending
       assert explanation.last_attempt == nil
     end
@@ -896,7 +900,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert delivery.next_eligible_at == nil
       assert attempt_count(delivery.id) == 0
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.status == :pending
       assert explanation.last_attempt == nil
     end
@@ -983,7 +989,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                :id
              ) == 1
 
-      assert {:ok, explanation} = Traces.explain_delivery(updated_delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(updated_delivery.id, tenant_id: updated_delivery.tenant_id)
+
       assert Map.get(explanation, :resume_source) == "scheduled_resume"
 
       assert DateTime.compare(
@@ -1089,7 +1097,11 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: cancelled_delivery.id})
 
-      assert {:ok, explanation} = Traces.explain_delivery(cancelled_delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(cancelled_delivery.id,
+                 tenant_id: cancelled_delivery.tenant_id
+               )
+
       assert explanation.status == :cancelled
       assert explanation.suppression_reason == "superseded"
       assert explanation.last_attempt == nil
@@ -1179,7 +1191,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           )
         )
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.render_key == "test.lifecycle_rendered_email.email"
       assert explanation.render_version == 3
       refute Map.has_key?(Map.from_struct(explanation), :render_data)
@@ -1251,7 +1265,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert recovered.metadata["recovery_reason"] == "stuck_after_trigger"
       assert recovered.metadata["recovered_at"] == "2026-01-15T12:30:00.000000Z"
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.status == :succeeded
       assert Enum.any?(explanation.timeline, &(&1.event == :delivery_planned))
 

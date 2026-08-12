@@ -418,7 +418,10 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       assert waiting_run.pending_signals == ["chimeway.notification.read"]
       assert waiting_run.status_reason == "waiting_for_step_progression"
 
-      assert :ok = Chimeway.mark_read(notification.id, notification.recipient_identity)
+      assert :ok =
+               Chimeway.mark_read(notification.id, notification.recipient_identity,
+                 tenant_id: notification.tenant_id
+               )
 
       assert [%{args: %{"signal_id" => signal_id}}] =
                all_enqueued(worker: SignalRouterWorker)

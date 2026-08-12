@@ -493,7 +493,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     try do
     {:ok, result} = Chimeway.trigger(ArtifactConsumer.Notifiers.CoreTrace, %{user_id: "proof-user"}, tenant_id: "artifact-proof-tenant", idempotency_key: "artifact-core-proof-v1")
     [delivery_id] = result.trace.delivery_ids
-    {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id)
+    {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id, tenant_id: "artifact-proof-tenant")
     timeline_events = Enum.map(explanation.timeline, & &1.event)
     required_events = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
     ordered? = Enum.reduce_while(timeline_events, required_events, fn event, remaining -> case remaining do [^event | rest] -> {:cont, rest}; _ -> {:cont, remaining} end end) == []
@@ -577,7 +577,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
       {:ok, result} = Chimeway.trigger(ArtifactConsumer.Notifiers.MailglassProof, %{}, tenant_id: "artifact-proof-tenant", idempotency_key: "artifact-mailglass-proof-v1")
       [delivery_id] = result.trace.delivery_ids
-      {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id)
+      {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id, tenant_id: "artifact-proof-tenant")
       timeline_events = Enum.map(explanation.timeline, & &1.event)
       required_events = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
       ordered? = Enum.reduce_while(timeline_events, required_events, fn event, remaining -> case remaining do [^event | rest] -> {:cont, rest}; _ -> {:cont, remaining} end end) == []

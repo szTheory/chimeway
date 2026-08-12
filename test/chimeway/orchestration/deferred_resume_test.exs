@@ -230,7 +230,11 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
 
       assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: cancelled_delivery.id})
 
-      assert {:ok, explanation} = Traces.explain_delivery(cancelled_delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(cancelled_delivery.id,
+                 tenant_id: cancelled_delivery.tenant_id
+               )
+
       assert explanation.status == :cancelled
       assert explanation.suppression_reason == "superseded"
       assert explanation.last_attempt == nil

@@ -18,10 +18,11 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
     """
 
     use Mailglass.DataCase, async: false
-    use Chimeway.Adapter.ContractTest
 
     @webhook_contract true
     @moduletag :mailglass
+
+    use Chimeway.Adapter.ContractTest
 
     alias Chimeway.Adapters.Mailglass, as: MailglassAdapter
     alias Chimeway.Repo
