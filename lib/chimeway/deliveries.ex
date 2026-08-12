@@ -9,7 +9,7 @@ defmodule Chimeway.Deliveries do
   import Ecto.Changeset, only: [change: 2]
   import Ecto.Query, only: [from: 2]
 
-  alias Chimeway.{Delivery, DeliveryAttempt, Repo, Workflows}
+  alias Chimeway.{Delivery, DeliveryAttempt, Repo, TenantScope, Workflows}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Telemetry
@@ -33,21 +33,23 @@ defmodule Chimeway.Deliveries do
 
     cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
 
-    if scoped_tenant_id(opts) do
-      []
-    else
-      Repo.all(
-        from(e in Event,
-          join: n in Notification,
-          on: n.event_id == e.id,
-          left_join: d in Delivery,
-          on: d.notification_id == n.id,
-          where: e.updated_at <= ^cutoff,
-          group_by: e.id,
-          having: count(d.id) == 0,
-          order_by: [asc: e.updated_at, asc: e.inserted_at]
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        Repo.all(
+          from(e in Event,
+            join: n in Notification,
+            on: n.event_id == e.id and n.tenant_id == ^tenant_id,
+            left_join: d in Delivery,
+            on: d.notification_id == n.id and d.tenant_id == ^tenant_id,
+            where: e.tenant_id == ^tenant_id and e.updated_at <= ^cutoff,
+            group_by: e.id,
+            having: count(d.id) == 0,
+            order_by: [asc: e.updated_at, asc: e.inserted_at]
+          )
         )
-      )
+
+      {:error, _reason} ->
+        []
     end
   end
 
@@ -63,19 +65,22 @@ defmodule Chimeway.Deliveries do
       |> normalize_datetime!()
 
     cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
-    tenant_id = scoped_tenant_id(opts)
 
-    query =
-      from(d in Delivery,
-        where:
-          d.status == :pending and d.orchestration_state == :ready and d.updated_at <= ^cutoff and
-            fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
-        order_by: [asc: d.updated_at, asc: d.inserted_at]
-      )
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        Repo.all(
+          from(d in Delivery,
+            where:
+              d.tenant_id == ^tenant_id and d.status == :pending and
+                d.orchestration_state == :ready and d.updated_at <= ^cutoff and
+                fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+            order_by: [asc: d.updated_at, asc: d.inserted_at]
+          )
+        )
 
-    query
-    |> maybe_scope_delivery_tenant(tenant_id)
-    |> Repo.all()
+      {:error, _reason} ->
+        []
+    end
   end
 
   @doc """
@@ -100,33 +105,35 @@ defmodule Chimeway.Deliveries do
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
     metadata_patch = recovery_metadata_patch(source, reason, now, opts)
-    tenant_id = scoped_tenant_id(opts)
 
-    recovery_query =
-      from(d in Delivery,
-        where:
-          d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :ready and
-            d.updated_at <= ^cutoff and fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
-        update: [
-          set: [
-            metadata:
-              fragment(
-                "COALESCE(?, '{}'::jsonb) || ?::jsonb",
-                d.metadata,
-                ^metadata_patch
-              ),
-            updated_at: ^now
-          ]
-        ]
-      )
-      |> maybe_scope_delivery_tenant(tenant_id)
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        recovery_query =
+          from(d in Delivery,
+            where:
+              d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+                d.orchestration_state == :ready and d.updated_at <= ^cutoff and
+                fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+            update: [
+              set: [
+                metadata:
+                  fragment(
+                    "COALESCE(?, '{}'::jsonb) || ?::jsonb",
+                    d.metadata,
+                    ^metadata_patch
+                  ),
+                updated_at: ^now
+              ]
+            ]
+          )
 
-    {updated_count, _rows} = Repo.update_all(recovery_query, [])
+        case Repo.update_all(recovery_query, []) do
+          {1, _rows} -> {:ok, get_recovery_delivery(delivery_id, tenant_id)}
+          {0, _rows} -> {:noop, get_recovery_delivery(delivery_id, tenant_id)}
+        end
 
-    case {updated_count, tenant_id} do
-      {1, _tenant_id} -> {:ok, get_delivery!(delivery_id)}
-      {0, nil} -> {:noop, get_delivery!(delivery_id)}
-      {0, _scoped_tenant_id} -> {:noop, nil}
+      {:error, _reason} ->
+        {:noop, nil}
     end
   end
 
@@ -160,8 +167,8 @@ defmodule Chimeway.Deliveries do
     older_than = Keyword.get(opts, :older_than, 60)
 
     case begin_recovery(delivery_id, Keyword.put(opts, :now, now)) do
-      {:ok, _claimed_delivery} ->
-        case dispatcher.dispatch_delivery(delivery_id, pre_planned: true, post_commit: true) do
+      {:ok, claimed_delivery} ->
+        case dispatcher.dispatch_delivery(claimed_delivery, pre_planned: true, post_commit: true) do
           {:ok, dispatched_delivery} ->
             {:ok,
              recovery_delivery_result(dispatched_delivery, source, reason, now, :dispatched, opts)}
@@ -171,7 +178,13 @@ defmodule Chimeway.Deliveries do
              recovery_delivery_result(skipped_delivery, source, reason, now, :skipped, opts)}
 
           {:error, reason_term} ->
-            compensate_failed_recovery_claim(delivery_id, now, older_than)
+            compensate_failed_recovery_claim(
+              delivery_id,
+              claimed_delivery.tenant_id,
+              now,
+              older_than
+            )
+
             {:error, reason_term}
         end
 
@@ -201,53 +214,63 @@ defmodule Chimeway.Deliveries do
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
     dispatcher = configured_dispatcher()
-    tenant_id = scoped_tenant_id(opts)
 
-    recoverable_event_ids =
-      opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      recoverable_event_ids =
+        opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
 
-    if event_id in recoverable_event_ids do
-      event = Repo.get!(Event, event_id)
+      if event_id in recoverable_event_ids do
+        event = get_recovery_event(event_id, tenant_id)
 
-      notifications =
-        Repo.all(
-          from(n in Notification,
-            where: n.event_id == ^event_id,
-            order_by: [asc: n.inserted_at, asc: n.id]
+        notifications =
+          Repo.all(
+            from(n in Notification,
+              where: n.event_id == ^event_id and n.tenant_id == ^tenant_id,
+              order_by: [asc: n.inserted_at, asc: n.id]
+            )
           )
-        )
 
-      dispatch_opts = [
-        event_id: event.id,
-        notification_key: event.notification_key,
-        correlation_id: event.correlation_id,
-        post_commit: true,
-        use_persisted_channels: true,
-        use_persisted_orchestration: true,
-        use_persisted_workflow: Keyword.get(opts, :use_persisted_workflow, false)
-      ]
+        dispatch_opts = [
+          event_id: event.id,
+          tenant_id: tenant_id,
+          notification_key: event.notification_key,
+          correlation_id: event.correlation_id,
+          post_commit: true,
+          use_persisted_channels: true,
+          use_persisted_orchestration: true,
+          use_persisted_workflow: Keyword.get(opts, :use_persisted_workflow, false)
+        ]
 
-      with :ok <- maybe_validate_persisted_workflows(notifications, dispatch_opts),
-           {:ok, deliveries_or_results} <- dispatcher.dispatch(notifications, dispatch_opts) do
-        deliveries =
-          deliveries_or_results
-          |> dispatched_deliveries()
-          |> stamp_recovery_metadata(source, reason, now, opts)
+        with :ok <- maybe_validate_persisted_workflows(notifications, dispatch_opts),
+             {:ok, deliveries_or_results} <- dispatcher.dispatch(notifications, dispatch_opts) do
+          deliveries =
+            deliveries_or_results
+            |> dispatched_deliveries()
+            |> stamp_recovery_metadata(tenant_id, source, reason, now, opts)
 
-        {:ok,
+          {:ok,
+           %{
+             event: event,
+             deliveries: deliveries,
+             recovery: recovery_metadata(source, reason, now, opts)
+           }}
+        end
+      else
+        {:noop,
          %{
-           event: event,
-           deliveries: deliveries,
+           event: recoverable_noop_event(event_id, tenant_id),
+           deliveries: [],
            recovery: recovery_metadata(source, reason, now, opts)
          }}
       end
     else
-      {:noop,
-       %{
-         event: recoverable_noop_event(event_id, tenant_id),
-         deliveries: [],
-         recovery: recovery_metadata(source, reason, now, opts)
-       }}
+      {:error, _reason} ->
+        {:noop,
+         %{
+           event: nil,
+           deliveries: [],
+           recovery: recovery_metadata(source, reason, now, opts)
+         }}
     end
   end
 
@@ -337,27 +360,6 @@ defmodule Chimeway.Deliveries do
 
   defp normalize_tenant_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
   defp normalize_tenant_id(value), do: {:error, {:invalid_tenant_id, value}}
-
-  defp scoped_tenant_id(opts) do
-    case Keyword.get(opts, :tenant_id) do
-      value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
-          "" -> nil
-          value -> value
-        end
-
-      _value ->
-        nil
-    end
-  end
-
-  defp maybe_scope_delivery_tenant(query, nil), do: query
-
-  defp maybe_scope_delivery_tenant(query, tenant_id) do
-    from(d in query, where: d.tenant_id == ^tenant_id)
-  end
 
   defp normalize_actor_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
   defp normalize_actor_id(value), do: {:error, {:invalid_actor_id, value}}
@@ -887,8 +889,7 @@ defmodule Chimeway.Deliveries do
     }
   end
 
-  defp recoverable_noop_event(event_id, nil), do: Repo.get!(Event, event_id)
-  defp recoverable_noop_event(_event_id, _scoped_tenant_id), do: nil
+  defp recoverable_noop_event(event_id, tenant_id), do: get_recovery_event(event_id, tenant_id)
 
   defp recovery_metadata(source, reason, recovered_at, opts) do
     %{
@@ -903,13 +904,14 @@ defmodule Chimeway.Deliveries do
     )
   end
 
-  defp compensate_failed_recovery_claim(delivery_id, now, older_than) do
+  defp compensate_failed_recovery_claim(delivery_id, tenant_id, now, older_than) do
     recoverable_updated_at = recoverable_cutoff!(now, older_than)
 
     Repo.update_all(
       from(d in Delivery,
         where:
-          d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :ready and
+          d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+            d.orchestration_state == :ready and
             not fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
         update: [
           set: [
@@ -925,7 +927,7 @@ defmodule Chimeway.Deliveries do
       []
     )
 
-    get_delivery!(delivery_id)
+    get_recovery_delivery(delivery_id, tenant_id)
   end
 
   defp dispatched_deliveries(deliveries_or_results) do
@@ -936,14 +938,16 @@ defmodule Chimeway.Deliveries do
     end)
   end
 
-  defp stamp_recovery_metadata(deliveries, source, reason, now, opts) do
+  defp stamp_recovery_metadata(deliveries, tenant_id, source, reason, now, opts) do
     delivery_ids = Enum.map(deliveries, & &1.id)
     metadata_patch = recovery_metadata_patch(source, reason, now, opts)
 
     if delivery_ids != [] do
       Repo.update_all(
         from(d in Delivery,
-          where: d.id in ^delivery_ids and fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+          where:
+            d.id in ^delivery_ids and d.tenant_id == ^tenant_id and
+              fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
           update: [
             set: [
               metadata:
@@ -961,8 +965,19 @@ defmodule Chimeway.Deliveries do
     end
 
     Repo.all(
-      from(d in Delivery, where: d.id in ^delivery_ids, order_by: [asc: d.channel, asc: d.id])
+      from(d in Delivery,
+        where: d.id in ^delivery_ids and d.tenant_id == ^tenant_id,
+        order_by: [asc: d.channel, asc: d.id]
+      )
     )
+  end
+
+  defp get_recovery_delivery(delivery_id, tenant_id) do
+    Repo.one(from(d in Delivery, where: d.id == ^delivery_id and d.tenant_id == ^tenant_id))
+  end
+
+  defp get_recovery_event(event_id, tenant_id) do
+    Repo.one(from(e in Event, where: e.id == ^event_id and e.tenant_id == ^tenant_id))
   end
 
   defp recovery_metadata_patch(source, reason, now, opts) do

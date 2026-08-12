@@ -234,6 +234,8 @@ defmodule Chimeway.Orchestration.RecoveryTest do
     previous_workflow_probe =
       Application.get_env(:chimeway, ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe, [])
 
+    previous_compatibility = Application.get_env(:chimeway, :single_tenant_compatibility)
+
     Application.put_env(:chimeway, :dispatcher, Chimeway.Orchestration.RecoveryDispatcherStub)
 
     Application.put_env(:chimeway, Chimeway.Orchestration.RecoveryDispatcherStub,
@@ -254,6 +256,8 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       test_pid: self(),
       workflow_mode: :allow
     )
+
+    Application.put_env(:chimeway, :single_tenant_compatibility, tenant_id: "default")
 
     on_exit(fn ->
       Application.put_env(:chimeway, :dispatcher, previous_dispatcher)
@@ -281,6 +285,12 @@ defmodule Chimeway.Orchestration.RecoveryTest do
         ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe,
         previous_workflow_probe
       )
+
+      if is_nil(previous_compatibility) do
+        Application.delete_env(:chimeway, :single_tenant_compatibility)
+      else
+        Application.put_env(:chimeway, :single_tenant_compatibility, previous_compatibility)
+      end
     end)
 
     :ok
@@ -305,7 +315,11 @@ defmodule Chimeway.Orchestration.RecoveryTest do
           recipient_identity: "user:recovery-scoped-event",
           recipient_type: "user",
           metadata: %{},
-          render_assigns: %{},
+          render_assigns: %{
+            "subject" => "Recovery scoped event",
+            "html_body" => "<p>Recovery scoped event</p>",
+            "text_body" => "Recovery scoped event"
+          },
           render_channels: %{"email" => %{"render_key" => "test", "render_version" => 1}},
           updated_at: ~U[2026-01-15 11:00:00.000000Z]
         })
@@ -490,6 +504,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:ok, recovery} =
                Deliveries.recover_event(event.id,
+                 tenant_id: "acme",
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -568,6 +583,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:ok, recovery} =
                Deliveries.recover_event(event.id,
+                 tenant_id: "acme",
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
