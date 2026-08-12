@@ -9,13 +9,15 @@ defmodule ChimewayAdmin.Live.HealthLive do
   @impl true
   def mount(_params, _session, socket) do
     context = socket.assigns[:chimeway_admin_context]
+    outcome_opts = Context.read_opts(context)
+    problem_opts = Context.read_opts(context, limit: 25)
+    recovery_opts = Context.read_opts(context, limit: 25)
 
     {:ok,
      assign(socket,
-       outcomes: Chimeway.admin_outcome_totals(Context.read_opts(context)),
-       problems: Chimeway.admin_recent_problem_deliveries(Context.read_opts(context, limit: 25)),
-       recovery_candidates:
-         Chimeway.admin_recovery_candidates(Context.read_opts(context, limit: 25))
+       outcomes: Chimeway.admin_outcome_totals(outcome_opts),
+       problems: Chimeway.admin_recent_problem_deliveries(problem_opts),
+       recovery_candidates: Chimeway.admin_recovery_candidates(recovery_opts)
      )}
   end
 

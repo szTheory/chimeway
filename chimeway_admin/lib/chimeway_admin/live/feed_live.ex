@@ -14,12 +14,13 @@ defmodule ChimewayAdmin.Live.FeedLive do
   @impl true
   def handle_event("search", %{"recipient_id" => recipient_id}, socket) do
     recipient_id = String.trim(recipient_id || "")
+    context = socket.assigns[:chimeway_admin_context]
 
     rows =
       if recipient_id == "",
         do: [],
         else:
-          socket.assigns[:chimeway_admin_context]
+          context
           |> Context.read_opts(limit: 50)
           |> Keyword.put(:recipient_id, recipient_id)
           |> Chimeway.admin_feed()

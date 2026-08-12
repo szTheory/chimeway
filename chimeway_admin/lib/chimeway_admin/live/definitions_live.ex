@@ -8,7 +8,9 @@ defmodule ChimewayAdmin.Live.DefinitionsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    opts = Context.read_opts(socket.assigns[:chimeway_admin_context], limit: 100)
+    context = socket.assigns[:chimeway_admin_context]
+    opts = Context.read_opts(context, limit: 100)
+
     {:ok, assign(socket, definitions: Chimeway.admin_definitions(opts))}
   end
 

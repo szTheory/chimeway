@@ -28,12 +28,9 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
 
   test "renders DB-inferred persisted definition copy and facts", %{conn: conn} do
     _delivery = definition_delivery(tenant_id: "tenant-definitions-a")
+    conn = Plug.Test.init_test_session(conn, session("tenant-definitions-a"))
 
-    {:ok, _view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
-        session: session("tenant-definitions-a"),
-        on_mount: [{ChimewayAdmin.LiveAuth, :view_definitions}]
-      )
+    {:ok, _view, html} = live(conn, "/definitions")
 
     assert html =~ @description
     assert html =~ "Definitions seen in this app"
@@ -46,11 +43,9 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
   test "empty state describes persisted notification history without registry claims", %{
     conn: conn
   } do
-    {:ok, _view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
-        session: session("tenant-definitions-a"),
-        on_mount: [{ChimewayAdmin.LiveAuth, :view_definitions}]
-      )
+    conn = Plug.Test.init_test_session(conn, session("tenant-definitions-a"))
+
+    {:ok, _view, html} = live(conn, "/definitions")
 
     assert html =~ @description
     assert html =~ "Definitions seen in this app"
@@ -75,11 +70,9 @@ defmodule ChimewayAdmin.Live.DefinitionsLiveTest do
         notification_key: "definitions.shared.tenant"
       )
 
-    {:ok, _view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
-        session: session("tenant-definitions-a"),
-        on_mount: [{ChimewayAdmin.LiveAuth, :view_definitions}]
-      )
+    conn = Plug.Test.init_test_session(conn, session("tenant-definitions-a"))
+
+    {:ok, _view, html} = live(conn, "/definitions")
 
     assert html =~ "definitions.shared.tenant"
     refute html =~ "<td>2</td>"

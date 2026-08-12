@@ -8,7 +8,9 @@ defmodule ChimewayAdmin.Live.DashboardLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    opts = Context.read_opts(socket.assigns[:chimeway_admin_context], limit: 8)
+    context = socket.assigns[:chimeway_admin_context]
+    opts = Context.read_opts(context, limit: 8)
+
     {:ok, assign(socket, :snapshot, Chimeway.admin_command_center(opts))}
   end
 
