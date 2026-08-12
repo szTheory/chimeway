@@ -1,116 +1,154 @@
-# Technology Stack: Chimeway v1.17 Adopter Proof Paths
+# Stack Research
 
-**Project:** Chimeway
-**Researched:** 2026-08-08
-**Confidence:** MEDIUM — recommendations are verified against the current repository and official Hex, Phoenix, and GitHub Actions documentation. The exact public-package availability of the Accrue Chimeway engine still needs a release-time check.
+**Domain:** APNs-first mobile push delivery for Adopter Alpha
+**Researched:** 2026-08-11
+**Confidence:** HIGH
 
 ## Recommendation
 
-Add a small, committed **clean-room fixture host** plus a root-owned proof runner. Keep it separate from `examples/chimeway_demo_host`: that example intentionally uses `{:chimeway, path: "../.."}` and local package paths, which is right for development but cannot demonstrate what an adopter receives from a release artifact.
+Add a thin APNs adapter backed by **Pigeon `~> 2.0`** (current published release: 2.0.1), but keep it an optional Chimeway integration. The host owns registration-token storage, installation state, identity binding, and CrossWake open-intent state; Chimeway owns durable planning, per-installation fanout, provider attempt history, error classification, and explainability.
 
-The runner should build the root package with `MIX_ENV=prod mix hex.build --unpack --output <temporary-package-root>`, copy a fixture host into a newly created temporary directory, point only that host's `:chimeway` dependency at the unpacked package root, then run `mix deps.get`, `mix compile`, `mix chimeway.gen.migrations`, `mix ecto.migrate`, and scenario-specific ExUnit assertions. This is the smallest reliable pre-publish proof: it exercises the package manifest and file list while keeping the host outside the source tree.
-
-Hex documents `mix hex.build --unpack` specifically for checking a package's unpacked contents; it also documents that non-Hex dependencies are not included in published dependency resolution. An unpacked local package is therefore the correct pre-release artifact boundary. A normal root `path: "../.."` dependency is not.
+Pigeon is the correct boundary because APNs requires HTTP/2, TLS, JWT provider-token authentication, persistent connections, and response-level failure handling. Chimeway should not reimplement that protocol stack. Configure a host-owned `Pigeon.Dispatcher`; the Chimeway adapter creates exactly one APNs request for one resolved opaque endpoint reference, then converts Pigeon's response into Chimeway's existing `:temporary | :permanent | :bounced` result contract.
 
 ## Recommended Stack
 
-### Core Fixture and Artifact Tooling
+### Core Technologies
 
-| Technology | Version / constraint | Purpose | Why |
-|---|---:|---|---|
-| Elixir / Mix | Chimeway floor `~> 1.17`; CI's existing strict toolchain | Build the package and execute fixture proofs | Matches supported adopters and reuses the repository's floor coverage. Do not make the proof require a newer Elixir solely for fixture convenience. |
-| Hex | Current version supplied by `mix local.hex --force` | `mix hex.build --unpack` local-release artifact | Validates the exact files and dependency metadata the release would publish, without publishing or using credentials. |
-| Minimal Phoenix + Ecto host fixture | Phoenix `~> 1.7`/supported current Phoenix; PostgreSQL | Fresh adopter-shaped host with a repo, application supervision, config, migrations, and tests | Chimeway's documented path is Phoenix/Ecto/Postgres. Retain a tiny API/no-assets host, not a second full demo application. Phoenix supports generating a PostgreSQL project and `--no-assets`/`--no-html` for this purpose. |
-| PostgreSQL service | `postgres:15` | Fixture database in CI | Already the project's supported CI database. A separate fresh database per fixture invocation proves migration/install behavior without sharing the root test schema. |
-| ExUnit | built in | Assert durable outcomes | Directly asserts the promised adopter outcomes: trigger + `explain_delivery/1`; Mailglass attempt/render result; Accrue campaign start and invoice-paid termination. Avoid browser, sleep, or provider-network tests. |
-| Bash root proof runner | POSIX shell; no new package | Assemble temp directories, inject local artifact dependency, run commands | Existing aliases and CI already use shell orchestration. A short checked-in script is more transparent than adding a task-runner dependency. It must use `mktemp -d`, have a cleanup trap, and print retained path on failure. |
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| Chimeway adapter + dispatch spine | Existing, Elixir `~> 1.17` | Durable per-installation delivery/attempt records and retry classification | The executor already selects per-channel adapters and preserves the error class into durable attempts; Oban retries only temporary errors. Extend this spine rather than create a push-specific queue. |
+| Pigeon | `~> 2.0` (2.0.1) | APNs HTTP/2 client, connection dispatcher, JWT/certificate auth, response normalization | Purpose-built Elixir APNs implementation. Its current API supports APNs token authentication, persistent dispatchers, sandbox/prod selection, URI override for tests, and APNs response symbols. |
+| Apple Push Notification service | HTTP/2 provider API | iOS push provider | Apple’s official API requires HTTP/2 and TLS 1.2+, supports token-based provider authentication, and returns an `apns-id` for observability. Use token authentication (`.p8`, `kid`, team ID), not certificate lifecycle by default. |
+| Oban | Existing optional `~> 2.x` | Retry scheduling and durable job execution | Existing worker behavior already retries temporary outcomes and records terminal permanent/bounced failure without retry. APNs classifications fit it directly. |
+| Host-owned endpoint/open registry | Existing host application database | Opaque endpoint lookup, installation state, deactivation, one-time opens | Keeps raw APNs device tokens and business identity out of Chimeway. CrossWake’s companion contracts already model opaque installation, token, binding, provider/platform/environment, and one-time-open refs. |
 
-### Partner Dependencies
+### Supporting Libraries
 
-| Library | Constraint | Use in fixture | Boundary |
-|---|---:|---|---|
-| `mailglass` | `~> 1.3` | Installed from Hex in the Mailglass scenario; host owns the mailable mapping | This is a true package consumer path. Use its non-network/local delivery setup already demonstrated by the repository; do not add a real provider SDK or credentials. |
-| `accrue` | Production constraint documented as `~> 1.3`; integration ref pinned in CI | Billing-event scenario | Treat this separately from Chimeway's local artifact. The current `verify.accrue` uses a pinned external checkout because its integration module is conditionally compiled. A package-only fixture is credible only after verifying that the selected Accrue package release exports `Accrue.Integrations.Chimeway`. |
-| `oban` | existing compatible `~> 2.x` | Add only if the tested Chimeway application path starts workers | Keep the fixture aligned with the documented optional worker surface. Do not introduce Oban Pro, queues, or separate worker infrastructure merely to make the proof look production-like. |
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| `pigeon` | `~> 2.0` | APNs integration implementation | Only in an APNs-enabled Chimeway host/integration package. Declare optional and conditionally compile the adapter, as with the Mailglass integration. |
+| ExUnit | Built in | Hermetic digital-twin verification | Always: classify all APNs responses, assert payload/header construction, redaction, expiry behavior, binding deactivation, and one-time open outcomes. |
+| Explicit fake APNs transport/dispatcher facade | Project code; no package | Deterministic APNs twin | Default unit/integration proof. It avoids provider network calls while exercising Chimeway’s public adapter/registry boundaries. |
+| Mox | Do not add initially | Optional behaviour mock generator | Only if explicit transport fakes become repetitive. The existing adapter contract/fake approach is clearer and remains async-safe without another dependency. |
 
-## Fixture Topology
+### Development Tools
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| Existing `Chimeway.Adapter.ContractTest` | Contract guard for APNs adapter | Extend it with APNs-specific fixtures/outcomes; retain its no-sensitive-meta checks. |
+| Pigeon `:uri` config | Focused HTTP integration seam | Use only where a genuine HTTP/2 local fixture is available; it is not the primary digital twin. |
+| Physical iPhone sandbox proof | Release evidence | Verify device registration, sandbox push acceptance/observation, and replay rejection separately from CI. Never place tokens or Apple credentials in test fixtures or CI logs. |
+
+## Installation
+
+```elixir
+# mix.exs — optional APNs adapter dependency
+{:pigeon, "~> 2.0", optional: true}
+```
+
+```elixir
+# host config — values loaded from the host's runtime secret source
+config :adopter_alpha, AdopterAlpha.APNS,
+  adapter: Pigeon.APNS,
+  key: System.fetch_env!("APNS_AUTH_KEY_P8"),
+  key_identifier: System.fetch_env!("APNS_KEY_ID"),
+  team_id: System.fetch_env!("APNS_TEAM_ID"),
+  mode: :prod
+
+config :chimeway,
+  channel_adapters: %{"push" => Chimeway.Adapters.APNS},
+  channel_adapter_configs: %{
+    "push" => [dispatcher: AdopterAlpha.APNS, topic: "host.bundle.id"]
+  }
+```
+
+Do not treat the example secret-loading form as an instruction to store credentials in Chimeway config or delivery metadata. The host owns secret resolution and supervisor startup.
+
+## Integration Pattern
 
 ```
-root source
-  └─ mix hex.build --unpack ──> temporary/chimeway-<version>/  (artifact boundary)
-
-committed fixtures/adopter_proof_host/ ──copy──> temporary/host/
-  ├─ core:      {:chimeway, path: temporary/chimeway-<version>}
-  ├─ mailglass: same Chimeway artifact + {:mailglass, "~> 1.3"}
-  └─ accrue:    same Chimeway artifact + selected Accrue package/ref
-                              │
-                              └─ PostgreSQL 15 service, unique database/schema
+host registry resolves opaque endpoint ref
+  -> one Chimeway delivery per active installation binding
+  -> Chimeway.Adapters.APNS resolves raw token only at send boundary
+  -> host-owned Pigeon dispatcher sends APNs request
+  -> adapter returns redacted APNs result
+  -> Chimeway records attempt and Oban retries/converges
+  -> CrossWake open evidence atomically consumes one-time open_ref
 ```
 
-Use one fixture application with three tagged test files or three explicit scenario commands, not three generated Phoenix applications. The host must contain only the configuration and notifier/mailable/billing scaffolding needed for the tracer bullets. It should not mount `chimeway_admin`, build assets, run a web server, or use the repository's demo-host seed suite.
+For every request, set a stable APNs topic, `apns-push-type: alert`, and `apns-id` equal to the Chimeway delivery UUID. Store only the returned APNs ID and compact response class/reason. The APNs `apns-expiration` must be bounded by the server-side CrossWake open-intent expiry; choose `0` for no offline storage or a Unix timestamp no later than intent expiry when delayed delivery is intended. APNs acceptance is not proof that the device displayed the notification or opened it.
 
-The fixture's `mix.exs` should accept only an explicit `CHIMEWAY_PACKAGE_PATH` supplied by the runner and fail if it is missing. This makes accidental fallback to the checked-out root impossible. The runner should also assert that the resolved `:chimeway` dependency path is under its temporary unpacked directory, and that no fixture dependency path resolves beneath the Chimeway checkout.
+Map Pigeon responses as follows:
 
-## CI Integration
+| APNs/Pigeon result | Chimeway result | Registry action |
+|--------------------|-----------------|-----------------|
+| `:success` | `{:ok, redacted_meta}` | none |
+| `:bad_device_token`, `:device_token_not_for_topic`, `:expired_token`, `:unregistered` | `{:error, :bounced, compact_detail}` | atomically deactivate/supersede that binding; no retry |
+| `:timeout`, `:too_many_requests`, `:internal_server_error`, `:service_unavailable`, `:shutdown` | `{:error, :temporary, compact_detail}` | retain binding; Oban backoff retry |
+| malformed payload/topic/auth/config and other non-recoverable request errors | `{:error, :permanent, compact_detail}` | retain or flag configuration; no retry |
 
-| Capability | Recommendation | Integration point |
-|---|---|---|
-| Local command | Add `mix verify.adopter_proofs` delegating to the root runner | Parallel to existing named `verify.*` aliases; documentation uses exactly this command. |
-| CI lane | One `verify_adopter_proofs` Ubuntu job with `postgres:15`, health checks, `DATABASE_URL`, `mix local.hex`, `mix local.rebar`, and the strict `.tool-versions` setup | Mirror `verify_mailglass` / `verify_accrue`, but run the artifact producer before entering the fixture. Gate on push/main first; include in PR gate only if the project explicitly accepts its dependency-install cost. |
-| Scenario separation | Run core and Mailglass from Hex in the normal job; run Accrue as a distinct named scenario/sub-step | Its extra compatibility boundary must be visible in logs and cannot make the core installation proof look source-coupled. |
-| Diagnostics | On failure, upload the unpacked package file list, fixture `mix.lock`, `mix deps.tree`, migration output, and scenario log as one failure-only artifact | GitHub Actions artifacts are meant to persist/share test output. Do not upload databases, secrets, or telemetry payloads. |
-| Cache | Cache only downloaded Hex deps for the runner/fixture keyed by fixture `mix.exs`/`mix.lock`, BEAM versions, and scenario | Never cache the generated package directory, fixture `_build`, or copied host directory; those are the clean-room boundary. |
-| Contract protection | Extend existing doc/release contract tests to require every canonical guide command to map to `verify.adopter_proofs` and a CI job | Prevents the new front-door guidance from drifting back to source-only `verify.example`/`verify.accrue` commands. |
+An `ExpiredProviderToken` needs provider-token refresh/reconnect rather than a new device endpoint; classify the immediate attempt as temporary only if the Pigeon integration can safely refresh credentials before the current open intent expires. Otherwise make it permanent and surface an operator configuration incident. This choice must be covered by the APNs adapter’s explicit contract tests.
 
 ## Alternatives Considered
 
-| Category | Recommended | Alternative | Why not |
-|---|---|---|---|
-| Pre-release package proof | `mix hex.build --unpack` then external copied host | Host path dependency to repository root | It bypasses package contents and can pass when generated migrations/guides/priv files are absent from the release. |
-| Fresh-host construction | Commit one small, reviewable Phoenix/Ecto fixture | Run `mix phx.new` during every CI job | Generator output/version drift turns the proof into a Phoenix-installer test and makes failures less attributable. Use generated-host creation only for a periodic compatibility smoke if later justified. |
-| Core/Mailglass proof | Unpacked Chimeway artifact + Hex Mailglass | Full demo host | The demo host also links local Chimeway admin/inbox code and has broader UI/journey obligations outside this milestone. |
-| Accrue proof today | Explicit external compatibility fixture at the pinned ref, labelled as such | Claim current path-checkout test is a package-only adopter proof | The current root and demo-host flows set `ACCRUE_PATH`; that is useful integration evidence but not a clean packaged proof. |
-| Accrue proof when released | Resolve `{:accrue, "~> 1.3"}` from Hex and assert the engine module is present | Add a local registry, package mirror, or publish prereleases | New distribution infrastructure is disproportionate. The release check supplies the needed artifact boundary. |
-| Orchestration | Existing Mix aliases + one shell runner | New CI/test orchestration framework or Docker Compose | Adds another runtime and obscures the copyable Mix commands adopters need. GitHub Actions service containers already cover Postgres. |
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| Pigeon `~> 2.0` behind Chimeway adapter | Direct Finch/Mint/JWT client | Only if Pigeon demonstrably fails the Elixir 1.17 floor or lacks a required APNs behavior. This option makes Chimeway responsible for JWT rotation, HTTP/2 multiplexing, TLS/GOAWAY lifecycle, and protocol classification. |
+| Host-owned registry behaviour | Chimeway-owned endpoint/token tables | Never for the Alpha production path. It violates local-first host ownership and couples Chimeway to authentication, tenant, and installation semantics. |
+| Explicit deterministic fake | Bypass | Bypass is useful for generic HTTP clients, but a local Plug test does not prove APNs’s required HTTP/2 semantics and its latest published release is old. |
+| APNs only | Generic cross-provider abstraction / FCM | Defer until FCM is an actual adopter requirement. Keep schema/provider fields extensible, but do not add the Firebase SDK, FCM credentials, or Android operational surface now. |
 
-## Compatibility Risks and Required Guards
+## What NOT to Use
 
-1. **Chimeway package vs source tree:** Hex excludes non-Hex dependencies from published resolution. Build under the same release environment used for package creation, and assert the unpacked fixture's `mix deps.tree` has no root path dependency.
-2. **Phoenix version drift:** the existing demo host declares Phoenix `~> 1.7` while current Phoenix documentation is 1.8. Pin the fixture to the project's documented supported Phoenix band; do not silently upgrade the fixture as part of the proof milestone. Add a later compatibility matrix only after a supported-version policy exists.
-3. **Accrue's conditional integration module:** package-only proof is blocked unless the exact Hex release exposes `Accrue.Integrations.Chimeway`. Until verified, retain the pinned-ref compatibility scenario and state its source boundary in both logs and docs. Do not use an unpinned branch checkout.
-4. **Dependency resolver conflicts:** the current demo host pins `decimal ~> 2.0` and `ecto_sql ~> 3.13.0` for the Accrue checkout. Keep those constraints scoped to the Accrue scenario; do not leak overrides into the core/Mailglass fixture where they could hide normal Hex resolution issues.
-5. **False clean-room cache hits:** copied fixture directories must start without `deps`, `_build`, or `mix.lock` unless the fixture intentionally commits a lockfile. The runner must not reuse root `_build` or demo-host caches.
-6. **Unexplainable async flakes:** the tracer bullets should assert persisted terminal/transition states deterministically, using test configuration or existing synchronous seams. Do not poll provider callbacks or sleep for workers.
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| A hand-built APNs provider client | Recreates complex HTTP/2, JWT, connection and GOAWAY correctness obligations | Pigeon behind a small Chimeway adapter/transport seam |
+| Raw device tokens in Chimeway deliveries, attempts, telemetry, or CrossWake evidence | Leaks an endpoint credential and violates the opaque-ref/local-first boundary | Host registry resolves opaque `token_ref` only at send time; retain a non-reversible fingerprint where required |
+| APNs receipt/webhook implementation | APNs provides per-request responses, not delivery-confirmation webhooks | Record `apns-id` and provider acceptance; treat client open evidence as a separate CrossWake flow |
+| APNs `200` as notification-open proof | It confirms provider acceptance only | Atomically consume `open_ref` through the host intent consumer before CrossWake route authorization |
+| FCM/Firebase SDK now | Expands platform, credentials, provider behavior, and test matrix without Alpha value | APNs-first implementation; add a provider only when an adopter requires it |
 
-## What Not to Add
+## Stack Patterns by Variant
 
-- Do not add a second web UI, Playwright/browser lane, inbox live badges, or UI assets.
-- Do not publish to Hex or require a Hex API key during CI.
-- Do not add Docker Compose, Testcontainers, a local Hex registry, or a general-purpose task runner.
-- Do not make external email provider calls, webhook credentials, or real billing accounts part of the proof.
-- Do not replace existing broad `verify.example`, `verify.mailglass`, or `verify.accrue` lanes; the new lane complements them by proving the artifact boundary.
+**If a notification has a one-time CrossWake action:**
+- Set its APNs expiration to no later than the server-side `open_ref` expiry.
+- Because APNs may retain/retry a nonzero-expiry notification, while the open must never become valid after its server intent expires.
 
-## Installation / Runner Shape
+**If the host has multiple active iOS installations for one recipient:**
+- Plan one push delivery per host registry binding and retain the binding reference on each delivery.
+- Because a failure on one token must not suppress delivery to another installation, and APNs invalidation is per token/topic.
 
-```bash
-# root-owned, local and CI entry point (illustrative command sequence)
-mix hex.build --unpack --output "$proof_tmp/chimeway-package"
-cp -R fixtures/adopter_proof_host "$proof_tmp/host"
-cd "$proof_tmp/host"
-CHIMEWAY_PACKAGE_PATH="$proof_tmp/chimeway-package" mix deps.get
-CHIMEWAY_PACKAGE_PATH="$proof_tmp/chimeway-package" mix ecto.create
-CHIMEWAY_PACKAGE_PATH="$proof_tmp/chimeway-package" mix ecto.migrate
-CHIMEWAY_PACKAGE_PATH="$proof_tmp/chimeway-package" mix test test/core_proof_test.exs
-```
+**If the host needs a hermetic twin:**
+- Use the explicit fake facade to return each Pigeon/APNs normalized outcome without network access.
+- Because it validates Chimeway policy, durable attempts, deactivation calls, and CrossWake handoff deterministically; physical-device proof remains release evidence.
 
-The implementation may use a copied fixture `mix.exs` template or a narrowly scoped config import, but the generated host dependency must always resolve to the unpacked directory and never to `../..`.
+## Version Compatibility
+
+| Package A | Compatible With | Notes |
+|-----------|-----------------|-------|
+| Chimeway `~> 1.17` | Elixir 1.17+ / OTP 26+ | Keep Pigeon optional and conditionally compile its adapter so Chimeway core preserves its stated floor. Run an enabled-dependency floor compile/test lane before locking the release constraint. |
+| Pigeon `2.0.1` | Host-owned Pigeon dispatcher, APNs HTTP/2 API | Official docs show token auth, sandbox/prod mode, persistent dispatchers, and response normalization. Validate the enabled combination against Chimeway’s Elixir 1.17 floor in CI. |
+| Chimeway Oban integration | Oban `~> 2.x` | Existing worker retries `:temporary`, completes permanent/bounced terminal outcomes, and records each attempt durably. No new worker technology is needed. |
+| `crosswake_chimeway` | Crosswake companion Elixir `~> 1.19` | Preserve its existing no-new-runtime-dependency boundary. It supplies contracts/resolution semantics; it must not depend on Pigeon or expose raw tokens. |
+
+## Local Evidence
+
+- [Chimeway dependencies](/Users/jon/projects/chimeway/mix.exs:33) — Elixir `~> 1.17`, optional Oban and optional companion pattern.
+- [Adapter contract](/Users/jon/projects/chimeway/lib/chimeway/adapter.ex:12) — runtime config, compact redacted metadata, and three error classes.
+- [Executor integration](/Users/jon/projects/chimeway/lib/chimeway/dispatch/executor.ex:29) — per-channel adapter resolution and durable error classification.
+- [Oban retry contract](/Users/jon/projects/chimeway/lib/chimeway/dispatch/oban_worker.ex:77) — temporary retry versus terminal permanent/bounced convergence.
+- [CrossWake binding contract](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex:138) — opaque installation/token/binding fields and lifecycle timestamps.
+- [CrossWake one-time open evidence](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex:246) and [resolver](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/resolver.ex:20) — host intent consumption precedes route authorization.
 
 ## Sources
 
-- [Hex: `mix hex.build`](https://hex.hexdocs.pm/Mix.Tasks.Hex.Build.html) — `--unpack` package-content verification and non-Hex dependency behavior (MEDIUM, official).
-- [Hex: `mix hex.publish`](https://hex.hexdocs.pm/Mix.Tasks.Hex.Publish.html) — package dependency resolution limits for non-Hex dependencies (MEDIUM, official).
-- [Phoenix: `mix phx.new`](https://phoenix.hexdocs.pm/Mix.Tasks.Phx.New.html) — generated project, PostgreSQL, and no-assets/no-html options (MEDIUM, official).
-- [Phoenix installation](https://phoenix.hexdocs.pm/installation.html) — Phoenix/Elixir compatibility baseline (MEDIUM, official).
-- [GitHub Actions: PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers) — Linux runner, health checks, and host access (MEDIUM, official).
-- [GitHub Actions: workflow artifacts](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflow-artifacts) — failure diagnostics retention (MEDIUM, official).
-- Repository evidence: `mix.exs`, `examples/chimeway_demo_host/mix.exs`, `.github/workflows/ci.yml`, and the three canonical adopter guides (HIGH for current project state).
+- [Pigeon APNS 2.0.1 official docs](https://pigeon.hexdocs.pm/Pigeon.APNS.html) — dispatcher startup, token authentication, sandbox/prod, URI test override, and synchronous send behavior.
+- [Pigeon APNS notification API](https://pigeon.hexdocs.pm/Pigeon.APNS.Notification.html) — supported response classes and request fields including `id`, expiration, priority, push type, and topic.
+- [Pigeon package on Hex](https://hex.pm/packages/pigeon) — current published version 2.0.1.
+- [Apple: Sending notification requests to APNs](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns?changes=_3_4) — HTTP/2/TLS, required headers, payload limit, expiry semantics, connection reuse, and `apns-id` tracking.
+- [Apple: Handling notification responses from APNs](https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns?changes=_7) — definitive non-retry, delayed retry, and 5xx-backoff response guidance.
+- [Bypass package](https://hex.pm/packages/bypass) — scope as generic HTTP mock server and release information.
+
+---
+*Stack research for: Chimeway v1.18 Adopter Alpha Mobile Delivery Readiness*
+*Researched: 2026-08-11*
