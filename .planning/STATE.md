@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
-status: planning
-stopped_at: Phase 97 context gathered (assumptions mode)
-last_updated: "2026-08-12T02:48:35.426Z"
-last_activity: 2026-08-11 — v1.18 roadmap created; Phase 97 is ready for planning
+current_phase: 97
+current_phase_name: Tenant Identity & Compatible Upgrade
+status: executing
+stopped_at: Completed 97-01-PLAN.md
+last_updated: "2026-08-12T15:11:50.976Z"
+last_activity: 2026-08-12
+last_activity_desc: Phase 97 execution started
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 8
+  completed_plans: 1
   percent: 0
 ---
 
@@ -25,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 
 ## Current Position
 
-Phase: 97 of 103 (Tenant Identity & Compatible Upgrade)
-Plan: —
-Status: Ready for planning
-Last activity: 2026-08-11 — v1.18 roadmap created; Phase 97 is ready for planning
+Phase: 97 (Tenant Identity & Compatible Upgrade) — EXECUTING
+Plan: 2 of 8
+Status: Ready to execute
+Last activity: 2026-08-12 — Phase 97 execution started
 
 ## Deferred Items
 
@@ -299,6 +302,8 @@ status: complete
 - [Phase ?]: [96-04]: Adoption archive validation hashes and extracts one bounded immutable binary, with explicit outer/compressed/expanded/member budgets before materialization.
 - [Phase ?]: [96.1-01]: Archive metadata is parsed in-memory with a bounded binary-only canonical Hex grammar; no source-term parser or input-derived atom conversion is permitted.
 - [Phase ?]: [96.1-01]: Caller-supplied SHA-256 remains an immutable-byte integrity check, while callback execution remains gated after metadata, archive-root, and version validation.
+- [Phase ?]: [97-01] Tenant identity is immutable on new events and notifications; legacy ownership remains NULL until reconciliation.
+- [Phase ?]: [97-01] Trace entrypoints resolve one explicit or configured compatibility tenant before every lifecycle query.
 
 ### Roadmap Evolution
 
@@ -619,9 +624,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T02:48:35.419Z
-Stopped at: Phase 97 context gathered (assumptions mode)
-Resume file: .planning/phases/97-tenant-identity-compatible-upgrade/97-CONTEXT.md
+Last session: 2026-08-12T15:11:50.965Z
+Stopped at: Completed 97-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -723,3 +728,4 @@ Resume file: .planning/phases/97-tenant-identity-compatible-upgrade/97-CONTEXT.m
 | Phase 96-adoption-front-door-proof-gate P04 | 18 min | 2 tasks | 2 files |
 | Phase 96-adoption-front-door-proof-gate P05 | 25m | 2 tasks | 3 files |
 | Phase 96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing P01 | 8 min | 3 tasks | 2 files |
+| Phase 97-tenant-identity-compatible-upgrade P01 | 24 min | 2 tasks | 11 files |
