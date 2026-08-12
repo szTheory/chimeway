@@ -29,3 +29,4 @@ created priv/repo/migrations/TIMESTAMP_add_adapter_module_to_chimeway_delivery_a
 created priv/repo/migrations/TIMESTAMP_add_provider_message_id_to_delivery_attempts.exs
 created priv/repo/migrations/TIMESTAMP_add_tenant_and_actor_to_chimeway_deliveries.exs
 created priv/repo/migrations/TIMESTAMP_create_chimeway_webhook_ingress.exs
+created priv/repo/migrations/TIMESTAMP_add_tenant_identity_to_events_and_notifications.exs
