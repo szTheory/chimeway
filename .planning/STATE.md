@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 98
 current_phase_name: privacy-safe-delivery-evidence
 status: executing
-stopped_at: Completed 98-01-PLAN.md
-last_updated: "2026-08-12T23:51:08.729Z"
+stopped_at: Completed 98-02-PLAN.md
+last_updated: "2026-08-12T23:57:14.370Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 98 execution started
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 16
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 98 (privacy-safe-delivery-evidence) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 98 execution started
 
@@ -330,6 +330,8 @@ status: complete
 - [Phase ?]: [98-01]: Provider diagnostics persist only the provider_code, retry_after_ms, and accepted_at fact vocabulary.
 - [Phase ?]: [98-01]: Opaque provider references must be caller-supplied cw_-prefixed bounded identifiers; raw provider IDs are not retained.
 - [Phase ?]: [98-01]: Recursive comparison canonicalizes case and separators while retaining allowed original keys and list order.
+- [Phase ?]: [98-02]: Trigger persists only validated host-supplied cw_ recipient and correlation references; raw recipient maps remain callback-only.
+- [Phase ?]: [98-02]: Inbox resolves tenant scope then validates the opaque recipient reference for every read, transition, reload, and signal.
 
 ### Roadmap Evolution
 
@@ -650,8 +652,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T23:51:08.720Z
-Stopped at: Completed 98-01-PLAN.md
+Last session: 2026-08-12T23:57:14.361Z
+Stopped at: Completed 98-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -769,3 +771,4 @@ Resume file: None
 | Phase 97-tenant-identity-compatible-upgrade P13 | 18 min | 2 tasks | 14 files |
 | Phase 97-tenant-identity-compatible-upgrade P14 | 16 min | 2 tasks | 5 files |
 | Phase 98 P01 | 8 min | 2 tasks | 6 files |
+| Phase 98-privacy-safe-delivery-evidence P02 | 12 min | 2 tasks | 9 files |
