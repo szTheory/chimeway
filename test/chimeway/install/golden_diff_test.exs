@@ -48,7 +48,7 @@ defmodule Chimeway.Install.GoldenDiffTest do
 
         stdout = InstallerFixture.normalize_stdout(stdout)
 
-        assert_map_size(tree, 31)
+        assert_map_size(tree, 32)
         assert_no_chimeway_repo_migrations!(tree)
         refute Enum.any?(Map.keys(tree), &String.contains?(&1, "create_oban_jobs_tables"))
         assert_chimeway_migration_markers!(tree)
@@ -104,6 +104,8 @@ defmodule Chimeway.Install.GoldenDiffTest do
     assert joined =~ ~S(CREATE SCHEMA IF NOT EXISTS #{@chimeway_prefix})
     assert joined =~ "chimeway_relation(:chimeway_delivery_attempts)"
     assert joined =~ ~S|~s("#{@chimeway_prefix}"."chimeway_delivery_attempts")|
+    assert joined =~ "add_tenant_identity_to_events_and_notifications"
+    refute joined =~ "tenant-derived prefix"
     refute joined =~ "@chimeway_prefix false"
   end
 
@@ -111,6 +113,8 @@ defmodule Chimeway.Install.GoldenDiffTest do
     joined = joined_tree(tree)
 
     assert joined =~ "@chimeway_prefix false"
+    assert joined =~ "add_tenant_identity_to_events_and_notifications"
+    refute joined =~ "tenant-derived prefix"
     refute joined =~ ~s(@chimeway_prefix "chimeway")
     refute joined =~ "CREATE SCHEMA IF NOT EXISTS chimeway"
     refute joined =~ "prefix: false"
