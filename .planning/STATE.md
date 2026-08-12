@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 97
 current_phase_name: tenant-identity-compatible-upgrade
 status: executing
-stopped_at: Completed 97-13-PLAN.md
-last_updated: "2026-08-12T19:35:43.999Z"
+stopped_at: Completed 97-14-PLAN.md
+last_updated: "2026-08-12T19:53:00.556Z"
 last_activity: 2026-08-12
 last_activity_desc: Completed 97-12 tenant isolation gap plan
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 14
-  completed_plans: 13
-  percent: 0
+  completed_plans: 14
+  percent: 14
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 ## Current Position
 
 Phase: 97 (tenant-identity-compatible-upgrade) — EXECUTING
-Plan: 13 of 14
+Plan: 14 of 14
 Status: Ready to execute
 Last activity: 2026-08-12 — Completed 97-12 tenant isolation gap plan
 
@@ -325,6 +325,8 @@ status: complete
 - [Phase ?]: [97-12]: Optional delivery joins retain tenant filtering in ON clauses so foreign rows cannot contribute counts or summaries.
 - [Phase ?]: [97-12]: Feed searches invoke LiveAuth.ensure_authorized/3 with only the normalized recipient identifier before database reads.
 - [Phase ?]: [97-13]: Delivery tenant ownership is legacy-nullable; reconciliation locks the full lifecycle tree and updates only explicit host-owned NULL rows.
+- [Phase ?]: [97-14]: Successful host identity mismatches redirect without rebinding mounted authority.
+- [Phase ?]: [97-14]: Machine-testable Inbox acceptance is a required PR lane, not conversational UAT.
 
 ### Roadmap Evolution
 
@@ -645,8 +647,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T19:35:43.987Z
-Stopped at: Completed 97-13-PLAN.md
+Last session: 2026-08-12T19:53:00.541Z
+Stopped at: Completed 97-14-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -762,3 +764,4 @@ Resume file: None
 | Phase 97 P11 | 8 min | 1 tasks | 1 files |
 | Phase 97-tenant-identity-compatible-upgrade P12 | 15 min | 3 tasks | 4 files |
 | Phase 97-tenant-identity-compatible-upgrade P13 | 18 min | 2 tasks | 14 files |
+| Phase 97-tenant-identity-compatible-upgrade P14 | 16 min | 2 tasks | 5 files |
