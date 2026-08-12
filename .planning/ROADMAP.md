@@ -36,7 +36,13 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
   2. A host cannot read or mutate inbox, trace, admin, or recovery state outside the tenant it explicitly supplies.
   3. A legacy single-tenant host continues only after it explicitly enables the compatibility configuration; otherwise formerly unscoped calls fail closed.
   4. An adopter can apply additive migrations, receive ambiguous-row reconciliation evidence, and assign ownership without Chimeway inferring a tenant or changing its static storage prefix.
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 97-01-PLAN.md — Prove explicit tenant identity, composite idempotency, and scoped trace end to end.
+- [ ] 97-02-PLAN.md — Enforce tenant scope across core Inbox, Admin, and recovery operations.
+- [ ] 97-03-PLAN.md — Propagate host-authorized tenant context through optional Phoenix packages.
+- [ ] 97-04-PLAN.md — Deliver non-guessing reconciliation and dual static-mode upgrade proof.
 
 ### Phase 98: Privacy-Safe Delivery Evidence
 **Goal**: Operators can explain delivery behavior without Chimeway retaining or emitting sensitive endpoint, credential, identity, or content data.
