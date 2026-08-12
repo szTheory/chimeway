@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 97
 current_phase_name: Tenant Identity & Compatible Upgrade
 status: executing
-stopped_at: Completed 97-06-PLAN.md
-last_updated: "2026-08-12T15:51:44.560Z"
+stopped_at: Completed 97-07-PLAN.md
+last_updated: "2026-08-12T15:57:55.328Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 97 execution started
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-11 after starting v1.18)
 ## Current Position
 
 Phase: 97 (Tenant Identity & Compatible Upgrade) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 97 execution started
 
@@ -313,6 +313,8 @@ status: complete
 - [Phase ?]: [97-03]: Admin host authorization runs before tenant validation; successful authorization without a concrete tenant still halts.
 - [Phase ?]: [97-03]: Tenant identity remains an explicit core API option, never an Ecto or Oban prefix.
 - [Phase ?]: [97-06]: Event changesets recognize canonical and PostgreSQL-shortened composite idempotency index names.
+- [Phase ?]: [97-07] Recovery resolves tenant scope before discovery and retains it through atomic claims, reloads, and persisted replanning.
+- [Phase ?]: [97-07] Wrong-tenant, absent, and unresolved recovery claims share the established noop outcome without row disclosure or dispatch.
 
 ### Roadmap Evolution
 
@@ -633,8 +635,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-12T15:51:44.548Z
-Stopped at: Completed 97-06-PLAN.md
+Last session: 2026-08-12T15:57:55.310Z
+Stopped at: Completed 97-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -742,3 +744,4 @@ Resume file: None
 | Phase 97-tenant-identity-compatible-upgrade P04 | 12 min | 2 tasks | 4 files |
 | Phase 97-tenant-identity-compatible-upgrade P03 | 22 min | 2 tasks | 13 files |
 | Phase 97-tenant-identity-compatible-upgrade P06 | 15 min | 2 tasks | 12 files |
+| Phase 97-tenant-identity-compatible-upgrade P07 | 5 min | 1 tasks | 4 files |
