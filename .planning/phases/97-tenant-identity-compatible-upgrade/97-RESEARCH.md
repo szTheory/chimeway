@@ -277,19 +277,15 @@ This is a recommended contract shape under the phase's discretion, not an existi
 
 | # | Claim | Section | Risk if Wrong |
 |---|---|---|---|
-| A1 | A JSON report with `schema_version`, per-row IDs, counts, and explicit assignment statement is the best reconciliation interface shape. | Code Examples | Planner may need host feedback on task/API naming and report schema. |
+| A1 | A JSON report with `schema_version`, per-row IDs, counts, and explicit assignment statement is the selected reconciliation interface shape. | Code Examples | Resolved by the plan-selected callable module plus strict JSON Mix task contract below. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **What exact compatibility API preserves source compatibility without weakening fail-closed behavior?**
-   - What we know: It must name one concrete tenant and cannot be a boolean. [VERIFIED: codebase grep]
-   - What's unclear: Whether the project prefers `config :chimeway, single_tenant_compatibility: [tenant_id: ...]` or a more compact key.
-   - Recommendation: Make it an application config nested option with validation/error fields; all old arities invoke the same resolver.
+1. **RESOLVED — What exact compatibility API preserves source compatibility without weakening fail-closed behavior?**
+   - Selected contract: `config :chimeway, :single_tenant_compatibility, tenant_id: "<host-tenant-id>"` is the only compatibility declaration. `Chimeway.TenantScope.resolve/1` gives an explicit nonblank `opts[:tenant_id]` precedence, otherwise accepts only that nested concrete tenant value. Missing scope returns `{:error, :tenant_scope_required}`; a present but malformed compatibility value returns `{:error, :invalid_compatibility_tenant}`. All former unscoped arities invoke this resolver and no boolean or fabricated default is accepted. This is the concrete plan-selected API under D-05/D-06.
 
-2. **How is host reconciliation invoked?**
-   - What we know: Generated migrations are deterministic copied files; ambiguous ownership cannot be inferred. [VERIFIED: codebase grep]
-   - What's unclear: Whether the interface should be a Mix task, callable maintenance module, or both.
-   - Recommendation: Plan a core callable module returning maps plus a thin Mix task that prints JSON, so hosts can automate and test assignment without parsing terminal prose. [ASSUMED]
+2. **RESOLVED — How is host reconciliation invoked?**
+   - Selected contract: `Chimeway.Reconciliation.report/1` returns the versioned JSON-safe ambiguity map and `assign_event_tree/3` performs explicit host-supplied assignment. The strict `Mix.Tasks.Chimeway.ReconcileTenants` wrapper accepts exactly `--report` or the pair `--event-id UUID --tenant-id TENANT`, delegates to the callable module, emits exactly one Jason-encoded JSON object, and raises `Mix.Error` for invalid combinations or failed assignment. This is the concrete plan-selected interface under D-09.
 
 ## Environment Availability
 
