@@ -28,7 +28,7 @@ defmodule Chimeway.Install.IdempotencyTest do
           |> InstallerFixture.snapshot_migrations_tree!()
           |> InstallerFixture.normalize_tree()
 
-        assert map_size(before) == 31
+        assert map_size(before) == 32
 
         {second_stdout, 0} = InstallerFixture.run_install!(root, prefix: context.install_prefix)
 
@@ -38,7 +38,7 @@ defmodule Chimeway.Install.IdempotencyTest do
           |> InstallerFixture.normalize_tree()
 
         assert before == after_tree
-        assert map_size(after_tree) == 31
+        assert map_size(after_tree) == 32
 
         normalized_stdout = InstallerFixture.normalize_stdout(second_stdout)
 
@@ -52,7 +52,7 @@ defmodule Chimeway.Install.IdempotencyTest do
           |> String.split("\n", trim: true)
           |> Enum.filter(&String.starts_with?(&1, "created priv/repo/migrations/"))
 
-        assert length(unchanged_lines) == 31
+        assert length(unchanged_lines) == 32
         assert created_lines == []
       after
         File.rm_rf!(root)
