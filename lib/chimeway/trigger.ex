@@ -36,38 +36,53 @@ defmodule Chimeway.Trigger do
   alias Chimeway.Notifications.Notification
   alias Chimeway.Notifier
   alias Chimeway.Repo
-  alias Chimeway.Telemetry
+  alias Chimeway.{Privacy, SafeEvidence, Telemetry}
   alias Chimeway.Workflows
   alias Ecto.Multi
   alias Ecto.UUID
 
-  @sensitive_keys ~w(password token secret url code raw_token magic_link_url)
-
   @spec trigger(module(), map(), keyword()) ::
           {:ok, map()} | {:duplicate, struct()} | {:error, term()}
   def trigger(notifier, params, opts \\ []) do
-    correlation_id =
+    correlation_ref =
       case Keyword.fetch(opts, :correlation_id) do
-        {:ok, cid} when is_binary(cid) -> cid
-        _ -> Logger.metadata()[:request_id]
+        {:ok, cid} -> cid
+        :error -> Keyword.get(opts, :correlation_ref)
       end
 
     with {:ok, idempotency_key} <- Keyword.fetch(opts, :idempotency_key),
          {:ok, tenant_id} <- fetch_and_normalize_tenant_id(opts),
          :ok <- validate_idempotency_key(idempotency_key),
          :ok <- Notifier.validate_module!(notifier),
-         {:ok, recipients} <- notifier.recipients(params) do
+         {:ok, correlation_ref} <- optional_correlation_ref(correlation_ref),
+         {:ok, recipients} <- notifier.recipients(params),
+         {:ok, normalized_recipients} <- normalize_recipients(recipients) do
       opts = Keyword.put(opts, :tenant_id, tenant_id)
-      do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients, tenant_id)
+
+      do_trigger(
+        notifier,
+        params,
+        opts,
+        idempotency_key,
+        correlation_ref,
+        normalized_recipients,
+        tenant_id
+      )
     else
       :error -> {:error, :missing_idempotency_key}
       {:error, _reason} = error -> error
     end
   end
 
-  defp do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients, tenant_id) do
-    normalized_recipients = normalize_recipients(recipients)
-
+  defp do_trigger(
+         notifier,
+         params,
+         opts,
+         idempotency_key,
+         correlation_id,
+         normalized_recipients,
+         tenant_id
+       ) do
     Telemetry.span(
       [:events, :create],
       Telemetry.safe_meta(%{
@@ -112,21 +127,28 @@ defmodule Chimeway.Trigger do
     |> then(&plan_deliveries_span(&1, notifier, params, opts))
   end
 
-  @spec normalize_recipients([map()]) :: [map()]
+  @spec normalize_recipients([map()]) :: {:ok, [map()]} | {:error, :unsafe_evidence}
   def normalize_recipients(recipients) when is_list(recipients) do
     recipients
-    |> Enum.reduce(%{}, fn recipient, acc ->
-      case recipient_identity(recipient) do
-        identity when is_binary(identity) and byte_size(identity) > 0 ->
-          Map.put_new(acc, identity, recipient)
+    |> Enum.reduce_while({:ok, %{}}, fn recipient, {:ok, acc} ->
+      case SafeEvidence.opaque_ref(:recipient, recipient_ref(recipient)) do
+        {:ok, ref} ->
+          {:cont, {:ok, Map.put_new(acc, ref, Map.put(recipient, :recipient_ref, ref))}}
 
-        _identity ->
-          acc
+        {:error, :unsafe_evidence} ->
+          {:halt, {:error, :unsafe_evidence}}
       end
     end)
-    |> Enum.sort_by(fn {identity, _recipient} -> identity end)
-    |> Enum.map(fn {_identity, recipient} -> recipient end)
+    |> case do
+      {:ok, recipients_by_ref} ->
+        {:ok, recipients_by_ref |> Enum.sort_by(&elem(&1, 0)) |> Enum.map(&elem(&1, 1))}
+
+      error ->
+        error
+    end
   end
+
+  def normalize_recipients(_recipients), do: {:error, :unsafe_evidence}
 
   defp validate_idempotency_key(idempotency_key) when is_binary(idempotency_key) do
     if String.trim(idempotency_key) == "" do
@@ -160,7 +182,7 @@ defmodule Chimeway.Trigger do
       notification_version: notifier.version(),
       idempotency_key: idempotency_key,
       tenant_id: tenant_id,
-      payload: sanitize_payload(params),
+      payload: params |> Privacy.redact() |> SafeEvidence.event_payload(),
       correlation_id: correlation_id
     })
     |> Ecto.Changeset.unique_constraint(:idempotency_key,
@@ -193,15 +215,22 @@ defmodule Chimeway.Trigger do
            {:ok, orchestration} <- Notifier.resolve_orchestration(notifier, params, recipient),
            {:ok, workflow_definition, workflow_cache} <-
              resolve_workflow_definition(repo, notifier, params, recipient, workflow_cache) do
-        render_assigns = sanitize_render_assigns(rendering.assigns)
-        render_channels = sanitize_render_channels(Map.get(rendering, :channels, %{}))
+        render_assigns =
+          rendering.assigns |> Privacy.redact() |> SafeEvidence.notification_metadata()
+
+        render_channels =
+          rendering
+          |> Map.get(:channels, %{})
+          |> Privacy.redact()
+          |> SafeEvidence.render_channels()
+
         orchestration = Notifier.serialize_orchestration(orchestration)
 
         row = %{
           id: UUID.generate() |> UUID.dump!(),
           event_id: UUID.dump!(event.id),
           tenant_id: tenant_id,
-          recipient_identity: recipient_identity(recipient),
+          recipient_identity: recipient_ref(recipient),
           recipient_type: recipient_type(recipient),
           metadata: render_assigns,
           render_assigns: render_assigns,
@@ -287,48 +316,6 @@ defmodule Chimeway.Trigger do
     end)
   end
 
-  defp sanitize_payload(payload), do: sanitize_map(payload)
-
-  defp sanitize_render_assigns(assigns), do: sanitize_map(assigns)
-
-  defp sanitize_render_channels(channels) when is_map(channels) do
-    Enum.reduce(channels, %{}, fn {channel, info}, acc ->
-      if is_map(info) do
-        sanitized = %{}
-
-        sanitized =
-          case Map.fetch(info, :render_key) do
-            {:ok, val} ->
-              Map.put(sanitized, :render_key, val)
-
-            :error ->
-              case Map.fetch(info, "render_key") do
-                {:ok, val} -> Map.put(sanitized, :render_key, val)
-                :error -> sanitized
-              end
-          end
-
-        sanitized =
-          case Map.fetch(info, :render_version) do
-            {:ok, val} ->
-              Map.put(sanitized, :render_version, val)
-
-            :error ->
-              case Map.fetch(info, "render_version") do
-                {:ok, val} -> Map.put(sanitized, :render_version, val)
-                :error -> sanitized
-              end
-          end
-
-        Map.put(acc, channel, sanitized)
-      else
-        acc
-      end
-    end)
-  end
-
-  defp sanitize_render_channels(_not_map), do: %{}
-
   defp resolve_workflow_definition(repo, notifier, params, recipient, workflow_cache) do
     with {:ok, nil} <- Notifier.resolve_workflow(notifier, params, recipient) do
       {:ok, nil, workflow_cache}
@@ -379,25 +366,12 @@ defmodule Chimeway.Trigger do
   defp workflow_definition_id(nil), do: nil
   defp workflow_definition_id(%{id: id}), do: UUID.dump!(id)
 
-  defp sanitize_map(map) when is_map(map) do
-    Enum.reduce(map, %{}, fn {key, value}, acc ->
-      if sensitive_key?(key) do
-        acc
-      else
-        Map.put(acc, key, value)
-      end
-    end)
-  end
+  defp recipient_ref(%{recipient_ref: ref}), do: ref
+  defp recipient_ref(%{"recipient_ref" => ref}), do: ref
+  defp recipient_ref(_recipient), do: nil
 
-  defp sanitize_map(_not_map), do: %{}
-
-  defp sensitive_key?(key) when is_atom(key), do: sensitive_key?(Atom.to_string(key))
-  defp sensitive_key?(key) when is_binary(key), do: String.downcase(key) in @sensitive_keys
-  defp sensitive_key?(_key), do: false
-
-  defp recipient_identity(%{recipient_identity: identity}), do: identity
-  defp recipient_identity(%{"recipient_identity" => identity}), do: identity
-  defp recipient_identity(_recipient), do: nil
+  defp optional_correlation_ref(nil), do: {:ok, nil}
+  defp optional_correlation_ref(value), do: SafeEvidence.opaque_ref(:correlation, value)
 
   defp recipient_type(%{recipient_type: recipient_type}),
     do: normalize_recipient_type(recipient_type)

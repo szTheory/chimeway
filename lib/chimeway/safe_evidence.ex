@@ -13,7 +13,16 @@ defmodule Chimeway.SafeEvidence do
 
   @spec opaque_ref(atom() | String.t(), term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
   def opaque_ref(domain, value)
-      when domain in [:provider, :provider_message_id, "provider", "provider_message_id"] and
+      when domain in [
+             :provider,
+             :provider_message_id,
+             :recipient,
+             :correlation,
+             "provider",
+             "provider_message_id",
+             "recipient",
+             "correlation"
+           ] and
              is_binary(value) do
     if byte_size(value) in 4..@max_ref_bytes and
          String.match?(value, ~r/^cw_[a-z0-9][a-z0-9_-]*$/) do
@@ -24,6 +33,53 @@ defmodule Chimeway.SafeEvidence do
   end
 
   def opaque_ref(_domain, _value), do: {:error, :unsafe_evidence}
+
+  @doc "Builds the intentionally small durable event payload vocabulary."
+  @spec event_payload(term()) :: map()
+  def event_payload(value), do: closed_facts(value, ["category", "reason", "scheduled_at"])
+
+  @doc "Builds the metadata retained beside a notification identity."
+  @spec notification_metadata(term()) :: map()
+  def notification_metadata(value), do: closed_facts(value, ["category", "reason"])
+
+  @doc "Retains channel render identity only, never rendered content or assigns."
+  @spec render_channels(term()) :: map()
+  def render_channels(channels) when is_map(channels) do
+    channels
+    |> Privacy.redact()
+    |> Enum.reduce(%{}, fn {channel, info}, acc ->
+      with channel when is_binary(channel) <- to_string(channel),
+           info when is_map(info) <- info,
+           render_key when is_binary(render_key) and byte_size(render_key) in 1..160 <-
+             fetch_known(info, "render_key", :render_key),
+           render_version when is_integer(render_version) and render_version > 0 <-
+             fetch_known(info, "render_version", :render_version) do
+        Map.put(acc, channel, %{"render_key" => render_key, "render_version" => render_version})
+      else
+        _ -> acc
+      end
+    end)
+  end
+
+  def render_channels(_channels), do: %{}
+
+  @spec planning_context(term()) :: map()
+  def planning_context(value),
+    do: closed_facts(value, ["source", "digest_key", "time_zone", "rule_id", "reason"])
+
+  @spec delivery_metadata(term()) :: map()
+  def delivery_metadata(value),
+    do:
+      closed_facts(value, [
+        "delayed_fallback_source",
+        "notification_key",
+        "event_id",
+        "correlation_id",
+        "reason"
+      ])
+
+  @spec render_data(term()) :: map()
+  def render_data(value), do: closed_facts(value, ["render_key", "render_version"])
 
   @spec provider_facts(term()) :: {:ok, map()} | {:error, :unsafe_evidence}
   def provider_facts(value) when is_map(value) or is_list(value) do
@@ -183,4 +239,24 @@ defmodule Chimeway.SafeEvidence do
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp closed_facts(value, allowed) when is_map(value) or is_list(value) do
+    value
+    |> Privacy.redact()
+    |> Enum.reduce(%{}, fn {key, fact}, acc ->
+      key = to_string(key)
+
+      if key in allowed and safe_scalar?(fact) do
+        Map.put(acc, key, fact)
+      else
+        acc
+      end
+    end)
+  end
+
+  defp closed_facts(_value, _allowed), do: %{}
+
+  defp safe_scalar?(value) when is_binary(value), do: byte_size(value) <= 160
+  defp safe_scalar?(value) when is_integer(value) or is_boolean(value), do: true
+  defp safe_scalar?(_value), do: false
 end

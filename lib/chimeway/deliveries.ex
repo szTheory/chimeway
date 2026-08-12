@@ -324,6 +324,7 @@ defmodule Chimeway.Deliveries do
         |> maybe_put("notification_key", opts[:notification_key])
         |> maybe_put("event_id", opts[:event_id])
         |> maybe_put("correlation_id", opts[:correlation_id])
+        |> SafeEvidence.delivery_metadata()
 
       result =
         %Delivery{}
@@ -398,7 +399,10 @@ defmodule Chimeway.Deliveries do
   defp normalize_optional_string(value), do: {:error, {:invalid_planning_reason, value}}
 
   defp normalize_optional_map(nil), do: {:ok, nil}
-  defp normalize_optional_map(value) when is_map(value), do: {:ok, value}
+
+  defp normalize_optional_map(value) when is_map(value),
+    do: {:ok, SafeEvidence.planning_context(value)}
+
   defp normalize_optional_map(value), do: {:error, {:invalid_planning_context, value}}
 
   defp normalize_optional_render_key(nil), do: {:ok, nil}
@@ -416,7 +420,10 @@ defmodule Chimeway.Deliveries do
   defp normalize_optional_render_version(value), do: {:error, {:invalid_render_version, value}}
 
   defp normalize_optional_render_data(nil), do: {:ok, %{}}
-  defp normalize_optional_render_data(value) when is_map(value), do: {:ok, value}
+
+  defp normalize_optional_render_data(value) when is_map(value),
+    do: {:ok, SafeEvidence.render_data(value)}
+
   defp normalize_optional_render_data(value), do: {:error, {:invalid_render_data, value}}
 
   defp normalize_optional_datetime(nil), do: {:ok, nil}

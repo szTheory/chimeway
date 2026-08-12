@@ -19,7 +19,14 @@ defmodule Chimeway.TriggerSanitizationTest do
 
     @impl true
     def recipients(%{"user_id" => user_id}) do
-      {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+      {:ok,
+       [
+         %{
+           recipient_identity: "user:#{user_id}",
+           recipient_ref: "cw_user_#{user_id}",
+           recipient_type: "user"
+         }
+       ]}
     end
 
     @impl true
@@ -75,7 +82,7 @@ defmodule Chimeway.TriggerSanitizationTest do
 
       reloaded = Repo.get!(Event, event.id)
 
-      assert reloaded.payload["user_id"] == "1"
+      assert reloaded.payload == %{}
 
       for {key, value} <- @sensitive_values do
         refute Map.has_key?(reloaded.payload, key)
@@ -111,8 +118,8 @@ defmodule Chimeway.TriggerSanitizationTest do
         refute Map.has_key?(notification.metadata, key)
       end
 
-      assert notification.render_assigns["user_id"] == "1"
-      assert notification.render_assigns["headline"] == "Auth test"
+      assert notification.render_assigns == %{}
+      assert notification.recipient_identity == "cw_user_1"
     end
   end
 end

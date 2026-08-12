@@ -348,11 +348,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert delivery.render_key == "delivery-planning.rendering.email"
     assert delivery.render_version == 6
 
-    assert delivery.render_data == %{
-             "subject" => "Rendered once",
-             "html_body" => "<p>Rendered once</p>",
-             "text_body" => "Rendered once"
-           }
+    assert delivery.render_data == %{}
   end
 
   test "planning reuses persisted render_channels without notifier re-entry" do
@@ -376,7 +372,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
 
     assert delivery.render_key == "durable.email"
     assert delivery.render_version == 10
-    assert delivery.render_data["subject"] == "Durable Subject"
+    assert delivery.render_data == %{}
   end
 
   test "ordinary notifier-less planning keeps the default in_app-only contract" do
