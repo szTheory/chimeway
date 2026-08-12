@@ -38,19 +38,20 @@ defmodule Chimeway.Install.MigrationsTest do
     "add_provider_message_id_to_delivery_attempts",
     "add_tenant_and_actor_to_chimeway_deliveries",
     "create_chimeway_webhook_ingress",
-    "add_tenant_identity_to_events_and_notifications"
+    "add_tenant_identity_to_events_and_notifications",
+    "make_chimeway_delivery_tenant_nullable"
   ]
 
-  test "list_templates/0 returns 32 ordered entries matching canonical slugs" do
+  test "list_templates/0 returns 33 ordered entries matching canonical slugs" do
     templates = Migrations.list_templates()
 
-    assert length(templates) == 32
+    assert length(templates) == 33
 
     slugs = Enum.map(templates, fn {_order, slug, _path} -> slug end)
     assert slugs == @expected_slugs
 
     orders = Enum.map(templates, fn {order, _slug, _path} -> order end)
-    assert orders == Enum.to_list(1..32)
+    assert orders == Enum.to_list(1..33)
 
     refute "create_oban_jobs_tables" in slugs
   end
