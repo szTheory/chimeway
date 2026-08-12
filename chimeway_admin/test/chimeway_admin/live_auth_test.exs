@@ -117,11 +117,31 @@ defmodule ChimewayAdmin.LiveAuthTest do
              LiveAuth.on_mount(
                :view_trace,
                %{"delivery_id" => "del-1"},
-               %{"current_actor" => "ops:1"},
+               %{"current_actor" => "ops:1", "tenant_id" => "tenant-a"},
                socket
              )
 
     assert_receive {:authorized, :view_trace, %{params: %{"delivery_id" => "del-1"}}}
+  end
+
+  test "halts after host authorization when tenant context is absent or invalid" do
+    Application.put_env(:chimeway_admin, :auth_module, ChimewayAdmin.TestSupport.AllowAuth)
+    Application.put_env(:chimeway_admin, :unauthorized_redirect, "/login")
+
+    socket = %Phoenix.LiveView.Socket{
+      assigns: %{__changed__: %{}},
+      endpoint: ChimewayAdmin.TestSupport.Endpoint,
+      router: ChimewayAdmin.Router,
+      view: ChimewayAdmin.Live.TraceSearchLive,
+      private: %{}
+    }
+
+    for tenant <- [nil, "   ", 123] do
+      session = %{"current_actor" => "ops:1", "tenant_id" => tenant}
+
+      assert {:halt, redirected} = LiveAuth.on_mount(:search_traces, %{}, session, socket)
+      assert {:redirect, %{to: "/login"}} = redirected.redirected
+    end
   end
 
   test "passes actor, action, tenant, params, session, and live view into authorization context" do
