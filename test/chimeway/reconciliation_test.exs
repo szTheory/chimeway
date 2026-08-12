@@ -1,7 +1,7 @@
 defmodule Chimeway.ReconciliationTest do
   use Chimeway.DataCase, async: false
 
-  alias Chimeway.{Reconciliation, Repo}
+  alias Chimeway.{Delivery, Reconciliation, Repo}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
@@ -87,6 +87,17 @@ defmodule Chimeway.ReconciliationTest do
     assert Repo.get!(Notification, notification.id).tenant_id == "tenant-b"
   end
 
+  test "rejects a conflicting delivery without partially assigning its legacy tree" do
+    event = insert_legacy_event!("delivery-conflict")
+    notification = insert_legacy_notification!(event, "user:delivery-conflict")
+    delivery = insert_delivery!(notification, "tenant-b")
+
+    assert {:error, :ownership_conflict} = Reconciliation.assign_event_tree(event.id, "tenant-a")
+    assert Repo.get!(Event, event.id).tenant_id == nil
+    assert Repo.get!(Notification, notification.id).tenant_id == nil
+    assert Repo.get!(Delivery, delivery.id).tenant_id == "tenant-b"
+  end
+
   test "concurrent conflicting assignments leave the event tree with one coherent owner", %{
     sandbox_owner: sandbox_owner
   } do
@@ -153,5 +164,17 @@ defmodule Chimeway.ReconciliationTest do
       )
 
     Repo.get!(Notification, notification.id)
+  end
+
+  defp insert_delivery!(notification, tenant_id) do
+    %Delivery{}
+    |> Delivery.changeset(%{
+      notification_id: notification.id,
+      channel: "email",
+      status: :pending,
+      tenant_id: tenant_id,
+      actor_id: "actor:reconciliation"
+    })
+    |> Repo.insert!()
   end
 end
