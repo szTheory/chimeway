@@ -198,6 +198,7 @@ defmodule Chimeway.Integration.DigestDeliveryLifecycleTest do
 
     assert {:ok, recovery} =
              Deliveries.recover_event(event.id,
+               tenant_id: event.tenant_id,
                now: ~U[2026-01-15 12:30:00Z],
                older_than: 60,
                source: "ops_console",

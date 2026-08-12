@@ -591,7 +591,7 @@ defmodule Chimeway.DeliveriesTest do
         )
 
       recoverable_ids =
-        Deliveries.list_recoverable_events(now: now, older_than: 60)
+        Deliveries.list_recoverable_events(tenant_id: "default", now: now, older_than: 60)
         |> Enum.map(& &1.id)
 
       assert recoverable_event.id in recoverable_ids
@@ -621,7 +621,7 @@ defmodule Chimeway.DeliveriesTest do
         )
 
       recoverable_ids =
-        Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+        Deliveries.list_recoverable_deliveries(tenant_id: "default", now: now, older_than: 60)
         |> Enum.map(& &1.id)
 
       assert recoverable_delivery.id in recoverable_ids
@@ -692,7 +692,7 @@ defmodule Chimeway.DeliveriesTest do
         )
 
       recoverable_ids =
-        Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+        Deliveries.list_recoverable_deliveries(tenant_id: "default", now: now, older_than: 60)
         |> Enum.map(& &1.id)
 
       assert recoverable_delivery.id in recoverable_ids
@@ -720,6 +720,7 @@ defmodule Chimeway.DeliveriesTest do
 
       assert {:ok, recovered_delivery} =
                Deliveries.begin_recovery(delivery,
+                 tenant_id: delivery.tenant_id,
                  now: recovered_at,
                  older_than: 60,
                  source: "operator_console",
@@ -773,6 +774,7 @@ defmodule Chimeway.DeliveriesTest do
 
       assert {:ok, recovered_delivery} =
                Deliveries.begin_recovery(delivery,
+                 tenant_id: delivery.tenant_id,
                  now: recovered_at,
                  older_than: 60,
                  source: "operator_console",
@@ -783,6 +785,7 @@ defmodule Chimeway.DeliveriesTest do
 
       assert {:noop, noop_delivery} =
                Deliveries.begin_recovery(delivery.id,
+                 tenant_id: delivery.tenant_id,
                  now: ~U[2026-04-28 18:01:00Z],
                  older_than: 60,
                  source: "operator_console",

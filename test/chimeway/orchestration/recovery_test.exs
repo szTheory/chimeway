@@ -372,6 +372,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:ok, recovery} =
                Deliveries.recover_event(event.id,
+                 tenant_id: event.tenant_id,
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -428,6 +429,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:noop, recovery} =
                Deliveries.recover_event(event.id,
+                 tenant_id: event.tenant_id,
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -619,6 +621,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:ok, recovery} =
                Chimeway.recover_delivery(delivery.id,
+                 tenant_id: delivery.tenant_id,
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -652,6 +655,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:noop, duplicate} =
                Deliveries.recover_delivery(delivery.id,
+                 tenant_id: delivery.tenant_id,
                  now: ~U[2026-01-15 12:31:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -692,6 +696,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:error, :boom} =
                Deliveries.recover_delivery(delivery.id,
+                 tenant_id: delivery.tenant_id,
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -710,6 +715,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       recoverable_ids =
         Deliveries.list_recoverable_deliveries(
+          tenant_id: delivery.tenant_id,
           now: ~U[2026-01-15 12:30:00Z],
           older_than: 60
         )
@@ -766,6 +772,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:noop, deferred} =
                Deliveries.recover_delivery(deferred_delivery.id,
+                 tenant_id: deferred_delivery.tenant_id,
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -797,6 +804,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert {:noop, skipped} =
                Deliveries.recover_delivery(skip_delivery.id,
+                 tenant_id: skip_delivery.tenant_id,
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",

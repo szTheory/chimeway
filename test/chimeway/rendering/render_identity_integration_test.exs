@@ -65,6 +65,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
     test "changeset accepts render_assigns while keeping existing required fields" do
       attrs = %{
         event_id: Ecto.UUID.generate(),
+        tenant_id: "default",
         recipient_identity: "user:render",
         recipient_type: "user",
         metadata: %{"subject" => "Hello"},

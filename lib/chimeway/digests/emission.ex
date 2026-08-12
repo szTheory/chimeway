@@ -110,12 +110,14 @@ defmodule Chimeway.Digests.Emission do
 
   defp create_digest_delivery!(bucket, memberships, emitted_at) do
     digest_payload = digest_payload(bucket, memberships, emitted_at)
+    tenant_id = digest_tenant_id!(memberships)
 
     {:ok, event} =
       Repo.insert(%Event{
         notification_key: bucket.rule_key,
         notification_version: bucket.rule_version,
         idempotency_key: "digest-bucket:#{bucket.id}",
+        tenant_id: tenant_id,
         payload: %{
           "digest_bucket_id" => bucket.id,
           "digest_window_starts_at" => DateTime.to_iso8601(bucket.window_starts_at),
@@ -127,6 +129,7 @@ defmodule Chimeway.Digests.Emission do
     {:ok, notification} =
       Repo.insert(%Notification{
         event_id: event.id,
+        tenant_id: tenant_id,
         recipient_identity: bucket.recipient_id,
         recipient_type: digest_recipient_type(memberships),
         metadata: %{"digest_bucket_id" => bucket.id}
@@ -137,7 +140,7 @@ defmodule Chimeway.Digests.Emission do
         notification_key: bucket.rule_key,
         event_id: event.id,
         metadata: digest_payload,
-        tenant_id: Map.get(bucket, :tenant_id, "default"),
+        tenant_id: tenant_id,
         actor_id: Map.get(bucket, :actor_id, "system")
       )
 
@@ -164,6 +167,15 @@ defmodule Chimeway.Digests.Emission do
     Ecto.ConstraintError ->
       existing_bucket = Repo.get!(DigestBucket, bucket.id)
       {Repo.get!(Delivery, existing_bucket.digest_delivery_id), existing_bucket}
+  end
+
+  defp digest_tenant_id!(memberships) do
+    case memberships
+         |> Enum.map(& &1.delivery.notification.tenant_id)
+         |> Enum.uniq() do
+      [tenant_id] when is_binary(tenant_id) -> tenant_id
+      _ -> raise "digest memberships must share one durable tenant"
+    end
   end
 
   defp resolve_memberships!(memberships, bucket, digest_delivery_id, emitted_at) do

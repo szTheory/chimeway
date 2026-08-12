@@ -9,7 +9,8 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
   test "explain_delivery surfaces deferred planning facts without conflating them with suppression" do
     delivery = insert_deferred_delivery()
 
-    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(delivery.id)
+    assert {:ok, %Explanation{} = explanation} =
+             Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
     assert explanation.status == :pending
     assert explanation.suppression_reason == nil
@@ -38,7 +39,8 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
   test "digest-held explanations keep hold facts separate from suppression" do
     delivery = insert_digest_held_delivery()
 
-    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(delivery.id)
+    assert {:ok, %Explanation{} = explanation} =
+             Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
     assert explanation.status == :pending
     assert explanation.suppression_reason == nil
@@ -56,7 +58,8 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
       insert_deferred_delivery()
       |> resume_delivery(~U[2026-01-15 13:05:00Z], "scheduled_resume")
 
-    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(delivery.id)
+    assert {:ok, %Explanation{} = explanation} =
+             Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
     assert explanation.status == :pending
     assert explanation.planning_reason == "quiet_hours"

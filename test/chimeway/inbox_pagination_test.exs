@@ -44,8 +44,8 @@ defmodule Chimeway.InboxPaginationTest do
         archived_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
       })
 
-    assert Chimeway.unread_count("user:1") == 2
-    assert Chimeway.unread_count("user:1", exclude_archived: false) == 3
+    assert Chimeway.unread_count("user:1", tenant_id: "default") == 2
+    assert Chimeway.unread_count("user:1", tenant_id: "default", exclude_archived: false) == 3
   end
 
   test "paginated list items include DTO keys" do
@@ -58,7 +58,7 @@ defmodule Chimeway.InboxPaginationTest do
         seen_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
       })
 
-    %{items: [item]} = Inbox.list_for_recipient("user:dto", limit: 1)
+    %{items: [item]} = Inbox.list_for_recipient("user:dto", tenant_id: "default", limit: 1)
 
     assert Map.has_key?(item, "id")
     assert Map.has_key?(item, "title")
@@ -103,7 +103,7 @@ defmodule Chimeway.InboxPaginationTest do
     set_inserted_at!(middle.id, DateTime.add(now, -60, :second))
     set_inserted_at!(oldest.id, DateTime.add(now, -120, :second))
 
-    first_page = Inbox.list_for_recipient("user:page", limit: 2)
+    first_page = Inbox.list_for_recipient("user:page", tenant_id: "default", limit: 2)
 
     assert first_page.has_more
     assert length(first_page.items) == 2
@@ -115,6 +115,7 @@ defmodule Chimeway.InboxPaginationTest do
 
     second_page =
       Inbox.list_for_recipient("user:page",
+        tenant_id: "default",
         limit: 2,
         before_inserted_at: cursor_ts,
         before_id: cursor_item["id"]
@@ -143,7 +144,7 @@ defmodule Chimeway.InboxPaginationTest do
         archived_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
       })
 
-    %{items: items} = Inbox.list_for_recipient("user:archive", limit: 10)
+    %{items: items} = Inbox.list_for_recipient("user:archive", tenant_id: "default", limit: 10)
 
     assert length(items) == 1
     assert Enum.at(items, 0)["id"] == to_string(visible.id)
@@ -157,7 +158,7 @@ defmodule Chimeway.InboxPaginationTest do
       read_at: nil
     })
 
-    %{items: [item]} = Inbox.list_for_recipient("user:title", limit: 1)
+    %{items: [item]} = Inbox.list_for_recipient("user:title", tenant_id: "default", limit: 1)
 
     assert item["title"] == "Hello"
   end
