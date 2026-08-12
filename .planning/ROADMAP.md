@@ -17,7 +17,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 
 ## Phases
 
-- [ ] **Phase 97: Tenant Identity & Compatible Upgrade** — Tenant-safe lifecycle identity and a non-guessing upgrade path.
+- [x] **Phase 97: Tenant Identity & Compatible Upgrade** — Tenant-safe lifecycle identity and a non-guessing upgrade path. (completed 2026-08-12)
 - [ ] **Phase 98: Privacy-Safe Delivery Evidence** — Recursive redaction and bounded diagnostics across every observable Chimeway surface.
 - [ ] **Phase 99: Multi-Installation Delivery & Recovery** — One logical delivery with independently explainable opaque installation targets.
 - [ ] **Phase 100: Optional APNs Adapter** — Opt-in, reason-aware APNs dispatch under host token custody.
@@ -39,7 +39,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
   3. A legacy single-tenant host continues only after it explicitly enables the compatibility configuration; otherwise formerly unscoped calls fail closed.
   4. An adopter can apply additive migrations, receive ambiguous-row reconciliation evidence, and assign ownership without Chimeway inferring a tenant or changing its static storage prefix.
 
-**Plans:** 14/14 plans executed
+**Plans:** 14/14 plans complete
 
 Plans:
 **Wave 1**
@@ -161,7 +161,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 97. Tenant Identity & Compatible Upgrade | 14/14 | In Progress|  |
+| 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
 | 98. Privacy-Safe Delivery Evidence | 0/TBD | Not started | - |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |

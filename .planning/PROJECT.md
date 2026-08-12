@@ -54,6 +54,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.18 Phase 97 Tenant Identity & Compatible Upgrade — TENANT-01/02/03: lifecycle identity and idempotency are tenant-scoped; inbox, trace, admin, recovery, and package surfaces fail closed without explicit scope (or explicit single-tenant compatibility); additive migrations and atomic reconciliation preserve legacy upgrade safety without inferring ownership or changing static storage prefixes. Verified 4/4 must-haves with executable evidence and zero human UAT.
 - ✓ v1.17 Adopter Proof Paths — ADPT-01/02, PROOF-01/02/03, CORE-01, MAIL-01/02, ACCR-01/02, GATE-01/02, and DOCS-01 are satisfied. Five phase verifications and the milestone audit pass; the aggregate proof builds once and runs all three clean-room paths against the same immutable artifact.
 - ✓ v1.17 Phase 96.1 Atom-Safe Archive Metadata Parsing — ARCHIVE-ATOM-01: caller-controlled Hex metadata now passes through a bounded binary-only parser with no source evaluation or input-derived atom creation. Exact in-process atom-count, grammar/resource-boundary, callback/redaction, real Hex archive, local release/adoption gate, security audit, and hosted exact-SHA PR evidence all pass (GitHub Actions run `31509666185`; 5/5 must-haves, 5/5 STRIDE threats closed, zero human UAT).
 - ✓ v1.17 Phase 94 Mailglass Transactional-Email Proof — MAIL-01/02: the clean consumer proves the host-owned Mailglass adapter path through a deterministic fake transport, with one trace-derived, strictly schema-validated public evidence line. The parser rejects forged, sensitive, malformed, reordered, and atom-creating values; guidance explicitly distinguishes local composition/orchestration proof from live provider acceptance, sender verification, and feedback. **Verified 10/10 must-haves** by focused release-gate and `mix ci.verify_gates` checks (isolated project test database).
@@ -126,6 +127,8 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 **Standing hygiene debt (tracked, not this milestone's deliverable):** 3 red CI lanes on `main` (Example host smoke, TeamPulse journeys, Accrue dunning — `ci-gate` at 12/15; see `.planning/CI-HARDENING-BACKLOG.md`). This milestone is doc/asset-only and does not touch runtime code, so it will not worsen CI.
 
 ## Current State
+
+**v1.18 Phase 97 Tenant Identity & Compatible Upgrade complete (2026-08-12):** Explicit tenant identity now spans the durable Event → Notification → Delivery lifecycle, idempotency, inbox, traces, admin, recovery, and optional packages. Legacy ownership is handled by additive migrations plus deterministic, atomic reconciliation; machine-testable acceptance is enforced through local/CI gates with no conversational UAT. Phase 98 privacy-safe delivery evidence is next.
 
 **v1.17 Adopter Proof Paths shipped (2026-08-11):** The milestone is archived with all 13 requirements satisfied and no open audit gaps. Core, Mailglass, and Accrue now run as bounded clean-room proofs from one SHA-validated package artifact; documentation, runtime dispatch, and the every-event CI topology agree. No milestone is currently active.
 
@@ -622,4 +625,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-11 after starting v1.18 Adopter Alpha Mobile Delivery Readiness.*
+*Last updated: 2026-08-12 after completing Phase 97 Tenant Identity & Compatible Upgrade.*

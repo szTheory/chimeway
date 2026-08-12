@@ -47,9 +47,10 @@ status: complete
 
 - PASS: `mix format --check-formatted` for changed Inbox and release-gate test files.
 - PASS: focused Inbox LiveView suite — 10 tests, 0 failures.
-- PASS: release-gate contract behavior was exercised after its RED failure; it emitted only the repository's known non-failing Threadline sandbox cleanup noise.
-- BLOCKED locally: `mix verify.inbox` demo-host assertion saw a pre-existing third unread fixture in the shared `chimeway_test` schema; an isolated partition also needs the normal Oban bootstrap before `mix ecto.migrate` can start the application. No production or test behavior was changed to mask this environment issue.
-- BLOCKED locally: `mix ci.verify_gates` reached its contract suite but its spawned test process did not terminate after the known cleanup noise; it was terminated to release local PostgreSQL connections.
+- PASS: isolated `mix verify.inbox` — package suite 11 tests, demo-host Inbox suite 2 tests, 0 failures.
+- PASS: `mix ci.verify_gates` — doc and release-gate contracts passed.
+- PASS: final `mix ci.test` — 1,373 tests, 0 failures (35 excluded); the alias now skips partner repo setup owned by separately required `verify.*` lanes.
+- PASS: Phase verifier — 4/4 must-haves and TENANT-01..03 satisfied with no human UAT.
 
 ## Deviations from Plan
 
