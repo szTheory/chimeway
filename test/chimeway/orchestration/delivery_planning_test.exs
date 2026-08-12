@@ -415,6 +415,22 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
              )
   end
 
+  test "planning derives a non-default delivery tenant from its notification" do
+    notification = insert_notification("user-tenant-owner", %{}, %{tenant_id: "tenant-a"})
+
+    assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification)
+    assert delivery.tenant_id == "tenant-a"
+  end
+
+  test "planning rejects an explicit tenant that differs from its notification" do
+    notification = insert_notification("user-tenant-mismatch", %{}, %{tenant_id: "tenant-a"})
+
+    assert {:error, :tenant_mismatch} =
+             DeliveryPlanning.plan_notification(notification, tenant_id: "tenant-b")
+
+    assert delivery_count_for(notification.id) == 0
+  end
+
   defp insert_notification(recipient_identity, payload \\ %{}, attrs \\ %{}) do
     {:ok, event} =
       %Event{}
@@ -422,7 +438,8 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
         notification_key: "delivery-planning.test",
         notification_version: 1,
         idempotency_key: "delivery-planning-#{System.unique_integer()}",
-        payload: payload
+        payload: payload,
+        tenant_id: Map.get(attrs, :tenant_id, "default")
       })
       |> Repo.insert()
 
@@ -430,6 +447,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: Map.get(attrs, :metadata, %{}),

@@ -15,7 +15,8 @@ defmodule Chimeway.DeliveriesTest do
         notification_key: "test.notification",
         notification_version: 1,
         idempotency_key: "test-#{System.unique_integer()}",
-        payload: %{}
+        payload: %{},
+        tenant_id: "default"
       })
       |> Repo.insert()
 
@@ -23,6 +24,7 @@ defmodule Chimeway.DeliveriesTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: "user-1",
         recipient_type: "user",
         metadata: %{}
@@ -52,7 +54,8 @@ defmodule Chimeway.DeliveriesTest do
         notification_version: Map.get(attrs, :notification_version, 1),
         idempotency_key: Map.get(attrs, :idempotency_key, "event-#{System.unique_integer()}"),
         payload: Map.get(attrs, :payload, %{}),
-        correlation_id: Map.get(attrs, :correlation_id)
+        correlation_id: Map.get(attrs, :correlation_id),
+        tenant_id: Map.get(attrs, :tenant_id, "default")
       })
       |> Repo.insert()
 
@@ -79,6 +82,7 @@ defmodule Chimeway.DeliveriesTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity:
           Map.get(attrs, :recipient_identity, "user-#{System.unique_integer([:positive])}"),
         recipient_type: Map.get(attrs, :recipient_type, "user"),
@@ -117,7 +121,7 @@ defmodule Chimeway.DeliveriesTest do
     {:ok, delivery} =
       Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, :in_app),
         metadata: metadata,
-        tenant_id: Map.get(attrs, :tenant_id, "default"),
+        tenant_id: Map.get(attrs, :tenant_id, notification.tenant_id),
         actor_id: Map.get(attrs, :actor_id, "system")
       )
 
@@ -143,6 +147,25 @@ defmodule Chimeway.DeliveriesTest do
   # ---- plan_delivery/2 ----
 
   describe "plan_delivery/2" do
+    test "rejects a missing or mismatched tenant without inserting a delivery" do
+      %{notification: notification} = insert_notification()
+
+      assert {:error, {:invalid_tenant_id, nil}} =
+               Deliveries.plan_delivery(notification.id, :in_app, actor_id: "system")
+
+      assert {:error, :tenant_mismatch} =
+               Deliveries.plan_delivery(notification.id, :in_app,
+                 tenant_id: "tenant-b",
+                 actor_id: "system"
+               )
+
+      assert Repo.aggregate(
+               from(d in Delivery, where: d.notification_id == ^notification.id),
+               :count,
+               :id
+             ) == 0
+    end
+
     test "creates a delivery row with status :pending" do
       %{notification: notification} = insert_notification()
 

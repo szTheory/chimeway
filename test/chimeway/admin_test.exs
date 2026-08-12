@@ -288,6 +288,33 @@ defmodule Chimeway.AdminTest do
              Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
   end
 
+  test "recovery candidates ignore a foreign delivery when evaluating a tenant event" do
+    old = ~U[2026-01-15 12:00:00.000000Z]
+    now = ~U[2026-01-15 12:05:00.000000Z]
+
+    event =
+      insert_event(%{
+        notification_key: "admin.recovery.split-tenant",
+        tenant_id: "tenant-a",
+        inserted_at: old,
+        updated_at: old
+      })
+
+    notification = insert_notification(event, "user:split-recovery")
+
+    delivery =
+      insert_delivery(notification, tenant_id: "tenant-a", inserted_at: old, updated_at: old)
+
+    Repo.update_all(from(d in Chimeway.Delivery, where: d.id == ^delivery.id),
+      set: [tenant_id: "tenant-b"]
+    )
+
+    assert [%{type: "event", id: event_id}] =
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+
+    assert event_id == event.id
+  end
+
   test "definitions summarize durable keys and channels" do
     event = insert_event(%{notification_key: "admin.definition", notification_version: 2})
     notification = insert_notification(event, "user:definition")
