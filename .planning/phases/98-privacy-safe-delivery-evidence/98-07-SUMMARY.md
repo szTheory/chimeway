@@ -1,0 +1,98 @@
+---
+phase: 98-privacy-safe-delivery-evidence
+plan: 07
+subsystem: privacy-safe evidence
+tags: [elixir, ecto, privacy, traces, digest]
+requires:
+  - phase: 98-privacy-safe-delivery-evidence
+    provides: shared SafeEvidence projection boundaries
+provides:
+  - Field-specific closed grammars for durable facts and digest evidence
+  - Fail-closed digest-resolution reason persistence
+  - Safe digested-delivery trace explanations
+affects: [trigger, deliveries, traces, digests]
+tech-stack:
+  added: []
+  patterns:
+    - Closed literal field dispatch with duplicate key omission
+    - Digest evidence reconstructed from validated literal fields
+key-files:
+  created: [.planning/phases/98-privacy-safe-delivery-evidence/98-07-SUMMARY.md]
+  modified:
+    - lib/chimeway/safe_evidence.ex
+    - lib/chimeway/deliveries.ex
+    - test/chimeway/trigger_sanitization_test.exs
+    - test/chimeway/privacy_boundary_test.exs
+    - test/chimeway/traces_test.exs
+key-decisions:
+  - "[98-07]: Approved evidence keys use field-specific grammars and ambiguous atom/string duplicates are omitted."
+  - "[98-07]: Unsafe digest reasons are stored as nil; trace digest maps are rebuilt from closed fields."
+requirements-completed: [PRIV-03, PRIV-04]
+coverage:
+  - id: D1
+    description: Trigger and digest paths reject hostile values under approved keys while preserving safe lifecycle evidence.
+    requirement: PRIV-03
+    verification:
+      - kind: integration
+        ref: env MIX_ENV=test mix test test/chimeway/trigger_sanitization_test.exs test/chimeway/privacy_boundary_test.exs --warnings-as-errors
+        status: pass
+    human_judgment: false
+  - id: D2
+    description: Digested delivery explanations retain categorical digest facts and the real digested status without raw text.
+    requirement: PRIV-04
+    verification:
+      - kind: integration
+        ref: env MIX_ENV=test mix test test/chimeway/traces_test.exs test/chimeway/orchestration/digest_explainability_test.exs --warnings-as-errors
+        status: pass
+    human_judgment: false
+duration: 14 min
+completed: 2026-08-13
+status: complete
+---
+
+# Phase 98 Plan 07: Privacy-Safe Delivery Evidence Summary
+
+**Closed field grammars now prevent approved keys from laundering sensitive values through Trigger, digest persistence, and delivery explanations while preserving `:digested` lifecycle evidence.**
+
+## Accomplishments
+
+- Replaced generic scalar acceptance with field-specific code, enum, ID, timestamp, integer, boolean, and nested digest-entry validation.
+- Normalized unsafe digest-resolution reasons to `nil` before durable updates and rebuilt trace digest maps from validated fields.
+- Added TDD regressions for hostile approved-key Trigger inputs, unsafe digest reasons, and real `:digested` explanations.
+
+## Verification
+
+- PASS: focused Phase 98 suites (57 tests, 0 failures).
+- PASS: `mix format --check-formatted` for plan-owned files.
+- PASS: `mix ci`.
+
+## Task Commits
+
+1. **Task 1 RED:** `06c25fd` — failing privacy evidence regressions.
+2. **Task 1 GREEN:** `2b9f36c` — closed approved-key evidence laundering.
+
+## Decisions Made
+
+- Duplicate atom/string spellings for a fact are omitted instead of depending on input enumeration order.
+- Unsafe unclassified digest text has no manual-review retention path; lifecycle state remains available with a `nil` reason.
+
+## Deviations from Plan
+
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Restored existing safe channel, time-zone, correlation, workflow-ID, and workflow-step projections.**
+- **Found during:** Task 1 full CI verification.
+- **Issue:** Initial field grammar tightening rejected valid typed operational values.
+- **Fix:** Added explicit field-family validators without restoring a generic binary fallback.
+- **Verification:** `mix ci` passed.
+- **Committed in:** `2b9f36c`.
+
+## Known Stubs
+
+None.
+
+## Self-Check: PASSED
+
+- Found task commits `06c25fd` and `2b9f36c`.
+- Found all modified production and test files.
+- No tracked file deletions or placeholder stubs introduced.

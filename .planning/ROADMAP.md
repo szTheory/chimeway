@@ -85,7 +85,7 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans executed
 
 Plans:
 
@@ -112,7 +112,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 98-07-PLAN.md — Close approved-key value validation and restore digested trace status.
+- [x] 98-07-PLAN.md — Close approved-key value validation and restore digested trace status.
 
 ### Phase 99: Multi-Installation Delivery & Recovery
 
@@ -189,7 +189,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
-| 98. Privacy-Safe Delivery Evidence | 5/6 | In Progress|  |
+| 98. Privacy-Safe Delivery Evidence | 7/7 | In Progress|  |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
