@@ -72,4 +72,88 @@ defmodule Chimeway.PrivacyTest do
     assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(%{retry_after_ms: -1})
     assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(%{accepted_at: "not-a-date"})
   end
+
+  test "provider facts reject duplicate logical fields in maps and tuple lists regardless of value or order" do
+    for input <- [
+          %{"provider_code" => "accepted", provider_code: "accepted"},
+          %{"provider_code" => "recipient@example.test", provider_code: "accepted"},
+          [{:provider_code, "accepted"}, {"provider_code", "accepted"}],
+          [{"provider_code", "recipient@example.test"}, {:retry_after_ms, 5}, {:provider_code, "accepted"}],
+          [{:provider_code, "accepted"}, {:accepted_at, ~U[2026-08-12 12:00:00Z]}, {"provider_code", "accepted"}]
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(input)
+    end
+  end
+
+  test "attempt attributes reject duplicate logical fields and retain a singleton representation" do
+    valid = [
+      outcome: :failed,
+      error_class: "temporary",
+      adapter_module: "test_adapter",
+      provider_message_id: "cw_provider_opaque-123",
+      provider_response: [provider_code: "accepted", retry_after_ms: 5]
+    ]
+
+    assert {:ok, attrs} = SafeEvidence.attempt_attrs(valid)
+    assert attrs.outcome == :failed
+    assert attrs.provider_response == %{"provider_code" => "accepted", "retry_after_ms" => 5}
+
+    for attrs <- [
+          [{:outcome, :failed}, {"outcome", :failed}],
+          [{"outcome", :failed}, {:error_class, "temporary"}, {:outcome, :failed}],
+          [{:outcome, :failed}, {:error_class, "temporary"}, {"error_class", "temporary"}],
+          [{:outcome, :failed}, {:adapter_module, "test_adapter"}, {"adapter_module", "test_adapter"}],
+          [{:outcome, :failed}, {:provider_message_id, "cw_provider_opaque-123"}, {"provider_message_id", "cw_provider_opaque-123"}],
+          [{:outcome, :failed}, {:provider_response, %{}}, {"provider_response", %{}}]
+        ] do
+      assert {:error, :unsafe_evidence, _field} = SafeEvidence.attempt_attrs(attrs)
+    end
+  end
+
+  test "render channels omit atom string channel and render identity collisions" do
+    assert SafeEvidence.render_channels(%{
+             "email" => %{render_key: "welcome", render_version: 1},
+             email: %{render_key: "welcome", render_version: 1}
+           }) == %{}
+
+    assert SafeEvidence.render_channels(%{
+             "email" => [{:render_key, "welcome"}, {"render_key", "welcome"}, {:render_version, 1}]
+           }) == %{}
+
+    assert SafeEvidence.render_channels(%{
+             "email" => [{:render_key, "welcome"}, {:render_version, 1}, {"render_version", 1}]
+           }) == %{}
+
+    assert SafeEvidence.render_channels([email: %{render_key: "welcome", render_version: 1}]) == %{
+             "email" => %{"render_key" => "welcome", "render_version" => 1}
+           }
+  end
+
+  test "provider codes use the closed categorical grammar" do
+    for code <- [
+          "email-delivery",
+          "https://provider.test/status",
+          "bearer-token",
+          "recipient-42",
+          "body-content",
+          " accepted",
+          "accepted ",
+          "accepted\n",
+          "prefix_token_suffix",
+          String.duplicate("a", 81)
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(%{provider_code: code})
+    end
+
+    assert {:ok, %{"provider_code" => "accepted-v1"}} =
+             SafeEvidence.provider_facts(%{provider_code: "accepted-v1"})
+  end
+
+  test "empty and nil optional evidence remains safe" do
+    assert {:ok, %{}} = SafeEvidence.provider_facts(%{})
+    assert {:ok, %{}} = SafeEvidence.provider_facts([])
+    assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(nil)
+    assert {:ok, %{outcome: :failed, provider_response: %{}}} =
+             SafeEvidence.attempt_attrs(%{outcome: :failed, provider_response: nil})
+  end
 end
