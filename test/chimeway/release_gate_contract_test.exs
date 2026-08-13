@@ -1278,7 +1278,7 @@ defmodule Chimeway.ReleaseGateContractTest do
           "channel=in_app render_key=artifact_consumer.core_trace.in_app render_version=1 " <>
           "status=succeeded outcome_classification=succeeded last_attempt_outcome=succeeded " <>
           "last_attempt_number=1 provider_handoff=not_applicable " <>
-          "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded"
+          "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded,webhook_received"
 
       assert %{provider_handoff: "not_applicable", outcome_classification: "succeeded"} =
                ArtifactConsumerFixture.parse_evidence!(complete)

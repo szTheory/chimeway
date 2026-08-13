@@ -203,7 +203,12 @@ defmodule Chimeway.Trigger do
         {count, _rows} = repo.insert_all("chimeway_notifications", rows)
 
         with :ok <- insert_workflow_runs(repo, notifications, tenant_id) do
-          {:ok, %{count: count, precomputed_rendering: precomputed_rendering(notifications)}}
+          {:ok,
+           %{
+             count: count,
+             precomputed_rendering: precomputed_rendering(notifications),
+             recipient_handoffs: recipient_handoffs(notifications)
+           }}
         end
       rescue
         error -> {:error, error}
@@ -253,7 +258,8 @@ defmodule Chimeway.Trigger do
             %{
               row: row,
               workflow_definition: workflow_definition,
-              precomputed_rendering: precompute_rendering(notification_id, rendering)
+              precomputed_rendering: precompute_rendering(notification_id, rendering),
+              recipient_address: recipient_address(recipient_identity(recipient))
             }
             | acc
           ], workflow_cache}}
@@ -292,13 +298,26 @@ defmodule Chimeway.Trigger do
     |> Enum.reduce(%{}, &Map.merge/2)
   end
 
+  defp recipient_handoffs(notifications) do
+    Enum.reduce(notifications, %{}, fn notification, handoffs ->
+      case notification.recipient_address do
+        address when is_binary(address) ->
+          Map.put(handoffs, Ecto.UUID.load!(notification.row.id), address)
+
+        _ ->
+          handoffs
+      end
+    end)
+  end
+
   defp normalize_trigger_result(
          {:ok,
           %{
             event: event,
             notifications: %{
               count: notifications_inserted,
-              precomputed_rendering: precomputed_rendering
+              precomputed_rendering: precomputed_rendering,
+              recipient_handoffs: recipient_handoffs
             }
           }},
          _idempotency_key,
@@ -314,6 +333,7 @@ defmodule Chimeway.Trigger do
        recipients: recipients,
        notifications_inserted: notifications_inserted,
        precomputed_rendering: precomputed_rendering,
+       recipient_handoffs: recipient_handoffs,
        dispatch_outcome: :pending,
        dispatch_mode: :unknown,
        trace: %{
@@ -423,6 +443,13 @@ defmodule Chimeway.Trigger do
   defp recipient_identity(%{"recipient_identity" => value}), do: value
   defp recipient_identity(_recipient), do: nil
 
+  defp recipient_address("user:" <> address)
+       when is_binary(address) and byte_size(address) in 3..160 do
+    if String.match?(address, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/), do: address, else: nil
+  end
+
+  defp recipient_address(_recipient_identity), do: nil
+
   defp optional_correlation_ref(nil), do: {:ok, nil}
   defp optional_correlation_ref(value), do: SafeEvidence.opaque_ref(:correlation, value)
 
@@ -488,6 +515,7 @@ defmodule Chimeway.Trigger do
       |> Keyword.put_new(:event_id, event.id)
       |> Keyword.put_new(:correlation_id, event.correlation_id)
       |> Keyword.put_new(:precomputed_rendering, trigger_result.precomputed_rendering)
+      |> Keyword.put_new(:recipient_handoffs, trigger_result.recipient_handoffs)
 
     case dispatcher.dispatch(notifications, dispatch_opts) do
       {:ok, deliveries} ->

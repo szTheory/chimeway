@@ -596,6 +596,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     {:ok, _} = Application.ensure_all_started(:artifact_consumer)
     :ok = Mailglass.Adapters.Fake.checkout()
     :ok = Mailglass.Adapters.Fake.set_shared(self())
+    import Ecto.Query
     previous_repo = Chimeway.Repo.get_dynamic_repo()
     Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)
 
@@ -621,6 +622,11 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       true = explanation.last_attempt != nil and explanation.last_attempt.outcome == :succeeded
       true = ordered?
       true = length(Mailglass.Adapters.Fake.deliveries()) == 1
+      delivery = Chimeway.Repo.get!(Chimeway.Delivery, delivery_id)
+      notification = Chimeway.Repo.get!(Chimeway.Notifications.Notification, delivery.notification_id)
+      event = Chimeway.Repo.get!(Chimeway.Events.Event, notification.event_id)
+      [attempt] = Chimeway.Repo.all(from(a in Chimeway.DeliveryAttempt, where: a.delivery_id == ^delivery_id))
+      false = :binary.match(:erlang.term_to_binary(%{event: event, notification: notification, delivery: delivery, attempt: attempt, explanation: explanation}), "proof@example.test") != :nomatch
       evidence = Chimeway.SafeEvidence.proof(%{notification_key: explanation.notification_key, notification_version: ArtifactConsumer.Notifiers.MailglassProof.version(), delivery_id: delivery_id, channel: explanation.channel, render_key: explanation.render_key, render_version: explanation.render_version, status: explanation.status, outcome_classification: explanation.last_attempt.outcome, last_attempt_outcome: explanation.last_attempt.outcome, last_attempt_number: explanation.last_attempt.attempt_number, provider_handoff: "accepted", timeline_events: Enum.join(timeline_events, ",")})
       IO.puts("CHIMEWAY_MAILGLASS_PROOF " <> Enum.map_join([:notification_key, :notification_version, :delivery_id, :channel, :render_key, :render_version, :status, :outcome_classification, :last_attempt_outcome, :last_attempt_number, :provider_handoff, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
     after

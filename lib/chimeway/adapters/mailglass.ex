@@ -110,7 +110,8 @@ if Code.ensure_loaded?(Mailglass) do
       render_data = delivery.render_data || %{}
 
       email =
-        render_data["to"] ||
+        delivery.recipient_address ||
+          render_data["to"] ||
           render_data["email"] ||
           parse_user_email(delivery.actor_id)
 

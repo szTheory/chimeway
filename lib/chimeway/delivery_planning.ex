@@ -117,6 +117,8 @@ defmodule Chimeway.DeliveryPlanning do
     trusted_render_data? =
       Map.has_key?(Keyword.get(opts, :precomputed_rendering, %{}), {notification.id, channel})
 
+    recipient_address = Map.get(Keyword.get(opts, :recipient_handoffs, %{}), notification.id)
+
     opts = Keyword.put_new(opts, :recipient, recipient)
 
     with {:ok, tenant_id} <- resolve_delivery_tenant(notification, opts),
@@ -140,6 +142,7 @@ defmodule Chimeway.DeliveryPlanning do
            ),
          {:ok, delivery} <-
            maybe_apply_render_result(delivery, render_result, trusted_render_data?),
+         {:ok, delivery} <- attach_recipient_address(delivery, recipient_address),
          {:ok, delivery} <- maybe_apply_workflow_linkage(delivery, workflow_linkage),
          {:ok, orchestration} <-
            resolve_orchestration(notification, opts, trigger_params, recipient),
@@ -566,6 +569,11 @@ defmodule Chimeway.DeliveryPlanning do
       Deliveries.apply_render_result(delivery, render_result)
     end
   end
+
+  defp attach_recipient_address(%Delivery{} = delivery, address) when is_binary(address),
+    do: {:ok, %{delivery | recipient_address: address}}
+
+  defp attach_recipient_address(%Delivery{} = delivery, _address), do: {:ok, delivery}
 
   defp maybe_apply_workflow_linkage(%Delivery{} = delivery, workflow_linkage)
        when map_size(workflow_linkage) == 0,

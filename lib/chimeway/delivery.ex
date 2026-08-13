@@ -45,6 +45,7 @@ defmodule Chimeway.Delivery do
     field(:render_key, :string)
     field(:render_version, :integer)
     field(:render_data, :map, default: %{})
+    field(:recipient_address, :string, virtual: true)
 
     belongs_to(:notification, Notification)
     belongs_to(:digest_delivery, Chimeway.Delivery)
