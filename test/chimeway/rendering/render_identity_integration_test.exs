@@ -192,6 +192,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
         |> Repo.get_by!(event_id: result.event.id, recipient_identity: "cw_render")
 
       assert notification.render_channels == %{
+               "email" => %{"render_key" => "comment.created.email", "render_version" => 4},
                "in_app" => %{"render_key" => "comment.created.in_app", "render_version" => 2}
              }
     end

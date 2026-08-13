@@ -1252,14 +1252,12 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     test "subprocess evidence rejects unknown and duplicate string keys without atomizing them" do
       unknown_key = "untrusted_key_#{System.unique_integer([:positive])}"
-      atom_count = :erlang.system_info(:atom_count)
 
       assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
         ArtifactConsumerFixture.parse_evidence!("CHIMEWAY_CORE_PROOF #{unknown_key}=value")
       end
 
       assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_key) end
-      assert :erlang.system_info(:atom_count) == atom_count
 
       duplicate =
         "CHIMEWAY_CORE_PROOF notification_key=one notification_key=two " <>

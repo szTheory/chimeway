@@ -213,8 +213,7 @@ defmodule Chimeway.TriggerPipelineTest do
     assert result.notification_version == 3
     assert result.idempotency_key == "idem-123"
 
-    assert Enum.map(result.recipients, & &1.recipient_identity) == ["a-user", "m-user", "z-user"]
-    assert length(result.recipients) == 3
+    refute Map.has_key?(result, :recipients)
 
     notifications =
       Repo.all(from(n in Notification, where: n.event_id == ^result.event.id, select: n.id))
@@ -267,7 +266,7 @@ defmodule Chimeway.TriggerPipelineTest do
              )
 
     assert result.notification_key == "comment.created.fallback"
-    assert Enum.map(result.recipients, & &1.recipient_identity) == ["a-user", "m-user", "z-user"]
+    refute Map.has_key?(result, :recipients)
 
     notifications =
       Repo.all(from(n in Notification, where: n.event_id == ^result.event.id, select: n.id))

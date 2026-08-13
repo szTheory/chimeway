@@ -195,8 +195,10 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
 
         {:ok, parsed} = MailglassAdapter.parse_webhook_body(body, headers, config)
 
-        assert {:ok, %{provider_message_id: "postmark-msg-123"}} =
+        assert {:ok, %{provider_message_id: provider_message_id}} =
                  MailglassAdapter.resolve_delivery(parsed)
+
+        assert String.starts_with?(provider_message_id, "cw_provider_message_id_")
       end
 
       @tag :webhook

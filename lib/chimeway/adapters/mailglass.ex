@@ -281,8 +281,14 @@ if Code.ensure_loaded?(Mailglass) do
     def resolve_delivery(%{"_mailglass_event" => %Mailglass.Events.Event{metadata: metadata}})
         when is_map(metadata) do
       case message_id_from_metadata(metadata) do
-        id when is_binary(id) and id != "" -> {:ok, %{provider_message_id: id}}
-        _ -> :error
+        id when is_binary(id) ->
+          case Chimeway.SafeEvidence.provider_message_reference(id) do
+            {:ok, reference} -> {:ok, %{provider_message_id: reference}}
+            {:error, :unsafe_evidence} -> :error
+          end
+
+        _ ->
+          :error
       end
     end
 

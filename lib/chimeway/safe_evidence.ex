@@ -90,6 +90,18 @@ defmodule Chimeway.SafeEvidence do
   def opaque_ref(_domain, _value), do: {:error, :unsafe_evidence}
 
   @doc false
+  @spec provider_message_reference(term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
+  def provider_message_reference(value)
+      when is_binary(value) and byte_size(value) in 4..@max_ref_bytes do
+    case opaque_ref(:provider_message_id, value) do
+      {:ok, reference} -> {:ok, reference}
+      {:error, :unsafe_evidence} -> {:ok, opaque_projection(:provider_message_id, value)}
+    end
+  end
+
+  def provider_message_reference(_value), do: {:error, :unsafe_evidence}
+
+  @doc false
   @spec recipient_reference(term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
   def recipient_reference(value)
       when is_binary(value) and byte_size(value) in 1..@max_ref_bytes do

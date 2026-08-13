@@ -76,11 +76,9 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       assert updated.status == :succeeded
       assert attempt.outcome == :succeeded
       assert attempt.adapter_module == "Chimeway.Adapters.Mailglass"
-
-      provider_response = attempt.provider_response || %{}
-
-      assert provider_response["adapter"] == "mailglass" or
-               provider_response[:adapter] == "mailglass"
+      assert attempt.provider_response == %{}
+      assert is_binary(attempt.provider_message_id)
+      assert String.starts_with?(attempt.provider_message_id, "cw_provider_message_id_")
     end
   end
 end

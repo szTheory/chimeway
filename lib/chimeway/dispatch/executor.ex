@@ -76,7 +76,12 @@ defmodule Chimeway.Dispatch.Executor do
   end
 
   defp provider_message_id(meta) when is_map(meta) do
-    Map.get(meta, :provider_message_id) || Map.get(meta, "provider_message_id")
+    case SafeEvidence.provider_message_reference(
+           Map.get(meta, :provider_message_id) || Map.get(meta, "provider_message_id")
+         ) do
+      {:ok, reference} -> reference
+      {:error, :unsafe_evidence} -> nil
+    end
   end
 
   defp provider_message_id(_meta), do: nil
