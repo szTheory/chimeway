@@ -3,7 +3,7 @@ defmodule Chimeway.Test.ExecutorProviderMessageIdAdapter do
   @behaviour Chimeway.Adapter
 
   @impl Chimeway.Adapter
-  def deliver(_delivery, _config), do: {:ok, %{provider_message_id: "msg-abc-123"}}
+  def deliver(_delivery, _config), do: {:ok, %{provider_message_id: "cw_provider_abc-123"}}
 end
 
 defmodule Chimeway.Test.ExecutorSafeEvidenceAdapter do
@@ -11,7 +11,8 @@ defmodule Chimeway.Test.ExecutorSafeEvidenceAdapter do
   @behaviour Chimeway.Adapter
 
   @impl Chimeway.Adapter
-  def deliver(_delivery, _config), do: Application.fetch_env!(:chimeway, :executor_safe_evidence_result)
+  def deliver(_delivery, _config),
+    do: Application.fetch_env!(:chimeway, :executor_safe_evidence_result)
 end
 
 defmodule Chimeway.Dispatch.ExecutorTest do
@@ -45,7 +46,11 @@ defmodule Chimeway.Dispatch.ExecutorTest do
       if is_nil(previous_safe_evidence_result) do
         Application.delete_env(:chimeway, :executor_safe_evidence_result)
       else
-        Application.put_env(:chimeway, :executor_safe_evidence_result, previous_safe_evidence_result)
+        Application.put_env(
+          :chimeway,
+          :executor_safe_evidence_result,
+          previous_safe_evidence_result
+        )
       end
     end)
 
@@ -58,22 +63,29 @@ defmodule Chimeway.Dispatch.ExecutorTest do
     assert {:ok, %{attempt: attempt}} = Executor.run_delivery(delivery)
 
     reloaded = Repo.get!(DeliveryAttempt, attempt.id)
-    assert reloaded.provider_message_id == "msg-abc-123"
+    assert reloaded.provider_message_id == "cw_provider_abc-123"
   end
 
   test "adapter details never reach persisted attempts or caller-visible results" do
     Application.put_env(:chimeway, :adapter, Chimeway.Test.ExecutorSafeEvidenceAdapter)
 
-    for result <- [
-          {:ok,
-           %{
-             provider_message_id: "raw-provider-message-sentinel",
-             provider_body: "provider-body-sentinel"
-           }},
-          {:error, :temporary, %{reason: "raw-temporary-sentinel", provider_body: "provider-body-sentinel"}},
-          {:error, :permanent, %{reason: "raw-permanent-sentinel", provider_body: "provider-body-sentinel"}},
-          {:error, :bounced, %{reason: "raw-bounced-sentinel", provider_body: "provider-body-sentinel"}},
-          {:error, :unknown_provider_term, %{reason: "raw-unknown-sentinel"}}
+    for {result, expected_outcome, expected_class} <- [
+          {{:ok,
+            %{
+              provider_message_id: "raw-provider-message-sentinel",
+              provider_body: "provider-body-sentinel"
+            }}, :succeeded, nil},
+          {{:error, :temporary,
+            %{reason: "raw-temporary-sentinel", provider_body: "provider-body-sentinel"}},
+           :failed, "temporary"},
+          {{:error, :permanent,
+            %{reason: "raw-permanent-sentinel", provider_body: "provider-body-sentinel"}},
+           :rejected, "permanent"},
+          {{:error, :bounced,
+            %{reason: "raw-bounced-sentinel", provider_body: "provider-body-sentinel"}}, :bounced,
+           "bounced"},
+          {{:error, :unknown_provider_term, %{reason: "raw-unknown-sentinel"}}, :rejected,
+           "unknown_classification"}
         ] do
       %{delivery: delivery} = DispatchHelpers.create_pending_delivery(channel: :email)
       Application.put_env(:chimeway, :executor_safe_evidence_result, result)
@@ -82,6 +94,8 @@ defmodule Chimeway.Dispatch.ExecutorTest do
                Executor.run_delivery(delivery)
 
       persisted = Repo.get!(DeliveryAttempt, attempt.id)
+      assert persisted.outcome == expected_outcome
+      assert persisted.error_class == expected_class
       refute_sentinels(persisted)
       refute_sentinels(attempt)
     end

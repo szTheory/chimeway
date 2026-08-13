@@ -19,7 +19,7 @@ defmodule Chimeway.Dispatch.Executor do
   Oban return value (retry vs terminal vs success).
   """
 
-  alias Chimeway.{Deliveries, Delivery}
+  alias Chimeway.{Deliveries, Delivery, SafeEvidence}
   alias Chimeway.Dispatch.ChannelAdapterConfig
 
   @spec run_delivery(Delivery.t()) ::
@@ -32,46 +32,56 @@ defmodule Chimeway.Dispatch.Executor do
       adapter = resolve_adapter(dispatched.channel)
       adapter_config = ChannelAdapterConfig.resolve(delivery.channel, [])
 
-      {attempt_outcome, error_class, provider_response} =
+      {attempt_outcome, error_class, safe_attempt_facts} =
         dispatched
         |> adapter.deliver(adapter_config)
         |> classify()
 
-      Deliveries.record_attempt(dispatched, %{
-        outcome: attempt_outcome,
-        error_class: error_class,
-        provider_response: provider_response,
-        provider_message_id: extract_provider_message_id(provider_response),
-        # D-20: persist module name as inspect/1 string (no "Elixir." prefix).
-        adapter_module: inspect(adapter)
-      })
+      Deliveries.record_attempt(
+        dispatched,
+        Map.merge(safe_attempt_facts, %{
+          outcome: attempt_outcome,
+          error_class: error_class,
+          # D-20: persist module name as inspect/1 string (no "Elixir." prefix).
+          adapter_module: inspect(adapter)
+        })
+      )
     end
   end
 
-  # Adapter classification preservation (D-05). Returns {outcome, error_class, detail}.
+  # Adapter classification preservation (D-05). Returns only stable result facts.
   # error_class is nil on success; otherwise one of "temporary" | "permanent" | "bounced".
-  defp classify({:ok, meta}), do: {:succeeded, nil, meta}
-  defp classify({:error, :temporary, detail}), do: {:failed, "temporary", detail}
-  defp classify({:error, :permanent, detail}), do: {:rejected, "permanent", detail}
-  defp classify({:error, :bounced, detail}), do: {:bounced, "bounced", detail}
+  defp classify({:ok, meta}), do: safe_attempt(:succeeded, nil, meta)
+  defp classify({:error, :temporary, detail}), do: safe_attempt(:failed, "temporary", detail)
+  defp classify({:error, :permanent, detail}), do: safe_attempt(:rejected, "permanent", detail)
+  defp classify({:error, :bounced, detail}), do: safe_attempt(:bounced, "bounced", detail)
 
   # Fallback for unexpected adapter return shapes (BL-02 fix). Routes the unknown
   # tuple through the executor write path so it lands a DeliveryAttempt row and
   # transitions the delivery to :failed (terminal_or_failed_transition's catch-all
   # clause). The Oban worker's map_outcome_to_oban_return/4 catch-all then converges
   # or raises depending on attempt budget and status (oban_worker.ex).
-  defp classify(other) do
-    {:rejected, "unknown_classification", {:unknown_adapter_return, other}}
-  end
+  defp classify(_other), do: {:rejected, "unknown_classification", empty_attempt_facts()}
 
-  defp extract_provider_message_id(meta) when is_map(meta) do
-    case Map.get(meta, :provider_message_id) || Map.get(meta, "provider_message_id") do
-      id when is_binary(id) -> id
-      _ -> nil
+  defp safe_attempt(outcome, error_class, detail) do
+    case SafeEvidence.attempt_attrs(%{
+           outcome: outcome,
+           error_class: error_class,
+           provider_response: detail,
+           provider_message_id: provider_message_id(detail)
+         }) do
+      {:ok, attrs} -> {outcome, error_class, attrs}
+      {:error, :unsafe_evidence, _reason} -> {outcome, error_class, empty_attempt_facts()}
     end
   end
 
-  defp extract_provider_message_id(_), do: nil
+  defp provider_message_id(meta) when is_map(meta) do
+    Map.get(meta, :provider_message_id) || Map.get(meta, "provider_message_id")
+  end
+
+  defp provider_message_id(_meta), do: nil
+
+  defp empty_attempt_facts, do: %{provider_response: %{}, provider_message_id: nil}
 
   # D-17: Per-channel adapter resolution.
   # Resolution order:
