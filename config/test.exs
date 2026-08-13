@@ -129,7 +129,11 @@ config :accrue,
            pool: Ecto.Adapters.SQL.Sandbox
          ]
 
-config :threadline, ecto_repos: [Threadline.Test.Repo]
+# Threadline's application starts an autonomous export cleanup task for every
+# configured repo. Test repos are instead started and owned explicitly by the
+# Threadline DataCase, so keep the application child tree repo-free in test.
+# This prevents an unowned cleanup reconcile from surviving ExUnit teardown.
+config :threadline, ecto_repos: []
 
 config :threadline,
        Threadline.Test.Repo,
