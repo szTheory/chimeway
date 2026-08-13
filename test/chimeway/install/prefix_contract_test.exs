@@ -26,7 +26,7 @@ defmodule Chimeway.Install.PrefixContractTest do
       |> Path.wildcard()
       |> Enum.sort()
 
-    assert length(files) == 33
+    assert length(files) == 34
 
     {:ok, files: files}
   end
