@@ -1088,33 +1088,33 @@ defmodule Chimeway.ReleaseGateContractTest do
       proof = ArtifactConsumerFixture.prove_mailglass!(root)
 
       assert proof.output =~ "CHIMEWAY_MAILGLASS_PROOF"
-      assert proof.output =~ "transport=fake"
+      assert proof.output =~ "provider_handoff=accepted"
 
       assert Map.keys(proof.evidence) |> Enum.sort() ==
                [
-                 :adapter_module,
                  :channel,
                  :delivery_id,
                  :last_attempt_number,
                  :last_attempt_outcome,
                  :notification_key,
                  :notification_version,
+                 :outcome_classification,
+                 :provider_handoff,
                  :render_key,
                  :render_version,
                  :status,
-                 :timeline_events,
-                 :transport
+                 :timeline_events
                ]
 
-      assert proof.evidence.transport == "fake"
       assert proof.evidence.channel == "email"
       assert proof.evidence.notification_key == "artifact_consumer.mailglass_proof"
       assert proof.evidence.notification_version == "1"
       assert proof.evidence.render_key == "artifact_consumer.mailglass_proof.email"
       assert proof.evidence.render_version == "1"
       assert proof.evidence.status == "succeeded"
+      assert proof.evidence.outcome_classification == "succeeded"
       assert proof.evidence.last_attempt_outcome == "succeeded"
-      assert proof.evidence.adapter_module == "Chimeway.Adapters.Mailglass"
+      assert proof.evidence.provider_handoff == "accepted"
       assert proof.evidence.last_attempt_number == "1"
 
       assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
@@ -1246,12 +1246,14 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     test "subprocess evidence rejects unknown and duplicate string keys without atomizing them" do
       unknown_key = "untrusted_key_#{System.unique_integer([:positive])}"
+      atom_count = :erlang.system_info(:atom_count)
 
       assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
         ArtifactConsumerFixture.parse_evidence!("CHIMEWAY_CORE_PROOF #{unknown_key}=value")
       end
 
       assert_raise ArgumentError, fn -> String.to_existing_atom(unknown_key) end
+      assert :erlang.system_info(:atom_count) == atom_count
 
       duplicate =
         "CHIMEWAY_CORE_PROOF notification_key=one notification_key=two " <>
@@ -1308,18 +1310,18 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert Map.keys(ArtifactConsumerFixture.parse_mailglass_evidence!(complete)) |> Enum.sort() ==
                [
-                 :adapter_module,
                  :channel,
                  :delivery_id,
                  :last_attempt_number,
                  :last_attempt_outcome,
                  :notification_key,
                  :notification_version,
+                 :outcome_classification,
+                 :provider_handoff,
                  :render_key,
                  :render_version,
                  :status,
-                 :timeline_events,
-                 :transport
+                 :timeline_events
                ]
 
       unknown_key = "untrusted_mailglass_key_#{System.unique_integer([:positive])}"
@@ -1336,7 +1338,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert_raise RuntimeError, ~r/exactly the safe evidence allowlist/, fn ->
         ArtifactConsumerFixture.parse_mailglass_evidence!(
-          String.replace(complete, " adapter_module=Chimeway.Adapters.Mailglass", "")
+          String.replace(complete, " provider_handoff=accepted", "")
         )
       end
 
@@ -1348,10 +1350,8 @@ defmodule Chimeway.ReleaseGateContractTest do
         ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> "\n" <> complete)
       end
 
-      assert_raise RuntimeError, ~r/fake transport/, fn ->
-        ArtifactConsumerFixture.parse_mailglass_evidence!(
-          String.replace(complete, "transport=fake", "transport=live")
-        )
+      assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " transport=live")
       end
     end
 
@@ -1381,8 +1381,12 @@ defmodule Chimeway.ReleaseGateContractTest do
             "secret",
             "credential",
             "api_key",
+            "token",
+            "endpoint",
+            "trusted_link",
             "raw_mailglass",
             "provider_id",
+            "provider_body",
             "provider_response",
             "metadata"
           ] do
@@ -1397,12 +1401,6 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "Mailglass proof evidence rejects forged values beneath every allowlisted key" do
       complete = mailglass_evidence_line()
 
-      assert_raise RuntimeError, ~r/must declare fake transport/, fn ->
-        ArtifactConsumerFixture.parse_mailglass_evidence!(
-          replace_mailglass_evidence_value(complete, "transport", "live")
-        )
-      end
-
       mutations = [
         {"notification_key", "recipient@example.test"},
         {"notification_version", "2"},
@@ -1413,13 +1411,21 @@ defmodule Chimeway.ReleaseGateContractTest do
         {"status", "failed"},
         {"last_attempt_outcome", "failed"},
         {"last_attempt_number", "2"},
-        {"adapter_module", "provider-secret"}
+        {"outcome_classification", "opened"}
       ]
 
       for {key, value} <- mutations do
         assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
           ArtifactConsumerFixture.parse_mailglass_evidence!(
             replace_mailglass_evidence_value(complete, key, value)
+          )
+        end
+      end
+
+      for forged_handoff <- ["device_displayed", "opened", "seen", "read", "engagement"] do
+        assert_raise RuntimeError, ~r/invalid provider_handoff/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, "provider_handoff", forged_handoff)
           )
         end
       end
@@ -2856,11 +2862,11 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   defp mailglass_evidence_line do
     "CHIMEWAY_MAILGLASS_PROOF " <>
-      "transport=fake notification_key=artifact_consumer.mailglass_proof " <>
+      "notification_key=artifact_consumer.mailglass_proof " <>
       "notification_version=1 delivery_id=2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e channel=email " <>
       "render_key=artifact_consumer.mailglass_proof.email render_version=1 " <>
-      "status=succeeded last_attempt_outcome=succeeded last_attempt_number=1 " <>
-      "adapter_module=Chimeway.Adapters.Mailglass " <>
+      "status=succeeded outcome_classification=succeeded last_attempt_outcome=succeeded " <>
+      "last_attempt_number=1 provider_handoff=accepted " <>
       "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded,webhook_received"
   end
 

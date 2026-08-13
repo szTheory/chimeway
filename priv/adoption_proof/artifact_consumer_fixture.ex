@@ -6,12 +6,17 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "notification_key" => :notification_key,
     "notification_version" => :notification_version,
     "delivery_id" => :delivery_id,
+    "channel" => :channel,
+    "render_key" => :render_key,
+    "render_version" => :render_version,
     "status" => :status,
+    "outcome_classification" => :outcome_classification,
     "last_attempt_outcome" => :last_attempt_outcome,
+    "last_attempt_number" => :last_attempt_number,
+    "provider_handoff" => :provider_handoff,
     "timeline_events" => :timeline_events
   }
   @mailglass_evidence_keys %{
-    "transport" => :transport,
     "notification_key" => :notification_key,
     "notification_version" => :notification_version,
     "delivery_id" => :delivery_id,
@@ -19,20 +24,32 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "render_key" => :render_key,
     "render_version" => :render_version,
     "status" => :status,
+    "outcome_classification" => :outcome_classification,
     "last_attempt_outcome" => :last_attempt_outcome,
     "last_attempt_number" => :last_attempt_number,
-    "adapter_module" => :adapter_module,
+    "provider_handoff" => :provider_handoff,
     "timeline_events" => :timeline_events
+  }
+  @core_expected_values %{
+    notification_key: "artifact_consumer.core_trace",
+    channel: "in_app",
+    render_key: "artifact_consumer.core_trace.in_app",
+    status: "succeeded",
+    outcome_classification: "succeeded",
+    last_attempt_outcome: "succeeded",
+    provider_handoff: "not_applicable"
   }
   @mailglass_expected_values %{
     notification_key: "artifact_consumer.mailglass_proof",
     channel: "email",
     render_key: "artifact_consumer.mailglass_proof.email",
     status: "succeeded",
+    outcome_classification: "succeeded",
     last_attempt_outcome: "succeeded",
-    adapter_module: "Chimeway.Adapters.Mailglass"
+    provider_handoff: "accepted"
   }
-  @mailglass_numeric_fields [:notification_version, :render_version, :last_attempt_number]
+  @numeric_proof_fields [:notification_version, :render_version, :last_attempt_number]
+  @core_timeline ["event_created", "notification_created", "delivery_planned", "attempt_recorded"]
   @mailglass_timeline [
     "event_created",
     "notification_created",
@@ -40,7 +57,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "attempt_recorded",
     "webhook_received"
   ]
-  @mailglass_delivery_id ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/
+  @proof_delivery_id ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/
   @accrue_evidence_keys %{
     "provenance" => :provenance,
     "accrue_version" => :accrue_version,
@@ -336,14 +353,20 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       raise "public proof requires ordered lifecycle events"
     end
 
-    %{
+    Chimeway.SafeEvidence.proof(%{
       notification_key: notifier.notification_key(),
       notification_version: notifier.version(),
       delivery_id: delivery_id,
+      channel: explanation.channel,
+      render_key: explanation.render_key,
+      render_version: explanation.render_version,
       status: explanation.status,
+      outcome_classification: explanation.last_attempt.outcome,
       last_attempt_outcome: explanation.last_attempt.outcome,
+      last_attempt_number: explanation.last_attempt.attempt_number,
+      provider_handoff: "not_applicable",
       timeline_events: timeline_events
-    }
+    })
   end
 
   @doc false
@@ -498,11 +521,14 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     required_events = [:event_created, :notification_created, :delivery_planned, :attempt_recorded]
     ordered? = Enum.reduce_while(timeline_events, required_events, fn event, remaining -> case remaining do [^event | rest] -> {:cont, rest}; _ -> {:cont, remaining} end end) == []
     true = explanation.notification_key == ArtifactConsumer.Notifiers.CoreTrace.notification_key()
+    true = explanation.channel == "in_app"
+    true = explanation.render_key == "artifact_consumer.core_trace.in_app"
+    true = explanation.render_version == 1
     true = explanation.status == :succeeded
     true = explanation.last_attempt != nil and explanation.last_attempt.outcome == :succeeded
     true = ordered?
-    evidence = %{notification_key: ArtifactConsumer.Notifiers.CoreTrace.notification_key(), notification_version: ArtifactConsumer.Notifiers.CoreTrace.version(), delivery_id: delivery_id, status: explanation.status, last_attempt_outcome: explanation.last_attempt.outcome, timeline_events: Enum.join(timeline_events, ",")}
-    IO.puts("CHIMEWAY_CORE_PROOF " <> Enum.map_join([:notification_key, :notification_version, :delivery_id, :status, :last_attempt_outcome, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
+    evidence = Chimeway.SafeEvidence.proof(%{notification_key: ArtifactConsumer.Notifiers.CoreTrace.notification_key(), notification_version: ArtifactConsumer.Notifiers.CoreTrace.version(), delivery_id: delivery_id, channel: explanation.channel, render_key: explanation.render_key, render_version: explanation.render_version, status: explanation.status, outcome_classification: explanation.last_attempt.outcome, last_attempt_outcome: explanation.last_attempt.outcome, last_attempt_number: explanation.last_attempt.attempt_number, provider_handoff: "not_applicable", timeline_events: Enum.join(timeline_events, ",")})
+    IO.puts("CHIMEWAY_CORE_PROOF " <> Enum.map_join([:notification_key, :notification_version, :delivery_id, :channel, :render_key, :render_version, :status, :outcome_classification, :last_attempt_outcome, :last_attempt_number, :provider_handoff, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
     after
       Chimeway.Repo.put_dynamic_repo(previous_repo)
     end
@@ -587,11 +613,10 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       true = explanation.render_version == 1
       true = explanation.status == :succeeded
       true = explanation.last_attempt != nil and explanation.last_attempt.outcome == :succeeded
-      true = explanation.last_attempt.adapter_module == "Chimeway.Adapters.Mailglass"
       true = ordered?
       true = length(Mailglass.Adapters.Fake.deliveries()) == 1
-      evidence = %{transport: "fake", notification_key: explanation.notification_key, notification_version: ArtifactConsumer.Notifiers.MailglassProof.version(), delivery_id: delivery_id, channel: explanation.channel, render_key: explanation.render_key, render_version: explanation.render_version, status: explanation.status, last_attempt_outcome: explanation.last_attempt.outcome, last_attempt_number: explanation.last_attempt.attempt_number, adapter_module: explanation.last_attempt.adapter_module, timeline_events: Enum.join(timeline_events, ",")}
-      IO.puts("CHIMEWAY_MAILGLASS_PROOF " <> Enum.map_join([:transport, :notification_key, :notification_version, :delivery_id, :channel, :render_key, :render_version, :status, :last_attempt_outcome, :last_attempt_number, :adapter_module, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
+      evidence = Chimeway.SafeEvidence.proof(%{notification_key: explanation.notification_key, notification_version: ArtifactConsumer.Notifiers.MailglassProof.version(), delivery_id: delivery_id, channel: explanation.channel, render_key: explanation.render_key, render_version: explanation.render_version, status: explanation.status, outcome_classification: explanation.last_attempt.outcome, last_attempt_outcome: explanation.last_attempt.outcome, last_attempt_number: explanation.last_attempt.attempt_number, provider_handoff: "accepted", timeline_events: Enum.join(timeline_events, ",")})
+      IO.puts("CHIMEWAY_MAILGLASS_PROOF " <> Enum.map_join([:notification_key, :notification_version, :delivery_id, :channel, :render_key, :render_version, :status, :outcome_classification, :last_attempt_outcome, :last_attempt_number, :provider_handoff, :timeline_events], " ", fn key -> "\#{key}=\#{Map.fetch!(evidence, key)}" end))
     after
       Chimeway.Repo.put_dynamic_repo(previous_repo)
     end
@@ -773,37 +798,11 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   @doc false
   @spec parse_evidence!(String.t()) :: map()
   def parse_evidence!(output) do
-    line = proof_line!(output)
-
-    line
+    output
+    |> proof_line!()
     |> String.replace_prefix("CHIMEWAY_CORE_PROOF ", "")
-    |> String.split(" ", trim: true)
-    |> Enum.reduce(%{}, fn pair, evidence ->
-      case String.split(pair, "=", parts: 2) do
-        [key, value] ->
-          evidence_key =
-            case Map.fetch(@evidence_keys, key) do
-              {:ok, allowed_key} -> allowed_key
-              :error -> raise "artifact consumer proof emitted an unknown evidence key"
-            end
-
-          if Map.has_key?(evidence, evidence_key) do
-            raise "artifact consumer proof emitted a duplicate evidence key"
-          end
-
-          Map.put(evidence, evidence_key, value)
-
-        _ ->
-          raise "artifact consumer proof emitted malformed evidence"
-      end
-    end)
-    |> then(fn evidence ->
-      if Enum.sort(Map.keys(evidence)) != Enum.sort(Map.values(@evidence_keys)) do
-        raise "artifact consumer proof must emit exactly the safe evidence allowlist"
-      end
-
-      evidence
-    end)
+    |> parse_evidence_pairs!(@evidence_keys, "Core")
+    |> validate_core_evidence!()
   end
 
   @doc false
@@ -907,30 +906,39 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
   end
 
   defp validate_mailglass_evidence!(evidence) do
-    if evidence.transport != "fake" do
-      raise "artifact consumer Mailglass proof must declare fake transport"
-    end
+    validate_proof_evidence!(
+      evidence,
+      @mailglass_expected_values,
+      @mailglass_timeline,
+      "Mailglass"
+    )
+  end
 
-    Enum.each(@mailglass_expected_values, fn {field, expected} ->
+  defp validate_core_evidence!(evidence) do
+    validate_proof_evidence!(evidence, @core_expected_values, @core_timeline, "Core")
+  end
+
+  defp validate_proof_evidence!(evidence, expected_values, timeline, label) do
+    Enum.each(expected_values, fn {field, expected} ->
       if Map.fetch!(evidence, field) != expected do
-        raise "artifact consumer Mailglass proof emitted invalid #{field}"
+        raise "artifact consumer #{label} proof emitted invalid #{field}"
       end
     end)
 
-    Enum.each(@mailglass_numeric_fields, fn field ->
+    Enum.each(@numeric_proof_fields, fn field ->
       value = Map.fetch!(evidence, field)
 
       unless Regex.match?(~r/\A[1-9][0-9]*\z/, value) and value == "1" do
-        raise "artifact consumer Mailglass proof emitted invalid #{field}"
+        raise "artifact consumer #{label} proof emitted invalid #{field}"
       end
     end)
 
-    unless Regex.match?(@mailglass_delivery_id, evidence.delivery_id) do
-      raise "artifact consumer Mailglass proof emitted invalid delivery_id"
+    unless Regex.match?(@proof_delivery_id, evidence.delivery_id) do
+      raise "artifact consumer #{label} proof emitted invalid delivery_id"
     end
 
-    if String.split(evidence.timeline_events, ",", trim: false) != @mailglass_timeline do
-      raise "artifact consumer Mailglass proof emitted invalid timeline_events"
+    if String.split(evidence.timeline_events, ",", trim: false) != timeline do
+      raise "artifact consumer #{label} proof emitted invalid timeline_events"
     end
 
     evidence
