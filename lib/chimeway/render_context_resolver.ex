@@ -34,8 +34,15 @@ defmodule Chimeway.RenderContextResolver do
   def resolve(_, _, _), do: {:error, :invalid_render_context}
 
   def validate_registry! do
-    Application.get_env(:chimeway, :render_context_resolvers, %{})
-    |> Enum.each(fn
+    case Application.get_env(:chimeway, :render_context_resolvers, %{}) do
+      nil -> :ok
+      registry when is_map(registry) -> validate_entries!(registry)
+      _ -> raise ArgumentError, "[chimeway] :render_context_resolvers must be a map"
+    end
+  end
+
+  defp validate_entries!(registry) do
+    Enum.each(registry, fn
       {{key, version}, module}
       when is_binary(key) and is_integer(version) and version > 0 and is_atom(module) ->
         unless Code.ensure_loaded?(module) and function_exported?(module, :resolve, 3) do

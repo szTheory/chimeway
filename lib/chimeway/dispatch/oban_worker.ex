@@ -190,8 +190,11 @@ if Code.ensure_loaded?(Oban) do
       end
     end
 
-    defp hydrate_for_execution(%Delivery{channel: "email"} = delivery),
-      do: DeliveryPlanning.hydrate_execution_delivery(delivery)
+    defp hydrate_for_execution(
+           %Delivery{channel: "email", render_key: key, render_version: version} = delivery
+         )
+         when is_binary(key) and key != "" and is_integer(version) and version > 0,
+         do: DeliveryPlanning.hydrate_execution_delivery(delivery)
 
     defp hydrate_for_execution(%Delivery{} = delivery), do: {:ok, delivery}
 
