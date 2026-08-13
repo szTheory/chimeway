@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 98
 current_phase_name: privacy-safe-delivery-evidence
 status: executing
-stopped_at: Completed 98-07-PLAN.md
-last_updated: "2026-08-13T03:22:57.894Z"
-last_activity: 2026-08-12
+stopped_at: Completed 98-08-PLAN.md
+last_updated: "2026-08-13T16:33:08.752Z"
+last_activity: 2026-08-13
 last_activity_desc: Phase 98 execution started
 progress:
   total_phases: 7
-  completed_phases: 2
-  total_plans: 21
-  completed_plans: 21
-  percent: 29
+  completed_phases: 1
+  total_plans: 24
+  completed_plans: 22
+  percent: 14
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 98 (privacy-safe-delivery-evidence) — EXECUTING
-Plan: 2 of 7
+Plan: 2 of 10
 Status: Ready to execute
-Last activity: 2026-08-12 — Phase 98 execution started
+Last activity: 2026-08-13 — Phase 98 execution started
 
 ## Deferred Items
 
@@ -342,6 +342,8 @@ status: complete
 - [Phase ?]: [98-05]: Core proof uses provider_handoff=not_applicable, while Mailglass proof records only successful provider handoff.
 - [Phase ?]: [98-07]: Approved evidence keys use field-specific grammars and ambiguous atom/string duplicates are omitted.
 - [Phase ?]: [98-07]: Unsafe digest reasons are stored as nil; trace digest maps are rebuilt from closed fields.
+- [Phase ?]: [98-08]: Trigger returns an explicit safe projection and keeps precomputed rendering plus recipient handoffs in a private dispatch context.
+- [Phase ?]: [98-08]: Delivery rows retain render key/version only; full rendered maps are attached exclusively to immediate in-memory dispatch deliveries.
 
 ### Roadmap Evolution
 
@@ -662,8 +664,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-13T03:22:57.837Z
-Stopped at: Completed 98-07-PLAN.md
+Last session: 2026-08-13T16:33:08.738Z
+Stopped at: Completed 98-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -786,3 +788,4 @@ Resume file: None
 | Phase 98 P04 | 30 min | 2 tasks | 7 files |
 | Phase 98 P05 | 16 min | 1 tasks | 2 files |
 | Phase 98-privacy-safe-delivery-evidence P07 | 14 min | 1 tasks | 5 files |
+| Phase 98-privacy-safe-delivery-evidence P08 | 8 min | 2 tasks | 7 files |
