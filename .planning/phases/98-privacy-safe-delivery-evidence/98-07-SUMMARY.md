@@ -102,6 +102,11 @@ status: complete
 - Workflow signal routing projects a host actor through the same opaque recipient-reference family used by Trigger before matching a waiting run; this restores the Accrue `invoice.paid` wait-until transition without storing or comparing raw recipient identity.
 - PASS: isolated Core, Mailglass, released Accrue, compatibility Accrue, and packaged-archive Accrue proofs; focused Phase 98 privacy suites (57 tests, 0 failures).
 
+## Mailglass Transient Recipient Follow-up
+
+- The immediate Trigger-to-sync-dispatch handoff now carries a strictly validated `user:<email>` address only as a virtual delivery field. Mailglass can send to it, while Event, Notification, Delivery, Attempt, trace, and proof serialization retain no recipient address.
+- Core static proof parsing now includes the established `webhook_received` categorical lifecycle event.
+
 ## Task Commits
 
 1. **Task 1 RED:** `06c25fd` — failing privacy evidence regressions.
