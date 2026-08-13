@@ -21,8 +21,16 @@ defmodule Chimeway.TenantIdentityTest do
     def recipients(_params) do
       {:ok,
        [
-         %{recipient_identity: "tenant-user-a", channel: :in_app},
-         %{recipient_identity: "tenant-user-b", channel: :email}
+         %{
+           recipient_identity: "tenant-user-a",
+           recipient_ref: "cw_tenant_user_a",
+           channel: :in_app
+         },
+         %{
+           recipient_identity: "tenant-user-b",
+           recipient_ref: "cw_tenant_user_b",
+           channel: :email
+         }
        ]}
     end
 
@@ -44,7 +52,15 @@ defmodule Chimeway.TenantIdentityTest do
 
     @impl true
     def recipients(_params),
-      do: {:ok, [%{recipient_identity: "padded-tenant-user", channel: :in_app}]}
+      do:
+        {:ok,
+         [
+           %{
+             recipient_identity: "padded-tenant-user",
+             recipient_ref: "cw_padded_tenant_user",
+             channel: :in_app
+           }
+         ]}
 
     @impl true
     def build(_params, recipient), do: {:ok, %{headline: "tenant", recipient: recipient}}
