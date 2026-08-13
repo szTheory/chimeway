@@ -1263,6 +1263,46 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
+    test "core proof accepts only validated safe lifecycle and handoff facts" do
+      complete =
+        "CHIMEWAY_CORE_PROOF notification_key=artifact_consumer.core_trace " <>
+          "notification_version=1 delivery_id=2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e " <>
+          "channel=in_app render_key=artifact_consumer.core_trace.in_app render_version=1 " <>
+          "status=succeeded outcome_classification=succeeded last_attempt_outcome=succeeded " <>
+          "last_attempt_number=1 provider_handoff=not_applicable " <>
+          "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded"
+
+      assert %{provider_handoff: "not_applicable", outcome_classification: "succeeded"} =
+               ArtifactConsumerFixture.parse_evidence!(complete)
+
+      for {key, value} <- [
+            {"notification_key", "recipient@example.test"},
+            {"delivery_id", "raw-device-token-sentinel"},
+            {"render_key", "https://private.example.test/open"},
+            {"outcome_classification", "opened"},
+            {"provider_handoff", "accepted"}
+          ] do
+        assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
+          ArtifactConsumerFixture.parse_evidence!(
+            Regex.replace(~r/(^|\\s)#{Regex.escape(key)}=[^\\s]*/, complete, "\\1#{key}=#{value}")
+          )
+        end
+      end
+    end
+
+    test "proof source projects safe facts and limits provider acceptance to handoff" do
+      source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
+
+      assert source =~ "Chimeway.SafeEvidence.proof"
+      assert source =~ "provider_handoff"
+      refute source =~ "adapter_module: explanation.last_attempt.adapter_module"
+      refute source =~ "transport: \"fake\""
+
+      for forbidden <- ["display", "opened", "seen", "read", "engagement"] do
+        refute source =~ "provider_handoff=#{forbidden}"
+      end
+    end
+
     test "Mailglass proof evidence accepts only one complete safe allowlist without atomizing keys" do
       complete = mailglass_evidence_line()
 
