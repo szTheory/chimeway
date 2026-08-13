@@ -64,7 +64,13 @@ status: complete
 
 - PASS: focused Phase 98 suites (57 tests, 0 failures).
 - PASS: `mix format --check-formatted` for plan-owned files.
-- PASS: `mix ci`.
+- PASS: clean `mix ci` after restoring compatible typed operational projections.
+
+## Post-Execution Regression Fix
+
+- Restored validated opaque lifecycle IDs, correlation references, stable recipient references, `superseded` cancellation evidence, and fixed-format digest metadata.
+- Kept rendering declarations public and intact; delivery planning drops only its non-rendering recipient helper before channel validation and can recover a persisted render identity without host render context.
+- Existing Trigger, telemetry, deferred-lifecycle, digest-lifecycle, notifier-contract, and Phase 98 privacy tests now provide regression coverage.
 
 ## Task Commits
 
@@ -86,6 +92,12 @@ status: complete
 - **Fix:** Added explicit field-family validators without restoring a generic binary fallback.
 - **Verification:** `mix ci` passed.
 - **Committed in:** `2b9f36c`.
+
+**2. [Rule 1 - Bug] Restored established typed delivery and rendering operations after clean CI exposed regressions.**
+- **Found during:** Post-wave isolated `mix ci`.
+- **Issue:** Overly narrow schemas rejected opaque operational IDs and fixed digest metadata, while recipient/render handling broke regular Trigger and recovery paths.
+- **Fix:** Added typed opaque-reference and fixed digest-template validators, preserved stable recipient refs, and constrained delivery-boundary render cleanup.
+- **Verification:** focused 80-test suite and clean `mix ci` passed.
 
 ## Known Stubs
 

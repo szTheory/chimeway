@@ -131,7 +131,9 @@ defmodule Chimeway.Trigger do
   def normalize_recipients(recipients) when is_list(recipients) do
     recipients
     |> Enum.reduce_while({:ok, %{}}, fn recipient, {:ok, acc} ->
-      case SafeEvidence.opaque_ref(:recipient, recipient_ref(recipient)) do
+      case SafeEvidence.recipient_reference(
+             recipient_ref(recipient) || recipient_identity(recipient)
+           ) do
         {:ok, ref} ->
           {:cont, {:ok, Map.put_new(acc, ref, Map.put(recipient, :recipient_ref, ref))}}
 
@@ -369,6 +371,10 @@ defmodule Chimeway.Trigger do
   defp recipient_ref(%{recipient_ref: ref}), do: ref
   defp recipient_ref(%{"recipient_ref" => ref}), do: ref
   defp recipient_ref(_recipient), do: nil
+
+  defp recipient_identity(%{recipient_identity: value}), do: value
+  defp recipient_identity(%{"recipient_identity" => value}), do: value
+  defp recipient_identity(_recipient), do: nil
 
   defp optional_correlation_ref(nil), do: {:ok, nil}
   defp optional_correlation_ref(value), do: SafeEvidence.opaque_ref(:correlation, value)

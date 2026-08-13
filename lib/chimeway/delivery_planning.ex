@@ -437,6 +437,12 @@ defmodule Chimeway.DeliveryPlanning do
         with {:ok, assigns} <- render_assigns(notification, trigger_params, opts),
              {:ok, result} <- render_channel_result(channel, normalized_rendering, assigns) do
           {:ok, result}
+        else
+          {:error, :render_context_unavailable} when not is_nil(notification.render_channels) ->
+            {:ok, Map.put(normalized_rendering, :render_data, %{})}
+
+          error ->
+            error
         end
 
       :error ->
@@ -476,7 +482,7 @@ defmodule Chimeway.DeliveryPlanning do
 
   defp render_assigns_from_notifier(notifier, params, recipient) do
     with {:ok, declaration} <- Notifier.resolve_rendering(notifier, params, recipient) do
-      {:ok, declaration.assigns}
+      {:ok, Map.drop(declaration.assigns, [:recipient, "recipient"])}
     end
   end
 

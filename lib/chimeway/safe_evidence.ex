@@ -32,7 +32,7 @@ defmodule Chimeway.SafeEvidence do
     included_in_digest skipped_by_policy emitted_immediately recipient_muted
     window_closed digest_window_closed digest_window_expired digest_rule
     quiet_hours policy_checkpoint retries_exhausted temporary_failure
-    permanent_failure stuck trigger notifier default planner_override channel_disabled
+    permanent_failure stuck trigger notifier default planner_override channel_disabled superseded
     bounced workflow_stopped progressed_on_delivery_outcome worker_missed
   )
   @timeline_fields %{
@@ -79,7 +79,8 @@ defmodule Chimeway.SafeEvidence do
            ] and
              is_binary(value) do
     if byte_size(value) in 4..@max_ref_bytes and
-         String.match?(value, ~r/^cw_[a-z0-9][a-z0-9_-]*$/) do
+         (String.match?(value, ~r/^cw_[a-z0-9][a-z0-9_-]*$/) or
+            (domain in [:correlation, "correlation"] and code?(value))) do
       {:ok, value}
     else
       {:error, :unsafe_evidence}
@@ -87,6 +88,24 @@ defmodule Chimeway.SafeEvidence do
   end
 
   def opaque_ref(_domain, _value), do: {:error, :unsafe_evidence}
+
+  @doc false
+  @spec recipient_reference(term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
+  def recipient_reference(value)
+      when is_binary(value) and byte_size(value) in 1..@max_ref_bytes do
+    cond do
+      match?({:ok, _}, opaque_ref(:recipient, value)) ->
+        {:ok, value}
+
+      String.match?(value, ~r/^user:[a-zA-Z0-9_-]+$/) ->
+        {:ok, value}
+
+      true ->
+        {:ok, opaque_projection(:recipient, value)}
+    end
+  end
+
+  def recipient_reference(_value), do: {:error, :unsafe_evidence}
 
   @doc "Builds the intentionally small durable event payload vocabulary."
   @spec event_payload(term()) :: map()
@@ -142,7 +161,11 @@ defmodule Chimeway.SafeEvidence do
         "digest_rule_key",
         "digest_rule_version",
         "correlation_id",
-        "reason"
+        "reason",
+        "subject",
+        "body",
+        "summary",
+        "digest"
       ])
 
   @spec render_data(term()) :: map()
@@ -376,7 +399,7 @@ defmodule Chimeway.SafeEvidence do
   defp opaque_projection(_domain, _value), do: nil
 
   defp safe_lifecycle_id(value) when is_binary(value) do
-    if Ecto.UUID.cast(value) == {:ok, value}, do: value, else: nil
+    if Ecto.UUID.cast(value) == {:ok, value} or opaque_id?(value), do: value, else: nil
   end
 
   defp safe_lifecycle_id(_value), do: nil
@@ -498,8 +521,6 @@ defmodule Chimeway.SafeEvidence do
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp closed_facts(value, allowed) when is_map(value) or is_list(value) do
-    value = Privacy.redact(value)
-
     Enum.reduce(allowed, %{}, fn field, safe ->
       case fact_value(value, field) do
         {:ok, fact} -> maybe_put(safe, field, valid_fact(field, fact))
@@ -536,6 +557,10 @@ defmodule Chimeway.SafeEvidence do
   defp valid_fact("category", value), do: safe_code(value)
   defp valid_fact("event_id", value), do: safe_lifecycle_id(value)
   defp valid_fact("correlation_id", value), do: safe_code(value)
+  defp valid_fact("subject", value), do: safe_digest_subject(value)
+  defp valid_fact("body", value), do: safe_digest_body(value)
+  defp valid_fact("summary", value), do: safe_digest_summary(value)
+  defp valid_fact("digest", value), do: safe_durable_digest(value)
 
   defp valid_fact(_field, value), do: safe_code(value)
 
@@ -567,6 +592,42 @@ defmodule Chimeway.SafeEvidence do
 
   defp safe_digest_entries(_value), do: nil
 
+  defp safe_durable_digest(value) when is_map(value) do
+    value = Privacy.redact(value)
+
+    %{}
+    |> maybe_put("bucket_id", safe_lifecycle_id(fetch_fact(value, "bucket_id")))
+    |> maybe_put("rule_key", safe_code(fetch_fact(value, "rule_key")))
+    |> maybe_put("rule_version", positive_integer(fetch_fact(value, "rule_version")))
+    |> maybe_put("window_starts_at", safe_datetime(fetch_fact(value, "window_starts_at")))
+    |> maybe_put("window_ends_at", safe_datetime(fetch_fact(value, "window_ends_at")))
+    |> maybe_put("emitted_at", safe_datetime(fetch_fact(value, "emitted_at")))
+  end
+
+  defp safe_durable_digest(_value), do: nil
+
+  defp safe_digest_subject(value) when is_binary(value) do
+    if String.match?(value, ~r/^Digest for [a-z][a-z0-9_.:-]*$/), do: value, else: nil
+  end
+
+  defp safe_digest_subject(_value), do: nil
+
+  defp safe_digest_body(value) when is_binary(value) do
+    if String.match?(value, ~r/^Digest window closed with [0-9]+ item\(s\)\.$/),
+      do: value,
+      else: nil
+  end
+
+  defp safe_digest_body(_value), do: nil
+
+  defp safe_digest_summary(value) when is_binary(value) do
+    if String.match?(value, ~r/^[0-9]+ notification\(s\) grouped for [a-z][a-z0-9_-]*$/),
+      do: value,
+      else: nil
+  end
+
+  defp safe_digest_summary(_value), do: nil
+
   defp code?(value) do
     byte_size(value) in 1..@max_code_bytes and
       String.match?(value, ~r/^[a-z][a-z0-9_.:-]*$/) and
@@ -574,6 +635,10 @@ defmodule Chimeway.SafeEvidence do
         value,
         ~r/(token|secret|authorization|credential|password|recipient|email|body|content|url|link)/i
       )
+  end
+
+  defp opaque_id?(value) do
+    byte_size(value) in 1..@max_ref_bytes and String.match?(value, ~r/^[a-z][a-z0-9_-]*$/)
   end
 
   defp safe_workflow_code(value) when is_binary(value) do
