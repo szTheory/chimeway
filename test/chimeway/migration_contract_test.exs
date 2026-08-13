@@ -76,8 +76,8 @@ defmodule Chimeway.MigrationContractTest do
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
         migrated = run_fixture_migrations(repo, migrations_path, :up)
-        assert length(migrated) == 33
-        assert_migration_versions!(repo, 33)
+        assert length(migrated) == 34
+        assert_migration_versions!(repo, 34)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
       end)
