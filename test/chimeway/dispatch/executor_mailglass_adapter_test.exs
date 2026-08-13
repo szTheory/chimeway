@@ -1,4 +1,42 @@
 if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mailglass) do
+  defmodule Chimeway.Dispatch.AsyncMailglassNotifier do
+    @behaviour Chimeway.Notifier
+
+    def notification_key, do: "mailglass.async.execution"
+    def version, do: 1
+    def recipients(_params), do: {:ok, []}
+    def build(_params, _recipient), do: {:ok, %{}}
+    def channels(_params, _recipient), do: {:ok, [:email]}
+
+    def rendering(_params, _recipient) do
+      {:ok,
+       %{
+         assigns: %{
+           "subject" => "async private subject",
+           "html_body" => "<p>async private body</p>",
+           "text_body" => "async private body"
+         },
+         channels: %{email: %{render_key: "chimeway.test.email", render_version: 1}}
+       }}
+    end
+  end
+
+  defmodule Chimeway.Dispatch.AsyncMailglassResolver do
+    @behaviour Chimeway.RenderContextResolver
+
+    @impl true
+    def resolve("mailglass.async.execution", 1, recipient_ref) do
+      {:ok,
+       %{
+         notifier: Chimeway.Dispatch.AsyncMailglassNotifier,
+         params: %{},
+         recipient: %{recipient_ref: recipient_ref, recipient_identity: "user:async@example.test"}
+       }}
+    end
+
+    def resolve(_, _, _), do: {:error, :render_context_unavailable}
+  end
+
   defmodule Chimeway.Dispatch.ExecutorMailglassAdapterTest do
     @moduledoc """
     Proves `Chimeway.Dispatch.Executor.run_delivery/1` routes email channel
@@ -6,8 +44,7 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
     """
     use Chimeway.DataCase, async: false
 
-    alias Chimeway.Dispatch.Executor
-    alias Chimeway.Repo
+    alias Chimeway.{Deliveries, Dispatch.ObanWorker, Repo}
     alias Chimeway.Test.DispatchHelpers
     alias Chimeway.TestSupport.MailglassFixtures
 
@@ -55,30 +92,60 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       :ok
     end
 
-    test "run_delivery routes email channel to Mailglass adapter and records succeeded attempt" do
-      %{delivery: delivery} =
+    test "Oban worker routes execution-time email context to Mailglass and records a succeeded attempt" do
+      previous_resolvers = Application.get_env(:chimeway, :render_context_resolvers)
+
+      on_exit(fn ->
+        Application.put_env(:chimeway, :render_context_resolvers, previous_resolvers)
+      end)
+
+      Application.put_env(:chimeway, :render_context_resolvers, %{
+        {"mailglass.async.execution", 1} => Chimeway.Dispatch.AsyncMailglassResolver
+      })
+
+      %{notification: notification, delivery: delivery} =
         DispatchHelpers.create_pending_delivery(
           channel: :email,
-          recipient_identity: "user:test@example.com"
+          notification_key: "mailglass.async.execution",
+          recipient_identity: "opaque-mailglass-recipient",
+          tenant_id: "test-tenant"
         )
 
-      {:ok, delivery} =
+      {:ok, _notification} =
+        notification
+        |> Ecto.Changeset.change(
+          render_channels: %{
+            "email" => %{"render_key" => "chimeway.test.email", "render_version" => 1}
+          }
+        )
+        |> Repo.update()
+
+      {:ok, _delivery} =
         delivery
         |> Ecto.Changeset.change(%{
           tenant_id: "test-tenant",
-          actor_id: "user:test@example.com",
+          actor_id: "system",
           render_key: "chimeway.test.email",
-          render_data: %{"to" => "test@example.com"}
+          render_version: 1,
+          render_data: %{}
         })
         |> Repo.update()
 
-      assert {:ok, %{delivery: updated, attempt: attempt}} = Executor.run_delivery(delivery)
+      count_before = length(Mailglass.Adapters.Fake.deliveries())
+      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
+
+      updated = Deliveries.get_delivery!(delivery.id)
+      [attempt] = updated.attempts
       assert updated.status == :succeeded
       assert attempt.outcome == :succeeded
       assert attempt.adapter_module == "Chimeway.Adapters.Mailglass"
       assert attempt.provider_response == %{}
       assert is_binary(attempt.provider_message_id)
       assert String.starts_with?(attempt.provider_message_id, "cw_provider_message_id_")
+      assert length(Mailglass.Adapters.Fake.deliveries()) == count_before + 1
+
+      assert inspect(Mailglass.Adapters.Fake.deliveries()) =~ "async@example.test"
+      assert Deliveries.get_delivery!(delivery.id).render_data == %{}
     end
   end
 end
