@@ -6,6 +6,7 @@ config :chimeway_inbox, :endpoint, ChimewayInbox.TestSupport.Endpoint
 config :chimeway_inbox, ChimewayInbox.TestSupport.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4003],
   server: false,
+  debug_errors: true,
   secret_key_base: String.duplicate("abcdefghijklmnopqrstuvwxyz012345", 2),
   live_view: [signing_salt: "chimeway-inbox-test"]
 

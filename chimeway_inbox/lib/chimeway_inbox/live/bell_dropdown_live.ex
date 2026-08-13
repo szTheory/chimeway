@@ -183,12 +183,9 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
 
   defp load_inbox(socket, recipient_identity, tenant_id) do
     unread_count =
-      try do
-        Chimeway.unread_count(recipient_identity, tenant_id: tenant_id)
-      rescue
+      case Chimeway.unread_count(recipient_identity, tenant_id: tenant_id) do
+        count when is_integer(count) and count >= 0 -> count
         _ -> 0
-      catch
-        _, _ -> 0
       end
 
     case fetch_page(recipient_identity, tenant_id, []) do
@@ -244,7 +241,7 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
 
   defp bell_aria_label(0), do: "Notifications"
 
-  defp bell_aria_label(count) do
+  defp bell_aria_label(count) when is_integer(count) and count > 0 do
     "Notifications, #{count} unread"
   end
 

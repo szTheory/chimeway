@@ -11,10 +11,20 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     @behaviour ChimewayInbox.Auth
 
     @impl true
-    def current_recipient(_session, _context), do: {:ok, "user:42"}
+    def current_recipient(_session, _context), do: {:ok, "cw_user_42"}
 
     @impl true
     def current_tenant(_session, _context), do: {:error, :missing_tenant}
+  end
+
+  defmodule UnsafeRecipientAuth do
+    @behaviour ChimewayInbox.Auth
+
+    @impl true
+    def current_recipient(_session, _context), do: {:ok, "user:42"}
+
+    @impl true
+    def current_tenant(_session, _context), do: {:ok, "tenant-a"}
   end
 
   defmodule MutableAuth do
@@ -31,15 +41,15 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     end
   end
 
-  defp mount_bell(conn, session \\ %{"current_actor" => "user:42"}) do
+  defp mount_bell(conn, session \\ %{"current_actor" => "cw_user_42"}) do
     conn
     |> Phoenix.ConnTest.init_test_session(session)
     |> live("/")
   end
 
   test "mount lists notifications when panel opens", %{conn: conn} do
-    first = insert_inbox_notification!("user:42", %{metadata: %{"subject" => "First"}})
-    second = insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Second"}})
+    first = insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "First"}})
+    second = insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Second"}})
 
     {:ok, view, html} = mount_bell(conn)
 
@@ -57,7 +67,7 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
 
   test "mark_read updates badge count after row click", %{conn: conn} do
     notification =
-      insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Unread item"}})
+      insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Unread item"}})
 
     {:ok, view, html} = mount_bell(conn)
 
@@ -84,9 +94,9 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     conn: conn
   } do
     notification =
-      insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Tenant guarded"}})
+      insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Tenant guarded"}})
 
-    use_mutable_auth!("user:42", "tenant-a")
+    use_mutable_auth!("cw_user_42", "tenant-a")
 
     {:ok, view, _html} = mount_bell(conn)
     view |> element("button[data-cw-inbox-bell]") |> render_click()
@@ -103,17 +113,17 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     conn: conn
   } do
     mounted_notification =
-      insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Mounted recipient"}})
+      insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Mounted recipient"}})
 
     changed_recipient_notification =
-      insert_inbox_notification!("user:99", %{metadata: %{"subject" => "Changed recipient"}})
+      insert_inbox_notification!("cw_user_99", %{metadata: %{"subject" => "Changed recipient"}})
 
-    use_mutable_auth!("user:42", "tenant-a")
+    use_mutable_auth!("cw_user_42", "tenant-a")
 
     {:ok, view, _html} = mount_bell(conn)
     view |> element("button[data-cw-inbox-bell]") |> render_click()
 
-    Application.put_env(:chimeway_inbox, :mutable_auth_recipient, "user:99")
+    Application.put_env(:chimeway_inbox, :mutable_auth_recipient, "cw_user_99")
 
     assert {:error, {:redirect, %{to: "/login"}}} =
              render_click(view, "mark_read", %{"id" => mounted_notification.id})
@@ -126,19 +136,19 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     conn: conn
   } do
     mounted_notification =
-      insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Mounted identity"}})
+      insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Mounted identity"}})
 
     changed_identity_notification =
-      insert_inbox_notification!("user:99", %{
+      insert_inbox_notification!("cw_user_99", %{
         tenant_id: "tenant-b",
         metadata: %{"subject" => "Changed identity"}
       })
 
-    use_mutable_auth!("user:42", "tenant-a")
+    use_mutable_auth!("cw_user_42", "tenant-a")
 
     {:ok, view, _html} = mount_bell(conn)
 
-    Application.put_env(:chimeway_inbox, :mutable_auth_recipient, "user:99")
+    Application.put_env(:chimeway_inbox, :mutable_auth_recipient, "cw_user_99")
     Application.put_env(:chimeway_inbox, :mutable_auth_tenant, "tenant-b")
 
     assert {:error, {:redirect, %{to: "/login"}}} = render_click(view, "toggle_panel", %{})
@@ -173,11 +183,28 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     assert {:error, {:redirect, %{to: "/login"}}} = mount_bell(conn)
   end
 
+  test "unsafe recipient evidence leaves the bell mountable without rendering an error tuple", %{
+    conn: conn
+  } do
+    previous = Application.get_env(:chimeway_inbox, :auth_module)
+    Application.put_env(:chimeway_inbox, :auth_module, UnsafeRecipientAuth)
+
+    on_exit(fn -> Application.put_env(:chimeway_inbox, :auth_module, previous) end)
+
+    {:ok, view, html} = mount_bell(conn)
+
+    assert html =~ ~s(aria-label="Notifications")
+    refute html =~ "unsafe_evidence"
+
+    panel_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert panel_html =~ "Couldn&#39;t load notifications"
+  end
+
   test "a notification from another tenant is indistinguishable from an absent row", %{conn: conn} do
-    visible = insert_inbox_notification!("user:42", %{metadata: %{"subject" => "Visible"}})
+    visible = insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Visible"}})
 
     hidden =
-      insert_inbox_notification!("user:42", %{
+      insert_inbox_notification!("cw_user_42", %{
         tenant_id: "tenant-b",
         metadata: %{"subject" => "Other tenant"}
       })
@@ -207,7 +234,7 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
 
   test "footer shows Load more notifications when page has more items", %{conn: conn} do
     for index <- 1..21 do
-      insert_inbox_notification!("user:42", %{
+      insert_inbox_notification!("cw_user_42", %{
         metadata: %{"subject" => "Item #{index}"},
         idempotency_key: "inbox-load-more-#{index}"
       })

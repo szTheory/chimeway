@@ -3,7 +3,7 @@ defmodule ChimewayInbox.TestSupport.AllowAuth do
   @behaviour ChimewayInbox.Auth
 
   @impl true
-  def current_recipient(_session, _context), do: {:ok, "user:42"}
+  def current_recipient(_session, _context), do: {:ok, "cw_user_42"}
 
   @impl true
   def current_tenant(session, _context) do
