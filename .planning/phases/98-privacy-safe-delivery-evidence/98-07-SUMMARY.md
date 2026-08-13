@@ -21,6 +21,8 @@ key-files:
   modified:
     - lib/chimeway/safe_evidence.ex
     - lib/chimeway/deliveries.ex
+    - lib/chimeway/delivery_planning.ex
+    - lib/chimeway/trigger.ex
     - test/chimeway/trigger_sanitization_test.exs
     - test/chimeway/privacy_boundary_test.exs
     - test/chimeway/traces_test.exs
@@ -78,10 +80,19 @@ status: complete
 - Reused persisted render assigns when a dispatch-only custom-channel notifier intentionally has no rendering/build callback.
 - Verified persisted digest orchestration and workflow linkage recovery without re-entering callback code.
 
+## Final Runtime Regression Fix
+
+- Restored canonical privacy-filtered notification channel snapshots while carrying the initial channel payloads only in the in-process dispatch options.
+- Pre-rendered initial delivery payloads once at Trigger time, so dispatch does not invoke notifier rendering a second time; payloads remain on delivery records and are omitted from trace evidence.
+- Restored stable opaque host recipient references and identity ordering, and accepted dotted render keys in the closed trace-identity grammar.
+- PASS: render identity, Trigger pipeline, Scenario J lifecycle, and core/mailglass/accrue release-gate proof cases (12 tests, 0 failures).
+- UNRUN: atom-count release-gate case could not start because the shared PostgreSQL test environment reported `too_many_connections`; this is an external concurrent-test capacity condition.
+
 ## Task Commits
 
 1. **Task 1 RED:** `06c25fd` — failing privacy evidence regressions.
 2. **Task 1 GREEN:** `2b9f36c` — closed approved-key evidence laundering.
+3. **Follow-up:** `b13b360` — preserve runtime rendering semantics.
 
 ## Decisions Made
 
@@ -111,12 +122,19 @@ status: complete
 - **Fix:** Kept internal declarations intact until literal render identity validation and used persisted assigns when no rendering callback exists.
 - **Verification:** specified recovery/custom-channel cases plus Phase 98 privacy suites (61 tests, 0 failures).
 
+**4. [Rule 1 - Bug] Separated initial runtime rendering from durable evidence snapshots.**
+- **Found during:** authoritative clean CI follow-up.
+- **Issue:** preserving internal rendering declarations in the durable snapshot bypassed canonical filtering, reordered host recipients, and caused an unnecessary second render callback.
+- **Fix:** restored filtered snapshots; precomputed the initial delivery payloads transiently and retained only closed render identity in traces.
+- **Verification:** targeted render identity, Trigger, lifecycle, and release-proof cases (12 tests, 0 failures).
+- **Committed in:** `b13b360`.
+
 ## Known Stubs
 
 None.
 
 ## Self-Check: PASSED
 
-- Found task commits `06c25fd` and `2b9f36c`.
+- Found task commits `06c25fd`, `2b9f36c`, and `b13b360`.
 - Found all modified production and test files.
 - No tracked file deletions or placeholder stubs introduced.
