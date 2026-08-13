@@ -43,6 +43,7 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
     deliveries to `Chimeway.Adapters.Mailglass` when configured (D-08, ECOS-02).
     """
     use Chimeway.DataCase, async: false
+    use Oban.Testing, repo: Chimeway.Repo
 
     alias Chimeway.{Deliveries, Dispatch.ObanWorker, Repo}
     alias Chimeway.Test.DispatchHelpers
@@ -134,7 +135,7 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
       count_before = length(Mailglass.Adapters.Fake.deliveries())
       assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
 
-      updated = Deliveries.get_delivery!(delivery.id)
+      updated = delivery.id |> Deliveries.get_delivery!() |> Repo.preload(:attempts)
       [attempt] = updated.attempts
       assert updated.status == :succeeded
       assert attempt.outcome == :succeeded
