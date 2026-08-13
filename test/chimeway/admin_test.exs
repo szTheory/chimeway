@@ -65,6 +65,36 @@ defmodule Chimeway.AdminTest do
     refute Map.has_key?(problem, :provider_response)
   end
 
+  test "core admin projections omit raw identity and correlation values" do
+    tenant_id = "tenant-admin-projection"
+
+    event =
+      insert_event(%{
+        notification_key: "admin.projection.safe",
+        tenant_id: tenant_id,
+        correlation_id: "raw-correlation-admin-sentinel"
+      })
+
+    notification = insert_notification(event, "raw-recipient-admin-sentinel")
+    delivery = insert_delivery(notification, status: :failed, tenant_id: tenant_id)
+
+    rows = [
+      Admin.recent_problem_deliveries(tenant_id: tenant_id),
+      Admin.feed(tenant_id: tenant_id),
+      Admin.recovery_candidates(tenant_id: tenant_id, older_than: -1)
+    ]
+
+    encoded = :erlang.term_to_binary(rows)
+
+    for sentinel <- ["raw-correlation-admin-sentinel", "raw-recipient-admin-sentinel"] do
+      assert :binary.match(encoded, sentinel) == :nomatch, "leaked #{sentinel}"
+    end
+
+    delivery_id = delivery.id
+    assert [%{delivery_id: ^delivery_id, status: "failed"}] = hd(rows)
+    assert [%{notification_key: "admin.projection.safe"}] = Enum.at(rows, 1)
+  end
+
   test "admin DTOs expose exact allowlisted fields without sensitive keys or values" do
     old = ~U[2026-01-15 12:00:00.000000Z]
     now = ~U[2026-01-15 12:05:00.000000Z]
