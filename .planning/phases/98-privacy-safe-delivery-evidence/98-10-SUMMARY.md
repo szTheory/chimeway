@@ -48,6 +48,7 @@ status: complete
 ## Verification
 
 - PASS: `env MIX_ENV=test mix test test/chimeway/dispatch/executor_mailglass_adapter_test.exs test/chimeway/dispatch/oban_worker_test.exs test/chimeway/integration/delivery_lifecycle_test.exs test/chimeway/privacy_test.exs test/chimeway/privacy_boundary_test.exs test/chimeway/trigger_sanitization_test.exs test/chimeway/orchestration/delivery_planning_test.exs test/chimeway/deliveries_test.exs --warnings-as-errors` — 103 tests, 0 failures.
+- PASS: `env MIX_ENV=test mix test test/chimeway/application_validation_test.exs test/chimeway/integration/digest_delivery_lifecycle_test.exs --warnings-as-errors` — 11 tests, 0 failures.
 - PASS: initial plan matrix also passed after the recovery compatibility fix.
 - `mix ci` was started before stream recovery; its final outcome was not available, so it is not claimed as passing evidence.
 
@@ -59,6 +60,7 @@ status: complete
 4. **Task 2 RED:** `af8bf1a` — queued Mailglass handoff coverage.
 5. **Task 2 GREEN:** `4426475` — real Oban-to-Mailglass proof.
 6. **Compatibility fix:** `f1117f1` — fail closed when resolver registry is absent and keep recovery on its non-email path.
+7. **Post-merge compatibility fix:** `3dd6a7c` — preserve resolver-free digest execution and storage-prefix startup validation.
 
 ## Deviations from Plan
 
@@ -70,6 +72,12 @@ status: complete
 - **Files modified:** `lib/chimeway/render_context_resolver.ex`, `test/chimeway/integration/delivery_lifecycle_test.exs`.
 - **Commit:** `f1117f1`.
 
+**2. [Rule 1 - Bug] Generated digest email and storage-prefix startup paths were incorrectly forced through resolver hydration.**
+- **Found during:** Post-merge focused gate.
+- **Fix:** Hydrate queued email only when it has a persisted render identity; generated digest rows have neither and continue through their established adapter path without restoring raw content. Startup validation now accepts an absent resolver registry so storage-prefix validation retains precedence.
+- **Files modified:** `lib/chimeway/dispatch/oban_worker.ex`, `lib/chimeway/render_context_resolver.ex`.
+- **Commit:** `3dd6a7c`.
+
 ## Known Stubs
 
 None.
@@ -77,7 +85,7 @@ None.
 ## Self-Check: PASSED
 
 - Found all declared production and test files.
-- Found commits `df5bd9b`, `8d0446b`, `eb286a2`, `af8bf1a`, `4426475`, and `f1117f1`.
+- Found commits `df5bd9b`, `8d0446b`, `eb286a2`, `af8bf1a`, `4426475`, `f1117f1`, and `3dd6a7c`.
 - No tracked file deletions, placeholders, TODOs, or FIXMEs were introduced in plan-owned code.
 
 ## Next Phase Readiness
