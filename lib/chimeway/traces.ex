@@ -201,27 +201,30 @@ defmodule Chimeway.Traces do
           timeline =
             build_timeline(event, notification, delivery, attempts, digest_context, repo_opts)
 
-          explanation = %Explanation{
-            delivery_id: delivery.id,
-            event_id: event.id,
-            correlation_id: event.correlation_id,
-            notification_key: event.notification_key,
-            recipient_id: notification.recipient_identity,
-            channel: delivery.channel,
-            render_key: delivery.render_key,
-            render_version: delivery.render_version,
-            status: delivery.status,
-            planning_reason: delivery.planning_reason,
-            planning_context: explanation_planning_context(delivery),
-            next_eligible_at: delivery.next_eligible_at,
-            resume_source: resume_fields.resume_source,
-            resume_scheduled_at: resume_fields.resume_scheduled_at,
-            resumed_at: resume_fields.resumed_at,
-            suppression_reason: delivery.suppression_reason,
-            digest: digest_context,
-            last_attempt: last_attempt,
-            timeline: timeline
-          }
+          explanation =
+            %{
+              delivery_id: delivery.id,
+              event_id: event.id,
+              correlation_id: event.correlation_id,
+              notification_key: event.notification_key,
+              recipient_id: notification.recipient_identity,
+              channel: delivery.channel,
+              render_key: delivery.render_key,
+              render_version: delivery.render_version,
+              status: delivery.status,
+              planning_reason: delivery.planning_reason,
+              planning_context: explanation_planning_context(delivery),
+              next_eligible_at: delivery.next_eligible_at,
+              resume_source: resume_fields.resume_source,
+              resume_scheduled_at: resume_fields.resume_scheduled_at,
+              resumed_at: resume_fields.resumed_at,
+              suppression_reason: delivery.suppression_reason,
+              digest: digest_context,
+              last_attempt: last_attempt,
+              timeline: timeline
+            }
+            |> SafeEvidence.trace()
+            |> then(&struct(Explanation, &1))
 
           {:ok, explanation}
       end
@@ -364,14 +367,18 @@ defmodule Chimeway.Traces do
       %{
         at: event.inserted_at,
         event: :event_created,
-        detail: %{notification_key: event.notification_key}
+        detail: SafeEvidence.timeline_detail(%{notification_key: event.notification_key})
       },
       %{
         at: notification.inserted_at,
         event: :notification_created,
-        detail: %{recipient_id: notification.recipient_identity}
+        detail: SafeEvidence.timeline_detail(%{recipient_id: notification.recipient_identity})
       },
-      %{at: delivery.inserted_at, event: :delivery_planned, detail: %{channel: delivery.channel}}
+      %{
+        at: delivery.inserted_at,
+        event: :delivery_planned,
+        detail: SafeEvidence.timeline_detail(%{channel: delivery.channel})
+      }
     ]
 
     deferred_entries =
@@ -380,13 +387,13 @@ defmodule Chimeway.Traces do
           %{
             at: deferred_at(delivery),
             event: :deferred,
-            detail: %{
-              reason: delivery.planning_reason,
-              time_zone: planning_context && planning_context["time_zone"],
-              rule_identity: planning_context && planning_context["rule_identity"],
-              next_eligible_at: delivery.next_eligible_at,
-              planning_context: planning_context
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                reason: delivery.planning_reason,
+                time_zone: planning_context && planning_context["time_zone"],
+                rule_identity: planning_context && planning_context["rule_identity"],
+                next_eligible_at: delivery.next_eligible_at
+              })
           }
         ]
       else
@@ -399,10 +406,11 @@ defmodule Chimeway.Traces do
           %{
             at: resume_fields.resumed_at,
             event: :resumed,
-            detail: %{
-              resume_source: resume_fields.resume_source,
-              resume_scheduled_at: resume_fields.resume_scheduled_at
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                resume_source: resume_fields.resume_source,
+                resume_scheduled_at: resume_fields.resume_scheduled_at
+              })
           }
         ]
       else
@@ -415,13 +423,12 @@ defmodule Chimeway.Traces do
           %{
             at: recovery_fields.recovered_at,
             event: :recovered,
-            detail: %{
-              recovery_source: recovery_fields.recovery_source,
-              recovery_reason: recovery_fields.recovery_reason,
-              recovery_actor_ref: recovery_fields.recovery_actor_ref,
-              recovery_confirmation_marker: recovery_fields.recovery_confirmation_marker,
-              recovered_at: recovery_fields.recovered_at
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                recovery_source: recovery_fields.recovery_source,
+                recovery_reason: recovery_fields.recovery_reason,
+                recovered_at: recovery_fields.recovered_at
+              })
           }
         ]
       else
@@ -434,13 +441,12 @@ defmodule Chimeway.Traces do
           %{
             at: delivery.updated_at,
             event: :suppressed,
-            detail: %{
-              reason: delivery.suppression_reason,
-              policy_checkpoint:
-                Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown"),
-              delayed_fallback_source:
-                Map.get(delivery.metadata || %{}, "delayed_fallback_source", "unknown")
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                reason: delivery.suppression_reason,
+                policy_checkpoint:
+                  Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+              })
           }
         ]
       else
@@ -455,10 +461,12 @@ defmodule Chimeway.Traces do
           %{
             at: delivery.updated_at,
             event: :cancelled,
-            detail: %{
-              reason: reason,
-              policy_checkpoint: Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                reason: reason,
+                policy_checkpoint:
+                  Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+              })
           }
         ]
       else
@@ -589,12 +597,11 @@ defmodule Chimeway.Traces do
       %{
         at: attempt.inserted_at,
         event: :webhook_received,
-        detail: %{
-          outcome: attempt.outcome,
-          provider_message_id: attempt.provider_message_id,
-          adapter_module: attempt.adapter_module,
-          signal_event_name: signal_event_name
-        }
+        detail:
+          SafeEvidence.timeline_detail(%{
+            outcome: attempt.outcome,
+            signal_event_name: signal_event_name
+          })
       }
     end)
   end
@@ -626,8 +633,17 @@ defmodule Chimeway.Traces do
   @spec project_workflow_transition(map()) :: [map()]
   defp project_workflow_transition(%{reason: reason} = row) do
     case project_workflow_reason(reason) do
-      nil -> []
-      atom -> [%{at: row.at, event: atom, detail: build_workflow_detail(atom, row)}]
+      nil ->
+        []
+
+      atom ->
+        [
+          %{
+            at: row.at,
+            event: atom,
+            detail: atom |> build_workflow_detail(row) |> SafeEvidence.timeline_detail()
+          }
+        ]
     end
   end
 
@@ -752,15 +768,7 @@ defmodule Chimeway.Traces do
   defp safe_planning_context(%Delivery{planning_context: planning_context})
        when is_map(planning_context) do
     planning_context
-    |> Map.take([
-      "rule",
-      "rule_identity",
-      "time_zone",
-      "quiet_hours_start_minute",
-      "quiet_hours_end_minute",
-      "channel",
-      "source"
-    ])
+    |> SafeEvidence.planning_context()
     |> case do
       map when map_size(map) == 0 -> nil
       map -> map

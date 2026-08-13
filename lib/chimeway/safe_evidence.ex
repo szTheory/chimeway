@@ -27,6 +27,35 @@ defmodule Chimeway.SafeEvidence do
     "adapter_module" => :adapter_module
   }
   @outcomes [:succeeded, :failed, :bounced, :rejected]
+  @timeline_fields %{
+    "notification_key" => :notification_key,
+    "channel" => :channel,
+    "reason" => :reason,
+    "planning_reason" => :planning_reason,
+    "suppression_reason" => :suppression_reason,
+    "outcome" => :outcome,
+    "error_class" => :error_class,
+    "attempt_number" => :attempt_number,
+    "next_eligible_at" => :next_eligible_at,
+    "resume_scheduled_at" => :resume_scheduled_at,
+    "recovered_at" => :recovered_at,
+    "rule_identity" => :rule_identity,
+    "rule_kind" => :rule_kind,
+    "workflow_outcome" => :workflow_outcome,
+    "from_step" => :from_step,
+    "to_step" => :to_step,
+    "event_name" => :event_name,
+    "signal_event_name" => :signal_event_name,
+    "recovery_source" => :recovery_source,
+    "recovery_reason" => :recovery_reason,
+    "workflow_run_id" => :workflow_run_id,
+    "workflow_step_id" => :workflow_step_id,
+    "workflow_step_key" => :workflow_step_key,
+    "included" => :included,
+    "excluded" => :excluded,
+    "deferred" => :deferred,
+    "emitted_immediately" => :emitted_immediately
+  }
 
   @spec opaque_ref(atom() | String.t(), term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
   def opaque_ref(domain, value)
@@ -82,7 +111,16 @@ defmodule Chimeway.SafeEvidence do
 
   @spec planning_context(term()) :: map()
   def planning_context(value),
-    do: closed_facts(value, ["source", "digest_key", "time_zone", "rule_id", "reason"])
+    do:
+      closed_facts(value, [
+        "source",
+        "digest_key",
+        "time_zone",
+        "rule_id",
+        "rule_identity",
+        "reason",
+        "channel"
+      ])
 
   @spec delivery_metadata(term()) :: map()
   def delivery_metadata(value),
@@ -163,6 +201,34 @@ defmodule Chimeway.SafeEvidence do
 
   def telemetry_meta(_metadata), do: %{}
 
+  @doc "Builds the closed top-level vocabulary for an operator delivery explanation."
+  @spec trace(map()) :: map()
+  def trace(value) when is_map(value) do
+    %{
+      delivery_id: safe_lifecycle_id(Map.get(value, :delivery_id)),
+      event_id: safe_lifecycle_id(Map.get(value, :event_id)),
+      correlation_id: opaque_projection(:correlation, Map.get(value, :correlation_id)),
+      notification_key: safe_label(Map.get(value, :notification_key)),
+      recipient_id: opaque_projection(:recipient, Map.get(value, :recipient_id)),
+      channel: safe_label(Map.get(value, :channel)),
+      render_key: safe_label(Map.get(value, :render_key)),
+      render_version: positive_integer(Map.get(value, :render_version)),
+      status: safe_status(Map.get(value, :status)),
+      planning_reason: safe_label(Map.get(value, :planning_reason)),
+      planning_context: planning_context_or_nil(Map.get(value, :planning_context)),
+      next_eligible_at: safe_datetime(Map.get(value, :next_eligible_at)),
+      resume_source: safe_label(Map.get(value, :resume_source)),
+      resume_scheduled_at: safe_datetime(Map.get(value, :resume_scheduled_at)),
+      resumed_at: safe_datetime(Map.get(value, :resumed_at)),
+      suppression_reason: safe_label(Map.get(value, :suppression_reason)),
+      digest: safe_digest(Map.get(value, :digest)),
+      last_attempt: Map.get(value, :last_attempt),
+      timeline: Map.get(value, :timeline, [])
+    }
+  end
+
+  def trace(_value), do: %{}
+
   @spec trace_attempt(map()) :: map()
   def trace_attempt(attempt) do
     %{
@@ -170,19 +236,43 @@ defmodule Chimeway.SafeEvidence do
       inserted_at: Map.get(attempt, :inserted_at),
       attempt_number: Map.get(attempt, :attempt_number),
       error_class: Map.get(attempt, :error_class),
-      provider_message_id: safe_opaque_ref(Map.get(attempt, :provider_message_id)),
-      provider_facts: safe_facts(Map.get(attempt, :provider_response))
+      provider_message_id:
+        opaque_projection(:provider_message_id, Map.get(attempt, :provider_message_id))
     }
   end
 
   @spec timeline_detail(map()) :: map()
   def timeline_detail(attempt) do
-    trace_attempt(attempt)
-    |> Map.drop([:inserted_at])
+    attempt = if is_struct(attempt), do: Map.from_struct(attempt), else: attempt
+
+    safe =
+      attempt
+      |> Privacy.redact()
+      |> Enum.reduce(%{}, fn {key, value}, safe ->
+        case Map.get(@timeline_fields, key |> to_string() |> String.downcase()) do
+          nil ->
+            safe
+
+          field ->
+            if safe_timeline_value?(field, value), do: Map.put(safe, field, value), else: safe
+        end
+      end)
+
+    if Map.has_key?(attempt, :provider_response) or Map.has_key?(attempt, "provider_response") do
+      Map.merge(safe, trace_attempt(attempt) |> Map.drop([:inserted_at]))
+    else
+      safe
+    end
   end
 
   @spec admin_fact(atom(), term()) :: map()
-  def admin_fact(name, value) when is_atom(name), do: %{name: name, value: Privacy.redact(value)}
+  def admin_fact(name, value) when is_atom(name) and is_map(value) do
+    value
+    |> Privacy.redact()
+    |> Map.take(admin_fields(name))
+  end
+
+  def admin_fact(_name, _value), do: %{}
 
   @spec proof(map()) :: map()
   def proof(value) when is_map(value), do: Privacy.redact(value)
@@ -253,19 +343,67 @@ defmodule Chimeway.SafeEvidence do
   defp fetch_known(list, _string_key, atom_key) when is_list(list),
     do: Keyword.get(list, atom_key, :missing)
 
-  defp safe_facts(value) do
-    case provider_facts(value || %{}) do
-      {:ok, facts} -> facts
-      {:error, :unsafe_evidence} -> %{}
+  defp opaque_projection(_domain, nil), do: nil
+
+  defp opaque_projection(domain, value) when is_binary(value) do
+    "cw_#{domain}_" <>
+      (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower) |> binary_part(0, 32))
+  end
+
+  defp opaque_projection(_domain, _value), do: nil
+
+  defp safe_lifecycle_id(value) when is_binary(value) and byte_size(value) in 1..160, do: value
+  defp safe_lifecycle_id(_value), do: nil
+  defp safe_label(nil), do: nil
+  defp safe_label(value) when is_binary(value) and byte_size(value) in 1..160, do: value
+  defp safe_label(value) when is_atom(value), do: value |> Atom.to_string() |> safe_label()
+  defp safe_label(_value), do: nil
+  defp positive_integer(value) when is_integer(value) and value > 0, do: value
+  defp positive_integer(_value), do: nil
+
+  defp safe_status(value)
+       when value in [:succeeded, :failed, :suppressed, :pending, :cancelled, :dispatched],
+       do: value
+
+  defp safe_status(_value), do: nil
+  defp safe_datetime(%DateTime{} = value), do: value
+  defp safe_datetime(_value), do: nil
+
+  defp planning_context_or_nil(value) do
+    case planning_context(value) do
+      context when map_size(context) == 0 -> nil
+      context -> context
     end
   end
 
-  defp safe_opaque_ref(value) do
-    case optional_provider_ref(value) do
-      {:ok, ref} -> ref
-      {:error, :unsafe_evidence} -> nil
-    end
-  end
+  defp safe_digest(value) when is_map(value), do: Privacy.redact(value)
+  defp safe_digest(_value), do: nil
+
+  defp safe_timeline_value?(field, value)
+       when field in [:attempt_number, :included, :excluded, :deferred, :emitted_immediately],
+       do: is_integer(value) and value >= 0
+
+  defp safe_timeline_value?(:outcome, value) when value in @outcomes, do: true
+
+  defp safe_timeline_value?(field, %DateTime{} = _value)
+       when field in [:next_eligible_at, :resume_scheduled_at, :recovered_at],
+       do: true
+
+  defp safe_timeline_value?(_field, value), do: is_binary(value) and byte_size(value) in 1..160
+
+  defp admin_fields(:recent_problem),
+    do:
+      ~w(delivery_id event_id notification_key notification_version channel status suppression_reason planning_reason inserted_at updated_at)a
+
+  defp admin_fields(:feed),
+    do:
+      ~w(notification_id event_id notification_key notification_version channel_summary status_summary state delivery_count inserted_at)a
+
+  defp admin_fields(:recovery),
+    do:
+      ~w(type id delivery_id event_id notification_key notification_version channel status orchestration_state reason inserted_at updated_at)a
+
+  defp admin_fields(_name), do: []
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)

@@ -361,7 +361,12 @@ defmodule Chimeway.TracesTest do
       assert explanation.notification_key == "test_notifier"
       assert explanation.last_attempt.outcome == :failed
       assert explanation.last_attempt.error_class == "temporary"
-      assert explanation.last_attempt.provider_message_id == "cw_provider_trace-safe"
+
+      assert String.starts_with?(
+               explanation.last_attempt.provider_message_id,
+               "cw_provider_message_id_"
+             )
+
       assert :attempt_recorded in Enum.map(explanation.timeline, & &1.event)
     end
 
@@ -374,9 +379,9 @@ defmodule Chimeway.TracesTest do
       assert {:ok, %Explanation{} = exp} = Traces.explain_delivery(delivery.id)
       assert exp.delivery_id == delivery.id
       assert exp.event_id == event.id
-      assert exp.correlation_id == "req-success"
+      assert String.starts_with?(exp.correlation_id, "cw_correlation_")
       assert exp.notification_key == "test_notifier"
-      assert exp.recipient_id == "user:success"
+      assert String.starts_with?(exp.recipient_id, "cw_recipient_")
       assert exp.channel == "in_app"
       assert exp.status == :succeeded
       assert exp.suppression_reason == nil
@@ -451,8 +456,8 @@ defmodule Chimeway.TracesTest do
 
       webhook = Enum.find(timeline, &(&1.event == :webhook_received))
       assert webhook.detail.outcome == :bounced
-      assert webhook.detail.adapter_module == "TestAdapter"
-      assert webhook.detail.provider_message_id == "msg_abc"
+      refute Map.has_key?(webhook.detail, :adapter_module)
+      refute Map.has_key?(webhook.detail, :provider_message_id)
       assert webhook.detail.signal_event_name == "chimeway.delivery.bounced"
 
       stopped = Enum.find(timeline, &(&1.event == :workflow_stopped))
@@ -804,8 +809,8 @@ defmodule Chimeway.TracesTest do
     end
   end
 
-  describe "explain_delivery/1 — Phase 29 D-22 adapter_module field" do
-    test "last_attempt surfaces adapter_module persisted on the attempt row" do
+  describe "explain_delivery/1 — adapter privacy boundary" do
+    test "last_attempt omits adapter module persisted on the attempt row" do
       ctx = create_pending_delivery_for_traces()
       {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
 
@@ -819,15 +824,15 @@ defmodule Chimeway.TracesTest do
       assert {:ok, %Explanation{last_attempt: last_attempt, timeline: timeline}} =
                Traces.explain_delivery(succeeded.id)
 
-      assert last_attempt.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(last_attempt, :adapter_module)
 
       attempt_entries = Enum.filter(timeline, fn entry -> entry.event == :attempt_recorded end)
       assert length(attempt_entries) == 1
       [%{detail: detail}] = attempt_entries
-      assert detail.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(detail, :adapter_module)
     end
 
-    test "last_attempt.adapter_module is nil for pre-Phase-29 attempts (no adapter_module column value)" do
+    test "last_attempt omits adapter module for legacy attempts" do
       ctx = create_pending_delivery_for_traces()
       {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
 
@@ -842,18 +847,15 @@ defmodule Chimeway.TracesTest do
       assert {:ok, %Explanation{last_attempt: last_attempt, timeline: timeline}} =
                Traces.explain_delivery(succeeded.id)
 
-      # The key MUST be present in the map (not omitted) and the value MUST be nil.
-      assert Map.has_key?(last_attempt, :adapter_module)
-      assert last_attempt.adapter_module == nil
+      refute Map.has_key?(last_attempt, :adapter_module)
 
       attempt_entries = Enum.filter(timeline, fn entry -> entry.event == :attempt_recorded end)
       assert length(attempt_entries) == 1
       [%{detail: detail}] = attempt_entries
-      assert Map.has_key?(detail, :adapter_module)
-      assert detail.adapter_module == nil
+      refute Map.has_key?(detail, :adapter_module)
     end
 
-    test "adapter_module reflects the most recent attempt across multiple records" do
+    test "adapter_module remains absent across multiple attempts" do
       ctx = create_pending_delivery_for_traces()
 
       {:ok, dispatched_a} = Deliveries.transition_status(ctx.delivery, :dispatched)
@@ -879,7 +881,7 @@ defmodule Chimeway.TracesTest do
                Traces.explain_delivery(succeeded.id)
 
       assert last_attempt.attempt_number == 2
-      assert last_attempt.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(last_attempt, :adapter_module)
 
       attempt_entries =
         timeline
@@ -888,8 +890,8 @@ defmodule Chimeway.TracesTest do
 
       assert length(attempt_entries) == 2
       [first_entry, second_entry] = attempt_entries
-      assert first_entry.detail.adapter_module == "Chimeway.Adapters.Logger"
-      assert second_entry.detail.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(first_entry.detail, :adapter_module)
+      refute Map.has_key?(second_entry.detail, :adapter_module)
     end
   end
 
@@ -1111,8 +1113,8 @@ defmodule Chimeway.TracesTest do
       assert DateTime.compare(timeline_recovered_at, recovered_at) == :eq
       assert recovery_detail.recovery_source == "ops_console"
       assert recovery_detail.recovery_reason == "worker_missed"
-      assert recovery_detail.recovery_actor_ref == "ops:1"
-      assert recovery_detail.recovery_confirmation_marker == "operator_confirmed_recovery"
+      refute Map.has_key?(recovery_detail, :recovery_actor_ref)
+      refute Map.has_key?(recovery_detail, :recovery_confirmation_marker)
       assert DateTime.compare(recovery_detail.recovered_at, recovered_at) == :eq
       refute Map.has_key?(recovery_detail, :payload)
       refute Map.has_key?(recovery_detail, :provider_response)
