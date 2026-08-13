@@ -5,6 +5,7 @@ defmodule Chimeway.Workflows do
 
   alias Ecto.Multi
   alias Chimeway.Repo
+  alias Chimeway.SafeEvidence
   alias Chimeway.Signals.Signal
 
   alias Chimeway.Workflows.{
@@ -439,21 +440,25 @@ defmodule Chimeway.Workflows do
   #   - currently in the :waiting state
   #   - match pending_signals OR empty pending_signals on a wait_until step
   defp find_runs_waiting_for_signal(tenant_id, actor_id, event_name) do
-    Repo.all(
-      from(wr in WorkflowRun,
-        join: n in Chimeway.Notifications.Notification,
-        on: wr.notification_id == n.id,
-        where:
-          wr.tenant_id == ^tenant_id and
-            n.recipient_identity == ^actor_id and
-            wr.state == :waiting and
-            (^event_name in wr.pending_signals or
-               (wr.pending_signals == [] and
-                  fragment("?->>'rule_kind' = 'wait_until'", wr.status_context))),
-        lock: "FOR UPDATE",
-        select: wr
+    with {:ok, recipient_ref} <- SafeEvidence.recipient_reference(actor_id) do
+      Repo.all(
+        from(wr in WorkflowRun,
+          join: n in Chimeway.Notifications.Notification,
+          on: wr.notification_id == n.id,
+          where:
+            wr.tenant_id == ^tenant_id and
+              n.recipient_identity == ^recipient_ref and
+              wr.state == :waiting and
+              (^event_name in wr.pending_signals or
+                 (wr.pending_signals == [] and
+                    fragment("?->>'rule_kind' = 'wait_until'", wr.status_context))),
+          lock: "FOR UPDATE",
+          select: wr
+        )
       )
-    )
+    else
+      {:error, :unsafe_evidence} -> []
+    end
   end
 
   defp preload_steps(_repo, nil), do: nil

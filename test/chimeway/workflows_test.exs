@@ -4,6 +4,7 @@ defmodule Chimeway.WorkflowsTest do
   import Ecto.Query
 
   alias Chimeway.Repo
+  alias Chimeway.SafeEvidence
   alias Chimeway.Signals.Signal
   alias Chimeway.Workflows
   alias Chimeway.Workflows.{WorkflowRun, WorkflowTransition}
@@ -211,6 +212,23 @@ defmodule Chimeway.WorkflowsTest do
       assert updated_run.suspended_until == nil
       assert Map.has_key?(results, {:run_updated, run.id})
       assert Map.has_key?(results, {:transition_inserted, run.id})
+    end
+
+    test "matches a host signal identity to its privacy-safe recipient reference" do
+      actor_id = "workflow-signal@example.test"
+      {:ok, recipient_ref} = SafeEvidence.recipient_reference(actor_id)
+
+      run =
+        insert_workflow_run!(%{
+          recipient_identity: recipient_ref,
+          pending_signals: ["invoice_paid"]
+        })
+
+      signal = insert_signal!(%{event_name: "invoice_paid", actor_id: actor_id})
+
+      assert {:ok, results} = Workflows.route_signal(signal)
+      assert Repo.get!(WorkflowRun, run.id).status_reason == "signal_received"
+      assert Map.has_key?(results, {:run_updated, run.id})
     end
 
     test "does not resume a waiting run from a different actor_id (tenant and event match)" do
