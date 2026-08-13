@@ -66,6 +66,36 @@ defmodule Chimeway.TriggerSanitizationTest do
   }
 
   describe "sanitize_payload/1 auth-flow keys (D-08)" do
+    test "approved fact keys cannot retain recipient, credential, URL, or rendered text" do
+      hostile_facts = %{
+        "category" => "alex@example.test",
+        "reason" => "reset-token=abc",
+        "scheduled_at" => "https://secret.example/reset",
+        :category => "comment"
+      }
+
+      assert {:ok, %{event: event}} =
+               Trigger.trigger(
+                 AuthFlowSanitizationNotifier,
+                 Map.merge(hostile_facts, %{"user_id" => "1"}),
+                 idempotency_key: "approved-key-values-#{System.unique_integer()}",
+                 tenant_id: "tenant-1"
+               )
+
+      reloaded = Repo.get!(Event, event.id)
+      encoded = inspect(reloaded.payload)
+
+      assert reloaded.payload == %{}
+
+      for sentinel <- [
+            "alex@example.test",
+            "reset-token=abc",
+            "https://secret.example/reset"
+          ] do
+        refute encoded =~ sentinel
+      end
+    end
+
     test "strips url, code, raw_token, and magic_link_url from persisted event payload" do
       params =
         Map.merge(@sensitive_values, %{

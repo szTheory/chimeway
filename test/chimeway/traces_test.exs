@@ -323,6 +323,37 @@ defmodule Chimeway.TracesTest do
   # --- explain_delivery/1 ---
 
   describe "explain_delivery/1 — succeeded delivery" do
+    test "preserves the digested lifecycle status through the safe trace projection" do
+      event = insert_event()
+      notification = insert_notification(event)
+      delivery = plan_delivery(notification)
+
+      {:ok, held} =
+        Deliveries.apply_planning_decision(delivery, %{
+          orchestration_state: :digest_held,
+          planning_reason: "digest_rule",
+          planning_context: %{"rule_identity" => "digest.test:v1"},
+          next_eligible_at: nil
+        })
+
+      digest_event = insert_event(%{notification_key: "digest.test"})
+      digest_notification = insert_notification(digest_event)
+      digest_delivery = plan_delivery(digest_notification, :email)
+
+      {:ok, digested} =
+        Deliveries.mark_digested(
+          held,
+          digest_delivery.id,
+          "included_in_digest",
+          resolved_at: ~U[2026-08-12 12:00:00Z]
+        )
+
+      assert {:ok, explanation} = Traces.explain_delivery(digested.id)
+      assert explanation.status == :digested
+      assert explanation.digest["outcome"] == "digested"
+      assert explanation.digest["resolution_reason"] == "included_in_digest"
+    end
+
     test "projects hostile legacy trace values into safe operator evidence" do
       event = insert_event(%{correlation_id: "raw-correlation-sentinel"})
       notification = insert_notification(event, "raw-recipient-sentinel")
