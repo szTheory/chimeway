@@ -65,7 +65,9 @@ defmodule Chimeway.Test.ObanWorkerCaptureDeliveryAdapter do
 
   @impl true
   def deliver(delivery, _config) do
-    if pid = Application.get_env(:chimeway, :adapter_capture_pid), do: send(pid, {:delivery, delivery})
+    if pid = Application.get_env(:chimeway, :adapter_capture_pid),
+      do: send(pid, {:delivery, delivery})
+
     {:ok, %{adapter: "capture"}}
   end
 end
@@ -137,12 +139,14 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
 
       {:ok, _notification} =
         notification
-        |> Ecto.Changeset.change(render_channels: %{
-          "email" => %{
-            "render_key" => "oban.worker.execution.email",
-            "render_version" => 1
+        |> Ecto.Changeset.change(
+          render_channels: %{
+            "email" => %{
+              "render_key" => "oban.worker.execution.email",
+              "render_version" => 1
+            }
           }
-        })
+        )
         |> Repo.update()
 
       {:ok, _delivery} =
