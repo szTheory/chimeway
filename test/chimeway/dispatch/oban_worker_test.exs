@@ -20,6 +20,56 @@ defmodule Chimeway.Test.ObanWorkerCaptureConfigAdapter do
   end
 end
 
+defmodule Chimeway.Test.ObanWorkerExecutionNotifier do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "oban.worker.execution"
+  def version, do: 1
+  def recipients(_params), do: {:ok, []}
+  def build(_params, _recipient), do: {:ok, %{}}
+  def channels(_params, _recipient), do: {:ok, [:email]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "subject" => "private subject",
+         "html_body" => "<p>private body</p>",
+         "text_body" => "private body"
+       },
+       channels: %{email: %{render_key: "oban.worker.execution.email", render_version: 1}}
+     }}
+  end
+end
+
+defmodule Chimeway.Test.ObanWorkerExecutionResolver do
+  @behaviour Chimeway.RenderContextResolver
+
+  @impl true
+  def resolve("oban.worker.execution", 1, recipient_ref) do
+    if pid = Application.get_env(:chimeway, :oban_worker_resolver_pid), do: send(pid, :resolved)
+
+    {:ok,
+     %{
+       notifier: Chimeway.Test.ObanWorkerExecutionNotifier,
+       params: %{},
+       recipient: %{recipient_ref: recipient_ref, recipient_identity: "user:private@example.test"}
+     }}
+  end
+
+  def resolve(_, _, _), do: {:error, :render_context_unavailable}
+end
+
+defmodule Chimeway.Test.ObanWorkerCaptureDeliveryAdapter do
+  @behaviour Chimeway.Adapter
+
+  @impl true
+  def deliver(delivery, _config) do
+    if pid = Application.get_env(:chimeway, :adapter_capture_pid), do: send(pid, {:delivery, delivery})
+    {:ok, %{adapter: "capture"}}
+  end
+end
+
 defmodule Chimeway.Dispatch.ObanWorkerTest do
   use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
@@ -55,6 +105,62 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
 
       assert length(attempts) == 1
       assert hd(attempts).outcome == :succeeded
+    end
+  end
+
+  describe "execution-time email hydration" do
+    test "resolves private email context only immediately before adapter handoff" do
+      previous_adapter = Application.get_env(:chimeway, :adapter)
+      previous_resolvers = Application.get_env(:chimeway, :render_context_resolvers)
+
+      on_exit(fn ->
+        Application.put_env(:chimeway, :adapter, previous_adapter)
+        Application.put_env(:chimeway, :render_context_resolvers, previous_resolvers)
+        Application.delete_env(:chimeway, :adapter_capture_pid)
+        Application.delete_env(:chimeway, :oban_worker_resolver_pid)
+      end)
+
+      Application.put_env(:chimeway, :adapter, Chimeway.Test.ObanWorkerCaptureDeliveryAdapter)
+      Application.put_env(:chimeway, :adapter_capture_pid, self())
+      Application.put_env(:chimeway, :oban_worker_resolver_pid, self())
+
+      Application.put_env(:chimeway, :render_context_resolvers, %{
+        {"oban.worker.execution", 1} => Chimeway.Test.ObanWorkerExecutionResolver
+      })
+
+      %{notification: notification, delivery: delivery} =
+        create_pending_delivery(
+          channel: :email,
+          notification_key: "oban.worker.execution",
+          recipient_identity: "opaque-recipient-ref"
+        )
+
+      {:ok, _notification} =
+        notification
+        |> Ecto.Changeset.change(render_channels: %{
+          "email" => %{
+            "render_key" => "oban.worker.execution.email",
+            "render_version" => 1
+          }
+        })
+        |> Repo.update()
+
+      {:ok, _delivery} =
+        delivery
+        |> Ecto.Changeset.change(render_key: "oban.worker.execution.email", render_version: 1)
+        |> Repo.update()
+
+      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
+      assert_receive :resolved
+
+      assert_receive {:delivery, hydrated}
+      assert hydrated.recipient_address == "private@example.test"
+      assert hydrated.render_data["html_body"] == "<p>private body</p>"
+
+      reloaded = Deliveries.get_delivery!(delivery.id)
+      assert reloaded.render_data == %{}
+      refute inspect(reloaded) =~ "private@example.test"
+      refute inspect(reloaded) =~ "private body"
     end
   end
 
