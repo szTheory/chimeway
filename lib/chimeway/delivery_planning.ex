@@ -114,9 +114,6 @@ defmodule Chimeway.DeliveryPlanning do
     recipient = notification_recipient(notification)
     workflow_linkage = resolve_workflow_linkage(notification, channel, opts)
 
-    trusted_render_data? =
-      Map.has_key?(Keyword.get(opts, :precomputed_rendering, %{}), {notification.id, channel})
-
     recipient_address = Map.get(Keyword.get(opts, :recipient_handoffs, %{}), notification.id)
 
     opts = Keyword.put_new(opts, :recipient, recipient)
@@ -135,13 +132,12 @@ defmodule Chimeway.DeliveryPlanning do
              correlation_id: Keyword.get(opts, :correlation_id),
              render_key: render_result[:render_key],
              render_version: render_result[:render_version],
-             render_data: render_result[:render_data],
-             trusted_render_data: trusted_render_data?,
+             render_data: %{},
              workflow_run_id: workflow_linkage[:workflow_run_id],
              workflow_step_id: workflow_linkage[:workflow_step_id]
            ),
          {:ok, delivery} <-
-           maybe_apply_render_result(delivery, render_result, trusted_render_data?),
+           maybe_apply_render_result(delivery, render_result),
          {:ok, delivery} <- attach_recipient_address(delivery, recipient_address),
          {:ok, delivery} <- maybe_apply_workflow_linkage(delivery, workflow_linkage),
          {:ok, orchestration} <-
@@ -149,7 +145,7 @@ defmodule Chimeway.DeliveryPlanning do
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
       with {:ok, delivery} <- evaluate_planning_policy(delivery, opts),
            {:ok, delivery} <- maybe_accumulate_digest_delivery(delivery) do
-        {:ok, delivery}
+        {:ok, attach_render_data(delivery, render_result)}
       end
     end
   end
@@ -553,21 +549,21 @@ defmodule Chimeway.DeliveryPlanning do
     end
   end
 
-  defp maybe_apply_render_result(%Delivery{} = delivery, render_result, _trusted_render_data?)
+  defp maybe_apply_render_result(%Delivery{} = delivery, render_result)
        when map_size(render_result) == 0,
        do: {:ok, delivery}
 
-  defp maybe_apply_render_result(%Delivery{} = delivery, render_result, trusted_render_data?) do
-    render_result =
-      if trusted_render_data?, do: render_result, else: Map.put(render_result, :render_data, %{})
-
+  defp maybe_apply_render_result(%Delivery{} = delivery, render_result) do
     if delivery.render_key == render_result.render_key &&
-         delivery.render_version == render_result.render_version &&
-         delivery.render_data == render_result.render_data do
+         delivery.render_version == render_result.render_version do
       {:ok, delivery}
     else
-      Deliveries.apply_render_result(delivery, render_result)
+      Deliveries.apply_render_identity(delivery, render_result)
     end
+  end
+
+  defp attach_render_data(%Delivery{} = delivery, render_result) when is_map(render_result) do
+    %{delivery | render_data: Map.get(render_result, :render_data, %{})}
   end
 
   defp attach_recipient_address(%Delivery{} = delivery, address) when is_binary(address),

@@ -123,7 +123,7 @@ defmodule Chimeway.Trigger do
         {result, extra}
       end
     )
-    |> normalize_trigger_result(idempotency_key, normalized_recipients, tenant_id)
+    |> normalize_trigger_result(idempotency_key, tenant_id)
     |> then(&plan_deliveries_span(&1, notifier, params, opts))
   end
 
@@ -321,33 +321,34 @@ defmodule Chimeway.Trigger do
             }
           }},
          _idempotency_key,
-         recipients,
          _tenant_id
        ) do
-    {:ok,
-     %{
-       event: event,
-       notification_key: event.notification_key,
-       notification_version: event.notification_version,
-       idempotency_key: event.idempotency_key,
-       recipients: recipients,
-       notifications_inserted: notifications_inserted,
-       precomputed_rendering: precomputed_rendering,
-       recipient_handoffs: recipient_handoffs,
-       dispatch_outcome: :pending,
-       dispatch_mode: :unknown,
-       trace: %{
-         event_id: event.id,
-         correlation_id: event.correlation_id,
-         delivery_ids: []
-       }
-     }}
+    public_result = %{
+      event: event,
+      notification_key: event.notification_key,
+      notification_version: event.notification_version,
+      idempotency_key: event.idempotency_key,
+      notifications_inserted: notifications_inserted,
+      dispatch_outcome: :pending,
+      dispatch_mode: :unknown,
+      trace: %{
+        event_id: event.id,
+        correlation_id: event.correlation_id,
+        delivery_ids: []
+      }
+    }
+
+    dispatch_context = %{
+      precomputed_rendering: precomputed_rendering,
+      recipient_handoffs: recipient_handoffs
+    }
+
+    {:ok, public_result, dispatch_context}
   end
 
   defp normalize_trigger_result(
          {:error, :event, %Ecto.Changeset{} = changeset, _changes},
          idempotency_key,
-         _recipients,
          tenant_id
        ) do
     if idempotency_conflict?(changeset) do
@@ -363,7 +364,6 @@ defmodule Chimeway.Trigger do
   defp normalize_trigger_result(
          {:error, :notifications, reason, _changes},
          _idempotency_key,
-         _recipients,
          _tenant_id
        ) do
     {:error, {:notifications_insert_failed, reason}}
@@ -503,19 +503,25 @@ defmodule Chimeway.Trigger do
   # between event-insert commit and dispatcher invocation) is deferred to a future
   # operability/recovery phase. See @moduledoc § "Duplicate-trigger contract" for
   # the rationale.
-  defp dispatch_after_trigger({:ok, %{event: event} = trigger_result}, notifier, params, opts) do
+  defp dispatch_after_trigger(
+         {:ok, %{event: event} = trigger_result, dispatch_context},
+         notifier,
+         params,
+         opts
+       ) do
     dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     notifications = Repo.all(from(n in Notification, where: n.event_id == ^event.id))
 
     dispatch_opts =
       opts
+      |> Keyword.drop([:precomputed_rendering, :recipient_handoffs])
       |> Keyword.put_new(:notifier, notifier)
       |> Keyword.put_new(:trigger_params, params)
       |> Keyword.put_new(:notification_key, event.notification_key)
       |> Keyword.put_new(:event_id, event.id)
       |> Keyword.put_new(:correlation_id, event.correlation_id)
-      |> Keyword.put_new(:precomputed_rendering, trigger_result.precomputed_rendering)
-      |> Keyword.put_new(:recipient_handoffs, trigger_result.recipient_handoffs)
+      |> Keyword.put(:precomputed_rendering, dispatch_context.precomputed_rendering)
+      |> Keyword.put(:recipient_handoffs, dispatch_context.recipient_handoffs)
 
     case dispatcher.dispatch(notifications, dispatch_opts) do
       {:ok, deliveries} ->
