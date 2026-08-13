@@ -593,9 +593,9 @@ defmodule Chimeway.Deliveries do
   """
   @spec apply_render_identity(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
   def apply_render_identity(%Delivery{} = delivery, identity) when is_map(identity) do
-    with {:ok, render_key} <- normalize_optional_render_key(Map.get(identity, :render_key)),
+    with {:ok, render_key} <- normalize_optional_render_key(render_value(identity, :render_key)),
          {:ok, render_version} <-
-           normalize_optional_render_version(Map.get(identity, :render_version)) do
+           normalize_optional_render_version(render_value(identity, :render_version)) do
       delivery
       |> change(%{render_key: render_key, render_version: render_version})
       |> Repo.update()
@@ -610,11 +610,12 @@ defmodule Chimeway.Deliveries do
   """
   @spec apply_render_result(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
   def apply_render_result(%Delivery{} = delivery, render_result) when is_map(render_result) do
-    with {:ok, render_key} <- normalize_optional_render_key(Map.get(render_result, :render_key)),
+    with {:ok, render_key} <-
+           normalize_optional_render_key(render_value(render_result, :render_key)),
          {:ok, render_version} <-
-           normalize_optional_render_version(Map.get(render_result, :render_version)),
+           normalize_optional_render_version(render_value(render_result, :render_version)),
          {:ok, render_data} <-
-           normalize_optional_render_data(Map.get(render_result, :render_data, %{})) do
+           normalize_optional_render_data(render_value(render_result, :render_data, %{})) do
       delivery
       |> change(%{
         render_key: render_key,
@@ -627,6 +628,10 @@ defmodule Chimeway.Deliveries do
 
   def apply_render_result(%Delivery{} = _delivery, render_result),
     do: {:error, {:invalid_render_result, render_result}}
+
+  defp render_value(render_result, key, default \\ nil) do
+    Map.get(render_result, key, Map.get(render_result, Atom.to_string(key), default))
+  end
 
   @doc """
   Persists workflow run and active-step linkage on the canonical delivery row.

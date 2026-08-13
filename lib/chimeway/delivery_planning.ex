@@ -113,8 +113,14 @@ defmodule Chimeway.DeliveryPlanning do
     trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
     workflow_linkage = resolve_workflow_linkage(notification, channel, opts)
+    precomputed_rendering = optional_map(Keyword.get(opts, :precomputed_rendering))
+    transient_render_data? = Map.has_key?(precomputed_rendering, {notification.id, channel})
 
-    recipient_address = Map.get(Keyword.get(opts, :recipient_handoffs, %{}), notification.id)
+    recipient_address =
+      opts
+      |> Keyword.get(:recipient_handoffs)
+      |> optional_map()
+      |> Map.get(notification.id)
 
     opts = Keyword.put_new(opts, :recipient, recipient)
 
@@ -130,8 +136,8 @@ defmodule Chimeway.DeliveryPlanning do
              notification_key: Keyword.get(opts, :notification_key),
              event_id: Keyword.get(opts, :event_id),
              correlation_id: Keyword.get(opts, :correlation_id),
-             render_key: render_result[:render_key],
-             render_version: render_result[:render_version],
+             render_key: render_value(render_result, :render_key),
+             render_version: render_value(render_result, :render_version),
              render_data: %{},
              workflow_run_id: workflow_linkage[:workflow_run_id],
              workflow_step_id: workflow_linkage[:workflow_step_id]
@@ -145,7 +151,7 @@ defmodule Chimeway.DeliveryPlanning do
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
       with {:ok, delivery} <- evaluate_planning_policy(delivery, opts),
            {:ok, delivery} <- maybe_accumulate_digest_delivery(delivery) do
-        {:ok, attach_render_data(delivery, render_result)}
+        {:ok, attach_render_data(delivery, render_result, transient_render_data?)}
       end
     end
   end
@@ -433,7 +439,10 @@ defmodule Chimeway.DeliveryPlanning do
   end
 
   defp resolve_render_result(notification, channel, trigger_params, opts) do
-    case Map.fetch(Keyword.get(opts, :precomputed_rendering, %{}), {notification.id, channel}) do
+    case Map.fetch(
+           optional_map(Keyword.get(opts, :precomputed_rendering)),
+           {notification.id, channel}
+         ) do
       {:ok, result} ->
         {:ok, result}
 
@@ -554,16 +563,26 @@ defmodule Chimeway.DeliveryPlanning do
        do: {:ok, delivery}
 
   defp maybe_apply_render_result(%Delivery{} = delivery, render_result) do
-    if delivery.render_key == render_result.render_key &&
-         delivery.render_version == render_result.render_version do
+    if delivery.render_key == render_value(render_result, :render_key) &&
+         delivery.render_version == render_value(render_result, :render_version) do
       {:ok, delivery}
     else
       Deliveries.apply_render_identity(delivery, render_result)
     end
   end
 
-  defp attach_render_data(%Delivery{} = delivery, render_result) when is_map(render_result) do
-    %{delivery | render_data: Map.get(render_result, :render_data, %{})}
+  defp attach_render_data(%Delivery{} = delivery, render_result, true)
+       when is_map(render_result) do
+    %{delivery | render_data: render_value(render_result, :render_data, %{})}
+  end
+
+  defp attach_render_data(%Delivery{} = delivery, _render_result, false), do: delivery
+
+  defp optional_map(value) when is_map(value), do: value
+  defp optional_map(_value), do: %{}
+
+  defp render_value(render_result, key, default \\ nil) do
+    Map.get(render_result, key, Map.get(render_result, Atom.to_string(key), default))
   end
 
   defp attach_recipient_address(%Delivery{} = delivery, address) when is_binary(address),
