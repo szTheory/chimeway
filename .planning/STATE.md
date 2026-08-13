@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 98
 current_phase_name: privacy-safe-delivery-evidence
 status: executing
-stopped_at: Completed 98-03-PLAN.md
-last_updated: "2026-08-13T00:08:06.548Z"
+stopped_at: Completed 98-04-PLAN.md
+last_updated: "2026-08-13T00:16:47.809Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 98 execution started
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 98 (privacy-safe-delivery-evidence) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 98 execution started
 
@@ -335,6 +335,9 @@ status: complete
 - [Phase ?]: [98-03]: Unknown adapter terms collapse to rejected/unknown_classification with empty attempt facts.
 - [Phase ?]: [98-03]: Telemetry emits only validated lifecycle fields and reprojects merged stop metadata before emission.
 - [Phase ?]: [98-03]: Failure logs are literal messages with selected safe identifiers only.
+- [Phase ?]: [98-04]: Operator projections derive stable cw_* opaque references instead of exposing raw recipient or correlation identity.
+- [Phase ?]: [98-04]: Adapter module names and provider-controlled detail are omitted from trace timelines and attempt summaries.
+- [Phase ?]: [98-04]: Optional Admin rendering recursively redacts before applying its display allowlist.
 
 ### Roadmap Evolution
 
@@ -655,8 +658,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-13T00:08:06.539Z
-Stopped at: Completed 98-03-PLAN.md
+Last session: 2026-08-13T00:16:47.800Z
+Stopped at: Completed 98-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -776,3 +779,4 @@ Resume file: None
 | Phase 98 P01 | 8 min | 2 tasks | 6 files |
 | Phase 98-privacy-safe-delivery-evidence P02 | 12 min | 2 tasks | 9 files |
 | Phase 98 P03 | 18min | 2 tasks | 7 files |
+| Phase 98 P04 | 30 min | 2 tasks | 7 files |

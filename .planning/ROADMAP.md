@@ -85,7 +85,7 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans:** 3/6 plans executed
+**Plans:** 4/6 plans executed
 
 Plans:
 
@@ -103,7 +103,7 @@ Plans:
 
 **Wave 4** *(98-04 and 98-05 run independently after Wave 3)*
 
-- [ ] 98-04-PLAN.md — Make trace and core Admin projections independently safe.
+- [x] 98-04-PLAN.md — Make trace and core Admin projections independently safe.
 - [ ] 98-05-PLAN.md — Bind machine-readable proof to honest safe evidence.
 
 **Wave 5** *(blocked on Wave 4 completion)*
@@ -185,7 +185,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
-| 98. Privacy-Safe Delivery Evidence | 3/6 | In Progress|  |
+| 98. Privacy-Safe Delivery Evidence | 4/6 | In Progress|  |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
