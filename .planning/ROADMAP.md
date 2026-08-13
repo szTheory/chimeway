@@ -85,7 +85,7 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans:** 7/7 plans executed
+**Plans:** 10 total (7 executed, 3 pending)
 
 Plans:
 
@@ -113,6 +113,15 @@ Plans:
 **Wave 6** *(blocked on Wave 5 completion)*
 
 - [x] 98-07-PLAN.md — Close approved-key value validation and restore digested trace status.
+
+**Gap Closure Wave 7** *(98-08 and 98-09 run independently after Wave 6)*
+
+- [ ] 98-08-PLAN.md — Separate private render dispatch context from safe public and durable evidence.
+- [ ] 98-09-PLAN.md — Fail closed on duplicate evidence fields and validate provider codes with the closed grammar.
+
+**Gap Closure Wave 8** *(blocked on Gap Closure Wave 7 completion)*
+
+- [ ] 98-10-PLAN.md — Restore queued email delivery through host-owned transient context without expanding Chimeway custody.
 
 ### Phase 99: Multi-Installation Delivery & Recovery
 
