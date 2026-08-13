@@ -53,6 +53,7 @@ defmodule Chimeway.Install.GoldenDiffTest do
         refute Enum.any?(Map.keys(tree), &String.contains?(&1, "create_oban_jobs_tables"))
         assert_chimeway_migration_markers!(tree)
         assert_mode_shape!(context.golden_mode, tree)
+        assert_migration_034_prefix_contract!(context.golden_mode, tree)
 
         if InstallerFixture.accept_golden_refresh?() do
           InstallerFixture.write_golden!(context.golden_mode, tree, stdout)
@@ -118,6 +119,26 @@ defmodule Chimeway.Install.GoldenDiffTest do
     refute joined =~ ~s(@chimeway_prefix "chimeway")
     refute joined =~ "CREATE SCHEMA IF NOT EXISTS chimeway"
     refute joined =~ "prefix: false"
+  end
+
+  defp assert_migration_034_prefix_contract!(mode, tree) do
+    migration =
+      Map.fetch!(
+        tree,
+        "priv/repo/migrations/TIMESTAMP_privacy_safe_delivery_evidence.exs"
+      )
+
+    expected_prefix =
+      case mode do
+        :prefixed -> ~s(@chimeway_prefix "chimeway")
+        :public -> "@chimeway_prefix false"
+      end
+
+    assert length(Regex.scan(~r/^\s*#{Regex.escape(expected_prefix)}\s*$/m, migration)) == 1,
+           "migration 034 must render exactly one #{inspect(expected_prefix)} attribute in #{mode} mode"
+
+    refute migration =~ "__CHIMEWAY_PREFIX__",
+           "migration 034 must not retain the installer prefix sentinel in #{mode} mode"
   end
 
   defp joined_tree(tree) do
