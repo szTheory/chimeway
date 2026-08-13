@@ -72,6 +72,12 @@ status: complete
 - Kept rendering declarations public and intact; delivery planning drops only its non-rendering recipient helper before channel validation and can recover a persisted render identity without host render context.
 - Existing Trigger, telemetry, deferred-lifecycle, digest-lifecycle, notifier-contract, and Phase 98 privacy tests now provide regression coverage.
 
+## Follow-up Runtime Compatibility Fix
+
+- Preserved trusted internal render-channel declarations through Trigger and `SafeEvidence.render_channels/1`, whose per-entry render key/version checks remain closed.
+- Reused persisted render assigns when a dispatch-only custom-channel notifier intentionally has no rendering/build callback.
+- Verified persisted digest orchestration and workflow linkage recovery without re-entering callback code.
+
 ## Task Commits
 
 1. **Task 1 RED:** `06c25fd` — failing privacy evidence regressions.
@@ -98,6 +104,12 @@ status: complete
 - **Issue:** Overly narrow schemas rejected opaque operational IDs and fixed digest metadata, while recipient/render handling broke regular Trigger and recovery paths.
 - **Fix:** Added typed opaque-reference and fixed digest-template validators, preserved stable recipient refs, and constrained delivery-boundary render cleanup.
 - **Verification:** focused 80-test suite and clean `mix ci` passed.
+
+**3. [Rule 1 - Bug] Restored internal channel declarations and persisted recovery paths.**
+- **Found during:** post-wave orchestrator CI.
+- **Issue:** Privacy redaction removed legitimate `email` channel keys before field-specific render-channel validation; dispatch-only custom notifiers were incorrectly asked to render.
+- **Fix:** Kept internal declarations intact until literal render identity validation and used persisted assigns when no rendering callback exists.
+- **Verification:** specified recovery/custom-channel cases plus Phase 98 privacy suites (61 tests, 0 failures).
 
 ## Known Stubs
 

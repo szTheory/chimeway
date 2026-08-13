@@ -223,7 +223,6 @@ defmodule Chimeway.Trigger do
         render_channels =
           rendering
           |> Map.get(:channels, %{})
-          |> Privacy.redact()
           |> SafeEvidence.render_channels()
 
         orchestration = Notifier.serialize_orchestration(orchestration)

@@ -119,7 +119,6 @@ defmodule Chimeway.SafeEvidence do
   @spec render_channels(term()) :: map()
   def render_channels(channels) when is_map(channels) do
     channels
-    |> Privacy.redact()
     |> Enum.reduce(%{}, fn {channel, info}, acc ->
       with channel when is_binary(channel) <- to_string(channel),
            info when is_map(info) <- info,

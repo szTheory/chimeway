@@ -457,7 +457,11 @@ defmodule Chimeway.DeliveryPlanning do
   defp render_assigns(notification, trigger_params, opts) do
     case Keyword.fetch(opts, :notifier) do
       {:ok, notifier} ->
-        render_assigns_from_notifier(notifier, trigger_params, Keyword.get(opts, :recipient))
+        if function_exported?(notifier, :rendering, 2) or function_exported?(notifier, :build, 2) do
+          render_assigns_from_notifier(notifier, trigger_params, Keyword.get(opts, :recipient))
+        else
+          {:ok, notification.render_assigns || %{}}
+        end
 
       :error ->
         render_assigns_from_context(notification)
