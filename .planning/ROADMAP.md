@@ -85,7 +85,7 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans:** 8/10 plans executed
+**Plans:** 9/10 plans executed
 
 Plans:
 
@@ -117,7 +117,7 @@ Plans:
 **Gap Closure Wave 7** *(98-08 and 98-09 run independently after Wave 6)*
 
 - [x] 98-08-PLAN.md — Separate private render dispatch context from safe public and durable evidence.
-- [ ] 98-09-PLAN.md — Fail closed on duplicate evidence fields and validate provider codes with the closed grammar.
+- [x] 98-09-PLAN.md — Fail closed on duplicate evidence fields and validate provider codes with the closed grammar.
 
 **Gap Closure Wave 8** *(blocked on Gap Closure Wave 7 completion)*
 
@@ -198,7 +198,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
-| 98. Privacy-Safe Delivery Evidence | 8/10 | In Progress|  |
+| 98. Privacy-Safe Delivery Evidence | 9/10 | In Progress|  |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
