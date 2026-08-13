@@ -85,7 +85,7 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans:** 9/10 plans executed
+**Plans:** 10/10 plans executed
 
 Plans:
 
@@ -121,7 +121,7 @@ Plans:
 
 **Gap Closure Wave 8** *(blocked on Gap Closure Wave 7 completion)*
 
-- [ ] 98-10-PLAN.md — Restore queued email delivery through host-owned transient context without expanding Chimeway custody.
+- [x] 98-10-PLAN.md — Restore queued email delivery through host-owned transient context without expanding Chimeway custody.
 
 ### Phase 99: Multi-Installation Delivery & Recovery
 
@@ -198,7 +198,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
-| 98. Privacy-Safe Delivery Evidence | 9/10 | In Progress|  |
+| 98. Privacy-Safe Delivery Evidence | 10/10 | In Progress|  |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
