@@ -77,12 +77,6 @@ defmodule Chimeway.Telemetry do
 
   require Logger
 
-  @allowed_meta_keys ~w(
-    notification_key event_id recipient_id channel
-    delivery_id attempt_id outcome suppression_reason planning_reason correlation_id
-    attempt_number error_class adapter_module
-  )a
-
   @doc """
   Wraps a function with a `:telemetry` span using Chimeway's 4-level event prefix.
 
@@ -99,10 +93,32 @@ defmodule Chimeway.Telemetry do
   @spec span(list(), map(), (-> {term(), map()})) :: term()
   def span(event_suffix, meta, func)
       when is_list(event_suffix) and is_map(meta) and is_function(func, 0) do
-    :telemetry.span([:chimeway | event_suffix], meta, fn ->
+    event = [:chimeway | event_suffix]
+    safe_initial = safe_meta(meta)
+    start_time = System.monotonic_time()
+
+    :telemetry.execute(event ++ [:start], %{system_time: System.system_time()}, safe_initial)
+
+    try do
       {result, extra} = func.()
-      {result, Map.merge(meta, extra)}
-    end)
+
+      :telemetry.execute(
+        event ++ [:stop],
+        %{duration: System.monotonic_time() - start_time},
+        safe_initial |> Map.merge(safe_meta(extra)) |> safe_meta()
+      )
+
+      result
+    catch
+      kind, reason ->
+        :telemetry.execute(
+          event ++ [:exception],
+          %{duration: System.monotonic_time() - start_time},
+          safe_initial
+        )
+
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    end
   end
 
   @doc """
@@ -114,7 +130,8 @@ defmodule Chimeway.Telemetry do
 
   ## Allowed keys
 
-  `#{Enum.map_join(@allowed_meta_keys, "`, `", &to_string/1)}`
+  Lifecycle identifiers, channel, outcome, bounded reasons/classifications, attempt number,
+  and adapter identity. Each value is validated by `Chimeway.SafeEvidence` before emission.
 
   ## Example
 
@@ -122,14 +139,7 @@ defmodule Chimeway.Telemetry do
       %{notification_key: "order_shipped"}
   """
   @spec safe_meta(map()) :: map()
-  def safe_meta(meta) when is_map(meta) do
-    result =
-      meta
-      |> normalize_keys()
-      |> Map.take(@allowed_meta_keys)
-
-    result
-  end
+  def safe_meta(meta) when is_map(meta), do: Chimeway.SafeEvidence.telemetry_meta(meta)
 
   @doc """
   Attaches a Logger-based default telemetry handler for all Chimeway spans.
@@ -199,29 +209,12 @@ defmodule Chimeway.Telemetry do
         _ -> :debug
       end
 
-    Logger.log(level, "[chimeway] telemetry #{Enum.join(event, ".")}",
-      notification_key: Map.get(meta, :notification_key),
-      event_id: Map.get(meta, :event_id),
-      delivery_id: Map.get(meta, :delivery_id)
+    safe = safe_meta(meta)
+
+    Logger.log(level, "[chimeway] telemetry event",
+      notification_key: Map.get(safe, :notification_key),
+      event_id: Map.get(safe, :event_id),
+      delivery_id: Map.get(safe, :delivery_id)
     )
-  end
-
-  defp normalize_keys(map) do
-    Enum.reduce(map, %{}, fn {k, v}, acc ->
-      normalized =
-        cond do
-          is_atom(k) -> k
-          is_binary(k) -> try_to_existing_atom(k)
-          true -> nil
-        end
-
-      if normalized, do: Map.put(acc, normalized, v), else: acc
-    end)
-  end
-
-  defp try_to_existing_atom(str) do
-    String.to_existing_atom(str)
-  rescue
-    ArgumentError -> nil
   end
 end

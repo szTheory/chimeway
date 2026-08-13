@@ -8,8 +8,25 @@ defmodule Chimeway.SafeEvidence do
   @max_ref_bytes 160
   @max_code_bytes 80
   @max_adapter_bytes 120
+  @max_telemetry_bytes 160
   @max_retry_after_ms 86_400_000
   @error_classes ~w(temporary permanent bounced unknown_classification)
+  @telemetry_keys %{
+    "notification_key" => :notification_key,
+    "event_id" => :event_id,
+    "recipient_id" => :recipient_id,
+    "channel" => :channel,
+    "delivery_id" => :delivery_id,
+    "attempt_id" => :attempt_id,
+    "outcome" => :outcome,
+    "suppression_reason" => :suppression_reason,
+    "planning_reason" => :planning_reason,
+    "correlation_id" => :correlation_id,
+    "attempt_number" => :attempt_number,
+    "error_class" => :error_class,
+    "adapter_module" => :adapter_module
+  }
+  @outcomes [:succeeded, :failed, :bounced, :rejected]
 
   @spec opaque_ref(atom() | String.t(), term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
   def opaque_ref(domain, value)
@@ -130,7 +147,20 @@ defmodule Chimeway.SafeEvidence do
   def attempt_attrs(_attrs), do: {:error, :unsafe_evidence, :attempt_attrs}
 
   @spec telemetry_meta(map()) :: map()
-  def telemetry_meta(metadata) when is_map(metadata), do: Privacy.redact(metadata)
+  def telemetry_meta(metadata) when is_map(metadata) do
+    metadata
+    |> Privacy.redact()
+    |> Enum.reduce(%{}, fn {key, value}, safe ->
+      case Map.get(@telemetry_keys, key |> to_string() |> String.downcase()) do
+        nil ->
+          safe
+
+        field ->
+          if valid_telemetry_value?(field, value), do: Map.put(safe, field, value), else: safe
+      end
+    end)
+  end
+
   def telemetry_meta(_metadata), do: %{}
 
   @spec trace_attempt(map()) :: map()
@@ -259,4 +289,36 @@ defmodule Chimeway.SafeEvidence do
   defp safe_scalar?(value) when is_binary(value), do: byte_size(value) <= 160
   defp safe_scalar?(value) when is_integer(value) or is_boolean(value), do: true
   defp safe_scalar?(_value), do: false
+
+  defp valid_telemetry_value?(field, value)
+       when field in [
+              :notification_key,
+              :event_id,
+              :recipient_id,
+              :delivery_id,
+              :attempt_id,
+              :suppression_reason,
+              :planning_reason,
+              :correlation_id,
+              :adapter_module
+            ] do
+    safe_telemetry_string?(value)
+  end
+
+  defp valid_telemetry_value?(:channel, value) when is_atom(value), do: true
+  defp valid_telemetry_value?(:channel, value), do: safe_telemetry_string?(value)
+  defp valid_telemetry_value?(:outcome, value), do: value in @outcomes
+  defp valid_telemetry_value?(:error_class, value), do: value in @error_classes
+  defp valid_telemetry_value?(:attempt_number, value), do: is_integer(value) and value > 0
+
+  defp safe_telemetry_string?(value) when is_binary(value) do
+    byte_size(value) in 1..@max_telemetry_bytes and
+      String.match?(value, ~r/^[A-Za-z0-9._:-]+$/) and
+      not String.match?(
+        value,
+        ~r/(token|secret|authorization|credential|password|recipient|email|body|content|url|link)/i
+      )
+  end
+
+  defp safe_telemetry_string?(_value), do: false
 end

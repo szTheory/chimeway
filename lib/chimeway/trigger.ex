@@ -441,7 +441,7 @@ defmodule Chimeway.Trigger do
          merge_dispatch_outcome(trigger_result, :ok, dispatch_mode_for(dispatcher), deliveries)}
 
       {:error, reason} ->
-        Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
+        Logger.warning("Dispatch failed after trigger")
 
         {:ok,
          merge_dispatch_outcome(

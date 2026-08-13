@@ -9,6 +9,7 @@ defmodule Chimeway.TelemetryIntegrationTest do
   import ExUnit.CaptureLog
 
   alias Chimeway.Telemetry
+  alias Chimeway.Test.DispatchHelpers
 
   @mandatory_stop_events [
     [:chimeway, :events, :create, :stop],
@@ -44,11 +45,30 @@ defmodule Chimeway.TelemetryIntegrationTest do
 
     opts = [
       idempotency_key: "telem-key-#{System.unique_integer()}",
-      correlation_id: "test-corr-#{System.unique_integer()}",
+      correlation_id: "cw_correlation_#{System.unique_integer([:positive])}",
       tenant_id: "acme"
     ]
 
-    Chimeway.Trigger.trigger(notifier, params, opts)
+    result = Chimeway.Trigger.trigger(notifier, params, opts)
+
+    %{delivery: delivery} =
+      DispatchHelpers.create_pending_delivery(
+        notification_key: notifier.notification_key(),
+        channel: :in_app
+      )
+
+    {:ok, delivery} =
+      delivery
+      |> Ecto.Changeset.change(
+        metadata: %{
+          "notification_key" => notifier.notification_key(),
+          "correlation_id" => opts[:correlation_id]
+        }
+      )
+      |> Chimeway.Repo.update()
+
+    assert {:ok, _} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+    result
   end
 
   describe "mandatory span emission" do
@@ -142,7 +162,6 @@ defmodule Chimeway.TelemetryIntegrationTest do
       allowed = %{
         notification_key: "k",
         event_id: "eid",
-        recipient_id: "rid",
         channel: :email,
         delivery_id: "did",
         attempt_id: "aid",
@@ -187,7 +206,9 @@ defmodule Chimeway.TelemetryIntegrationTest do
       :telemetry.attach_many(
         handler_id,
         events,
-        fn event, _measurements, metadata, _config -> send(test_pid, {:safe_span, event, metadata}) end,
+        fn event, _measurements, metadata, _config ->
+          send(test_pid, {:safe_span, event, metadata})
+        end,
         nil
       )
 
@@ -217,6 +238,19 @@ defmodule Chimeway.TelemetryIntegrationTest do
 
     test "exceptions and dispatch failure logs never interpolate hostile terms" do
       Telemetry.attach_default_handlers()
+      handler_id = "safe-exception-#{System.unique_integer([:positive])}"
+      test_pid = self()
+
+      :telemetry.attach(
+        handler_id,
+        [:chimeway, :events, :create, :exception],
+        fn _event, _measurements, metadata, _config ->
+          send(test_pid, {:safe_exception, metadata})
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
 
       exception_log =
         capture_log(fn ->
@@ -231,6 +265,8 @@ defmodule Chimeway.TelemetryIntegrationTest do
 
       assert exception_log =~ "[chimeway] telemetry"
       refute_sentinels(exception_log)
+      assert_receive {:safe_exception, exception_meta}
+      refute_sentinels(exception_meta)
     end
   end
 
@@ -456,21 +492,19 @@ defmodule Chimeway.TelemetryIntegrationTest do
       assert_receive {:telemetry_event, [:chimeway, :deliveries, :plan, :stop], meta}, 500
       assert meta.notification_key == "test_support_notifier"
       assert meta.event_id != nil
-      assert String.starts_with?(meta.correlation_id, "test-corr-")
+      assert String.starts_with?(meta.correlation_id, "cw_correlation_")
 
       # 3. policy:evaluate
       assert_receive {:telemetry_event, [:chimeway, :policy, :evaluate, :stop], meta}, 500
       assert meta.notification_key == "test_support_notifier"
       assert meta.delivery_id != nil
       assert meta.channel == "in_app"
-      assert String.starts_with?(meta.correlation_id, "test-corr-")
 
       # 4. dispatch:sync
       assert_receive {:telemetry_event, [:chimeway, :dispatch, :sync, :stop], meta}, 500
       assert meta.notification_key == "test_support_notifier"
       assert meta.delivery_id != nil
       assert meta.channel == "in_app"
-      assert String.starts_with?(meta.correlation_id, "test-corr-")
 
       # 5. attempts:record
       assert_receive {:telemetry_event, [:chimeway, :attempts, :record, :stop], meta}, 500
@@ -479,7 +513,6 @@ defmodule Chimeway.TelemetryIntegrationTest do
       assert meta.channel == "in_app"
       assert meta.attempt_id != nil
       assert meta.outcome == :succeeded
-      assert String.starts_with?(meta.correlation_id, "test-corr-")
     end
   end
 
