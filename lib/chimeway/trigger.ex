@@ -250,8 +250,11 @@ defmodule Chimeway.Trigger do
         {:cont,
          {:ok,
           [
-            %{row: row, workflow_definition: workflow_definition,
-              precomputed_rendering: precompute_rendering(notification_id, rendering)}
+            %{
+              row: row,
+              workflow_definition: workflow_definition,
+              precomputed_rendering: precompute_rendering(notification_id, rendering)
+            }
             | acc
           ], workflow_cache}}
       end
@@ -268,7 +271,12 @@ defmodule Chimeway.Trigger do
     channels
     |> Enum.reduce(%{}, fn {channel, declaration}, acc ->
       with {:ok, rendered} <-
-             Rendering.render_delivery(channel, declaration.render_key, declaration.render_version, assigns) do
+             Rendering.render_delivery(
+               channel,
+               declaration.render_key,
+               declaration.render_version,
+               assigns
+             ) do
         Map.put(acc, {notification_id, to_string(channel)}, rendered)
       else
         _ -> acc
@@ -285,7 +293,14 @@ defmodule Chimeway.Trigger do
   end
 
   defp normalize_trigger_result(
-         {:ok, %{event: event, notifications: %{count: notifications_inserted, precomputed_rendering: precomputed_rendering}}},
+         {:ok,
+          %{
+            event: event,
+            notifications: %{
+              count: notifications_inserted,
+              precomputed_rendering: precomputed_rendering
+            }
+          }},
          _idempotency_key,
          recipients,
          _tenant_id
