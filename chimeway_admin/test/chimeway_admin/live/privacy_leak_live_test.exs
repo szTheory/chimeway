@@ -18,7 +18,9 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
     "bearer-token-71",
     "api-key-secret-71",
     "alex.full-pii@example.test",
-    "+15551234567"
+    "+15551234567",
+    "nested-mixed-case-token-sentinel",
+    "nested-mixed-case-secret-sentinel"
   ]
 
   test "dashboard omits raw sensitive values while showing masked operator facts", %{conn: conn} do
@@ -28,7 +30,7 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
+    assert html =~ "cw***"
     assert html =~ "email"
     assert html =~ "Recovery queue"
   end
@@ -43,8 +45,8 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
-    assert html =~ "corr-privacy-71"
+    assert html =~ "cw***"
+    assert html =~ "cw_correlation_"
     assert html =~ "email"
     assert html =~ "temporary"
     assert html =~ "privacy.render v1"
@@ -62,8 +64,8 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
-    assert html =~ "corr-privacy-71"
+    assert html =~ "cw***"
+    assert html =~ "cw_correlation_"
   end
 
   test "recovery omits raw sensitive values while keeping safe candidate evidence", %{conn: conn} do
@@ -83,7 +85,7 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
     assert_no_sensitive_values(html)
     assert html =~ "Resource ID"
     assert html =~ fixture.recovery_delivery.id
-    assert html =~ "corr-privacy-71"
+    assert html =~ "cw_correlation_"
   end
 
   test "definitions omit sensitive values while showing DB-inferred facts", %{conn: conn} do
@@ -170,7 +172,13 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
         metadata: %{
           "secret" => "metadata-secret-71",
           "phone" => "+15551234567",
-          "policy_checkpoint" => "privacy_policy"
+          "policy_checkpoint" => "privacy_policy",
+          "operator_detail" => [
+            %{
+              "ToKeN" => "nested-mixed-case-token-sentinel",
+              "nested" => [SeCrEt: "nested-mixed-case-secret-sentinel"]
+            }
+          ]
         },
         render_key: "privacy.render",
         render_version: 1,

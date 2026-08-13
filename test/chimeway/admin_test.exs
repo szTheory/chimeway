@@ -59,7 +59,7 @@ defmodule Chimeway.AdminTest do
     [problem] = Admin.recent_problem_deliveries(tenant_id: "tenant-a")
 
     assert problem.notification_key == "admin.safe"
-    assert problem.recipient_id == "user:alex@example.test"
+    assert String.starts_with?(problem.recipient_id, "cw_recipient_")
     refute Map.has_key?(problem, :payload)
     refute Map.has_key?(problem, :render_data)
     refute Map.has_key?(problem, :provider_response)
@@ -192,9 +192,9 @@ defmodule Chimeway.AdminTest do
     assert map_size(outcomes) > 0
     assert Enum.all?(Map.keys(outcomes), &is_binary/1)
 
-    assert problem.recipient_id == "user:privacy-71"
-    assert Enum.all?(feed_rows, &(&1.recipient_id == "user:privacy-71"))
-    assert recovery.recipient_id == "user:privacy-71"
+    assert String.starts_with?(problem.recipient_id, "cw_recipient_")
+    assert Enum.all?(feed_rows, &String.starts_with?(&1.recipient_id, "cw_recipient_"))
+    assert String.starts_with?(recovery.recipient_id, "cw_recipient_")
 
     all_dtos = [command_center, problem, definitions, feed_rows, recovery, outcomes]
 
@@ -283,8 +283,10 @@ defmodule Chimeway.AdminTest do
     assert [%{delivery_id: ^delivery_id}] = Admin.recent_problem_deliveries(opts)
     assert [%{notification_key: "admin.tenant.a"}] = Admin.definitions(opts)
 
-    assert [%{recipient_id: "user:tenant-a@example.test"}] =
+    assert [%{recipient_id: recipient_ref}] =
              Admin.feed(Keyword.put(opts, :recipient_id, "user:tenant-a@example.test"))
+
+    assert String.starts_with?(recipient_ref, "cw_recipient_")
 
     assert [] = Admin.feed(Keyword.put(opts, :recipient_id, "user:tenant-b@example.test"))
 

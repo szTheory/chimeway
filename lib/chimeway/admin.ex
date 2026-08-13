@@ -9,7 +9,14 @@ defmodule Chimeway.Admin do
 
   import Ecto.Query
 
-  alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Repo, TenantScope}
+  alias Chimeway.{
+    Delivery,
+    Events.Event,
+    Notifications.Notification,
+    Repo,
+    SafeEvidence,
+    TenantScope
+  }
 
   @default_limit 25
   @problem_statuses [:failed, :suppressed, :cancelled]
@@ -66,7 +73,9 @@ defmodule Chimeway.Admin do
         updated_at: d.updated_at
       })
       |> Repo.all(repo_opts(opts))
-      |> Enum.map(&delivery_dto/1)
+      |> Enum.map(fn row ->
+        SafeEvidence.admin_fact(:recent_problem, %{row | status: to_string(row.status)})
+      end)
     end
   end
 
@@ -156,7 +165,7 @@ defmodule Chimeway.Admin do
       })
       |> Repo.all(repo_opts(opts))
       |> Enum.map(fn row ->
-        %{
+        SafeEvidence.admin_fact(:feed, %{
           notification_id: row.notification_id,
           event_id: row.event_id,
           notification_key: row.notification_key,
@@ -168,7 +177,7 @@ defmodule Chimeway.Admin do
           delivery_count: row.delivery_count,
           correlation_id: row.correlation_id,
           inserted_at: row.inserted_at
-        }
+        })
       end)
     end
   end
@@ -253,7 +262,13 @@ defmodule Chimeway.Admin do
       (delivery_rows ++ event_rows)
       |> Enum.sort_by(& &1.updated_at, DateTime)
       |> Enum.take(limit)
-      |> Enum.map(&recovery_dto/1)
+      |> Enum.map(fn row ->
+        SafeEvidence.admin_fact(:recovery, %{
+          row
+          | status: string_or_nil(row.status),
+            orchestration_state: string_or_nil(row.orchestration_state)
+        })
+      end)
     end
   end
 
@@ -270,30 +285,6 @@ defmodule Chimeway.Admin do
       |> Repo.all(repo_opts(opts))
       |> Map.new(fn {status, count} -> {to_string(status), count} end)
     end
-  end
-
-  defp delivery_dto(row) do
-    %{
-      delivery_id: row.delivery_id,
-      event_id: row.event_id,
-      notification_key: row.notification_key,
-      notification_version: row.notification_version,
-      recipient_id: row.recipient_id,
-      channel: row.channel,
-      status: to_string(row.status),
-      suppression_reason: row.suppression_reason,
-      planning_reason: row.planning_reason,
-      tenant_id: row.tenant_id,
-      correlation_id: row.correlation_id,
-      inserted_at: row.inserted_at,
-      updated_at: row.updated_at
-    }
-  end
-
-  defp recovery_dto(row) do
-    row
-    |> Map.update!(:status, &string_or_nil/1)
-    |> Map.update!(:orchestration_state, &string_or_nil/1)
   end
 
   defp feed_state(%{archived_at: %DateTime{}}), do: "archived"

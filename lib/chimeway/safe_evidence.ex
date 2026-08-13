@@ -267,9 +267,14 @@ defmodule Chimeway.SafeEvidence do
 
   @spec admin_fact(atom(), term()) :: map()
   def admin_fact(name, value) when is_atom(name) and is_map(value) do
-    value
-    |> Privacy.redact()
-    |> Map.take(admin_fields(name))
+    safe =
+      value
+      |> Privacy.redact()
+      |> Map.take(admin_fields(name))
+
+    safe
+    |> put_admin_ref(:recipient_id, :recipient, Map.get(value, :recipient_id))
+    |> put_admin_ref(:correlation_id, :correlation, Map.get(value, :correlation_id))
   end
 
   def admin_fact(_name, _value), do: %{}
@@ -393,7 +398,7 @@ defmodule Chimeway.SafeEvidence do
 
   defp admin_fields(:recent_problem),
     do:
-      ~w(delivery_id event_id notification_key notification_version channel status suppression_reason planning_reason inserted_at updated_at)a
+      ~w(delivery_id event_id notification_key notification_version channel status suppression_reason planning_reason tenant_id inserted_at updated_at)a
 
   defp admin_fields(:feed),
     do:
@@ -401,9 +406,14 @@ defmodule Chimeway.SafeEvidence do
 
   defp admin_fields(:recovery),
     do:
-      ~w(type id delivery_id event_id notification_key notification_version channel status orchestration_state reason inserted_at updated_at)a
+      ~w(type id delivery_id event_id notification_key notification_version channel tenant_id status orchestration_state reason inserted_at updated_at)a
 
   defp admin_fields(_name), do: []
+
+  defp put_admin_ref(map, key, _domain, nil), do: Map.put(map, key, nil)
+
+  defp put_admin_ref(map, key, domain, value),
+    do: Map.put(map, key, opaque_projection(domain, value))
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
