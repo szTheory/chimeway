@@ -66,13 +66,13 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
         %{delivery: delivery} =
           DispatchHelpers.create_pending_delivery(
             channel: :email,
-            recipient_identity: "user:pipeline-#{System.unique_integer([:positive])}"
+            recipient_identity: "user:pipeline-#{System.unique_integer([:positive])}",
+            tenant_id: "test-tenant"
           )
 
         delivery =
           delivery
           |> Ecto.Changeset.change(%{
-            tenant_id: "test-tenant",
             actor_id: "user:test@example.com",
             render_key: "chimeway.test.email",
             render_data: %{"to" => "test@example.com"}
@@ -126,22 +126,20 @@ if Code.ensure_loaded?(Mailglass) and Code.ensure_loaded?(Chimeway.Adapters.Mail
                  signal.event_name == "chimeway.delivery.succeeded"
                end)
 
-        {:ok, %{timeline: timeline}} = Traces.explain_delivery(delivery.id)
+        {:ok, %{timeline: timeline}} =
+          Traces.explain_delivery(delivery.id, tenant_id: "test-tenant")
+
         event_atoms = Enum.map(timeline, & &1.event)
         assert :webhook_received in event_atoms
 
         webhook_entry =
           Enum.find(timeline, fn entry ->
-            entry.event == :webhook_received and
-              entry.detail.provider_message_id == provider_message_id
+            entry.event == :webhook_received and entry.detail.outcome == :succeeded
           end)
 
         assert webhook_entry
-
-        assert String.contains?(
-                 webhook_entry.detail.adapter_module,
-                 "Chimeway.Adapters.Mailglass"
-               )
+        refute Map.has_key?(webhook_entry.detail, :provider_message_id)
+        refute Map.has_key?(webhook_entry.detail, :adapter_module)
       end
     end
   end
