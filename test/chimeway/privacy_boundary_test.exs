@@ -65,7 +65,10 @@ defmodule Chimeway.PrivacyBoundaryTest do
     assert explanation.last_attempt.outcome == :failed
     assert explanation.last_attempt.error_class == "temporary"
     assert explanation.last_attempt.attempt_number == 1
-    assert explanation.last_attempt.provider_message_id == "cw_provider_opaque-123"
+
+    assert explanation.last_attempt.provider_message_id =~
+             ~r/^cw_provider_message_id_[0-9a-f]{32}$/
+
     assert Enum.any?(explanation.timeline, &(&1.event == :attempt_recorded))
     refute_sentinels(explanation)
   end

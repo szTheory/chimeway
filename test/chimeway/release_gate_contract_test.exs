@@ -1208,7 +1208,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       complete = %Chimeway.Traces.Explanation{
         delivery_id: "delivery-id",
         status: :succeeded,
-        last_attempt: %{outcome: :succeeded},
+        last_attempt: %{outcome: :succeeded, attempt_number: 1},
         timeline:
           Enum.map(
             [:event_created, :notification_created, :delivery_planned, :attempt_recorded],
@@ -1282,11 +1282,11 @@ defmodule Chimeway.ReleaseGateContractTest do
             {"delivery_id", "raw-device-token-sentinel"},
             {"render_key", "https://private.example.test/open"},
             {"outcome_classification", "opened"},
-            {"provider_handoff", "accepted"}
+            {"provider_handoff", "raw-provider-body-sentinel"}
           ] do
         assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
           ArtifactConsumerFixture.parse_evidence!(
-            Regex.replace(~r/(^|\\s)#{Regex.escape(key)}=[^\\s]*/, complete, "\\1#{key}=#{value}")
+            Regex.replace(~r/(^|\s)#{Regex.escape(key)}=[^\s]*/, complete, "\\1#{key}=#{value}")
           )
         end
       end
