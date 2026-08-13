@@ -323,6 +323,48 @@ defmodule Chimeway.TracesTest do
   # --- explain_delivery/1 ---
 
   describe "explain_delivery/1 — succeeded delivery" do
+    test "projects hostile legacy trace values into safe operator evidence" do
+      event = insert_event(%{correlation_id: "raw-correlation-sentinel"})
+      notification = insert_notification(event, "raw-recipient-sentinel")
+      delivery = plan_delivery(notification, :email)
+
+      delivery =
+        delivery
+        |> Ecto.Changeset.change(%{
+          planning_context: %{
+            "rule_identity" => "quiet-hours",
+            "nested" => %{"Provider_Body" => "provider-detail-sentinel"}
+          }
+        })
+        |> Repo.update!()
+
+      insert_attempt!(delivery, %{
+        outcome: :failed,
+        error_class: "temporary",
+        adapter_module: "Raw.Adapter.Sentinel",
+        provider_message_id: "cw_provider_trace-safe",
+        provider_response: %{"Provider_Body" => "provider-detail-sentinel"}
+      })
+
+      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      encoded = :erlang.term_to_binary(explanation)
+
+      for sentinel <- [
+            "raw-correlation-sentinel",
+            "raw-recipient-sentinel",
+            "provider-detail-sentinel",
+            "Raw.Adapter.Sentinel"
+          ] do
+        assert :binary.match(encoded, sentinel) == :nomatch, "leaked #{sentinel}"
+      end
+
+      assert explanation.notification_key == "test_notifier"
+      assert explanation.last_attempt.outcome == :failed
+      assert explanation.last_attempt.error_class == "temporary"
+      assert explanation.last_attempt.provider_message_id == "cw_provider_trace-safe"
+      assert :attempt_recorded in Enum.map(explanation.timeline, & &1.event)
+    end
+
     test "returns correct explanation struct" do
       event = insert_event(%{correlation_id: "req-success"})
       notification = insert_notification(event, "user:success")
