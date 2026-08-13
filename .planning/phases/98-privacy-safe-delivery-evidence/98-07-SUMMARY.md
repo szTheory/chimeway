@@ -99,6 +99,8 @@ status: complete
 
 - Trace evidence now validates channel values through the named channel family, preserving the safe `email` enum instead of passing it through the generic code grammar (which rejects identity-like lexemes).
 - Core proof accepts the already public `webhook_received` lifecycle event and asserts its complete fixed proof vocabulary, matching the generated artifact consumer evidence contract.
+- Workflow signal routing projects a host actor through the same opaque recipient-reference family used by Trigger before matching a waiting run; this restores the Accrue `invoice.paid` wait-until transition without storing or comparing raw recipient identity.
+- PASS: isolated Core, Mailglass, released Accrue, compatibility Accrue, and packaged-archive Accrue proofs; focused Phase 98 privacy suites (57 tests, 0 failures).
 
 ## Task Commits
 

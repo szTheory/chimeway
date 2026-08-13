@@ -2,15 +2,15 @@
 status: investigating
 trigger: "Phase 98 release proof regressions: Core proof invalid timeline_events; Mailglass and Accrue generated proof assertions fail after SafeEvidence privacy projection changes."
 created: 2026-08-13T00:00:00-04:00
-updated: 2026-08-13T00:11:00-04:00
+updated: 2026-08-13T00:31:00-04:00
 ---
 
 ## Current Focus
 
-hypothesis: "Trace channel projection used the generic code grammar, which deliberately rejects `email`; release-proof timelines also omitted the established safe `webhook_received` event from Core's exact schema."
-test: "Use the named channel validator in trace projection and include the already public categorical webhook event in Core's exact proof schema."
-expecting: "Core and Mailglass release consumers will retain their complete safe categorical evidence without a generic binary fallback."
-next_action: "Format and rerun exact Core and Mailglass release proof cases."
+hypothesis: "Phase 98 now stores recipient identity through SafeEvidence.recipient_reference/1, but workflow signal matching still compares the raw host actor identity directly against the stored opaque recipient reference."
+test: "Normalize the signal actor with the same named recipient-reference projection before the tenant-scoped workflow lookup; add a regression covering an email-shaped host actor and opaque stored recipient reference."
+expecting: "The completed chimeway_signals job matches the wait_until run and writes the existing signal_received state and transition."
+next_action: "Release proof and focused privacy verification complete."
 
 ## Symptoms
 
@@ -36,10 +36,14 @@ started: "After Phase 98 privacy-safe SafeEvidence projection changes."
   checked: "Temporary Core and generated Mailglass diagnostics"
   found: "Core emitted the established categorical sequence ending in webhook_received; Mailglass generated script line 21 was the channel assertion and failed because explanation.channel was nil."
   implication: "The defects are typed projection/schema omissions, not consumer database setup or raw-value privacy filtering."
+- timestamp: 2026-08-13T00:23:00-04:00
+  checked: "Generated Accrue consumer after invoice.paid signal and chimeway_signals Oban drain"
+  found: "The signal job completed with event_name invoice.paid, tenant and email actor matching the integration contract; its run remained waiting with pending_signals [] and wait_until status_context, while the stored notification recipient reference was opaque."
+  implication: "The wait_until fallback predicate was eligible, but raw actor identity could not equal the Phase-98 opaque recipient reference, so no route transition was written."
 
 ## Resolution
 
-root_cause: "SafeEvidence.trace/1 applied generic safe_code/1 to the channel field, rejecting the valid channel enum email; the Core proof validator's exact timeline schema omitted the existing safe webhook_received lifecycle event."
-fix: "Project trace channels through safe_channel/1 and include webhook_received in the Core exact proof timeline schema."
-verification:
-files_changed: []
+root_cause: "SafeEvidence.trace/1 applied generic safe_code/1 to the channel field, rejecting the valid channel enum email; the Core proof validator's exact timeline schema omitted the existing safe webhook_received lifecycle event; workflow signal routing compared raw actor identity to the Phase-98 opaque recipient reference."
+fix: "Project trace channels through safe_channel/1, include webhook_received in the Core exact proof timeline schema, and normalize signal actors through the same named recipient-reference projection before workflow lookup."
+verification: "Core :1015 (1 test, 0 failures); Mailglass :1084 (1 test, 0 failures); released Accrue :1600 (1 test, 0 failures); compatibility Accrue :1625 (1 test, 0 failures); packaged Accrue :1805 (1 test, 0 failures); Phase 98 focused privacy suites (57 tests, 0 failures); format check passed."
+files_changed: ["lib/chimeway/safe_evidence.ex", "lib/chimeway/workflows.ex", "priv/adoption_proof/artifact_consumer_fixture.ex", "test/chimeway/release_gate_contract_test.exs", "test/chimeway/workflows_test.exs"]
