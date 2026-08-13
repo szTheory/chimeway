@@ -114,7 +114,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
 
         migrated = run_fixture_migrations(migrations_path, :up, repo_pid)
 
-        assert length(migrated) == 33
+        assert length(migrated) == 34
 
         Repo.put_dynamic_repo(previous_dynamic_repo)
 

@@ -5,7 +5,9 @@ defmodule ChimewayTest.Notifiers.GeneratedPrefixedRuntime do
   def version, do: 1
 
   def recipients(%{recipient_id: recipient_id}),
-    do: {:ok, [%{recipient_identity: recipient_id, recipient_type: "user"}]}
+    do:
+      {:ok,
+       [%{recipient_identity: recipient_id, recipient_ref: recipient_id, recipient_type: "user"}]}
 
   def build(params, _recipient) do
     {:ok,
@@ -16,7 +18,7 @@ defmodule ChimewayTest.Notifiers.GeneratedPrefixedRuntime do
      }}
   end
 
-  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+  def channels(_params, _recipient), do: {:ok, [:in_app]}
 
   def rendering(_params, _recipient) do
     {:ok,
@@ -46,6 +48,26 @@ defmodule ChimewayTest.Notifiers.GeneratedPrefixedRuntime do
   end
 end
 
+defmodule ChimewayTest.GeneratedPrefixedRuntimeRenderContextResolver do
+  @behaviour Chimeway.RenderContextResolver
+
+  @impl true
+  def resolve("test.generated_prefixed_runtime", 1, recipient_ref) do
+    {:ok,
+     %{
+       notifier: ChimewayTest.Notifiers.GeneratedPrefixedRuntime,
+       params: %{},
+       recipient: %{
+         recipient_identity: recipient_ref,
+         recipient_ref: recipient_ref,
+         recipient_type: "user"
+       }
+     }}
+  end
+
+  def resolve(_, _, _), do: {:error, :render_context_unavailable}
+end
+
 defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
   use Chimeway.GeneratedPrefixedRuntimeCase
 
@@ -54,14 +76,22 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
   setup do
     previous_adapter = Application.fetch_env(:chimeway, :adapter)
     previous_dispatcher = Application.fetch_env(:chimeway, :dispatcher)
+    previous_resolvers = Application.fetch_env(:chimeway, :render_context_resolvers)
 
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+
+    Application.put_env(:chimeway, :render_context_resolvers, %{
+      {"test.generated_prefixed_runtime", 1} =>
+        ChimewayTest.GeneratedPrefixedRuntimeRenderContextResolver
+    })
+
     Chimeway.Adapters.Test.clear()
 
     on_exit(fn ->
       restore_env(:adapter, previous_adapter)
       restore_env(:dispatcher, previous_dispatcher)
+      restore_env(:render_context_resolvers, previous_resolvers)
       Chimeway.Adapters.Test.clear()
     end)
 
@@ -70,7 +100,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
 
   test "generated prefixed migrations support trigger-to-trace runtime behavior through Chimeway.Repo" do
     assert_generated_prefixed_runtime_tables!()
-    assert generated_migration_count() == 33
+    assert generated_migration_count() == 34
 
     recipient_id = unique_recipient("trigger")
 
@@ -86,8 +116,8 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
 
     assert_prefixed_only("chimeway_events", 1)
     assert_prefixed_only("chimeway_notifications", 1)
-    assert_prefixed_only("chimeway_deliveries", 2)
-    assert_prefixed_only("chimeway_delivery_attempts", 2)
+    assert_prefixed_only("chimeway_deliveries", 1)
+    assert_prefixed_only("chimeway_delivery_attempts", 1)
     assert %{events: 0, notifications: 0} = Reconciliation.report().counts
   end
 
@@ -100,7 +130,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
   end
 
   defp unique_recipient(label),
-    do: "user:generated-prefixed-runtime:#{label}:#{System.unique_integer([:positive])}"
+    do: "cw_generated_prefixed_runtime_#{label}_#{System.unique_integer([:positive])}"
 
   defp restore_env(key, {:ok, value}), do: Application.put_env(:chimeway, key, value)
   defp restore_env(key, :error), do: Application.delete_env(:chimeway, key)

@@ -6,7 +6,17 @@ defmodule Chimeway.DeliveryPlanning do
   `Chimeway.Deliveries.plan_delivery/3` directly.
   """
 
-  alias Chimeway.{Deliveries, Delivery, Notifier, Policy, Rendering, Repo, Workflows}
+  alias Chimeway.{
+    Deliveries,
+    Delivery,
+    Notifier,
+    Policy,
+    RenderContextResolver,
+    Rendering,
+    Repo,
+    Workflows
+  }
+
   alias Chimeway.Digests.Accumulation
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -103,6 +113,7 @@ defmodule Chimeway.DeliveryPlanning do
     trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
     workflow_linkage = resolve_workflow_linkage(notification, channel, opts)
+    opts = Keyword.put_new(opts, :recipient, recipient)
 
     with {:ok, tenant_id} <- resolve_delivery_tenant(notification, opts),
          {:ok, render_result} <-
@@ -328,10 +339,6 @@ defmodule Chimeway.DeliveryPlanning do
   defp normalize_trigger_params(params) when is_map(params), do: params
   defp normalize_trigger_params(_params), do: %{}
 
-  defp render_trigger_params(%Notification{render_assigns: render_assigns}, _trigger_params)
-       when is_map(render_assigns) and map_size(render_assigns) > 0,
-       do: render_assigns
-
   defp render_trigger_params(_notification, trigger_params),
     do: normalize_trigger_params(trigger_params)
 
@@ -398,9 +405,9 @@ defmodule Chimeway.DeliveryPlanning do
     Deliveries.apply_planning_decision(delivery, decision)
   end
 
-  defp resolve_render_result(notification, channel, _trigger_params, opts) do
+  defp resolve_render_result(notification, channel, trigger_params, opts) do
     if use_persisted_rendering?(opts) do
-      resolve_persisted_render_result(notification, channel, opts)
+      resolve_persisted_render_result(notification, channel, trigger_params, opts)
     else
       {:ok, %{}}
     end
@@ -410,7 +417,7 @@ defmodule Chimeway.DeliveryPlanning do
     Keyword.has_key?(opts, :notifier) or Keyword.get(opts, :use_persisted_channels, false) == true
   end
 
-  defp resolve_persisted_render_result(notification, channel, opts) do
+  defp resolve_persisted_render_result(notification, channel, trigger_params, opts) do
     render_channels = notification.render_channels || %{}
 
     case Map.fetch(render_channels, channel) do
@@ -427,7 +434,10 @@ defmodule Chimeway.DeliveryPlanning do
           render_version: render_version
         }
 
-        render_channel_result(channel, normalized_rendering, notification.render_assigns || %{})
+        with {:ok, assigns} <- render_assigns(notification, trigger_params, opts),
+             {:ok, result} <- render_channel_result(channel, normalized_rendering, assigns) do
+          {:ok, result}
+        end
 
       :error ->
         if Keyword.get(opts, :notifier) do
@@ -435,6 +445,38 @@ defmodule Chimeway.DeliveryPlanning do
         else
           {:ok, %{}}
         end
+    end
+  end
+
+  defp render_assigns(notification, trigger_params, opts) do
+    case Keyword.fetch(opts, :notifier) do
+      {:ok, notifier} ->
+        render_assigns_from_notifier(notifier, trigger_params, Keyword.get(opts, :recipient))
+
+      :error ->
+        render_assigns_from_context(notification)
+    end
+  end
+
+  defp render_assigns_from_context(%Notification{} = notification) do
+    with %Event{notification_key: key, notification_version: version} <-
+           Repo.get(Event, notification.event_id),
+         {:ok, %{notifier: notifier, params: params, recipient: recipient}} <-
+           RenderContextResolver.resolve(key, version, notification.recipient_identity) do
+      render_assigns_from_notifier(notifier, params, recipient)
+    else
+      nil -> {:error, :render_context_unavailable}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp render_assigns_from_notifier(_notifier, _params, nil) do
+    {:error, :invalid_render_context}
+  end
+
+  defp render_assigns_from_notifier(notifier, params, recipient) do
+    with {:ok, declaration} <- Notifier.resolve_rendering(notifier, params, recipient) do
+      {:ok, declaration.assigns}
     end
   end
 
