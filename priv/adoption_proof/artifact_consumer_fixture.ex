@@ -49,7 +49,13 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     provider_handoff: "accepted"
   }
   @numeric_proof_fields [:notification_version, :render_version, :last_attempt_number]
-  @core_timeline ["event_created", "notification_created", "delivery_planned", "attempt_recorded"]
+  @core_timeline [
+    "event_created",
+    "notification_created",
+    "delivery_planned",
+    "attempt_recorded",
+    "webhook_received"
+  ]
   @mailglass_timeline [
     "event_created",
     "notification_created",

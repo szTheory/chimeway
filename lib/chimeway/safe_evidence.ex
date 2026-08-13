@@ -254,7 +254,7 @@ defmodule Chimeway.SafeEvidence do
       correlation_id: opaque_projection(:correlation, Map.get(value, :correlation_id)),
       notification_key: safe_code(Map.get(value, :notification_key)),
       recipient_id: opaque_projection(:recipient, Map.get(value, :recipient_id)),
-      channel: safe_code(Map.get(value, :channel)),
+      channel: safe_channel(Map.get(value, :channel)),
       render_key: safe_render_key(Map.get(value, :render_key)),
       render_version: positive_integer(Map.get(value, :render_version)),
       status: safe_status(Map.get(value, :status)),
