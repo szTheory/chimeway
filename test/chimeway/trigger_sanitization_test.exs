@@ -66,6 +66,31 @@ defmodule Chimeway.TriggerSanitizationTest do
   }
 
   describe "sanitize_payload/1 auth-flow keys (D-08)" do
+    test "public Trigger results omit private recipient and render handoffs" do
+      assert {:ok, result} =
+               Trigger.trigger(
+                 AuthFlowSanitizationNotifier,
+                 %{"user_id" => "42"},
+                 idempotency_key: "sanitization-public-result-#{System.unique_integer()}",
+                 tenant_id: "tenant-1"
+               )
+
+      assert result.dispatch_outcome == :ok
+      assert result.trace.event_id == result.event.id
+
+      public_result = inspect(result)
+
+      for sentinel <- [
+            "recipients",
+            "precomputed_rendering",
+            "recipient_handoffs",
+            "https://secret.example/login/abc",
+            "Sanitized assigns"
+          ] do
+        refute public_result =~ sentinel
+      end
+    end
+
     test "approved fact keys cannot retain recipient, credential, URL, or rendered text" do
       hostile_facts = %{
         "category" => "alex@example.test",

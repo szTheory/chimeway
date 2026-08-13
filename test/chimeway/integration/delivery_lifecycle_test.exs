@@ -1134,12 +1134,12 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       :ok
     end
 
-    test "dispatch uses preplanned render_data without a second rendering callback" do
+    test "dispatch uses private rendered data without persisting or returning it" do
       Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail,
         test_pid: self()
       )
 
-      assert {:ok, _result} =
+      assert {:ok, result} =
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleRenderedEmail,
                  %{user_id: 13},
@@ -1158,15 +1158,33 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           )
         )
 
-      assert delivery.render_data == %{
+      assert delivery.render_data == %{}
+
+      assert [delivered] = TestAdapter.delivered_messages()
+      assert delivered.id == delivery.id
+
+      assert delivered.render_data == %{
                "subject" => "Render subject",
                "html_body" => "<p>Render body</p>",
                "text_body" => "Render body"
              }
 
-      assert [delivered] = TestAdapter.delivered_messages()
-      assert delivered.id == delivery.id
-      assert delivered.render_data == delivery.render_data
+      assert result.dispatch_outcome == :ok
+      assert result.dispatch_mode == :sync
+      assert result.trace.delivery_ids == [delivery.id]
+
+      public_result = inspect(result)
+
+      for sentinel <- [
+            "recipients",
+            "precomputed_rendering",
+            "recipient_handoffs",
+            "Render subject",
+            "<p>Render body</p>",
+            "Render body"
+          ] do
+        refute public_result =~ sentinel
+      end
     end
 
     test "explanations expose render identity without render bodies or raw render_data" do
@@ -1199,6 +1217,22 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       refute Map.has_key?(Map.from_struct(explanation), :render_data)
       refute Map.has_key?(Map.from_struct(explanation), :html_body)
       refute Map.has_key?(Map.from_struct(explanation), :text_body)
+
+      event_id =
+        Repo.one!(
+          from(n in Notification,
+            where: n.id == ^delivery.notification_id,
+            select: n.event_id
+          )
+        )
+
+      assert {:ok, trace} = Traces.get_trace(event_id, tenant_id: delivery.tenant_id)
+
+      trace_text = inspect(trace)
+
+      for sentinel <- ["Render subject", "<p>Render body</p>", "Render body"] do
+        refute trace_text =~ sentinel
+      end
     end
   end
 
