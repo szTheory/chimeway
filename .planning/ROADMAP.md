@@ -108,7 +108,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 98-06-PLAN.md — Purge legacy blobs and prove public/prefixed privacy gates.
+- [x] 98-06-PLAN.md — Purge legacy blobs and prove public/prefixed privacy gates.
 
 ### Phase 99: Multi-Installation Delivery & Recovery
 
