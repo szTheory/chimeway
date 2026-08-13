@@ -375,6 +375,37 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert delivery.render_data == %{}
   end
 
+  test "forged precomputed rendering is transient and cannot alter the reloaded delivery" do
+    notification =
+      insert_notification("user-forged-render", %{}, %{
+        render_channels: %{
+          "email" => %{"render_key" => "forged.email", "render_version" => 4}
+        }
+      })
+
+    forged_render = %{
+      render_key: "forged.email",
+      render_version: 4,
+      render_data: %{
+        "subject" => "Forged subject",
+        :html_body => "<p>Forged body</p>",
+        "recipient" => "recipient@example.test"
+      }
+    }
+
+    assert {:ok, [delivery]} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: RenderIdentityNotifier,
+               trigger_params: %{},
+               precomputed_rendering: %{{notification.id, "email"} => forged_render}
+             )
+
+    assert delivery.render_data == forged_render.render_data
+    assert delivery.render_key == "forged.email"
+    assert delivery.render_version == 4
+    assert Repo.get!(Delivery, delivery.id).render_data == %{}
+  end
+
   test "ordinary notifier-less planning keeps the default in_app-only contract" do
     notification =
       insert_notification("user-default-in-app", %{}, %{

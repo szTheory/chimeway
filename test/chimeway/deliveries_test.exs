@@ -195,6 +195,79 @@ defmodule Chimeway.DeliveriesTest do
       assert delivery.next_eligible_at == nil
     end
 
+    test "ignores caller trust flags and persists render identity only" do
+      %{notification: notification} = insert_notification()
+
+      assert {:ok, delivery} =
+               Deliveries.plan_delivery(notification.id, :email,
+                 tenant_id: "default",
+                 actor_id: "system",
+                 render_key: "test.hostile.email",
+                 render_version: 2,
+                 render_data: %{
+                   "subject" => "Private subject",
+                   :html_body => "<p>Private body</p>",
+                   "recipient" => "recipient@example.test"
+                 },
+                 trusted_render_data: true
+               )
+
+      assert delivery.render_key == "test.hostile.email"
+      assert delivery.render_version == 2
+      assert Repo.get!(Delivery, delivery.id).render_data == %{}
+    end
+
+    test "apply_render_result persists identity only for hostile render maps" do
+      %{notification: notification} = insert_notification()
+
+      assert {:ok, delivery} =
+               Deliveries.plan_delivery(notification.id, :email,
+                 tenant_id: "default",
+                 actor_id: "system"
+               )
+
+      assert {:ok, updated} =
+               Deliveries.apply_render_result(delivery, %{
+                 "render_key" => "test.direct.email",
+                 "render_version" => 3,
+                 "render_data" => %{
+                   "subject" => "Private subject",
+                   :text_body => "Private body",
+                   "endpoint" => "https://private.example.test"
+                 }
+               })
+
+      assert updated.render_key == "test.direct.email"
+      assert updated.render_version == 3
+      assert Repo.get!(Delivery, updated.id).render_data == %{}
+    end
+
+    test "nil, empty, singleton, and string-key render maps retain identity without durable content" do
+      for {suffix, render_data} <- [
+            {"nil", nil},
+            {"empty", %{}},
+            {"singleton", %{subject: "Private subject"}},
+            {"string", %{"subject" => "Private subject", "recipient" => "recipient@example.test"}}
+          ] do
+        %{notification: notification} = insert_notification()
+
+        assert {:ok, delivery} =
+                 Deliveries.plan_delivery(notification.id, :email,
+                   tenant_id: "default",
+                   actor_id: "system",
+                   render_key: "test.#{suffix}.email",
+                   render_version: 1,
+                   render_data: render_data,
+                   trusted_render_data: true
+                 )
+
+        reloaded = Repo.get!(Delivery, delivery.id)
+        assert reloaded.render_key == "test.#{suffix}.email"
+        assert reloaded.render_version == 1
+        assert reloaded.render_data == %{}
+      end
+    end
+
     test "is idempotent: duplicate calls create exactly one row" do
       %{notification: notification} = insert_notification()
 
