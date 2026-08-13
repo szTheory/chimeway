@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 3
 waived_count: 1
 fixed_count: 7
-total_count: 10
-last_updated: 2026-08-13T00:16:47.274Z
+total_count: 11
+last_updated: 2026-08-13T00:24:26.215Z
 ---
 
 # Broken Windows Ledger
@@ -25,6 +25,7 @@ last_updated: 2026-08-13T00:16:47.274Z
 | 8 | 96.1 | unrun-verify | scripts/ci/assert-adoption-run.sh |  | Hosted exact-SHA Adoption proof paths evidence unavailable until the implementation commit has a completed pull-request run. | fixed |  | 2026-08-11T15:34:40.947Z | 2026-08-11T22:01:24.084Z |
 | 9 | 97 | deviation | test/chimeway/runtime_prefix_integration_test.exs | 313 | Authorized fixture tenant alignment required for the explicit event-recovery predicate. | open |  | 2026-08-12T17:40:11.227Z |  |
 | 10 | 98 | unrun-verify | chimeway_admin/test/chimeway_admin/live_auth_test.exs |  | mix verify.admin remains blocked by pre-existing LiveAuth redirect to:nil test configuration | open |  | 2026-08-13T00:16:47.274Z |  |
+| 11 | 98 | unrun-verify | test/chimeway/release_gate_contract_test.exs |  | Focused release-gate contract could not start because concurrent test processes exhausted PostgreSQL connections (FATAL 53300). | open |  | 2026-08-13T00:24:26.215Z |  |
 
 ````json
 [
@@ -146,6 +147,18 @@ last_updated: 2026-08-13T00:16:47.274Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-13T00:16:47.274Z",
+    "resolved_at": null
+  },
+  {
+    "id": 11,
+    "kind": "unrun-verify",
+    "phase": "98",
+    "file": "test/chimeway/release_gate_contract_test.exs",
+    "line": null,
+    "description": "Focused release-gate contract could not start because concurrent test processes exhausted PostgreSQL connections (FATAL 53300).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T00:24:26.215Z",
     "resolved_at": null
   }
 ]
