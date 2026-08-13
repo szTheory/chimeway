@@ -196,7 +196,7 @@ defmodule Chimeway.SafeEvidence do
 
   def provider_facts(_value), do: {:error, :unsafe_evidence}
 
-  @spec attempt_attrs(map()) :: {:ok, map()} | {:error, :unsafe_evidence, atom()}
+  @spec attempt_attrs(map() | list()) :: {:ok, map()} | {:error, :unsafe_evidence, atom()}
   def attempt_attrs(attrs) when is_map(attrs) or is_list(attrs) do
     with {:ok, provider_response} <-
            optional_field(attrs, "provider_response", :provider_response, %{}),
