@@ -1,8 +1,8 @@
 ---
 phase: 98-privacy-safe-delivery-evidence
-reviewed: 2026-08-13T15:30:07Z
+reviewed: 2026-08-13T19:44:45Z
 depth: standard
-files_reviewed: 27
+files_reviewed: 31
 files_reviewed_list:
   - chimeway_admin/lib/chimeway_admin/redaction.ex
   - chimeway_admin/test/chimeway_admin/live/privacy_leak_live_test.exs
@@ -10,18 +10,23 @@ files_reviewed_list:
   - lib/chimeway/deliveries.ex
   - lib/chimeway/delivery_planning.ex
   - lib/chimeway/dispatch/executor.ex
+  - lib/chimeway/dispatch/oban_worker.ex
   - lib/chimeway/inbox.ex
   - lib/chimeway/privacy.ex
+  - lib/chimeway/render_context_resolver.ex
   - lib/chimeway/safe_evidence.ex
   - lib/chimeway/telemetry.ex
   - lib/chimeway/traces.ex
   - lib/chimeway/trigger.ex
-  - lib/chimeway/workflows.ex
   - priv/adoption_proof/artifact_consumer_fixture.ex
   - test/chimeway/admin_test.exs
+  - test/chimeway/deliveries_test.exs
+  - test/chimeway/dispatch/executor_mailglass_adapter_test.exs
   - test/chimeway/dispatch/executor_test.exs
+  - test/chimeway/dispatch/oban_worker_test.exs
   - test/chimeway/inbox_query_test.exs
   - test/chimeway/inbox_state_transition_test.exs
+  - test/chimeway/integration/delivery_lifecycle_test.exs
   - test/chimeway/orchestration/delivery_planning_test.exs
   - test/chimeway/privacy_boundary_test.exs
   - test/chimeway/privacy_test.exs
@@ -30,62 +35,47 @@ files_reviewed_list:
   - test/chimeway/tenant_scope_contract_test.exs
   - test/chimeway/traces_test.exs
   - test/chimeway/trigger_sanitization_test.exs
-  - test/chimeway/workflows_test.exs
 findings:
-  critical: 3
-  warning: 1
+  critical: 2
+  warning: 0
   info: 0
-  total: 4
+  total: 2
 status: issues_found
 ---
 
 # Phase 98: Code Review Report
 
-**Reviewed:** 2026-08-13T15:30:07Z
+**Reviewed:** 2026-08-13T19:44:45Z
 **Depth:** standard
-**Files Reviewed:** 27
+**Files Reviewed:** 31
 **Status:** issues_found
 
 ## Summary
 
-The privacy projections for stored evidence and admin/telemetry surfaces are generally narrow, but the new rendering and recipient handoff crosses those boundaries incorrectly. Rendered content can be made durable, sensitive transient values are returned from the public trigger API, and the recipient handoff disappears before an Oban worker executes.
+The new privacy boundary successfully blocks the tested email/token cases, but two untested paths violate its durable-evidence and lifecycle guarantees. A queued email that cannot reconstruct its host context is retried without a durable failure state, and a raw slug-like recipient identifier is stored unchanged despite the opaque-reference contract.
 
 ## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01: Caller-controlled “trusted” rendering bypass persists rendered content
+### CR-01: Missing render context leaves queued emails permanently pending with no evidence
 
-**File:** `lib/chimeway/delivery_planning.ex:117`
-**Issue:** The presence of an entry in the public `:precomputed_rendering` option sets `trusted_render_data?`, then passes the complete rendered map through to `Deliveries.plan_delivery/3` (lines 128-142). `normalize_optional_render_data/2` explicitly returns that map without `SafeEvidence` projection when the flag is true (`lib/chimeway/deliveries.ex:427`), and `apply_render_result/2` unconditionally uses the same bypass (`lib/chimeway/deliveries.ex:618-628`). Rendered subject/body/recipient data therefore becomes durable in `deliveries.render_data`; it is also exposed by the public `Traces.get_trace/2` preload. The boolean is not a trust boundary: any caller of these public APIs can supply it or a matching precomputed map.
+**File:** `/Users/jon/projects/chimeway/lib/chimeway/dispatch/oban_worker.ex:187`
 
-**Fix:** Never persist rendered payloads in `render_data`. Retain only validated render identity durably, and pass the rendered map to the adapter through a non-persistent execution context. Remove the public `trusted_render_data` bypass; if a privileged internal capability is genuinely necessary, make it unforgeable and still apply a closed safe projection before any database write.
+**Issue:** `do_dispatch/3` returns the hydration error directly. `hydrate_execution_delivery/1` intentionally turns every resolver/render failure into `{:error, :render_context_unavailable}` at `lib/chimeway/delivery_planning.ex:63-64`, before `Executor.run_delivery/1` can create a `DeliveryAttempt` or transition the delivery. Oban will retry and eventually discard the job, while the delivery remains `:pending`/`:ready` and has no attempt or suppression reason. That loses the required explainable lifecycle state and leaves a stale row eligible for recovery/re-enqueue loops.
 
-### CR-02: Oban delivery loses the only email recipient before execution
+**Fix:** Convert hydration failure into a durable, bounded execution outcome before returning to Oban. For example, record a rejected attempt with a safe `"render_context_unavailable"` class/reason and transition the delivery to a terminal/suppressed state, or explicitly reschedule with persisted retry metadata. Add a worker test that removes the resolver, exhausts retries, and asserts the final delivery state and timeline entry.
 
-**File:** `lib/chimeway/delivery_planning.ex:120`
-**Issue:** The address is attached only to the in-memory virtual field at lines 145 and 573-574. Oban enqueues only `delivery_id` and later reloads the delivery (`lib/chimeway/dispatch/oban.ex:82-83` and `lib/chimeway/dispatch/oban_worker.ex:126`), so `recipient_address` is nil at adapter execution. Because the new privacy flow also stores an opaque recipient identity, Mailglass reaches `resolve_recipient/1` without an address and records `:missing_recipient`. Thus mail notifications planned through the supported async dispatcher cannot be sent.
+### CR-02: Recipient sanitizer persists raw slug-like identities as “opaque” references
 
-**Fix:** Define an execution-time host recipient resolver keyed by the opaque recipient reference (or a similarly non-sensitive, authenticated handoff service), and invoke it in the worker immediately before adapter delivery. Do not rely on a virtual field across a queued job; add an Oban integration test proving the resolver receives the address while the delivery row and job arguments do not contain it.
+**File:** `/Users/jon/projects/chimeway/lib/chimeway/safe_evidence.ex:115`
 
-### CR-03: Transient recipient and rendered payload are leaked in the public trigger result
+**Issue:** `recipient_reference/1` accepts any `opaque_id?/1` string unchanged. That predicate only checks `/^[a-z][a-z0-9_-]*$/`; values such as `"alex-smith"` satisfy it even though `opaque_ref(:recipient, "alex-smith")` correctly rejects them. `Trigger.insert_notifications/6` writes this result to `notifications.recipient_identity` (`lib/chimeway/trigger.ex:244`), so notifier-provided PII-like identities are retained durably rather than projected to `cw_recipient_<hash>`. The tested email case does not cover this bypass.
 
-**File:** `lib/chimeway/trigger.ex:313`
-**Issue:** `normalize_trigger_result/4` copies both `precomputed_rendering` and `recipient_handoffs` into the returned trigger map (lines 335-336). `dispatch_after_trigger/4` then returns the same map after dispatch (lines 520-534). This makes exact email addresses and complete rendered messages observable to every `Trigger.trigger/3` caller and likely application logs, contrary to the stated transient handoff boundary.
-
-**Fix:** Keep these values in a private, short-lived dispatch context instead of the public result. After dispatch, construct the returned map from an allowlist (or explicitly `Map.drop/2` the two internal keys on every success/error path) and add a regression test asserting no recipient address or rendered content is present in the trigger return.
-
-## Warnings
-
-### WR-01: Provider evidence accepts ambiguous atom/string duplicate fields
-
-**File:** `lib/chimeway/safe_evidence.ex:388`
-**Issue:** `fetch_known/3` silently prefers a string key over the atom key when both are present. This differs from `closed_facts/2`, whose `fact_value/2` deliberately drops duplicate logical keys. An adapter can therefore submit conflicting `:provider_code` and `"provider_code"` (or the other provider fields) and select which diagnostic fact becomes durable, weakening the claimed closed evidence contract.
-
-**Fix:** Use a single duplicate-aware lookup for maps and keyword lists that returns `:missing`/an error unless exactly one logical key is supplied. Apply it to `provider_facts/1`, `attempt_attrs/1`, and `render_channels/1`, then add atom/string duplicate cases to the privacy boundary tests.
+**Fix:** Only preserve explicitly namespaced opaque references (`cw_...`) and the documented non-PII `user:<opaque-id>` form; hash every other input. Remove the permissive `opaque_id?/1` branch from `recipient_reference/1` (or require a dedicated opaque prefix) and add tests asserting `"alex-smith"` and similar raw identifiers are persisted only as a `cw_recipient_` projection.
 
 ---
 
-_Reviewed: 2026-08-13T15:30:07Z_
+_Reviewed: 2026-08-13T19:44:45Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
