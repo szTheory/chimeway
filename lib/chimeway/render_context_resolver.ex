@@ -51,8 +51,14 @@ defmodule Chimeway.RenderContextResolver do
 
   defp fetch_resolver(key, version) do
     case Application.get_env(:chimeway, :render_context_resolvers, %{}) do
-      %{^key => _} -> {:error, :invalid_render_context_registry}
-      registry -> Map.fetch(registry, {key, version}) |> missing_resolver()
+      registry when is_map(registry) ->
+        case registry do
+          %{^key => _} -> {:error, :invalid_render_context_registry}
+          _ -> Map.fetch(registry, {key, version}) |> missing_resolver()
+        end
+
+      _ ->
+        {:error, :render_context_unavailable}
     end
   end
 
