@@ -25,10 +25,11 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
     def version, do: 1
 
     @impl true
-    def recipients(_params), do: {:ok, [%{recipient_identity: "user:digest-held"}]}
+    def recipients(_params),
+      do: {:ok, [%{recipient_identity: "user:digest-held", recipient_ref: "cw_digest_held"}]}
 
     @impl true
-    def build(_params, recipient),
+    def build(_params, _recipient),
       do:
         {:ok,
          %{
@@ -37,8 +38,7 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
            "primary_action" => %{"label" => "test", "url" => "http://test"},
            "subject" => "test",
            "html_body" => "test",
-           "text_body" => "test",
-           recipient: recipient
+           "text_body" => "test"
          }}
 
     @impl true

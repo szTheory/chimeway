@@ -18,8 +18,8 @@ defmodule Chimeway.InboxIntegrationTest do
     def recipients(_params) do
       {:ok,
        [
-         %{recipient_identity: "user:42", channel: :in_app},
-         %{recipient_identity: "user:77", channel: :in_app}
+         %{recipient_identity: "user:42", recipient_ref: "cw_inbox_42", channel: :in_app},
+         %{recipient_identity: "user:77", recipient_ref: "cw_inbox_77", channel: :in_app}
        ]}
     end
 
@@ -29,7 +29,7 @@ defmodule Chimeway.InboxIntegrationTest do
     end
   end
 
-  test "trigger fanout rows are listed and transitioned explicitly for user:42" do
+  test "trigger fanout rows are listed and transitioned explicitly for the opaque recipient reference" do
     assert {:ok, _result} =
              Chimeway.trigger(
                IntegrationNotifier,
@@ -38,7 +38,7 @@ defmodule Chimeway.InboxIntegrationTest do
                tenant_id: "acme"
              )
 
-    notifications_before = Chimeway.list_for_recipient("user:42", tenant_id: "acme")
+    notifications_before = Chimeway.list_for_recipient("cw_inbox_42", tenant_id: "acme")
     assert length(notifications_before) == 1
     [notification] = notifications_before
     assert is_nil(notification.read_at)
@@ -46,7 +46,7 @@ defmodule Chimeway.InboxIntegrationTest do
     persisted_before = Repo.get!(Notification, notification.id)
 
     unread_notifications =
-      Chimeway.list_for_recipient("user:42", tenant_id: "acme", unread_only: true)
+      Chimeway.list_for_recipient("cw_inbox_42", tenant_id: "acme", unread_only: true)
 
     assert Enum.map(unread_notifications, & &1.id) == [notification.id]
 
@@ -58,18 +58,18 @@ defmodule Chimeway.InboxIntegrationTest do
     archived_at = DateTime.add(read_at, 5, :second)
 
     assert :ok =
-             Chimeway.mark_seen(notification.id, "user:42", tenant_id: "acme", at: seen_at)
+             Chimeway.mark_seen(notification.id, "cw_inbox_42", tenant_id: "acme", at: seen_at)
 
     assert :ok =
-             Chimeway.mark_read(notification.id, "user:42", tenant_id: "acme", at: read_at)
+             Chimeway.mark_read(notification.id, "cw_inbox_42", tenant_id: "acme", at: read_at)
 
     assert :ok =
-             Chimeway.archive(notification.id, "user:42", tenant_id: "acme", at: archived_at)
+             Chimeway.archive(notification.id, "cw_inbox_42", tenant_id: "acme", at: archived_at)
 
     persisted_final = Repo.get!(Notification, notification.id)
     assert persisted_final.seen_at == seen_at
     assert persisted_final.read_at == read_at
     assert persisted_final.archived_at == archived_at
-    assert length(Chimeway.list_for_recipient("user:77", tenant_id: "acme")) == 1
+    assert length(Chimeway.list_for_recipient("cw_inbox_77", tenant_id: "acme")) == 1
   end
 end
