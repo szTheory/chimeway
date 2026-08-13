@@ -406,10 +406,16 @@ defmodule Chimeway.DeliveryPlanning do
   end
 
   defp resolve_render_result(notification, channel, trigger_params, opts) do
-    if use_persisted_rendering?(opts) do
-      resolve_persisted_render_result(notification, channel, trigger_params, opts)
-    else
-      {:ok, %{}}
+    case Map.fetch(Keyword.get(opts, :precomputed_rendering, %{}), {notification.id, channel}) do
+      {:ok, result} ->
+        {:ok, result}
+
+      :error ->
+        if use_persisted_rendering?(opts) do
+          resolve_persisted_render_result(notification, channel, trigger_params, opts)
+        else
+          {:ok, %{}}
+        end
     end
   end
 

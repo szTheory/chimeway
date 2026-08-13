@@ -100,6 +100,9 @@ defmodule Chimeway.SafeEvidence do
       String.match?(value, ~r/^user:[a-zA-Z0-9_-]+$/) ->
         {:ok, value}
 
+      opaque_id?(value) ->
+        {:ok, value}
+
       true ->
         {:ok, opaque_projection(:recipient, value)}
     end
@@ -119,6 +122,7 @@ defmodule Chimeway.SafeEvidence do
   @spec render_channels(term()) :: map()
   def render_channels(channels) when is_map(channels) do
     channels
+    |> Privacy.redact()
     |> Enum.reduce(%{}, fn {channel, info}, acc ->
       with channel when is_binary(channel) <- to_string(channel),
            info when is_map(info) <- info,
@@ -168,7 +172,10 @@ defmodule Chimeway.SafeEvidence do
       ])
 
   @spec render_data(term()) :: map()
-  def render_data(value), do: closed_facts(value, ["render_key", "render_version"])
+  # Rendered payload belongs to the delivery execution record, not the durable
+  # evidence vocabulary. Evidence projections deliberately omit it at read time.
+  def render_data(value) when is_map(value), do: value
+  def render_data(_value), do: %{}
 
   @doc false
   @spec digest_reason(term()) :: String.t() | nil
@@ -251,7 +258,7 @@ defmodule Chimeway.SafeEvidence do
       notification_key: safe_code(Map.get(value, :notification_key)),
       recipient_id: opaque_projection(:recipient, Map.get(value, :recipient_id)),
       channel: safe_code(Map.get(value, :channel)),
-      render_key: safe_code(Map.get(value, :render_key)),
+      render_key: safe_render_key(Map.get(value, :render_key)),
       render_version: positive_integer(Map.get(value, :render_version)),
       status: safe_status(Map.get(value, :status)),
       planning_reason: digest_reason(Map.get(value, :planning_reason)),
@@ -410,6 +417,12 @@ defmodule Chimeway.SafeEvidence do
   end
 
   defp safe_code(_value), do: nil
+
+  defp safe_render_key(value) when is_binary(value) and byte_size(value) in 1..160 do
+    if String.match?(value, ~r/^[a-z][a-z0-9_.-]*$/), do: value, else: nil
+  end
+
+  defp safe_render_key(_value), do: nil
   defp positive_integer(value) when is_integer(value) and value > 0, do: value
   defp positive_integer(_value), do: nil
 

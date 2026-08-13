@@ -36,7 +36,7 @@ defmodule Chimeway.Trigger do
   alias Chimeway.Notifications.Notification
   alias Chimeway.Notifier
   alias Chimeway.Repo
-  alias Chimeway.{Privacy, SafeEvidence, Telemetry}
+  alias Chimeway.{Privacy, Rendering, SafeEvidence, Telemetry}
   alias Chimeway.Workflows
   alias Ecto.Multi
   alias Ecto.UUID
@@ -143,7 +143,10 @@ defmodule Chimeway.Trigger do
     end)
     |> case do
       {:ok, recipients_by_ref} ->
-        {:ok, recipients_by_ref |> Enum.sort_by(&elem(&1, 0)) |> Enum.map(&elem(&1, 1))}
+        {:ok,
+         recipients_by_ref
+         |> Map.values()
+         |> Enum.sort_by(&(recipient_identity(&1) || recipient_ref(&1) || ""))}
 
       error ->
         error
@@ -200,7 +203,7 @@ defmodule Chimeway.Trigger do
         {count, _rows} = repo.insert_all("chimeway_notifications", rows)
 
         with :ok <- insert_workflow_runs(repo, notifications, tenant_id) do
-          {:ok, count}
+          {:ok, %{count: count, precomputed_rendering: precomputed_rendering(notifications)}}
         end
       rescue
         error -> {:error, error}
@@ -227,8 +230,10 @@ defmodule Chimeway.Trigger do
 
         orchestration = Notifier.serialize_orchestration(orchestration)
 
+        notification_id = UUID.generate()
+
         row = %{
-          id: UUID.generate() |> UUID.dump!(),
+          id: notification_id |> UUID.dump!(),
           event_id: UUID.dump!(event.id),
           tenant_id: tenant_id,
           recipient_identity: recipient_ref(recipient),
@@ -243,7 +248,12 @@ defmodule Chimeway.Trigger do
         }
 
         {:cont,
-         {:ok, [%{row: row, workflow_definition: workflow_definition} | acc], workflow_cache}}
+         {:ok,
+          [
+            %{row: row, workflow_definition: workflow_definition,
+              precomputed_rendering: precompute_rendering(notification_id, rendering)}
+            | acc
+          ], workflow_cache}}
       end
     end)
     |> case do
@@ -252,8 +262,30 @@ defmodule Chimeway.Trigger do
     end
   end
 
+  defp precompute_rendering(notification_id, %{assigns: assigns, channels: channels}) do
+    assigns = Map.drop(assigns, [:recipient, "recipient"])
+
+    channels
+    |> Enum.reduce(%{}, fn {channel, declaration}, acc ->
+      with {:ok, rendered} <-
+             Rendering.render_delivery(channel, declaration.render_key, declaration.render_version, assigns) do
+        Map.put(acc, {notification_id, to_string(channel)}, rendered)
+      else
+        _ -> acc
+      end
+    end)
+  end
+
+  defp precompute_rendering(_notification_id, _rendering), do: %{}
+
+  defp precomputed_rendering(notifications) do
+    notifications
+    |> Enum.map(& &1.precomputed_rendering)
+    |> Enum.reduce(%{}, &Map.merge/2)
+  end
+
   defp normalize_trigger_result(
-         {:ok, %{event: event, notifications: notifications_inserted}},
+         {:ok, %{event: event, notifications: %{count: notifications_inserted, precomputed_rendering: precomputed_rendering}}},
          _idempotency_key,
          recipients,
          _tenant_id
@@ -266,6 +298,7 @@ defmodule Chimeway.Trigger do
        idempotency_key: event.idempotency_key,
        recipients: recipients,
        notifications_inserted: notifications_inserted,
+       precomputed_rendering: precomputed_rendering,
        dispatch_outcome: :pending,
        dispatch_mode: :unknown,
        trace: %{
@@ -439,6 +472,7 @@ defmodule Chimeway.Trigger do
       |> Keyword.put_new(:notification_key, event.notification_key)
       |> Keyword.put_new(:event_id, event.id)
       |> Keyword.put_new(:correlation_id, event.correlation_id)
+      |> Keyword.put_new(:precomputed_rendering, trigger_result.precomputed_rendering)
 
     case dispatcher.dispatch(notifications, dispatch_opts) do
       {:ok, deliveries} ->
