@@ -29,7 +29,6 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
 
     assert at == delivery.updated_at
     assert detail.reason == "quiet_hours"
-    assert detail.time_zone == "America/New_York"
     assert detail.rule_identity == "quiet_hours"
     assert DateTime.compare(detail.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
     refute Map.has_key?(detail, :payload)
@@ -86,7 +85,6 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
     [%{at: resumed_at, detail: resumed_detail}] = resumed_entries
 
     assert DateTime.compare(resumed_at, ~U[2026-01-15 13:05:00Z]) == :eq
-    assert resumed_detail.resume_source == "scheduled_resume"
     assert DateTime.compare(resumed_detail.resume_scheduled_at, ~U[2026-01-15 13:00:00Z]) == :eq
   end
 

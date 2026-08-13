@@ -66,7 +66,8 @@ defmodule Chimeway.Digests.EmissionTest do
 
       assert emitted.channel == "email"
       assert emitted.orchestration_state == :ready
-      assert emitted.metadata["digest"] != nil
+      assert emitted.metadata["digest_rule_key"] == "digest.comment.fixed"
+      assert emitted.metadata["digest_rule_version"] == 1
 
       reloaded_bucket = Repo.get!(DigestBucket, bucket.id)
       assert reloaded_bucket.flush_state == :emitted

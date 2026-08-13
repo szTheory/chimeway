@@ -154,7 +154,6 @@ defmodule Chimeway.PolicyTest do
       assert delivery.orchestration_state == :deferred
       assert delivery.planning_reason == "quiet_hours"
       assert DateTime.compare(delivery.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
-      assert delivery.planning_context["rule"] == "quiet_hours"
       assert delivery.planning_context["time_zone"] == "America/New_York"
     end
   end

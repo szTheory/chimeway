@@ -871,7 +871,7 @@ defmodule Chimeway.DeliveriesTest do
              ) == 0
     end
 
-    test "stores provider_response in attempt row", %{notification: notification} do
+    test "stores canonical provider facts in attempt row", %{notification: notification} do
       {:ok, delivery} =
         Deliveries.plan_delivery(notification.id, :in_app,
           tenant_id: "default",
@@ -883,10 +883,13 @@ defmodule Chimeway.DeliveriesTest do
       {:ok, %{attempt: attempt}} =
         Deliveries.record_attempt(dispatched, %{
           outcome: :succeeded,
-          provider_response: %{"message_id" => "abc123"}
+          provider_response: %{"provider_code" => "accepted", "retry_after_ms" => 100}
         })
 
-      assert attempt.provider_response == %{"message_id" => "abc123"}
+      assert attempt.provider_response == %{
+               "provider_code" => "accepted",
+               "retry_after_ms" => 100
+             }
     end
   end
 end

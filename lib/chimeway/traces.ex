@@ -832,7 +832,8 @@ defmodule Chimeway.Traces do
   defp source_digest_delivery?(_delivery), do: false
 
   defp emitted_digest_delivery?(%Delivery{metadata: metadata}) when is_map(metadata) do
-    is_map(Map.get(metadata, "digest"))
+    is_binary(Map.get(metadata, "digest_rule_key")) and
+      is_integer(Map.get(metadata, "digest_rule_version"))
   end
 
   defp emitted_digest_delivery?(_delivery), do: false
@@ -881,13 +882,13 @@ defmodule Chimeway.Traces do
         repo_opts
       )
 
-    digest_metadata = Map.get(delivery.metadata || %{}, "digest", %{})
+    digest_metadata = delivery.metadata || %{}
 
     %{
       "kind" => "emitted_digest",
       "rule_identity" =>
-        digest_metadata["rule_key"] &&
-          "#{digest_metadata["rule_key"]}:v#{digest_metadata["rule_version"]}",
+        digest_metadata["digest_rule_key"] &&
+          "#{digest_metadata["digest_rule_key"]}:v#{digest_metadata["digest_rule_version"]}",
       "included" => resolution_entries(memberships, :included),
       "excluded" => resolution_entries(memberships, :skipped_by_policy),
       "deferred" => [],

@@ -118,6 +118,8 @@ defmodule Chimeway.SafeEvidence do
         "time_zone",
         "rule_id",
         "rule_identity",
+        "digest_flush_behavior",
+        "digest_flush_reason",
         "reason",
         "channel"
       ])
@@ -129,6 +131,8 @@ defmodule Chimeway.SafeEvidence do
         "delayed_fallback_source",
         "notification_key",
         "event_id",
+        "digest_rule_key",
+        "digest_rule_version",
         "correlation_id",
         "reason"
       ])

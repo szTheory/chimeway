@@ -277,6 +277,8 @@ defmodule Chimeway.Digests.Emission do
       "body" => "Digest window closed with #{length(items)} item(s).",
       "summary" => "#{length(items)} notification(s) grouped for #{bucket.channel}",
       "items" => items,
+      "digest_rule_key" => bucket.rule_key,
+      "digest_rule_version" => bucket.rule_version,
       "digest" => %{
         "bucket_id" => bucket.id,
         "rule_key" => bucket.rule_key,
