@@ -6,6 +6,8 @@ defmodule Chimeway.TelemetryIntegrationTest do
 
   use Chimeway.DataCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias Chimeway.Telemetry
 
   @mandatory_stop_events [
@@ -38,7 +40,7 @@ defmodule Chimeway.TelemetryIntegrationTest do
 
   defp run_trigger do
     notifier = Chimeway.Test.SupportNotifier
-    params = %{user_id: "#{System.unique_integer()}"}
+    params = %{user_id: "cw_compat_user_#{System.unique_integer([:positive])}"}
 
     opts = [
       idempotency_key: "telem-key-#{System.unique_integer()}",
@@ -159,6 +161,76 @@ defmodule Chimeway.TelemetryIntegrationTest do
                  planning_reason: "digest_rule",
                  email: "secret@example.com"
                })
+    end
+
+    test "drops invalid values even beneath allowed metadata keys" do
+      invalid = %{
+        notification_key: "https://trusted-link-sentinel.example",
+        event_id: "recipient-identity-sentinel@example.test",
+        delivery_id: "authorization-secret-sentinel",
+        attempt_id: String.duplicate("x", 161),
+        outcome: "provider-body-sentinel",
+        error_class: "temporary",
+        channel: :email
+      }
+
+      assert Telemetry.safe_meta(invalid) == %{error_class: "temporary", channel: :email}
+    end
+  end
+
+  describe "privacy-safe span metadata" do
+    test "sanitizes initial and extra stop metadata after merge" do
+      handler_id = "safe-span-#{System.unique_integer([:positive])}"
+      test_pid = self()
+      events = [[:chimeway, :privacy, :safe, :start], [:chimeway, :privacy, :safe, :stop]]
+
+      :telemetry.attach_many(
+        handler_id,
+        events,
+        fn event, _measurements, metadata, _config -> send(test_pid, {:safe_span, event, metadata}) end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
+      assert :ok =
+               Telemetry.span(
+                 [:privacy, :safe],
+                 %{notification_key: "privacy.safe", provider_body: "provider-body-sentinel"},
+                 fn ->
+                   {:ok,
+                    %{
+                      "DELIVERY_ID" => "recipient-identity-sentinel@example.test",
+                      attempt_id: "attempt-123",
+                      nested: %{token: "raw-device-token-sentinel"}
+                    }}
+                 end
+               )
+
+      assert_receive {:safe_span, [:chimeway, :privacy, :safe, :start], start_meta}
+      assert start_meta == %{notification_key: "privacy.safe"}
+      assert_receive {:safe_span, [:chimeway, :privacy, :safe, :stop], stop_meta}
+      assert stop_meta == %{notification_key: "privacy.safe", attempt_id: "attempt-123"}
+      refute_sentinels(start_meta)
+      refute_sentinels(stop_meta)
+    end
+
+    test "exceptions and dispatch failure logs never interpolate hostile terms" do
+      Telemetry.attach_default_handlers()
+
+      exception_log =
+        capture_log(fn ->
+          assert_raise RuntimeError, "provider-body-sentinel", fn ->
+            Telemetry.span(
+              [:events, :create],
+              %{delivery_id: "delivery-123", provider_body: "provider-body-sentinel"},
+              fn -> raise "provider-body-sentinel" end
+            )
+          end
+        end)
+
+      assert exception_log =~ "[chimeway] telemetry"
+      refute_sentinels(exception_log)
     end
   end
 
@@ -409,5 +481,23 @@ defmodule Chimeway.TelemetryIntegrationTest do
       assert meta.outcome == :succeeded
       assert String.starts_with?(meta.correlation_id, "test-corr-")
     end
+  end
+
+  defp refute_sentinels(term) do
+    encoded = :erlang.term_to_binary(term)
+
+    Enum.each(
+      [
+        "raw-device-token-sentinel",
+        "authorization-secret-sentinel",
+        "recipient-identity-sentinel",
+        "trusted-link-sentinel",
+        "rendered-content-sentinel",
+        "provider-body-sentinel"
+      ],
+      fn sentinel ->
+        refute :binary.match(encoded, sentinel) != :nomatch, "leaked #{sentinel}"
+      end
+    )
   end
 end
