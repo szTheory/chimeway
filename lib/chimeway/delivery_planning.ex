@@ -113,6 +113,10 @@ defmodule Chimeway.DeliveryPlanning do
     trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
     workflow_linkage = resolve_workflow_linkage(notification, channel, opts)
+
+    trusted_render_data? =
+      Map.has_key?(Keyword.get(opts, :precomputed_rendering, %{}), {notification.id, channel})
+
     opts = Keyword.put_new(opts, :recipient, recipient)
 
     with {:ok, tenant_id} <- resolve_delivery_tenant(notification, opts),
@@ -130,10 +134,12 @@ defmodule Chimeway.DeliveryPlanning do
              render_key: render_result[:render_key],
              render_version: render_result[:render_version],
              render_data: render_result[:render_data],
+             trusted_render_data: trusted_render_data?,
              workflow_run_id: workflow_linkage[:workflow_run_id],
              workflow_step_id: workflow_linkage[:workflow_step_id]
            ),
-         {:ok, delivery} <- maybe_apply_render_result(delivery, render_result),
+         {:ok, delivery} <-
+           maybe_apply_render_result(delivery, render_result, trusted_render_data?),
          {:ok, delivery} <- maybe_apply_workflow_linkage(delivery, workflow_linkage),
          {:ok, orchestration} <-
            resolve_orchestration(notification, opts, trigger_params, recipient),
@@ -170,15 +176,19 @@ defmodule Chimeway.DeliveryPlanning do
 
   defp resolve_fallback_channels(notification, opts) do
     if Keyword.get(opts, :use_persisted_channels, false) == true do
-      resolve_persisted_channels(notification)
+      resolve_persisted_channels(notification, opts)
     else
       {:ok, ["in_app"]}
     end
   end
 
-  defp resolve_persisted_channels(%Notification{render_channels: render_channels}) do
-    render_channels
-    |> normalize_render_channels()
+  defp resolve_persisted_channels(
+         %Notification{render_channels: render_channels} = notification,
+         opts
+       ) do
+    (normalize_render_channels(render_channels) ++
+       persisted_orchestration_channels(notification) ++ workflow_channels(notification, opts))
+    |> Enum.uniq()
     |> case do
       [] -> normalize_channels([:in_app])
       channels -> normalize_channels(channels)
@@ -192,6 +202,24 @@ defmodule Chimeway.DeliveryPlanning do
   end
 
   defp normalize_render_channels(_render_channels), do: []
+
+  defp persisted_orchestration_channels(%Notification{orchestration: orchestration})
+       when is_map(orchestration) do
+    orchestration |> Map.get("channels", %{}) |> Map.keys() |> Enum.map(&to_string/1)
+  end
+
+  defp persisted_orchestration_channels(_notification), do: []
+
+  defp workflow_channels(notification, opts) do
+    if use_workflow_linkage?(notification, opts) do
+      case Workflows.active_step_linkage(notification) do
+        {:ok, %{channel: channel}} -> [channel]
+        _ -> []
+      end
+    else
+      []
+    end
+  end
 
   defp handle_notifier_channels({:ok, channels}),
     do: wrap_normalized_channels(normalize_channels(channels))
@@ -522,11 +550,14 @@ defmodule Chimeway.DeliveryPlanning do
     end
   end
 
-  defp maybe_apply_render_result(%Delivery{} = delivery, render_result)
+  defp maybe_apply_render_result(%Delivery{} = delivery, render_result, _trusted_render_data?)
        when map_size(render_result) == 0,
        do: {:ok, delivery}
 
-  defp maybe_apply_render_result(%Delivery{} = delivery, render_result) do
+  defp maybe_apply_render_result(%Delivery{} = delivery, render_result, trusted_render_data?) do
+    render_result =
+      if trusted_render_data?, do: render_result, else: Map.put(render_result, :render_data, %{})
+
     if delivery.render_key == render_result.render_key &&
          delivery.render_version == render_result.render_version &&
          delivery.render_data == render_result.render_data do

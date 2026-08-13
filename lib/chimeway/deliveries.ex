@@ -311,7 +311,10 @@ defmodule Chimeway.Deliveries do
          {:ok, render_version} <-
            normalize_optional_render_version(Keyword.get(opts, :render_version)),
          {:ok, render_data} <-
-           normalize_optional_render_data(Keyword.get(opts, :render_data, %{})),
+           normalize_optional_render_data(
+             Keyword.get(opts, :render_data, %{}),
+             Keyword.get(opts, :trusted_render_data, false)
+           ),
          {:ok, workflow_run_id} <-
            normalize_optional_binary_id(Keyword.get(opts, :workflow_run_id)),
          {:ok, workflow_step_id} <-
@@ -419,12 +422,15 @@ defmodule Chimeway.Deliveries do
 
   defp normalize_optional_render_version(value), do: {:error, {:invalid_render_version, value}}
 
-  defp normalize_optional_render_data(nil), do: {:ok, %{}}
+  defp normalize_optional_render_data(nil, _trusted), do: {:ok, %{}}
 
-  defp normalize_optional_render_data(value) when is_map(value),
+  defp normalize_optional_render_data(value, true) when is_map(value), do: {:ok, value}
+
+  defp normalize_optional_render_data(value, _trusted) when is_map(value),
     do: {:ok, SafeEvidence.render_data(value)}
 
-  defp normalize_optional_render_data(value), do: {:error, {:invalid_render_data, value}}
+  defp normalize_optional_render_data(value, _trusted),
+    do: {:error, {:invalid_render_data, value}}
 
   defp normalize_optional_datetime(nil), do: {:ok, nil}
 
@@ -614,7 +620,7 @@ defmodule Chimeway.Deliveries do
          {:ok, render_version} <-
            normalize_optional_render_version(Map.get(render_result, :render_version)),
          {:ok, render_data} <-
-           normalize_optional_render_data(Map.get(render_result, :render_data, %{})) do
+           normalize_optional_render_data(Map.get(render_result, :render_data, %{}), true) do
       delivery
       |> change(%{
         render_key: render_key,

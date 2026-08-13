@@ -172,10 +172,7 @@ defmodule Chimeway.SafeEvidence do
       ])
 
   @spec render_data(term()) :: map()
-  # Rendered payload belongs to the delivery execution record, not the durable
-  # evidence vocabulary. Evidence projections deliberately omit it at read time.
-  def render_data(value) when is_map(value), do: value
-  def render_data(_value), do: %{}
+  def render_data(value), do: closed_facts(value, ["render_key", "render_version"])
 
   @doc false
   @spec digest_reason(term()) :: String.t() | nil
