@@ -92,6 +92,30 @@ defmodule Chimeway.PrivacyBoundaryTest do
     assert {:error, :not_found} = Traces.explain_delivery(delivery.id, tenant_id: "tenant-other")
   end
 
+  test "hostile digest resolution text is omitted from durable and trace evidence" do
+    source = delivery_for("tenant-safe")
+
+    {:ok, held} =
+      Deliveries.apply_planning_decision(source, %{
+        orchestration_state: :digest_held,
+        planning_reason: "digest_rule",
+        planning_context: %{"rule_identity" => "digest.privacy:v1"},
+        next_eligible_at: nil
+      })
+
+    digest_delivery = delivery_for("tenant-safe")
+    hostile_reason = "reset-token=abc"
+
+    assert {:ok, resolved} =
+             Deliveries.mark_digested(held, digest_delivery.id, hostile_reason,
+               resolved_at: ~U[2026-08-12 12:00:00Z]
+             )
+
+    assert Repo.get!(Chimeway.Delivery, resolved.id).digest_flush_reason == nil
+    assert {:ok, explanation} = Traces.explain_delivery(resolved.id, tenant_id: "tenant-safe")
+    refute :erlang.term_to_binary(explanation) |> :binary.match(hostile_reason) != :nomatch
+  end
+
   defp delivery_for(tenant_id) do
     event =
       Repo.insert!(%Event{

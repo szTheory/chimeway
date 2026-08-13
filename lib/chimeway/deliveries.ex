@@ -1213,6 +1213,8 @@ defmodule Chimeway.Deliveries do
          reason,
          opts
        ) do
+    reason = SafeEvidence.digest_reason(reason)
+
     resolved_at =
       opts
       |> Keyword.get(:resolved_at, DateTime.utc_now())

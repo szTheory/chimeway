@@ -27,6 +27,14 @@ defmodule Chimeway.SafeEvidence do
     "adapter_module" => :adapter_module
   }
   @outcomes [:succeeded, :failed, :bounced, :rejected]
+  @digest_outcomes ~w(digested skipped_by_policy emitted_immediately deferred)
+  @digest_reasons ~w(
+    included_in_digest skipped_by_policy emitted_immediately recipient_muted
+    window_closed digest_window_closed digest_window_expired digest_rule
+    quiet_hours policy_checkpoint retries_exhausted temporary_failure
+    permanent_failure stuck trigger notifier default planner_override channel_disabled
+    bounced workflow_stopped progressed_on_delivery_outcome worker_missed
+  )
   @timeline_fields %{
     "notification_key" => :notification_key,
     "channel" => :channel,
@@ -140,6 +148,12 @@ defmodule Chimeway.SafeEvidence do
   @spec render_data(term()) :: map()
   def render_data(value), do: closed_facts(value, ["render_key", "render_version"])
 
+  @doc false
+  @spec digest_reason(term()) :: String.t() | nil
+  def digest_reason(value) when is_atom(value), do: digest_reason(Atom.to_string(value))
+  def digest_reason(value) when value in @digest_reasons, do: value
+  def digest_reason(_value), do: nil
+
   @spec provider_facts(term()) :: {:ok, map()} | {:error, :unsafe_evidence}
   def provider_facts(value) when is_map(value) or is_list(value) do
     facts = Privacy.redact(value)
@@ -212,19 +226,19 @@ defmodule Chimeway.SafeEvidence do
       delivery_id: safe_lifecycle_id(Map.get(value, :delivery_id)),
       event_id: safe_lifecycle_id(Map.get(value, :event_id)),
       correlation_id: opaque_projection(:correlation, Map.get(value, :correlation_id)),
-      notification_key: safe_label(Map.get(value, :notification_key)),
+      notification_key: safe_code(Map.get(value, :notification_key)),
       recipient_id: opaque_projection(:recipient, Map.get(value, :recipient_id)),
-      channel: safe_label(Map.get(value, :channel)),
-      render_key: safe_label(Map.get(value, :render_key)),
+      channel: safe_code(Map.get(value, :channel)),
+      render_key: safe_code(Map.get(value, :render_key)),
       render_version: positive_integer(Map.get(value, :render_version)),
       status: safe_status(Map.get(value, :status)),
-      planning_reason: safe_label(Map.get(value, :planning_reason)),
+      planning_reason: digest_reason(Map.get(value, :planning_reason)),
       planning_context: planning_context_or_nil(Map.get(value, :planning_context)),
       next_eligible_at: safe_datetime(Map.get(value, :next_eligible_at)),
-      resume_source: safe_label(Map.get(value, :resume_source)),
+      resume_source: safe_code(Map.get(value, :resume_source)),
       resume_scheduled_at: safe_datetime(Map.get(value, :resume_scheduled_at)),
       resumed_at: safe_datetime(Map.get(value, :resumed_at)),
-      suppression_reason: safe_label(Map.get(value, :suppression_reason)),
+      suppression_reason: digest_reason(Map.get(value, :suppression_reason)),
       digest: safe_digest(Map.get(value, :digest)),
       last_attempt: Map.get(value, :last_attempt),
       timeline: Map.get(value, :timeline, [])
@@ -361,17 +375,32 @@ defmodule Chimeway.SafeEvidence do
 
   defp opaque_projection(_domain, _value), do: nil
 
-  defp safe_lifecycle_id(value) when is_binary(value) and byte_size(value) in 1..160, do: value
+  defp safe_lifecycle_id(value) when is_binary(value) do
+    if Ecto.UUID.cast(value) == {:ok, value}, do: value, else: nil
+  end
+
   defp safe_lifecycle_id(_value), do: nil
-  defp safe_label(nil), do: nil
-  defp safe_label(value) when is_binary(value) and byte_size(value) in 1..160, do: value
-  defp safe_label(value) when is_atom(value), do: value |> Atom.to_string() |> safe_label()
-  defp safe_label(_value), do: nil
+
+  defp safe_code(value) when is_atom(value), do: value |> Atom.to_string() |> safe_code()
+
+  defp safe_code(value) when is_binary(value) do
+    if code?(value), do: value, else: nil
+  end
+
+  defp safe_code(_value), do: nil
   defp positive_integer(value) when is_integer(value) and value > 0, do: value
   defp positive_integer(_value), do: nil
 
   defp safe_status(value)
-       when value in [:succeeded, :failed, :suppressed, :pending, :cancelled, :dispatched],
+       when value in [
+              :succeeded,
+              :failed,
+              :suppressed,
+              :pending,
+              :cancelled,
+              :dispatched,
+              :digested
+            ],
        do: value
 
   defp safe_status(_value), do: nil
@@ -385,7 +414,29 @@ defmodule Chimeway.SafeEvidence do
     end
   end
 
-  defp safe_digest(value) when is_map(value), do: Privacy.redact(value)
+  defp safe_digest(value) when is_map(value) do
+    value = Privacy.redact(value)
+
+    %{}
+    |> maybe_put("kind", valid_digest_kind(fetch_fact(value, "kind")))
+    |> maybe_put("outcome", valid_digest_outcome(fetch_fact(value, "outcome")))
+    |> maybe_put("digest_delivery_id", safe_lifecycle_id(fetch_fact(value, "digest_delivery_id")))
+    |> maybe_put("resolution_reason", digest_reason(fetch_fact(value, "resolution_reason")))
+    |> maybe_put("rule_identity", safe_code(fetch_fact(value, "rule_identity")))
+    |> maybe_put("window_starts_at", safe_datetime(fetch_fact(value, "window_starts_at")))
+    |> maybe_put("window_ends_at", safe_datetime(fetch_fact(value, "window_ends_at")))
+    |> maybe_put("included", safe_digest_entries(fetch_fact(value, "included")))
+    |> maybe_put("excluded", safe_digest_entries(fetch_fact(value, "excluded")))
+    |> maybe_put("deferred", safe_digest_entries(fetch_fact(value, "deferred")))
+    |> maybe_put(
+      "emitted_immediately",
+      safe_digest_entries(fetch_fact(value, "emitted_immediately"))
+    )
+    |> maybe_put("included", valid_boolean(fetch_fact(value, "included")))
+    |> maybe_put("excluded", valid_boolean(fetch_fact(value, "excluded")))
+    |> maybe_put("emitted_immediately", valid_boolean(fetch_fact(value, "emitted_immediately")))
+  end
+
   defp safe_digest(_value), do: nil
 
   defp safe_timeline_value?(field, value)
@@ -398,7 +449,31 @@ defmodule Chimeway.SafeEvidence do
        when field in [:next_eligible_at, :resume_scheduled_at, :recovered_at],
        do: true
 
-  defp safe_timeline_value?(_field, value), do: is_binary(value) and byte_size(value) in 1..160
+  defp safe_timeline_value?(field, value)
+       when field in [:reason, :planning_reason, :suppression_reason, :recovery_reason],
+       do: not is_nil(digest_reason(value))
+
+  defp safe_timeline_value?(field, value)
+       when field in [:from_step, :to_step, :workflow_step_key],
+       do: not is_nil(safe_workflow_code(value))
+
+  defp safe_timeline_value?(field, value) when field in [:workflow_run_id, :workflow_step_id],
+    do: not is_nil(safe_lifecycle_id(value))
+
+  defp safe_timeline_value?(field, value)
+       when field in [
+              :notification_key,
+              :channel,
+              :rule_identity,
+              :rule_kind,
+              :workflow_outcome,
+              :event_name,
+              :signal_event_name,
+              :recovery_source
+            ],
+       do: not is_nil(safe_code(value))
+
+  defp safe_timeline_value?(_field, _value), do: false
 
   defp admin_fields(:recent_problem),
     do:
@@ -423,24 +498,108 @@ defmodule Chimeway.SafeEvidence do
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp closed_facts(value, allowed) when is_map(value) or is_list(value) do
-    value
-    |> Privacy.redact()
-    |> Enum.reduce(%{}, fn {key, fact}, acc ->
-      key = to_string(key)
+    value = Privacy.redact(value)
 
-      if key in allowed and safe_scalar?(fact) do
-        Map.put(acc, key, fact)
-      else
-        acc
+    Enum.reduce(allowed, %{}, fn field, safe ->
+      case fact_value(value, field) do
+        {:ok, fact} -> maybe_put(safe, field, valid_fact(field, fact))
+        :missing -> safe
       end
     end)
   end
 
   defp closed_facts(_value, _allowed), do: %{}
 
-  defp safe_scalar?(value) when is_binary(value), do: byte_size(value) <= 160
-  defp safe_scalar?(value) when is_integer(value) or is_boolean(value), do: true
-  defp safe_scalar?(_value), do: false
+  defp fact_value(value, field) do
+    matches = Enum.filter(value, fn {key, _fact} -> to_string(key) == field end)
+    if length(matches) == 1, do: {:ok, matches |> hd() |> elem(1)}, else: :missing
+  end
+
+  defp fetch_fact(value, field) do
+    case fact_value(value, field) do
+      {:ok, fact} -> fact
+      :missing -> nil
+    end
+  end
+
+  defp valid_fact("scheduled_at", value), do: safe_datetime(value)
+
+  defp valid_fact(field, value) when field in ["render_version", "digest_rule_version"],
+    do: positive_integer(value)
+
+  defp valid_fact(field, value) when field in ["reason", "digest_flush_reason"],
+    do: digest_reason(value)
+
+  defp valid_fact("digest_flush_behavior", value) when value in ["skip", "immediate"], do: value
+  defp valid_fact("channel", value), do: safe_channel(value)
+  defp valid_fact("time_zone", value), do: safe_time_zone(value)
+  defp valid_fact("category", value), do: safe_code(value)
+  defp valid_fact("event_id", value), do: safe_lifecycle_id(value)
+  defp valid_fact("correlation_id", value), do: safe_code(value)
+
+  defp valid_fact(_field, value), do: safe_code(value)
+
+  defp valid_digest_kind("emitted_digest"), do: "emitted_digest"
+  defp valid_digest_kind(_value), do: nil
+  defp valid_digest_outcome(value) when value in @digest_outcomes, do: value
+
+  defp valid_digest_outcome(value) when is_atom(value),
+    do: value |> Atom.to_string() |> valid_digest_outcome()
+
+  defp valid_digest_outcome(_value), do: nil
+  defp valid_boolean(value) when is_boolean(value), do: value
+  defp valid_boolean(_value), do: nil
+
+  defp safe_digest_entries(value) when is_list(value) do
+    Enum.flat_map(value, fn entry ->
+      entry = if is_map(entry), do: entry, else: %{}
+
+      safe =
+        %{}
+        |> maybe_put("delivery_id", safe_lifecycle_id(fetch_fact(entry, "delivery_id")))
+        |> maybe_put("notification_id", safe_lifecycle_id(fetch_fact(entry, "notification_id")))
+        |> maybe_put("notification_key", safe_code(fetch_fact(entry, "notification_key")))
+        |> maybe_put("reason", digest_reason(fetch_fact(entry, "reason")))
+
+      if map_size(safe) >= 3, do: [safe], else: []
+    end)
+  end
+
+  defp safe_digest_entries(_value), do: nil
+
+  defp code?(value) do
+    byte_size(value) in 1..@max_code_bytes and
+      String.match?(value, ~r/^[a-z][a-z0-9_.:-]*$/) and
+      not String.match?(
+        value,
+        ~r/(token|secret|authorization|credential|password|recipient|email|body|content|url|link)/i
+      )
+  end
+
+  defp safe_workflow_code(value) when is_binary(value) do
+    if byte_size(value) in 1..@max_code_bytes and
+         String.match?(value, ~r/^[a-z][a-z0-9_.:-]*$/),
+       do: value,
+       else: nil
+  end
+
+  defp safe_workflow_code(_value), do: nil
+
+  defp safe_channel(value) when value in [:email, :in_app, :sms_custom], do: Atom.to_string(value)
+  defp safe_channel(value) when value in ["email", "in_app", "sms_custom"], do: value
+  defp safe_channel(value), do: safe_code(value)
+
+  defp safe_time_zone(value) when is_binary(value) do
+    if byte_size(value) in 1..@max_code_bytes and
+         String.match?(
+           value,
+           ~r/^[A-Za-z]+(?:[_+-][A-Za-z]+)*(?:\/[A-Za-z]+(?:[_+-][A-Za-z]+)*)?$/
+         ),
+       do: value,
+       else: nil
+  end
+
+  defp safe_time_zone(_value), do: nil
 
   defp valid_telemetry_value?(field, value)
        when field in [
