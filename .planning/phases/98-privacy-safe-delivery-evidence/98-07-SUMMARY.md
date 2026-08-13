@@ -95,6 +95,11 @@ status: complete
 - PASS: targeted delivery-planning and recovery regressions (4 tests, 0 failures).
 - UNRUN: the requested release-proof and Phase 98 suites could not acquire the shared PostgreSQL test database (`too_many_connections`); the nested proof process was terminated after its parent test runner failed to exit.
 
+## Release-Proof Projection Follow-up
+
+- Trace evidence now validates channel values through the named channel family, preserving the safe `email` enum instead of passing it through the generic code grammar (which rejects identity-like lexemes).
+- Core proof accepts the already public `webhook_received` lifecycle event and asserts its complete fixed proof vocabulary, matching the generated artifact consumer evidence contract.
+
 ## Task Commits
 
 1. **Task 1 RED:** `06c25fd` — failing privacy evidence regressions.

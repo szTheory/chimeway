@@ -1025,10 +1025,16 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert Map.keys(proof.evidence) |> Enum.sort() ==
                [
+                 :channel,
                  :delivery_id,
+                 :last_attempt_number,
                  :last_attempt_outcome,
                  :notification_key,
                  :notification_version,
+                 :outcome_classification,
+                 :provider_handoff,
+                 :render_key,
+                 :render_version,
                  :status,
                  :timeline_events
                ]
