@@ -42,6 +42,11 @@ defmodule InstallerHost.Repo.Migrations.PrivacySafeDeliveryEvidence do
   defp chimeway_relation(:chimeway_delivery_attempts),
     do: quoted_relation("chimeway_delivery_attempts")
 
-  defp quoted_relation(name) when @chimeway_prefix, do: ~s("#{@chimeway_prefix}"."#{name}")
-  defp quoted_relation(name), do: ~s("#{name}")
+  defp quoted_relation(name) do
+    if @chimeway_prefix do
+      ~s("#{@chimeway_prefix}"."#{name}")
+    else
+      ~s("#{name}")
+    end
+  end
 end

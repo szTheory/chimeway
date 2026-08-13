@@ -33,8 +33,12 @@ defmodule Chimeway.Repo.Migrations.PrivacySafeDeliveryEvidence do
 
   def down, do: raise(@irreversible_error)
 
-  defp chimeway_relation(:chimeway_events), do: ~s("chimeway_events")
-  defp chimeway_relation(:chimeway_notifications), do: ~s("chimeway_notifications")
-  defp chimeway_relation(:chimeway_deliveries), do: ~s("chimeway_deliveries")
-  defp chimeway_relation(:chimeway_delivery_attempts), do: ~s("chimeway_delivery_attempts")
+  defp chimeway_relation(:chimeway_events), do: quoted_relation("chimeway_events")
+  defp chimeway_relation(:chimeway_notifications), do: quoted_relation("chimeway_notifications")
+  defp chimeway_relation(:chimeway_deliveries), do: quoted_relation("chimeway_deliveries")
+
+  defp chimeway_relation(:chimeway_delivery_attempts),
+    do: quoted_relation("chimeway_delivery_attempts")
+
+  defp quoted_relation(name), do: ~s("#{name}")
 end
