@@ -94,7 +94,10 @@ defmodule Chimeway.PrivacyBoundaryTest do
     ambiguous = [
       outcome: :failed,
       error_class: "temporary",
-      provider_response: [{:provider_code, "accepted"}, {"provider_code", "recipient@example.test"}]
+      provider_response: [
+        {:provider_code, "accepted"},
+        {"provider_code", "recipient@example.test"}
+      ]
     ]
 
     assert {:error, :unsafe_evidence, :provider_facts, %{}} =
@@ -103,13 +106,15 @@ defmodule Chimeway.PrivacyBoundaryTest do
     assert Repo.aggregate(DeliveryAttempt, :count, :id) == 0
 
     assert {:ok, %{attempt: attempt}} =
-             Deliveries.record_attempt(dispatched, [
+             Deliveries.record_attempt(dispatched,
                outcome: :failed,
                error_class: "temporary",
                provider_response: [provider_code: "accepted"]
-             ])
+             )
 
-    assert Repo.get!(DeliveryAttempt, attempt.id).provider_response == %{"provider_code" => "accepted"}
+    assert Repo.get!(DeliveryAttempt, attempt.id).provider_response == %{
+             "provider_code" => "accepted"
+           }
   end
 
   test "wrong-tenant explanation remains not found" do

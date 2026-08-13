@@ -78,8 +78,25 @@ defmodule Chimeway.PrivacyTest do
           %{"provider_code" => "accepted", provider_code: "accepted"},
           %{"provider_code" => "recipient@example.test", provider_code: "accepted"},
           [{:provider_code, "accepted"}, {"provider_code", "accepted"}],
-          [{"provider_code", "recipient@example.test"}, {:retry_after_ms, 5}, {:provider_code, "accepted"}],
-          [{:provider_code, "accepted"}, {:accepted_at, ~U[2026-08-12 12:00:00Z]}, {"provider_code", "accepted"}]
+          [
+            {"provider_code", "recipient@example.test"},
+            {:retry_after_ms, 5},
+            {:provider_code, "accepted"}
+          ],
+          [
+            {:provider_code, "accepted"},
+            {:accepted_at, ~U[2026-08-12 12:00:00Z]},
+            {"provider_code", "accepted"}
+          ]
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(input)
+    end
+
+    for input <- [
+          %{"retry_after_ms" => 5, retry_after_ms: 5},
+          [{:retry_after_ms, 5}, {"retry_after_ms", 6}],
+          %{"accepted_at" => "2026-08-12T12:00:00Z", accepted_at: ~U[2026-08-12 12:00:00Z]},
+          [{"accepted_at", "2026-08-12T12:00:00Z"}, {:accepted_at, "2026-08-12T12:00:00Z"}]
         ] do
       assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(input)
     end
@@ -102,8 +119,16 @@ defmodule Chimeway.PrivacyTest do
           [{:outcome, :failed}, {"outcome", :failed}],
           [{"outcome", :failed}, {:error_class, "temporary"}, {:outcome, :failed}],
           [{:outcome, :failed}, {:error_class, "temporary"}, {"error_class", "temporary"}],
-          [{:outcome, :failed}, {:adapter_module, "test_adapter"}, {"adapter_module", "test_adapter"}],
-          [{:outcome, :failed}, {:provider_message_id, "cw_provider_opaque-123"}, {"provider_message_id", "cw_provider_opaque-123"}],
+          [
+            {:outcome, :failed},
+            {:adapter_module, "test_adapter"},
+            {"adapter_module", "test_adapter"}
+          ],
+          [
+            {:outcome, :failed},
+            {:provider_message_id, "cw_provider_opaque-123"},
+            {"provider_message_id", "cw_provider_opaque-123"}
+          ],
           [{:outcome, :failed}, {:provider_response, %{}}, {"provider_response", %{}}]
         ] do
       assert {:error, :unsafe_evidence, _field} = SafeEvidence.attempt_attrs(attrs)
@@ -117,14 +142,18 @@ defmodule Chimeway.PrivacyTest do
            }) == %{}
 
     assert SafeEvidence.render_channels(%{
-             "email" => [{:render_key, "welcome"}, {"render_key", "welcome"}, {:render_version, 1}]
+             "email" => [
+               {:render_key, "welcome"},
+               {"render_key", "welcome"},
+               {:render_version, 1}
+             ]
            }) == %{}
 
     assert SafeEvidence.render_channels(%{
              "email" => [{:render_key, "welcome"}, {:render_version, 1}, {"render_version", 1}]
            }) == %{}
 
-    assert SafeEvidence.render_channels([email: %{render_key: "welcome", render_version: 1}]) == %{
+    assert SafeEvidence.render_channels(email: %{render_key: "welcome", render_version: 1}) == %{
              "email" => %{"render_key" => "welcome", "render_version" => 1}
            }
   end
@@ -153,6 +182,7 @@ defmodule Chimeway.PrivacyTest do
     assert {:ok, %{}} = SafeEvidence.provider_facts(%{})
     assert {:ok, %{}} = SafeEvidence.provider_facts([])
     assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(nil)
+
     assert {:ok, %{outcome: :failed, provider_response: %{}}} =
              SafeEvidence.attempt_attrs(%{outcome: :failed, provider_response: nil})
   end

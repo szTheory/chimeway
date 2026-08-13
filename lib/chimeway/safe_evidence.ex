@@ -120,20 +120,19 @@ defmodule Chimeway.SafeEvidence do
 
   @doc "Retains channel render identity only, never rendered content or assigns."
   @spec render_channels(term()) :: map()
-  def render_channels(channels) when is_map(channels) do
+  def render_channels(channels) when is_map(channels) or is_list(channels) do
     channels
-    |> Privacy.redact()
-    |> Enum.reduce(%{}, fn {channel, info}, acc ->
-      with channel when is_binary(channel) <- to_string(channel),
-           info when is_map(info) <- info,
-           render_key when is_binary(render_key) and byte_size(render_key) in 1..160 <-
-             fetch_known(info, "render_key", :render_key),
-           render_version when is_integer(render_version) and render_version > 0 <-
-             fetch_known(info, "render_version", :render_version) do
-        Map.put(acc, channel, %{"render_key" => render_key, "render_version" => render_version})
-      else
-        _ -> acc
-      end
+    |> entries()
+    |> Enum.group_by(fn {channel, _info} -> safe_channel(channel) end)
+    |> Enum.reduce(%{}, fn
+      {channel, [{_original, info}]}, acc when is_binary(channel) ->
+        case render_channel(info) do
+          {:ok, render} -> Map.put(acc, channel, render)
+          :omit -> acc
+        end
+
+      {_channel, _ambiguous_or_invalid}, acc ->
+        acc
     end)
   end
 
@@ -198,20 +197,18 @@ defmodule Chimeway.SafeEvidence do
   def provider_facts(_value), do: {:error, :unsafe_evidence}
 
   @spec attempt_attrs(map()) :: {:ok, map()} | {:error, :unsafe_evidence, atom()}
-  def attempt_attrs(attrs) when is_map(attrs) do
-    provider_response =
-      Map.get(attrs, :provider_response, Map.get(attrs, "provider_response", %{}))
-
-    provider_message_id =
-      Map.get(attrs, :provider_message_id, Map.get(attrs, "provider_message_id"))
-
-    with {:ok, facts} <- provider_facts(provider_response),
+  def attempt_attrs(attrs) when is_map(attrs) or is_list(attrs) do
+    with {:ok, provider_response} <-
+           optional_field(attrs, "provider_response", :provider_response, %{}),
+         {:ok, facts} <- provider_facts(provider_response || %{}),
+         {:ok, provider_message_id} <-
+           optional_field(attrs, "provider_message_id", :provider_message_id, nil),
          {:ok, provider_ref} <- optional_provider_ref(provider_message_id),
-         {:ok, outcome} <- valid_outcome(Map.get(attrs, :outcome, Map.get(attrs, "outcome"))),
-         {:ok, error_class} <-
-           valid_error_class(Map.get(attrs, :error_class, Map.get(attrs, "error_class"))),
-         {:ok, adapter_module} <-
-           valid_adapter(Map.get(attrs, :adapter_module, Map.get(attrs, "adapter_module"))) do
+         {:ok, outcome} <- required_field(attrs, "outcome", :outcome, &valid_outcome/1),
+         {:ok, error_class} <- optional_field(attrs, "error_class", :error_class, nil),
+         {:ok, error_class} <- valid_error_class(error_class),
+         {:ok, adapter_module} <- optional_field(attrs, "adapter_module", :adapter_module, nil),
+         {:ok, adapter_module} <- valid_adapter(adapter_module) do
       {:ok,
        %{
          outcome: outcome,
@@ -328,17 +325,27 @@ defmodule Chimeway.SafeEvidence do
 
   defp optional_provider_code(facts) do
     case fetch(facts, "provider_code") do
-      :missing -> {:ok, nil}
-      value when is_binary(value) and byte_size(value) in 1..@max_code_bytes -> {:ok, value}
-      _ -> {:error, :unsafe_evidence}
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_binary(value) ->
+        if(code?(value), do: {:ok, value}, else: {:error, :unsafe_evidence})
+
+      _ ->
+        {:error, :unsafe_evidence}
     end
   end
 
   defp optional_retry_after_ms(facts) do
     case fetch(facts, "retry_after_ms") do
-      :missing -> {:ok, nil}
-      value when is_integer(value) and value >= 0 and value <= @max_retry_after_ms -> {:ok, value}
-      _ -> {:error, :unsafe_evidence}
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_integer(value) and value >= 0 and value <= @max_retry_after_ms ->
+        {:ok, value}
+
+      _ ->
+        {:error, :unsafe_evidence}
     end
   end
 
@@ -347,10 +354,10 @@ defmodule Chimeway.SafeEvidence do
       :missing ->
         {:ok, nil}
 
-      %DateTime{} = value ->
+      {:ok, %DateTime{} = value} ->
         {:ok, DateTime.to_iso8601(value)}
 
-      value when is_binary(value) ->
+      {:ok, value} when is_binary(value) ->
         case DateTime.from_iso8601(value) do
           {:ok, _datetime, 0} -> {:ok, value}
           _ -> {:error, :unsafe_evidence}
@@ -381,16 +388,56 @@ defmodule Chimeway.SafeEvidence do
 
   defp valid_adapter(_value), do: {:error, :adapter_module}
 
-  defp fetch(value, "provider_code"), do: fetch_known(value, "provider_code", :provider_code)
-  defp fetch(value, "retry_after_ms"), do: fetch_known(value, "retry_after_ms", :retry_after_ms)
-  defp fetch(value, "accepted_at"), do: fetch_known(value, "accepted_at", :accepted_at)
+  defp fetch(value, "provider_code"), do: logical_lookup(value, "provider_code", :provider_code)
 
-  defp fetch_known(map, string_key, atom_key) when is_map(map) do
-    Map.get(map, string_key, Map.get(map, atom_key, :missing))
+  defp fetch(value, "retry_after_ms"),
+    do: logical_lookup(value, "retry_after_ms", :retry_after_ms)
+
+  defp fetch(value, "accepted_at"), do: logical_lookup(value, "accepted_at", :accepted_at)
+
+  defp logical_lookup(value, string_key, atom_key) do
+    case entries(value)
+         |> Enum.filter(fn {key, _value} -> key == string_key or key == atom_key end) do
+      [] -> :missing
+      [{_key, field_value}] -> {:ok, field_value}
+      _duplicates -> :ambiguous
+    end
   end
 
-  defp fetch_known(list, _string_key, atom_key) when is_list(list),
-    do: Keyword.get(list, atom_key, :missing)
+  defp entries(value) when is_map(value), do: Map.to_list(value)
+  defp entries(value) when is_list(value), do: Enum.filter(value, &match?({_, _}, &1))
+  defp entries(_value), do: []
+
+  defp optional_field(attrs, string_key, atom_key, default) do
+    case logical_lookup(attrs, string_key, atom_key) do
+      :missing -> {:ok, default}
+      :ambiguous -> {:error, atom_key}
+      {:ok, value} -> {:ok, value}
+    end
+  end
+
+  defp required_field(attrs, string_key, atom_key, validator) do
+    case logical_lookup(attrs, string_key, atom_key) do
+      :missing -> {:error, atom_key}
+      :ambiguous -> {:error, atom_key}
+      {:ok, value} -> validator.(value)
+    end
+  end
+
+  defp render_channel(info) when is_map(info) or is_list(info) do
+    info = Privacy.redact(info)
+
+    with {:ok, render_key} <- logical_lookup(info, "render_key", :render_key),
+         true <- is_binary(render_key) and not is_nil(safe_render_key(render_key)),
+         {:ok, render_version} <- logical_lookup(info, "render_version", :render_version),
+         true <- is_integer(render_version) and render_version > 0 do
+      {:ok, %{"render_key" => render_key, "render_version" => render_version}}
+    else
+      _ -> :omit
+    end
+  end
+
+  defp render_channel(_info), do: :omit
 
   defp opaque_projection(_domain, nil), do: nil
 
@@ -639,7 +686,7 @@ defmodule Chimeway.SafeEvidence do
 
   defp code?(value) do
     byte_size(value) in 1..@max_code_bytes and
-      String.match?(value, ~r/^[a-z][a-z0-9_.:-]*$/) and
+      String.match?(value, ~r/^[a-z][a-z0-9_.:-]*\z/) and
       not String.match?(
         value,
         ~r/(token|secret|authorization|credential|password|recipient|email|body|content|url|link)/i
