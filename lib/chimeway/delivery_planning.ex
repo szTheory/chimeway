@@ -41,6 +41,32 @@ defmodule Chimeway.DeliveryPlanning do
     end
   end
 
+  @doc false
+  @spec hydrate_execution_delivery(Delivery.t()) :: {:ok, Delivery.t()} | {:error, atom()}
+  def hydrate_execution_delivery(%Delivery{channel: "email"} = delivery) do
+    with %Notification{} = notification <- Repo.get(Notification, delivery.notification_id),
+         %Event{notification_key: key, notification_version: version} <-
+           Repo.get(Event, notification.event_id),
+         {:ok, %{notifier: notifier, params: params, recipient: recipient}} <-
+           RenderContextResolver.resolve(key, version, notification.recipient_identity),
+         {:ok, recipient_address} <- execution_recipient_address(recipient),
+         {:ok, assigns} <- render_assigns_from_notifier(notifier, params, recipient),
+         {:ok, rendered} <-
+           Rendering.render_delivery(
+             "email",
+             delivery.render_key,
+             delivery.render_version,
+             assigns
+           ) do
+      {:ok, %{delivery | recipient_address: recipient_address, render_data: rendered.render_data}}
+    else
+      nil -> {:error, :render_context_unavailable}
+      {:error, _reason} -> {:error, :render_context_unavailable}
+    end
+  end
+
+  def hydrate_execution_delivery(%Delivery{}), do: {:error, :unsupported_execution_channel}
+
   @spec plan_notification(Notification.t(), keyword()) :: {:ok, [Delivery.t()]} | {:error, term()}
   def plan_notification(%Notification{} = notification, opts \\ []) do
     with {:ok, channels} <- resolve_channels(notification, opts),
@@ -531,6 +557,17 @@ defmodule Chimeway.DeliveryPlanning do
       {:ok, Map.drop(declaration.assigns, [:recipient, "recipient"])}
     end
   end
+
+  defp execution_recipient_address(%{} = recipient) do
+    recipient
+    |> Map.get(:recipient_identity, Map.get(recipient, "recipient_identity"))
+    |> case do
+      "user:" <> address when byte_size(address) > 0 -> {:ok, address}
+      _ -> {:error, :invalid_render_context}
+    end
+  end
+
+  defp execution_recipient_address(_), do: {:error, :invalid_render_context}
 
   defp render_channel_result(channel, channel_rendering, assigns) do
     case Rendering.render_delivery(

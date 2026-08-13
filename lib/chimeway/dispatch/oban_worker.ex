@@ -103,7 +103,7 @@ if Code.ensure_loaded?(Oban) do
       max_attempts: 5,
       unique: [fields: [:args], keys: [:delivery_id], period: 60]
 
-    alias Chimeway.{Deliveries, Delivery, DeliveryAttempt, Policy}
+    alias Chimeway.{Deliveries, Delivery, DeliveryAttempt, DeliveryPlanning, Policy}
     alias Chimeway.Dispatch.Executor
     alias Chimeway.Telemetry
 
@@ -184,16 +184,27 @@ if Code.ensure_loaded?(Oban) do
       if fresh.status in Deliveries.terminal_states() do
         :ok
       else
-        case Executor.run_delivery(fresh) do
-          {:ok, %{attempt: %DeliveryAttempt{} = recorded, delivery: %Delivery{} = updated}} ->
-            map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
-
-          {:error, step, reason, _changes} ->
-            {:error, {step, reason}}
-
-          {:error, _reason} = error ->
-            error
+        with {:ok, execution_delivery} <- hydrate_for_execution(fresh) do
+          run_execution_delivery(execution_delivery, attempt, max_attempts)
         end
+      end
+    end
+
+    defp hydrate_for_execution(%Delivery{channel: "email"} = delivery),
+      do: DeliveryPlanning.hydrate_execution_delivery(delivery)
+
+    defp hydrate_for_execution(%Delivery{} = delivery), do: {:ok, delivery}
+
+    defp run_execution_delivery(delivery, attempt, max_attempts) do
+      case Executor.run_delivery(delivery) do
+        {:ok, %{attempt: %DeliveryAttempt{} = recorded, delivery: %Delivery{} = updated}} ->
+          map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
+
+        {:error, step, reason, _changes} ->
+          {:error, {step, reason}}
+
+        {:error, _reason} = error ->
+          error
       end
     end
 

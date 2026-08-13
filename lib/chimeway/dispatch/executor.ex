@@ -32,13 +32,20 @@ defmodule Chimeway.Dispatch.Executor do
       adapter = resolve_adapter(dispatched.channel)
       adapter_config = ChannelAdapterConfig.resolve(delivery.channel, [])
 
+      execution_delivery =
+        %{
+          dispatched
+          | recipient_address: delivery.recipient_address,
+            render_data: delivery.render_data
+        }
+
       {attempt_outcome, error_class, safe_attempt_facts} =
-        dispatched
+        execution_delivery
         |> adapter.deliver(adapter_config)
         |> classify()
 
       Deliveries.record_attempt(
-        dispatched,
+        execution_delivery,
         Map.merge(safe_attempt_facts, %{
           outcome: attempt_outcome,
           error_class: error_class,
