@@ -88,11 +88,19 @@ status: complete
 - PASS: render identity, Trigger pipeline, Scenario J lifecycle, and core/mailglass/accrue release-gate proof cases (12 tests, 0 failures).
 - UNRUN: atom-count release-gate case could not start because the shared PostgreSQL test environment reported `too_many_connections`; this is an external concurrent-test capacity condition.
 
+## Planner and Recovery Follow-up
+
+- Limited raw render payload retention to the immediate Trigger-to-dispatch handoff; direct planning and persisted replay retain their established empty render-data projection.
+- Replayed channels declared by persisted orchestration and active workflow steps, so recovery does not depend on a privacy-filtered rendering snapshot.
+- PASS: targeted delivery-planning and recovery regressions (4 tests, 0 failures).
+- UNRUN: the requested release-proof and Phase 98 suites could not acquire the shared PostgreSQL test database (`too_many_connections`); the nested proof process was terminated after its parent test runner failed to exit.
+
 ## Task Commits
 
 1. **Task 1 RED:** `06c25fd` — failing privacy evidence regressions.
 2. **Task 1 GREEN:** `2b9f36c` — closed approved-key evidence laundering.
 3. **Follow-up:** `b13b360` — preserve runtime rendering semantics.
+4. **Follow-up:** `5b20ceb` — scope rendered payload handoff.
 
 ## Decisions Made
 
@@ -129,12 +137,19 @@ status: complete
 - **Verification:** targeted render identity, Trigger, lifecycle, and release-proof cases (12 tests, 0 failures).
 - **Committed in:** `b13b360`.
 
+**5. [Rule 1 - Bug] Restored direct planning and persisted recovery semantics.**
+- **Found during:** authoritative CI follow-up.
+- **Issue:** Trigger's raw payload handoff leaked into direct planner calls, and filtered render snapshots hid channels needed by persisted orchestration/workflow recovery.
+- **Fix:** made raw payload retention an explicit transient handoff and derived persisted replay channels from stored orchestration/workflow declarations.
+- **Verification:** targeted planner and recovery cases (4 tests, 0 failures).
+- **Committed in:** `5b20ceb`.
+
 ## Known Stubs
 
 None.
 
 ## Self-Check: PASSED
 
-- Found task commits `06c25fd`, `2b9f36c`, and `b13b360`.
+- Found task commits `06c25fd`, `2b9f36c`, `b13b360`, and `5b20ceb`.
 - Found all modified production and test files.
 - No tracked file deletions or placeholder stubs introduced.
