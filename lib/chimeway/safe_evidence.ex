@@ -10,7 +10,7 @@ defmodule Chimeway.SafeEvidence do
   @max_adapter_bytes 120
   @max_telemetry_bytes 160
   @max_retry_after_ms 86_400_000
-  @error_classes ~w(temporary permanent bounced unknown_classification)
+  @error_classes ~w(temporary permanent bounced render_context_unavailable unknown_classification)
   @telemetry_keys %{
     "notification_key" => :notification_key,
     "event_id" => :event_id,

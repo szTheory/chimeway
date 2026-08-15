@@ -184,9 +184,29 @@ if Code.ensure_loaded?(Oban) do
       if fresh.status in Deliveries.terminal_states() do
         :ok
       else
-        with {:ok, execution_delivery} <- hydrate_for_execution(fresh) do
-          run_execution_delivery(execution_delivery, attempt, max_attempts)
+        case hydrate_for_execution(fresh) do
+          {:ok, execution_delivery} ->
+            run_execution_delivery(execution_delivery, attempt, max_attempts)
+
+          {:error, :render_context_unavailable} ->
+            record_unavailable_context_attempt(fresh, attempt, max_attempts)
         end
+      end
+    end
+
+    defp record_unavailable_context_attempt(delivery, attempt, max_attempts) do
+      with {:ok, dispatched} <- Deliveries.transition_status(delivery, :dispatched),
+           {:ok, %{attempt: recorded, delivery: updated}} <-
+             Deliveries.record_attempt(dispatched, %{
+               outcome: :failed,
+               error_class: "render_context_unavailable",
+               provider_message_id: nil,
+               provider_response: %{}
+             }) do
+        map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
+      else
+        {:error, step, reason, _changes} -> {:error, {step, reason}}
+        {:error, _reason} = error -> error
       end
     end
 
@@ -215,8 +235,8 @@ if Code.ensure_loaded?(Oban) do
     #
     # - succeeded                                       -> :ok
     # - permanent/bounced (delivery already :cancelled) -> :ok (record_attempt converged)
-    # - temporary AND attempt == max_attempts           -> exhaust_delivery + :ok
-    # - temporary AND attempt < max_attempts            -> {:error, reason}
+    # - retryable AND attempt == max_attempts           -> exhaust_delivery + :ok
+    # - retryable AND attempt < max_attempts            -> {:error, reason}
     defp map_outcome_to_oban_return(
            %DeliveryAttempt{outcome: :succeeded},
            _delivery,
@@ -238,11 +258,12 @@ if Code.ensure_loaded?(Oban) do
     end
 
     defp map_outcome_to_oban_return(
-           %DeliveryAttempt{error_class: "temporary"} = recorded,
+           %DeliveryAttempt{error_class: error_class} = recorded,
            %Delivery{status: :failed} = delivery,
            attempt,
            max_attempts
-         ) do
+         )
+         when error_class in ["temporary", "render_context_unavailable"] do
       reason = error_reason_from_attempt(recorded)
 
       if attempt >= max_attempts do
@@ -305,6 +326,9 @@ if Code.ensure_loaded?(Oban) do
           max_attempts: max
       end
     end
+
+    defp error_reason_from_attempt(%DeliveryAttempt{error_class: "render_context_unavailable"}),
+      do: :render_context_unavailable
 
     defp error_reason_from_attempt(%DeliveryAttempt{provider_response: provider_response}) do
       case provider_response do

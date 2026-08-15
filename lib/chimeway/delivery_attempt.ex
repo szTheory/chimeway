@@ -25,7 +25,7 @@ defmodule Chimeway.DeliveryAttempt do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
-  @error_classes ~w(temporary permanent bounced unknown_classification)
+  @error_classes ~w(temporary permanent bounced render_context_unavailable unknown_classification)
 
   @doc """
   Returns the canonical list of allowed error_class string values.
