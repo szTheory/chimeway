@@ -7,7 +7,7 @@ defmodule ChimewayTest.Notifiers.LifecycleA do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test A"}}
 
@@ -32,7 +32,7 @@ defmodule ChimewayTest.Notifiers.LifecycleB do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test B"}}
 
@@ -57,7 +57,7 @@ defmodule ChimewayTest.Notifiers.LifecycleC do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test C"}}
 
@@ -82,7 +82,7 @@ defmodule ChimewayTest.Notifiers.LifecycleFanout do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test Fanout"}}
 
@@ -113,7 +113,7 @@ defmodule ChimewayTest.Notifiers.LifecycleDelayedFallback do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test Delayed Fallback"}}
 
@@ -145,7 +145,7 @@ defmodule ChimewayTest.Notifiers.LifecycleNoDelayedFallback do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test No Delayed Fallback"}}
 
@@ -176,7 +176,7 @@ defmodule ChimewayTest.Notifiers.LifecycleCustomChannel do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Custom Channel"}}
   def channels(_params, _recipient), do: {:ok, ["webhook_partner"]}
@@ -188,7 +188,7 @@ defmodule ChimewayTest.Notifiers.LifecycleDigestHeld do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Digest Held"}}
   def channels(_params, _recipient), do: {:ok, [:email]}
@@ -215,7 +215,7 @@ defmodule ChimewayTest.Notifiers.LifecycleRenderedEmail do
   def version, do: 3
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient) do
     if test_pid = test_pid(), do: send(test_pid, {:build_called, self()})
@@ -253,7 +253,7 @@ defmodule ChimewayTest.Notifiers.LifecycleWorkflow do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Workflow lifecycle"}}
   def channels(_params, _recipient), do: {:ok, [:email]}
@@ -338,7 +338,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       notifications =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:1"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_1"
           )
         )
 
@@ -408,7 +408,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
             on: n.event_id == e.id,
             where:
               e.notification_key == "test.lifecycle_b" and
-                n.recipient_identity == "user:2"
+                n.recipient_identity == "cw_lifecycle_user_2"
           )
         )
 
@@ -522,7 +522,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       notification_count =
         Repo.aggregate(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:3"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_3"
           ),
           :count,
           :id
@@ -534,7 +534,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:3"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_3"
           )
         )
 
@@ -602,7 +602,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       notification_count =
         Repo.aggregate(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:4"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_4"
           ),
           :count,
           :id
@@ -613,7 +613,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:4"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_4"
           )
         )
 
@@ -684,7 +684,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:5"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_5"
           )
         )
 
@@ -733,7 +733,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:6"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_6"
           )
         )
 
@@ -768,7 +768,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:7"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_7"
           )
         )
 
@@ -837,7 +837,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     test "quiet-hours deferral stays pending with zero attempts and explainable planning facts" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
-                 recipient_id: "user:9",
+                 recipient_id: "cw_lifecycle_user_9",
                  quiet_hours_start_minute: 22 * 60,
                  quiet_hours_end_minute: 8 * 60,
                  time_zone: "America/New_York"
@@ -926,7 +926,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     test "resume_deferred_delivery keeps the canonical row lifecycle-safe when perform-time policy re-evaluates" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
-                 recipient_id: "user:11",
+                 recipient_id: "cw_lifecycle_user_11",
                  quiet_hours_start_minute: 22 * 60,
                  quiet_hours_end_minute: 8 * 60,
                  time_zone: "America/New_York"
@@ -1057,7 +1057,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     test "cancel_deferred_delivery keeps the same row and marks supersession on suppression_reason == \"superseded\"" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
-                 recipient_id: "user:12",
+                 recipient_id: "cw_lifecycle_user_12",
                  quiet_hours_start_minute: 22 * 60,
                  quiet_hours_end_minute: 8 * 60,
                  time_zone: "America/New_York"
@@ -1258,7 +1258,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       fixture =
         Chimeway.Test.DispatchHelpers.create_notification(
           notification_key: "test.lifecycle_recovery",
-          recipient_identity: "user:15"
+          recipient_identity: "cw_lifecycle_user_15"
         )
 
       {:ok, delivery} =
