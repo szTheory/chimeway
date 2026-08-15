@@ -436,7 +436,8 @@ defmodule Chimeway.Workflows do
   end
 
   # Finds all WorkflowRun rows that are:
-  #   - owned by the given tenant and actor_id (cross-tenant isolation, T-27-03, T-27-07-01)
+  #   - owned by the given tenant and an explicit host-supplied opaque actor reference
+  #     (cross-tenant isolation, T-27-03, T-27-07-01)
   #   - currently in the :waiting state
   #   - match pending_signals OR empty pending_signals on a wait_until step
   defp find_runs_waiting_for_signal(tenant_id, actor_id, event_name) do

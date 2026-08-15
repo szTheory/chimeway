@@ -4,7 +4,6 @@ defmodule Chimeway.WorkflowsTest do
   import Ecto.Query
 
   alias Chimeway.Repo
-  alias Chimeway.SafeEvidence
   alias Chimeway.Signals.Signal
   alias Chimeway.Workflows
   alias Chimeway.Workflows.{WorkflowRun, WorkflowTransition}
@@ -24,7 +23,7 @@ defmodule Chimeway.WorkflowsTest do
   }
 
   defp insert_workflow_run!(attrs) do
-    {recipient_identity, attrs} = Map.pop(attrs, :recipient_identity, "user_1")
+    {recipient_identity, attrs} = Map.pop(attrs, :recipient_identity, "cw_workflow_actor_42")
 
     event =
       Repo.insert!(%Event{
@@ -91,7 +90,13 @@ defmodule Chimeway.WorkflowsTest do
   end
 
   defp insert_signal!(attrs) do
-    defaults = %{tenant_id: "acme", actor_id: "user_1", event_name: "invoice_paid", payload: %{}}
+    defaults = %{
+      tenant_id: "acme",
+      actor_id: "cw_workflow_actor_42",
+      event_name: "invoice_paid",
+      payload: %{}
+    }
+
     Repo.insert!(Signal.changeset(%Signal{}, Map.merge(defaults, attrs)))
   end
 
@@ -214,13 +219,12 @@ defmodule Chimeway.WorkflowsTest do
       assert Map.has_key?(results, {:transition_inserted, run.id})
     end
 
-    test "matches a host signal identity to its privacy-safe recipient reference" do
-      actor_id = "workflow-signal@example.test"
-      {:ok, recipient_ref} = SafeEvidence.recipient_reference(actor_id)
+    test "matches a host-supplied opaque signal reference" do
+      actor_id = "cw_workflow_actor_99"
 
       run =
         insert_workflow_run!(%{
-          recipient_identity: recipient_ref,
+          recipient_identity: actor_id,
           pending_signals: ["invoice_paid"]
         })
 
@@ -231,14 +235,49 @@ defmodule Chimeway.WorkflowsTest do
       assert Map.has_key?(results, {:run_updated, run.id})
     end
 
-    test "does not resume a waiting run from a different actor_id (tenant and event match)" do
+    test "does not resume a waiting run for raw or near-miss signal actors" do
       run =
         insert_workflow_run!(%{
-          recipient_identity: "user_2",
+          recipient_identity: "cw_workflow_actor_99",
           pending_signals: ["invoice_paid"]
         })
 
-      signal = insert_signal!(%{event_name: "invoice_paid", actor_id: "user_1"})
+      for actor_id <- [
+            "workflow-signal@example.test",
+            "alex-smith",
+            "user:alex-smith",
+            "CW_workflow_actor_99",
+            "cw_workflow_actor_99!"
+          ] do
+        signal = insert_signal!(%{event_name: "invoice_paid", actor_id: actor_id})
+        assert {:ok, results} = Workflows.route_signal(signal)
+        refute Map.has_key?(results, {:run_updated, run.id})
+        assert Repo.get!(WorkflowRun, run.id).state == :waiting
+      end
+    end
+
+    test "matches the canonical UUID recipient compatibility reference exactly" do
+      actor_id = "user:550e8400-e29b-41d4-a716-446655440000"
+
+      run =
+        insert_workflow_run!(%{
+          recipient_identity: actor_id,
+          pending_signals: ["invoice_paid"]
+        })
+
+      signal = insert_signal!(%{event_name: "invoice_paid", actor_id: actor_id})
+      assert {:ok, results} = Workflows.route_signal(signal)
+      assert Map.has_key?(results, {:run_updated, run.id})
+    end
+
+    test "does not resume a waiting run from a different actor_id (tenant and event match)" do
+      run =
+        insert_workflow_run!(%{
+          recipient_identity: "cw_workflow_actor_2",
+          pending_signals: ["invoice_paid"]
+        })
+
+      signal = insert_signal!(%{event_name: "invoice_paid", actor_id: "cw_workflow_actor_42"})
 
       assert {:ok, _results} = Workflows.route_signal(signal)
 
@@ -371,7 +410,7 @@ defmodule Chimeway.WorkflowsTest do
         Repo.insert!(%Notification{
           event_id: delivery_event.id,
           tenant_id: delivery_event.tenant_id,
-          recipient_identity: "user_1",
+          recipient_identity: "cw_workflow_actor_42",
           recipient_type: "user",
           metadata: %{},
           render_assigns: %{},
@@ -385,7 +424,7 @@ defmodule Chimeway.WorkflowsTest do
             channel: "in_app",
             status: :pending,
             tenant_id: "acme",
-            actor_id: "user_1"
+            actor_id: "cw_workflow_actor_42"
           })
         )
 
