@@ -180,6 +180,54 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
   end
 
   describe "unavailable execution context" do
+    test "records a safe retry attempt when no resolver is configured" do
+      previous_resolvers = Application.get_env(:chimeway, :render_context_resolvers)
+      on_exit(fn -> restore_env(:render_context_resolvers, previous_resolvers) end)
+
+      Application.put_env(:chimeway, :render_context_resolvers, %{})
+
+      %{notification: notification, delivery: delivery} =
+        create_pending_delivery(
+          channel: :email,
+          notification_key: "oban.worker.no-context-resolver",
+          recipient_identity: "cw_recipient_safe_reference"
+        )
+
+      {:ok, _} =
+        notification
+        |> Ecto.Changeset.change(
+          render_channels: %{
+            "email" => %{
+              "render_key" => "oban.worker.no-context-resolver.email",
+              "render_version" => 1
+            }
+          }
+        )
+        |> Repo.update()
+
+      {:ok, _} =
+        delivery
+        |> Ecto.Changeset.change(
+          render_key: "oban.worker.no-context-resolver.email",
+          render_version: 1
+        )
+        |> Repo.update()
+
+      assert {:error, :render_context_unavailable} =
+               perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 1, max_attempts: 5)
+
+      [attempt] = attempts_for(delivery.id)
+
+      assert %{
+               outcome: :failed,
+               error_class: "render_context_unavailable",
+               provider_response: %{}
+             } =
+               attempt
+
+      assert attempt.provider_message_id == nil
+    end
+
     test "records bounded safe evidence before retry and retains it through exhaustion" do
       previous_resolvers = Application.get_env(:chimeway, :render_context_resolvers)
 
