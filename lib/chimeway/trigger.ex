@@ -131,13 +131,11 @@ defmodule Chimeway.Trigger do
   def normalize_recipients(recipients) when is_list(recipients) do
     recipients
     |> Enum.reduce_while({:ok, %{}}, fn recipient, {:ok, acc} ->
-      case SafeEvidence.recipient_reference(
-             recipient_ref(recipient) || recipient_identity(recipient)
-           ) do
-        {:ok, ref} ->
-          {:cont, {:ok, Map.put_new(acc, ref, Map.put(recipient, :recipient_ref, ref))}}
+      case normalize_recipient(recipient) do
+        {:ok, ref, normalized_recipient} ->
+          {:cont, {:ok, Map.put_new(acc, ref, normalized_recipient)}}
 
-        {:error, :unsafe_evidence} ->
+        :error ->
           {:halt, {:error, :unsafe_evidence}}
       end
     end)
@@ -154,6 +152,43 @@ defmodule Chimeway.Trigger do
   end
 
   def normalize_recipients(_recipients), do: {:error, :unsafe_evidence}
+
+  defp normalize_recipient(recipient) when is_map(recipient) do
+    with {:ok, recipient_ref} <- logical_recipient_value(recipient, :recipient_ref),
+         {:ok, recipient_identity} <- logical_recipient_value(recipient, :recipient_identity),
+         {:ok, reference} <- SafeEvidence.recipient_reference(recipient_ref || recipient_identity) do
+      normalized =
+        recipient
+        |> Map.drop([:recipient_ref, "recipient_ref", :recipient_identity, "recipient_identity"])
+        |> Map.put(:recipient_ref, reference)
+        |> maybe_put_recipient_identity(recipient_identity)
+
+      {:ok, reference, normalized}
+    else
+      _ -> :error
+    end
+  end
+
+  defp normalize_recipient(_recipient), do: :error
+
+  defp logical_recipient_value(recipient, field) do
+    values =
+      [field, Atom.to_string(field)]
+      |> Enum.flat_map(fn key ->
+        if Map.has_key?(recipient, key), do: [Map.fetch!(recipient, key)], else: []
+      end)
+
+    case values do
+      [] -> {:ok, nil}
+      [value] -> {:ok, value}
+      _ -> :ambiguous
+    end
+  end
+
+  defp maybe_put_recipient_identity(recipient, nil), do: recipient
+
+  defp maybe_put_recipient_identity(recipient, identity),
+    do: Map.put(recipient, :recipient_identity, identity)
 
   defp validate_idempotency_key(idempotency_key) when is_binary(idempotency_key) do
     if String.trim(idempotency_key) == "" do

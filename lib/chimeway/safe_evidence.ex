@@ -10,6 +10,7 @@ defmodule Chimeway.SafeEvidence do
   @max_adapter_bytes 120
   @max_telemetry_bytes 160
   @max_retry_after_ms 86_400_000
+  @recipient_reference_uuid ~r/^user:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
   @error_classes ~w(temporary permanent bounced render_context_unavailable unknown_classification)
   @telemetry_keys %{
     "notification_key" => :notification_key,
@@ -103,20 +104,16 @@ defmodule Chimeway.SafeEvidence do
 
   @doc false
   @spec recipient_reference(term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
-  def recipient_reference(value)
-      when is_binary(value) and byte_size(value) in 1..@max_ref_bytes do
+  def recipient_reference(value) when is_binary(value) do
     cond do
       match?({:ok, _}, opaque_ref(:recipient, value)) ->
         {:ok, value}
 
-      String.match?(value, ~r/^user:[a-zA-Z0-9_-]+$/) ->
-        {:ok, value}
-
-      opaque_id?(value) ->
+      Regex.match?(@recipient_reference_uuid, value) ->
         {:ok, value}
 
       true ->
-        {:ok, opaque_projection(:recipient, value)}
+        {:error, :unsafe_evidence}
     end
   end
 

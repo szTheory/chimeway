@@ -4,6 +4,7 @@ defmodule Chimeway.TriggerSanitizationTest do
   import Ecto.Query, only: [from: 2]
 
   alias Chimeway.Events.Event
+  alias Chimeway.Delivery
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
   alias Chimeway.Trigger
@@ -51,6 +52,36 @@ defmodule Chimeway.TriggerSanitizationTest do
            "body" => "Sanitized assigns",
            "primary_action" => %{"label" => "Open", "url" => "https://example.test/safe"}
          },
+         channels: %{
+           in_app: %{render_key: "test.auth_flow_sanitization.in_app", render_version: 1}
+         }
+       }}
+    end
+  end
+
+  defmodule RecipientReferenceNotifier do
+    @behaviour Chimeway.Notifier
+
+    @impl true
+    def notification_key, do: "test.auth_flow_sanitization"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(%{"recipient" => recipient}), do: {:ok, [recipient]}
+
+    @impl true
+    def build(_params, _recipient), do: {:ok, %{}}
+
+    @impl true
+    def channels(_params, _recipient), do: {:ok, [:in_app]}
+
+    @impl true
+    def rendering(_params, _recipient) do
+      {:ok,
+       %{
+         assigns: %{},
          channels: %{
            in_app: %{render_key: "test.auth_flow_sanitization.in_app", render_version: 1}
          }
@@ -176,5 +207,68 @@ defmodule Chimeway.TriggerSanitizationTest do
       assert notification.render_assigns == %{}
       assert notification.recipient_identity == "cw_user_1"
     end
+  end
+
+  describe "recipient reference persistence boundary" do
+    test "raw recipient values and duplicate aliases fail before lifecycle writes" do
+      for recipient <- [
+            %{recipient_identity: "alex-smith", recipient_type: "user"},
+            %{recipient_identity: "another-raw-slug", recipient_type: "user"},
+            %{
+              "recipient_ref" => "cw_recipient_42",
+              recipient_ref: "cw_recipient_42",
+              recipient_type: "user"
+            },
+            %{
+              "recipient_ref" => "cw_recipient_42",
+              recipient_ref: "cw_recipient_42",
+              recipient_type: "user"
+            },
+            %{
+              "recipient_identity" => "cw_recipient_42",
+              recipient_identity: "cw_recipient_42",
+              recipient_type: "user"
+            }
+          ] do
+        before = lifecycle_counts()
+
+        assert {:error, :unsafe_evidence} =
+                 Trigger.trigger(
+                   RecipientReferenceNotifier,
+                   %{"recipient" => recipient},
+                   idempotency_key: "recipient-reference-rejection-#{System.unique_integer()}",
+                   tenant_id: "tenant-1"
+                 )
+
+        assert lifecycle_counts() == before
+      end
+    end
+
+    test "explicit opaque recipient references persist an explainable lifecycle spine" do
+      assert {:ok, %{event: event, trace: trace}} =
+               Trigger.trigger(
+                 RecipientReferenceNotifier,
+                 %{
+                   "recipient" => %{
+                     recipient_ref: "cw_recipient_42",
+                     recipient_type: "user"
+                   }
+                 },
+                 idempotency_key: "recipient-reference-control-#{System.unique_integer()}",
+                 tenant_id: "tenant-1"
+               )
+
+      notification = Repo.one!(from(n in Notification, where: n.event_id == ^event.id))
+      assert notification.recipient_identity == "cw_recipient_42"
+      assert trace.event_id == event.id
+    end
+  end
+
+  defp lifecycle_counts do
+    %{
+      events: Repo.aggregate(Event, :count),
+      notifications: Repo.aggregate(Notification, :count),
+      deliveries: Repo.aggregate(Delivery, :count)
+    }
   end
 end
