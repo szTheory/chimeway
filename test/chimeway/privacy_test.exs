@@ -186,4 +186,31 @@ defmodule Chimeway.PrivacyTest do
     assert {:ok, %{outcome: :failed, provider_response: %{}}} =
              SafeEvidence.attempt_attrs(%{outcome: :failed, provider_response: nil})
   end
+
+  test "recipient references accept only explicit opaque or canonical UUID compatibility values" do
+    assert {:ok, "cw_recipient_42"} = SafeEvidence.recipient_reference("cw_recipient_42")
+
+    assert {:ok, "user:550e8400-e29b-41d4-a716-446655440000"} =
+             SafeEvidence.recipient_reference("user:550e8400-e29b-41d4-a716-446655440000")
+
+    for unsafe <- [
+          "alex-smith",
+          "another-raw-slug",
+          "Alice Smith",
+          "alex@example.test",
+          "user:alex-smith",
+          "user:alex@example.test",
+          "CW_recipient_42",
+          "cw_recipient_42_suffix!",
+          "cw__recipient",
+          "user:550E8400-e29b-41d4-a716-446655440000",
+          "user:550e8400-e29b-41d4-a716-44665544000",
+          nil,
+          "",
+          String.duplicate("a", 161),
+          42
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.recipient_reference(unsafe)
+    end
+  end
 end
