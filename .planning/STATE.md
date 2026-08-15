@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 98
 current_phase_name: privacy-safe-delivery-evidence
 status: executing
-stopped_at: Completed 98-12-PLAN.md
-last_updated: "2026-08-15T23:09:29.644Z"
+stopped_at: Completed 98-13-PLAN.md
+last_updated: "2026-08-15T23:35:16.602Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 98 execution started
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 26
-  completed_plans: 26
+  total_plans: 27
+  completed_plans: 27
   percent: 29
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 98 (privacy-safe-delivery-evidence) — EXECUTING
-Plan: 3 of 12
+Plan: 2 of 13
 Status: Ready to execute
 Last activity: 2026-08-15 — Phase 98 execution started
 
@@ -351,6 +351,7 @@ status: complete
 - [Phase ?]: [98-12]: recipient_reference/1 accepts only documented cw_ values and exact lowercase UUID user: compatibility values; it does not derive replacements.
 - [Phase ?]: [98-12]: equal atom/string recipient aliases are ambiguous and rejected before Trigger opens its lifecycle transaction.
 - [Phase ?]: [98-12]: Workflow routing uses explicit opaque actor references; raw signal identities never query waiting runs.
+- [Phase ?]: [98-13]: Lifecycle fixture references use documented deterministic cw_lifecycle_user_<id> values, including all dependent queries and policy fixtures.
 
 ### Roadmap Evolution
 
@@ -671,8 +672,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-15T23:09:29.635Z
-Stopped at: Completed 98-12-PLAN.md
+Last session: 2026-08-15T23:35:16.588Z
+Stopped at: Completed 98-13-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -800,3 +801,4 @@ Resume file: None
 | Phase 98-privacy-safe-delivery-evidence P10 | ~55 min | 2 tasks | 6 files |
 | Phase 98-privacy-safe-delivery-evidence P11 | 10min | 1 tasks | 4 files |
 | Phase 98-privacy-safe-delivery-evidence P12 | 12min | 2 tasks | 6 files |
+| Phase 98-privacy-safe-delivery-evidence P13 | 6min | 1 tasks | 1 files |
