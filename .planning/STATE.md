@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 98
 current_phase_name: privacy-safe-delivery-evidence
 status: executing
-stopped_at: Completed 98-11-PLAN.md
-last_updated: "2026-08-15T23:03:37.605Z"
+stopped_at: Completed 98-12-PLAN.md
+last_updated: "2026-08-15T23:09:29.644Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 98 execution started
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 26
-  completed_plans: 25
-  percent: 14
+  completed_plans: 26
+  percent: 29
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 98 (privacy-safe-delivery-evidence) — EXECUTING
-Plan: 2 of 12
+Plan: 3 of 12
 Status: Ready to execute
 Last activity: 2026-08-15 — Phase 98 execution started
 
@@ -348,6 +348,9 @@ status: complete
 - [Phase ?]: [98-09]: Provider codes use the same closed grammar as other categorical safe evidence.
 - [Phase ?]: [98-10]: Oban hydrates allowed email deliveries from host-owned resolver context only after terminal and policy gates, passing private values solely in memory to the adapter.
 - [Phase ?]: [98-11]: Hydration failure records the literal render_context_unavailable attempt before mapping through the existing Oban retry and exhaustion contract.
+- [Phase ?]: [98-12]: recipient_reference/1 accepts only documented cw_ values and exact lowercase UUID user: compatibility values; it does not derive replacements.
+- [Phase ?]: [98-12]: equal atom/string recipient aliases are ambiguous and rejected before Trigger opens its lifecycle transaction.
+- [Phase ?]: [98-12]: Workflow routing uses explicit opaque actor references; raw signal identities never query waiting runs.
 
 ### Roadmap Evolution
 
@@ -668,8 +671,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-15T23:03:37.595Z
-Stopped at: Completed 98-11-PLAN.md
+Last session: 2026-08-15T23:09:29.635Z
+Stopped at: Completed 98-12-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -796,3 +799,4 @@ Resume file: None
 | Phase 98 P09 | 3 min | 1 tasks | 3 files |
 | Phase 98-privacy-safe-delivery-evidence P10 | ~55 min | 2 tasks | 6 files |
 | Phase 98-privacy-safe-delivery-evidence P11 | 10min | 1 tasks | 4 files |
+| Phase 98-privacy-safe-delivery-evidence P12 | 12min | 2 tasks | 6 files |
