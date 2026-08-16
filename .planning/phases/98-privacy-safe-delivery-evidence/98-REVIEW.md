@@ -1,6 +1,6 @@
 ---
 phase: 98-privacy-safe-delivery-evidence
-reviewed: 2026-08-15T21:27:30Z
+reviewed: 2026-08-16T12:00:00Z
 depth: standard
 files_reviewed: 43
 files_reviewed_list:
@@ -48,51 +48,30 @@ files_reviewed_list:
   - test/fixtures/installer_golden_prefixed/tree/priv/repo/migrations/TIMESTAMP_privacy_safe_delivery_evidence.exs
   - test/fixtures/installer_golden_public/tree/priv/repo/migrations/TIMESTAMP_privacy_safe_delivery_evidence.exs
 findings:
-  critical: 1
+  critical: 0
   warning: 0
   info: 0
-  total: 1
-status: issues_found
+  total: 0
+status: clean
 ---
 
 # Phase 98: Code Review Report
 
-**Reviewed:** 2026-08-15T21:27:30Z
+**Reviewed:** 2026-08-16T12:00:00Z
 **Depth:** standard
 **Files Reviewed:** 43
-**Status:** issues_found
+**Status:** clean
 
 ## Summary
 
-The new evidence projections correctly close the previously exposed nested trace and struct-redaction paths, but deferred-delivery state transitions still bypass the tenant ownership boundary. A caller with a foreign delivery UUID can resume or cancel that tenant's deferred delivery.
+The legacy deferred-job compatibility blocker is resolved. A job with only `delivery_id` derives its tenant from the referenced durable delivery, then calls the same tenant-scoped resume API used by new jobs. Missing legacy rows no-op; malformed arguments fail. The resume and cancellation queries remain constrained by both delivery ID and tenant ID, so this compatibility path does not weaken tenant isolation.
 
 ## Narrative Findings (AI reviewer)
 
-## Critical Issues
-
-### CR-01: Deferred delivery transitions are not tenant-scoped
-
-**File:** `lib/chimeway/deliveries.ex:748-767` and `lib/chimeway/deliveries.ex:797-813`
-**Issue:** `resume_deferred_delivery/2` and `cancel_deferred_delivery/3` load the delivery and update it by UUID alone. Neither resolves `TenantScope` from `opts` nor constrains its fetch/update query with `d.tenant_id`. Consequently, a host-facing caller that knows a different tenant's delivery UUID can move that row from `:deferred` to `:ready`, or cancel it with a chosen suppression reason. This violates the application's required tenancy and host-ownership boundary.
-**Fix:** Resolve the tenant before both operations, fetch with the tenant constraint, and add the same constraint to `Repo.update_all/2`. Treat missing or foreign IDs as not found/noop. For example:
-
-```elixir
-with {:ok, tenant_id} <- TenantScope.resolve(opts),
-     %Delivery{} = delivery <- Repo.get_by(Delivery, id: delivery_id, tenant_id: tenant_id) do
-  Repo.update_all(
-    from(d in Delivery,
-      where: d.id == ^delivery_id and d.tenant_id == ^tenant_id and
-        d.status == :pending and d.orchestration_state == :deferred
-    ),
-    set: [...]
-  )
-end
-```
-
-Add cross-tenant regression tests for both APIs, asserting they cannot mutate the foreign row.
+No remaining bugs, security vulnerabilities, or correctness-risk quality defects were found in this narrow re-review.
 
 ---
 
-_Reviewed: 2026-08-15T21:27:30Z_
+_Reviewed: 2026-08-16T12:00:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
