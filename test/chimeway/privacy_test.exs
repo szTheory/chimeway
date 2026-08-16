@@ -3,6 +3,14 @@ defmodule Chimeway.PrivacyTest do
 
   alias Chimeway.{Privacy, SafeEvidence}
 
+  defmodule NestedEvidence do
+    defstruct [:allowed, :Body, :Provider_Response]
+  end
+
+  defmodule HostileEvidence do
+    defstruct [:allowed, :ToKeN, :recipient_id, :Provider_Response, :body]
+  end
+
   test "redacts mixed-case forbidden keys recursively while retaining ordered duplicate allowed keywords" do
     value = %{
       "safe" => [
@@ -23,6 +31,53 @@ defmodule Chimeway.PrivacyTest do
     assert Privacy.redact(nil) == nil
     assert Privacy.redact([%{"safe" => "value"}]) == [%{"safe" => "value"}]
     assert Privacy.redact([1, %{"Authorization" => "hidden"}, 2]) == [1, %{}, 2]
+  end
+
+  test "projects non-temporal structs recursively before proof redaction" do
+    timestamp = ~U[2026-08-16 12:00:00Z]
+
+    value = %HostileEvidence{
+      allowed: %NestedEvidence{
+        allowed: [
+          %{"kept" => timestamp, "BODY" => "NESTED_BODY_SENTINEL"},
+          [kept: ~D[2026-08-16], Recipient: "KEYWORD_RECIPIENT_SENTINEL", kept: ~T[12:00:00]]
+        ],
+        Body: "NESTED_BODY_SENTINEL",
+        Provider_Response: "NESTED_PROVIDER_SENTINEL"
+      },
+      ToKeN: "TOKEN_SENTINEL",
+      recipient_id: "RECIPIENT_SENTINEL",
+      Provider_Response: "PROVIDER_SENTINEL",
+      body: "BODY_SENTINEL"
+    }
+
+    for redacted <- [Privacy.redact(value), SafeEvidence.proof(value)] do
+      assert is_map(redacted)
+      refute is_struct(redacted)
+
+      assert redacted.allowed.allowed == [
+               %{"kept" => timestamp},
+               [kept: ~D[2026-08-16], kept: ~T[12:00:00]]
+             ]
+
+      rendered = inspect(redacted)
+
+      for forbidden <- [
+            "TOKEN_SENTINEL",
+            "RECIPIENT_SENTINEL",
+            "PROVIDER_SENTINEL",
+            "BODY_SENTINEL",
+            "NESTED_PROVIDER_SENTINEL",
+            "NESTED_BODY_SENTINEL"
+          ] do
+        refute rendered =~ forbidden
+      end
+    end
+
+    assert Privacy.redact(~N[2026-08-16 12:00:00]) == ~N[2026-08-16 12:00:00]
+    assert Privacy.redact(%{}) == %{}
+    assert Privacy.redact([]) == []
+    assert Privacy.redact(nil) == nil
   end
 
   test "does not traverse forbidden values or create atoms from arbitrary binary keys" do

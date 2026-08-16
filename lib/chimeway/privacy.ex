@@ -15,7 +15,16 @@ defmodule Chimeway.Privacy do
   ))
 
   @spec redact(term()) :: term()
-  def redact(value) when is_struct(value), do: value
+  def redact(%Date{} = value), do: value
+  def redact(%Time{} = value), do: value
+  def redact(%NaiveDateTime{} = value), do: value
+  def redact(%DateTime{} = value), do: value
+
+  def redact(value) when is_struct(value) do
+    value
+    |> Map.from_struct()
+    |> redact()
+  end
 
   def redact(value) when is_map(value) do
     Enum.reduce(value, %{}, fn {key, child}, acc ->
