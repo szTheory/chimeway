@@ -28,6 +28,11 @@ defmodule Chimeway.SafeEvidence do
     "adapter_module" => :adapter_module
   }
   @outcomes [:succeeded, :failed, :bounced, :rejected]
+  @timeline_events ~w(
+    event_created notification_created delivery_planned deferred resumed recovered suppressed cancelled
+    digested digest_skipped emitted_immediately digest_emitted attempt_recorded webhook_received
+    workflow_progressed workflow_waiting workflow_stopped workflow_completed
+  )a
   @digest_outcomes ~w(digested skipped_by_policy emitted_immediately deferred)
   @digest_reasons ~w(
     included_in_digest skipped_by_policy emitted_immediately recipient_muted
@@ -272,25 +277,49 @@ defmodule Chimeway.SafeEvidence do
       resumed_at: safe_datetime(Map.get(value, :resumed_at)),
       suppression_reason: digest_reason(Map.get(value, :suppression_reason)),
       digest: safe_digest(Map.get(value, :digest)),
-      last_attempt: Map.get(value, :last_attempt),
-      timeline: Map.get(value, :timeline, [])
+      last_attempt: trace_attempt_or_nil(Map.get(value, :last_attempt)),
+      timeline: trace_timeline(Map.get(value, :timeline, []))
     }
   end
 
   def trace(_value), do: %{}
 
-  @spec trace_attempt(map()) :: map()
-  def trace_attempt(attempt) do
+  @spec trace_attempt(term()) :: map()
+  def trace_attempt(attempt) when is_map(attempt) do
     %{
       id: safe_lifecycle_id(Map.get(attempt, :id)),
-      outcome: Map.get(attempt, :outcome),
-      inserted_at: Map.get(attempt, :inserted_at),
-      attempt_number: Map.get(attempt, :attempt_number),
-      error_class: Map.get(attempt, :error_class),
+      outcome: safe_outcome(Map.get(attempt, :outcome)),
+      inserted_at: safe_datetime(Map.get(attempt, :inserted_at)),
+      attempt_number: positive_integer(Map.get(attempt, :attempt_number)),
+      error_class: safe_error_class(Map.get(attempt, :error_class)),
       provider_message_id:
         opaque_projection(:provider_message_id, Map.get(attempt, :provider_message_id))
     }
   end
+
+  def trace_attempt(_attempt), do: %{}
+
+  defp trace_attempt_or_nil(attempt) when is_map(attempt) do
+    case trace_attempt(attempt) do
+      trace when map_size(trace) == 0 -> nil
+      trace -> if(Enum.all?(trace, fn {_key, value} -> is_nil(value) end), do: nil, else: trace)
+    end
+  end
+
+  defp trace_attempt_or_nil(_attempt), do: nil
+
+  defp trace_timeline(timeline) when is_list(timeline) do
+    Enum.flat_map(timeline, &trace_timeline_entry/1)
+  end
+
+  defp trace_timeline(_timeline), do: []
+
+  defp trace_timeline_entry(%{at: %DateTime{} = at, event: event, detail: detail})
+       when event in @timeline_events and is_map(detail) do
+    [%{at: at, event: event, detail: timeline_detail(detail)}]
+  end
+
+  defp trace_timeline_entry(_entry), do: []
 
   @doc false
   @spec trace_event(map()) :: map()
@@ -348,12 +377,12 @@ defmodule Chimeway.SafeEvidence do
     }
   end
 
-  @spec timeline_detail(map()) :: map()
-  def timeline_detail(attempt) do
-    attempt = if is_struct(attempt), do: Map.from_struct(attempt), else: attempt
-
-    safe =
-      attempt
+  @spec timeline_detail(term()) :: map()
+  def timeline_detail(value) when is_map(value) do
+    value
+    |> then(fn detail -> if is_struct(detail), do: Map.from_struct(detail), else: detail end)
+    |> then(fn detail ->
+      detail
       |> Privacy.redact()
       |> Enum.reduce(%{}, fn {key, value}, safe ->
         case Map.get(@timeline_fields, key |> to_string() |> String.downcase()) do
@@ -364,13 +393,10 @@ defmodule Chimeway.SafeEvidence do
             if safe_timeline_value?(field, value), do: Map.put(safe, field, value), else: safe
         end
       end)
-
-    if Map.has_key?(attempt, :provider_response) or Map.has_key?(attempt, "provider_response") do
-      Map.merge(safe, trace_attempt(attempt) |> Map.drop([:inserted_at]))
-    else
-      safe
-    end
+    end)
   end
+
+  def timeline_detail(_value), do: %{}
 
   @spec admin_fact(atom(), term()) :: map()
   def admin_fact(name, value) when is_atom(name) and is_map(value) do
@@ -443,9 +469,23 @@ defmodule Chimeway.SafeEvidence do
   defp valid_outcome(value) when value in ~w(succeeded failed bounced rejected), do: {:ok, value}
   defp valid_outcome(_value), do: {:error, :outcome}
 
+  defp safe_outcome(value) do
+    case valid_outcome(value) do
+      {:ok, outcome} -> outcome
+      {:error, :outcome} -> nil
+    end
+  end
+
   defp valid_error_class(nil), do: {:ok, nil}
   defp valid_error_class(value) when value in @error_classes, do: {:ok, value}
   defp valid_error_class(_value), do: {:error, :error_class}
+
+  defp safe_error_class(value) do
+    case valid_error_class(value) do
+      {:ok, error_class} -> error_class
+      {:error, :error_class} -> nil
+    end
+  end
 
   defp valid_adapter(nil), do: {:ok, nil}
 
@@ -608,7 +648,6 @@ defmodule Chimeway.SafeEvidence do
   defp safe_timeline_value?(field, value)
        when field in [
               :notification_key,
-              :channel,
               :rule_identity,
               :rule_kind,
               :workflow_outcome,
@@ -617,6 +656,9 @@ defmodule Chimeway.SafeEvidence do
               :recovery_source
             ],
        do: not is_nil(safe_code(value))
+
+  defp safe_timeline_value?(:channel, value), do: not is_nil(safe_channel(value))
+  defp safe_timeline_value?(:error_class, value), do: not is_nil(safe_error_class(value))
 
   defp safe_timeline_value?(_field, _value), do: false
 

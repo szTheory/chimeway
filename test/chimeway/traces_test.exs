@@ -417,12 +417,25 @@ defmodule Chimeway.TracesTest do
       assert explanation.last_attempt.outcome == :failed
       assert explanation.last_attempt.error_class == "temporary"
 
+      assert Map.keys(explanation.last_attempt) |> Enum.sort() == [
+               :attempt_number,
+               :error_class,
+               :id,
+               :inserted_at,
+               :outcome,
+               :provider_message_id
+             ]
+
       assert String.starts_with?(
                explanation.last_attempt.provider_message_id,
                "cw_provider_message_id_"
              )
 
       assert :attempt_recorded in Enum.map(explanation.timeline, & &1.event)
+
+      assert Enum.all?(explanation.timeline, fn entry ->
+               Enum.sort(Map.keys(entry)) == [:at, :detail, :event]
+             end)
     end
 
     test "returns correct explanation struct" do

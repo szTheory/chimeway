@@ -80,6 +80,71 @@ defmodule Chimeway.PrivacyTest do
     assert Privacy.redact(nil) == nil
   end
 
+  test "trace rebuilds nested attempt and timeline evidence from closed vocabularies" do
+    at = ~U[2026-08-16 12:00:00Z]
+
+    trace =
+      SafeEvidence.trace(%{
+        last_attempt: %{
+          id: "cw_attempt_42",
+          outcome: :failed,
+          inserted_at: at,
+          attempt_number: 2,
+          error_class: "temporary",
+          provider_message_id: "cw_provider_42",
+          provider_response: %{"token" => "TRACE_PROVIDER_SENTINEL"},
+          body: "TRACE_BODY_SENTINEL",
+          unknown: "TRACE_UNKNOWN_SENTINEL"
+        },
+        timeline: [
+          %{
+            at: at,
+            event: :delivery_planned,
+            detail: %{
+              channel: "email",
+              provider_response: %{"body" => "TRACE_PROVIDER_SENTINEL"},
+              body: "TRACE_BODY_SENTINEL"
+            }
+          },
+          %{at: at, event: :attempt_recorded, detail: %{outcome: :failed, attempt_number: 2}},
+          %{at: "not-a-datetime", event: :delivery_planned, detail: %{}},
+          %{at: at, event: :unknown, detail: %{}},
+          %{at: at, event: :delivery_planned, detail: "not-a-map"},
+          "not-a-map"
+        ]
+      })
+
+    assert Map.keys(trace.last_attempt) |> Enum.sort() == [
+             :attempt_number,
+             :error_class,
+             :id,
+             :inserted_at,
+             :outcome,
+             :provider_message_id
+           ]
+
+    assert trace.last_attempt.outcome == :failed
+    assert trace.last_attempt.inserted_at == at
+    assert trace.last_attempt.attempt_number == 2
+    assert trace.last_attempt.error_class == "temporary"
+    assert trace.last_attempt.provider_message_id =~ ~r/^cw_provider_message_id_[a-f0-9]{32}$/
+
+    assert trace.timeline == [
+             %{at: at, event: :delivery_planned, detail: %{channel: "email"}},
+             %{at: at, event: :attempt_recorded, detail: %{outcome: :failed, attempt_number: 2}}
+           ]
+
+    rendered = inspect(trace)
+    refute rendered =~ "TRACE_PROVIDER_SENTINEL"
+    refute rendered =~ "TRACE_BODY_SENTINEL"
+    refute rendered =~ "TRACE_UNKNOWN_SENTINEL"
+
+    assert SafeEvidence.trace(%{last_attempt: "not-a-map", timeline: "not-a-list"}).last_attempt ==
+             nil
+
+    assert SafeEvidence.trace(%{last_attempt: "not-a-map", timeline: "not-a-list"}).timeline == []
+  end
+
   test "does not traverse forbidden values or create atoms from arbitrary binary keys" do
     forbidden_value = fn -> raise "must not be traversed" end
     assert Privacy.redact(%{"Provider_Body" => forbidden_value}) == %{}
