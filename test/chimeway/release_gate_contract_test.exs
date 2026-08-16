@@ -1046,6 +1046,9 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert proof.proof_source =~ "Chimeway.Repo.get_dynamic_repo()"
       assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
+      refute proof.mix_source =~ "{:mailglass,"
+      refute proof.config_source =~ "config :mailglass"
+      refute proof.application_source =~ "Mailglass"
 
       proof_source_without_dynamic_repo_handoff =
         proof.proof_source
@@ -1084,6 +1087,16 @@ defmodule Chimeway.ReleaseGateContractTest do
                Ecto.Adapters.Postgres.storage_down(
                  ArtifactConsumerFixture.database_config(proof.identity.database)
                )
+    end
+
+    test "generated Mailglass mailable accepts fixed atom or string render aliases without atomizing" do
+      source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
+
+      assert source =~ "fetch_assign!(assigns, \"to\", :to)"
+      assert source =~ "fetch_assign!(assigns, \"subject\", :subject)"
+      assert source =~ "fetch_assign!(assigns, \"html_body\", :html_body)"
+      assert source =~ "fetch_assign!(assigns, \"text_body\", :text_body)"
+      refute source =~ "String.to_atom"
     end
 
     @tag timeout: 120_000

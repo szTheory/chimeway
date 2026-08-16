@@ -133,6 +133,9 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
         %{
           output: safe_output,
           proof_source: proof_source,
+          mix_source: File.read!(Path.join(root, "mix.exs")),
+          config_source: File.read!(Path.join(root, "config/config.exs")),
+          application_source: File.read!(Path.join(root, "lib/artifact_consumer/application.ex")),
           identity: identity,
           evidence: parse_evidence!(safe_output),
           artifact_root: Path.expand(unpacked_root)
@@ -164,7 +167,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     result =
       try do
         File.rm_rf!(root)
-        scaffold!(root, unpacked_root, db_config)
+        scaffold!(root, unpacked_root, db_config, mailglass: true)
 
         mix_source = File.read!(Path.join(root, "mix.exs"))
         validate_artifact_dependency!(mix_source, unpacked_root, repo_root!())
@@ -390,6 +393,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
   defp scaffold!(root, unpacked_root, db_config, opts \\ []) do
     accrue? = Keyword.get(opts, :accrue, false)
+    mailglass? = Keyword.get(opts, :mailglass, false)
     File.mkdir_p!(Path.join(root, "config"))
     File.mkdir_p!(Path.join(root, "lib/artifact_consumer/notifiers"))
     File.mkdir_p!(Path.join(root, "lib/artifact_consumer/mailers"))
@@ -398,38 +402,39 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
     File.write!(
       Path.join(root, "mix.exs"),
-      mix_exs(unpacked_root, accrue?, Keyword.get(opts, :accrue_source, :release))
+      mix_exs(unpacked_root, accrue?, mailglass?, Keyword.get(opts, :accrue_source, :release))
     )
 
-    File.write!(Path.join(root, "config/config.exs"), config_exs(db_config, accrue?))
+    File.write!(Path.join(root, "config/config.exs"), config_exs(db_config, accrue?, mailglass?))
     File.write!(Path.join(root, "lib/artifact_consumer/repo.ex"), repo_ex())
     File.write!(Path.join(root, "lib/artifact_consumer/application.ex"), application_ex(accrue?))
     File.write!(Path.join(root, "lib/artifact_consumer/notifiers/core_trace.ex"), notifier_ex())
 
-    File.write!(
-      Path.join(root, "lib/artifact_consumer/notifiers/mailglass_proof.ex"),
-      mailglass_notifier_ex()
-    )
-
-    File.write!(
-      Path.join(root, "lib/artifact_consumer/mailers/mailglass_proof_email.ex"),
-      mailglass_mailable_ex()
-    )
-
-    unless accrue? do
+    if mailglass? do
       File.write!(
         Path.join(root, "priv/repo/migrations/20260808000000_mailglass_init.exs"),
         mailglass_migration_ex()
       )
+
+      File.write!(
+        Path.join(root, "lib/artifact_consumer/notifiers/mailglass_proof.ex"),
+        mailglass_notifier_ex()
+      )
+
+      File.write!(
+        Path.join(root, "lib/artifact_consumer/mailers/mailglass_proof_email.ex"),
+        mailglass_mailable_ex()
+      )
+
+      File.write!(Path.join(root, "priv/prove_mailglass.exs"), mailglass_proof_ex())
     end
 
     File.write!(Path.join(root, "priv/prove_core.exs"), proof_ex())
-    File.write!(Path.join(root, "priv/prove_mailglass.exs"), mailglass_proof_ex())
     File.write!(Path.join(root, "priv/setup_accrue.exs"), accrue_setup_ex())
     File.write!(Path.join(root, "priv/prove_accrue.exs"), accrue_proof_ex())
   end
 
-  defp mix_exs(unpacked_root, accrue?, accrue_source) do
+  defp mix_exs(unpacked_root, accrue?, mailglass?, accrue_source) do
     accrue_dependency =
       case accrue_source do
         :release ->
@@ -448,12 +453,12 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       end
 
       def application, do: [extra_applications: [:logger], included_applications: #{if(accrue?, do: "[:chimeway, :accrue]", else: "[:chimeway]")}, mod: {ArtifactConsumer.Application, []}]
-    defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}, override: true}, {:mailglass, "~> 1.3"}#{if(accrue?, do: accrue_dependency, else: "")}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
+    defp deps, do: [{:chimeway, path: #{inspect(Path.expand(unpacked_root))}, override: true}#{if(mailglass?, do: ", {:mailglass, \"~> 1.3\"}", else: "")}#{if(accrue?, do: accrue_dependency, else: "")}, {:ecto_sql, "~> 3.11"}, {:postgrex, ">= 0.0.0"}, {:oban, "~> 2.17"}]
     end
     """
   end
 
-  defp config_exs(db_config, accrue?) do
+  defp config_exs(db_config, accrue?, mailglass?) do
     """
     import Config
 
@@ -461,9 +466,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     repo_config = #{inspect(db_config)}
     config :artifact_consumer, ArtifactConsumer.Repo, repo_config
     config :chimeway, repo: ArtifactConsumer.Repo, prefix: "chimeway", dispatcher: Chimeway.Dispatch.Sync, adapter: Chimeway.Adapters.Logger
-    config :chimeway, channel_adapters: %{"email" => Chimeway.Adapters.Mailglass}
-    config :chimeway, channel_adapter_configs: %{"email" => [mailables: %{"artifact_consumer.mailglass_proof.email" => {ArtifactConsumer.Mailers.MailglassProofEmail, :mailglass_proof_email}}]}
-    config :mailglass, repo: ArtifactConsumer.Repo, adapter: {Mailglass.Adapters.Fake, []}, tenancy: Mailglass.Tenancy.SingleTenant, suppression_store: Mailglass.SuppressionStore.Ecto, async_adapter: :oban, adapter_endpoint: "artifact-consumer-mailglass-fake"
+    #{if(mailglass?, do: "config :chimeway, channel_adapters: %{\"email\" => Chimeway.Adapters.Mailglass}\n    config :chimeway, channel_adapter_configs: %{\"email\" => [mailables: %{\"artifact_consumer.mailglass_proof.email\" => {ArtifactConsumer.Mailers.MailglassProofEmail, :mailglass_proof_email}}]}\n    config :mailglass, repo: ArtifactConsumer.Repo, adapter: {Mailglass.Adapters.Fake, []}, tenancy: Mailglass.Tenancy.SingleTenant, suppression_store: Mailglass.SuppressionStore.Ecto, async_adapter: :oban, adapter_endpoint: \"artifact-consumer-mailglass-fake\"", else: "")}
     #{if(accrue?, do: "config :accrue, repo: ArtifactConsumer.Repo, dunning: [engine: Accrue.Integrations.Chimeway, campaign: [enabled: true]]", else: "")}
     config :artifact_consumer, Oban, repo: ArtifactConsumer.Repo, testing: :manual, queues: false
     """
@@ -569,13 +572,20 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
         new()
         |> Mailglass.Message.update_swoosh(fn email ->
           email
-          |> Swoosh.Email.to(Map.fetch!(assigns, "to"))
+          |> Swoosh.Email.to(fetch_assign!(assigns, "to", :to))
           |> Swoosh.Email.from({"Artifact Consumer", "proof@artifact-consumer.test"})
-          |> Swoosh.Email.subject(Map.fetch!(assigns, "subject"))
-          |> Swoosh.Email.html_body(Map.fetch!(assigns, "html_body"))
-          |> Swoosh.Email.text_body(Map.fetch!(assigns, "text_body"))
+          |> Swoosh.Email.subject(fetch_assign!(assigns, "subject", :subject))
+          |> Swoosh.Email.html_body(fetch_assign!(assigns, "html_body", :html_body))
+          |> Swoosh.Email.text_body(fetch_assign!(assigns, "text_body", :text_body))
         end)
         |> Mailglass.Message.put_function(:mailglass_proof_email)
+      end
+
+      defp fetch_assign!(assigns, string_key, atom_key) do
+        case Map.fetch(assigns, string_key) do
+          {:ok, value} -> value
+          :error -> Map.fetch!(assigns, atom_key)
+        end
       end
     end
     """
