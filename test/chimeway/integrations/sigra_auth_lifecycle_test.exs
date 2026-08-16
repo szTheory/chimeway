@@ -93,7 +93,7 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
     end
 
     defp delivery_attempted?(%{status: status, attempts: attempts}) do
-      status in ["succeeded", "dispatched", "failed", "suppressed"] or
+      status in [:succeeded, :dispatched, :failed, :suppressed] or
         Enum.any?(attempts || [], fn _ -> true end)
     end
   end

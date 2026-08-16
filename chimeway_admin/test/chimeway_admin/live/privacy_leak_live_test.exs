@@ -116,7 +116,7 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
+    assert html =~ "cw***"
     assert html =~ "email"
   end
 

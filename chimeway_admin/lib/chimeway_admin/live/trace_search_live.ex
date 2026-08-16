@@ -138,7 +138,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
 
   defp flatten_recipient_results(notifications) do
     Enum.flat_map(notifications, fn notification ->
-      key = notification.event.notification_key
+      key = notification.notification_key
 
       Enum.map(notification.deliveries, fn delivery ->
         %{
@@ -147,7 +147,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
           channel: delivery.channel,
           status: delivery.status,
           inserted_at: delivery.inserted_at,
-          redacted_recipient: Redaction.redact_recipient(notification.recipient_identity)
+          redacted_recipient: Redaction.redact_recipient(notification.recipient_id)
         }
       end)
     end)
@@ -163,7 +163,7 @@ defmodule ChimewayAdmin.Live.TraceSearchLive do
             channel: delivery.channel,
             status: delivery.status,
             inserted_at: delivery.inserted_at,
-            redacted_recipient: Redaction.redact_recipient(notification.recipient_identity)
+            redacted_recipient: Redaction.redact_recipient(notification.recipient_id)
           }
         end)
       end)
