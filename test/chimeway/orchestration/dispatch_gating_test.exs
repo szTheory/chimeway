@@ -145,13 +145,17 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
 
     assert_enqueued(
       worker: DeferredResumeWorker,
-      args: %{delivery_id: deferred_delivery.id},
+      args: %{delivery_id: deferred_delivery.id, tenant_id: deferred_delivery.tenant_id},
       scheduled_at: deferred_delivery.next_eligible_at
     )
 
     refute_enqueued(worker: ObanWorker, args: %{delivery_id: deferred_delivery.id})
     refute_enqueued(worker: ObanWorker, args: %{delivery_id: digest_delivery.id})
-    refute_enqueued(worker: DeferredResumeWorker, args: %{delivery_id: digest_delivery.id})
+
+    refute_enqueued(
+      worker: DeferredResumeWorker,
+      args: %{delivery_id: digest_delivery.id, tenant_id: digest_delivery.tenant_id}
+    )
 
     assert :ok = perform_job(ObanWorker, %{delivery_id: deferred_delivery.id})
     assert :ok = perform_job(ObanWorker, %{delivery_id: digest_delivery.id})

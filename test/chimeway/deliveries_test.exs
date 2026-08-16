@@ -965,4 +965,69 @@ defmodule Chimeway.DeliveriesTest do
              }
     end
   end
+
+  describe "deferred delivery tenant scope" do
+    test "wrong-tenant resume and cancellation neither disclose nor mutate a deferred delivery" do
+      event = insert_event(%{tenant_id: "tenant-a"})
+      notification = insert_notification_for_event(event)
+
+      delivery =
+        insert_delivery(
+          notification: notification,
+          tenant_id: "tenant-a",
+          status: :pending,
+          orchestration_state: :deferred,
+          next_eligible_at: ~U[2026-04-28 18:00:00Z]
+        )
+
+      opts = [tenant_id: "tenant-b", now: ~U[2026-04-28 18:05:00Z]]
+
+      assert {:noop, nil} = Deliveries.resume_deferred_delivery(delivery.id, opts)
+
+      assert {:noop, nil} =
+               Deliveries.cancel_deferred_delivery(delivery.id, "superseded", opts)
+
+      reloaded = Repo.get!(Delivery, delivery.id)
+      assert reloaded.tenant_id == "tenant-a"
+      assert reloaded.status == :pending
+      assert reloaded.orchestration_state == :deferred
+      assert reloaded.suppression_reason == nil
+      assert reloaded.metadata == %{}
+    end
+
+    test "tenant-scoped resume and cancellation update only the authorized deferred delivery" do
+      event = insert_event(%{tenant_id: "tenant-a"})
+      notification = insert_notification_for_event(event)
+
+      resumable =
+        insert_delivery(
+          notification: notification,
+          tenant_id: "tenant-a",
+          status: :pending,
+          orchestration_state: :deferred,
+          next_eligible_at: ~U[2026-04-28 18:00:00Z]
+        )
+
+      cancellable =
+        insert_delivery(
+          notification: notification,
+          tenant_id: "tenant-a",
+          channel: :email,
+          status: :pending,
+          orchestration_state: :deferred,
+          next_eligible_at: ~U[2026-04-28 18:00:00Z]
+        )
+
+      opts = [tenant_id: "tenant-a", now: ~U[2026-04-28 18:05:00Z]]
+
+      assert {:ok, resumed} = Deliveries.resume_deferred_delivery(resumable.id, opts)
+      assert resumed.orchestration_state == :ready
+
+      assert {:ok, cancelled} =
+               Deliveries.cancel_deferred_delivery(cancellable.id, "superseded", opts)
+
+      assert cancelled.status == :cancelled
+      assert cancelled.suppression_reason == "superseded"
+    end
+  end
 end

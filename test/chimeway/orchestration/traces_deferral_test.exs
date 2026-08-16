@@ -159,6 +159,7 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
       Deliveries.resume_deferred_delivery(
         delivery.id,
         now: now,
+        tenant_id: delivery.tenant_id,
         source: source
       )
 

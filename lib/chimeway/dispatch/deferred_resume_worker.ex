@@ -4,8 +4,8 @@ if Code.ensure_loaded?(Oban) do
     Oban worker that resumes a deferred delivery row and enqueues the canonical
     delivery performer in the same transaction.
 
-    Job args contain only `delivery_id`. Deferred scheduling facts stay on the
-    delivery row, and actual send execution remains owned by
+    Job args contain the durable `delivery_id` and its owning `tenant_id`. Deferred
+    scheduling facts stay on the delivery row, and actual send execution remains owned by
     `Chimeway.Dispatch.ObanWorker`.
     """
 
@@ -20,18 +20,21 @@ if Code.ensure_loaded?(Oban) do
     alias Ecto.Multi
 
     @impl Oban.Worker
-    def perform(%Oban.Job{args: %{"delivery_id" => delivery_id}}) do
+    def perform(%Oban.Job{args: %{"delivery_id" => delivery_id, "tenant_id" => tenant_id}}) do
       Multi.new()
-      |> Multi.run(:resume_delivery, resume_delivery_step(delivery_id))
+      |> Multi.run(:resume_delivery, resume_delivery_step(delivery_id, tenant_id))
       |> Multi.run(:dispatch_job, &dispatch_job_step/2)
       |> Repo.transaction()
       |> normalize_transaction_result()
     end
 
-    defp resume_delivery_step(delivery_id) do
+    def perform(%Oban.Job{args: %{"delivery_id" => _delivery_id}}),
+      do: {:error, :tenant_scope_required}
+
+    defp resume_delivery_step(delivery_id, tenant_id) do
       fn _repo, _changes ->
         delivery_id
-        |> Deliveries.resume_deferred_delivery(source: "oban_scheduler")
+        |> Deliveries.resume_deferred_delivery(tenant_id: tenant_id, source: "oban_scheduler")
         |> normalize_resume_result()
       end
     end

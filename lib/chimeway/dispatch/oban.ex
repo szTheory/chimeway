@@ -117,7 +117,7 @@ if Code.ensure_loaded?(Oban) do
          ) do
       job =
         DeferredResumeWorker.new(
-          %{delivery_id: delivery.id},
+          %{delivery_id: delivery.id, tenant_id: delivery.tenant_id},
           scheduled_at: delivery.next_eligible_at
         )
 

@@ -956,6 +956,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.Deliveries.resume_deferred_delivery(
                  delivery.id,
                  now: ~U[2026-01-15 13:00:00Z],
+                 tenant_id: delivery.tenant_id,
                  source: "scheduled_resume"
                )
 
@@ -1085,7 +1086,8 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.Deliveries.cancel_deferred_delivery(
                  delivery,
                  "superseded",
-                 now: ~U[2026-01-15 12:55:00Z]
+                 now: ~U[2026-01-15 12:55:00Z],
+                 tenant_id: delivery.tenant_id
                )
 
       assert cancelled_delivery.id == original_id

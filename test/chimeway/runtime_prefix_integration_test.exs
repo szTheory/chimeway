@@ -173,7 +173,6 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   }
 
   alias Chimeway.Digests.{Accumulation, DigestBucket}
-  alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Policy
   alias Chimeway.Policy.Settings
@@ -607,7 +606,10 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     # Chimeway.Dispatch.ObanWorker.perform/1 and
     # Chimeway.Dispatch.DeferredResumeWorker.perform/1 must reload by durable delivery_id.
-    assert :ok = DeferredResumeWorker.perform(%Oban.Job{args: %{"delivery_id" => deferred.id}})
+    assert :ok =
+             DeferredResumeWorker.perform(%Oban.Job{
+               args: %{"delivery_id" => deferred.id, "tenant_id" => deferred.tenant_id}
+             })
   end
 
   @tag :runtime_prefix_digest

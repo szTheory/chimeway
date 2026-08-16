@@ -730,7 +730,7 @@ defmodule Chimeway.Deliveries do
   Returns `{:noop, delivery}` when the row is no longer pending, deferred, and due.
   """
   @spec resume_deferred_delivery(binary() | Delivery.t(), keyword()) ::
-          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+          {:ok, Delivery.t()} | {:noop, Delivery.t() | nil}
   def resume_deferred_delivery(delivery_or_id, opts \\ [])
 
   def resume_deferred_delivery(%Delivery{id: delivery_id}, opts) when is_list(opts) do
@@ -745,31 +745,42 @@ defmodule Chimeway.Deliveries do
 
     source = normalize_resume_source!(Keyword.get(opts, :source, "scheduled_resume"))
 
-    delivery = get_delivery!(delivery_id)
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        case get_deferred_delivery(delivery_id, tenant_id) do
+          %Delivery{} = delivery ->
+            metadata =
+              delivery.metadata
+              |> ensure_metadata_map()
+              |> Map.put("resume_source", source)
+              |> Map.put("resume_scheduled_at", iso8601_utc_usec(delivery.next_eligible_at))
+              |> Map.put("resumed_at", iso8601_utc_usec(now))
 
-    metadata =
-      delivery.metadata
-      |> ensure_metadata_map()
-      |> Map.put("resume_source", source)
-      |> Map.put("resume_scheduled_at", iso8601_utc_usec(delivery.next_eligible_at))
-      |> Map.put("resumed_at", iso8601_utc_usec(now))
+            {updated_count, _rows} =
+              Repo.update_all(
+                from(d in Delivery,
+                  where:
+                    d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+                      d.orchestration_state == :deferred and not is_nil(d.next_eligible_at) and
+                      d.next_eligible_at <= ^now
+                ),
+                set: [orchestration_state: :ready, metadata: metadata, updated_at: now]
+              )
 
-    {updated_count, _rows} =
-      Repo.update_all(
-        from(d in Delivery,
-          where:
-            d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred and
-              not is_nil(d.next_eligible_at) and d.next_eligible_at <= ^now
-        ),
-        set: [orchestration_state: :ready, metadata: metadata, updated_at: now]
-      )
+            updated_delivery = get_deferred_delivery(delivery_id, tenant_id)
 
-    updated_delivery = get_delivery!(delivery_id)
+            if updated_count == 1 do
+              {:ok, updated_delivery}
+            else
+              {:noop, updated_delivery}
+            end
 
-    if updated_count == 1 do
-      {:ok, updated_delivery}
-    else
-      {:noop, updated_delivery}
+          nil ->
+            {:noop, nil}
+        end
+
+      {:error, _reason} ->
+        {:noop, nil}
     end
   end
 
@@ -778,7 +789,7 @@ defmodule Chimeway.Deliveries do
   Returns `{:noop, delivery}` when the row is no longer a pending deferred delivery.
   """
   @spec cancel_deferred_delivery(binary() | Delivery.t(), String.t(), keyword()) ::
-          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+          {:ok, Delivery.t()} | {:noop, Delivery.t() | nil}
   def cancel_deferred_delivery(delivery_or_id, reason, opts \\ [])
 
   def cancel_deferred_delivery(%Delivery{id: delivery_id}, reason, opts)
@@ -794,28 +805,45 @@ defmodule Chimeway.Deliveries do
       |> normalize_datetime!()
 
     reason = normalize_suppression_reason!(reason)
-    delivery = get_delivery!(delivery_id)
 
-    metadata =
-      delivery.metadata
-      |> ensure_metadata_map()
-      |> Map.put("resume_cancelled_at", iso8601_utc_usec(now))
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        case get_deferred_delivery(delivery_id, tenant_id) do
+          %Delivery{} = delivery ->
+            metadata =
+              delivery.metadata
+              |> ensure_metadata_map()
+              |> Map.put("resume_cancelled_at", iso8601_utc_usec(now))
 
-    {updated_count, _rows} =
-      Repo.update_all(
-        from(d in Delivery,
-          where:
-            d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred
-        ),
-        set: [status: :cancelled, suppression_reason: reason, metadata: metadata, updated_at: now]
-      )
+            {updated_count, _rows} =
+              Repo.update_all(
+                from(d in Delivery,
+                  where:
+                    d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+                      d.orchestration_state == :deferred
+                ),
+                set: [
+                  status: :cancelled,
+                  suppression_reason: reason,
+                  metadata: metadata,
+                  updated_at: now
+                ]
+              )
 
-    updated_delivery = get_delivery!(delivery_id)
+            updated_delivery = get_deferred_delivery(delivery_id, tenant_id)
 
-    if updated_count == 1 do
-      {:ok, updated_delivery}
-    else
-      {:noop, updated_delivery}
+            if updated_count == 1 do
+              {:ok, updated_delivery}
+            else
+              {:noop, updated_delivery}
+            end
+
+          nil ->
+            {:noop, nil}
+        end
+
+      {:error, _reason} ->
+        {:noop, nil}
     end
   end
 
@@ -1002,6 +1030,10 @@ defmodule Chimeway.Deliveries do
   end
 
   defp get_recovery_delivery(delivery_id, tenant_id) do
+    Repo.one(from(d in Delivery, where: d.id == ^delivery_id and d.tenant_id == ^tenant_id))
+  end
+
+  defp get_deferred_delivery(delivery_id, tenant_id) do
     Repo.one(from(d in Delivery, where: d.id == ^delivery_id and d.tenant_id == ^tenant_id))
   end
 

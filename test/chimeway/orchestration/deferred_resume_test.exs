@@ -50,6 +50,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.resume_deferred_delivery(
                  delivery.id,
                  now: ~U[2026-01-15 13:05:00Z],
+                 tenant_id: "default",
                  source: "scheduled_resume"
                )
 
@@ -65,6 +66,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.resume_deferred_delivery(
                  delivery.id,
                  now: ~U[2026-01-15 13:06:00Z],
+                 tenant_id: "default",
                  source: "scheduled_resume"
                )
 
@@ -114,6 +116,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.resume_deferred_delivery(
                  future_delivery.id,
                  now: ~U[2026-01-15 13:00:00Z],
+                 tenant_id: "default",
                  source: "scheduled_resume"
                )
 
@@ -124,6 +127,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.resume_deferred_delivery(
                  ready_delivery.id,
                  now: ~U[2026-01-15 13:00:00Z],
+                 tenant_id: "default",
                  source: "scheduled_resume"
                )
 
@@ -164,7 +168,8 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.cancel_deferred_delivery(
                  cancelled_delivery,
                  "resume_cancelled",
-                 now: ~U[2026-01-15 12:59:00Z]
+                 now: ~U[2026-01-15 12:59:00Z],
+                 tenant_id: "default"
                )
 
       assert cancelled_delivery.status == :cancelled
@@ -176,7 +181,8 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.cancel_deferred_delivery(
                  superseded_delivery,
                  "superseded",
-                 now: ~U[2026-01-15 12:59:00Z]
+                 now: ~U[2026-01-15 12:59:00Z],
+                 tenant_id: "default"
                )
 
       assert superseded_delivery.status == :cancelled
@@ -187,6 +193,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.resume_deferred_delivery(
                  cancelled_delivery.id,
                  now: ~U[2026-01-15 13:01:00Z],
+                 tenant_id: "default",
                  source: "scheduled_resume"
                )
 
@@ -196,6 +203,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.resume_deferred_delivery(
                  suppressed_delivery.id,
                  now: ~U[2026-01-15 13:01:00Z],
+                 tenant_id: "default",
                  source: "scheduled_resume"
                )
 
@@ -205,6 +213,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.resume_deferred_delivery(
                  superseded_delivery.id,
                  now: ~U[2026-01-15 13:01:00Z],
+                 tenant_id: "default",
                  source: "scheduled_resume"
                )
 
@@ -225,10 +234,15 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
                Deliveries.cancel_deferred_delivery(
                  delivery,
                  "superseded",
-                 now: ~U[2026-01-15 12:59:00Z]
+                 now: ~U[2026-01-15 12:59:00Z],
+                 tenant_id: "default"
                )
 
-      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: cancelled_delivery.id})
+      assert :ok =
+               perform_job(DeferredResumeWorker, %{
+                 delivery_id: cancelled_delivery.id,
+                 tenant_id: cancelled_delivery.tenant_id
+               })
 
       assert {:ok, explanation} =
                Traces.explain_delivery(cancelled_delivery.id,
@@ -267,6 +281,11 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
   end
 
   describe "DeferredResumeWorker" do
+    test "fails closed when a legacy job omits tenant scope" do
+      assert {:error, :tenant_scope_required} =
+               perform_job(DeferredResumeWorker, %{delivery_id: Ecto.UUID.generate()})
+    end
+
     test "promotes a deferred row and enqueues exactly one canonical dispatch worker" do
       delivery =
         deferred_delivery_fixture(
@@ -277,7 +296,11 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
 
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
 
-      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: delivery.id})
+      assert :ok =
+               perform_job(DeferredResumeWorker, %{
+                 delivery_id: delivery.id,
+                 tenant_id: delivery.tenant_id
+               })
 
       resumed = Deliveries.get_delivery!(delivery.id)
       assert resumed.orchestration_state == :ready
@@ -287,7 +310,11 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
       assert_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
       assert length(all_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})) == 1
 
-      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: delivery.id})
+      assert :ok =
+               perform_job(DeferredResumeWorker, %{
+                 delivery_id: delivery.id,
+                 tenant_id: delivery.tenant_id
+               })
 
       assert length(all_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})) == 1
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: "#{delivery.id}-other"})
@@ -318,8 +345,17 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
           |> Repo.update!()
         end)
 
-      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: ready_delivery.id})
-      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: cancelled_delivery.id})
+      assert :ok =
+               perform_job(DeferredResumeWorker, %{
+                 delivery_id: ready_delivery.id,
+                 tenant_id: ready_delivery.tenant_id
+               })
+
+      assert :ok =
+               perform_job(DeferredResumeWorker, %{
+                 delivery_id: cancelled_delivery.id,
+                 tenant_id: cancelled_delivery.tenant_id
+               })
 
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: ready_delivery.id})
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: cancelled_delivery.id})
