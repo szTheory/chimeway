@@ -85,7 +85,7 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans:** 13/14 plans executed
+**Plans:** 14/15 plans executed
 
 Plans:
 
@@ -137,7 +137,11 @@ Plans:
 
 **Gap Closure Wave 12** *(blocked on Gap Closure Wave 11 completion)*
 
-- [ ] 98-14-PLAN.md — Close public Trace projections and restore opaque-recipient Core/Mailglass adoption proof.
+- [x] 98-14-PLAN.md — Close public Trace projections and restore opaque-recipient Core/Mailglass adoption proof.
+
+**Gap Closure Wave 13** *(blocked on Gap Closure Wave 12 completion)*
+
+- [ ] 98-15-PLAN.md — Close arbitrary-struct redaction and nested trace evidence escape hatches.
 
 ### Phase 99: Multi-Installation Delivery & Recovery
 
