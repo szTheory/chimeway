@@ -144,6 +144,7 @@ defmodule Chimeway.Reliability.AttemptHistoryTest do
                "temporary",
                "permanent",
                "bounced",
+               "render_context_unavailable",
                "unknown_classification"
              ]
     end
