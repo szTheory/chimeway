@@ -48,9 +48,9 @@ defmodule Chimeway.Traces do
 
   Preloads: `[notifications: [deliveries: :attempts]]`
 
-  Returns `{:ok, event}` or `{:error, :not_found}`.
+  Returns `{:ok, closed_event_map}` or `{:error, :not_found}`.
   """
-  @spec get_trace(String.t(), keyword()) :: {:ok, Event.t()} | {:error, :not_found}
+  @spec get_trace(String.t(), keyword()) :: {:ok, map()} | {:error, :not_found}
   def get_trace(event_id, opts \\ []) do
     with {:ok, tenant_id} <- TenantScope.resolve(opts) do
       repo_opts = repo_opts(opts, [:tenant_id])
@@ -73,7 +73,7 @@ defmodule Chimeway.Traces do
               repo_opts
             )
 
-          {:ok, loaded}
+          {:ok, SafeEvidence.trace_event(loaded)}
       end
     else
       {:error, _reason} -> {:error, :not_found}
@@ -89,7 +89,7 @@ defmodule Chimeway.Traces do
 
   Uses explicit joins to avoid N+1 queries.
   """
-  @spec find_traces_for_recipient(String.t(), keyword()) :: [Notification.t()]
+  @spec find_traces_for_recipient(String.t(), keyword()) :: [map()]
   def find_traces_for_recipient(recipient_id, opts \\ []) do
     with {:ok, tenant_id} <- TenantScope.resolve(opts) do
       limit = Keyword.get(opts, :limit, 50)
@@ -119,6 +119,8 @@ defmodule Chimeway.Traces do
 
       Repo.all(query, repo_opts)
       |> Repo.preload([deliveries: {deliveries_query, :attempts}], repo_opts)
+      |> Enum.map(&Map.put(&1, :notification_key, &1.event.notification_key))
+      |> Enum.map(&SafeEvidence.trace_notification/1)
     else
       {:error, _reason} -> []
     end
@@ -133,7 +135,7 @@ defmodule Chimeway.Traces do
   Returns `[]` when no events match — never returns an error tuple since
   correlation IDs are user-supplied and may not be unique or present.
   """
-  @spec find_traces_by_correlation_id(String.t(), keyword()) :: [Event.t()]
+  @spec find_traces_by_correlation_id(String.t(), keyword()) :: [map()]
   def find_traces_by_correlation_id(correlation_id, opts \\ []) do
     with {:ok, tenant_id} <- TenantScope.resolve(opts) do
       limit = Keyword.get(opts, :limit)
@@ -155,6 +157,7 @@ defmodule Chimeway.Traces do
         [notifications: {notifications_query, [deliveries: {deliveries_query, :attempts}]}],
         repo_opts
       )
+      |> Enum.map(&SafeEvidence.trace_event/1)
     else
       {:error, _reason} -> []
     end

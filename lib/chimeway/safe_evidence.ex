@@ -282,12 +282,69 @@ defmodule Chimeway.SafeEvidence do
   @spec trace_attempt(map()) :: map()
   def trace_attempt(attempt) do
     %{
+      id: safe_lifecycle_id(Map.get(attempt, :id)),
       outcome: Map.get(attempt, :outcome),
       inserted_at: Map.get(attempt, :inserted_at),
       attempt_number: Map.get(attempt, :attempt_number),
       error_class: Map.get(attempt, :error_class),
       provider_message_id:
         opaque_projection(:provider_message_id, Map.get(attempt, :provider_message_id))
+    }
+  end
+
+  @doc false
+  @spec trace_event(map()) :: map()
+  def trace_event(event) do
+    %{
+      id: safe_lifecycle_id(Map.get(event, :id)),
+      tenant_id: safe_code(Map.get(event, :tenant_id)),
+      notification_key: safe_code(Map.get(event, :notification_key)),
+      correlation_id: opaque_projection(:correlation, Map.get(event, :correlation_id)),
+      inserted_at: safe_datetime(Map.get(event, :inserted_at)),
+      notifications:
+        event
+        |> Map.get(:notifications, [])
+        |> Enum.map(fn notification ->
+          notification
+          |> Map.put(:notification_key, Map.get(event, :notification_key))
+          |> trace_notification()
+        end)
+    }
+  end
+
+  @doc false
+  @spec trace_notification(map()) :: map()
+  def trace_notification(notification) do
+    %{
+      id: safe_lifecycle_id(Map.get(notification, :id)),
+      notification_key: safe_code(Map.get(notification, :notification_key)),
+      recipient_id: opaque_projection(:recipient, Map.get(notification, :recipient_identity)),
+      recipient_type: safe_code(Map.get(notification, :recipient_type)),
+      inserted_at: safe_datetime(Map.get(notification, :inserted_at)),
+      deliveries:
+        notification
+        |> Map.get(:deliveries, [])
+        |> Enum.map(&trace_delivery/1)
+    }
+  end
+
+  @doc false
+  @spec trace_delivery(map()) :: map()
+  def trace_delivery(delivery) do
+    %{
+      id: safe_lifecycle_id(Map.get(delivery, :id)),
+      channel: safe_channel(Map.get(delivery, :channel)),
+      status: safe_status(Map.get(delivery, :status)),
+      planning_reason: digest_reason(Map.get(delivery, :planning_reason)),
+      suppression_reason: digest_reason(Map.get(delivery, :suppression_reason)),
+      render_key: safe_render_key(Map.get(delivery, :render_key)),
+      render_version: positive_integer(Map.get(delivery, :render_version)),
+      inserted_at: safe_datetime(Map.get(delivery, :inserted_at)),
+      updated_at: safe_datetime(Map.get(delivery, :updated_at)),
+      attempts:
+        delivery
+        |> Map.get(:attempts, [])
+        |> Enum.map(&trace_attempt/1)
     }
   end
 

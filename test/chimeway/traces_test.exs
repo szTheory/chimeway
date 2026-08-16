@@ -187,18 +187,34 @@ defmodule Chimeway.TracesTest do
       _succeeded = succeed_delivery(delivery)
 
       assert {:ok, loaded} = Traces.get_trace(event.id)
+
       assert Map.keys(loaded) |> Enum.sort() ==
                [:correlation_id, :id, :inserted_at, :notification_key, :notifications, :tenant_id]
+
       assert loaded.id == event.id
       assert loaded.tenant_id == "default"
       assert [loaded_notification] = loaded.notifications
+
       assert Map.keys(loaded_notification) |> Enum.sort() ==
-               [:deliveries, :id, :inserted_at, :recipient_id, :recipient_type]
+               [:deliveries, :id, :inserted_at, :notification_key, :recipient_id, :recipient_type]
+
       assert loaded_notification.id == notification.id
       assert [loaded_delivery] = loaded_notification.deliveries
+
       assert Map.keys(loaded_delivery) |> Enum.sort() ==
-               [:attempts, :channel, :id, :inserted_at, :planning_reason, :render_key,
-                :render_version, :status, :suppression_reason, :updated_at]
+               [
+                 :attempts,
+                 :channel,
+                 :id,
+                 :inserted_at,
+                 :planning_reason,
+                 :render_key,
+                 :render_version,
+                 :status,
+                 :suppression_reason,
+                 :updated_at
+               ]
+
       assert loaded_delivery.id == delivery.id
       assert length(loaded_delivery.attempts) == 1
     end
@@ -207,11 +223,11 @@ defmodule Chimeway.TracesTest do
       assert {:error, :not_found} = Traces.get_trace(Ecto.UUID.generate())
     end
 
-    test "includes correlation_id on event" do
+    test "projects correlation_id on event as an opaque reference" do
       event = insert_event(%{correlation_id: "req-abc-123"})
 
       assert {:ok, loaded} = Traces.get_trace(event.id)
-      assert loaded.correlation_id == "req-abc-123"
+      assert loaded.correlation_id =~ ~r/^cw_correlation_/
     end
   end
 
