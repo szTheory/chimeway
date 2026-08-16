@@ -180,17 +180,25 @@ defmodule Chimeway.TracesTest do
   # --- get_trace/1 ---
 
   describe "get_trace/1" do
-    test "returns {:ok, event} with preloaded associations" do
+    test "returns an exact closed event map with nested lifecycle maps" do
       event = insert_event()
       notification = insert_notification(event)
       delivery = plan_delivery(notification)
       _succeeded = succeed_delivery(delivery)
 
       assert {:ok, loaded} = Traces.get_trace(event.id)
+      assert Map.keys(loaded) |> Enum.sort() ==
+               [:correlation_id, :id, :inserted_at, :notification_key, :notifications, :tenant_id]
       assert loaded.id == event.id
+      assert loaded.tenant_id == "default"
       assert [loaded_notification] = loaded.notifications
+      assert Map.keys(loaded_notification) |> Enum.sort() ==
+               [:deliveries, :id, :inserted_at, :recipient_id, :recipient_type]
       assert loaded_notification.id == notification.id
       assert [loaded_delivery] = loaded_notification.deliveries
+      assert Map.keys(loaded_delivery) |> Enum.sort() ==
+               [:attempts, :channel, :id, :inserted_at, :planning_reason, :render_key,
+                :render_version, :status, :suppression_reason, :updated_at]
       assert loaded_delivery.id == delivery.id
       assert length(loaded_delivery.attempts) == 1
     end

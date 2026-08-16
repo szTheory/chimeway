@@ -261,8 +261,10 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert Chimeway.unread_count(recipient_id, tenant_id: "acme") == 0
 
-    assert {:ok, %Event{notifications: [_notification]}} =
+    assert {:ok, %{id: event_id, tenant_id: "acme", notifications: [_notification]}} =
              Traces.get_trace(event.id, tenant_id: "acme")
+
+    assert event_id == event.id
 
     problem =
       create_pending_delivery(

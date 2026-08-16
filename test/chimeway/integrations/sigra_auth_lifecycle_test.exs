@@ -6,7 +6,6 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
 
     @moduletag :sigra
 
-    alias Chimeway.Delivery
     alias Chimeway.Traces
     alias Chimeway.TestSupport.Sigra.User
     alias Sigra.Integrations.Chimeway, as: SigraChimeway
@@ -93,9 +92,9 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
       end
     end
 
-    defp delivery_attempted?(%Delivery{} = delivery) do
-      delivery.status in [:succeeded, :dispatched, :failed, :suppressed] or
-        Enum.any?(delivery.attempts || [], fn _ -> true end)
+    defp delivery_attempted?(%{status: status, attempts: attempts}) do
+      status in ["succeeded", "dispatched", "failed", "suppressed"] or
+        Enum.any?(attempts || [], fn _ -> true end)
     end
   end
 end
