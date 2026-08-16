@@ -132,7 +132,7 @@ The record deliberately contains only stable workflow, lifecycle, and provenance
 
 ### Provenance labels
 
-If the resolved-package classifier above cannot establish the released package branch, the proof reports the immutable Accrue ref `236fa2f1649e771f3b515603495436badeed3c7b` as **compatibility evidence only**. It is not released-package proof. It is not installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block. The release and compatibility records are mutually exclusive: release evidence contains `accrue_version=1.3.0` plus the exact Chimeway artifact version, while compatibility evidence contains only `accrue_ref`.
+If the resolved-package classifier above cannot establish the released package branch, the proof reports the immutable Accrue ref `0752b8d0b59eb53936498daa4bb0be4b14ffd0e4` as **compatibility evidence only**. It is not released-package proof. It is not installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block. The release and compatibility records are mutually exclusive: release evidence contains `accrue_version=1.3.0` plus the exact Chimeway artifact version, while compatibility evidence contains only `accrue_ref`.
 
 ## 6. Verification
 

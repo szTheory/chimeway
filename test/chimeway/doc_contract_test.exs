@@ -922,7 +922,7 @@ defmodule Chimeway.DocContractTest do
     end
 
     test "limits the immutable Accrue SHA to compatibility evidence", %{content: content} do
-      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+      sha = "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"
 
       assert String.contains?(content, sha)
       assert String.contains?(content, "compatibility evidence only")
@@ -955,7 +955,7 @@ defmodule Chimeway.DocContractTest do
         |> String.split("## 6. Verification", parts: 2)
         |> List.first()
 
-      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+      sha = "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"
 
       for required <- [
             "released_package",

@@ -198,7 +198,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "ACCRUE_PATH"),
              "verify_accrue job must set ACCRUE_PATH for sibling checkout"
 
-      assert String.contains?(job_block, "236fa2f1649e771f3b515603495436badeed3c7b"),
+      assert String.contains?(job_block, "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"),
              "verify_accrue job must pin Accrue integration ref"
     end
 
@@ -1641,7 +1641,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert %{
                provenance: "compatibility",
-               accrue_ref: "236fa2f1649e771f3b515603495436badeed3c7b",
+               accrue_ref: "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4",
                workflow_key: "accrue.dunning",
                waiting_state: "waiting",
                outcome_state: "active"
@@ -1704,7 +1704,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       for forged <- [
             line <> " #{unknown}=value",
             line <> " outcome_state=active",
-            line <> " accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b",
+            line <> " accrue_ref=0752b8d0b59eb53936498daa4bb0be4b14ffd0e4",
             String.replace(line, " chimeway_version=1.0.0", ""),
             line <> "\n" <> line,
             line <> " customer_id=private",
@@ -1722,7 +1722,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :accrue_artifact_proof
     test "Accrue compatibility is SHA-only and proof source is event-to-signal shaped" do
       compatibility =
-        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b " <>
+        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=0752b8d0b59eb53936498daa4bb0be4b14ffd0e4 " <>
           "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
           "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid " <>
           "outcome_state=active outcome_reason=signal_received " <>

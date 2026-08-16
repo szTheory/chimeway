@@ -78,7 +78,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "outcome_reason" => :outcome_reason,
     "timeline_reasons" => :timeline_reasons
   }
-  @accrue_sha "236fa2f1649e771f3b515603495436badeed3c7b"
+  @accrue_sha "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"
   @accrue_timeline ["waiting_for_step_progression", "signal_received"]
   @database_prefix "chimeway_artifact_consumer_"
   @postgres_identifier_max_bytes 63
@@ -780,9 +780,9 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
             true = "lib/accrue/integrations/chimeway.ex" in descriptor["metadata"][<<"files">>]
             {"released_package", "accrue_version=1.3.0 chimeway_version=" <> version}
 
-          {:git, _, "236fa2f1649e771f3b515603495436badeed3c7b", _} ->
+          {:git, _, "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4", _} ->
             true = descriptor["scm"] == Mix.SCM.Git
-            {"compatibility", "accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b"}
+            {"compatibility", "accrue_ref=0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"}
 
           _ ->
             raise "Accrue provenance is not an exact audited release or immutable compatibility ref"

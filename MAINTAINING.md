@@ -97,7 +97,7 @@ These twelve local commands map to ci-gate lanes plus publish replay — not twe
 
 Maintainers clone the integration sibling repos adjacent to chimeway and point the matching `*_PATH` env var at each before running its verify gate:
 
-- [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins ref `236fa2f1649e771f3b515603495436badeed3c7b` (`accrue-v1.3.0`).
+- [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins compatibility ref `0752b8d0b59eb53936498daa4bb0be4b14ffd0e4`; released-package proof remains independently version-gated.
 - [szTheory/threadline](https://github.com/szTheory/threadline) — convention `../threadline/threadline` from repo root (`THREADLINE_PATH`). CI pins ref `46375fafc4df30fc916244ee4a21b7cae01f1ddc`.
 - [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`.
 
