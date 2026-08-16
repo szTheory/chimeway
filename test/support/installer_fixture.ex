@@ -43,7 +43,7 @@ defmodule Chimeway.Test.InstallerFixture do
     System.cmd("mix", install_args(Keyword.get(opts, :prefix, :default)),
       cd: root,
       stderr_to_stdout: true,
-      env: [{"MIX_ENV", "dev"}]
+      env: command_env()
     )
   end
 
@@ -212,7 +212,7 @@ defmodule Chimeway.Test.InstallerFixture do
       System.cmd("mix", ["deps.get"],
         cd: root,
         stderr_to_stdout: true,
-        env: [{"MIX_ENV", "dev"}]
+        env: command_env()
       )
 
     if status != 0 do
@@ -223,7 +223,7 @@ defmodule Chimeway.Test.InstallerFixture do
       System.cmd("mix", ["compile"],
         cd: root,
         stderr_to_stdout: true,
-        env: [{"MIX_ENV", "dev"}]
+        env: command_env()
       )
 
     if compile_status != 0 do
@@ -239,6 +239,19 @@ defmodule Chimeway.Test.InstallerFixture do
     raise ArgumentError,
           "unsupported installer fixture prefix #{inspect(prefix)}; " <>
             "expected :default, :chimeway, or :public"
+  end
+
+  # The installer host exercises Chimeway's migration generator only. Keep
+  # optional ecosystem adapters out of its dependency graph so unrelated
+  # partner packages and their compiler toolchains cannot affect the fixture.
+  defp command_env do
+    [
+      {"MIX_ENV", "dev"},
+      {"CHIMEWAY_SKIP_MAILGLASS_DEP", "1"},
+      {"CHIMEWAY_SKIP_ACCRUE_DEP", "1"},
+      {"CHIMEWAY_SKIP_THREADLINE_DEP", "1"},
+      {"CHIMEWAY_SKIP_SIGRA_DEP", "1"}
+    ]
   end
 
   defp host_mix_exs do
