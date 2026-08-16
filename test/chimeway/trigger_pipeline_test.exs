@@ -19,10 +19,10 @@ defmodule Chimeway.TriggerPipelineTest do
     def recipients(_params) do
       {:ok,
        [
-         %{recipient_identity: "z-user", channel: :in_app},
-         %{recipient_identity: "a-user", channel: :email},
-         %{recipient_identity: "a-user", channel: :sms},
-         %{recipient_identity: "m-user", channel: :push}
+         %{recipient_ref: "cw_trigger_fanout_z", channel: :in_app},
+         %{recipient_ref: "cw_trigger_fanout_a", channel: :email},
+         %{recipient_ref: "cw_trigger_fanout_a", channel: :sms},
+         %{recipient_ref: "cw_trigger_fanout_m", channel: :push}
        ]}
     end
 
@@ -57,10 +57,10 @@ defmodule Chimeway.TriggerPipelineTest do
     def recipients(_params) do
       {:ok,
        [
-         %{recipient_identity: "z-user", channel: :in_app},
-         %{recipient_identity: "a-user", channel: :email},
-         %{recipient_identity: "a-user", channel: :sms},
-         %{recipient_identity: "m-user", channel: :push}
+         %{recipient_ref: "cw_trigger_pipeline_z", channel: :in_app},
+         %{recipient_ref: "cw_trigger_pipeline_a", channel: :email},
+         %{recipient_ref: "cw_trigger_pipeline_a", channel: :sms},
+         %{recipient_ref: "cw_trigger_pipeline_m", channel: :push}
        ]}
     end
 
@@ -92,8 +92,8 @@ defmodule Chimeway.TriggerPipelineTest do
     def recipients(_params) do
       {:ok,
        [
-         %{recipient_identity: "digest-a", channel: :email},
-         %{recipient_identity: "digest-z", channel: :email}
+         %{recipient_ref: "cw_trigger_digest_a", channel: :email},
+         %{recipient_ref: "cw_trigger_digest_z", channel: :email}
        ]}
     end
 
@@ -108,7 +108,7 @@ defmodule Chimeway.TriggerPipelineTest do
       {:ok,
        %{
          default: :digest,
-         email: {:digest, [digest_key: "thread:#{recipient.recipient_identity}"]},
+         email: {:digest, [digest_key: "thread:#{recipient.recipient_ref}"]},
          in_app: :immediate
        }}
     end
@@ -127,8 +127,8 @@ defmodule Chimeway.TriggerPipelineTest do
     def recipients(_params) do
       {:ok,
        [
-         %{recipient_identity: "workflow-a", channel: :email},
-         %{recipient_identity: "workflow-z", channel: :email}
+         %{recipient_ref: "cw_trigger_workflow_a", channel: :email},
+         %{recipient_ref: "cw_trigger_workflow_z", channel: :email}
        ]}
     end
 
@@ -241,12 +241,12 @@ defmodule Chimeway.TriggerPipelineTest do
 
     assert MapSet.new(recipient_channels) ==
              MapSet.new([
-               {"a-user", "email"},
-               {"a-user", "in_app"},
-               {"m-user", "email"},
-               {"m-user", "in_app"},
-               {"z-user", "email"},
-               {"z-user", "in_app"}
+               {"cw_trigger_fanout_a", "email"},
+               {"cw_trigger_fanout_a", "in_app"},
+               {"cw_trigger_fanout_m", "email"},
+               {"cw_trigger_fanout_m", "in_app"},
+               {"cw_trigger_fanout_z", "email"},
+               {"cw_trigger_fanout_z", "in_app"}
              ])
 
     assert result.dispatch_outcome == :ok
@@ -371,21 +371,24 @@ defmodule Chimeway.TriggerPipelineTest do
         )
       )
 
-    assert Enum.map(notifications, & &1.recipient_identity) == ["digest-a", "digest-z"]
+    assert Enum.map(notifications, & &1.recipient_identity) == [
+             "cw_trigger_digest_a",
+             "cw_trigger_digest_z"
+           ]
 
     assert Enum.map(notifications, &Map.get(&1, :orchestration)) == [
              %{
                "default" => "digest_held",
                "channels" => %{"email" => "digest_held", "in_app" => "immediate"},
                "default_digest_key" => nil,
-               "digest_keys" => %{"email" => "thread:digest-a"},
+               "digest_keys" => %{"email" => "thread:cw_trigger_digest_a"},
                "source" => "notifier"
              },
              %{
                "default" => "digest_held",
                "channels" => %{"email" => "digest_held", "in_app" => "immediate"},
                "default_digest_key" => nil,
-               "digest_keys" => %{"email" => "thread:digest-z"},
+               "digest_keys" => %{"email" => "thread:cw_trigger_digest_z"},
                "source" => "notifier"
              }
            ]

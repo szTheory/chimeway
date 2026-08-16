@@ -10,7 +10,7 @@ defmodule ChimewayTest.Notifiers.WorkflowProgressionRace do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_wpr_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Workflow progression race"}}
 
@@ -312,7 +312,7 @@ defmodule Chimeway.Reliability.WorkflowProgressionRaceTest do
     notification =
       Repo.one!(
         from(n in Notification,
-          where: n.recipient_identity == ^"user:#{user_id}",
+          where: n.recipient_identity == ^"cw_wpr_#{user_id}",
           order_by: [desc: n.inserted_at],
           limit: 1
         )

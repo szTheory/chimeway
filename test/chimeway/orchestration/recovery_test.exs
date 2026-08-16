@@ -5,7 +5,7 @@ defmodule ChimewayTest.Notifiers.RecoveryCallbackProbe do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_recovery_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Recovery callback probe"}}
 
@@ -46,7 +46,7 @@ defmodule ChimewayTest.Notifiers.RecoveryDigestCallbackProbe do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_recovery_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Recovery digest callback probe"}}
 
@@ -70,10 +70,13 @@ defmodule ChimewayTest.Notifiers.RecoveryDigestCallbackProbe do
   end
 
   def orchestration(_params, recipient) do
-    if test_pid = test_pid(),
-      do: send(test_pid, {:orchestration_called, recipient.recipient_identity})
+    recipient_ref =
+      Map.get(recipient, :recipient_ref) || Map.fetch!(recipient, :recipient_identity)
 
-    {:ok, [email: {:digest, [digest_key: "thread:#{recipient.recipient_identity}"]}]}
+    if test_pid = test_pid(),
+      do: send(test_pid, {:orchestration_called, recipient_ref})
+
+    {:ok, [email: {:digest, [digest_key: "thread:#{recipient_ref}"]}]}
   end
 
   defp test_pid do
@@ -90,7 +93,7 @@ defmodule ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_recovery_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Recovery persisted workflow probe"}}
   def channels(_params, _recipient), do: {:ok, [:email]}
@@ -111,7 +114,7 @@ defmodule ChimewayTest.Notifiers.RecoveryPersistedWorkflowProbe do
 
   def workflow(_params, recipient) do
     if test_pid = test_pid() do
-      send(test_pid, {:workflow_called, recipient.recipient_identity})
+      send(test_pid, {:workflow_called, recipient.recipient_ref})
     end
 
     case workflow_mode() do
@@ -312,7 +315,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
         Repo.insert!(%Chimeway.Notifications.Notification{
           event_id: event.id,
           tenant_id: "tenant-a",
-          recipient_identity: "user:recovery-scoped-event",
+          recipient_identity: "cw_recovery_scoped_event",
           recipient_type: "user",
           metadata: %{},
           render_assigns: %{
@@ -357,7 +360,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{event: event, notification: notification} =
         DispatchHelpers.create_notification(
           notification_key: "test.recovery.persisted_event",
-          recipient_identity: "user:recovery-event"
+          recipient_identity: "cw_recovery_event"
         )
 
       notification =
@@ -418,7 +421,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{event: event, notification: notification} =
         DispatchHelpers.create_notification(
           notification_key: "test.recovery.event_noop",
-          recipient_identity: "user:recovery-event-noop"
+          recipient_identity: "cw_recovery_event_noop"
         )
 
       {:ok, _delivery} =
@@ -445,7 +448,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{event: event} =
         DispatchHelpers.create_notification(
           notification_key: "test.recovery.event_cross_tenant",
-          recipient_identity: "user:recovery-event-cross-tenant"
+          recipient_identity: "cw_recovery_event_cross_tenant"
         )
 
       event =
@@ -489,8 +492,8 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       notification_id = notification.id
       assert_receive {:dispatch, [^notification_id], initial_dispatch_opts}
       assert_receive {:digest_channels_called, _}
-      assert_receive {:orchestration_called, "user:42"}
-      assert_receive {:orchestration_called, "user:42"}
+      assert_receive {:orchestration_called, "cw_recovery_user_42"}
+      assert_receive {:orchestration_called, "cw_recovery_user_42"}
       refute initial_dispatch_opts[:use_persisted_channels]
       refute initial_dispatch_opts[:use_persisted_orchestration]
 
@@ -521,7 +524,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       assert recovered_delivery.planning_context == %{
                "channel" => "email",
-               "digest_key" => "thread:user:42",
+               "digest_key" => "thread:cw_recovery_user_42",
                "source" => "planner_override"
              }
 
@@ -564,7 +567,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
 
       notification_id = notification.id
       assert_receive {:dispatch, [^notification_id], _initial_dispatch_opts}
-      assert_receive {:workflow_called, "user:77"}
+      assert_receive {:workflow_called, "cw_recovery_user_77"}
 
       Repo.delete_all(from(d in Delivery, where: d.notification_id == ^notification.id))
 
@@ -610,7 +613,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{delivery: delivery} =
         DispatchHelpers.create_pending_delivery(
           notification_key: "test.recovery.delivery",
-          recipient_identity: "user:recovery-delivery",
+          recipient_identity: "cw_recovery_delivery",
           channel: :email
         )
 
@@ -678,7 +681,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{delivery: delivery} =
         DispatchHelpers.create_pending_delivery(
           notification_key: "test.recovery.delivery_error",
-          recipient_identity: "user:recovery-delivery-error",
+          recipient_identity: "cw_recovery_delivery_error",
           channel: :email
         )
 
@@ -728,7 +731,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{delivery: delivery} =
         DispatchHelpers.create_pending_delivery(
           notification_key: "test.recovery.delivery_cross_tenant",
-          recipient_identity: "user:recovery-cross-tenant",
+          recipient_identity: "cw_recovery_cross_tenant",
           channel: :email,
           tenant_id: "tenant-b"
         )
@@ -758,7 +761,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{delivery: deferred_delivery} =
         DispatchHelpers.create_pending_delivery(
           notification_key: "test.recovery.deferred_noop",
-          recipient_identity: "user:recovery-deferred",
+          recipient_identity: "cw_recovery_deferred",
           channel: :email
         )
 
@@ -786,7 +789,7 @@ defmodule Chimeway.Orchestration.RecoveryTest do
       %{delivery: skip_delivery} =
         DispatchHelpers.create_pending_delivery(
           notification_key: "test.recovery.skip_noop",
-          recipient_identity: "user:recovery-skip",
+          recipient_identity: "cw_recovery_skip",
           channel: :email
         )
 
