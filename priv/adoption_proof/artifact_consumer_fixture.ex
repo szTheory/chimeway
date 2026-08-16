@@ -553,13 +553,13 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
       @impl true
       def version, do: 1
       @impl true
-      def recipients(_params), do: {:ok, [%{recipient_ref: "cw_artifact_mailglass_proof", recipient_type: "user"}]}
+      def recipients(_params), do: {:ok, [%{recipient_ref: "cw_artifact_mailglass_proof", recipient_identity: "user:proof@example.test", recipient_type: "user"}]}
       @impl true
       def build(_params, _recipient), do: {:ok, %{subject: "Artifact Mailglass proof", html_body: "<p>Artifact Mailglass proof</p>", text_body: "Artifact Mailglass proof"}}
       @impl true
       def channels(_params, _recipient), do: {:ok, [:email]}
       @impl true
-      def rendering(_params, _recipient), do: {:ok, %{assigns: %{"to" => "proof@example.test", subject: "Artifact Mailglass proof", html_body: "<p>Artifact Mailglass proof</p>", text_body: "Artifact Mailglass proof"}, channels: %{email: %{render_key: "artifact_consumer.mailglass_proof.email", render_version: 1}}}}
+      def rendering(_params, _recipient), do: {:ok, %{assigns: %{"to" => "proof@example.test", "subject" => "Artifact Mailglass proof", "html_body" => "<p>Artifact Mailglass proof</p>", "text_body" => "Artifact Mailglass proof"}, channels: %{email: %{render_key: "artifact_consumer.mailglass_proof.email", render_version: 1}}}}
     end
     """
   end
