@@ -59,4 +59,18 @@ defmodule Chimeway.Install.IdempotencyTest do
       end
     end
   end
+
+  test "fixture roots remain distinct across repeated same-name allocations" do
+    first = InstallerFixture.new_fixture_root!("same_name")
+    second = InstallerFixture.new_fixture_root!("same_name")
+
+    try do
+      refute first == second
+      assert File.dir?(first)
+      assert File.dir?(second)
+    after
+      File.rm_rf!(first)
+      File.rm_rf!(second)
+    end
+  end
 end

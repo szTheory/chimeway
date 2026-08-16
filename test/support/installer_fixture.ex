@@ -9,8 +9,11 @@ defmodule Chimeway.Test.InstallerFixture do
   """
   @spec new_fixture_root!(String.t()) :: Path.t()
   def new_fixture_root!(name) when is_binary(name) do
-    unique = Integer.to_string(System.unique_integer([:positive]))
-    root = Path.join(System.tmp_dir!(), "chimeway_installer_#{name}_#{unique}")
+    # `System.unique_integer/1` is local to one BEAM VM. Installer tests run
+    # from independent Mix VMs as well, so their roots need process-independent
+    # entropy to avoid deleting each other's transient build trees.
+    suffix = :crypto.strong_rand_bytes(12) |> Base.encode32(case: :lower, padding: false)
+    root = Path.join(System.tmp_dir!(), "chimeway_installer_#{name}_#{suffix}")
     File.rm_rf!(root)
     File.mkdir_p!(root)
     root
