@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 98
 current_phase_name: privacy-safe-delivery-evidence
 status: executing
-stopped_at: Completed 98-14-PLAN.md
-last_updated: "2026-08-16T00:37:14.235Z"
+stopped_at: Completed 98-15-PLAN.md
+last_updated: "2026-08-16T01:23:18.701Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 98 execution started
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 28
-  completed_plans: 27
+  total_plans: 29
+  completed_plans: 28
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 98 (privacy-safe-delivery-evidence) — EXECUTING
-Plan: 2 of 14
+Plan: 2 of 15
 Status: Ready to execute
 Last activity: 2026-08-15 — Phase 98 execution started
 
@@ -353,6 +353,8 @@ status: complete
 - [Phase ?]: [98-12]: Workflow routing uses explicit opaque actor references; raw signal identities never query waiting runs.
 - [Phase ?]: [98-13]: Lifecycle fixture references use documented deterministic cw_lifecycle_user_<id> values, including all dependent queries and policy fixtures.
 - [Phase ?]: [98-14]: Public trace APIs now return SafeEvidence-built nested maps; the event root retains tenant identity and recipient evidence is opaque.
+- [Phase ?]: [98-15]: Only Date, Time, NaiveDateTime, and DateTime bypass recursive redaction; other structs are projected into ordinary maps.
+- [Phase ?]: [98-15]: Trace evidence rebuilds attempts and timeline entries from fixed validated vocabularies, omitting malformed nested input.
 
 ### Roadmap Evolution
 
@@ -673,8 +675,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-16T00:37:14.225Z
-Stopped at: Completed 98-14-PLAN.md
+Last session: 2026-08-16T01:23:18.691Z
+Stopped at: Completed 98-15-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -804,3 +806,4 @@ Resume file: None
 | Phase 98-privacy-safe-delivery-evidence P12 | 12min | 2 tasks | 6 files |
 | Phase 98-privacy-safe-delivery-evidence P13 | 6min | 1 tasks | 1 files |
 | Phase 98-privacy-safe-delivery-evidence P14 | 8 min | 3 tasks | 8 files |
+| Phase 98-privacy-safe-delivery-evidence P15 | 18 min | 2 tasks | 4 files |
