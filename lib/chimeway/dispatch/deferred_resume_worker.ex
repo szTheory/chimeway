@@ -4,8 +4,10 @@ if Code.ensure_loaded?(Oban) do
     Oban worker that resumes a deferred delivery row and enqueues the canonical
     delivery performer in the same transaction.
 
-    Job args contain the durable `delivery_id` and its owning `tenant_id`. Deferred
-    scheduling facts stay on the delivery row, and actual send execution remains owned by
+    New job args contain the durable `delivery_id` and its owning `tenant_id`.
+    Legacy jobs containing only `delivery_id` recover that scope from the referenced
+    delivery row before invoking the tenant-scoped lifecycle mutation. Deferred scheduling
+    facts stay on the delivery row, and actual send execution remains owned by
     `Chimeway.Dispatch.ObanWorker`.
     """
 
@@ -21,15 +23,31 @@ if Code.ensure_loaded?(Oban) do
 
     @impl Oban.Worker
     def perform(%Oban.Job{args: %{"delivery_id" => delivery_id, "tenant_id" => tenant_id}}) do
+      perform_scoped_resume(delivery_id, tenant_id)
+    end
+
+    def perform(%Oban.Job{args: %{"delivery_id" => delivery_id}}) when is_binary(delivery_id) do
+      case Deliveries.fetch_delivery(delivery_id) do
+        {:ok, %{tenant_id: tenant_id}} when is_binary(tenant_id) and byte_size(tenant_id) > 0 ->
+          perform_scoped_resume(delivery_id, tenant_id)
+
+        {:ok, _delivery} ->
+          {:error, :tenant_scope_required}
+
+        {:error, :not_found} ->
+          :ok
+      end
+    end
+
+    def perform(%Oban.Job{}), do: {:error, :invalid_delivery_id}
+
+    defp perform_scoped_resume(delivery_id, tenant_id) do
       Multi.new()
       |> Multi.run(:resume_delivery, resume_delivery_step(delivery_id, tenant_id))
       |> Multi.run(:dispatch_job, &dispatch_job_step/2)
       |> Repo.transaction()
       |> normalize_transaction_result()
     end
-
-    def perform(%Oban.Job{args: %{"delivery_id" => _delivery_id}}),
-      do: {:error, :tenant_scope_required}
 
     defp resume_delivery_step(delivery_id, tenant_id) do
       fn _repo, _changes ->

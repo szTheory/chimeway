@@ -281,9 +281,40 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
   end
 
   describe "DeferredResumeWorker" do
-    test "fails closed when a legacy job omits tenant scope" do
-      assert {:error, :tenant_scope_required} =
-               perform_job(DeferredResumeWorker, %{delivery_id: Ecto.UUID.generate()})
+    test "legacy jobs derive tenant scope from their referenced delivery before resuming" do
+      delivery =
+        deferred_delivery_fixture(
+          notification_key: "deferred-resume.worker.legacy",
+          recipient_identity: "user:deferred-resume-worker-legacy",
+          next_eligible_at: ~U[2026-01-15 13:00:00Z]
+        )
+
+      other_delivery =
+        deferred_delivery_fixture(
+          notification_key: "deferred-resume.worker.legacy-other",
+          recipient_identity: "user:deferred-resume-worker-legacy-other",
+          next_eligible_at: ~U[2026-01-15 13:00:00Z]
+        )
+
+      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: delivery.id})
+
+      resumed = Deliveries.get_delivery!(delivery.id)
+      assert resumed.tenant_id == delivery.tenant_id
+      assert resumed.orchestration_state == :ready
+      assert resumed.metadata["resume_source"] == "oban_scheduler"
+      assert_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
+
+      assert Deliveries.get_delivery!(other_delivery.id).orchestration_state == :deferred
+      refute_enqueued(worker: ObanWorker, args: %{delivery_id: other_delivery.id})
+    end
+
+    test "legacy jobs no-op for a missing delivery and reject malformed args" do
+      assert :ok = perform_job(DeferredResumeWorker, %{delivery_id: Ecto.UUID.generate()})
+
+      assert {:error, :invalid_delivery_id} =
+               DeferredResumeWorker.perform(%Oban.Job{args: %{"delivery_id" => 123}})
+
+      assert {:error, :invalid_delivery_id} = DeferredResumeWorker.perform(%Oban.Job{args: %{}})
     end
 
     test "promotes a deferred row and enqueues exactly one canonical dispatch worker" do
