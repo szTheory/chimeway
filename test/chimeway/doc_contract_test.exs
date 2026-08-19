@@ -876,7 +876,7 @@ defmodule Chimeway.DocContractTest do
     end
 
     test "keeps clean-consumer evidence to the fixed safe proof vocabulary", %{content: content} do
-      assert String.contains?(content, "provenance=released_package accrue_version=1.3.0")
+      assert String.contains?(content, "provenance=released_package accrue_version=1.5.0")
       assert String.contains?(content, "workflow_key=accrue.dunning workflow_version=1")
 
       assert String.contains?(
@@ -910,19 +910,19 @@ defmodule Chimeway.DocContractTest do
       content: content
     } do
       assert String.contains?(content, "released_package")
-      assert String.contains?(content, "exact Accrue `1.3.0`")
+      assert String.contains?(content, "exact Accrue `1.5.0`")
       assert String.contains?(content, "`Accrue.Integrations.Chimeway`")
       assert String.contains?(content, "exact Chimeway artifact version")
       assert String.contains?(content, "executable check, not optimistic prose")
 
       refute String.contains?(
                content,
-               "Production adopters use `{:accrue, \"~> 1.3\"}` from Hex."
+               "Production adopters use `{:accrue, \"~> 1.5\"}` from Hex."
              )
     end
 
     test "limits the immutable Accrue SHA to compatibility evidence", %{content: content} do
-      sha = "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"
+      sha = "cafc526f752b917a0abf8cbdbf3030cb367ae346"
 
       assert String.contains?(content, sha)
       assert String.contains?(content, "compatibility evidence only")
@@ -955,11 +955,11 @@ defmodule Chimeway.DocContractTest do
         |> String.split("## 6. Verification", parts: 2)
         |> List.first()
 
-      sha = "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"
+      sha = "cafc526f752b917a0abf8cbdbf3030cb367ae346"
 
       for required <- [
             "released_package",
-            "exact Accrue `1.3.0`",
+            "exact Accrue `1.5.0`",
             "resolved Hex metadata",
             "integration module origin",
             "exact Chimeway artifact version"
@@ -1001,7 +1001,7 @@ defmodule Chimeway.DocContractTest do
                "does not mean the workflow entered a terminal state"
              )
 
-      refute String.contains?(clean_consumer, "unconditional `~> 1.3` proof")
+      refute String.contains?(clean_consumer, "unconditional `~> 1.5` proof")
       refute String.contains?(clean_consumer, "source/module presence without resolved metadata")
 
       for forbidden <- [

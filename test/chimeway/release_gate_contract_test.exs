@@ -198,7 +198,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "ACCRUE_PATH"),
              "verify_accrue job must set ACCRUE_PATH for sibling checkout"
 
-      assert String.contains?(job_block, "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"),
+      assert String.contains?(job_block, "cafc526f752b917a0abf8cbdbf3030cb367ae346"),
              "verify_accrue job must pin Accrue integration ref"
     end
 
@@ -1617,7 +1617,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert %{
                provenance: "released_package",
-               accrue_version: "1.3.0",
+               accrue_version: "1.5.0",
                workflow_key: "accrue.dunning",
                waiting_state: "waiting",
                waiting_reason: "waiting_for_step_progression",
@@ -1641,7 +1641,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert %{
                provenance: "compatibility",
-               accrue_ref: "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4",
+               accrue_ref: "cafc526f752b917a0abf8cbdbf3030cb367ae346",
                workflow_key: "accrue.dunning",
                waiting_state: "waiting",
                outcome_state: "active"
@@ -1674,7 +1674,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert %{
                provenance: "released_package",
-               accrue_version: "1.3.0",
+               accrue_version: "1.5.0",
                workflow_key: "accrue.dunning"
              } =
                ArtifactConsumerFixture.parse_accrue_evidence!(line)
@@ -1704,7 +1704,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       for forged <- [
             line <> " #{unknown}=value",
             line <> " outcome_state=active",
-            line <> " accrue_ref=0752b8d0b59eb53936498daa4bb0be4b14ffd0e4",
+            line <> " accrue_ref=cafc526f752b917a0abf8cbdbf3030cb367ae346",
             String.replace(line, " chimeway_version=1.0.0", ""),
             line <> "\n" <> line,
             line <> " customer_id=private",
@@ -1722,7 +1722,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :accrue_artifact_proof
     test "Accrue compatibility is SHA-only and proof source is event-to-signal shaped" do
       compatibility =
-        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=0752b8d0b59eb53936498daa4bb0be4b14ffd0e4 " <>
+        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=cafc526f752b917a0abf8cbdbf3030cb367ae346 " <>
           "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
           "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid " <>
           "outcome_state=active outcome_reason=signal_received " <>
@@ -1732,7 +1732,7 @@ defmodule Chimeway.ReleaseGateContractTest do
                ArtifactConsumerFixture.parse_accrue_evidence!(compatibility)
 
       assert_raise RuntimeError, fn ->
-        ArtifactConsumerFixture.parse_accrue_evidence!(compatibility <> " accrue_version=1.3.0")
+        ArtifactConsumerFixture.parse_accrue_evidence!(compatibility <> " accrue_version=1.5.0")
       end
 
       runner = File.read!("scripts/prove-accrue-consumer.exs")
@@ -1766,7 +1766,7 @@ defmodule Chimeway.ReleaseGateContractTest do
             "\"application_version\" => to_string(Application.spec(:accrue, :vsn))",
             "descriptor[\"scm\"] == Hex.SCM",
             "descriptor[\"scm\"] == Mix.SCM.Git",
-            "descriptor[\"metadata\"][<<\"version\">>] == <<\"1.3.0\">>",
+            "descriptor[\"metadata\"][<<\"version\">>] == <<\"1.5.0\">>",
             "module_source == integration_source"
           ] do
         assert proof_source =~ marker,
@@ -2892,7 +2892,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp accrue_evidence_line do
-    "CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 " <>
+    "CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.5.0 chimeway_version=1.0.0 " <>
       "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
       "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active " <>
       "outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received"

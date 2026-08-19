@@ -56,7 +56,7 @@ mix verify.adoption_paths --only mailglass
 mix verify.adoption_paths --only accrue
 ```
 
-**Representative proof record:** `CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received`
+**Representative proof record:** `CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.5.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received`
 
 **Does not cover:** workflow completion or a terminal workflow state: `active / signal_received` only proves the outcome signal ended the waiting escalation path. A `released_package` record requires resolved package metadata; a SHA-qualified ref is compatibility evidence only, not released-package proof. Live providers, credentials, and webhooks remain outside this deterministic proof.
 

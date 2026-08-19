@@ -20,12 +20,12 @@ Add Chimeway and Accrue to your host `mix.exs`:
 def deps do
   [
     {:chimeway, "~> 1.0"},
-    {:accrue, "~> 1.3", optional: true}
+    {:accrue, "~> 1.5", optional: true}
   ]
 end
 ```
 
-This normal Hex dependency declaration is installation guidance, not a provenance claim. The executable clean-consumer check may label its record `released_package` only after the generated consumer resolves exact Accrue `1.3.0`, validates its resolved Hex metadata, validates the integration module origin for `Accrue.Integrations.Chimeway`, and reports the exact Chimeway artifact version. Source or module presence without resolved metadata does not authorize released-package proof. The executable check, not optimistic prose, authorizes that label.
+This normal Hex dependency declaration is installation guidance, not a provenance claim. The executable clean-consumer check may label its record `released_package` only after the generated consumer resolves exact Accrue `1.5.0`, validates its resolved Hex metadata, validates the integration module origin for `Accrue.Integrations.Chimeway`, and reports the exact Chimeway artifact version. Source or module presence without resolved metadata does not authorize released-package proof. The executable check, not optimistic prose, authorizes that label.
 
 Repository maintainers use the sibling checkout and `ACCRUE_PATH` only for regression work; see [Verification](#6-verification). Those mechanics do not establish packaged-consumer provenance.
 
@@ -125,14 +125,14 @@ The release-gate contract builds the package, passes its immutable archive and d
 Accrue owns both event boundaries: `invoice.payment_failed` enters its campaign, public workflow evidence reaches `waiting / waiting_for_step_progression`, and `invoice.paid` produces the outcome signal through the integration. The host does not call Chimeway notifier, trigger, or signal APIs for either boundary. Waiting and outcome facts are derived through `Chimeway.Workflows.explain/2` and `Chimeway.Workflows.list_traces/2`. The resulting public evidence is `active / signal_received`:
 
 ```text
-CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received
+CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.5.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received
 ```
 
 The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed. It does not mean the workflow entered a terminal state. The Fake processor coverage is deterministic local orchestration only; live provider credentials, webhooks, and Phase 96 CI/front-door work remain outside this proof.
 
 ### Provenance labels
 
-If the resolved-package classifier above cannot establish the released package branch, the proof reports the immutable Accrue ref `0752b8d0b59eb53936498daa4bb0be4b14ffd0e4` as **compatibility evidence only**. It is not released-package proof. It is not installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block. The release and compatibility records are mutually exclusive: release evidence contains `accrue_version=1.3.0` plus the exact Chimeway artifact version, while compatibility evidence contains only `accrue_ref`.
+If the resolved-package classifier above cannot establish the released package branch, the proof reports the immutable Accrue ref `cafc526f752b917a0abf8cbdbf3030cb367ae346` as **compatibility evidence only**. It is not released-package proof. It is not installation guidance. It does not belong in a dependency declaration, an installation command, or an adopter copy-paste block. The release and compatibility records are mutually exclusive: release evidence contains `accrue_version=1.5.0` plus the exact Chimeway artifact version, while compatibility evidence contains only `accrue_ref`.
 
 ## 6. Verification
 

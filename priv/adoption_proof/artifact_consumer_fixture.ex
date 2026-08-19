@@ -78,7 +78,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     "outcome_reason" => :outcome_reason,
     "timeline_reasons" => :timeline_reasons
   }
-  @accrue_sha "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"
+  @accrue_sha "cafc526f752b917a0abf8cbdbf3030cb367ae346"
   @accrue_timeline ["waiting_for_step_progression", "signal_received"]
   @database_prefix "chimeway_artifact_consumer_"
   @postgres_identifier_max_bytes 63
@@ -438,7 +438,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     accrue_dependency =
       case accrue_source do
         :release ->
-          ", {:accrue, \"1.3.0\"}"
+          ", {:accrue, \"1.5.0\"}"
 
         :compatibility ->
           ", {:accrue, git: \"https://github.com/szTheory/accrue.git\", ref: \"#{@accrue_sha}\", sparse: \"accrue\"}"
@@ -772,17 +772,17 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
       provenance =
         case descriptor["lock"] do
-          {:hex, :accrue, "1.3.0", _, _, _, _, _} ->
+          {:hex, :accrue, "1.5.0", _, _, _, _, _} ->
             true = descriptor["scm"] == Hex.SCM
-            true = descriptor["application_version"] == "1.3.0"
+            true = descriptor["application_version"] == "1.5.0"
             true = is_map(descriptor["metadata"])
-            true = descriptor["metadata"][<<"version">>] == <<"1.3.0">>
+            true = descriptor["metadata"][<<"version">>] == <<"1.5.0">>
             true = "lib/accrue/integrations/chimeway.ex" in descriptor["metadata"][<<"files">>]
-            {"released_package", "accrue_version=1.3.0 chimeway_version=" <> version}
+            {"released_package", "accrue_version=1.5.0 chimeway_version=" <> version}
 
-          {:git, _, "0752b8d0b59eb53936498daa4bb0be4b14ffd0e4", _} ->
+          {:git, _, "cafc526f752b917a0abf8cbdbf3030cb367ae346", _} ->
             true = descriptor["scm"] == Mix.SCM.Git
-            {"compatibility", "accrue_ref=0752b8d0b59eb53936498daa4bb0be4b14ffd0e4"}
+            {"compatibility", "accrue_ref=cafc526f752b917a0abf8cbdbf3030cb367ae346"}
 
           _ ->
             raise "Accrue provenance is not an exact audited release or immutable compatibility ref"
@@ -909,7 +909,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
 
     case evidence.provenance do
       "released_package" ->
-        if evidence.accrue_version != "1.3.0" or
+        if evidence.accrue_version != "1.5.0" or
              not Regex.match?(
                ~r/\A\d+\.\d+\.\d+([-.][A-Za-z0-9.]+)?\z/,
                evidence.chimeway_version
