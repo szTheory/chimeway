@@ -1,7 +1,8 @@
 defmodule Chimeway.DeliveryTargetTest do
   use Chimeway.DataCase, async: false
 
-  alias Chimeway.{DeliveryPlanning, Repo}
+  alias Chimeway.{DeliveryPlanning, DeliveryTargets, Repo}
+  alias Chimeway.TargetResolver.BindingRevision
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
@@ -151,6 +152,53 @@ defmodule Chimeway.DeliveryTargetTest do
         ] do
       assert migration =~ token
     end
+  end
+
+  test "normalizes exact duplicates into a stable opaque target set" do
+    notification = insert_notification()
+
+    {:ok, delivery} =
+      Chimeway.Deliveries.plan_delivery(notification.id, :push,
+        tenant_id: "default",
+        actor_id: "actor"
+      )
+
+    bindings =
+      for ref <- ["cw_binding_revision_b", "cw_binding_revision_a", "cw_binding_revision_a"] do
+        %BindingRevision{tenant_id: "default", binding_revision_ref: ref}
+      end
+
+    assert {:ok, targets} = DeliveryTargets.plan_targets(delivery, "default", bindings)
+
+    assert Enum.map(targets, & &1.binding_revision_ref) == [
+             "cw_binding_revision_a",
+             "cw_binding_revision_b"
+           ]
+
+    assert {:ok, replanned} =
+             DeliveryTargets.plan_targets(delivery, "default", Enum.reverse(bindings))
+
+    assert Enum.map(replanned, & &1.id) == Enum.map(targets, & &1.id)
+  end
+
+  test "rejects malformed resolver entries without partial target rows" do
+    notification = insert_notification()
+
+    {:ok, delivery} =
+      Chimeway.Deliveries.plan_delivery(notification.id, :push,
+        tenant_id: "default",
+        actor_id: "actor"
+      )
+
+    bindings = [
+      %BindingRevision{tenant_id: "default", binding_revision_ref: "cw_binding_revision_a"},
+      %{tenant_id: "default", binding_revision_ref: "raw-token-sentinel"}
+    ]
+
+    assert {:error, :invalid_target_resolution} =
+             DeliveryTargets.plan_targets(delivery, "default", bindings)
+
+    assert Repo.aggregate(Chimeway.DeliveryTarget, :count, :id) == 0
   end
 
   defp insert_notification do

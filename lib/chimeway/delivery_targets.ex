@@ -10,30 +10,41 @@ defmodule Chimeway.DeliveryTargets do
           {:ok, [DeliveryTarget.t()]} | {:error, term()}
   def plan_targets(%Delivery{tenant_id: tenant_id} = delivery, tenant_id, bindings)
       when is_list(bindings) do
-    Enum.each(bindings, fn %BindingRevision{binding_revision_ref: ref} ->
-      %DeliveryTarget{}
-      |> DeliveryTarget.changeset(%{
-        tenant_id: tenant_id,
-        delivery_id: delivery.id,
-        binding_revision_ref: ref,
-        status: :pending
-      })
-      |> Repo.insert(
-        on_conflict: :nothing,
-        conflict_target: [:delivery_id, :binding_revision_ref]
-      )
-    end)
+    with {:ok, bindings} <- Chimeway.TargetResolver.normalize(tenant_id, bindings) do
+      Repo.transaction(fn ->
+        Enum.each(bindings, fn %BindingRevision{binding_revision_ref: ref} ->
+          %DeliveryTarget{}
+          |> DeliveryTarget.changeset(%{
+            tenant_id: tenant_id,
+            delivery_id: delivery.id,
+            binding_revision_ref: ref,
+            status: :pending
+          })
+          |> Repo.insert!(
+            on_conflict: :nothing,
+            conflict_target: [:delivery_id, :binding_revision_ref]
+          )
+        end)
 
-    {:ok,
-     Repo.all(
-       from(t in DeliveryTarget,
-         where: t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id,
-         order_by: [asc: t.binding_revision_ref]
-       )
-     )}
+        authoritative_targets(delivery.id, tenant_id)
+      end)
+      |> case do
+        {:ok, targets} -> {:ok, targets}
+        {:error, reason} -> {:error, reason}
+      end
+    end
   end
 
   def plan_targets(_, _, _), do: {:error, :tenant_mismatch}
+
+  defp authoritative_targets(delivery_id, tenant_id) do
+    Repo.all(
+      from(t in DeliveryTarget,
+        where: t.delivery_id == ^delivery_id and t.tenant_id == ^tenant_id,
+        order_by: [asc: t.binding_revision_ref, asc: t.id]
+      )
+    )
+  end
 
   @spec begin_target_attempt(Delivery.t(), keyword()) ::
           {:ok, %{target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
