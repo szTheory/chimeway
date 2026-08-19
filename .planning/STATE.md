@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 99
 current_phase_name: Multi-Installation Delivery & Recovery
 status: executing
-stopped_at: Phase 99 context gathered (assumptions mode)
-last_updated: "2026-08-19T18:57:45.576Z"
+stopped_at: Completed 99-01-PLAN.md
+last_updated: "2026-08-19T19:24:14.592Z"
 last_activity: 2026-08-19
-last_activity_desc: Phase 98 complete, transitioned to Phase 99
+last_activity_desc: Phase 99 execution started
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 34
-  completed_plans: 29
+  completed_plans: 30
   percent: 29
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 98 — privacy-safe-delivery-evidence
+**Current focus:** Phase 99 — Multi-Installation Delivery & Recovery
 
 ## Current Position
 
-Phase: 99 — Multi-Installation Delivery & Recovery
-Plan: Not started
+Phase: 99 (Multi-Installation Delivery & Recovery) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-19 — Phase 98 complete, transitioned to Phase 99
+Last activity: 2026-08-19 — Phase 99 execution started
 
 ## Deferred Items
 
@@ -355,6 +355,8 @@ status: complete
 - [Phase ?]: [98-14]: Public trace APIs now return SafeEvidence-built nested maps; the event root retains tenant identity and recipient evidence is opaque.
 - [Phase ?]: [98-15]: Only Date, Time, NaiveDateTime, and DateTime bypass recursive redaction; other structs are projected into ordinary maps.
 - [Phase ?]: [98-15]: Trace evidence rebuilds attempts and timeline entries from fixed validated vocabularies, omitting malformed nested input.
+- [Phase ?]: [99-01]: Delivery remains canonical; opaque binding revisions persist as tenant-scoped DeliveryTarget children.
+- [Phase ?]: [99-01]: Target attempt_started evidence commits before provider adapter handoff, and provider acceptance claims no device receipt.
 
 ### Roadmap Evolution
 
@@ -675,9 +677,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-19T17:48:16.140Z
-Stopped at: Phase 99 context gathered (assumptions mode)
-Resume file: .planning/phases/99-multi-installation-delivery-recovery/99-CONTEXT.md
+Last session: 2026-08-19T19:24:14.582Z
+Stopped at: Completed 99-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -807,3 +809,4 @@ Resume file: .planning/phases/99-multi-installation-delivery-recovery/99-CONTEXT
 | Phase 98-privacy-safe-delivery-evidence P13 | 6min | 1 tasks | 1 files |
 | Phase 98-privacy-safe-delivery-evidence P14 | 8 min | 3 tasks | 8 files |
 | Phase 98-privacy-safe-delivery-evidence P15 | 18 min | 2 tasks | 4 files |
+| Phase 99-multi-installation-delivery-recovery P01 | 9 min | 2 tasks | 13 files |

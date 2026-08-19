@@ -156,13 +156,13 @@ Plans:
   4. A delivery with no eligible target is suppressed with a stable reason, while mixed terminal target results succeed only when at least one target receives APNs acceptance and retain partial failures.
   5. A crash after possible provider handoff records an explicit ambiguous outcome from pre-I/O claim and attempt-start evidence rather than silently resending or promising exactly-once delivery.
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 99-01-PLAN.md — Prove one opaque target end to end beneath the canonical push delivery.
+- [x] 99-01-PLAN.md — Prove one opaque target end to end beneath the canonical push delivery.
 
 **Wave 2** *(after tracer verification)*
 
@@ -238,7 +238,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
 | 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
-| 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
+| 99. Multi-Installation Delivery & Recovery | 1/5 | In Progress|  |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
 | 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |
