@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 3
+open_count: 5
 waived_count: 1
 fixed_count: 7
-total_count: 11
-last_updated: 2026-08-13T00:24:26.215Z
+total_count: 13
+last_updated: 2026-08-19T19:24:29.941Z
 ---
 
 # Broken Windows Ledger
@@ -26,6 +26,8 @@ last_updated: 2026-08-13T00:24:26.215Z
 | 9 | 97 | deviation | test/chimeway/runtime_prefix_integration_test.exs | 313 | Authorized fixture tenant alignment required for the explicit event-recovery predicate. | open |  | 2026-08-12T17:40:11.227Z |  |
 | 10 | 98 | unrun-verify | chimeway_admin/test/chimeway_admin/live_auth_test.exs |  | mix verify.admin remains blocked by pre-existing LiveAuth redirect to:nil test configuration | open |  | 2026-08-13T00:16:47.274Z |  |
 | 11 | 98 | unrun-verify | test/chimeway/release_gate_contract_test.exs |  | Focused release-gate contract could not start because concurrent test processes exhausted PostgreSQL connections (FATAL 53300). | open |  | 2026-08-13T00:24:26.215Z |  |
+| 12 | 99 | deviation | lib/chimeway/safe_evidence.ex |  | Legacy trace projections now treat unloaded target associations as empty. | open |  | 2026-08-19T19:24:29.874Z |  |
+| 13 | 99 | deviation | lib/chimeway/dispatch/sync.ex |  | Sync telemetry reads adapter_module safely for target attempts. | open |  | 2026-08-19T19:24:29.941Z |  |
 
 ````json
 [
@@ -159,6 +161,30 @@ last_updated: 2026-08-13T00:24:26.215Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-13T00:24:26.215Z",
+    "resolved_at": null
+  },
+  {
+    "id": 12,
+    "kind": "deviation",
+    "phase": "99",
+    "file": "lib/chimeway/safe_evidence.ex",
+    "line": null,
+    "description": "Legacy trace projections now treat unloaded target associations as empty.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-19T19:24:29.874Z",
+    "resolved_at": null
+  },
+  {
+    "id": 13,
+    "kind": "deviation",
+    "phase": "99",
+    "file": "lib/chimeway/dispatch/sync.ex",
+    "line": null,
+    "description": "Sync telemetry reads adapter_module safely for target attempts.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-19T19:24:29.941Z",
     "resolved_at": null
   }
 ]
