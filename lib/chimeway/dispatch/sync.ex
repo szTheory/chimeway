@@ -111,10 +111,15 @@ defmodule Chimeway.Dispatch.Sync do
   end
 
   defp do_dispatch(delivery) do
-    case Executor.run_delivery(delivery) do
+    result =
+      if delivery.channel == "push",
+        do: Executor.run_target(delivery),
+        else: Executor.run_delivery(delivery)
+
+    case result do
       {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
         # D-22: thread adapter_module up to the sync,:stop telemetry metadata.
-        {{:ok, updated_delivery}, attempt.adapter_module}
+        {{:ok, updated_delivery}, Map.get(attempt, :adapter_module)}
 
       {:ok, %{delivery: updated_delivery}} ->
         # Defensive: attempt key missing from the executor return shape.
@@ -125,6 +130,9 @@ defmodule Chimeway.Dispatch.Sync do
 
       {:error, _reason} = error ->
         {error, nil}
+
+      {:noop, _reason} ->
+        {{:ok, delivery}, nil}
     end
   end
 
