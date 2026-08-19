@@ -21,7 +21,7 @@
 
 - [x] **PUSH-01**: A host can implement a public target-resolution behaviour that returns every active eligible installation as an opaque, tenant-scoped binding revision without exposing raw tokens.
 - [x] **PUSH-02**: One logical push delivery durably records one target child per selected installation, and each target has independent claim, attempt, retry, invalidation, expiry, and trace history.
-- [ ] **PUSH-03**: Duplicate planning, job execution, or recovery cannot create a duplicate target or an unexplained additional provider request.
+- [x] **PUSH-03**: Duplicate planning, job execution, or recovery cannot create a duplicate target or an unexplained additional provider request.
 - [x] **PUSH-04**: A logical push with no eligible targets is suppressed with a stable explainable reason; after all targets terminate, it succeeds when at least one was APNs-accepted and exposes partial failures without claiming all-device delivery.
 
 ### APNs Dispatch
@@ -85,7 +85,7 @@
 | PRIV-04 | Phase 98 | Gaps Found |
 | PUSH-01 | Phase 99 | Complete |
 | PUSH-02 | Phase 99 | Complete |
-| PUSH-03 | Phase 99 | Pending |
+| PUSH-03 | Phase 99 | Complete |
 | PUSH-04 | Phase 99 | Complete |
 | RECOV-01 | Phase 99 | Pending |
 | RECOV-02 | Phase 99 | Complete |

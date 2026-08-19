@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 99
 current_phase_name: Multi-Installation Delivery & Recovery
 status: executing
-stopped_at: Completed 99-01-PLAN.md
-last_updated: "2026-08-19T19:24:14.592Z"
+stopped_at: Completed 99-02-PLAN.md
+last_updated: "2026-08-19T23:35:20.005Z"
 last_activity: 2026-08-19
 last_activity_desc: Phase 99 execution started
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 34
-  completed_plans: 30
+  completed_plans: 31
   percent: 29
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 99 (Multi-Installation Delivery & Recovery) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-19 — Phase 99 execution started
 
@@ -357,6 +357,8 @@ status: complete
 - [Phase ?]: [98-15]: Trace evidence rebuilds attempts and timeline entries from fixed validated vocabularies, omitting malformed nested input.
 - [Phase ?]: [99-01]: Delivery remains canonical; opaque binding revisions persist as tenant-scoped DeliveryTarget children.
 - [Phase ?]: [99-01]: Target attempt_started evidence commits before provider adapter handoff, and provider acceptance claims no device receipt.
+- [Phase ?]: [99-02]: Generated target identity and attempt-order constraints are proven in both static PostgreSQL storage modes.
+- [Phase ?]: [99-02]: Runtime target planning routes through configured Repo storage and never accepts tenant-derived prefixes.
 
 ### Roadmap Evolution
 
@@ -677,8 +679,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-19T19:24:14.582Z
-Stopped at: Completed 99-01-PLAN.md
+Last session: 2026-08-19T23:35:19.995Z
+Stopped at: Completed 99-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -810,3 +812,4 @@ Resume file: None
 | Phase 98-privacy-safe-delivery-evidence P14 | 8 min | 3 tasks | 8 files |
 | Phase 98-privacy-safe-delivery-evidence P15 | 18 min | 2 tasks | 4 files |
 | Phase 99-multi-installation-delivery-recovery P01 | 9 min | 2 tasks | 13 files |
+| Phase 99-multi-installation-delivery-recovery P02 | 15 min | 2 tasks | 5 files |
