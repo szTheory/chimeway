@@ -201,6 +201,54 @@ defmodule Chimeway.DeliveryTargetTest do
     assert Repo.aggregate(Chimeway.DeliveryTarget, :count, :id) == 0
   end
 
+  test "derives partial target failure without erasing the accepted target" do
+    notification = insert_notification()
+
+    {:ok, delivery} =
+      Chimeway.Deliveries.plan_delivery(notification.id, :push,
+        tenant_id: "default",
+        actor_id: "actor"
+      )
+
+    {:ok, [accepted, failed]} =
+      DeliveryTargets.plan_targets(delivery, "default", [
+        %BindingRevision{tenant_id: "default", binding_revision_ref: "cw_binding_revision_a"},
+        %BindingRevision{tenant_id: "default", binding_revision_ref: "cw_binding_revision_b"}
+      ])
+
+    accepted = Repo.update!(Ecto.Changeset.change(accepted, status: :provider_accepted))
+    failed = Repo.update!(Ecto.Changeset.change(failed, status: :failed))
+
+    assert {:ok, updated} = DeliveryTargets.recompute_delivery(delivery, "default")
+    assert updated.status == :succeeded
+
+    assert updated.metadata["target_aggregate"] == %{
+             "target_count" => 2,
+             "terminal_target_count" => 2,
+             "provider_accepted_count" => 1,
+             "terminal_failure_count" => 1,
+             "partial_failure" => true,
+             "all_targets_terminal" => true
+           }
+
+    assert Repo.get!(Chimeway.DeliveryTarget, accepted.id).status == :provider_accepted
+    assert Repo.get!(Chimeway.DeliveryTarget, failed.id).status == :failed
+  end
+
+  test "empty target aggregate is the dedicated no-eligible-target suppression" do
+    notification = insert_notification()
+
+    {:ok, delivery} =
+      Chimeway.Deliveries.plan_delivery(notification.id, :push,
+        tenant_id: "default",
+        actor_id: "actor"
+      )
+
+    assert {:ok, suppressed} = DeliveryTargets.recompute_delivery(delivery, "default")
+    assert suppressed.status == :suppressed
+    assert suppressed.suppression_reason == "no_eligible_targets"
+  end
+
   defp insert_notification do
     event =
       Repo.insert!(%Event{

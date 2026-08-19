@@ -9,6 +9,7 @@ defmodule Chimeway.DeliveryTarget do
     :claimed,
     :provider_accepted,
     :failed,
+    :retry_exhausted,
     :expired,
     :invalidated,
     :ambiguous_handoff

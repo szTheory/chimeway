@@ -33,6 +33,7 @@ defmodule Chimeway.Traces do
   alias Chimeway.{
     Delivery,
     DeliveryTarget,
+    DeliveryTargetAttempt,
     Events.Event,
     Notifications.Notification,
     Repo,
@@ -73,6 +74,12 @@ defmodule Chimeway.Traces do
               order_by: [asc: t.binding_revision_ref]
             )
 
+          target_attempts_query =
+            from(a in DeliveryTargetAttempt,
+              where: a.tenant_id == ^tenant_id,
+              order_by: [asc: a.attempt_number, asc: a.id]
+            )
+
           loaded =
             Repo.preload(
               event,
@@ -81,7 +88,8 @@ defmodule Chimeway.Traces do
                   {notifications_query,
                    [
                      deliveries:
-                       {deliveries_query, [attempts: [], targets: {targets_query, :attempts}]}
+                       {deliveries_query,
+                        [attempts: [], targets: {targets_query, attempts: target_attempts_query}]}
                    ]}
               ],
               repo_opts

@@ -3,8 +3,17 @@ defmodule Chimeway.DeliveryTargets do
 
   import Ecto.Query
   alias Ecto.Multi
-  alias Chimeway.{Deliveries, Delivery, DeliveryTarget, DeliveryTargetAttempt, Repo, SafeEvidence}
+  alias Chimeway.{Delivery, DeliveryTarget, DeliveryTargetAttempt, Repo, SafeEvidence}
   alias Chimeway.TargetResolver.BindingRevision
+
+  @terminal_statuses [
+    :provider_accepted,
+    :failed,
+    :expired,
+    :invalidated,
+    :retry_exhausted,
+    :ambiguous_handoff
+  ]
 
   @spec plan_targets(Delivery.t(), String.t(), [BindingRevision.t()]) ::
           {:ok, [DeliveryTarget.t()]} | {:error, term()}
@@ -139,12 +148,7 @@ defmodule Chimeway.DeliveryTargets do
           safe_facts: safe_facts
         )
       )
-      |> Multi.run(:delivery, fn _repo, _ ->
-        case Deliveries.transition_status(delivery, :dispatched) do
-          {:ok, dispatched} -> Deliveries.transition_status(dispatched, :succeeded)
-          {:error, _} = error -> error
-        end
-      end)
+      |> Multi.run(:delivery, fn _repo, _ -> recompute_delivery(delivery, delivery.tenant_id) end)
       |> Repo.transaction()
       |> case do
         {:ok, %{delivery: updated, target: updated_target, attempt: updated_attempt}} ->
@@ -155,4 +159,137 @@ defmodule Chimeway.DeliveryTargets do
       end
     end
   end
+
+  @doc "Changes one tenant-qualified target back to pending and recomputes its parent."
+  @spec schedule_retry(Delivery.t(), String.t(), keyword()) ::
+          {:ok, DeliveryTarget.t()} | {:error, term()}
+  def schedule_retry(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
+    do: transition_target(delivery, target_id, :pending, opts)
+
+  @doc "Marks one tenant-qualified target as expired and recomputes its parent."
+  @spec expire_target(Delivery.t(), String.t(), keyword()) ::
+          {:ok, DeliveryTarget.t()} | {:error, term()}
+  def expire_target(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
+    do: transition_target(delivery, target_id, :expired, opts)
+
+  @doc "Marks one tenant-qualified target as invalidated and recomputes its parent."
+  @spec invalidate_target(Delivery.t(), String.t(), keyword()) ::
+          {:ok, DeliveryTarget.t()} | {:error, term()}
+  def invalidate_target(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
+    do: transition_target(delivery, target_id, :invalidated, opts)
+
+  @doc "Marks one tenant-qualified target as retry-exhausted and recomputes its parent."
+  @spec exhaust_target(Delivery.t(), String.t(), keyword()) ::
+          {:ok, DeliveryTarget.t()} | {:error, term()}
+  def exhaust_target(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
+    do: transition_target(delivery, target_id, :retry_exhausted, opts)
+
+  @doc "Derives the logical-delivery outcome from its tenant-scoped targets."
+  @spec recompute_delivery(Delivery.t(), String.t()) :: {:ok, Delivery.t()} | {:error, term()}
+  def recompute_delivery(%Delivery{id: delivery_id, tenant_id: tenant_id}, tenant_id) do
+    Repo.transaction(fn ->
+      delivery =
+        Repo.one(
+          from(d in Delivery,
+            where: d.id == ^delivery_id and d.tenant_id == ^tenant_id,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(delivery), do: Repo.rollback(:not_found)
+      targets = authoritative_targets(delivery_id, tenant_id)
+      aggregate = aggregate(targets)
+
+      delivery
+      |> Ecto.Changeset.change(%{
+        metadata: Map.put(delivery.metadata || %{}, "target_aggregate", aggregate),
+        status: aggregate_status(delivery.status, aggregate),
+        suppression_reason: suppression_reason(delivery, aggregate)
+      })
+      |> Repo.update!()
+    end)
+    |> case do
+      {:ok, updated} -> {:ok, updated}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def recompute_delivery(_, _), do: {:error, :tenant_mismatch}
+
+  defp transition_target(%Delivery{tenant_id: tenant_id} = delivery, target_id, status, opts) do
+    if Keyword.get(opts, :tenant_id, tenant_id) != tenant_id do
+      {:error, :not_found}
+    else
+      Repo.transaction(fn ->
+        target =
+          Repo.one(
+            from(t in DeliveryTarget,
+              where:
+                t.id == ^target_id and t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(target), do: Repo.rollback(:not_found)
+
+        updated =
+          target |> Ecto.Changeset.change(status: status, lease_expires_at: nil) |> Repo.update!()
+
+        if status in @terminal_statuses do
+          now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+          Repo.insert!(
+            DeliveryTargetAttempt.changeset(%DeliveryTargetAttempt{}, %{
+              tenant_id: tenant_id,
+              delivery_target_id: target.id,
+              attempt_number:
+                Repo.aggregate(
+                  from(a in DeliveryTargetAttempt, where: a.delivery_target_id == ^target.id),
+                  :count,
+                  :id
+                ) + 1,
+              outcome: status,
+              started_at: now,
+              finished_at: now,
+              source: "lifecycle",
+              safe_facts: %{}
+            })
+          )
+        end
+
+        {:ok, _delivery} = recompute_delivery(delivery, tenant_id)
+        updated
+      end)
+      |> case do
+        {:ok, target} -> {:ok, target}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  defp aggregate(targets) do
+    target_count = length(targets)
+    terminal_targets = Enum.filter(targets, &(&1.status in @terminal_statuses))
+    accepted = Enum.count(targets, &(&1.status == :provider_accepted))
+
+    %{
+      "target_count" => target_count,
+      "terminal_target_count" => length(terminal_targets),
+      "provider_accepted_count" => accepted,
+      "terminal_failure_count" => length(terminal_targets) - accepted,
+      "partial_failure" => accepted > 0 and length(terminal_targets) > accepted,
+      "all_targets_terminal" => target_count > 0 and length(terminal_targets) == target_count
+    }
+  end
+
+  defp aggregate_status(_current_status, %{"target_count" => 0}), do: :suppressed
+  defp aggregate_status(current_status, %{"all_targets_terminal" => false}), do: current_status
+
+  defp aggregate_status(_current_status, %{"provider_accepted_count" => accepted})
+       when accepted > 0, do: :succeeded
+
+  defp aggregate_status(_current_status, _aggregate), do: :failed
+
+  defp suppression_reason(_delivery, %{"target_count" => 0}), do: "no_eligible_targets"
+  defp suppression_reason(delivery, _aggregate), do: delivery.suppression_reason
 end

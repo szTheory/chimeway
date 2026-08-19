@@ -380,6 +380,7 @@ defmodule Chimeway.SafeEvidence do
       render_version: positive_integer(Map.get(delivery, :render_version)),
       inserted_at: safe_datetime(Map.get(delivery, :inserted_at)),
       updated_at: safe_datetime(Map.get(delivery, :updated_at)),
+      target_aggregate: target_aggregate(Map.get(delivery, :metadata, %{})),
       attempts:
         delivery
         |> Map.get(:attempts, [])
@@ -392,6 +393,22 @@ defmodule Chimeway.SafeEvidence do
         |> Enum.map(&trace_target/1)
     }
   end
+
+  @doc false
+  @spec target_aggregate(term()) :: map()
+  def target_aggregate(%{"target_aggregate" => aggregate}) when is_map(aggregate) do
+    %{
+      target_count: non_negative_integer(Map.get(aggregate, "target_count")),
+      terminal_target_count: non_negative_integer(Map.get(aggregate, "terminal_target_count")),
+      provider_accepted_count:
+        non_negative_integer(Map.get(aggregate, "provider_accepted_count")),
+      terminal_failure_count: non_negative_integer(Map.get(aggregate, "terminal_failure_count")),
+      partial_failure: Map.get(aggregate, "partial_failure") === true,
+      all_targets_terminal: Map.get(aggregate, "all_targets_terminal") === true
+    }
+  end
+
+  def target_aggregate(_value), do: %{}
 
   defp trace_target(target) do
     %{
@@ -533,6 +550,7 @@ defmodule Chimeway.SafeEvidence do
               :claimed,
               :provider_accepted,
               :failed,
+              :retry_exhausted,
               :expired,
               :invalidated,
               :ambiguous_handoff
@@ -542,7 +560,15 @@ defmodule Chimeway.SafeEvidence do
   defp safe_target_status(_value), do: nil
 
   defp safe_target_outcome(value)
-       when value in [:attempt_started, :provider_accepted, :failed, :ambiguous_handoff],
+       when value in [
+              :attempt_started,
+              :provider_accepted,
+              :failed,
+              :expired,
+              :invalidated,
+              :retry_exhausted,
+              :ambiguous_handoff
+            ],
        do: value
 
   defp safe_target_outcome(_value), do: nil
@@ -646,6 +672,9 @@ defmodule Chimeway.SafeEvidence do
   defp safe_render_key(_value), do: nil
   defp positive_integer(value) when is_integer(value) and value > 0, do: value
   defp positive_integer(_value), do: nil
+
+  defp non_negative_integer(value) when is_integer(value) and value >= 0, do: value
+  defp non_negative_integer(_value), do: nil
 
   defp safe_status(value)
        when value in [

@@ -4,7 +4,15 @@ defmodule Chimeway.DeliveryTargetAttempt do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
-  @outcomes [:attempt_started, :provider_accepted, :failed, :ambiguous_handoff]
+  @outcomes [
+    :attempt_started,
+    :provider_accepted,
+    :failed,
+    :expired,
+    :invalidated,
+    :retry_exhausted,
+    :ambiguous_handoff
+  ]
 
   schema "chimeway_delivery_target_attempts" do
     field(:tenant_id, :string)
