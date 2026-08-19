@@ -54,6 +54,7 @@ defmodule Chimeway.Install.GoldenDiffTest do
         assert_chimeway_migration_markers!(tree)
         assert_mode_shape!(context.golden_mode, tree)
         assert_migration_034_prefix_contract!(context.golden_mode, tree)
+        assert_migration_035_target_contract!(context.golden_mode, tree)
 
         if InstallerFixture.accept_golden_refresh?() do
           InstallerFixture.write_golden!(context.golden_mode, tree, stdout)
@@ -139,6 +140,28 @@ defmodule Chimeway.Install.GoldenDiffTest do
 
     refute migration =~ "__CHIMEWAY_PREFIX__",
            "migration 034 must not retain the installer prefix sentinel in #{mode} mode"
+  end
+
+  defp assert_migration_035_target_contract!(mode, tree) do
+    migration =
+      Map.fetch!(
+        tree,
+        "priv/repo/migrations/TIMESTAMP_create_chimeway_delivery_targets.exs"
+      )
+
+    expected_prefix =
+      if mode == :prefixed, do: ~s(@chimeway_prefix "chimeway"), else: "@chimeway_prefix false"
+
+    assert migration =~ expected_prefix
+    assert migration =~ "chimeway_table(:chimeway_delivery_targets"
+    assert migration =~ "chimeway_table(:chimeway_delivery_target_attempts"
+    assert migration =~ "chimeway_references(:chimeway_deliveries"
+    assert migration =~ "chimeway_references(:chimeway_delivery_targets"
+    assert migration =~ "[:delivery_id, :binding_revision_ref]"
+    assert migration =~ "[:delivery_target_id, :attempt_number]"
+    assert migration =~ "unique: true"
+    refute migration =~ "__CHIMEWAY_PREFIX__"
+    refute migration =~ "tenant-derived prefix"
   end
 
   defp joined_tree(tree) do

@@ -77,6 +77,37 @@ defmodule Chimeway.Install.PrefixContractTest do
     end
   end
 
+  test "prefixed target migration helper-qualifies every target relation and constraint" do
+    migration =
+      Path.join(
+        @prefixed_root,
+        "TIMESTAMP_create_chimeway_delivery_targets.exs"
+      )
+      |> File.read!()
+
+    for relation <- [
+          ":chimeway_delivery_targets",
+          ":chimeway_delivery_target_attempts",
+          ":chimeway_deliveries"
+        ] do
+      assert migration =~ relation
+    end
+
+    assert migration =~ "chimeway_table(:chimeway_delivery_targets"
+    assert migration =~ "chimeway_table(:chimeway_delivery_target_attempts"
+    assert migration =~ "chimeway_references(:chimeway_deliveries"
+    assert migration =~ "chimeway_references(:chimeway_delivery_targets"
+
+    assert migration =~
+             "chimeway_index(:chimeway_delivery_targets, [:delivery_id, :binding_revision_ref]"
+
+    assert migration =~
+             "chimeway_index(:chimeway_delivery_target_attempts, [:delivery_target_id, :attempt_number]"
+
+    refute migration =~ "prefix: tenant"
+    refute migration =~ "prefix: binding"
+  end
+
   test "local and CI installer gates run the same verify.install_golden proof" do
     mix_exs = File.read!(@mix_exs)
     ci_yml = File.read!(@ci_yml)
