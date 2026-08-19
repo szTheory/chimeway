@@ -132,6 +132,27 @@ defmodule Chimeway.DeliveryTargetTest do
     assert Repo.one!(Chimeway.DeliveryTargetAttempt).outcome == :provider_accepted
   end
 
+  test "copied migration retains the target and ordered-attempt contract" do
+    migration = File.read!("priv/chimeway_migrations/035_create_chimeway_delivery_targets.exs")
+
+    for token <- [
+          "@chimeway_prefix __CHIMEWAY_PREFIX__",
+          "chimeway_delivery_targets",
+          "binding_revision_ref",
+          "chimeway_delivery_target_attempts",
+          "attempt_number",
+          "started_at",
+          "finished_at",
+          "duplicate_risk",
+          "safe_facts",
+          "[:delivery_id, :binding_revision_ref]",
+          "[:delivery_target_id, :attempt_number]",
+          "unique: true"
+        ] do
+      assert migration =~ token
+    end
+  end
+
   defp insert_notification do
     event =
       Repo.insert!(%Event{
