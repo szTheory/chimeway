@@ -347,17 +347,13 @@ Do not emit a bare `delivered` field from this function. [VERIFIED: 99-CONTEXT.m
 | A1 | A target-level terminal status set can be represented with Ecto enums/strings without changing a public stable contract. | Architecture Patterns | Low: names are explicitly discretionary, but migration/API names need design review. [ASSUMED] |
 | A2 | Target claims will use a timestamp lease such as `claimed_until` rather than a separate claim table as the exclusive concurrency primitive. | Pattern 3 | Medium: D-05 permits either mechanics; planner must choose one that preserves append-only evidence. [ASSUMED] |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Which target attempts are terminal after `ambiguous_handoff`?**
-   - What we know: automatic resend is forbidden, and later policy-authorized re-drive must link duplicate-risk evidence. [VERIFIED: 99-CONTEXT.md]
-   - What's unclear: whether the target itself becomes terminal immediately or enters a distinct manual/policy-gated state.
-   - Recommendation: define an explicit non-actionable `ambiguous_handoff` target state and require a named re-drive API that creates a linked new attempt. [ASSUMED]
+1. **Which target attempts are terminal after `ambiguous_handoff`? — RESOLVED**
+   - **Selected contract:** `ambiguous_handoff` is an explicit terminal, non-actionable target outcome. It is never eligible for automatic resend. A later policy-authorized re-drive creates a new numbered attempt linked to the ambiguous predecessor and records duplicate-risk evidence; it does not reopen, rewrite, or hide the terminal predecessor. [VERIFIED: D-07/D-08 in 99-CONTEXT.md]
 
-2. **How should generic provider execution receive host-owned target material?**
-   - What we know: Phase 99 cannot store/receive raw token/endpoints in Chimeway persistence; APNs construction is Phase 100. [VERIFIED: 99-CONTEXT.md]
-   - What's unclear: exact Phase-100 callback shape.
-   - Recommendation: Phase 99 should expose only target ID + opaque revision reference to the replaceable execution seam; defer material lookup to the host-aware Phase-100 adapter contract. [ASSUMED]
+2. **How should generic provider execution receive host-owned target material? — RESOLVED**
+   - **Selected contract:** the Phase 99 provider boundary accepts only the durable target ID, the opaque binding revision reference, and closed safe context admitted by `SafeEvidence`. It never accepts raw token, endpoint, credential, provider-body, or uncontrolled host payload material. Host-owned material lookup and APNs-specific request construction remain Phase 100 responsibilities. [VERIFIED: D-02/D-09 and Deferred Ideas in 99-CONTEXT.md]
 
 ## Environment Availability
 
