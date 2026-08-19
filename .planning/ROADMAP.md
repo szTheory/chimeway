@@ -18,7 +18,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 ## Phases
 
 - [x] **Phase 97: Tenant Identity & Compatible Upgrade** — Tenant-safe lifecycle identity and a non-guessing upgrade path. (completed 2026-08-12)
-- [ ] **Phase 98: Privacy-Safe Delivery Evidence** — Recursive redaction and bounded diagnostics across every observable Chimeway surface.
+- [x] **Phase 98: Privacy-Safe Delivery Evidence** — Recursive redaction and bounded diagnostics across every observable Chimeway surface. (completed 2026-08-19)
 - [ ] **Phase 99: Multi-Installation Delivery & Recovery** — One logical delivery with independently explainable opaque installation targets.
 - [ ] **Phase 100: Optional APNs Adapter** — Opt-in, reason-aware APNs dispatch under host token custody.
 - [ ] **Phase 101: CrossWake Registration & Protected Open** — Authenticated registration and fail-closed offline notification activation.
@@ -85,7 +85,7 @@ Plans:
   2. An operator can inspect a delivery trace, attempt result, telemetry projection, and proof artifact using opaque references, classifications, and allowlisted facts.
   3. Test fixtures containing raw tokens, credentials, recipient data, trusted deep links, and provider bodies cannot expose those values through Chimeway-owned storage or diagnostics.
 
-**Plans:** 14/15 plans executed
+**Plans:** 15/15 plans complete
 
 Plans:
 
@@ -141,7 +141,7 @@ Plans:
 
 **Gap Closure Wave 13** *(blocked on Gap Closure Wave 12 completion)*
 
-- [ ] 98-15-PLAN.md — Close arbitrary-struct redaction and nested trace evidence escape hatches.
+- [x] 98-15-PLAN.md — Close arbitrary-struct redaction and nested trace evidence escape hatches.
 
 ### Phase 99: Multi-Installation Delivery & Recovery
 
@@ -218,7 +218,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
-| 98. Privacy-Safe Delivery Evidence | 14/15 | In Progress|  |
+| 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
 | 99. Multi-Installation Delivery & Recovery | 0/TBD | Not started | - |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
