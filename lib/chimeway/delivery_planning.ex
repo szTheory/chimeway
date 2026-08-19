@@ -8,6 +8,7 @@ defmodule Chimeway.DeliveryPlanning do
 
   alias Chimeway.{
     Deliveries,
+    DeliveryTargets,
     Delivery,
     Notifier,
     Policy,
@@ -176,11 +177,34 @@ defmodule Chimeway.DeliveryPlanning do
            resolve_orchestration(notification, opts, trigger_params, recipient),
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
       with {:ok, delivery} <- evaluate_planning_policy(delivery, opts),
+           {:ok, delivery} <- maybe_plan_push_targets(delivery, channel, tenant_id, opts),
            {:ok, delivery} <- maybe_accumulate_digest_delivery(delivery) do
         {:ok, attach_render_data(delivery, render_result, transient_render_data?)}
       end
     end
   end
+
+  defp maybe_plan_push_targets(
+         %Delivery{status: :suppressed} = delivery,
+         _channel,
+         _tenant_id,
+         _opts
+       ),
+       do: {:ok, delivery}
+
+  defp maybe_plan_push_targets(%Delivery{} = delivery, "push", tenant_id, opts) do
+    with {:ok, bindings} <- Chimeway.TargetResolver.resolve_targets(tenant_id, opts),
+         {:ok, _targets} <- DeliveryTargets.plan_targets(delivery, tenant_id, bindings) do
+      if bindings == [] do
+        Deliveries.suppress_delivery(delivery, :no_eligible_targets, checkpoint: :planning)
+      else
+        {:ok, delivery}
+      end
+    end
+  end
+
+  defp maybe_plan_push_targets(%Delivery{} = delivery, _channel, _tenant_id, _opts),
+    do: {:ok, delivery}
 
   defp resolve_delivery_tenant(%Notification{tenant_id: tenant_id}, opts)
        when is_binary(tenant_id) and byte_size(tenant_id) > 0 do

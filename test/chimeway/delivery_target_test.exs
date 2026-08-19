@@ -16,7 +16,10 @@ defmodule Chimeway.DeliveryTargetTest do
 
     def rendering(_params, _recipient) do
       {:ok,
-       %{assigns: %{}, channels: %{push: %{render_key: "delivery-target.push", render_version: 1}}}}
+       %{
+         assigns: %{},
+         channels: %{push: %{render_key: "delivery-target.push", render_version: 1}}
+       }}
     end
   end
 
@@ -64,11 +67,20 @@ defmodule Chimeway.DeliveryTargetTest do
   test "push planning and target execution preserve canonical identity and safe evidence" do
     notification = insert_notification()
 
-    assert {:ok, [delivery]} =
-             DeliveryPlanning.plan_notification(notification, notifier: PushNotifier, trigger_params: %{})
+    planning_opts = [
+      use_persisted_channels: true,
+      precomputed_rendering: %{
+        {notification.id, "push"} => %{
+          render_key: "delivery-target.push",
+          render_version: 1,
+          render_data: %{}
+        }
+      }
+    ]
 
-    assert {:ok, [replanned]} =
-             DeliveryPlanning.plan_notification(notification, notifier: PushNotifier, trigger_params: %{})
+    assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification, planning_opts)
+
+    assert {:ok, [replanned]} = DeliveryPlanning.plan_notification(notification, planning_opts)
 
     assert delivery.id == replanned.id
     assert Repo.aggregate(Chimeway.DeliveryTarget, :count, :id) == 1
@@ -81,6 +93,21 @@ defmodule Chimeway.DeliveryTargetTest do
     assert attempt.outcome == :provider_accepted
     assert attempt.safe_facts == %{"provider_code" => "accepted"}
     refute inspect({succeeded, target, attempt}) =~ "raw-token-sentinel"
+
+    assert {:ok, trace} = Chimeway.Traces.get_trace(notification.event_id, tenant_id: "default")
+
+    traced_attempt =
+      trace.notifications
+      |> hd()
+      |> Map.fetch!(:deliveries)
+      |> hd()
+      |> Map.fetch!(:targets)
+      |> hd()
+      |> Map.fetch!(:attempts)
+      |> hd()
+
+    assert traced_attempt.outcome == :provider_accepted
+    refute inspect(trace) =~ "raw-token-sentinel"
   end
 
   defp insert_notification do
@@ -98,7 +125,10 @@ defmodule Chimeway.DeliveryTargetTest do
       recipient_identity: "user-target",
       recipient_type: "user",
       tenant_id: "default",
-      metadata: %{}
+      metadata: %{},
+      render_channels: %{
+        "push" => %{"render_key" => "delivery-target.push", "render_version" => 1}
+      }
     })
   end
 

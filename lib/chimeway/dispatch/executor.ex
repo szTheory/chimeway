@@ -19,7 +19,7 @@ defmodule Chimeway.Dispatch.Executor do
   Oban return value (retry vs terminal vs success).
   """
 
-  alias Chimeway.{Deliveries, Delivery, SafeEvidence}
+  alias Chimeway.{Deliveries, Delivery, DeliveryTargets, SafeEvidence}
   alias Chimeway.Dispatch.ChannelAdapterConfig
 
   @spec run_delivery(Delivery.t()) ::
@@ -54,6 +54,32 @@ defmodule Chimeway.Dispatch.Executor do
         })
       )
     end
+  end
+
+  @spec run_target(Delivery.t()) ::
+          {:ok,
+           %{
+             delivery: Delivery.t(),
+             target: Chimeway.DeliveryTarget.t(),
+             attempt: Chimeway.DeliveryTargetAttempt.t()
+           }}
+          | {:noop, term()}
+          | {:error, term()}
+  def run_target(%Delivery{} = delivery) do
+    with {:ok, %{target: target, attempt: attempt}} <-
+           DeliveryTargets.begin_target_attempt(delivery),
+         {:ok, facts} <-
+           target_adapter().deliver(
+             %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},
+             []
+           ),
+         {:ok, result} <- DeliveryTargets.record_target_result(delivery, target, attempt, facts) do
+      {:ok, result}
+    end
+  end
+
+  defp target_adapter do
+    Application.get_env(:chimeway, :target_adapter, Chimeway.Adapters.Logger)
   end
 
   # Adapter classification preservation (D-05). Returns only stable result facts.

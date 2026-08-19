@@ -210,6 +210,16 @@ defmodule Chimeway.SafeEvidence do
 
   def provider_facts(_value), do: {:error, :unsafe_evidence}
 
+  @doc false
+  @spec target_attempt_facts(term()) :: {:ok, map()} | {:error, :unsafe_evidence}
+  def target_attempt_facts(value) when is_map(value) do
+    with {:ok, facts} <- provider_facts(value) do
+      {:ok, facts}
+    end
+  end
+
+  def target_attempt_facts(_value), do: {:error, :unsafe_evidence}
+
   @spec attempt_attrs(map() | list()) :: {:ok, map()} | {:error, :unsafe_evidence, atom()}
   def attempt_attrs(attrs) when is_map(attrs) or is_list(attrs) do
     with {:ok, provider_response} <-
@@ -373,9 +383,50 @@ defmodule Chimeway.SafeEvidence do
       attempts:
         delivery
         |> Map.get(:attempts, [])
-        |> Enum.map(&trace_attempt/1)
+        |> Enum.map(&trace_attempt/1),
+      targets:
+        delivery
+        |> Map.get(:targets, [])
+        |> loaded_association()
+        |> Enum.sort_by(&Map.get(&1, :binding_revision_ref))
+        |> Enum.map(&trace_target/1)
     }
   end
+
+  defp trace_target(target) do
+    %{
+      id: safe_lifecycle_id(Map.get(target, :id)),
+      binding_revision_ref: opaque_projection(:provider, Map.get(target, :binding_revision_ref)),
+      status: safe_target_status(Map.get(target, :status)),
+      attempts:
+        target
+        |> Map.get(:attempts, [])
+        |> loaded_association()
+        |> Enum.sort_by(&Map.get(&1, :attempt_number))
+        |> Enum.map(&trace_target_attempt/1)
+    }
+  end
+
+  defp trace_target_attempt(attempt) do
+    %{
+      id: safe_lifecycle_id(Map.get(attempt, :id)),
+      outcome: safe_target_outcome(Map.get(attempt, :outcome)),
+      attempt_number: positive_integer(Map.get(attempt, :attempt_number)),
+      started_at: safe_datetime(Map.get(attempt, :started_at)),
+      finished_at: safe_datetime(Map.get(attempt, :finished_at)),
+      safe_facts: target_attempt_facts_or_empty(Map.get(attempt, :safe_facts))
+    }
+  end
+
+  defp target_attempt_facts_or_empty(value) do
+    case target_attempt_facts(value || %{}) do
+      {:ok, facts} -> facts
+      _ -> %{}
+    end
+  end
+
+  defp loaded_association(value) when is_list(value), do: value
+  defp loaded_association(_value), do: []
 
   @spec timeline_detail(term()) :: map()
   def timeline_detail(value) when is_map(value) do
@@ -475,6 +526,26 @@ defmodule Chimeway.SafeEvidence do
       {:error, :outcome} -> nil
     end
   end
+
+  defp safe_target_status(value)
+       when value in [
+              :pending,
+              :claimed,
+              :provider_accepted,
+              :failed,
+              :expired,
+              :invalidated,
+              :ambiguous_handoff
+            ],
+       do: value
+
+  defp safe_target_status(_value), do: nil
+
+  defp safe_target_outcome(value)
+       when value in [:attempt_started, :provider_accepted, :failed, :ambiguous_handoff],
+       do: value
+
+  defp safe_target_outcome(_value), do: nil
 
   defp valid_error_class(nil), do: {:ok, nil}
   defp valid_error_class(value) when value in @error_classes, do: {:ok, value}
