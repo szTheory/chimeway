@@ -142,6 +142,8 @@ defmodule Chimeway.DeliveryTargets do
        ) + 1}
     end)
     |> Multi.insert(:attempt, fn %{target: target, attempt_number: attempt_number} ->
+      {prior_attempt_id, duplicate_risk} = redrive_link(target.claim_token)
+
       DeliveryTargetAttempt.changeset(%DeliveryTargetAttempt{}, %{
         tenant_id: tenant_id,
         delivery_target_id: target.id,
@@ -149,6 +151,8 @@ defmodule Chimeway.DeliveryTargets do
         outcome: :attempt_started,
         started_at: now,
         source: source,
+        prior_attempt_id: prior_attempt_id,
+        duplicate_risk: duplicate_risk,
         safe_facts: %{}
       })
     end)
@@ -164,6 +168,130 @@ defmodule Chimeway.DeliveryTargets do
         {:error, reason}
     end
   end
+
+  @doc false
+  @spec close_stale_started_attempt(String.t(), String.t()) ::
+          {:ok, %{target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
+          | {:noop, :not_found}
+  def close_stale_started_attempt(target_id, tenant_id)
+      when is_binary(target_id) and is_binary(tenant_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+    Repo.transaction(fn ->
+      target =
+        Repo.one(
+          from(t in DeliveryTarget,
+            where:
+              t.id == ^target_id and t.tenant_id == ^tenant_id and t.status == :claimed and
+                t.lease_expires_at < ^now,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(target), do: Repo.rollback(:not_found)
+
+      attempt =
+        Repo.one(
+          from(a in DeliveryTargetAttempt,
+            where:
+              a.delivery_target_id == ^target.id and a.tenant_id == ^tenant_id and
+                a.outcome == :attempt_started,
+            order_by: [desc: a.attempt_number],
+            limit: 1,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(attempt), do: Repo.rollback(:not_found)
+
+      updated_target =
+        target
+        |> Ecto.Changeset.change(status: :ambiguous_handoff, lease_expires_at: nil)
+        |> Repo.update!()
+
+      updated_attempt =
+        attempt
+        |> Ecto.Changeset.change(
+          outcome: :ambiguous_handoff,
+          finished_at: now,
+          safe_facts: %{"provider_code" => "possible_provider_handoff"}
+        )
+        |> Repo.update!()
+
+      {:ok, _delivery} =
+        recompute_delivery(target.delivery_id |> get_delivery_for_target!(tenant_id), tenant_id)
+
+      %{target: updated_target, attempt: updated_attempt}
+    end)
+    |> case do
+      {:ok, result} -> {:ok, result}
+      {:error, :not_found} -> {:noop, :not_found}
+    end
+  end
+
+  defp get_delivery_for_target!(delivery_id, tenant_id) do
+    Repo.one!(from(d in Delivery, where: d.id == ^delivery_id and d.tenant_id == ^tenant_id))
+  end
+
+  @doc false
+  @spec authorize_target_redrive(String.t(), String.t(), String.t()) ::
+          {:ok, %{target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
+          | {:noop, :not_found}
+  def authorize_target_redrive(target_id, tenant_id, "policy_authorized")
+      when is_binary(target_id) and is_binary(tenant_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+    Repo.transaction(fn ->
+      target =
+        Repo.one(
+          from(t in DeliveryTarget,
+            where:
+              t.id == ^target_id and t.tenant_id == ^tenant_id and t.status == :ambiguous_handoff,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(target), do: Repo.rollback(:not_found)
+
+      prior =
+        Repo.one(
+          from(a in DeliveryTargetAttempt,
+            where:
+              a.delivery_target_id == ^target.id and a.tenant_id == ^tenant_id and
+                a.outcome == :ambiguous_handoff,
+            order_by: [desc: a.attempt_number],
+            limit: 1,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(prior) or
+           Repo.exists?(from(a in DeliveryTargetAttempt, where: a.prior_attempt_id == ^prior.id)) do
+        Repo.rollback(:not_found)
+      end
+
+      updated_target =
+        target
+        |> Ecto.Changeset.change(
+          status: :pending,
+          claimed_at: now,
+          lease_expires_at: nil,
+          claim_token: "redrive:" <> prior.id
+        )
+        |> Repo.update!()
+
+      %{target: updated_target}
+    end)
+    |> case do
+      {:ok, result} -> {:ok, result}
+      {:error, :not_found} -> {:noop, :not_found}
+    end
+  end
+
+  def authorize_target_redrive(_, _, _), do: {:noop, :not_found}
+
+  defp redrive_link("redrive:" <> prior_attempt_id), do: {prior_attempt_id, true}
+  defp redrive_link(_claim_token), do: {nil, false}
 
   @spec record_target_result(Delivery.t(), DeliveryTarget.t(), DeliveryTargetAttempt.t(), term()) ::
           {:ok,
