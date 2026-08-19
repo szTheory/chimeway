@@ -110,6 +110,28 @@ defmodule Chimeway.DeliveryTargetTest do
     refute inspect(trace) =~ "raw-token-sentinel"
   end
 
+  test "synchronous push dispatch executes durable targets through the target seam" do
+    notification = insert_notification()
+
+    planning_opts = [
+      use_persisted_channels: true,
+      precomputed_rendering: %{
+        {notification.id, "push"} => %{
+          render_key: "delivery-target.push",
+          render_version: 1,
+          render_data: %{}
+        }
+      }
+    ]
+
+    assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification, planning_opts)
+
+    assert {:ok, succeeded} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+    assert succeeded.status == :succeeded
+    assert Repo.one!(Chimeway.DeliveryTarget).status == :provider_accepted
+    assert Repo.one!(Chimeway.DeliveryTargetAttempt).outcome == :provider_accepted
+  end
+
   defp insert_notification do
     event =
       Repo.insert!(%Event{
