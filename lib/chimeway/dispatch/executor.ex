@@ -56,7 +56,7 @@ defmodule Chimeway.Dispatch.Executor do
     end
   end
 
-  @spec run_target(Delivery.t()) ::
+  @spec run_target(Delivery.t(), keyword()) ::
           {:ok,
            %{
              delivery: Delivery.t(),
@@ -65,9 +65,9 @@ defmodule Chimeway.Dispatch.Executor do
            }}
           | {:noop, term()}
           | {:error, term()}
-  def run_target(%Delivery{} = delivery) do
+  def run_target(%Delivery{} = delivery, opts \\ []) do
     with {:ok, %{target: target, attempt: attempt}} <-
-           DeliveryTargets.begin_target_attempt(delivery),
+           DeliveryTargets.begin_target_attempt(delivery, opts),
          {:ok, facts} <-
            target_adapter().deliver(
              %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},

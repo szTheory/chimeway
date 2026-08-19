@@ -55,6 +55,34 @@ defmodule Chimeway.DeliveryTargets do
     )
   end
 
+  @doc false
+  @spec fetch_target_delivery(String.t(), String.t()) :: {:ok, Delivery.t()} | {:noop, :not_found}
+  def fetch_target_delivery(target_id, tenant_id)
+      when is_binary(target_id) and is_binary(tenant_id) do
+    case Repo.one(
+           from(t in DeliveryTarget,
+             join: d in assoc(t, :delivery),
+             where:
+               t.id == ^target_id and t.tenant_id == ^tenant_id and d.tenant_id == ^tenant_id,
+             select: d
+           )
+         ) do
+      %Delivery{} = delivery -> {:ok, delivery}
+      nil -> {:noop, :not_found}
+    end
+  end
+
+  @doc false
+  def actionable_targets(%Delivery{id: delivery_id, tenant_id: tenant_id}) do
+    Repo.all(
+      from(t in DeliveryTarget,
+        where:
+          t.delivery_id == ^delivery_id and t.tenant_id == ^tenant_id and t.status == :pending,
+        order_by: [asc: t.binding_revision_ref, asc: t.id]
+      )
+    )
+  end
+
   @spec begin_target_attempt(Delivery.t(), keyword()) ::
           {:ok, %{target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
           | {:noop, term()}
@@ -62,19 +90,38 @@ defmodule Chimeway.DeliveryTargets do
   def begin_target_attempt(%Delivery{tenant_id: tenant_id} = delivery, opts \\ []) do
     now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
     source = Keyword.get(opts, :source, "sync")
+    target_id = Keyword.get(opts, :target_id)
 
     Multi.new()
     |> Multi.run(:target, fn repo, _ ->
-      case repo.one(
-             from(t in DeliveryTarget,
-               where:
-                 t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and
-                   t.status == :pending,
-               order_by: [asc: t.binding_revision_ref],
-               limit: 1,
-               lock: "FOR UPDATE"
-             )
-           ) do
+      target =
+        case target_id do
+          id when is_binary(id) ->
+            repo.one(
+              from(t in DeliveryTarget,
+                where:
+                  t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and t.id == ^id and
+                    (t.status == :pending or
+                       (t.status == :claimed and t.lease_expires_at < ^now)),
+                lock: "FOR UPDATE"
+              )
+            )
+
+          nil ->
+            repo.one(
+              from(t in DeliveryTarget,
+                where:
+                  t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and
+                    (t.status == :pending or
+                       (t.status == :claimed and t.lease_expires_at < ^now)),
+                order_by: [asc: t.binding_revision_ref],
+                limit: 1,
+                lock: "FOR UPDATE"
+              )
+            )
+        end
+
+      case target do
         nil -> {:error, :no_eligible_target}
         target -> {:ok, target}
       end

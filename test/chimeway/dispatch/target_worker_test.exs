@@ -3,7 +3,9 @@ defmodule Chimeway.Test.TargetWorkerAdapter do
 
   @impl true
   def deliver(%Chimeway.TargetAdapter.TargetEnvelope{target: target}, _opts) do
-    if pid = Application.get_env(:chimeway, :target_worker_adapter_pid), do: send(pid, {:target_adapter_called, target.id})
+    if pid = Application.get_env(:chimeway, :target_worker_adapter_pid),
+      do: send(pid, {:target_adapter_called, target.id})
+
     {:ok, %{provider_code: "accepted"}}
   end
 end
@@ -31,7 +33,8 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
   end
 
   test "target-id Oban jobs start the durable target attempt before adapter handoff" do
-    %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "target-worker-tenant")
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-worker-tenant")
 
     target =
       Repo.insert!(%DeliveryTarget{

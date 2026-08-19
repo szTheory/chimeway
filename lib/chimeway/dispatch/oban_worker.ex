@@ -101,15 +101,38 @@ if Code.ensure_loaded?(Oban) do
     use Oban.Worker,
       queue: :chimeway_delivery,
       max_attempts: 5,
-      unique: [fields: [:args], keys: [:delivery_id], period: 60]
+      unique: [fields: [:args], period: 60]
 
-    alias Chimeway.{Deliveries, Delivery, DeliveryAttempt, DeliveryPlanning, Policy}
+    alias Chimeway.{
+      Deliveries,
+      Delivery,
+      DeliveryAttempt,
+      DeliveryPlanning,
+      DeliveryTargets,
+      Policy
+    }
+
     alias Chimeway.Dispatch.Executor
     alias Chimeway.Telemetry
 
     require Logger
 
     @impl Oban.Worker
+    def perform(%Oban.Job{args: %{"delivery_target_id" => target_id, "tenant_id" => tenant_id}})
+        when is_binary(target_id) and is_binary(tenant_id) do
+      case DeliveryTargets.fetch_target_delivery(target_id, tenant_id) do
+        {:ok, delivery} ->
+          case Executor.run_target(delivery, target_id: target_id, source: "oban") do
+            {:ok, _result} -> :ok
+            {:noop, _reason} -> :ok
+            {:error, reason} -> {:error, reason}
+          end
+
+        {:noop, :not_found} ->
+          :ok
+      end
+    end
+
     def perform(%Oban.Job{
           args: %{"delivery_id" => delivery_id},
           attempt: attempt,
