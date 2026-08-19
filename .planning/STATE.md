@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 99
 current_phase_name: Multi-Installation Delivery & Recovery
 status: executing
-stopped_at: Completed 99-03-PLAN.md
-last_updated: "2026-08-19T23:41:21.083Z"
+stopped_at: Completed 99-04-PLAN.md
+last_updated: "2026-08-19T23:57:33.219Z"
 last_activity: 2026-08-19
 last_activity_desc: Phase 99 execution started
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 34
-  completed_plans: 32
+  completed_plans: 33
   percent: 29
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 99 (Multi-Installation Delivery & Recovery) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-19 — Phase 99 execution started
 
@@ -361,6 +361,8 @@ status: complete
 - [Phase ?]: [99-02]: Runtime target planning routes through configured Repo storage and never accepts tenant-derived prefixes.
 - [Phase ?]: [99-03]: Exact opaque binding-revision equality is the only target identity rule; normalized refs sort before durable planning.
 - [Phase ?]: [99-03]: Parent success means one or more provider acceptances and retains terminal sibling failures as partial_failure evidence.
+- [Phase ?]: [99-04]: Target-ID plus explicit tenant ID are the only target-worker job facts; durable target claims authorize provider I/O.
+- [Phase ?]: [99-04]: Expired started target attempts close as ambiguous_handoff; only policy_authorized redrive creates duplicate-risk linked work.
 
 ### Roadmap Evolution
 
@@ -681,8 +683,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-19T23:41:21.073Z
-Stopped at: Completed 99-03-PLAN.md
+Last session: 2026-08-19T23:57:33.209Z
+Stopped at: Completed 99-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -816,3 +818,4 @@ Resume file: None
 | Phase 99-multi-installation-delivery-recovery P01 | 9 min | 2 tasks | 13 files |
 | Phase 99-multi-installation-delivery-recovery P02 | 15 min | 2 tasks | 5 files |
 | Phase 99-multi-installation-delivery-recovery P03 | 14m | 2 tasks | 9 files |
+| Phase 99-multi-installation-delivery-recovery P04 | 8 min | 2 tasks | 5 files |
