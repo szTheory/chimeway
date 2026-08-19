@@ -52,6 +52,7 @@ defmodule Chimeway.Delivery do
     belongs_to(:workflow_run, WorkflowRun)
     belongs_to(:workflow_step, WorkflowStep)
     has_many(:attempts, Chimeway.DeliveryAttempt)
+    has_many(:targets, Chimeway.DeliveryTarget)
 
     timestamps(type: :utc_datetime_usec)
   end
