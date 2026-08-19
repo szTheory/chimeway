@@ -156,7 +156,26 @@ Plans:
   4. A delivery with no eligible target is suppressed with a stable reason, while mixed terminal target results succeed only when at least one target receives APNs acceptance and retain partial failures.
   5. A crash after possible provider handoff records an explicit ambiguous outcome from pre-I/O claim and attempt-start evidence rather than silently resending or promising exactly-once delivery.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+
+**Wave 1**
+
+- [ ] 99-01-PLAN.md — Prove one opaque target end to end beneath the canonical push delivery.
+
+**Wave 2** *(after tracer verification)*
+
+- [ ] 99-02-PLAN.md — Lock copied migration parity across public and prefixed static storage.
+- [ ] 99-03-PLAN.md — Expand deterministic multi-target planning, aggregation, and traces.
+
+**Wave 3** *(after multi-target contracts)*
+
+- [ ] 99-04-PLAN.md — Gate sync/Oban handoff on durable claims and preserve ambiguous crashes.
+
+**Wave 4** *(after storage, aggregate, and handoff contracts)*
+
+- [ ] 99-05-PLAN.md — Recover bounded tenant-owned event and target work with safe evidence.
 
 ### Phase 100: Optional APNs Adapter
 
