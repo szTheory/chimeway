@@ -100,6 +100,58 @@ defmodule ChimewayTest.Notifiers.RuntimePrefixWorkflow do
   end
 end
 
+defmodule ChimewayTest.Notifiers.RuntimePrefixPush do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.runtime_prefix.push"
+  def version, do: 1
+
+  def recipients(%{recipient_id: recipient_id}),
+    do:
+      {:ok,
+       [%{recipient_identity: recipient_id, recipient_ref: recipient_id, recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Runtime prefix push"}}
+  def channels(_params, _recipient), do: {:ok, [:push]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{},
+       channels: %{
+         push: %{
+           render_key: "test.runtime_prefix.push",
+           render_version: 1,
+           title: "Runtime prefix push",
+           body: "Runtime prefix push body"
+         }
+       }
+     }}
+  end
+end
+
+defmodule ChimewayTest.RuntimePrefixTargetResolver do
+  @behaviour Chimeway.TargetResolver
+
+  @impl true
+  def resolve_targets(tenant_id, _opts) do
+    {:ok,
+     [
+       %Chimeway.TargetResolver.BindingRevision{
+         tenant_id: tenant_id,
+         binding_revision_ref: "cw_runtime_prefix_binding_001"
+       }
+     ]}
+  end
+end
+
+defmodule ChimewayTest.RuntimePrefixTargetAdapter do
+  @behaviour Chimeway.TargetAdapter
+
+  @impl true
+  def deliver(_envelope, _opts), do: {:ok, %{provider_code: "accepted"}}
+end
+
 defmodule ChimewayTest.Adapters.RuntimePrefixWebhook do
   @behaviour Chimeway.Adapter
 
@@ -189,9 +241,13 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
     previous_adapter = Application.fetch_env(:chimeway, :adapter)
     previous_dispatcher = Application.fetch_env(:chimeway, :dispatcher)
     previous_resolvers = Application.fetch_env(:chimeway, :render_context_resolvers)
+    previous_target_resolver = Application.fetch_env(:chimeway, :target_resolver)
+    previous_target_adapter = Application.fetch_env(:chimeway, :target_adapter)
 
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    Application.put_env(:chimeway, :target_resolver, ChimewayTest.RuntimePrefixTargetResolver)
+    Application.put_env(:chimeway, :target_adapter, ChimewayTest.RuntimePrefixTargetAdapter)
 
     Application.put_env(:chimeway, :render_context_resolvers, %{
       {"test.runtime_prefix", 1} => ChimewayTest.RuntimePrefixRenderContextResolver,
@@ -204,6 +260,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       restore_env(:adapter, previous_adapter)
       restore_env(:dispatcher, previous_dispatcher)
       restore_env(:render_context_resolvers, previous_resolvers)
+      restore_env(:target_resolver, previous_target_resolver)
+      restore_env(:target_adapter, previous_target_adapter)
       Chimeway.Adapters.Test.clear()
     end)
 
@@ -237,6 +295,22 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
              )
 
     assert duplicate_event.id == result.event.id
+  end
+
+  @tag :runtime_prefix_target
+  test "push target planning writes only through the configured static runtime prefix" do
+    %{delivery: delivery} = create_pending_delivery(channel: :push)
+
+    binding = %Chimeway.TargetResolver.BindingRevision{
+      tenant_id: delivery.tenant_id,
+      binding_revision_ref: "cw_runtime_prefix_binding_001"
+    }
+
+    assert {:ok, [_target]} =
+             Chimeway.DeliveryTargets.plan_targets(delivery, delivery.tenant_id, [binding])
+
+    assert_prefixed_only("chimeway_delivery_targets", 1)
+    assert_prefixed_only("chimeway_delivery_target_attempts", 0)
   end
 
   @tag :runtime_prefix_operator

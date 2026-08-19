@@ -11,6 +11,7 @@ defmodule Chimeway.MigrationContractTest do
   @generated_delivery_tenant_nullable_migration_version 20_260_101_000_033
   @privacy_safe_delivery_evidence_migration_version 20_260_813_000_000
   @generated_privacy_safe_delivery_evidence_migration_version 20_260_101_000_034
+  @generated_delivery_targets_migration_version 20_260_101_000_035
   @tenant_identity_rollback_error "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
   @privacy_safe_delivery_evidence_rollback_error "privacy-safe delivery evidence cleanup is irreversible"
 
@@ -85,6 +86,57 @@ defmodule Chimeway.MigrationContractTest do
         assert_migration_versions!(repo, 35)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
+      end)
+    end
+  end
+
+  for mode <- @generated_modes do
+    @tag generated_mode: mode
+    test "#{mode.label} generated target migration enforces identity and ordered attempts", %{
+      generated_mode: generated_mode
+    } do
+      with_generated_database(generated_mode, fn repo, migrations_path ->
+        assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
+
+        assert @generated_delivery_targets_migration_version in run_fixture_migrations(
+                 repo,
+                 migrations_path,
+                 :up
+               )
+
+        Ecto.Adapters.SQL.query!(
+          repo,
+          "CREATE TABLE public.host_owned_target_marker (id integer)",
+          []
+        )
+
+        [first_delivery_id, second_delivery_id] =
+          insert_target_contract_deliveries!(repo, generated_mode.schema)
+
+        first_target_id =
+          insert_delivery_target!(repo, generated_mode.schema, first_delivery_id, "tenant-a")
+
+        _second_target_id =
+          insert_delivery_target!(repo, generated_mode.schema, second_delivery_id, "tenant-b")
+
+        assert_unique_violation!(fn ->
+          insert_delivery_target!(repo, generated_mode.schema, first_delivery_id, "tenant-a")
+        end)
+
+        insert_target_attempt!(repo, generated_mode.schema, first_target_id, 1)
+        insert_target_attempt!(repo, generated_mode.schema, first_target_id, 2)
+
+        assert_unique_violation!(fn ->
+          insert_target_attempt!(repo, generated_mode.schema, first_target_id, 2)
+        end)
+
+        assert [@generated_delivery_targets_migration_version] =
+                 run_migrations(repo, migrations_path, :down, step: 1)
+
+        refute regclass(repo, generated_mode.schema, "chimeway_delivery_targets")
+        refute regclass(repo, generated_mode.schema, "chimeway_delivery_target_attempts")
+        assert regclass(repo, "public", "host_owned_target_marker")
+        assert regclass(repo, generated_mode.schema, "chimeway_deliveries")
       end)
     end
   end
@@ -427,6 +479,82 @@ defmodule Chimeway.MigrationContractTest do
       """,
       []
     )
+  end
+
+  defp insert_target_contract_deliveries!(repo, schema) do
+    for tenant <- ["tenant-a", "tenant-b"] do
+      event_id = Ecto.UUID.generate()
+      notification_id = Ecto.UUID.generate()
+      delivery_id = Ecto.UUID.generate()
+
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        INSERT INTO #{quoted_relation(schema, "chimeway_events")}
+          (id, notification_key, notification_version, idempotency_key, payload, tenant_id, inserted_at, updated_at)
+        VALUES ($1::text::uuid, 'target.contract', 1, $2, '{}'::jsonb, $3, NOW(), NOW())
+        """,
+        [event_id, "target-contract-#{event_id}", tenant]
+      )
+
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        INSERT INTO #{quoted_relation(schema, "chimeway_notifications")}
+          (id, event_id, recipient_identity, recipient_type, metadata, render_assigns, render_channels,
+           orchestration, tenant_id, inserted_at, updated_at)
+        VALUES ($1::text::uuid, $2::text::uuid, 'opaque-recipient', 'user', '{}'::jsonb, '{}'::jsonb,
+                '{}'::jsonb, '{}'::jsonb, $3, NOW(), NOW())
+        """,
+        [notification_id, event_id, tenant]
+      )
+
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        INSERT INTO #{quoted_relation(schema, "chimeway_deliveries")}
+          (id, notification_id, channel, status, metadata, planning_context, render_key, render_version,
+           render_data, tenant_id, actor_id, inserted_at, updated_at)
+        VALUES ($1::text::uuid, $2::text::uuid, 'push', 'pending', '{}'::jsonb, '{}'::jsonb,
+                'target.contract', 1, '{}'::jsonb, $3, 'target-contract-actor', NOW(), NOW())
+        """,
+        [delivery_id, notification_id, tenant]
+      )
+
+      delivery_id
+    end
+  end
+
+  defp insert_delivery_target!(repo, schema, delivery_id, tenant_id) do
+    target_id = Ecto.UUID.generate()
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{quoted_relation(schema, "chimeway_delivery_targets")}
+        (id, tenant_id, delivery_id, binding_revision_ref, status, inserted_at, updated_at)
+      VALUES ($1::text::uuid, $2, $3::text::uuid, 'cw_target_contract_001', 'pending', NOW(), NOW())
+      """,
+      [target_id, tenant_id, delivery_id]
+    )
+
+    target_id
+  end
+
+  defp insert_target_attempt!(repo, schema, target_id, attempt_number) do
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{quoted_relation(schema, "chimeway_delivery_target_attempts")}
+        (id, tenant_id, delivery_target_id, attempt_number, outcome, started_at, source, safe_facts)
+      VALUES ($1::text::uuid, 'tenant-a', $2::text::uuid, $3, 'attempt_started', NOW(), 'contract', '{}'::jsonb)
+      """,
+      [Ecto.UUID.generate(), target_id, attempt_number]
+    )
+  end
+
+  defp assert_unique_violation!(fun) do
+    assert_raise Postgrex.Error, ~r/unique constraint/, fun
   end
 
   defp insert_legacy_privacy_evidence!(repo, schema) do
