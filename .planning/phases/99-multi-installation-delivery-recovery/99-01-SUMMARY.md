@@ -105,6 +105,12 @@ status: complete
 - **Verification:** Synchronous push and non-push lifecycle tests pass.
 - **Committed in:** `25c4a97`.
 
+**3. [Rule 1 - Post-merge compatibility] Installer/runtime proof and exact-trace fixtures predated migration 035 and target children.**
+- **Found during:** Wave 1 post-merge full-suite validation.
+- **Fix:** Regenerated the static public/prefixed installer fixtures with migration 035, updated exact migration-count and trace-shape expectations, and made partner harness identities use the established opaque recipient-reference vocabulary.
+- **Files modified:** Installer/runtime/trace and ecosystem harness test fixtures only; no SafeEvidence relaxation.
+- **Verification:** Focused installer, generated-prefix, trace, Accrue, and Threadline suites pass after the compatibility update.
+
 ## Known Stubs
 
 None.

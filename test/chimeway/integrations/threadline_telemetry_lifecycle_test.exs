@@ -132,7 +132,7 @@ if Code.ensure_loaded?(Threadline) do
 
     describe "notification lifecycle → Threadline audit (ECOS-08)" do
       test ":notification_suppressed maps policy suppress span to audit_actions row" do
-        recipient_id = "user-tl-suppress-#{System.unique_integer([:positive])}"
+        recipient_id = "cw_tl_suppress_#{System.unique_integer([:positive])}"
         correlation_id = "tl-suppress-#{Ecto.UUID.generate()}"
 
         Preferences.upsert_preference(%{
@@ -160,7 +160,7 @@ if Code.ensure_loaded?(Threadline) do
       end
 
       test ":notification_deferred maps quiet-hours planning span to audit_actions row" do
-        recipient_id = "user-tl-defer-#{System.unique_integer([:positive])}"
+        recipient_id = "cw_tl_defer_#{System.unique_integer([:positive])}"
         correlation_id = "tl-defer-#{Ecto.UUID.generate()}"
 
         assert {:ok, _} =
@@ -190,7 +190,7 @@ if Code.ensure_loaded?(Threadline) do
       end
 
       test ":notification_dispatched maps sync dispatch span to audit_actions row" do
-        recipient_id = "user-tl-dispatch-#{System.unique_integer([:positive])}"
+        recipient_id = "cw_tl_dispatch_#{System.unique_integer([:positive])}"
         correlation_id = "tl-dispatch-#{Ecto.UUID.generate()}"
 
         assert {:ok, _result} =
@@ -209,7 +209,7 @@ if Code.ensure_loaded?(Threadline) do
       end
 
       test ":notification_failed maps failed attempt span to audit_actions row" do
-        recipient_id = "user-tl-failed-#{System.unique_integer([:positive])}"
+        recipient_id = "cw_tl_failed_#{System.unique_integer([:positive])}"
         correlation_id = "tl-failed-#{Ecto.UUID.generate()}"
         previous_adapter = Application.get_env(:chimeway, :adapter)
 

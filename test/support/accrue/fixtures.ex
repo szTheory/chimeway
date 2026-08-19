@@ -38,7 +38,7 @@ if Code.ensure_loaded?(Accrue) and not Code.ensure_loaded?(Chimeway.TestSupport.
         owner_id: Ecto.UUID.generate(),
         processor: "fake",
         processor_id: "cus_fake_" <> Integer.to_string(System.unique_integer([:positive])),
-        email: "accrue-harness@example.com",
+        email: "cw_accrue_#{Ecto.UUID.generate()}",
         name: "Accrue Harness Customer"
       }
 

@@ -114,7 +114,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
 
         migrated = run_fixture_migrations(migrations_path, :up, repo_pid)
 
-        assert length(migrated) == 34
+        assert length(migrated) == 35
 
         Repo.put_dynamic_repo(previous_dynamic_repo)
 
@@ -180,7 +180,8 @@ defmodule Chimeway.GeneratedPrefixedRuntimeCase do
           "chimeway_events",
           "chimeway_notifications",
           "chimeway_deliveries",
-          "chimeway_delivery_attempts"
+          "chimeway_delivery_attempts",
+          "chimeway_delivery_targets"
         ] do
       assert regclass?(@runtime_prefix, table_name),
              "expected #{@runtime_prefix}.#{table_name} to exist"

@@ -212,6 +212,7 @@ defmodule Chimeway.TracesTest do
                  :render_version,
                  :status,
                  :suppression_reason,
+                 :targets,
                  :updated_at
                ]
 
