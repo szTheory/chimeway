@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
 current_phase_name: optional-apns-adapter
 status: executing
-stopped_at: Completed 100-01-PLAN.md
-last_updated: "2026-08-20T20:43:53.345Z"
+stopped_at: Completed 100-02-PLAN.md
+last_updated: "2026-08-20T20:53:16.515Z"
 last_activity: 2026-08-20
 last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 46
-  completed_plans: 41
+  completed_plans: 43
   percent: 43
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 100 (optional-apns-adapter) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 100 execution started
 
@@ -380,6 +380,7 @@ status: complete
 - [Phase ?]: [99-12]: Ordinary retry authorizes only failed targets; expiry and invalidation authorize only pending targets under lock.
 - [Phase ?]: [99-12]: Composite PostgreSQL foreign keys enforce tenant ownership and same-target prior-attempt lineage in repository and generated storage modes.
 - [Phase ?]: [100-01]: APNs request intent is a nullable, immutable delivery-target variant; tokens and dispatcher references resolve only at the host-owned runtime boundary.
+- [Phase ?]: [100-02]: Copied migration 037 uses a nullable intent map on existing delivery targets and removes only that column on rollback.
 
 ### Roadmap Evolution
 
@@ -700,8 +701,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T20:43:53.334Z
-Stopped at: Completed 100-01-PLAN.md
+Last session: 2026-08-20T20:53:16.505Z
+Stopped at: Completed 100-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -845,3 +846,4 @@ Resume file: None
 | Phase 99-multi-installation-delivery-recovery P11 | 18 min | 2 tasks | 4 files |
 | Phase 99-multi-installation-delivery-recovery P12 | 14min | 3 tasks | 12 files |
 | Phase 100-optional-apns-adapter P01 | 8 min | 1 tasks | 8 files |
+| Phase 100-optional-apns-adapter P02 | 18 min | 2 tasks | 12 files |
