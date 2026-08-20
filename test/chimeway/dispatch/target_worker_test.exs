@@ -313,7 +313,8 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     )
 
     assert {:error, :pre_handoff_retryable} =
-             perform_job(ObanWorker,
+             perform_job(
+               ObanWorker,
                %{delivery_target_id: target.id, tenant_id: delivery.tenant_id},
                attempt: 1,
                max_attempts: 2
@@ -323,7 +324,8 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     assert :pending == Repo.get!(DeliveryTarget, target.id).status
 
     assert :ok =
-             perform_job(ObanWorker,
+             perform_job(
+               ObanWorker,
                %{delivery_target_id: target.id, tenant_id: delivery.tenant_id},
                attempt: 2,
                max_attempts: 2
@@ -337,7 +339,8 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     assert Enum.at(attempts, 2).safe_facts == %{"provider_code" => "retries_exhausted"}
 
     assert :ok =
-             perform_job(ObanWorker,
+             perform_job(
+               ObanWorker,
                %{delivery_target_id: target.id, tenant_id: delivery.tenant_id},
                attempt: 2,
                max_attempts: 2

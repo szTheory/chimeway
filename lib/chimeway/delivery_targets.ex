@@ -500,11 +500,78 @@ defmodule Chimeway.DeliveryTargets do
   def invalidate_target(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
     do: transition_target(delivery, target_id, :invalidated, opts)
 
-  @doc "Marks one tenant-qualified target as retry-exhausted and recomputes its parent."
+  @doc "Atomically closes a failed target's final retry budget and recomputes its parent."
   @spec exhaust_target(Delivery.t(), String.t(), keyword()) ::
-          {:ok, DeliveryTarget.t()} | {:error, term()}
-  def exhaust_target(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
-    do: transition_target(delivery, target_id, :retry_exhausted, opts)
+          {:ok, DeliveryTarget.t()} | {:noop, :not_found} | {:error, term()}
+  def exhaust_target(%Delivery{tenant_id: tenant_id} = delivery, target_id, opts \\ [])
+      when is_binary(target_id) do
+    if Keyword.get(opts, :tenant_id, tenant_id) != tenant_id do
+      {:noop, :not_found}
+    else
+      now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+      Repo.transaction(fn ->
+        parent =
+          Repo.one(
+            from(d in Delivery,
+              where:
+                d.id == ^delivery.id and d.tenant_id == ^tenant_id and d.status == :pending and
+                  d.orchestration_state == :ready,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(parent), do: Repo.rollback(:not_found)
+
+        target =
+          Repo.one(
+            from(t in DeliveryTarget,
+              where:
+                t.id == ^target_id and t.delivery_id == ^parent.id and t.tenant_id == ^tenant_id and
+                  t.status == :pending,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(target), do: Repo.rollback(:not_found)
+
+        exhausted_target =
+          target
+          |> Ecto.Changeset.change(
+            status: :retry_exhausted,
+            claimed_at: nil,
+            lease_expires_at: nil
+          )
+          |> Repo.update!()
+
+        Repo.insert!(
+          DeliveryTargetAttempt.changeset(%DeliveryTargetAttempt{}, %{
+            tenant_id: tenant_id,
+            delivery_target_id: target.id,
+            attempt_number:
+              Repo.aggregate(
+                from(a in DeliveryTargetAttempt, where: a.delivery_target_id == ^target.id),
+                :count,
+                :id
+              ) + 1,
+            outcome: :retry_exhausted,
+            started_at: now,
+            finished_at: now,
+            source: "oban",
+            safe_facts: %{"provider_code" => "retries_exhausted"}
+          })
+        )
+
+        {:ok, _delivery} = recompute_delivery(parent, tenant_id)
+        exhausted_target
+      end)
+      |> case do
+        {:ok, target} -> {:ok, target}
+        {:error, :not_found} -> {:noop, :not_found}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
 
   @doc "Derives the logical-delivery outcome from its tenant-scoped targets."
   @spec recompute_delivery(Delivery.t(), String.t()) :: {:ok, Delivery.t()} | {:error, term()}

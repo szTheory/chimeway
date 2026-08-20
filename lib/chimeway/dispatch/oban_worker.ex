@@ -118,14 +118,30 @@ if Code.ensure_loaded?(Oban) do
     require Logger
 
     @impl Oban.Worker
-    def perform(%Oban.Job{args: %{"delivery_target_id" => target_id, "tenant_id" => tenant_id}})
+    def perform(%Oban.Job{
+          args: %{"delivery_target_id" => target_id, "tenant_id" => tenant_id},
+          attempt: attempt,
+          max_attempts: max_attempts
+        })
         when is_binary(target_id) and is_binary(tenant_id) do
       case DeliveryTargets.fetch_target_delivery(target_id, tenant_id) do
         {:ok, delivery} ->
           case Executor.run_target(delivery, target_id: target_id, source: "oban") do
-            {:ok, _result} -> :ok
-            {:noop, _reason} -> :ok
-            {:error, reason} -> {:error, reason}
+            {:ok, _result} ->
+              :ok
+
+            {:noop, _reason} ->
+              :ok
+
+            {:error, :pre_handoff_retryable} when attempt >= max_attempts ->
+              case DeliveryTargets.exhaust_target(delivery, target_id, tenant_id: tenant_id) do
+                {:ok, _target} -> :ok
+                {:noop, _reason} -> :ok
+                {:error, reason} -> {:error, {:exhaust_failed, reason}}
+              end
+
+            {:error, reason} ->
+              {:error, reason}
           end
 
         {:noop, :not_found} ->
