@@ -54,6 +54,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.18 Phase 99 Multi-Installation Delivery & Recovery — PUSH-01/02/03/04 and RECOV-01/02: one logical push decision now expands into durable tenant-scoped opaque installation targets with independent attempts, lifecycle truth, bounded recovery, and operator explanations; migration 036 enforces composite tenant ownership and same-target attempt lineage across repository and copied public/prefixed installations. Verified 5/5 must-haves with focused lifecycle, migration, recovery, Oban, and trace evidence plus a 688-test cross-phase regression gate; zero human UAT.
 - ✓ v1.18 Phase 97 Tenant Identity & Compatible Upgrade — TENANT-01/02/03: lifecycle identity and idempotency are tenant-scoped; inbox, trace, admin, recovery, and package surfaces fail closed without explicit scope (or explicit single-tenant compatibility); additive migrations and atomic reconciliation preserve legacy upgrade safety without inferring ownership or changing static storage prefixes. Verified 4/4 must-haves with executable evidence and zero human UAT.
 - ✓ v1.17 Adopter Proof Paths — ADPT-01/02, PROOF-01/02/03, CORE-01, MAIL-01/02, ACCR-01/02, GATE-01/02, and DOCS-01 are satisfied. Five phase verifications and the milestone audit pass; the aggregate proof builds once and runs all three clean-room paths against the same immutable artifact.
 - ✓ v1.17 Phase 96.1 Atom-Safe Archive Metadata Parsing — ARCHIVE-ATOM-01: caller-controlled Hex metadata now passes through a bounded binary-only parser with no source evaluation or input-derived atom creation. Exact in-process atom-count, grammar/resource-boundary, callback/redaction, real Hex archive, local release/adoption gate, security audit, and hosted exact-SHA PR evidence all pass (GitHub Actions run `31509666185`; 5/5 must-haves, 5/5 STRIDE threats closed, zero human UAT).
@@ -127,6 +128,8 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 **Standing hygiene debt (tracked, not this milestone's deliverable):** 3 red CI lanes on `main` (Example host smoke, TeamPulse journeys, Accrue dunning — `ci-gate` at 12/15; see `.planning/CI-HARDENING-BACKLOG.md`). This milestone is doc/asset-only and does not touch runtime code, so it will not worsen CI.
 
 ## Current State
+
+**v1.18 Phase 99 Multi-Installation Delivery & Recovery complete (2026-08-20):** One logical push delivery now records and executes every eligible opaque installation target independently, with locked lifecycle authorization, tenant-safe composite database constraints, bounded recovery, and target-level operator evidence. All six requirements passed 5/5 verifier must-haves; the Phase 97–98 regression set passed 688 tests. Phase 100 optional APNs adapter is next.
 
 **v1.18 Phase 97 Tenant Identity & Compatible Upgrade complete (2026-08-12):** Explicit tenant identity now spans the durable Event → Notification → Delivery lifecycle, idempotency, inbox, traces, admin, recovery, and optional packages. Legacy ownership is handled by additive migrations plus deterministic, atomic reconciliation; machine-testable acceptance is enforced through local/CI gates with no conversational UAT. Phase 98 privacy-safe delivery evidence is next.
 
