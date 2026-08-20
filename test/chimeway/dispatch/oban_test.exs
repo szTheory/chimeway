@@ -28,7 +28,8 @@ defmodule Chimeway.Dispatch.ObanTest do
 
   @moduletag :oban
 
-  alias Chimeway.{Deliveries, Dispatch.Oban, Dispatch.ObanWorker}
+  alias Chimeway.{Deliveries, DeliveryTarget, DeliveryTargets, Dispatch.Oban, Dispatch.ObanWorker, Repo}
+  alias Chimeway.TargetResolver.BindingRevision
   alias Chimeway.Test.DispatchHelpers
 
   setup do
@@ -135,6 +136,59 @@ defmodule Chimeway.Dispatch.ObanTest do
                )
 
       assert reason == :forced_planning_failure
+    end
+  end
+
+  describe "Chimeway.Dispatch.Oban.dispatch_delivery/2 push snapshots" do
+    test "suppresses an empty push snapshot without enqueueing a job and keeps duplicate evidence stable" do
+      %{notification: notification} =
+        DispatchHelpers.create_notification(notification_key: "oban.empty-push-snapshot")
+
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :push,
+          tenant_id: "default",
+          actor_id: "system"
+        )
+
+      assert {:ok, suppressed} = Oban.dispatch_delivery(delivery, [])
+      assert suppressed.status == :suppressed
+      assert suppressed.suppression_reason == "no_eligible_targets"
+      assert suppressed.metadata["target_aggregate"]["target_count"] == 0
+      refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
+      refute_enqueued(worker: ObanWorker)
+
+      assert {:skip, duplicate} = Oban.dispatch_delivery(delivery, [])
+      assert duplicate.status == :suppressed
+      assert duplicate.suppression_reason == "no_eligible_targets"
+      assert Repo.get!(Chimeway.Delivery, delivery.id).id == suppressed.id
+    end
+
+    test "enqueues one tenant-qualified target job per actionable push target" do
+      %{notification: notification} =
+        DispatchHelpers.create_notification(notification_key: "oban.actionable-push-snapshot")
+
+      {:ok, delivery} =
+        Deliveries.plan_delivery(notification.id, :push,
+          tenant_id: "default",
+          actor_id: "system"
+        )
+
+      bindings =
+        for ref <- ["cw_oban_target_a", "cw_oban_target_b"] do
+          %BindingRevision{tenant_id: delivery.tenant_id, binding_revision_ref: ref}
+        end
+
+      assert {:ok, targets} = DeliveryTargets.plan_targets(delivery, delivery.tenant_id, bindings)
+      assert {:ok, ^delivery} = Oban.dispatch_delivery(delivery, [])
+
+      for %DeliveryTarget{id: target_id} <- targets do
+        assert_enqueued(
+          worker: ObanWorker,
+          args: %{delivery_target_id: target_id, tenant_id: delivery.tenant_id}
+        )
+      end
+
+      assert Repo.get!(Chimeway.Delivery, delivery.id).status == :pending
     end
   end
 
