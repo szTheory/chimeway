@@ -24,7 +24,7 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
 
   import Chimeway.Test.DispatchHelpers
 
-  alias Chimeway.{DeliveryTarget, DeliveryTargetAttempt, DeliveryTargets, Repo}
+  alias Chimeway.{Delivery, DeliveryTarget, DeliveryTargetAttempt, DeliveryTargets, Repo}
   alias Chimeway.Dispatch.{Executor, ObanWorker}
 
   setup do
@@ -228,6 +228,67 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     assert stored_attempt.id == attempt.id
     assert stored_attempt.outcome == :provider_accepted
     assert stored_attempt.finished_at
+  end
+
+  test "non-ready or terminal parents deny target adapter entry with the same noop" do
+    for {status, orchestration_state} <- [
+          {:suppressed, :ready},
+          {:cancelled, :ready},
+          {:failed, :ready},
+          {:succeeded, :ready},
+          {:pending, :deferred}
+        ] do
+      %{delivery: delivery} =
+        create_pending_delivery(channel: :push, tenant_id: "target-parent-#{status}-#{orchestration_state}")
+
+      delivery =
+        delivery
+        |> Ecto.Changeset.change(status: status, orchestration_state: orchestration_state)
+        |> Repo.update!()
+
+      target = insert_target(delivery, "cw_parent_gate_#{status}_#{orchestration_state}")
+
+      assert {:noop, :no_eligible_target} =
+               Executor.run_target(delivery, target_id: target.id, source: "test")
+
+      target_id = target.id
+      refute_receive {:target_adapter_called, ^target_id}, 50
+      assert [] = attempts_for(target)
+    end
+  end
+
+  test "late success cannot overwrite an ambiguous closeout that won the durable lock" do
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-late-success-race")
+
+    target = insert_target(delivery, "cw_late_success_race")
+
+    assert {:ok, %{target: claimed, attempt: started}} =
+             DeliveryTargets.begin_target_attempt(delivery, target_id: target.id, source: "test")
+
+    closed_target =
+      claimed
+      |> Ecto.Changeset.change(status: :ambiguous_handoff, lease_expires_at: nil)
+      |> Repo.update!()
+
+    closed_attempt =
+      started
+      |> Ecto.Changeset.change(
+        outcome: :ambiguous_handoff,
+        finished_at: DateTime.utc_now() |> DateTime.truncate(:microsecond),
+        safe_facts: %{"provider_code" => "possible_provider_handoff"}
+      )
+      |> Repo.update!()
+
+    assert {:noop, :not_found} =
+             DeliveryTargets.record_target_result(delivery, claimed, started, %{provider_code: "accepted"})
+
+    assert %{status: :ambiguous_handoff} = Repo.get!(DeliveryTarget, closed_target.id)
+
+    assert %{outcome: :ambiguous_handoff, safe_facts: %{"provider_code" => "possible_provider_handoff"}} =
+             Repo.get!(DeliveryTargetAttempt, closed_attempt.id)
+
+    assert %{status: :pending} = Repo.get!(Delivery, delivery.id)
   end
 
   defp insert_target(delivery, binding_revision_ref) do
