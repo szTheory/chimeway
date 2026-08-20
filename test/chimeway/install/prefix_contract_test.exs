@@ -26,7 +26,7 @@ defmodule Chimeway.Install.PrefixContractTest do
       |> Path.wildcard()
       |> Enum.sort()
 
-    assert length(files) == 35
+    assert length(files) == 36
 
     {:ok, files: files}
   end
@@ -72,8 +72,8 @@ defmodule Chimeway.Install.PrefixContractTest do
       refute Regex.match?(~r/\bDROP\s+SCHEMA\b/i, content),
              "#{path} must not generate DROP SCHEMA rollback SQL"
 
-      refute Regex.match?(~r/\bCASCADE\b/i, content),
-             "#{path} must not generate destructive CASCADE cleanup"
+      refute Regex.match?(~r/\bDROP\s+(?:TABLE|INDEX|CONSTRAINT)\b[^;]*\bCASCADE\b/is, content),
+             "#{path} must not generate destructive object-drop CASCADE cleanup"
     end
   end
 
@@ -106,6 +106,21 @@ defmodule Chimeway.Install.PrefixContractTest do
 
     refute migration =~ "prefix: tenant"
     refute migration =~ "prefix: binding"
+  end
+
+  test "prefixed tenant-integrity repair keeps referential cascades and fixed relations" do
+    migration =
+      Path.join(@prefixed_root, "TIMESTAMP_enforce_delivery_target_tenant_integrity.exs")
+      |> File.read!()
+
+    assert migration =~ ~s(@chimeway_prefix "chimeway")
+    assert migration =~ "chimeway_relation(:chimeway_deliveries)"
+    assert migration =~ "chimeway_relation(:chimeway_delivery_targets)"
+    assert migration =~ "chimeway_relation(:chimeway_delivery_target_attempts)"
+    assert migration =~ "ON DELETE CASCADE"
+    assert migration =~ "chimeway_delivery_targets_tenant_delivery_fkey"
+    assert migration =~ "chimeway_delivery_target_attempts_tenant_target_fkey"
+    assert migration =~ "chimeway_delivery_target_attempts_prior_same_target_fkey"
   end
 
   test "local and CI installer gates run the same verify.install_golden proof" do

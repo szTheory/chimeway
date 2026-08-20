@@ -48,13 +48,14 @@ defmodule Chimeway.Install.GoldenDiffTest do
 
         stdout = InstallerFixture.normalize_stdout(stdout)
 
-        assert_map_size(tree, 35)
+        assert_map_size(tree, 36)
         assert_no_chimeway_repo_migrations!(tree)
         refute Enum.any?(Map.keys(tree), &String.contains?(&1, "create_oban_jobs_tables"))
         assert_chimeway_migration_markers!(tree)
         assert_mode_shape!(context.golden_mode, tree)
         assert_migration_034_prefix_contract!(context.golden_mode, tree)
         assert_migration_035_target_contract!(context.golden_mode, tree)
+        assert_migration_036_tenant_integrity_contract!(context.golden_mode, tree)
 
         if InstallerFixture.accept_golden_refresh?() do
           InstallerFixture.write_golden!(context.golden_mode, tree, stdout)
@@ -160,6 +161,33 @@ defmodule Chimeway.Install.GoldenDiffTest do
     assert migration =~ "[:delivery_id, :binding_revision_ref]"
     assert migration =~ "[:delivery_target_id, :attempt_number]"
     assert migration =~ "unique: true"
+    refute migration =~ "__CHIMEWAY_PREFIX__"
+    refute migration =~ "tenant-derived prefix"
+  end
+
+  defp assert_migration_036_tenant_integrity_contract!(mode, tree) do
+    migration =
+      Map.fetch!(
+        tree,
+        "priv/repo/migrations/TIMESTAMP_enforce_delivery_target_tenant_integrity.exs"
+      )
+
+    expected_prefix =
+      if mode == :prefixed, do: ~s(@chimeway_prefix "chimeway"), else: "@chimeway_prefix false"
+
+    assert migration =~ expected_prefix
+
+    for token <- [
+          "[:tenant_id, :id]",
+          "[:tenant_id, :delivery_target_id, :id]",
+          "chimeway_delivery_targets_tenant_delivery_fkey",
+          "chimeway_delivery_target_attempts_tenant_target_fkey",
+          "chimeway_delivery_target_attempts_prior_same_target_fkey",
+          "ON DELETE CASCADE"
+        ] do
+      assert migration =~ token
+    end
+
     refute migration =~ "__CHIMEWAY_PREFIX__"
     refute migration =~ "tenant-derived prefix"
   end

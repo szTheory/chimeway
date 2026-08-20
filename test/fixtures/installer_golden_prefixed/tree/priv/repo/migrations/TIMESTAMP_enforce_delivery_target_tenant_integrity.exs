@@ -1,8 +1,8 @@
 # chimeway_migration: enforce_delivery_target_tenant_integrity
-defmodule Chimeway.Repo.Migrations.EnforceDeliveryTargetTenantIntegrity do
+defmodule InstallerHost.Repo.Migrations.EnforceDeliveryTargetTenantIntegrity do
   use Ecto.Migration
 
-  @chimeway_prefix __CHIMEWAY_PREFIX__
+  @chimeway_prefix "chimeway"
 
   def up do
     create(

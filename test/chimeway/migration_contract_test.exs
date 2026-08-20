@@ -13,7 +13,7 @@ defmodule Chimeway.MigrationContractTest do
   @delivery_targets_migration_version 20_260_819_000_001
   @delivery_target_tenant_integrity_migration_version 20_260_820_000_000
   @generated_privacy_safe_delivery_evidence_migration_version 20_260_101_000_034
-  @generated_delivery_targets_migration_version 20_260_101_000_035
+  @generated_delivery_target_tenant_integrity_migration_version 20_260_101_000_036
   @tenant_identity_rollback_error "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
   @privacy_safe_delivery_evidence_rollback_error "privacy-safe delivery evidence cleanup is irreversible"
 
@@ -84,8 +84,8 @@ defmodule Chimeway.MigrationContractTest do
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
         migrated = run_fixture_migrations(repo, migrations_path, :up)
-        assert length(migrated) == 35
-        assert_migration_versions!(repo, 35)
+        assert length(migrated) == 36
+        assert_migration_versions!(repo, 36)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
       end)
@@ -100,11 +100,13 @@ defmodule Chimeway.MigrationContractTest do
       with_generated_database(generated_mode, fn repo, migrations_path ->
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
-        assert @generated_delivery_targets_migration_version in run_fixture_migrations(
+        assert @generated_delivery_target_tenant_integrity_migration_version in run_fixture_migrations(
                  repo,
                  migrations_path,
                  :up
                )
+
+        assert_tenant_integrity_catalog!(repo, generated_mode.schema)
 
         Ecto.Adapters.SQL.query!(
           repo,
@@ -118,25 +120,58 @@ defmodule Chimeway.MigrationContractTest do
         first_target_id =
           insert_delivery_target!(repo, generated_mode.schema, first_delivery_id, "tenant-a")
 
-        _second_target_id =
+        second_target_id =
           insert_delivery_target!(repo, generated_mode.schema, second_delivery_id, "tenant-b")
 
         assert_unique_violation!(fn ->
           insert_delivery_target!(repo, generated_mode.schema, first_delivery_id, "tenant-a")
         end)
 
-        insert_target_attempt!(repo, generated_mode.schema, first_target_id, 1)
-        insert_target_attempt!(repo, generated_mode.schema, first_target_id, 2)
+        first_attempt_id =
+          insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 1)
+
+        insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 2,
+          prior_attempt_id: first_attempt_id
+        )
 
         assert_unique_violation!(fn ->
-          insert_target_attempt!(repo, generated_mode.schema, first_target_id, 2)
+          insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 2)
         end)
 
-        assert [@generated_delivery_targets_migration_version] =
+        assert_foreign_key_violation!("chimeway_delivery_targets_tenant_delivery_fkey", fn ->
+          insert_delivery_target!(repo, generated_mode.schema, second_delivery_id, "tenant-a",
+            binding_revision_ref: "cw_target_contract_cross_tenant"
+          )
+        end)
+
+        assert_foreign_key_violation!(
+          "chimeway_delivery_target_attempts_tenant_target_fkey",
+          fn ->
+            insert_target_attempt!(repo, generated_mode.schema, second_target_id, "tenant-a", 1)
+          end
+        )
+
+        assert_foreign_key_violation!(
+          "chimeway_delivery_target_attempts_prior_same_target_fkey",
+          fn ->
+            insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 3,
+              prior_attempt_id:
+                insert_target_attempt!(
+                  repo,
+                  generated_mode.schema,
+                  second_target_id,
+                  "tenant-b",
+                  1
+                )
+            )
+          end
+        )
+
+        assert [@generated_delivery_target_tenant_integrity_migration_version] =
                  run_migrations(repo, migrations_path, :down, step: 1)
 
-        refute regclass(repo, generated_mode.schema, "chimeway_delivery_targets")
-        refute regclass(repo, generated_mode.schema, "chimeway_delivery_target_attempts")
+        assert regclass(repo, generated_mode.schema, "chimeway_delivery_targets")
+        assert regclass(repo, generated_mode.schema, "chimeway_delivery_target_attempts")
         assert regclass(repo, "public", "host_owned_target_marker")
         assert regclass(repo, generated_mode.schema, "chimeway_deliveries")
       end)
@@ -189,6 +224,8 @@ defmodule Chimeway.MigrationContractTest do
 
       assert [@delivery_target_tenant_integrity_migration_version] =
                run_migrations(repo, migrations_path, :up, step: 1)
+
+      assert_tenant_integrity_catalog!(repo, "public")
 
       assert_foreign_key_violation!("chimeway_delivery_targets_tenant_delivery_fkey", fn ->
         insert_delivery_target!(repo, "public", tenant_b_delivery, "tenant-a",
@@ -439,8 +476,8 @@ defmodule Chimeway.MigrationContractTest do
       refute Regex.match?(~r/\bDROP\s+SCHEMA\b/i, content),
              "#{path} must not generate DROP SCHEMA rollback SQL"
 
-      refute Regex.match?(~r/\bCASCADE\b/i, content),
-             "#{path} must not generate destructive CASCADE cleanup"
+      refute Regex.match?(~r/\bDROP\s+(?:TABLE|INDEX|CONSTRAINT)\b[^;]*\bCASCADE\b/is, content),
+             "#{path} must not generate destructive object-drop CASCADE cleanup"
     end)
   end
 
@@ -594,9 +631,6 @@ defmodule Chimeway.MigrationContractTest do
     target_id
   end
 
-  defp insert_target_attempt!(repo, schema, target_id, attempt_number),
-    do: insert_target_attempt!(repo, schema, target_id, "tenant-a", attempt_number)
-
   defp insert_target_attempt!(repo, schema, target_id, tenant_id, attempt_number, opts \\ []) do
     attempt_id = Ecto.UUID.generate()
 
@@ -619,6 +653,52 @@ defmodule Chimeway.MigrationContractTest do
 
   defp assert_foreign_key_violation!(constraint, fun) do
     assert_raise Postgrex.Error, ~r/#{constraint}/, fun
+  end
+
+  defp assert_tenant_integrity_catalog!(repo, schema) do
+    for index <- [
+          "chimeway_deliveries_tenant_id_id_unique",
+          "chimeway_delivery_targets_tenant_id_id_unique",
+          "chimeway_delivery_target_attempts_tenant_target_id_unique"
+        ] do
+      assert regclass(repo, schema, index)
+    end
+
+    assert foreign_key_delete_action(
+             repo,
+             schema,
+             "chimeway_delivery_targets_tenant_delivery_fkey"
+           ) == "c"
+
+    assert foreign_key_delete_action(
+             repo,
+             schema,
+             "chimeway_delivery_target_attempts_tenant_target_fkey"
+           ) == "c"
+
+    assert foreign_key_delete_action(
+             repo,
+             schema,
+             "chimeway_delivery_target_attempts_prior_same_target_fkey"
+           ) == "a"
+  end
+
+  defp foreign_key_delete_action(repo, schema, constraint) do
+    %{
+      rows: [[action]]
+    } =
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        SELECT c.confdeltype
+        FROM pg_constraint c
+        JOIN pg_namespace n ON n.oid = c.connamespace
+        WHERE n.nspname = $1 AND c.conname = $2
+        """,
+        [schema, constraint]
+      )
+
+    action
   end
 
   defp insert_legacy_privacy_evidence!(repo, schema) do
