@@ -108,17 +108,24 @@ if Code.ensure_loaded?(Oban) do
     defp enqueue_delivery(
            %{channel: "push", status: :pending, orchestration_state: :ready} = delivery
          ) do
-      delivery
-      |> DeliveryTargets.actionable_targets()
-      |> Enum.reduce_while({:ok, []}, fn target, {:ok, jobs} ->
-        case enqueue_job(
-               delivery,
-               ObanWorker.new(%{delivery_target_id: target.id, tenant_id: delivery.tenant_id})
-             ) do
-          {:ok, job} -> {:cont, {:ok, [job | jobs]}}
-          {:error, reason} -> {:halt, {:error, reason}}
-        end
-      end)
+      case DeliveryTargets.actionable_targets(delivery) do
+        [] ->
+          with {:ok, %{status: :suppressed, suppression_reason: "no_eligible_targets"} = updated} <-
+                 DeliveryTargets.recompute_delivery(delivery, delivery.tenant_id) do
+            {:ok, {:authoritative_delivery, updated}}
+          end
+
+        targets ->
+          Enum.reduce_while(targets, {:ok, []}, fn target, {:ok, jobs} ->
+            case enqueue_job(
+                   delivery,
+                   ObanWorker.new(%{delivery_target_id: target.id, tenant_id: delivery.tenant_id})
+                 ) do
+              {:ok, job} -> {:cont, {:ok, [job | jobs]}}
+              {:error, reason} -> {:halt, {:error, reason}}
+            end
+          end)
+      end
     end
 
     defp enqueue_delivery(%{status: :pending, orchestration_state: :ready} = delivery) do
@@ -145,6 +152,12 @@ if Code.ensure_loaded?(Oban) do
     end
 
     defp enqueue_delivery(delivery), do: {:skip, delivery}
+
+    defp normalize_dispatch_delivery_result(
+           {:ok, {:authoritative_delivery, delivery}},
+           _original
+         ),
+         do: {:ok, delivery}
 
     defp normalize_dispatch_delivery_result({:ok, _jobs}, delivery), do: {:ok, delivery}
     defp normalize_dispatch_delivery_result({:skip, delivery}, _original), do: {:skip, delivery}

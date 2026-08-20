@@ -28,7 +28,15 @@ defmodule Chimeway.Dispatch.ObanTest do
 
   @moduletag :oban
 
-  alias Chimeway.{Deliveries, DeliveryTarget, DeliveryTargets, Dispatch.Oban, Dispatch.ObanWorker, Repo}
+  alias Chimeway.{
+    Deliveries,
+    DeliveryTarget,
+    DeliveryTargets,
+    Dispatch.Oban,
+    Dispatch.ObanWorker,
+    Repo
+  }
+
   alias Chimeway.TargetResolver.BindingRevision
   alias Chimeway.Test.DispatchHelpers
 
@@ -157,7 +165,7 @@ defmodule Chimeway.Dispatch.ObanTest do
       refute_enqueued(worker: ObanWorker, args: %{delivery_id: delivery.id})
       refute_enqueued(worker: ObanWorker)
 
-      assert {:skip, duplicate} = Oban.dispatch_delivery(delivery, [])
+      assert {:ok, duplicate} = Oban.dispatch_delivery(delivery, [])
       assert duplicate.status == :suppressed
       assert duplicate.suppression_reason == "no_eligible_targets"
       assert Repo.get!(Chimeway.Delivery, delivery.id).id == suppressed.id
