@@ -2,7 +2,8 @@ import Config
 
 config :chimeway,
   ecto_repos: [Chimeway.Repo],
-  channel_render_modules: %{}
+  channel_render_modules: %{},
+  prefix: false
 
 config :chimeway, Chimeway.Repo,
   username: "postgres",

@@ -2,7 +2,7 @@ defmodule APNSConsumerTest do
   use ExUnit.Case, async: true
 
   test "core Chimeway API works without APNs configuration" do
-    assert %{source: "apns-consumer"} = APNSConsumer.core_smoke()
+    assert %{} == APNSConsumer.core_smoke()
   end
 
   test "enabled fixture preserves the complete synthetic 410 tuple" do

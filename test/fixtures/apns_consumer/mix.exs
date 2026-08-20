@@ -13,7 +13,7 @@ defmodule APNSConsumer.MixProject do
   def application, do: [extra_applications: [:logger]]
 
   defp deps do
-    [{:chimeway, path: System.fetch_env!("CHIMEWAY_PACKAGE_PATH")} | pigeon_dep()]
+    [{:chimeway, path: System.fetch_env!("CHIMEWAY_PACKAGE_PATH")}, {:oban, "~> 2.17"} | pigeon_dep()]
   end
 
   defp pigeon_dep do
