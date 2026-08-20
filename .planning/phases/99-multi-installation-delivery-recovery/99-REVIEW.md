@@ -1,8 +1,8 @@
 ---
 phase: 99-multi-installation-delivery-recovery
-reviewed: 2026-08-20T01:59:13Z
+reviewed: 2026-08-20T00:00:00Z
 depth: standard
-files_reviewed: 23
+files_reviewed: 24
 files_reviewed_list:
   - lib/chimeway/delivery_planning.ex
   - lib/chimeway/delivery_targets.ex
@@ -15,6 +15,7 @@ files_reviewed_list:
   - lib/chimeway/target_adapter.ex
   - lib/chimeway/target_recovery.ex
   - lib/chimeway/traces.ex
+  - lib/chimeway/traces/explanation.ex
   - priv/chimeway_migrations/035_create_chimeway_delivery_targets.exs
   - priv/repo/migrations/20260819000001_create_chimeway_delivery_targets.exs
   - test/chimeway/delivery_target_test.exs
@@ -28,78 +29,48 @@ files_reviewed_list:
   - test/chimeway/traces_target_test.exs
   - test/support/prefixed_runtime_case.ex
 findings:
-  critical: 4
-  warning: 2
+  critical: 2
+  warning: 0
   info: 0
-  total: 6
+  total: 2
 status: issues_found
 ---
 
 # Phase 99: Code Review Report
 
-**Reviewed:** 2026-08-20T01:59:13Z
+**Reviewed:** 2026-08-20T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 23
+**Files Reviewed:** 24
 **Status:** issues_found
 
 ## Summary
 
-The copied and direct migrations are materially equivalent and the focused Phase 99 tests pass, but the dispatch/recovery implementation still has shipping blockers. In particular, the synchronous dispatcher does not fan out, queued push work can bypass a newly terminal parent delivery, and target retry/claim logic can either run past its configured Oban budget or overwrite an ambiguity decision.
+The target lifecycle generally scopes queries by tenant and projects evidence through the closed trace seam. However, the Oban entry point does not converge an empty target snapshot, and the stale-recovery path reverses the required parent/target lock order. Both defects violate the Phase 99 no-stranding and race-safe recovery contracts. The focused target, worker, recovery, and tenant suites passed (33 tests), but do not exercise either interleaving.
 
 ## Critical Issues
 
-### CR-01: Sync push dispatch sends to only one selected installation
+### BL-01: Oban push dispatch strands deliveries with an empty target snapshot
 
-**File:** `lib/chimeway/dispatch/sync.ex:113-117`
+**Classification:** BLOCKER
 
-**Issue (BLOCKER):** The push branch calls `Executor.run_target(delivery)` once. `begin_target_attempt/2` deliberately selects only the first pending target when no `:target_id` is supplied (`delivery_targets.ex:109-118`). Consequently a resolver returning two eligible bindings produces two durable targets, but synchronous dispatch sends only the first and returns the parent delivery as succeeded; the remaining target stays pending indefinitely. The included sync test uses a single-target resolver and cannot expose the failure.
+**File:** `/Users/jon/projects/chimeway/lib/chimeway/dispatch/oban.ex:108-122`
 
-**Fix:** For a push delivery, load all tenant-qualified pending targets and execute each by ID (or make `Executor.run_target/2` fan out atomically at the dispatcher boundary). Recompute/return the parent only after all selected targets have reached their appropriate state, and add a two-target sync test.
+**Issue:** `enqueue_delivery/1` enumerates pending push targets and returns `{:ok, []}` when there are none. `dispatch_delivery/2` normalizes that as success, but no job is created and the delivery remains `:pending`; it is never given the required `no_eligible_targets` suppression reason. This public entry point can be reached with an existing/canonical push delivery (including a partial or interrupted planning flow), so it permanently strands work and makes its explanation incorrect. Sync correctly invokes `recompute_delivery/2` for the same condition.
 
-### CR-02: Queued target job can send after the logical delivery is suppressed, cancelled, or deferred
+**Fix:** When `actionable_targets/1` is empty, atomically recompute the tenant-qualified parent before returning. Require the resulting status to be `:suppressed` with `no_eligible_targets`; otherwise surface an error instead of reporting a successful enqueue.
 
-**File:** `lib/chimeway/dispatch/oban_worker.ex:121-129`
+### BL-02: Stale closeout reverses the parent/target lock order and can crash recovery on a deadlock
 
-**Issue (BLOCKER):** The target-job clause obtains the parent through `fetch_target_delivery/2` and immediately calls `run_target/2`. Neither this worker nor `begin_target_attempt/2` verifies that the parent is still `status: :pending` and `orchestration_state: :ready`. A job enqueued while the delivery was eligible will therefore still call the provider after a concurrent policy suppression, cancellation, or deferral. `record_target_result/4` can then overwrite the parent with `:succeeded`.
+**Classification:** BLOCKER
 
-**Fix:** Claim the target through a single transaction/query that joins and locks the delivery and requires its tenant, pending status, and ready orchestration state. Return a non-disclosing noop when that predicate no longer holds. Add race coverage for suppress/cancel/defer between enqueue and perform.
+**File:** `/Users/jon/projects/chimeway/lib/chimeway/delivery_targets.ex:183-225`
 
-### CR-03: Target retries are unbounded after Oban exhausts the job
+**Issue:** `close_stale_started_attempt/2` locks the target first (lines 184-192) and then calls `recompute_delivery/2`, which locks its parent (lines 579-585). `begin_target_attempt/2` and `record_target_result/4` acquire those same rows in the opposite parent-then-target order (lines 94-116 and 335-353). A late adapter finalizer racing recovery can therefore form a PostgreSQL deadlock. Further, this function's result `case` only handles `{:ok, _}` and `{:error, :not_found}` (lines 229-232), so a deadlock/transaction error raises `CaseClauseError` and aborts the bounded recovery pass rather than yielding a safe, retryable outcome.
 
-**File:** `lib/chimeway/dispatch/oban_worker.ex:121-129`
-
-**Issue (BLOCKER):** A `:pre_handoff_retryable` result is persisted by the executor as a `:pending` target and returned as `{:error, :pre_handoff_retryable}`. Unlike the delivery-id worker, the target-id worker does not inspect `attempt`/`max_attempts` or call `DeliveryTargets.exhaust_target/3` on its final execution. Oban discards the job after five tries, but the target remains pending; every future recovery scan (`target_recovery.ex:87-101`) invokes the provider again. This defeats the bounded retry contract and can create unlimited provider requests.
-
-**Fix:** Include `attempt` and `max_attempts` in the target-worker clause. On a retryable pre-handoff result at the final attempt, atomically transition that exact target to `:retry_exhausted`, append the terminal evidence, recompute the delivery, and return `:ok`. Add a max-attempts test which proves recovery does not resend it.
-
-### CR-04: A late provider success can overwrite a stale-handoff ambiguity decision
-
-**File:** `lib/chimeway/delivery_targets.ex:302-325`
-
-**Issue (BLOCKER):** `record_target_result/4` updates the caller-supplied target and attempt structs without reloading/locking them or requiring `target.status == :claimed` and `attempt.outcome == :attempt_started`. If the provider call exceeds the 60-second lease, recovery can lock the rows and close them as `:ambiguous_handoff` (`close_stale_started_attempt/2` at lines 178-217). When the original provider call subsequently returns success, this method writes the stale structs back as `:provider_accepted`, erasing the deliberately conservative ambiguity and potentially racing a policy-authorized redrive.
-
-**Fix:** Mirror `record_target_failure/4`: in one transaction, tenant-qualify and lock the target and attempt, require the claimed/open states and the expected IDs, then update them. If they are no longer eligible, return a noop/conflict without changing the recovered evidence. Add an interleaving test for lease expiry/closeout followed by a late adapter response.
-
-## Warnings
-
-### WR-01: Recovery records arbitrary executor/database errors as target invalidation
-
-**File:** `lib/chimeway/target_recovery.ex:186-191`
-
-**Issue (WARNING):** The catch-all `{:error, _}` treats all failures as `:skipped_invalidated`. This includes persistence failures while closing an attempt, unsafe-result validation failures, and other internal errors that have no relationship to binding invalidation. The recovery summary consequently gives operators a false reason and hides actionable failures.
-
-**Fix:** Match only a documented invalidation/not-found result as `:skipped_invalidated`; preserve all other errors as a distinct closed recovery reason (for example `:recovery_failed`) and emit safe error-class evidence/counters.
-
-### WR-02: Most operator trace APIs silently omit target and target-attempt history
-
-**File:** `lib/chimeway/traces.ex:140-145`
-
-**Issue (WARNING):** `get_trace/2` preloads target history, but `find_traces_for_recipient/2` and `find_traces_by_correlation_id/2` preload only delivery attempts (lines 140-145 and 174-182). `explain_delivery/2` likewise preloads only parent attempts (line 211) and its timeline does not include target attempts. `SafeEvidence.trace_notification/1` maps an unloaded `targets` association to an empty list, so these normal operator views misleadingly show no installation-level truth for push deliveries.
-
-**Fix:** Use the same tenant-qualified target/target-attempt preload used by `get_trace/2` in every trace projection, and extend the delivery explanation/timeline with safe target-attempt entries. Cover recipient, correlation, and explanation calls with a push delivery containing multiple targets.
+**Fix:** Lock the tenant-qualified parent first, then its target and started attempt, matching all claim/finalization transitions; calculate and persist the aggregate within that guarded transaction. Also return `{:error, reason}` for non-`not_found` transaction failures (or convert only explicitly retryable database conflicts to a non-disclosing retry result), and add a deterministic closeout-versus-finalizer concurrency test.
 
 ---
 
-_Reviewed: 2026-08-20T01:59:13Z_
+_Reviewed: 2026-08-20T00:00:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
