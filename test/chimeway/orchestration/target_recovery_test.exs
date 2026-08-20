@@ -18,7 +18,7 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
   import Ecto.Query
   import Chimeway.Test.DispatchHelpers
 
-  alias Chimeway.{DeliveryTarget, DeliveryTargetAttempt, Repo, TargetRecovery}
+  alias Chimeway.{Delivery, DeliveryTarget, DeliveryTargetAttempt, Repo, TargetRecovery}
   alias Chimeway.Dispatch.RecoveryWorker
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -53,7 +53,10 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
     assert is_binary(cursor)
 
     assert %{target_ids: second_page, cursor: second_cursor, reason: :resumed_target} =
-             TargetRecovery.discover_target_work("recovery-a", batch_size: 100, cursor: cursor)
+             TargetRecovery.discover_target_work("recovery-a",
+               batch_size: 100,
+               target_cursor: cursor
+             )
 
     assert second_page == targets |> Enum.map(& &1.id) |> Enum.sort() |> Enum.drop(2)
     assert second_cursor == List.last(second_page)
@@ -61,7 +64,7 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
     assert %{target_ids: [], cursor: nil, reason: :skipped_terminal} =
              TargetRecovery.discover_target_work("recovery-a",
                batch_size: 100,
-               cursor: second_cursor
+               target_cursor: second_cursor
              )
 
     assert %{target_ids: foreign_page, reason: :resumed_target} =
@@ -145,10 +148,22 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
   end
 
   test "wrong tenants and absent tenant input return the same non-disclosing recovery shape" do
-    assert %{event_ids: [], target_ids: [], cursor: nil, reason: :skipped_terminal} =
+    assert %{
+             event_ids: [],
+             target_ids: [],
+             continuations: continuations,
+             reason: :skipped_terminal
+           } =
              TargetRecovery.recover_tenant("missing-tenant")
 
-    assert %{event_ids: [], target_ids: [], cursor: nil, reason: :skipped_terminal} =
+    assert continuations == %{event: nil, target: nil, stale_attempt: nil}
+
+    assert %{
+             event_ids: [],
+             target_ids: [],
+             continuations: ^continuations,
+             reason: :skipped_terminal
+           } =
              TargetRecovery.recover_tenant(nil)
   end
 
@@ -163,12 +178,8 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
     complete_notification = insert_notification!(complete, "recovery-event-gaps")
     foreign_notification = insert_notification!(foreign, "recovery-event-foreign")
 
-    create_pending_delivery(notification: complete_notification, tenant_id: "recovery-event-gaps")
-
-    create_pending_delivery(
-      notification: foreign_notification,
-      tenant_id: "recovery-event-foreign"
-    )
+    insert_delivery!(complete_notification, "recovery-event-gaps")
+    insert_delivery!(foreign_notification, "recovery-event-foreign")
 
     assert %{event_ids: ids, cursor: cursor, reason: :resumed_planning} =
              TargetRecovery.discover_stranded_events("recovery-event-gaps",
@@ -292,5 +303,17 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
       render_assigns: %{},
       render_channels: %{}
     })
+  end
+
+  defp insert_delivery!(notification, tenant_id) do
+    Repo.insert!(
+      Delivery.changeset(%Delivery{}, %{
+        notification_id: notification.id,
+        channel: "push",
+        status: :pending,
+        tenant_id: tenant_id,
+        actor_id: "recovery-user"
+      })
+    )
   end
 end

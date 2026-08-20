@@ -11,10 +11,19 @@ if Code.ensure_loaded?(Oban) do
       opts =
         []
         |> maybe_put(:batch_size, Map.get(args, "batch_size"))
-        |> maybe_put(:cursor, Map.get(args, "cursor"))
+        |> maybe_put(:event_cursor, Map.get(args, "event_cursor"))
+        |> maybe_put(:target_cursor, Map.get(args, "target_cursor"))
+        |> maybe_put(:stale_attempt_cursor, Map.get(args, "stale_attempt_cursor"))
 
-      _result = TargetRecovery.recover_tenant(tenant_id, opts)
-      :ok
+      summary = TargetRecovery.recover_tenant(tenant_id, opts)
+
+      :telemetry.execute(
+        [:chimeway, :recovery, :completed],
+        summary.counts,
+        %{reason: summary.reason, reasons: summary.reasons, continuations: summary.continuations}
+      )
+
+      {:ok, summary}
     end
 
     def perform(%Oban.Job{}), do: :ok

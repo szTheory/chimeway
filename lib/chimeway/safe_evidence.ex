@@ -43,7 +43,7 @@ defmodule Chimeway.SafeEvidence do
   )
   @recovery_reasons ~w(
     claimed skipped_terminal skipped_claimed skipped_expired skipped_invalidated
-    resumed_planning resumed_target left_ambiguous
+    resumed_planning resumed_target left_ambiguous retryable_pre_handoff
   )a
   @timeline_fields %{
     "notification_key" => :notification_key,
@@ -230,7 +230,7 @@ defmodule Chimeway.SafeEvidence do
     %{
       event_ids: lifecycle_ids(Map.get(value, :event_ids, [])),
       target_ids: lifecycle_ids(Map.get(value, :target_ids, [])),
-      cursor: safe_lifecycle_id(Map.get(value, :cursor)),
+      continuations: recovery_continuations(Map.get(value, :continuations, %{})),
       reason: recovery_reason(Map.get(value, :reason)),
       reasons:
         Map.get(value, :reasons, [])
@@ -704,12 +704,31 @@ defmodule Chimeway.SafeEvidence do
   defp recovery_reason(_value), do: nil
 
   defp recovery_counts(value) when is_map(value) do
-    for key <- [:resumed_planning, :resumed_target, :left_ambiguous, :skipped], into: %{} do
+    for key <- [
+          :resumed_planning,
+          :resumed_target,
+          :left_ambiguous,
+          :retryable_pre_handoff,
+          :skipped_claimed,
+          :skipped_invalidated
+        ],
+        into: %{} do
       {key, non_negative_integer(Map.get(value, key, 0)) || 0}
     end
   end
 
   defp recovery_counts(_value), do: %{}
+
+  defp recovery_continuations(value) when is_map(value) do
+    %{
+      event: safe_lifecycle_id(Map.get(value, :event) || Map.get(value, "event")),
+      target: safe_lifecycle_id(Map.get(value, :target) || Map.get(value, "target")),
+      stale_attempt:
+        safe_lifecycle_id(Map.get(value, :stale_attempt) || Map.get(value, "stale_attempt"))
+    }
+  end
+
+  defp recovery_continuations(_value), do: %{event: nil, target: nil, stale_attempt: nil}
 
   defp safe_code(value) when is_atom(value), do: value |> Atom.to_string() |> safe_code()
 
