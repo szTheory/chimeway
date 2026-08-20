@@ -71,7 +71,9 @@ end
 defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
   use Chimeway.GeneratedPrefixedRuntimeCase
 
-  alias Chimeway.{Reconciliation, Traces}
+  import Ecto.Query
+
+  alias Chimeway.{Delivery, DeliveryTarget, Reconciliation, Repo, Traces}
 
   setup do
     previous_adapter = Application.fetch_env(:chimeway, :adapter)
@@ -100,7 +102,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
 
   test "generated prefixed migrations support trigger-to-trace runtime behavior through Chimeway.Repo" do
     assert_generated_prefixed_runtime_tables!()
-    assert generated_migration_count() == 36
+    assert generated_migration_count() == 37
 
     recipient_id = unique_recipient("trigger")
 
@@ -114,11 +116,31 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
     assert {:ok, reloaded_event} = Traces.get_trace(result.event.id, tenant_id: "acme")
     assert reloaded_event.id == result.event.id
 
+    delivery = Repo.one!(from(d in Delivery, limit: 1))
+
+    intent = %{
+      "environment" => "sandbox",
+      "topic" => "com.example.chimeway",
+      "apns_id" => "11111111-1111-1111-1111-111111111111",
+      "expires_at" => "2026-08-21T00:00:00Z",
+      "open_ref" => "cw_open_opaque_001"
+    }
+
+    target =
+      Repo.insert!(%DeliveryTarget{
+        tenant_id: "acme",
+        delivery_id: delivery.id,
+        binding_revision_ref: "cw_generated_apns_001",
+        apns_request_intent: intent
+      })
+
+    assert Repo.get!(DeliveryTarget, target.id).apns_request_intent == intent
+
     assert_prefixed_only("chimeway_events", 1)
     assert_prefixed_only("chimeway_notifications", 1)
     assert_prefixed_only("chimeway_deliveries", 1)
     assert_prefixed_only("chimeway_delivery_attempts", 1)
-    assert_prefixed_only("chimeway_delivery_targets", 0)
+    assert_prefixed_only("chimeway_delivery_targets", 1)
     assert %{events: 0, notifications: 0} = Reconciliation.report().counts
   end
 

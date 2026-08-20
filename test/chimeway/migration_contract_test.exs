@@ -12,8 +12,10 @@ defmodule Chimeway.MigrationContractTest do
   @privacy_safe_delivery_evidence_migration_version 20_260_813_000_000
   @delivery_targets_migration_version 20_260_819_000_001
   @delivery_target_tenant_integrity_migration_version 20_260_820_000_000
+  @apns_request_intent_migration_version 20_260_820_000_001
   @generated_privacy_safe_delivery_evidence_migration_version 20_260_101_000_034
   @generated_delivery_target_tenant_integrity_migration_version 20_260_101_000_036
+  @generated_apns_request_intent_migration_version 20_260_101_000_037
   @tenant_identity_rollback_error "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
   @privacy_safe_delivery_evidence_rollback_error "privacy-safe delivery evidence cleanup is irreversible"
 
@@ -84,8 +86,8 @@ defmodule Chimeway.MigrationContractTest do
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
         migrated = run_fixture_migrations(repo, migrations_path, :up)
-        assert length(migrated) == 36
-        assert_migration_versions!(repo, 36)
+        assert length(migrated) == 37
+        assert_migration_versions!(repo, 37)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
       end)
@@ -166,6 +168,9 @@ defmodule Chimeway.MigrationContractTest do
             )
           end
         )
+
+        assert [@generated_apns_request_intent_migration_version] =
+                 run_migrations(repo, migrations_path, :down, step: 1)
 
         assert [@generated_delivery_target_tenant_integrity_migration_version] =
                  run_migrations(repo, migrations_path, :down, step: 1)
@@ -259,6 +264,21 @@ defmodule Chimeway.MigrationContractTest do
     end)
   end
 
+  @tag migration_copy: :repository
+  test "repository migration 037 preserves tenant-qualified target history through down and up" do
+    migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
+
+    with_isolated_database("apns_request_intent", fn repo ->
+      run_apns_request_intent_contract!(
+        repo,
+        migrations_path,
+        "public",
+        @delivery_target_tenant_integrity_migration_version,
+        @apns_request_intent_migration_version
+      )
+    end)
+  end
+
   for mode <- @generated_modes do
     @tag migration_copy: :generated
     @tag generated_mode: mode
@@ -270,6 +290,24 @@ defmodule Chimeway.MigrationContractTest do
           migrations_path,
           generated_mode.schema,
           @generated_tenant_identity_migration_version
+        )
+      end)
+    end
+  end
+
+  for mode <- @generated_modes do
+    @tag migration_copy: :generated
+    @tag generated_mode: mode
+    test "#{mode.label} generated migration 037 preserves target history through down and up", %{
+      generated_mode: generated_mode
+    } do
+      with_generated_database(generated_mode, fn repo, migrations_path ->
+        run_apns_request_intent_contract!(
+          repo,
+          migrations_path,
+          generated_mode.schema,
+          @generated_delivery_target_tenant_integrity_migration_version,
+          @generated_apns_request_intent_migration_version
         )
       end)
     end
@@ -538,6 +576,85 @@ defmodule Chimeway.MigrationContractTest do
 
     assert privacy_safe_lifecycle_state(repo, schema, ids) == preserved
     assert_privacy_safe_delivery_evidence!(repo, schema, ids)
+  end
+
+  defp run_apns_request_intent_contract!(
+         repo,
+         migrations_path,
+         schema,
+         prior_version,
+         target_version
+       ) do
+    assert prior_version in run_migrations(repo, migrations_path, :up, to: prior_version)
+    assert_tenant_integrity_catalog!(repo, schema)
+
+    [delivery_id | _] = insert_target_contract_deliveries!(repo, schema)
+    target_id = insert_delivery_target!(repo, schema, delivery_id, "tenant-a")
+    attempt_id = insert_target_attempt!(repo, schema, target_id, "tenant-a", 1)
+    preserved = {target_id, attempt_id}
+
+    assert [^target_version] = run_migrations(repo, migrations_path, :up, step: 1)
+
+    assert column_info(repo, schema, "chimeway_delivery_targets", "apns_request_intent") ==
+             {true, "jsonb"}
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      UPDATE #{quoted_relation(schema, "chimeway_delivery_targets")}
+      SET apns_request_intent = jsonb_build_object(
+        'environment', 'sandbox',
+        'topic', 'com.example.chimeway',
+        'apns_id', '11111111-1111-1111-1111-111111111111',
+        'expires_at', '2026-08-21T00:00:00Z',
+        'open_ref', 'cw_open_opaque_001'
+      )
+      WHERE id = $1::text::uuid
+      """,
+      [target_id]
+    )
+
+    assert [[intent]] =
+             Ecto.Adapters.SQL.query!(
+               repo,
+               "SELECT apns_request_intent::text FROM #{quoted_relation(schema, "chimeway_delivery_targets")} WHERE id = $1::text::uuid",
+               [target_id]
+             ).rows
+
+    assert Jason.decode!(intent) == %{
+             "apns_id" => "11111111-1111-1111-1111-111111111111",
+             "environment" => "sandbox",
+             "expires_at" => "2026-08-21T00:00:00Z",
+             "open_ref" => "cw_open_opaque_001",
+             "topic" => "com.example.chimeway"
+           }
+
+    assert [^target_version] = run_migrations(repo, migrations_path, :down, step: 1)
+    assert column_info(repo, schema, "chimeway_delivery_targets", "apns_request_intent") == nil
+    assert_target_history_survives!(repo, schema, preserved)
+    assert_tenant_integrity_catalog!(repo, schema)
+
+    assert [^target_version] = run_migrations(repo, migrations_path, :up, step: 1)
+
+    assert column_info(repo, schema, "chimeway_delivery_targets", "apns_request_intent") ==
+             {true, "jsonb"}
+
+    assert_target_history_survives!(repo, schema, preserved)
+  end
+
+  defp assert_target_history_survives!(repo, schema, {target_id, attempt_id}) do
+    assert [[^target_id, ^attempt_id]] =
+             Ecto.Adapters.SQL.query!(
+               repo,
+               """
+               SELECT t.id::text, a.id::text
+               FROM #{quoted_relation(schema, "chimeway_delivery_targets")} t
+               JOIN #{quoted_relation(schema, "chimeway_delivery_target_attempts")} a
+                 ON a.delivery_target_id = t.id
+               WHERE t.id = $1::text::uuid AND a.id = $2::text::uuid
+               """,
+               [target_id, attempt_id]
+             ).rows
   end
 
   defp run_migrations(repo, migrations_path, direction, opts) do

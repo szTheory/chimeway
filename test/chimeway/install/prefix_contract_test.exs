@@ -26,7 +26,7 @@ defmodule Chimeway.Install.PrefixContractTest do
       |> Path.wildcard()
       |> Enum.sort()
 
-    assert length(files) == 36
+    assert length(files) == 37
 
     {:ok, files: files}
   end
@@ -121,6 +121,19 @@ defmodule Chimeway.Install.PrefixContractTest do
     assert migration =~ "chimeway_delivery_targets_tenant_delivery_fkey"
     assert migration =~ "chimeway_delivery_target_attempts_tenant_target_fkey"
     assert migration =~ "chimeway_delivery_target_attempts_prior_same_target_fkey"
+  end
+
+  test "prefixed APNs intent migration alters only the fixed target relation" do
+    migration =
+      Path.join(@prefixed_root, "TIMESTAMP_add_apns_request_intent.exs")
+      |> File.read!()
+
+    assert migration =~ ~s(@chimeway_prefix "chimeway")
+    assert migration =~ "alter chimeway_table(:chimeway_delivery_targets)"
+    assert migration =~ "add(:apns_request_intent, :map)"
+    assert migration =~ "remove(:apns_request_intent)"
+    refute migration =~ "prefix: tenant"
+    refute migration =~ "prefix: binding"
   end
 
   test "local and CI installer gates run the same verify.install_golden proof" do
