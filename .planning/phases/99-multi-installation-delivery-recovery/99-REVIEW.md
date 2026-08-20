@@ -1,8 +1,8 @@
 ---
 phase: 99-multi-installation-delivery-recovery
-reviewed: 2026-08-20T00:00:00Z
+reviewed: 2026-08-20T14:42:25Z
 depth: standard
-files_reviewed: 24
+files_reviewed: 25
 files_reviewed_list:
   - lib/chimeway/delivery_planning.ex
   - lib/chimeway/delivery_targets.ex
@@ -19,6 +19,7 @@ files_reviewed_list:
   - priv/chimeway_migrations/035_create_chimeway_delivery_targets.exs
   - priv/repo/migrations/20260819000001_create_chimeway_delivery_targets.exs
   - test/chimeway/delivery_target_test.exs
+  - test/chimeway/dispatch/oban_test.exs
   - test/chimeway/dispatch/target_worker_test.exs
   - test/chimeway/install/golden_diff_test.exs
   - test/chimeway/install/prefix_contract_test.exs
@@ -29,8 +30,8 @@ files_reviewed_list:
   - test/chimeway/traces_target_test.exs
   - test/support/prefixed_runtime_case.ex
 findings:
-  critical: 2
-  warning: 0
+  critical: 1
+  warning: 1
   info: 0
   total: 2
 status: issues_found
@@ -38,39 +39,49 @@ status: issues_found
 
 # Phase 99: Code Review Report
 
-**Reviewed:** 2026-08-20T00:00:00Z
+**Reviewed:** 2026-08-20T14:42:25Z
 **Depth:** standard
-**Files Reviewed:** 24
+**Files Reviewed:** 25
 **Status:** issues_found
 
 ## Summary
 
-The target lifecycle generally scopes queries by tenant and projects evidence through the closed trace seam. However, the Oban entry point does not converge an empty target snapshot, and the stale-recovery path reverses the required parent/target lock order. Both defects violate the Phase 99 no-stranding and race-safe recovery contracts. The focused target, worker, recovery, and tenant suites passed (33 tests), but do not exercise either interleaving.
+The submitted delivery-target state machine, dispatch paths, recovery worker, migrations, and operator projections were reviewed. Target terminal-state integrity is not enforced by the public transition API, allowing an already accepted target to be made eligible for another provider handoff. The target tables also allow cross-tenant foreign-key relationships at the database layer, despite tenant ownership being a core boundary.
+
+## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### BL-01: Oban push dispatch strands deliveries with an empty target snapshot
+### CR-01: Generic retry transition can resend an already accepted target
 
-**Classification:** BLOCKER
+**File:** `lib/chimeway/delivery_targets.ex:640`
 
-**File:** `/Users/jon/projects/chimeway/lib/chimeway/dispatch/oban.ex:108-122`
+**Issue:** `schedule_retry/3` delegates to `transition_target/4`, but the latter only checks the target ID and tenant (lines 645-650). It does not require a retryable source state. Consequently, any caller holding the tenant-qualified delivery can call `schedule_retry/3` for a `:provider_accepted` target, which changes it to `:pending` (line 657). The next sync, Oban, or recovery pass treats that row as actionable and calls the provider again, producing a duplicate delivery after a previously durable success. The same unrestricted primitive also permits `expire_target/3` and `invalidate_target/3` to rewrite terminal outcomes.
 
-**Issue:** `enqueue_delivery/1` enumerates pending push targets and returns `{:ok, []}` when there are none. `dispatch_delivery/2` normalizes that as success, but no job is created and the delivery remains `:pending`; it is never given the required `no_eligible_targets` suppression reason. This public entry point can be reached with an existing/canonical push delivery (including a partial or interrupted planning flow), so it permanently strands work and makes its explanation incorrect. Sync correctly invokes `recompute_delivery/2` for the same condition.
+**Fix:** Make transitions explicit and enforce an allowed source-state matrix under the row lock. In particular, only allow `:failed` (or another documented retryable state) to move to `:pending`; require the separate policy-authorized redrive path for `:ambiguous_handoff`; reject terminal accepted/exhausted states.
 
-**Fix:** When `actionable_targets/1` is empty, atomically recompute the tenant-qualified parent before returning. Require the resulting status to be `:suppressed` with `no_eligible_targets`; otherwise surface an error instead of reporting a successful enqueue.
+```elixir
+where:
+  t.id == ^target_id and t.delivery_id == ^delivery.id and
+    t.tenant_id == ^tenant_id and t.status in ^allowed_from_states(status)
 
-### BL-02: Stale closeout reverses the parent/target lock order and can crash recovery on a deadlock
+if is_nil(target), do: Repo.rollback(:invalid_transition)
+```
 
-**Classification:** BLOCKER
+Define `allowed_from_states/1` per operation rather than exposing a generic arbitrary-status mutator, and add a test that attempting to retry a `:provider_accepted` target neither changes it nor invokes the adapter.
 
-**File:** `/Users/jon/projects/chimeway/lib/chimeway/delivery_targets.ex:183-225`
+## Warnings
 
-**Issue:** `close_stale_started_attempt/2` locks the target first (lines 184-192) and then calls `recompute_delivery/2`, which locks its parent (lines 579-585). `begin_target_attempt/2` and `record_target_result/4` acquire those same rows in the opposite parent-then-target order (lines 94-116 and 335-353). A late adapter finalizer racing recovery can therefore form a PostgreSQL deadlock. Further, this function's result `case` only handles `{:ok, _}` and `{:error, :not_found}` (lines 229-232), so a deadlock/transaction error raises `CaseClauseError` and aborts the bounded recovery pass rather than yielding a safe, retryable outcome.
+### WR-01: Migrations permit cross-tenant target and attempt relationships
 
-**Fix:** Lock the tenant-qualified parent first, then its target and started attempt, matching all claim/finalization transitions; calculate and persist the aggregate within that guarded transaction. Also return `{:error, reason}` for non-`not_found` transaction failures (or convert only explicitly retryable database conflicts to a non-disclosing retry result), and add a deterministic closeout-versus-finalizer concurrency test.
+**File:** `priv/chimeway_migrations/035_create_chimeway_delivery_targets.exs:12`
+
+**Issue:** The target table stores `tenant_id` independently but its foreign key to `chimeway_deliveries` is only `delivery_id` (lines 12-16). The attempt table has the same issue for `delivery_target_id` (lines 39-43), and `prior_attempt_id` is unconstrained to the same target or tenant (line 50). The generated public migration repeats this at `priv/repo/migrations/20260819000001_create_chimeway_delivery_targets.exs:9` and `:30`. Application query filters hide many malformed rows, but the database accepts them; a bad write can poison a tenant's lifecycle history or block the global `(delivery_id, binding_revision_ref)` target identity constraint with a different tenant.
+
+**Fix:** Enforce ownership structurally. Add unique keys on `(tenant_id, id)` for the parent tables and composite foreign keys from `(tenant_id, delivery_id)` to deliveries and from `(tenant_id, delivery_target_id)` to targets. For `prior_attempt_id`, either validate it belongs to the same target in a trigger/transaction or model a composite reference that includes the target identity. Add migration-contract tests that cross-tenant inserts fail with a foreign-key violation.
 
 ---
 
-_Reviewed: 2026-08-20T00:00:00Z_
+_Reviewed: 2026-08-20T14:42:25Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
