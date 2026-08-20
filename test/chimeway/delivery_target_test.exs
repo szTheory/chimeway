@@ -334,6 +334,7 @@ defmodule Chimeway.DeliveryTargetTest do
 
   test "lifecycle operations only authorize their documented source states" do
     delivery = create_push_delivery()
+
     [accepted, failed, pending] =
       plan_targets(delivery, [
         "cw_binding_revision_accepted",
@@ -347,7 +348,11 @@ defmodule Chimeway.DeliveryTargetTest do
     assert {:ok, retried} = DeliveryTargets.schedule_retry(delivery, failed.id)
     assert retried.status == :pending
 
-    for lifecycle <- [&DeliveryTargets.schedule_retry/2, &DeliveryTargets.expire_target/2, &DeliveryTargets.invalidate_target/2] do
+    for lifecycle <- [
+          &DeliveryTargets.schedule_retry/2,
+          &DeliveryTargets.expire_target/2,
+          &DeliveryTargets.invalidate_target/2
+        ] do
       assert {:error, :not_found} = lifecycle.(delivery, accepted.id)
     end
 
@@ -356,7 +361,7 @@ defmodule Chimeway.DeliveryTargetTest do
     assert {:error, :not_found} = DeliveryTargets.invalidate_target(delivery, expired.id)
 
     assert Repo.get!(DeliveryTarget, accepted.id).status == :provider_accepted
-    assert Repo.aggregate(DeliveryTargetAttempt, :count, :id) == 2
+    assert Repo.aggregate(DeliveryTargetAttempt, :count, :id) == 1
   end
 
   test "rejected retry of an accepted target cannot reach the adapter through sync dispatch" do
@@ -365,12 +370,17 @@ defmodule Chimeway.DeliveryTargetTest do
     target = Repo.update!(Ecto.Changeset.change(target, status: :provider_accepted))
 
     assert {:error, :not_found} = DeliveryTargets.schedule_retry(delivery, target.id)
-    assert {:ok, %{status: :succeeded}} = DeliveryTargets.recompute_delivery(delivery, delivery.tenant_id)
+
+    assert {:ok, %{status: :succeeded}} =
+             DeliveryTargets.recompute_delivery(delivery, delivery.tenant_id)
+
     assert {:ok, %{status: :succeeded}} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
 
     refute_receive {:target_adapter_called, _target_id}, 50
     assert Repo.get!(DeliveryTarget, target.id).status == :provider_accepted
-    assert [] = Repo.all(from(a in DeliveryTargetAttempt, where: a.delivery_target_id == ^target.id))
+
+    assert [] =
+             Repo.all(from(a in DeliveryTargetAttempt, where: a.delivery_target_id == ^target.id))
   end
 
   test "empty target aggregate is the dedicated no-eligible-target suppression" do

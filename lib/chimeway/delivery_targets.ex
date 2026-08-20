@@ -514,19 +514,19 @@ defmodule Chimeway.DeliveryTargets do
   @spec schedule_retry(Delivery.t(), String.t(), keyword()) ::
           {:ok, DeliveryTarget.t()} | {:error, term()}
   def schedule_retry(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
-    do: transition_target(delivery, target_id, :pending, opts)
+    do: transition_target(delivery, target_id, :retry, :pending, [:failed], opts)
 
   @doc "Marks one tenant-qualified target as expired and recomputes its parent."
   @spec expire_target(Delivery.t(), String.t(), keyword()) ::
           {:ok, DeliveryTarget.t()} | {:error, term()}
   def expire_target(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
-    do: transition_target(delivery, target_id, :expired, opts)
+    do: transition_target(delivery, target_id, :expire, :expired, [:pending], opts)
 
   @doc "Marks one tenant-qualified target as invalidated and recomputes its parent."
   @spec invalidate_target(Delivery.t(), String.t(), keyword()) ::
           {:ok, DeliveryTarget.t()} | {:error, term()}
   def invalidate_target(%Delivery{} = delivery, target_id, opts \\ []) when is_binary(target_id),
-    do: transition_target(delivery, target_id, :invalidated, opts)
+    do: transition_target(delivery, target_id, :invalidate, :invalidated, [:pending], opts)
 
   @doc "Atomically closes a failed target's final retry budget and recomputes its parent."
   @spec exhaust_target(Delivery.t(), String.t(), keyword()) ::
@@ -637,7 +637,15 @@ defmodule Chimeway.DeliveryTargets do
     |> Repo.update!()
   end
 
-  defp transition_target(%Delivery{tenant_id: tenant_id} = delivery, target_id, status, opts) do
+  defp transition_target(
+         %Delivery{tenant_id: tenant_id} = delivery,
+         target_id,
+         operation,
+         status,
+         allowed_source_statuses,
+         opts
+       )
+       when operation in [:retry, :expire, :invalidate] and is_list(allowed_source_statuses) do
     if Keyword.get(opts, :tenant_id, tenant_id) != tenant_id do
       {:error, :not_found}
     else
@@ -646,7 +654,8 @@ defmodule Chimeway.DeliveryTargets do
           Repo.one(
             from(t in DeliveryTarget,
               where:
-                t.id == ^target_id and t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id,
+                t.id == ^target_id and t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and
+                  t.status in ^allowed_source_statuses,
               lock: "FOR UPDATE"
             )
           )
@@ -654,7 +663,9 @@ defmodule Chimeway.DeliveryTargets do
         if is_nil(target), do: Repo.rollback(:not_found)
 
         updated =
-          target |> Ecto.Changeset.change(status: status, lease_expires_at: nil) |> Repo.update!()
+          target
+          |> Ecto.Changeset.change(status: status, claimed_at: nil, lease_expires_at: nil)
+          |> Repo.update!()
 
         if status in @terminal_statuses do
           now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
