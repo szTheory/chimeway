@@ -1,0 +1,22 @@
+defmodule APNSConsumer.MixProject do
+  use Mix.Project
+
+  def project do
+    [
+      app: :apns_consumer,
+      version: "0.1.0",
+      elixir: "~> 1.17",
+      deps: deps()
+    ]
+  end
+
+  def application, do: [extra_applications: [:logger]]
+
+  defp deps do
+    [{:chimeway, path: System.fetch_env!("CHIMEWAY_PACKAGE_PATH")} | pigeon_dep()]
+  end
+
+  defp pigeon_dep do
+    if System.get_env("CHIMEWAY_APNS_ENABLED") == "1", do: [{:pigeon, "== 2.0.1"}], else: []
+  end
+end
