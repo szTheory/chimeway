@@ -6,9 +6,9 @@ defmodule Chimeway.TargetResolver do
 
   defmodule BindingRevision do
     @enforce_keys [:tenant_id, :binding_revision_ref]
-    defstruct [:tenant_id, :binding_revision_ref]
+    defstruct [:tenant_id, :binding_revision_ref, :request_intent]
 
-    @type t :: %__MODULE__{tenant_id: String.t(), binding_revision_ref: String.t()}
+    @type t :: %__MODULE__{tenant_id: String.t(), binding_revision_ref: String.t(), request_intent: Chimeway.APNS.RequestIntent.t() | nil}
 
     @spec new(String.t(), String.t()) :: {:ok, t()} | {:error, :invalid_binding_revision}
     def new(tenant_id, binding_revision_ref)
@@ -22,6 +22,14 @@ defmodule Chimeway.TargetResolver do
     end
 
     def new(_, _), do: {:error, :invalid_binding_revision}
+
+    @spec new_with_request_intent(String.t(), String.t(), Chimeway.APNS.RequestIntent.t()) :: {:ok, t()} | {:error, :invalid_binding_revision}
+    def new_with_request_intent(tenant_id, binding_revision_ref, %Chimeway.APNS.RequestIntent{} = intent) do
+      case new(tenant_id, binding_revision_ref) do
+        {:ok, binding} -> {:ok, %{binding | request_intent: intent}}
+        error -> error
+      end
+    end
   end
 
   @spec resolve_targets(String.t(), keyword()) :: {:ok, [BindingRevision.t()]} | {:error, term()}
@@ -47,9 +55,9 @@ defmodule Chimeway.TargetResolver do
   def normalize(tenant_id, results) when is_list(results) do
     results
     |> Enum.reduce_while({:ok, []}, fn
-      %BindingRevision{tenant_id: ^tenant_id, binding_revision_ref: ref} = binding, {:ok, acc} ->
-        case BindingRevision.new(tenant_id, ref) do
-          {:ok, _} -> {:cont, {:ok, [binding | acc]}}
+      %BindingRevision{tenant_id: ^tenant_id, binding_revision_ref: ref, request_intent: intent} = binding, {:ok, acc} ->
+        case {BindingRevision.new(tenant_id, ref), valid_request_intent?(intent)} do
+          {{:ok, _}, true} -> {:cont, {:ok, [binding | acc]}}
           _ -> {:halt, {:error, :invalid_target_resolution}}
         end
 
@@ -70,4 +78,12 @@ defmodule Chimeway.TargetResolver do
   end
 
   def normalize(_, _), do: {:error, :invalid_target_resolution}
+
+  defp valid_request_intent?(nil), do: true
+
+  defp valid_request_intent?(%Chimeway.APNS.RequestIntent{} = intent) do
+    match?({:ok, _}, Chimeway.APNS.RequestIntent.from_storage(Chimeway.APNS.RequestIntent.to_storage(intent)))
+  end
+
+  defp valid_request_intent?(_), do: false
 end

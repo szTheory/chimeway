@@ -18,6 +18,7 @@ defmodule Chimeway.DeliveryTarget do
   schema "chimeway_delivery_targets" do
     field(:tenant_id, :string)
     field(:binding_revision_ref, :string)
+    field(:apns_request_intent, :map)
     field(:status, Ecto.Enum, values: @statuses, default: :pending)
     field(:claim_token, :string)
     field(:lease_expires_at, :utc_datetime_usec)
@@ -33,6 +34,7 @@ defmodule Chimeway.DeliveryTarget do
       :tenant_id,
       :delivery_id,
       :binding_revision_ref,
+      :apns_request_intent,
       :status,
       :claim_token,
       :lease_expires_at,

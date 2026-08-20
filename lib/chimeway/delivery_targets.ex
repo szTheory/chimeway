@@ -20,12 +20,13 @@ defmodule Chimeway.DeliveryTargets do
       when is_list(bindings) do
     with {:ok, bindings} <- Chimeway.TargetResolver.normalize(tenant_id, bindings) do
       Repo.transaction(fn ->
-        Enum.each(bindings, fn %BindingRevision{binding_revision_ref: ref} ->
+        Enum.each(bindings, fn %BindingRevision{binding_revision_ref: ref, request_intent: request_intent} ->
           %DeliveryTarget{}
           |> DeliveryTarget.changeset(%{
             tenant_id: tenant_id,
             delivery_id: delivery.id,
             binding_revision_ref: ref,
+            apns_request_intent: if(request_intent, do: Chimeway.APNS.RequestIntent.to_storage(request_intent)),
             status: :pending
           })
           |> Repo.insert!(
