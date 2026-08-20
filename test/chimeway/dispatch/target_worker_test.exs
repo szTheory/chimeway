@@ -157,6 +157,7 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     [attempt] = attempts_for(target)
 
     assert target.status == :pending
+    assert target.claimed_at == nil
     assert target.lease_expires_at == nil
     assert attempt.outcome == :failed
     assert attempt.finished_at
@@ -195,6 +196,7 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
       [attempt] = attempts_for(target)
 
       assert target.status == :ambiguous_handoff
+      assert target.claimed_at == nil
       assert target.lease_expires_at == nil
       assert attempt.outcome == :ambiguous_handoff
       assert attempt.finished_at
