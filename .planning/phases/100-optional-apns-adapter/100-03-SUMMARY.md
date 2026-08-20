@@ -64,6 +64,7 @@ status: complete
 3. Task 2 RED — `f814a7d` test lookup and transport contracts.
 4. Task 2 GREEN — `ed27a46` implement exact lookup and optional transport seams.
 5. Directly related compatibility fix — `ab0241a` update the pre-existing tracer fixture.
+6. Directly related Pigeon contract fix — `96f7cd9` correct the dispatcher-first Pigeon 2.0.1 sync call and response classification.
 
 ## Decisions Made
 
@@ -91,4 +92,3 @@ None. The stub scan found only intentional collapse-id default assertions and no
 - Found all five task commits in git history.
 - Confirmed the request, payload, lookup, transport, adapter, fake transport, and focused test files exist.
 - Confirmed no tracked file deletions in the task commits.
-
