@@ -3,7 +3,7 @@
 **Pinned surface:** Pigeon 2.0.1 APNs notification/dispatcher API and Apple ordinary remote-notification request/response semantics.  
 **Rule:** Chimeway integrates only the target-specific APNs request and result surface. Dispatcher credentials, connection supervision, registration, protected-open authorization, other Pigeon providers, and rich APS presentation options remain outside this phase for the reasons recorded below.
 
-| External capability | Disposition | Phase 100 contract / reason |
+| capability | decision | reason |
 |---|---|---|
 | Host adds and starts Pigeon 2.0.1 | INTEGRATE | Opted-in hosts add the dependency and supervise the dispatcher; the Chimeway package remains Pigeon-free (D-01, D-02). |
 | `Pigeon.push/3` synchronous single-notification send | INTEGRATE | The pinned host-selected transport sends one target request and returns a target-specific result; timeout is treated as possible handoff (D-09, D-13, D-14). |
@@ -33,7 +33,7 @@
 | `put_target_content_id/2`, `put_thread_id/2` | OPT-OUT | Window targeting and APNs thread grouping are not required; replaceable occurrences use the separately bounded collapse identity. |
 | Notification `response: :success` / APNs HTTP 200 | INTEGRATE | Classified only as `provider_accepted`; it is not device receipt, display, open, seen, or read (D-10, D-11). |
 | Notification `response: :timeout` | INTEGRATE | Classified as `ambiguous_handoff` and excluded from automatic retry (D-13). |
-| Known retryable provider reasons (`idle_timeout`, `too_many_provider_token_updates`, `too_many_requests`, `internal_server_error`, `service_unavailable`, `shutdown`) | INTEGRATE | Mapped through the pinned reason seam to bounded retry/backoff or credential-refresh corrective action, with expiry rechecked first (D-12, D-14). |
+| Known retryable provider reasons | INTEGRATE | Pinned timeout, rate-limit, server, unavailable, and shutdown reasons map to bounded retry/backoff or credential refresh after expiry recheck (D-12, D-14). |
 | APNs 410 `ExpiredToken` / `Unregistered` plus response timestamp | INTEGRATE | The reason-aware seam preserves status/reason/timestamp; only these exact results can request host compare-and-update invalidation (D-14, D-15, D-16). |
 | `BadDeviceToken`, `DeviceTokenNotForTopic`, request/topic/auth/payload errors | INTEGRATE | Classified as permanent for the unchanged request and never authorize binding invalidation (D-12, D-15). |
 | Pigeon `:unknown_error` or future conclusive reason | INTEGRATE | Fails closed as permanent with a stable safe code; it never retries or invalidates (D-14). |

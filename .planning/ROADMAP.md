@@ -210,7 +210,7 @@ Plans:
   4. Expired reminders are suppressed before initial send or retry, and only host-opted replaceable occurrences use an installation-safe collapse key; distinct notifications remain uncoalesced.
   5. A provider invalidation affects only its exact tenant, environment, and binding revision, never a rotated replacement or another installation.
 
-**Plans**: 5/5 plans executed
+**Plans**: 5/6 plans executed
 
 Plans:
 **Wave 1**
@@ -232,6 +232,10 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 100-05-PLAN.md — Prove no-Pigeon clean consumption, explicit host opt-in, full API coverage, and local/CI gate parity.
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 100-06-PLAN.md — Carry represented Pigeon 2.0.1 APNs 410 responses through the production callback bridge to exact-binding invalidation, and require that proof in both hosted aggregate gates.
 
 ### Phase 101: CrossWake Registration & Protected Open
 
