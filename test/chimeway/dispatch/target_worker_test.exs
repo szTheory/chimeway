@@ -6,7 +6,11 @@ defmodule Chimeway.Test.TargetWorkerAdapter do
     if pid = Application.get_env(:chimeway, :target_worker_adapter_pid),
       do: send(pid, {:target_adapter_called, target.id})
 
-    case Application.get_env(:chimeway, :target_worker_adapter_result, {:ok, %{provider_code: "accepted"}}) do
+    case Application.get_env(
+           :chimeway,
+           :target_worker_adapter_result,
+           {:ok, %{provider_code: "accepted"}}
+         ) do
       :raise -> raise "raw-adapter-reason"
       :throw -> throw(:raw_adapter_reason)
       result -> result
@@ -134,10 +138,17 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
   end
 
   test "explicit pre-handoff failure closes a retryable attempt without retaining adapter evidence" do
-    %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "target-worker-pre-handoff")
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-worker-pre-handoff")
+
     target = insert_target(delivery, "cw_binding_revision_pre_handoff_001")
     target_id = target.id
-    Application.put_env(:chimeway, :target_worker_adapter_result, {:error, :pre_handoff, "raw-token-sentinel"})
+
+    Application.put_env(
+      :chimeway,
+      :target_worker_adapter_result,
+      {:error, :pre_handoff, "raw-token-sentinel"}
+    )
 
     assert {:error, :pre_handoff_retryable} = Executor.run_target(delivery, target_id: target_id)
     assert_receive {:target_adapter_called, ^target_id}
@@ -152,12 +163,19 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     assert attempt.safe_facts == %{"provider_code" => "adapter_pre_handoff_failure"}
     refute inspect({target, attempt}) =~ "raw-token-sentinel"
 
+    Application.put_env(
+      :chimeway,
+      :target_worker_adapter_result,
+      {:ok, %{provider_code: "accepted"}}
+    )
+
     assert {:ok, %{attempt: retry_attempt}} = Executor.run_target(delivery, target_id: target_id)
     assert retry_attempt.attempt_number == 2
   end
 
   test "possible and unknown callback outcomes close as ambiguity and cannot automatically resend" do
-    %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "target-worker-ambiguity")
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-worker-ambiguity")
 
     for {suffix, callback_result} <- [
           {"possible", {:error, :possible_handoff, "raw-token-sentinel"}},
@@ -190,7 +208,9 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
   end
 
   test "concurrent duplicate target execution enters the adapter once and finalizes its exact started attempt" do
-    %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "target-worker-duplicate")
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-worker-duplicate")
+
     target = insert_target(delivery, "cw_binding_revision_duplicate_001")
     target_id = target.id
 

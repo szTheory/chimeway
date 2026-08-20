@@ -66,15 +66,52 @@ defmodule Chimeway.Dispatch.Executor do
           | {:noop, term()}
           | {:error, term()}
   def run_target(%Delivery{} = delivery, opts \\ []) do
-    with {:ok, %{target: target, attempt: attempt}} <-
-           DeliveryTargets.begin_target_attempt(delivery, opts),
-         {:ok, facts} <-
-           target_adapter().deliver(
+    case DeliveryTargets.begin_target_attempt(delivery, opts) do
+      {:ok, %{target: target, attempt: attempt}} ->
+        finish_target_attempt(delivery, target, attempt)
+
+      other ->
+        other
+    end
+  end
+
+  defp finish_target_attempt(delivery, target, attempt) do
+    case target_adapter_result(delivery, target) do
+      {:ok, facts} ->
+        case DeliveryTargets.record_target_result(delivery, target, attempt, facts) do
+          {:ok, result} -> {:ok, result}
+          {:error, reason} -> {:error, reason}
+        end
+
+      :pre_handoff_retryable ->
+        close_target_failure(delivery, target, attempt, :pre_handoff_retryable)
+
+      :ambiguous_handoff ->
+        close_target_failure(delivery, target, attempt, :ambiguous_handoff)
+    end
+  end
+
+  defp target_adapter_result(delivery, target) do
+    try do
+      case target_adapter().deliver(
              %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},
              []
-           ),
-         {:ok, result} <- DeliveryTargets.record_target_result(delivery, target, attempt, facts) do
-      {:ok, result}
+           ) do
+        {:ok, facts} when is_map(facts) -> {:ok, facts}
+        {:error, :pre_handoff, _reason} -> :pre_handoff_retryable
+        _other -> :ambiguous_handoff
+      end
+    rescue
+      _exception -> :ambiguous_handoff
+    catch
+      _kind, _reason -> :ambiguous_handoff
+    end
+  end
+
+  defp close_target_failure(delivery, target, attempt, classification) do
+    case DeliveryTargets.record_target_failure(delivery, target, attempt, classification) do
+      {:ok, _result} -> {:error, classification}
+      {:error, reason} -> {:error, reason}
     end
   end
 

@@ -333,6 +333,91 @@ defmodule Chimeway.DeliveryTargets do
     end
   end
 
+  @doc false
+  @spec record_target_failure(
+          Delivery.t(),
+          DeliveryTarget.t(),
+          DeliveryTargetAttempt.t(),
+          :pre_handoff_retryable | :ambiguous_handoff
+        ) ::
+          {:ok,
+           %{
+             delivery: Delivery.t(),
+             target: DeliveryTarget.t(),
+             attempt: DeliveryTargetAttempt.t()
+           }}
+          | {:error, term()}
+  def record_target_failure(
+        %Delivery{tenant_id: tenant_id} = delivery,
+        %DeliveryTarget{id: target_id, delivery_id: delivery_id} = _target,
+        %DeliveryTargetAttempt{id: attempt_id} = _attempt,
+        classification
+      )
+      when classification in [:pre_handoff_retryable, :ambiguous_handoff] do
+    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+    Repo.transaction(fn ->
+      target =
+        Repo.one(
+          from(t in DeliveryTarget,
+            where:
+              t.id == ^target_id and t.delivery_id == ^delivery_id and t.tenant_id == ^tenant_id and
+                t.status == :claimed,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(target), do: Repo.rollback(:not_found)
+
+      attempt =
+        Repo.one(
+          from(a in DeliveryTargetAttempt,
+            where:
+              a.id == ^attempt_id and a.delivery_target_id == ^target.id and
+                a.tenant_id == ^tenant_id and
+                a.outcome == :attempt_started,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(attempt), do: Repo.rollback(:not_found)
+
+      {target_status, attempt_outcome, provider_code} =
+        failure_attributes(classification)
+
+      updated_target =
+        target
+        |> Ecto.Changeset.change(
+          status: target_status,
+          claimed_at: nil,
+          lease_expires_at: nil
+        )
+        |> Repo.update!()
+
+      updated_attempt =
+        attempt
+        |> Ecto.Changeset.change(
+          outcome: attempt_outcome,
+          finished_at: now,
+          safe_facts: %{"provider_code" => provider_code}
+        )
+        |> Repo.update!()
+
+      {:ok, updated_delivery} = recompute_delivery(delivery, tenant_id)
+      %{delivery: updated_delivery, target: updated_target, attempt: updated_attempt}
+    end)
+    |> case do
+      {:ok, result} -> {:ok, result}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp failure_attributes(:pre_handoff_retryable),
+    do: {:pending, :failed, "adapter_pre_handoff_failure"}
+
+  defp failure_attributes(:ambiguous_handoff),
+    do: {:ambiguous_handoff, :ambiguous_handoff, "possible_provider_handoff"}
+
   @doc "Changes one tenant-qualified target back to pending and recomputes its parent."
   @spec schedule_retry(Delivery.t(), String.t(), keyword()) ::
           {:ok, DeliveryTarget.t()} | {:error, term()}
