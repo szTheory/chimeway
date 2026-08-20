@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 99
 current_phase_name: multi-installation-delivery-recovery
 status: executing
-stopped_at: Completed 99-09-PLAN.md
-last_updated: "2026-08-20T13:33:27.367Z"
+stopped_at: Completed 99-10-PLAN.md
+last_updated: "2026-08-20T13:39:29.035Z"
 last_activity: 2026-08-20
 last_activity_desc: Phase 99 execution started
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 39
-  completed_plans: 38
-  percent: 29
+  completed_plans: 39
+  percent: 43
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 99 (multi-installation-delivery-recovery) — EXECUTING
-Plan: 3 of 10
+Plan: 4 of 10
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 99 execution started
 
@@ -372,6 +372,9 @@ status: complete
 - [Phase ?]: [99-08]: Common trace loaders share tenant-qualified target history preloads, and explanations reuse SafeEvidence.trace_delivery/1.
 - [Phase ?]: [99-09]: Sync snapshots ordered actionable target IDs and claims each through Executor.run_target/2.
 - [Phase ?]: [99-09]: Sync continues after target errors and returns the recomputed canonical delivery aggregate.
+- [Phase ?]: [99-10]: Parent status pending and orchestration_state ready are locked prerequisites for every target claim.
+- [Phase ?]: [99-10]: Provider success may finalize only its exact tenant-qualified claimed target and attempt_started row; ambiguity wins permanently.
+- [Phase ?]: [99-10]: Final pre-handoff target retries write retry_exhausted evidence before Oban completes, excluding ordinary recovery.
 
 ### Roadmap Evolution
 
@@ -692,8 +695,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T13:33:27.351Z
-Stopped at: Completed 99-09-PLAN.md
+Last session: 2026-08-20T13:39:29.020Z
+Stopped at: Completed 99-10-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -833,3 +836,4 @@ Resume file: None
 | Phase 99 P07 | 24m | 2 tasks | 5 files |
 | Phase 99-multi-installation-delivery-recovery P08 | 12m | 1 tasks | 4 files |
 | Phase 99 P09 | 3m | 1 tasks | 2 files |
+| Phase 99-multi-installation-delivery-recovery P10 | 4m | 2 tasks | 4 files |
