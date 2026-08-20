@@ -64,17 +64,13 @@ defmodule Chimeway.APNS.Transport do
           expiration: request.expiration,
           collapse_id: request.collapse_id,
           priority: request.priority,
-          push_type: request.push_type,
+          push_type: Atom.to_string(request.push_type),
           payload: request.payload.json
         )
 
-      case apply(pigeon, :push, [notification, dispatcher_ref]) do
-        :ok -> {:ok, %Result{outcome: :accepted, code: :accepted}}
-        {:ok, _} -> {:ok, %Result{outcome: :accepted, code: :accepted}}
-        {:error, :timeout} -> {:error, :ambiguous}
-        {:error, _} -> {:error, :rejected}
-        _ -> {:error, :ambiguous}
-      end
+      pigeon
+      |> apply(:push, [dispatcher_ref, notification, [timeout: 5_000]])
+      |> classify_pigeon_response()
     else
       {:error, :pigeon_unavailable}
     end
@@ -83,6 +79,13 @@ defmodule Chimeway.APNS.Transport do
   catch
     _, _ -> {:error, :ambiguous}
   end
+
+  defp classify_pigeon_response(%{response: :success}),
+    do: {:ok, %Result{outcome: :accepted, code: :accepted}}
+
+  defp classify_pigeon_response(%{response: :timeout}), do: {:error, :ambiguous}
+  defp classify_pigeon_response(%{response: _}), do: {:error, :rejected}
+  defp classify_pigeon_response(_), do: {:error, :ambiguous}
 
   defmodule PigeonAdapter do
     @moduledoc false
