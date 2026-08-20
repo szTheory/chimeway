@@ -156,7 +156,7 @@ Plans:
   4. A delivery with no eligible target is suppressed with a stable reason, while mixed terminal target results succeed only when at least one target receives APNs acceptance and retain partial failures.
   5. A crash after possible provider handoff records an explicit ambiguous outcome from pre-I/O claim and attempt-start evidence rather than silently resending or promising exactly-once delivery.
 
-**Plans**: 10/11 plans executed
+**Plans**: 11/11 plans executed
 
 Plans:
 
@@ -193,7 +193,7 @@ Plans:
 
 **Gap Closure Wave 8** *(blocked on Gap Closure Wave 7 completion)*
 
-- [ ] 99-11-PLAN.md — Recompute empty Oban fan-out and enforce parent-first stale recovery concurrency.
+- [x] 99-11-PLAN.md — Recompute empty Oban fan-out and enforce parent-first stale recovery concurrency.
 
 ### Phase 100: Optional APNs Adapter
 
@@ -256,7 +256,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
 | 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
-| 99. Multi-Installation Delivery & Recovery | 10/11 | In Progress|  |
+| 99. Multi-Installation Delivery & Recovery | 11/11 | In Progress|  |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
 | 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |
