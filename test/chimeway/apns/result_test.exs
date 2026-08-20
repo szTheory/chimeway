@@ -8,13 +8,21 @@ defmodule Chimeway.APNS.ResultTest do
   defmodule Lookup do
     @behaviour BindingLookup
 
-    def resolve_binding(request), do: Application.fetch_env!(:chimeway, :apns_result_lookup).(request)
-    def invalidate_binding(key), do: Application.fetch_env!(:chimeway, :apns_result_invalidate).(key)
+    def resolve_binding(request),
+      do: Application.fetch_env!(:chimeway, :apns_result_lookup).(request)
+
+    def invalidate_binding(key),
+      do: Application.fetch_env!(:chimeway, :apns_result_invalidate).(key)
   end
 
   setup do
     previous =
-      for key <- [:apns_binding_lookup, :apns_transport, :apns_result_lookup, :apns_result_invalidate],
+      for key <- [
+            :apns_binding_lookup,
+            :apns_transport,
+            :apns_result_lookup,
+            :apns_result_invalidate
+          ],
           do: {key, Application.get_env(:chimeway, key)}
 
     Application.put_env(:chimeway, :apns_binding_lookup, Lookup)
@@ -61,7 +69,8 @@ defmodule Chimeway.APNS.ResultTest do
       {:ok, %BindingLookup.InvalidationResult{status: :invalidated}}
     end)
 
-    assert {:invalidated, %{provider_status: 410, provider_reason: "unregistered", provider_timestamp: 1}} =
+    assert {:invalidated,
+            %{provider_status: 410, provider_reason: "unregistered", provider_timestamp: 1}} =
              APNS.deliver(envelope(), [])
 
     assert_receive {:invalidate,
@@ -73,9 +82,40 @@ defmodule Chimeway.APNS.ResultTest do
                     }}
 
     for result <- [
-          %Transport.Result{outcome: :rejected, code: :unregistered, status: 410, reason: "Unregistered"},
-          %Transport.Result{outcome: :rejected, code: :bad_device_token, status: 410, reason: "BadDeviceToken", timestamp: 1},
-          %Transport.Result{outcome: :rejected, code: :unregistered, status: 400, reason: "Unregistered", timestamp: 1}
+          %Transport.Result{
+            outcome: :rejected,
+            code: :unregistered,
+            status: 410,
+            reason: "Unregistered"
+          },
+          %Transport.Result{
+            outcome: :rejected,
+            code: :unregistered,
+            status: 410,
+            reason: "Unregistered",
+            timestamp: -1
+          },
+          %Transport.Result{
+            outcome: :rejected,
+            code: :bad_device_token,
+            status: 410,
+            reason: "BadDeviceToken",
+            timestamp: 1
+          },
+          %Transport.Result{
+            outcome: :rejected,
+            code: :unregistered,
+            status: 400,
+            reason: "Unregistered",
+            timestamp: 1
+          },
+          %Transport.Result{
+            outcome: :rejected,
+            code: :expired_token,
+            status: nil,
+            reason: :expired_token,
+            timestamp: nil
+          }
         ] do
       Application.put_env(:chimeway, :apns_fake_transport_result, {:ok, result})
       assert {:permanent, _facts} = APNS.deliver(envelope(), [])
