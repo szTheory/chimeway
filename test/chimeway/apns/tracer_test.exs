@@ -97,7 +97,7 @@ defmodule Chimeway.APNS.TracerTest do
 
     delivery = %Chimeway.Delivery{render_data: %{"title" => "Hello", "body" => "World"}}
 
-    assert {:ok, %{provider_code: "accepted"}} =
+    assert {:provider_accepted, %{provider_code: "accepted", accepted_at: %DateTime{}}} =
              Chimeway.Adapters.APNS.deliver(
                %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},
                []
@@ -140,7 +140,7 @@ defmodule Chimeway.APNS.TracerTest do
       apns_request_intent: RequestIntent.to_storage(intent)
     }
 
-    assert {:error, :pre_handoff, :expired} =
+    assert {:expired, %{provider_code: "expired"}} =
              Chimeway.Adapters.APNS.deliver(
                %Chimeway.TargetAdapter.TargetEnvelope{
                  delivery: %Chimeway.Delivery{},
