@@ -213,10 +213,24 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 100-01-PLAN.md — Prove the persisted accepted-handoff APNs tracer across planning, target attempt, host custody, bounds, and provider evidence.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 100-02-PLAN.md — Publish and rollback safe APNs intent storage across repository, public, and prefixed migration modes.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 100-03-PLAN.md — Complete closed request construction, exact host lookup, and the optional pinned Pigeon transport seam.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 100-04-PLAN.md — Classify every provider outcome into exact target lifecycle, retry, invalidation, and operator evidence paths.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 100-05-PLAN.md — Prove no-Pigeon clean consumption, explicit host opt-in, full API coverage, and local/CI gate parity.
 
 ### Phase 101: CrossWake Registration & Protected Open
