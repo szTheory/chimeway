@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
 current_phase_name: optional-apns-adapter
 status: executing
-stopped_at: Completed 100-03-PLAN.md
-last_updated: "2026-08-20T20:59:52.868Z"
+stopped_at: Completed 100-04-PLAN.md
+last_updated: "2026-08-20T21:09:09.666Z"
 last_activity: 2026-08-20
 last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 46
-  completed_plans: 44
+  completed_plans: 45
   percent: 43
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 100 (optional-apns-adapter) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 100 execution started
 
@@ -383,6 +383,8 @@ status: complete
 - [Phase ?]: [100-02]: Copied migration 037 uses a nullable intent map on existing delivery targets and removes only that column on rollback.
 - [Phase ?]: [100-03]: APNs payloads are fixed APS alert plus opaque open-reference; generic push data never crosses to APNs.
 - [Phase ?]: [100-03]: Pigeon remains host-selected and optional; absent Pigeon is a stable pre-handoff outcome.
+- [Phase ?]: [100-04]: Typed adapter outcomes are the only retry authority; ambiguous handoff is durable and terminal.
+- [Phase ?]: [100-04]: Provider invalidation requires complete 410/recognized-reason/timestamp facts and confirmed host exact CAS.
 
 ### Roadmap Evolution
 
@@ -703,8 +705,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T20:59:52.857Z
-Stopped at: Completed 100-03-PLAN.md
+Last session: 2026-08-20T21:09:09.654Z
+Stopped at: Completed 100-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -850,3 +852,4 @@ Resume file: None
 | Phase 100-optional-apns-adapter P01 | 8 min | 1 tasks | 8 files |
 | Phase 100-optional-apns-adapter P02 | 18 min | 2 tasks | 12 files |
 | Phase 100-optional-apns-adapter P03 | 18 min | 2 tasks | 9 files |
+| Phase 100-optional-apns-adapter P04 | 12 min | 2 tasks | 10 files |
