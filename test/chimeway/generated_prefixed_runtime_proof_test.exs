@@ -100,7 +100,7 @@ defmodule Chimeway.GeneratedPrefixedRuntimeProofTest do
 
   test "generated prefixed migrations support trigger-to-trace runtime behavior through Chimeway.Repo" do
     assert_generated_prefixed_runtime_tables!()
-    assert generated_migration_count() == 35
+    assert generated_migration_count() == 36
 
     recipient_id = unique_recipient("trigger")
 
