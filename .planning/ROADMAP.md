@@ -210,7 +210,14 @@ Plans:
   4. Expired reminders are suppressed before initial send or retry, and only host-opted replaceable occurrences use an installation-safe collapse key; distinct notifications remain uncoalesced.
   5. A provider invalidation affects only its exact tenant, environment, and binding revision, never a rotated replacement or another installation.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 100-01-PLAN.md — Prove the persisted accepted-handoff APNs tracer across planning, target attempt, host custody, bounds, and provider evidence.
+- [ ] 100-02-PLAN.md — Publish and rollback safe APNs intent storage across repository, public, and prefixed migration modes.
+- [ ] 100-03-PLAN.md — Complete closed request construction, exact host lookup, and the optional pinned Pigeon transport seam.
+- [ ] 100-04-PLAN.md — Classify every provider outcome into exact target lifecycle, retry, invalidation, and operator evidence paths.
+- [ ] 100-05-PLAN.md — Prove no-Pigeon clean consumption, explicit host opt-in, full API coverage, and local/CI gate parity.
 
 ### Phase 101: CrossWake Registration & Protected Open
 
