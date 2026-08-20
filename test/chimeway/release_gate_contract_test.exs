@@ -22,7 +22,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   @adoption_run_assertion "scripts/ci/assert-adoption-run.sh"
   @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths test_floor_1_17)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17)
   @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths verify_inbox)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
@@ -250,7 +250,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "mix ci.docs")
     end
 
-    test "ci-gate aggregates 14 required lanes", %{ci_yml: ci_yml} do
+    test "ci-gate aggregates APNs verification with every required lane", %{ci_yml: ci_yml} do
       needs = extract_ci_gate_needs(ci_yml)
 
       assert length(needs) == length(@ci_gate_lanes)
@@ -526,7 +526,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 15 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
+    test "ci-gate needs stays 16 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -534,8 +534,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 15,
-             "ci-gate needs must remain exactly 15 lanes after the bounded adoption proof lane joins " <>
+      assert length(needs) == 16,
+             "ci-gate needs must remain exactly 16 lanes after the APNs proof lane joins " <>
                "the non-PR release gate"
 
       assert "test_floor_1_17" in needs,

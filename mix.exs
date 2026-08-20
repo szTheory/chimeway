@@ -115,6 +115,10 @@ defmodule Chimeway.MixProject do
       "verify.runtime_prefix": [
         "cmd env MIX_ENV=test mix test test/chimeway/repo_prefix_test.exs test/chimeway/runtime_prefix_integration_test.exs test/chimeway/generated_prefixed_runtime_proof_test.exs --warnings-as-errors"
       ],
+      "verify.apns": [
+        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/api_coverage_test.exs test/chimeway/apns/request_test.exs test/chimeway/apns/result_test.exs test/chimeway/adapters/apns_test.exs test/chimeway/safe_evidence_test.exs test/chimeway/migration_contract_test.exs --warnings-as-errors",
+        "cmd bash scripts/verify-apns.sh"
+      ],
       "ci.install_golden": ["verify.install_golden"],
 
       # GATE-01 doc-contract + version alignment gates (pre-ship; no Postgres required)
