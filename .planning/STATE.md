@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 99
-current_phase_name: Multi-Installation Delivery & Recovery
+current_phase_name: multi-installation-delivery-recovery
 status: executing
-stopped_at: Completed 99-07-PLAN.md
-last_updated: "2026-08-20T13:15:19.000Z"
+stopped_at: Completed 99-08-PLAN.md
+last_updated: "2026-08-20T13:29:21.082Z"
 last_activity: 2026-08-20
-last_activity_desc: Phase 99 gap-closure planning complete
+last_activity_desc: Phase 99 execution started
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 2
   total_plans: 39
-  completed_plans: 36
-  percent: 43
+  completed_plans: 37
+  percent: 29
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 99 — Multi-Installation Delivery & Recovery
+**Current focus:** Phase 99 — multi-installation-delivery-recovery
 
 ## Current Position
 
-Phase: 99 (Multi-Installation Delivery & Recovery) — EXECUTING
-Plan: 7 of 10
+Phase: 99 (multi-installation-delivery-recovery) — EXECUTING
+Plan: 2 of 10
 Status: Ready to execute
-Last activity: 2026-08-20 — Phase 99 gap-closure planning complete
+Last activity: 2026-08-20 — Phase 99 execution started
 
 ## Deferred Items
 
@@ -369,6 +369,7 @@ status: complete
 - [Phase ?]: [99-06]: Target failure finalization locks the exact tenant-qualified claimed target and started attempt while persisting closed provider-code evidence only.
 - [Phase ?]: [99-07]: Recovery summaries emit only closed counts, reason atoms, and independent typed continuations; no tenant or target material enters telemetry.
 - [Phase ?]: [99-07]: Event, pending-target, and stale-attempt recovery scans use separate durable-ID cursors and validated batch bounds.
+- [Phase ?]: [99-08]: Common trace loaders share tenant-qualified target history preloads, and explanations reuse SafeEvidence.trace_delivery/1.
 
 ### Roadmap Evolution
 
@@ -689,8 +690,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T01:55:47.005Z
-Stopped at: Completed 99-07-PLAN.md
+Last session: 2026-08-20T13:29:21.063Z
+Stopped at: Completed 99-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -828,3 +829,4 @@ Resume file: None
 | Phase 99-multi-installation-delivery-recovery P05 | 29m | 1 tasks | 10 files |
 | Phase 99 P06 | 8 min | 1 tasks | 4 files |
 | Phase 99 P07 | 24m | 2 tasks | 5 files |
+| Phase 99-multi-installation-delivery-recovery P08 | 12m | 1 tasks | 4 files |

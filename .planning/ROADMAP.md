@@ -156,7 +156,7 @@ Plans:
   4. A delivery with no eligible target is suppressed with a stable reason, while mixed terminal target results succeed only when at least one target receives APNs acceptance and retain partial failures.
   5. A crash after possible provider handoff records an explicit ambiguous outcome from pre-I/O claim and attempt-start evidence rather than silently resending or promising exactly-once delivery.
 
-**Plans**: 10 plans (7 executed, 3 gap-closure plans pending)
+**Plans**: 8/10 plans executed
 
 Plans:
 
@@ -187,7 +187,7 @@ Plans:
 
 **Gap Closure Wave 7** *(99-08, 99-09, and 99-10 run independently after Wave 6)*
 
-- [ ] 99-08-PLAN.md — Load independent target histories through every common operator trace and explanation path.
+- [x] 99-08-PLAN.md — Load independent target histories through every common operator trace and explanation path.
 - [ ] 99-09-PLAN.md — Execute every selected tenant-qualified target through synchronous push dispatch.
 - [ ] 99-10-PLAN.md — Gate target work on parent lifecycle, close retry exhaustion, and preserve ambiguous handoff races.
 
@@ -252,7 +252,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
 | 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
-| 99. Multi-Installation Delivery & Recovery | 7/10 | In Progress|  |
+| 99. Multi-Installation Delivery & Recovery | 8/10 | In Progress|  |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
 | 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |

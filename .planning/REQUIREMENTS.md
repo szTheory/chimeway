@@ -20,7 +20,7 @@
 ### Mobile Target Model
 
 - [ ] **PUSH-01**: A host can implement a public target-resolution behaviour that returns every active eligible installation as an opaque, tenant-scoped binding revision without exposing raw tokens.
-- [ ] **PUSH-02**: One logical push delivery durably records one target child per selected installation, and each target has independent claim, attempt, retry, invalidation, expiry, and trace history.
+- [x] **PUSH-02**: One logical push delivery durably records one target child per selected installation, and each target has independent claim, attempt, retry, invalidation, expiry, and trace history.
 - [ ] **PUSH-03**: Duplicate planning, job execution, or recovery cannot create a duplicate target or an unexplained additional provider request.
 - [ ] **PUSH-04**: A logical push with no eligible targets is suppressed with a stable explainable reason; after all targets terminate, it succeeds when at least one was APNs-accepted and exposes partial failures without claiming all-device delivery.
 
