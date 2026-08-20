@@ -191,7 +191,9 @@ defmodule Chimeway.MigrationContractTest do
                run_migrations(repo, migrations_path, :up, step: 1)
 
       assert_foreign_key_violation!("chimeway_delivery_targets_tenant_delivery_fkey", fn ->
-        insert_delivery_target!(repo, "public", tenant_b_delivery, "tenant-a")
+        insert_delivery_target!(repo, "public", tenant_b_delivery, "tenant-a",
+          binding_revision_ref: "cw_target_contract_cross_tenant"
+        )
       end)
 
       assert_foreign_key_violation!("chimeway_delivery_target_attempts_tenant_target_fkey", fn ->
@@ -575,17 +577,18 @@ defmodule Chimeway.MigrationContractTest do
     end
   end
 
-  defp insert_delivery_target!(repo, schema, delivery_id, tenant_id) do
+  defp insert_delivery_target!(repo, schema, delivery_id, tenant_id, opts \\ []) do
     target_id = Ecto.UUID.generate()
+    binding_revision_ref = Keyword.get(opts, :binding_revision_ref, "cw_target_contract_001")
 
     Ecto.Adapters.SQL.query!(
       repo,
       """
       INSERT INTO #{quoted_relation(schema, "chimeway_delivery_targets")}
         (id, tenant_id, delivery_id, binding_revision_ref, status, inserted_at, updated_at)
-      VALUES ($1::text::uuid, $2, $3::text::uuid, 'cw_target_contract_001', 'pending', NOW(), NOW())
+      VALUES ($1::text::uuid, $2, $3::text::uuid, $4, 'pending', NOW(), NOW())
       """,
-      [target_id, tenant_id, delivery_id]
+      [target_id, tenant_id, delivery_id, binding_revision_ref]
     )
 
     target_id
