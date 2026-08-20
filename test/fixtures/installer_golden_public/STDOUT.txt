@@ -34,3 +34,4 @@ created priv/repo/migrations/TIMESTAMP_make_chimeway_delivery_tenant_nullable.ex
 created priv/repo/migrations/TIMESTAMP_privacy_safe_delivery_evidence.exs
 created priv/repo/migrations/TIMESTAMP_create_chimeway_delivery_targets.exs
 created priv/repo/migrations/TIMESTAMP_enforce_delivery_target_tenant_integrity.exs
+created priv/repo/migrations/TIMESTAMP_add_apns_request_intent.exs
