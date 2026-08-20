@@ -48,7 +48,7 @@ defmodule Chimeway.Install.GoldenDiffTest do
 
         stdout = InstallerFixture.normalize_stdout(stdout)
 
-        assert_map_size(tree, 36)
+        assert_map_size(tree, 37)
         assert_no_chimeway_repo_migrations!(tree)
         refute Enum.any?(Map.keys(tree), &String.contains?(&1, "create_oban_jobs_tables"))
         assert_chimeway_migration_markers!(tree)
@@ -56,6 +56,7 @@ defmodule Chimeway.Install.GoldenDiffTest do
         assert_migration_034_prefix_contract!(context.golden_mode, tree)
         assert_migration_035_target_contract!(context.golden_mode, tree)
         assert_migration_036_tenant_integrity_contract!(context.golden_mode, tree)
+        assert_migration_037_apns_intent_contract!(context.golden_mode, tree)
 
         if InstallerFixture.accept_golden_refresh?() do
           InstallerFixture.write_golden!(context.golden_mode, tree, stdout)
@@ -190,6 +191,24 @@ defmodule Chimeway.Install.GoldenDiffTest do
 
     refute migration =~ "__CHIMEWAY_PREFIX__"
     refute migration =~ "tenant-derived prefix"
+  end
+
+  defp assert_migration_037_apns_intent_contract!(mode, tree) do
+    migration =
+      Map.fetch!(tree, "priv/repo/migrations/TIMESTAMP_add_apns_request_intent.exs")
+
+    expected_prefix =
+      if mode == :prefixed, do: ~s(@chimeway_prefix "chimeway"), else: "@chimeway_prefix false"
+
+    assert length(Regex.scan(~r/^\s*#{Regex.escape(expected_prefix)}\s*$/m, migration)) == 1
+    assert migration =~ "alter chimeway_table(:chimeway_delivery_targets)"
+    assert migration =~ "add(:apns_request_intent, :map)"
+    assert migration =~ "remove(:apns_request_intent)"
+    refute migration =~ "__CHIMEWAY_PREFIX__"
+
+    for forbidden <- ["token", "credential", "payload", "response_body"] do
+      refute migration =~ forbidden
+    end
   end
 
   defp joined_tree(tree) do
