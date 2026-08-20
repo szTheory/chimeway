@@ -68,18 +68,6 @@ defmodule Chimeway.Traces do
           notifications_query = from(n in Notification, where: n.tenant_id == ^tenant_id)
           deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
 
-          targets_query =
-            from(t in DeliveryTarget,
-              where: t.tenant_id == ^tenant_id,
-              order_by: [asc: t.binding_revision_ref]
-            )
-
-          target_attempts_query =
-            from(a in DeliveryTargetAttempt,
-              where: a.tenant_id == ^tenant_id,
-              order_by: [asc: a.attempt_number, asc: a.id]
-            )
-
           loaded =
             Repo.preload(
               event,
@@ -87,9 +75,7 @@ defmodule Chimeway.Traces do
                 notifications:
                   {notifications_query,
                    [
-                     deliveries:
-                       {deliveries_query,
-                        [attempts: [], targets: {targets_query, attempts: target_attempts_query}]}
+                     deliveries: {deliveries_query, target_history_preload(tenant_id)}
                    ]}
               ],
               repo_opts
@@ -140,7 +126,10 @@ defmodule Chimeway.Traces do
       deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
 
       Repo.all(query, repo_opts)
-      |> Repo.preload([deliveries: {deliveries_query, :attempts}], repo_opts)
+      |> Repo.preload(
+        [deliveries: {deliveries_query, target_history_preload(tenant_id)}],
+        repo_opts
+      )
       |> Enum.map(&Map.put(&1, :notification_key, &1.event.notification_key))
       |> Enum.map(&SafeEvidence.trace_notification/1)
     else
@@ -176,7 +165,11 @@ defmodule Chimeway.Traces do
 
       Repo.preload(
         events,
-        [notifications: {notifications_query, [deliveries: {deliveries_query, :attempts}]}],
+        [
+          notifications:
+            {notifications_query,
+             [deliveries: {deliveries_query, target_history_preload(tenant_id)}]}
+        ],
         repo_opts
       )
       |> Enum.map(&SafeEvidence.trace_event/1)
@@ -213,42 +206,52 @@ defmodule Chimeway.Traces do
           repo_opts
         )
 
-      case delivery do
+      case delivery && Repo.preload(delivery, target_history_preload(tenant_id), repo_opts) do
         nil ->
           {:error, :not_found}
 
-        %Delivery{notification: notification, attempts: attempts} ->
+        %Delivery{notification: notification, attempts: attempts} = loaded_delivery ->
           event = notification.event
           last_attempt = last_attempt_summary(attempts)
-          resume_fields = explanation_resume_fields(delivery)
-          digest_context = digest_context(delivery, repo_opts)
+          resume_fields = explanation_resume_fields(loaded_delivery)
+          digest_context = digest_context(loaded_delivery, repo_opts)
 
           timeline =
-            build_timeline(event, notification, delivery, attempts, digest_context, repo_opts)
+            build_timeline(
+              event,
+              notification,
+              loaded_delivery,
+              attempts,
+              digest_context,
+              repo_opts
+            )
+
+          target_evidence = SafeEvidence.trace_delivery(loaded_delivery)
 
           explanation =
             %{
-              delivery_id: delivery.id,
+              delivery_id: loaded_delivery.id,
               event_id: event.id,
               correlation_id: event.correlation_id,
               notification_key: event.notification_key,
               recipient_id: notification.recipient_identity,
-              channel: delivery.channel,
-              render_key: delivery.render_key,
-              render_version: delivery.render_version,
-              status: delivery.status,
-              planning_reason: delivery.planning_reason,
-              planning_context: explanation_planning_context(delivery),
-              next_eligible_at: delivery.next_eligible_at,
+              channel: loaded_delivery.channel,
+              render_key: loaded_delivery.render_key,
+              render_version: loaded_delivery.render_version,
+              status: loaded_delivery.status,
+              planning_reason: loaded_delivery.planning_reason,
+              planning_context: explanation_planning_context(loaded_delivery),
+              next_eligible_at: loaded_delivery.next_eligible_at,
               resume_source: resume_fields.resume_source,
               resume_scheduled_at: resume_fields.resume_scheduled_at,
               resumed_at: resume_fields.resumed_at,
-              suppression_reason: delivery.suppression_reason,
+              suppression_reason: loaded_delivery.suppression_reason,
               digest: digest_context,
               last_attempt: last_attempt,
               timeline: timeline
             }
             |> SafeEvidence.trace()
+            |> Map.merge(Map.take(target_evidence, [:target_aggregate, :targets]))
             |> then(&struct(Explanation, &1))
 
           {:ok, explanation}
@@ -359,6 +362,22 @@ defmodule Chimeway.Traces do
   end
 
   # --- Private helpers ---
+
+  defp target_history_preload(tenant_id) do
+    targets_query =
+      from(t in DeliveryTarget,
+        where: t.tenant_id == ^tenant_id,
+        order_by: [asc: t.binding_revision_ref, asc: t.id]
+      )
+
+    target_attempts_query =
+      from(a in DeliveryTargetAttempt,
+        where: a.tenant_id == ^tenant_id,
+        order_by: [asc: a.attempt_number, asc: a.id]
+      )
+
+    [attempts: [], targets: {targets_query, attempts: target_attempts_query}]
+  end
 
   defp last_attempt_summary([]), do: nil
 

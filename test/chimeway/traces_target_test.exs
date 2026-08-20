@@ -8,9 +8,11 @@ defmodule Chimeway.TracesTargetTest do
   test "orders tenant-scoped target histories and excludes foreign attempt evidence" do
     event = insert_event("tenant-a", "trace-target-correlation")
     notification = insert_notification(event, "tenant-a")
+
     delivery =
       insert_delivery(notification, "tenant-a")
       |> put_target_aggregate()
+
     target_b = insert_target(delivery, "tenant-a", "cw_binding_revision_b")
     target_a = insert_target(delivery, "tenant-a", "cw_binding_revision_a")
 
@@ -28,7 +30,7 @@ defmodule Chimeway.TracesTargetTest do
     assert Enum.map(first.attempts, & &1.attempt_number) == [1, 2]
     assert [] = Enum.at(loaded_delivery.targets, 1).attempts
     assert {:error, :not_found} = Chimeway.Traces.get_trace(event.id, tenant_id: "tenant-b")
-    refute inspect(trace) =~ "raw-token-sentinel"
+    refute_sensitive_sentinels(trace)
   end
 
   test "projects closed target histories through recipient, correlation, and explanation traces" do
@@ -46,6 +48,14 @@ defmodule Chimeway.TracesTargetTest do
     insert_attempt(target_a, "tenant-a", 1)
     insert_attempt(target_b, "tenant-b", 1)
 
+    assert {:ok, full_trace} = Chimeway.Traces.get_trace(event.id, tenant_id: "tenant-a")
+
+    full_delivery =
+      full_trace.notifications
+      |> hd()
+      |> Map.fetch!(:deliveries)
+      |> hd()
+
     recipient_delivery =
       notification.recipient_identity
       |> Chimeway.Traces.find_traces_for_recipient(tenant_id: "tenant-a")
@@ -62,19 +72,23 @@ defmodule Chimeway.TracesTargetTest do
       |> Map.fetch!(:deliveries)
       |> hd()
 
-    assert {:ok, explanation} = Chimeway.Traces.explain_delivery(delivery.id, tenant_id: "tenant-a")
+    assert {:ok, explanation} =
+             Chimeway.Traces.explain_delivery(delivery.id, tenant_id: "tenant-a")
 
-    for projection <- [recipient_delivery, correlation_delivery, explanation] do
+    for {name, projection} <- [
+          recipient: recipient_delivery,
+          correlation: correlation_delivery,
+          explanation: explanation
+        ] do
       assert projection.target_aggregate.target_count == 2
 
-      assert Enum.map(projection.targets, & &1.binding_revision_ref) == [
-               "cw_binding_revision_a",
-               "cw_binding_revision_b"
-             ]
+      assert Enum.map(projection.targets, & &1.binding_revision_ref) ==
+               Enum.map(full_delivery.targets, & &1.binding_revision_ref),
+             "#{name} projection: #{inspect(projection)}"
 
       assert Enum.map(hd(projection.targets).attempts, & &1.attempt_number) == [1, 2]
       assert [] = Enum.at(projection.targets, 1).attempts
-      refute inspect(projection) =~ "raw-token-sentinel"
+      refute_sensitive_sentinels(projection)
     end
 
     assert [] =
@@ -140,8 +154,26 @@ defmodule Chimeway.TracesTargetTest do
       outcome: :attempt_started,
       started_at: DateTime.utc_now() |> DateTime.truncate(:microsecond),
       source: "test",
-      safe_facts: %{"raw_token" => "raw-token-sentinel"}
+      safe_facts: %{
+        "raw_token" => "raw-token-sentinel",
+        "endpoint" => "raw-endpoint-sentinel",
+        "credential" => "raw-credential-sentinel",
+        "provider_body" => "raw-provider-body-sentinel",
+        "uncontrolled" => "uncontrolled-attempt-fact-sentinel"
+      }
     })
+  end
+
+  defp refute_sensitive_sentinels(projection) do
+    for sentinel <- [
+          "raw-token-sentinel",
+          "raw-endpoint-sentinel",
+          "raw-credential-sentinel",
+          "raw-provider-body-sentinel",
+          "uncontrolled-attempt-fact-sentinel"
+        ] do
+      refute inspect(projection) =~ sentinel
+    end
   end
 
   defp put_target_aggregate(delivery) do

@@ -413,7 +413,7 @@ defmodule Chimeway.SafeEvidence do
         delivery
         |> Map.get(:targets, [])
         |> loaded_association()
-        |> Enum.sort_by(&Map.get(&1, :binding_revision_ref))
+        |> Enum.sort_by(&{Map.get(&1, :binding_revision_ref), Map.get(&1, :id)})
         |> Enum.map(&trace_target/1)
     }
   end
@@ -443,7 +443,7 @@ defmodule Chimeway.SafeEvidence do
         target
         |> Map.get(:attempts, [])
         |> loaded_association()
-        |> Enum.sort_by(&Map.get(&1, :attempt_number))
+        |> Enum.sort_by(&{Map.get(&1, :attempt_number), Map.get(&1, :id)})
         |> Enum.map(&trace_target_attempt/1)
     }
   end
