@@ -299,6 +299,59 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     assert %{status: :pending} = Repo.get!(Delivery, delivery.id)
   end
 
+  test "final target Oban retry exhausts durably and recovery cannot resend it" do
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-final-exhaustion")
+
+    target = insert_target(delivery, "cw_final_exhaustion")
+    target_id = target.id
+
+    Application.put_env(
+      :chimeway,
+      :target_worker_adapter_result,
+      {:error, :pre_handoff, "raw-token-sentinel"}
+    )
+
+    assert {:error, :pre_handoff_retryable} =
+             perform_job(ObanWorker,
+               %{delivery_target_id: target.id, tenant_id: delivery.tenant_id},
+               attempt: 1,
+               max_attempts: 2
+             )
+
+    assert_receive {:target_adapter_called, ^target_id}
+    assert :pending == Repo.get!(DeliveryTarget, target.id).status
+
+    assert :ok =
+             perform_job(ObanWorker,
+               %{delivery_target_id: target.id, tenant_id: delivery.tenant_id},
+               attempt: 2,
+               max_attempts: 2
+             )
+
+    assert_receive {:target_adapter_called, ^target_id}
+    assert %{status: :retry_exhausted} = Repo.get!(DeliveryTarget, target.id)
+
+    attempts = attempts_for(target)
+    assert Enum.map(attempts, & &1.outcome) == [:failed, :failed, :retry_exhausted]
+    assert Enum.at(attempts, 2).safe_facts == %{"provider_code" => "retries_exhausted"}
+
+    assert :ok =
+             perform_job(ObanWorker,
+               %{delivery_target_id: target.id, tenant_id: delivery.tenant_id},
+               attempt: 2,
+               max_attempts: 2
+             )
+
+    refute_receive {:target_adapter_called, ^target_id}, 50
+    assert attempts == attempts_for(target)
+
+    assert %{target_ids: [], counts: %{resumed_target: 0}} =
+             Chimeway.TargetRecovery.recover_tenant(delivery.tenant_id)
+
+    refute_receive {:target_adapter_called, ^target_id}, 50
+  end
+
   defp insert_target(delivery, binding_revision_ref) do
     Repo.insert!(%DeliveryTarget{
       tenant_id: delivery.tenant_id,
