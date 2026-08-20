@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
 current_phase_name: optional-apns-adapter
 status: executing
-stopped_at: Completed 100-05-PLAN.md
-last_updated: "2026-08-20T22:59:33.020Z"
+stopped_at: Completed 100-06-PLAN.md
+last_updated: "2026-08-20T23:42:33.491Z"
 last_activity: 2026-08-20
 last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 47
-  completed_plans: 45
+  completed_plans: 46
   percent: 43
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 100 (optional-apns-adapter) — EXECUTING
-Plan: 5 of 6
+Plan: 2 of 6
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 100 execution started
 
@@ -386,6 +386,7 @@ status: complete
 - [Phase ?]: [100-04]: Typed adapter outcomes are the only retry authority; ambiguous handoff is durable and terminal.
 - [Phase ?]: [100-04]: Provider invalidation requires complete 410/recognized-reason/timestamp facts and confirmed host exact CAS.
 - [Phase ?]: [100-05]: APNs optionality is proven by fresh packaged consumers; Pigeon 2.0.1 remains an explicit host-only dependency.
+- [Phase ?]: [100-06]: Pigeon raw 410 streams are converted only after queue correlation and a bounded complete response triple.
 
 ### Roadmap Evolution
 
@@ -706,8 +707,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T21:19:35.068Z
-Stopped at: Completed 100-05-PLAN.md
+Last session: 2026-08-20T23:42:33.480Z
+Stopped at: Completed 100-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -855,3 +856,4 @@ Resume file: None
 | Phase 100-optional-apns-adapter P03 | 18 min | 2 tasks | 9 files |
 | Phase 100-optional-apns-adapter P04 | 12 min | 2 tasks | 10 files |
 | Phase 100-optional-apns-adapter P05 | 18 min | 2 tasks | 9 files |
+| Phase 100-optional-apns-adapter P06 | 18 min | 2 tasks | 5 files |

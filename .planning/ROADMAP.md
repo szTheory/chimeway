@@ -284,7 +284,7 @@ Plans:
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
 | 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
 | 99. Multi-Installation Delivery & Recovery | 12/12 | Complete    | 2026-08-20 |
-| 100. Optional APNs Adapter | 5/5 | In Progress|  |
+| 100. Optional APNs Adapter | 5/6 | In Progress|  |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
 | 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |
 | 103. Physical iPhone & Adoption Truth | 0/TBD | Blocked by external Apple signing gate until Phase 162 evidence | - |
