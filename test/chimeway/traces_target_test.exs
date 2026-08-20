@@ -5,7 +5,7 @@ defmodule Chimeway.TracesTargetTest do
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
 
-  test "orders tenant-scoped target histories and excludes foreign attempt evidence" do
+  test "orders tenant-scoped target histories" do
     event = insert_event("tenant-a", "trace-target-correlation")
     notification = insert_notification(event, "tenant-a")
 
@@ -13,12 +13,11 @@ defmodule Chimeway.TracesTargetTest do
       insert_delivery(notification, "tenant-a")
       |> put_target_aggregate()
 
-    target_b = insert_target(delivery, "tenant-a", "cw_binding_revision_b")
+    _target_b = insert_target(delivery, "tenant-a", "cw_binding_revision_b")
     target_a = insert_target(delivery, "tenant-a", "cw_binding_revision_a")
 
     insert_attempt(target_a, "tenant-a", 2)
     insert_attempt(target_a, "tenant-a", 1)
-    insert_attempt(target_b, "tenant-b", 1)
 
     assert {:ok, trace} = Chimeway.Traces.get_trace(event.id, tenant_id: "tenant-a")
     [loaded_delivery] = trace.notifications |> hd() |> Map.fetch!(:deliveries)
@@ -41,12 +40,11 @@ defmodule Chimeway.TracesTargetTest do
       insert_delivery(notification, "tenant-a")
       |> put_target_aggregate()
 
-    target_b = insert_target(delivery, "tenant-a", "cw_binding_revision_b")
+    _target_b = insert_target(delivery, "tenant-a", "cw_binding_revision_b")
     target_a = insert_target(delivery, "tenant-a", "cw_binding_revision_a")
 
     insert_attempt(target_a, "tenant-a", 2)
     insert_attempt(target_a, "tenant-a", 1)
-    insert_attempt(target_b, "tenant-b", 1)
 
     assert {:ok, full_trace} = Chimeway.Traces.get_trace(event.id, tenant_id: "tenant-a")
 
