@@ -1,7 +1,9 @@
 defmodule Chimeway.DeliveryTargetTest do
   use Chimeway.DataCase, async: false
 
-  alias Chimeway.{DeliveryPlanning, DeliveryTargets, Repo}
+  import Ecto.Query
+
+  alias Chimeway.{DeliveryPlanning, DeliveryTarget, DeliveryTargetAttempt, DeliveryTargets, Repo}
   alias Chimeway.TargetResolver.BindingRevision
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -44,22 +46,41 @@ defmodule Chimeway.DeliveryTargetTest do
 
     @impl true
     def deliver(%Chimeway.TargetAdapter.TargetEnvelope{target: target}, _opts) do
-      attempt = Repo.one!(Chimeway.DeliveryTargetAttempt)
+      attempt =
+        Repo.one!(
+          from(a in Chimeway.DeliveryTargetAttempt,
+            where: a.delivery_target_id == ^target.id and a.outcome == :attempt_started
+          )
+        )
+
       assert attempt.delivery_target_id == target.id
       assert attempt.outcome == :attempt_started
-      {:ok, %{provider_code: "accepted"}}
+
+      send(Application.fetch_env!(:chimeway, :target_adapter_test_pid), {
+        :target_adapter_called,
+        target.id
+      })
+
+      Application.get_env(:chimeway, :target_adapter_results, %{})
+      |> Map.get(target.id, {:ok, %{provider_code: "accepted"}})
     end
   end
 
   setup do
     previous_resolver = Application.get_env(:chimeway, :target_resolver)
     previous_adapter = Application.get_env(:chimeway, :target_adapter)
+    previous_adapter_test_pid = Application.get_env(:chimeway, :target_adapter_test_pid)
+    previous_adapter_results = Application.get_env(:chimeway, :target_adapter_results)
     Application.put_env(:chimeway, :target_resolver, Resolver)
     Application.put_env(:chimeway, :target_adapter, Adapter)
+    Application.put_env(:chimeway, :target_adapter_test_pid, self())
+    Application.delete_env(:chimeway, :target_adapter_results)
 
     on_exit(fn ->
       restore(:target_resolver, previous_resolver)
       restore(:target_adapter, previous_adapter)
+      restore(:target_adapter_test_pid, previous_adapter_test_pid)
+      restore(:target_adapter_results, previous_adapter_results)
     end)
 
     :ok
@@ -131,6 +152,79 @@ defmodule Chimeway.DeliveryTargetTest do
     assert succeeded.status == :succeeded
     assert Repo.one!(Chimeway.DeliveryTarget).status == :provider_accepted
     assert Repo.one!(Chimeway.DeliveryTargetAttempt).outcome == :provider_accepted
+  end
+
+  test "synchronous push dispatch fans out in target order and repeated calls add no attempts" do
+    delivery = create_push_delivery()
+    [first, second] = plan_targets(delivery, ["cw_binding_revision_a", "cw_binding_revision_b"])
+    first_id = first.id
+    second_id = second.id
+
+    assert {:ok, succeeded} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+    assert succeeded.status == :succeeded
+    assert_receive {:target_adapter_called, ^first_id}
+    assert_receive {:target_adapter_called, ^second_id}
+
+    assert target_attempt_numbers(first) == [1]
+    assert target_attempt_numbers(second) == [1]
+
+    assert {:ok, repeated} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+    assert repeated.status == :succeeded
+    refute_receive {:target_adapter_called, _target_id}, 50
+
+    assert target_attempt_numbers(first) == [1]
+    assert target_attempt_numbers(second) == [1]
+  end
+
+  test "concurrent sync fan-out claims each target once" do
+    delivery = create_push_delivery()
+    [first, second] = plan_targets(delivery, ["cw_binding_revision_a", "cw_binding_revision_b"])
+
+    first_sync = Task.async(fn -> Chimeway.Dispatch.Sync.dispatch_delivery(delivery, []) end)
+    second_sync = Task.async(fn -> Chimeway.Dispatch.Sync.dispatch_delivery(delivery, []) end)
+
+    assert {:ok, %{status: :succeeded}} = Task.await(first_sync)
+    assert {:ok, %{status: :succeeded}} = Task.await(second_sync)
+
+    assert_receive {:target_adapter_called, target_id_one}
+    assert_receive {:target_adapter_called, target_id_two}
+    assert Enum.sort([target_id_one, target_id_two]) == Enum.sort([first.id, second.id])
+    refute_receive {:target_adapter_called, _target_id}, 50
+
+    assert target_attempt_numbers(first) == [1]
+    assert target_attempt_numbers(second) == [1]
+  end
+
+  test "a failed target does not strand later sync targets and retains aggregate evidence" do
+    delivery = create_push_delivery()
+    [failed, accepted] = plan_targets(delivery, ["cw_binding_revision_a", "cw_binding_revision_b"])
+    failed_id = failed.id
+    accepted_id = accepted.id
+
+    Application.put_env(:chimeway, :target_adapter_results, %{
+      failed_id => {:error, :possible_handoff, "unknown"}
+    })
+
+    assert {:ok, succeeded} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+    assert succeeded.status == :succeeded
+    assert_receive {:target_adapter_called, ^failed_id}
+    assert_receive {:target_adapter_called, ^accepted_id}
+
+    assert Repo.get!(DeliveryTarget, failed.id).status == :ambiguous_handoff
+    assert Repo.get!(DeliveryTarget, accepted.id).status == :provider_accepted
+    assert target_attempt_numbers(failed) == [1]
+    assert target_attempt_numbers(accepted) == [1]
+    assert succeeded.metadata["target_aggregate"]["partial_failure"]
+  end
+
+  test "empty sync target snapshot suppresses without adapter handoff" do
+    delivery = create_push_delivery()
+
+    assert {:ok, suppressed} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+    assert suppressed.status == :suppressed
+    assert suppressed.suppression_reason == "no_eligible_targets"
+    refute_receive {:target_adapter_called, _target_id}, 50
+    assert Repo.aggregate(DeliveryTargetAttempt, :count, :id) == 0
   end
 
   test "copied migration retains the target and ordered-attempt contract" do
@@ -269,6 +363,38 @@ defmodule Chimeway.DeliveryTargetTest do
         "push" => %{"render_key" => "delivery-target.push", "render_version" => 1}
       }
     })
+  end
+
+  defp create_push_delivery do
+    notification = insert_notification()
+
+    {:ok, delivery} =
+      Chimeway.Deliveries.plan_delivery(notification.id, :push,
+        tenant_id: "default",
+        actor_id: "actor"
+      )
+
+    delivery
+  end
+
+  defp plan_targets(delivery, refs) do
+    bindings =
+      Enum.map(refs, fn ref ->
+        %BindingRevision{tenant_id: delivery.tenant_id, binding_revision_ref: ref}
+      end)
+
+    assert {:ok, targets} = DeliveryTargets.plan_targets(delivery, delivery.tenant_id, bindings)
+    targets
+  end
+
+  defp target_attempt_numbers(target) do
+    Repo.all(
+      from(a in DeliveryTargetAttempt,
+        where: a.delivery_target_id == ^target.id,
+        order_by: [asc: a.attempt_number],
+        select: a.attempt_number
+      )
+    )
   end
 
   defp restore(key, nil), do: Application.delete_env(:chimeway, key)
