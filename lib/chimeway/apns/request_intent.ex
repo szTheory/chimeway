@@ -31,13 +31,14 @@ defmodule Chimeway.APNS.RequestIntent do
          true <- bounded?(open_ref, 1, 256),
          true <- safe_opaque?(topic) and safe_opaque?(open_ref),
          {:ok, collapse_id} <- collapse_id(collapse_id, opts, environment, topic),
-         true <- is_nil(collapse_id) or (bounded?(collapse_id, 1, 64) and safe_opaque?(collapse_id)) do
+         true <-
+           is_nil(collapse_id) or (bounded?(collapse_id, 1, 64) and safe_opaque?(collapse_id)) do
       {:ok,
        %__MODULE__{
          environment: environment,
          topic: topic,
          apns_id: String.downcase(apns_id),
-         expires_at: DateTime.truncate(expires_at, :second),
+         expires_at: expires_at,
          open_ref: open_ref,
          collapse_id: collapse_id
        }}
@@ -66,6 +67,7 @@ defmodule Chimeway.APNS.RequestIntent do
 
   @spec from_storage(map() | nil) :: {:ok, t()} | {:error, :invalid_apns_request_intent}
   def from_storage(nil), do: {:error, :invalid_apns_request_intent}
+
   def from_storage(storage) when is_map(storage) do
     with {:ok, environment} <- environment(Map.get(storage, "environment")),
          {:ok, expires_at} <- parse_datetime(Map.get(storage, "expires_at")) do
@@ -74,6 +76,7 @@ defmodule Chimeway.APNS.RequestIntent do
       _ -> {:error, :invalid_apns_request_intent}
     end
   end
+
   def from_storage(_), do: {:error, :invalid_apns_request_intent}
 
   defp collapse_id(nil, opts, environment, topic) do
@@ -84,30 +87,44 @@ defmodule Chimeway.APNS.RequestIntent do
              true <- bounded?(occurrence, 1, 256) and bounded?(binding, 4, 128),
              true <- safe_opaque?(occurrence) and safe_opaque?(binding) do
           {:ok,
-           :crypto.hash(:sha256, Enum.join([occurrence, binding, Atom.to_string(environment), topic], "\u0000"))
+           :crypto.hash(
+             :sha256,
+             length_delimited(["v1", occurrence, binding, Atom.to_string(environment), topic])
+           )
            |> Base.url_encode64(padding: false)}
         else
           _ -> {:error, :invalid_apns_request_intent}
         end
 
-      false -> {:ok, nil}
+      false ->
+        {:ok, nil}
     end
   end
+
   defp collapse_id(value, _opts, _environment, _topic) when is_binary(value), do: {:ok, value}
   defp collapse_id(_, _opts, _environment, _topic), do: {:error, :invalid_apns_request_intent}
 
   defp environment("sandbox"), do: {:ok, :sandbox}
   defp environment("production"), do: {:ok, :production}
   defp environment(_), do: :error
+
   defp parse_datetime(value) when is_binary(value) do
     case DateTime.from_iso8601(value) do
       {:ok, parsed, _offset} -> {:ok, parsed}
       _ -> :error
     end
   end
+
   defp parse_datetime(_), do: :error
   defp normalize_datetime(%DateTime{} = value), do: value
   defp normalize_datetime(_), do: nil
   defp bounded?(value, min, max), do: is_binary(value) and byte_size(value) in min..max
-  defp safe_opaque?(value), do: is_binary(value) and not String.contains?(String.downcase(value), ["token", "credential", "password", "secret"])
+
+  defp safe_opaque?(value),
+    do:
+      is_binary(value) and
+        not String.contains?(String.downcase(value), ["token", "credential", "password", "secret"])
+
+  defp length_delimited(parts),
+    do: Enum.map_join(parts, fn part -> <<byte_size(part)::unsigned-32>> <> part end)
 end
