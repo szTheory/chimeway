@@ -51,11 +51,19 @@ defmodule Chimeway.Adapters.APNS do
     case Map.fetch!(facts, :provider_reason) do
       reason when reason in ["idle_timeout", "too_many_provider_token_updates"] ->
         {:provider_retryable,
-         Map.merge(facts, %{provider_code: reason, retry_after_ms: 1_000})}
+         Map.merge(facts, %{
+           provider_code: reason,
+           retry_after_ms: 1_000,
+           corrective_action: "refresh_provider_token"
+         })}
 
       reason when reason in ["too_many_requests", "internal_server_error", "service_unavailable", "shutdown"] ->
         {:provider_retryable,
-         Map.merge(facts, %{provider_code: reason, retry_after_ms: 1_000})}
+         Map.merge(facts, %{
+           provider_code: reason,
+           retry_after_ms: 1_000,
+           corrective_action: "retry_later"
+         })}
 
       _ ->
         {:permanent, Map.put_new(facts, :provider_code, "provider_rejected")}

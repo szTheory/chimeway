@@ -10,6 +10,8 @@ defmodule Chimeway.SafeEvidence do
   @max_adapter_bytes 120
   @max_telemetry_bytes 160
   @max_retry_after_ms 86_400_000
+  @max_provider_timestamp 4_102_444_800_000
+  @corrective_actions ~w(retry_later refresh_provider_token retry_connection)
   @recipient_reference_uuid ~r/^user:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
   @error_classes ~w(temporary permanent bounced render_context_unavailable unknown_classification)
   @telemetry_keys %{
@@ -201,13 +203,21 @@ defmodule Chimeway.SafeEvidence do
   def provider_facts(value) when is_map(value) or is_list(value) do
     facts = Privacy.redact(value)
 
-    with {:ok, code} <- optional_provider_code(facts),
+    with {:ok, status} <- optional_provider_status(facts),
+         {:ok, reason} <- optional_provider_reason(facts),
+         {:ok, timestamp} <- optional_provider_timestamp(facts),
+         {:ok, code} <- optional_provider_code(facts),
          {:ok, retry_after_ms} <- optional_retry_after_ms(facts),
+         {:ok, corrective_action} <- optional_corrective_action(facts),
          {:ok, accepted_at} <- optional_accepted_at(facts) do
       {:ok,
        %{}
+       |> maybe_put("provider_status", status)
+       |> maybe_put("provider_reason", reason)
+       |> maybe_put("provider_timestamp", timestamp)
        |> maybe_put("provider_code", code)
        |> maybe_put("retry_after_ms", retry_after_ms)
+       |> maybe_put("corrective_action", corrective_action)
        |> maybe_put("accepted_at", accepted_at)}
     end
   end
@@ -520,6 +530,40 @@ defmodule Chimeway.SafeEvidence do
     end
   end
 
+  defp optional_provider_status(facts) do
+    case fetch(facts, "provider_status") do
+      :missing -> {:ok, nil}
+      {:ok, value} when is_integer(value) and value in 100..599 -> {:ok, value}
+      _ -> {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_provider_reason(facts) do
+    case fetch(facts, "provider_reason") do
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_binary(value) ->
+        if(code?(value), do: {:ok, value}, else: {:error, :unsafe_evidence})
+
+      _ ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_provider_timestamp(facts) do
+    case fetch(facts, "provider_timestamp") do
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_integer(value) and value >= 0 and value <= @max_provider_timestamp ->
+        {:ok, value}
+
+      _ ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
   defp optional_retry_after_ms(facts) do
     case fetch(facts, "retry_after_ms") do
       :missing ->
@@ -530,6 +574,14 @@ defmodule Chimeway.SafeEvidence do
 
       _ ->
         {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_corrective_action(facts) do
+    case fetch(facts, "corrective_action") do
+      :missing -> {:ok, nil}
+      {:ok, value} when value in @corrective_actions -> {:ok, value}
+      _ -> {:error, :unsafe_evidence}
     end
   end
 
@@ -617,8 +669,20 @@ defmodule Chimeway.SafeEvidence do
 
   defp fetch(value, "provider_code"), do: logical_lookup(value, "provider_code", :provider_code)
 
+  defp fetch(value, "provider_status"),
+    do: logical_lookup(value, "provider_status", :provider_status)
+
+  defp fetch(value, "provider_reason"),
+    do: logical_lookup(value, "provider_reason", :provider_reason)
+
+  defp fetch(value, "provider_timestamp"),
+    do: logical_lookup(value, "provider_timestamp", :provider_timestamp)
+
   defp fetch(value, "retry_after_ms"),
     do: logical_lookup(value, "retry_after_ms", :retry_after_ms)
+
+  defp fetch(value, "corrective_action"),
+    do: logical_lookup(value, "corrective_action", :corrective_action)
 
   defp fetch(value, "accepted_at"), do: logical_lookup(value, "accepted_at", :accepted_at)
 

@@ -387,6 +387,30 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     refute_receive {:target_adapter_called, ^target_id}, 50
   end
 
+  test "final typed provider retry exhausts without an additional resend" do
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-provider-final-exhaustion")
+
+    target = insert_target(delivery, "cw_provider_final_exhaustion")
+
+    Application.put_env(
+      :chimeway,
+      :target_worker_adapter_result,
+      {:provider_retryable, %{provider_code: "service_unavailable", retry_after_ms: 1_000}}
+    )
+
+    assert :ok =
+             perform_job(
+               ObanWorker,
+               %{delivery_target_id: target.id, tenant_id: delivery.tenant_id},
+               attempt: 2,
+               max_attempts: 2
+             )
+
+    assert %{status: :retry_exhausted} = Repo.get!(DeliveryTarget, target.id)
+    assert Enum.map(attempts_for(target), & &1.outcome) == [:failed, :retry_exhausted]
+  end
+
   defp insert_target(delivery, binding_revision_ref) do
     Repo.insert!(%DeliveryTarget{
       tenant_id: delivery.tenant_id,
