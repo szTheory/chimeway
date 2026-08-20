@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
-current_phase_name: Optional APNs Adapter
+current_phase_name: optional-apns-adapter
 status: executing
-stopped_at: Phase 100 context gathered (assumptions mode)
-last_updated: "2026-08-20T20:29:25.783Z"
+stopped_at: Completed 100-01-PLAN.md
+last_updated: "2026-08-20T20:43:53.345Z"
 last_activity: 2026-08-20
-last_activity_desc: Phase 99 complete, transitioned to Phase 100
+last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
   completed_phases: 3
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 99 — multi-installation-delivery-recovery
+**Current focus:** Phase 100 — optional-apns-adapter
 
 ## Current Position
 
-Phase: 100 — Optional APNs Adapter
-Plan: Not started
+Phase: 100 (optional-apns-adapter) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-20 — Phase 99 complete, transitioned to Phase 100
+Last activity: 2026-08-20 — Phase 100 execution started
 
 ## Deferred Items
 
@@ -379,6 +379,7 @@ status: complete
 - [Phase ?]: [99-11]: Stale closeout uses the canonical tenant-qualified parent -> target -> attempt lock hierarchy.
 - [Phase ?]: [99-12]: Ordinary retry authorizes only failed targets; expiry and invalidation authorize only pending targets under lock.
 - [Phase ?]: [99-12]: Composite PostgreSQL foreign keys enforce tenant ownership and same-target prior-attempt lineage in repository and generated storage modes.
+- [Phase ?]: [100-01]: APNs request intent is a nullable, immutable delivery-target variant; tokens and dispatcher references resolve only at the host-owned runtime boundary.
 
 ### Roadmap Evolution
 
@@ -699,9 +700,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T19:49:19.422Z
-Stopped at: Phase 100 context gathered (assumptions mode)
-Resume file: .planning/phases/100-optional-apns-adapter/100-CONTEXT.md
+Last session: 2026-08-20T20:43:53.334Z
+Stopped at: Completed 100-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -843,3 +844,4 @@ Resume file: .planning/phases/100-optional-apns-adapter/100-CONTEXT.md
 | Phase 99-multi-installation-delivery-recovery P10 | 4m | 2 tasks | 4 files |
 | Phase 99-multi-installation-delivery-recovery P11 | 18 min | 2 tasks | 4 files |
 | Phase 99-multi-installation-delivery-recovery P12 | 14min | 3 tasks | 12 files |
+| Phase 100-optional-apns-adapter P01 | 8 min | 1 tasks | 8 files |
