@@ -180,13 +180,35 @@ defmodule Chimeway.DeliveryTargets do
       when is_binary(target_id) and is_binary(tenant_id) do
     now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
+    close_stale_started_attempt_transaction(target_id, tenant_id, now)
+    |> normalize_stale_closeout_result()
+  rescue
+    error in Postgrex.Error ->
+      if retryable_transaction_error?(error),
+        do: {:error, :retryable_transaction},
+        else: {:error, :closed}
+  end
+
+  defp close_stale_started_attempt_transaction(target_id, tenant_id, now) do
     Repo.transaction(fn ->
+      parent =
+        Repo.one(
+          from(d in Delivery,
+            join: t in DeliveryTarget,
+            on: t.delivery_id == d.id,
+            where: t.id == ^target_id and t.tenant_id == ^tenant_id and d.tenant_id == ^tenant_id,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(parent), do: Repo.rollback(:not_found)
+
       target =
         Repo.one(
           from(t in DeliveryTarget,
             where:
-              t.id == ^target_id and t.tenant_id == ^tenant_id and t.status == :claimed and
-                t.lease_expires_at < ^now,
+              t.id == ^target_id and t.delivery_id == ^parent.id and t.tenant_id == ^tenant_id and
+                t.status == :claimed and t.lease_expires_at < ^now,
             lock: "FOR UPDATE"
           )
         )
@@ -221,20 +243,26 @@ defmodule Chimeway.DeliveryTargets do
         )
         |> Repo.update!()
 
-      {:ok, _delivery} =
-        recompute_delivery(target.delivery_id |> get_delivery_for_target!(tenant_id), tenant_id)
+      recompute_locked_delivery!(parent, tenant_id)
 
       %{target: updated_target, attempt: updated_attempt}
     end)
-    |> case do
-      {:ok, result} -> {:ok, result}
-      {:error, :not_found} -> {:noop, :not_found}
-    end
   end
 
-  defp get_delivery_for_target!(delivery_id, tenant_id) do
-    Repo.one!(from(d in Delivery, where: d.id == ^delivery_id and d.tenant_id == ^tenant_id))
-  end
+  defp normalize_stale_closeout_result({:ok, result}), do: {:ok, result}
+  defp normalize_stale_closeout_result({:error, :not_found}), do: {:noop, :not_found}
+  defp normalize_stale_closeout_result({:error, _reason}), do: {:error, :closed}
+
+  defp retryable_transaction_error?(%Postgrex.Error{postgres: %{code: code}})
+       when code in [
+              :deadlock_detected,
+              :serialization_failure,
+              :lock_not_available,
+              :lock_timeout
+            ],
+       do: true
+
+  defp retryable_transaction_error?(_), do: false
 
   @doc false
   @spec authorize_target_redrive(String.t(), String.t(), String.t()) ::
@@ -586,16 +614,7 @@ defmodule Chimeway.DeliveryTargets do
         )
 
       if is_nil(delivery), do: Repo.rollback(:not_found)
-      targets = authoritative_targets(delivery_id, tenant_id)
-      aggregate = aggregate(targets)
-
-      delivery
-      |> Ecto.Changeset.change(%{
-        metadata: Map.put(delivery.metadata || %{}, "target_aggregate", aggregate),
-        status: aggregate_status(delivery.status, aggregate),
-        suppression_reason: suppression_reason(delivery, aggregate)
-      })
-      |> Repo.update!()
+      recompute_locked_delivery!(delivery, tenant_id)
     end)
     |> case do
       {:ok, updated} -> {:ok, updated}
@@ -604,6 +623,19 @@ defmodule Chimeway.DeliveryTargets do
   end
 
   def recompute_delivery(_, _), do: {:error, :tenant_mismatch}
+
+  defp recompute_locked_delivery!(%Delivery{id: delivery_id} = delivery, tenant_id) do
+    targets = authoritative_targets(delivery_id, tenant_id)
+    aggregate = aggregate(targets)
+
+    delivery
+    |> Ecto.Changeset.change(%{
+      metadata: Map.put(delivery.metadata || %{}, "target_aggregate", aggregate),
+      status: aggregate_status(delivery.status, aggregate),
+      suppression_reason: suppression_reason(delivery, aggregate)
+    })
+    |> Repo.update!()
+  end
 
   defp transition_target(%Delivery{tenant_id: tenant_id} = delivery, target_id, status, opts) do
     if Keyword.get(opts, :tenant_id, tenant_id) != tenant_id do
