@@ -4,12 +4,19 @@ defmodule Chimeway.TargetAdapter do
   @typedoc """
   The result of handing a durable target to a provider adapter.
 
-  Only `:pre_handoff` proves the adapter did not cross the provider-request
-  boundary. Every other error shape is treated as a possible provider handoff.
-  Adapter reasons are intentionally not persisted.
+  The tagged variants form the durable target lifecycle vocabulary. Only
+  `:pre_handoff_retryable` proves the adapter did not cross the provider-request
+  boundary. Adapter reasons are intentionally not persisted.
   """
   @type deliver_result ::
           {:ok, map()}
+          | {:provider_accepted, map()}
+          | {:provider_retryable, map()}
+          | {:permanent, map()}
+          | {:invalidated, map()}
+          | {:expired, map()}
+          | {:pre_handoff_retryable, map()}
+          | {:possible_handoff, map()}
           | {:error, :pre_handoff, term()}
           | {:error, :possible_handoff, term()}
           | {:error, term()}

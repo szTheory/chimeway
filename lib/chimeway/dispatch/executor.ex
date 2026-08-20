@@ -77,18 +77,20 @@ defmodule Chimeway.Dispatch.Executor do
 
   defp finish_target_attempt(delivery, target, attempt) do
     case target_adapter_result(delivery, target) do
-      {:ok, facts} ->
-        case DeliveryTargets.record_target_result(delivery, target, attempt, facts) do
-          {:ok, result} -> {:ok, result}
+      {outcome, facts} ->
+        case DeliveryTargets.record_target_outcome(delivery, target, attempt, outcome, facts) do
+          {:ok, _result} when outcome in [:provider_retryable, :pre_handoff_retryable] ->
+            {:error, outcome}
+
+          {:ok, _result} when outcome == :ambiguous_handoff ->
+            {:error, :ambiguous_handoff}
+
+          {:ok, result} ->
+            {:ok, result}
+
           {:noop, reason} -> {:noop, reason}
           {:error, reason} -> {:error, reason}
         end
-
-      :pre_handoff_retryable ->
-        close_target_failure(delivery, target, attempt, :pre_handoff_retryable)
-
-      :ambiguous_handoff ->
-        close_target_failure(delivery, target, attempt, :ambiguous_handoff)
     end
   end
 
@@ -98,21 +100,21 @@ defmodule Chimeway.Dispatch.Executor do
              %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},
              []
            ) do
-        {:ok, facts} when is_map(facts) -> {:ok, facts}
-        {:error, :pre_handoff, _reason} -> :pre_handoff_retryable
-        _other -> :ambiguous_handoff
+        {:ok, facts} when is_map(facts) -> {:provider_accepted, facts}
+        {:provider_accepted, facts} when is_map(facts) -> {:provider_accepted, facts}
+        {:provider_retryable, facts} when is_map(facts) -> {:provider_retryable, facts}
+        {:permanent, facts} when is_map(facts) -> {:permanent, facts}
+        {:invalidated, facts} when is_map(facts) -> {:invalidated, facts}
+        {:expired, facts} when is_map(facts) -> {:expired, facts}
+        {:pre_handoff_retryable, facts} when is_map(facts) -> {:pre_handoff_retryable, facts}
+        {:possible_handoff, facts} when is_map(facts) -> {:ambiguous_handoff, facts}
+        {:error, :pre_handoff, _reason} -> {:pre_handoff_retryable, %{provider_code: "adapter_pre_handoff_failure"}}
+        _other -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
       end
     rescue
-      _exception -> :ambiguous_handoff
+      _exception -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
     catch
-      _kind, _reason -> :ambiguous_handoff
-    end
-  end
-
-  defp close_target_failure(delivery, target, attempt, classification) do
-    case DeliveryTargets.record_target_failure(delivery, target, attempt, classification) do
-      {:ok, _result} -> {:error, classification}
-      {:error, reason} -> {:error, reason}
+      _kind, _reason -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
     end
   end
 

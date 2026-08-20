@@ -174,6 +174,38 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
     assert retry_attempt.attempt_number == 2
   end
 
+  test "typed provider retryability closes the exact attempt pending with only retry evidence" do
+    %{delivery: delivery} =
+      create_pending_delivery(channel: :push, tenant_id: "target-worker-provider-retryable")
+
+    target = insert_target(delivery, "cw_binding_revision_provider_retryable_001")
+
+    Application.put_env(
+      :chimeway,
+      :target_worker_adapter_result,
+      {:provider_retryable,
+       %{
+         provider_code: "too_many_requests",
+         retry_after_ms: 1_000,
+         raw_token: "must-not-persist"
+       }}
+    )
+
+    assert {:error, :provider_retryable} =
+             Executor.run_target(delivery, target_id: target.id, source: "test")
+
+    assert %{status: :pending, claimed_at: nil, lease_expires_at: nil} =
+             Repo.get!(DeliveryTarget, target.id)
+
+    [attempt] = attempts_for(target)
+    assert attempt.outcome == :failed
+    assert attempt.safe_facts == %{
+             "provider_code" => "too_many_requests",
+             "retry_after_ms" => 1_000
+           }
+    refute inspect(attempt) =~ "must-not-persist"
+  end
+
   test "possible and unknown callback outcomes close as ambiguity and cannot automatically resend" do
     for {suffix, callback_result} <- [
           {"possible", {:error, :possible_handoff, "raw-token-sentinel"}},

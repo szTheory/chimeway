@@ -427,6 +427,116 @@ defmodule Chimeway.DeliveryTargets do
   end
 
   @doc false
+  @spec record_target_outcome(
+          Delivery.t(),
+          DeliveryTarget.t(),
+          DeliveryTargetAttempt.t(),
+          :provider_accepted
+          | :provider_retryable
+          | :permanent
+          | :invalidated
+          | :expired
+          | :pre_handoff_retryable
+          | :ambiguous_handoff,
+          term()
+        ) ::
+          {:ok, %{delivery: Delivery.t(), target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
+          | {:noop, :not_found}
+          | {:error, term()}
+  def record_target_outcome(
+        %Delivery{} = delivery,
+        %DeliveryTarget{} = target,
+        %DeliveryTargetAttempt{} = attempt,
+        outcome,
+        facts
+      )
+      when outcome in [
+             :provider_accepted,
+             :provider_retryable,
+             :permanent,
+             :invalidated,
+             :expired,
+             :pre_handoff_retryable,
+             :ambiguous_handoff
+           ] do
+    with {:ok, safe_facts} <- SafeEvidence.target_attempt_facts(facts) do
+      now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+      Repo.transaction(fn ->
+        parent =
+          Repo.one(
+            from(d in Delivery,
+              where: d.id == ^delivery.id and d.tenant_id == ^delivery.tenant_id,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(parent), do: Repo.rollback(:not_found)
+
+        current_target =
+          Repo.one(
+            from(t in DeliveryTarget,
+              where:
+                t.id == ^target.id and t.delivery_id == ^parent.id and
+                  t.tenant_id == ^delivery.tenant_id and t.status == :claimed,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(current_target), do: Repo.rollback(:not_found)
+
+        current_attempt =
+          Repo.one(
+            from(a in DeliveryTargetAttempt,
+              where:
+                a.id == ^attempt.id and a.delivery_target_id == ^current_target.id and
+                  a.tenant_id == ^delivery.tenant_id and a.outcome == :attempt_started,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(current_attempt), do: Repo.rollback(:not_found)
+
+        {target_status, attempt_outcome} = outcome_attributes(outcome)
+
+        updated_target =
+          current_target
+          |> Ecto.Changeset.change(
+            status: target_status,
+            claimed_at: nil,
+            lease_expires_at: nil
+          )
+          |> Repo.update!()
+
+        updated_attempt =
+          current_attempt
+          |> Ecto.Changeset.change(
+            outcome: attempt_outcome,
+            finished_at: now,
+            safe_facts: safe_facts
+          )
+          |> Repo.update!()
+
+        {:ok, updated_delivery} = recompute_delivery(parent, parent.tenant_id)
+        %{delivery: updated_delivery, target: updated_target, attempt: updated_attempt}
+      end)
+      |> case do
+        {:ok, result} -> {:ok, result}
+        {:error, :not_found} -> {:noop, :not_found}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  defp outcome_attributes(:provider_accepted), do: {:provider_accepted, :provider_accepted}
+  defp outcome_attributes(:provider_retryable), do: {:pending, :failed}
+  defp outcome_attributes(:pre_handoff_retryable), do: {:pending, :failed}
+  defp outcome_attributes(:permanent), do: {:failed, :failed}
+  defp outcome_attributes(:invalidated), do: {:invalidated, :invalidated}
+  defp outcome_attributes(:expired), do: {:expired, :expired}
+  defp outcome_attributes(:ambiguous_handoff), do: {:ambiguous_handoff, :ambiguous_handoff}
+
+  @doc false
   @spec record_target_failure(
           Delivery.t(),
           DeliveryTarget.t(),

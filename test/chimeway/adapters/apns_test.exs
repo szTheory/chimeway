@@ -49,7 +49,8 @@ defmodule Chimeway.Adapters.APNSTest do
   end
 
   test "adapter resolves exact transient material and sends one closed request" do
-    assert {:ok, %{provider_code: "accepted"}} = APNS.deliver(envelope(), [])
+    assert {:provider_accepted, %{provider_code: "accepted", accepted_at: %DateTime{}}} =
+             APNS.deliver(envelope(), [])
 
     assert_receive {:apns_push, "dispatcher-sandbox", request}
     assert request.device_token == "[REDACTED]"
@@ -81,7 +82,8 @@ defmodule Chimeway.Adapters.APNSTest do
        }}
     end)
 
-    assert {:error, :pre_handoff, :binding_not_found} = APNS.deliver(envelope(), [])
+    assert {:pre_handoff_retryable, %{provider_code: "binding_not_found"}} =
+             APNS.deliver(envelope(), [])
     refute_receive {:apns_push, _, _}
 
     Application.put_env(:chimeway, :apns_lookup_reply, fn request ->
