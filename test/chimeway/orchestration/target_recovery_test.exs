@@ -18,7 +18,7 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
   import Ecto.Query
   import Chimeway.Test.DispatchHelpers
 
-  alias Chimeway.{Delivery, DeliveryTarget, DeliveryTargetAttempt, Repo, TargetRecovery}
+  alias Chimeway.{Delivery, DeliveryTarget, DeliveryTargetAttempt, DeliveryTargets, Repo, TargetRecovery}
   alias Chimeway.Dispatch.RecoveryWorker
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -97,11 +97,14 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
       safe_facts: %{}
     })
 
-    assert %{target_ids: [], counts: %{left_ambiguous: 1}, reasons: [:left_ambiguous]} =
-             TargetRecovery.recover_tenant("recovery-stale")
+    assert {:ok, %{target: closed_target, attempt: closed_attempt}} =
+             DeliveryTargets.close_stale_started_attempt(target.id, delivery.tenant_id)
 
-    assert :ambiguous_handoff ==
-             Repo.one!(from(t in DeliveryTarget, where: t.id == ^target.id)).status
+    assert closed_target.status == :ambiguous_handoff
+    assert closed_attempt.outcome == :ambiguous_handoff
+    assert closed_attempt.safe_facts == %{"provider_code" => "possible_provider_handoff"}
+    assert Repo.get!(Delivery, delivery.id).status == :failed
+    assert {:noop, :not_found} = DeliveryTargets.close_stale_started_attempt(target.id, delivery.tenant_id)
   end
 
   test "concurrent recovery workers converge on one target claim and adapter handoff" do
