@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 99
 current_phase_name: multi-installation-delivery-recovery
 status: executing
-stopped_at: Completed 99-11-PLAN.md
-last_updated: "2026-08-20T14:27:06.703Z"
+stopped_at: Completed 99-12-PLAN.md
+last_updated: "2026-08-20T15:40:41.506Z"
 last_activity: 2026-08-20
 last_activity_desc: Phase 99 execution started
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 40
-  completed_plans: 40
+  total_plans: 41
+  completed_plans: 41
   percent: 43
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 99 (multi-installation-delivery-recovery) — EXECUTING
-Plan: 2 of 11
+Plan: 2 of 12
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 99 execution started
 
@@ -377,6 +377,8 @@ status: complete
 - [Phase ?]: [99-10]: Final pre-handoff target retries write retry_exhausted evidence before Oban completes, excluding ordinary recovery.
 - [Phase ?]: [99-11]: Empty push snapshots return the recomputed authoritative parent, never the stale caller struct.
 - [Phase ?]: [99-11]: Stale closeout uses the canonical tenant-qualified parent -> target -> attempt lock hierarchy.
+- [Phase ?]: [99-12]: Ordinary retry authorizes only failed targets; expiry and invalidation authorize only pending targets under lock.
+- [Phase ?]: [99-12]: Composite PostgreSQL foreign keys enforce tenant ownership and same-target prior-attempt lineage in repository and generated storage modes.
 
 ### Roadmap Evolution
 
@@ -697,8 +699,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T14:27:06.688Z
-Stopped at: Completed 99-11-PLAN.md
+Last session: 2026-08-20T15:40:41.489Z
+Stopped at: Completed 99-12-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -840,3 +842,4 @@ Resume file: None
 | Phase 99 P09 | 3m | 1 tasks | 2 files |
 | Phase 99-multi-installation-delivery-recovery P10 | 4m | 2 tasks | 4 files |
 | Phase 99-multi-installation-delivery-recovery P11 | 18 min | 2 tasks | 4 files |
+| Phase 99-multi-installation-delivery-recovery P12 | 14min | 3 tasks | 12 files |
