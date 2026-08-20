@@ -76,7 +76,7 @@
 
 [VERIFIED: codebase grep] Phase 99 already supplies a tenant-qualified target claim and append-only attempt spine, but its adapter contract currently collapses all successful maps into `provider_accepted` and all non-pre-handoff failures into ambiguity. Phase 100 therefore needs a richer, data-first target result union plus durable safe intent, not a separate push lifecycle.
 
-[CITED: https://pigeon.hexdocs.pm/Pigeon.APNS.Notification.html] Pigeon 2.0.1 exposes the fields needed to construct an APNs request (`id`, `topic`, `expiration`, `collapse_id`, `payload`, and `push_type`), while its public response vocabulary is too coarse for the locked invalidation policy. [VERIFIED: https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns/shared.ex] Its shared transport converts non-200 responses to a parsed reason only, losing the HTTP status and APNs body timestamp; a tightly pinned reason-aware transport seam is required.
+[CITED: https://pigeon.hexdocs.pm/Pigeon.APNS.Notification.html] Pigeon 2.0.1 exposes the fields needed to construct an APNs request (`id`, `topic`, `expiration`, `collapse_id`, `payload`, and `push_type`), while its public response vocabulary is too coarse for the locked invalidation policy. [VERIFIED: https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns/shared.ex#L42-L56] Its shared transport receives the raw `%Pigeon.Http2.Stream{status, headers, body}` but converts non-200 responses to a parsed reason only. [VERIFIED: https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns.ex#L219-L263] The APNS adapter owns a public `Pigeon.Adapter` callback boundary and retains the notification queue keyed by stream id until `handle_info/2`, so a pinned adapter wrapper can intercept the raw end-stream, correlate the queued notification, and return a closed status/reason/timestamp result without modifying Pigeon.
 
 [CITED: https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns] Build and size-check the complete JSON payload before provider I/O, then send only a closed APS allowlist plus the opaque one-time open reference. [CITED: https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns] Classify known APNs responses conservatively, and reserve invalidation exclusively for recognized 410 `ExpiredToken`/`Unregistered` results.
 
@@ -257,7 +257,7 @@ end
 
 **What goes wrong:** The Pigeon shared transport maps non-200 bodies to a reason atom and discards HTTP status/body timestamp. [VERIFIED: https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns/shared.ex]
 
-**How to avoid:** Pin Pigeon 2.0.1 and contract-test a narrow seam that captures only status, recognized reason, and allowed retry delay before SafeEvidence projection; no raw body may cross the seam. [VERIFIED: CONTEXT.md D-14]
+**How to avoid:** Pin Pigeon 2.0.1 and use `Chimeway.APNS.Transport.PigeonAdapter` as the host-supervised dispatcher's adapter. It dynamically delegates connection/request callbacks to `Pigeon.APNS`, intercepts the raw end-stream before Pigeon's normalizer, correlates `stream.id` against the pinned APNS queue, decodes only bounded `reason` and 410 `timestamp`, and invokes the original response callback with Chimeway's closed provider result. All other messages delegate unchanged. No raw body crosses the seam. [VERIFIED: https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns.ex#L164-L263; https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns/shared.ex#L42-L56]
 
 ### Pitfall 3: Retrying a local timeout as if I/O never happened
 
@@ -325,17 +325,11 @@ end
 | A1 | A deterministic OTP cryptographic derivation is the chosen implementation for collapse identity. | Standard Stack | Choose an alternative opaque deterministic derivation while preserving D-08 constraints. |
 | A2 | JSON `byte_size` is measured with Jason after full map encoding. | Common Pitfalls | Must be verified by direct Apple API documentation or a contract test against the selected encoder. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **How will the pinned reason-aware seam retain HTTP status and 410 timestamp without forking Pigeon?**
-   - What we know: [VERIFIED: Pigeon v2.0.1 source] `Pigeon.APNS.Shared.handle_end_stream/3` keeps stream status locally but passes only parsed reason onward.
-   - What's unclear: The smallest supported interception point in the host-selected dispatcher.
-   - Recommendation: Spike a test-only Pigeon dispatcher/configurable wrapper; choose the narrowest contract-tested seam and fail closed if status/reason cannot be obtained.
+1. **Reason/status/410-timestamp seam — resolved:** `Chimeway.APNS.Transport.PigeonAdapter` is a Pigeon-neutral module loaded dynamically by the opted-in host as the adapter for its host-supervised `Pigeon.Dispatcher`. It delegates init, push, connection, ping, and non-response messages to Pigeon 2.0.1's APNS adapter, but intercepts the raw end-stream in `handle_info/2` before `Pigeon.APNS.Shared.handle_end_stream/3`. The wrapper correlates `stream.id` with the APNS state's queued notification, accepts an integer HTTP status, decodes a bounded JSON body containing only a recognized string `reason` and an integer `timestamp` when status is 410, discards the body, and invokes the queued notification's response callback with Chimeway's closed result struct. A missing queue entry, malformed/oversized body, unknown reason, or incomplete 410 triple fails closed and cannot invalidate. This uses Pigeon's documented custom-adapter dispatcher boundary and pinned callback/state contracts; it does not patch or fork Pigeon. [VERIFIED: https://hexdocs.pm/pigeon/Pigeon.Adapter.html; https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns.ex#L164-L263; https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/notification_queue.ex#L1-L43; https://github.com/codedge-llc/pigeon/blob/v2.0.1/lib/pigeon/apns/shared.ex#L42-L56] Apple defines `timestamp` only for status 410 and describes it as milliseconds since Epoch, so invalidation requires the exact `(410, ExpiredToken|Unregistered, non-negative timestamp)` triple. [CITED: https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns]
 
-2. **Which closed APS keys are required by Phase 100?**
-   - What we know: [VERIFIED: CONTEXT.md D-07] Title/body rendering plus opaque open ref are mandatory; general custom merging is forbidden.
-   - What's unclear: Whether badge, sound, category, or interruption level belongs in the alpha contract.
-   - Recommendation: Start with `aps.alert` and one named opaque open-ref key; add only a separately validated key with an explicit adopter need.
+2. **Closed APS allowlist — resolved:** Phase 100 emits exactly `%{"aps" => %{"alert" => %{"title" => title, "body" => body}}, "chimeway_open_ref" => open_ref}`. `badge`, `sound`, `category`, `content-available`, `mutable-content`, `interruption-level`, thread/target-content identifiers, and arbitrary custom keys are rejected. Apple documents `alert` as sufficient for a visible notification while badge, sound, category, and other presentation behaviors are independently optional; no Phase 100 adopter decision authorizes those policies. [CITED: https://developer.apple.com/library/archive/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/PayloadKeyReference.html; VERIFIED: CONTEXT.md D-07]
 
 ## Environment Availability
 
