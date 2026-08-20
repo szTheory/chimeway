@@ -19,10 +19,10 @@
 
 ### Mobile Target Model
 
-- [x] **PUSH-01**: A host can implement a public target-resolution behaviour that returns every active eligible installation as an opaque, tenant-scoped binding revision without exposing raw tokens.
-- [x] **PUSH-02**: One logical push delivery durably records one target child per selected installation, and each target has independent claim, attempt, retry, invalidation, expiry, and trace history.
-- [x] **PUSH-03**: Duplicate planning, job execution, or recovery cannot create a duplicate target or an unexplained additional provider request.
-- [x] **PUSH-04**: A logical push with no eligible targets is suppressed with a stable explainable reason; after all targets terminate, it succeeds when at least one was APNs-accepted and exposes partial failures without claiming all-device delivery.
+- [ ] **PUSH-01**: A host can implement a public target-resolution behaviour that returns every active eligible installation as an opaque, tenant-scoped binding revision without exposing raw tokens.
+- [ ] **PUSH-02**: One logical push delivery durably records one target child per selected installation, and each target has independent claim, attempt, retry, invalidation, expiry, and trace history.
+- [ ] **PUSH-03**: Duplicate planning, job execution, or recovery cannot create a duplicate target or an unexplained additional provider request.
+- [ ] **PUSH-04**: A logical push with no eligible targets is suppressed with a stable explainable reason; after all targets terminate, it succeeds when at least one was APNs-accepted and exposes partial failures without claiming all-device delivery.
 
 ### APNs Dispatch
 
@@ -35,8 +35,8 @@
 
 ### Recovery
 
-- [x] **RECOV-01**: A tenant-scoped recovery worker can claim and replan events stranded after trigger commit, with bounded concurrency and explainable recovery evidence.
-- [x] **RECOV-02**: Chimeway persists target claim and attempt-start evidence before provider I/O and represents a crash after possible APNs acceptance as an explicit ambiguous handoff rather than silently promising exactly-once delivery or blindly resending.
+- [ ] **RECOV-01**: A tenant-scoped recovery worker can claim and replan events stranded after trigger commit, with bounded concurrency and explainable recovery evidence.
+- [ ] **RECOV-02**: Chimeway persists target claim and attempt-start evidence before provider I/O and represents a crash after possible APNs acceptance as an explicit ambiguous handoff rather than silently promising exactly-once delivery or blindly resending.
 
 ### CrossWake Registration and Opens
 
@@ -83,12 +83,12 @@
 | TENANT-03 | Phase 97 | Complete |
 | PRIV-03 | Phase 98 | Gaps Found |
 | PRIV-04 | Phase 98 | Gaps Found |
-| PUSH-01 | Phase 99 | Complete |
-| PUSH-02 | Phase 99 | Complete |
-| PUSH-03 | Phase 99 | Complete |
-| PUSH-04 | Phase 99 | Complete |
-| RECOV-01 | Phase 99 | Complete |
-| RECOV-02 | Phase 99 | Complete |
+| PUSH-01 | Phase 99 | Gaps Found |
+| PUSH-02 | Phase 99 | Gaps Found |
+| PUSH-03 | Phase 99 | Gaps Found |
+| PUSH-04 | Phase 99 | Gaps Found |
+| RECOV-01 | Phase 99 | Gaps Found |
+| RECOV-02 | Phase 99 | Gaps Found |
 | APNS-01 | Phase 100 | Pending |
 | APNS-02 | Phase 100 | Pending |
 | APNS-03 | Phase 100 | Pending |
