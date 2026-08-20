@@ -10,6 +10,8 @@ defmodule Chimeway.MigrationContractTest do
   @delivery_tenant_nullable_migration_version 20_260_812_000_001
   @generated_delivery_tenant_nullable_migration_version 20_260_101_000_033
   @privacy_safe_delivery_evidence_migration_version 20_260_813_000_000
+  @delivery_targets_migration_version 20_260_819_000_001
+  @delivery_target_tenant_integrity_migration_version 20_260_820_000_000
   @generated_privacy_safe_delivery_evidence_migration_version 20_260_101_000_034
   @generated_delivery_targets_migration_version 20_260_101_000_035
   @tenant_identity_rollback_error "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
@@ -167,6 +169,54 @@ defmodule Chimeway.MigrationContractTest do
         @delivery_tenant_nullable_migration_version,
         @privacy_safe_delivery_evidence_migration_version
       )
+    end)
+  end
+
+  @tag migration_copy: :repository
+  test "repository migration 036 enforces tenant-owned targets and same-target predecessors" do
+    migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
+
+    with_isolated_database("delivery_target_tenant_integrity", fn repo ->
+      migrated =
+        run_migrations(repo, migrations_path, :up, to: @delivery_targets_migration_version)
+
+      assert @delivery_targets_migration_version in migrated
+
+      [tenant_a_delivery, tenant_b_delivery] = insert_target_contract_deliveries!(repo, "public")
+      tenant_a_target = insert_delivery_target!(repo, "public", tenant_a_delivery, "tenant-a")
+      tenant_b_target = insert_delivery_target!(repo, "public", tenant_b_delivery, "tenant-b")
+      tenant_a_attempt = insert_target_attempt!(repo, "public", tenant_a_target, "tenant-a", 1)
+
+      assert [@delivery_target_tenant_integrity_migration_version] =
+               run_migrations(repo, migrations_path, :up, step: 1)
+
+      assert_foreign_key_violation!("chimeway_delivery_targets_tenant_delivery_fkey", fn ->
+        insert_delivery_target!(repo, "public", tenant_b_delivery, "tenant-a")
+      end)
+
+      assert_foreign_key_violation!("chimeway_delivery_target_attempts_tenant_target_fkey", fn ->
+        insert_target_attempt!(repo, "public", tenant_b_target, "tenant-a", 1)
+      end)
+
+      assert_foreign_key_violation!(
+        "chimeway_delivery_target_attempts_prior_same_target_fkey",
+        fn ->
+          insert_target_attempt!(repo, "public", tenant_a_target, "tenant-a", 2,
+            prior_attempt_id:
+              insert_target_attempt!(repo, "public", tenant_b_target, "tenant-b", 1)
+          )
+        end
+      )
+
+      assert insert_target_attempt!(repo, "public", tenant_a_target, "tenant-a", 2,
+               prior_attempt_id: tenant_a_attempt
+             )
+
+      assert [@delivery_target_tenant_integrity_migration_version] =
+               run_migrations(repo, migrations_path, :down, step: 1)
+
+      assert regclass(repo, "public", "chimeway_delivery_targets")
+      assert regclass(repo, "public", "chimeway_delivery_target_attempts")
     end)
   end
 
@@ -541,20 +591,31 @@ defmodule Chimeway.MigrationContractTest do
     target_id
   end
 
-  defp insert_target_attempt!(repo, schema, target_id, attempt_number) do
+  defp insert_target_attempt!(repo, schema, target_id, attempt_number),
+    do: insert_target_attempt!(repo, schema, target_id, "tenant-a", attempt_number)
+
+  defp insert_target_attempt!(repo, schema, target_id, tenant_id, attempt_number, opts \\ []) do
+    attempt_id = Ecto.UUID.generate()
+
     Ecto.Adapters.SQL.query!(
       repo,
       """
       INSERT INTO #{quoted_relation(schema, "chimeway_delivery_target_attempts")}
-        (id, tenant_id, delivery_target_id, attempt_number, outcome, started_at, source, safe_facts)
-      VALUES ($1::text::uuid, 'tenant-a', $2::text::uuid, $3, 'attempt_started', NOW(), 'contract', '{}'::jsonb)
+        (id, tenant_id, delivery_target_id, attempt_number, outcome, started_at, source, safe_facts, prior_attempt_id)
+      VALUES ($1::text::uuid, $2, $3::text::uuid, $4, 'attempt_started', NOW(), 'contract', '{}'::jsonb, $5::text::uuid)
       """,
-      [Ecto.UUID.generate(), target_id, attempt_number]
+      [attempt_id, tenant_id, target_id, attempt_number, Keyword.get(opts, :prior_attempt_id)]
     )
+
+    attempt_id
   end
 
   defp assert_unique_violation!(fun) do
     assert_raise Postgrex.Error, ~r/unique constraint/, fun
+  end
+
+  defp assert_foreign_key_violation!(constraint, fun) do
+    assert_raise Postgrex.Error, ~r/#{constraint}/, fun
   end
 
   defp insert_legacy_privacy_evidence!(repo, schema) do
