@@ -35,7 +35,7 @@
 
 ### Recovery
 
-- [ ] **RECOV-01**: A tenant-scoped recovery worker can claim and replan events stranded after trigger commit, with bounded concurrency and explainable recovery evidence.
+- [x] **RECOV-01**: A tenant-scoped recovery worker can claim and replan events stranded after trigger commit, with bounded concurrency and explainable recovery evidence.
 - [x] **RECOV-02**: Chimeway persists target claim and attempt-start evidence before provider I/O and represents a crash after possible APNs acceptance as an explicit ambiguous handoff rather than silently promising exactly-once delivery or blindly resending.
 
 ### CrossWake Registration and Opens
@@ -87,7 +87,7 @@
 | PUSH-02 | Phase 99 | Complete |
 | PUSH-03 | Phase 99 | Complete |
 | PUSH-04 | Phase 99 | Complete |
-| RECOV-01 | Phase 99 | Pending |
+| RECOV-01 | Phase 99 | Complete |
 | RECOV-02 | Phase 99 | Complete |
 | APNS-01 | Phase 100 | Pending |
 | APNS-02 | Phase 100 | Pending |
