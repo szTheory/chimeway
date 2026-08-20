@@ -1,8 +1,8 @@
 ---
 phase: 99-multi-installation-delivery-recovery
-reviewed: 2026-08-20T14:42:25Z
+reviewed: 2026-08-20T00:00:00Z
 depth: standard
-files_reviewed: 25
+files_reviewed: 27
 files_reviewed_list:
   - lib/chimeway/delivery_planning.ex
   - lib/chimeway/delivery_targets.ex
@@ -17,7 +17,9 @@ files_reviewed_list:
   - lib/chimeway/traces.ex
   - lib/chimeway/traces/explanation.ex
   - priv/chimeway_migrations/035_create_chimeway_delivery_targets.exs
+  - priv/chimeway_migrations/036_enforce_delivery_target_tenant_integrity.exs
   - priv/repo/migrations/20260819000001_create_chimeway_delivery_targets.exs
+  - priv/repo/migrations/20260820000000_enforce_delivery_target_tenant_integrity.exs
   - test/chimeway/delivery_target_test.exs
   - test/chimeway/dispatch/oban_test.exs
   - test/chimeway/dispatch/target_worker_test.exs
@@ -30,58 +32,51 @@ files_reviewed_list:
   - test/chimeway/traces_target_test.exs
   - test/support/prefixed_runtime_case.ex
 findings:
-  critical: 1
+  critical: 0
   warning: 1
   info: 0
-  total: 2
+  total: 1
 status: issues_found
 ---
 
 # Phase 99: Code Review Report
 
-**Reviewed:** 2026-08-20T14:42:25Z
+**Reviewed:** 2026-08-20T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 25
+**Files Reviewed:** 27
 **Status:** issues_found
 
 ## Summary
 
-The submitted delivery-target state machine, dispatch paths, recovery worker, migrations, and operator projections were reviewed. Target terminal-state integrity is not enforced by the public transition API, allowing an already accepted target to be made eligible for another provider handoff. The target tables also allow cross-tenant foreign-key relationships at the database layer, despite tenant ownership being a core boundary.
+Reviewed the target lifecycle, tenant-integrity migrations, dispatch/recovery paths, trace projections, installer contracts, and their tests. The database constraints correctly bind target and attempt tenant ownership, but recovery accepts an unvalidated UUID cursor from durable Oban arguments and then interpolates it into UUID comparisons. A malformed job can therefore crash the worker rather than produce the documented bounded recovery result.
+
+`mix compile --warnings-as-errors` passed. The focused database tests could not be started because the shared PostgreSQL server rejected connections with `FATAL 53300 (too_many_connections)`.
 
 ## Narrative Findings (AI reviewer)
 
-## Critical Issues
-
-### CR-01: Generic retry transition can resend an already accepted target
-
-**File:** `lib/chimeway/delivery_targets.ex:640`
-
-**Issue:** `schedule_retry/3` delegates to `transition_target/4`, but the latter only checks the target ID and tenant (lines 645-650). It does not require a retryable source state. Consequently, any caller holding the tenant-qualified delivery can call `schedule_retry/3` for a `:provider_accepted` target, which changes it to `:pending` (line 657). The next sync, Oban, or recovery pass treats that row as actionable and calls the provider again, producing a duplicate delivery after a previously durable success. The same unrestricted primitive also permits `expire_target/3` and `invalidate_target/3` to rewrite terminal outcomes.
-
-**Fix:** Make transitions explicit and enforce an allowed source-state matrix under the row lock. In particular, only allow `:failed` (or another documented retryable state) to move to `:pending`; require the separate policy-authorized redrive path for `:ambiguous_handoff`; reject terminal accepted/exhausted states.
-
-```elixir
-where:
-  t.id == ^target_id and t.delivery_id == ^delivery.id and
-    t.tenant_id == ^tenant_id and t.status in ^allowed_from_states(status)
-
-if is_nil(target), do: Repo.rollback(:invalid_transition)
-```
-
-Define `allowed_from_states/1` per operation rather than exposing a generic arbitrary-status mutator, and add a test that attempting to retry a `:provider_accepted` target neither changes it nor invokes the adapter.
-
 ## Warnings
 
-### WR-01: Migrations permit cross-tenant target and attempt relationships
+### WR-01: Recovery cursors are not validated as UUIDs before querying UUID columns
 
-**File:** `priv/chimeway_migrations/035_create_chimeway_delivery_targets.exs:12`
+**File:** `lib/chimeway/target_recovery.ex:232-240` (untrusted values enter through `lib/chimeway/dispatch/recovery_worker.ex:14-16`)
 
-**Issue:** The target table stores `tenant_id` independently but its foreign key to `chimeway_deliveries` is only `delivery_id` (lines 12-16). The attempt table has the same issue for `delivery_target_id` (lines 39-43), and `prior_attempt_id` is unconstrained to the same target or tenant (line 50). The generated public migration repeats this at `priv/repo/migrations/20260819000001_create_chimeway_delivery_targets.exs:9` and `:30`. Application query filters hide many malformed rows, but the database accepts them; a bad write can poison a tenant's lifecycle history or block the global `(delivery_id, binding_revision_ref)` target identity constraint with a different tenant.
+**Issue:** `opaque_cursor/1` accepts every non-empty binary. The three cursor query branches then compare a UUID primary-key column to that binary. A malformed Oban argument such as `"event_cursor" => "not-a-uuid"` raises during Ecto/PostgreSQL UUID casting, causing the recovery job to fail and retry instead of returning the normal non-disclosing summary. This makes a corrupt or manually-enqueued recovery job repeatedly noisy and prevents its other recovery streams from running.
 
-**Fix:** Enforce ownership structurally. Add unique keys on `(tenant_id, id)` for the parent tables and composite foreign keys from `(tenant_id, delivery_id)` to deliveries and from `(tenant_id, delivery_target_id)` to targets. For `prior_attempt_id`, either validate it belongs to the same target in a trigger/transaction or model a composite reference that includes the target identity. Add migration-contract tests that cross-tenant inserts fail with a foreign-key violation.
+**Fix:** Accept only castable UUID cursors (or make malformed values `nil`) before building the query, and add worker-level coverage for malformed event/target/stale cursors. For example:
+
+```elixir
+defp opaque_cursor(value) when is_binary(value) do
+  case Ecto.UUID.cast(value) do
+    {:ok, uuid} -> uuid
+    :error -> nil
+  end
+end
+
+defp opaque_cursor(_value), do: nil
+```
 
 ---
 
-_Reviewed: 2026-08-20T14:42:25Z_
+_Reviewed: 2026-08-20T00:00:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
