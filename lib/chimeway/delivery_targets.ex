@@ -2,7 +2,6 @@ defmodule Chimeway.DeliveryTargets do
   @moduledoc false
 
   import Ecto.Query
-  alias Ecto.Multi
   alias Chimeway.{Delivery, DeliveryTarget, DeliveryTargetAttempt, Repo, SafeEvidence}
   alias Chimeway.TargetResolver.BindingRevision
 
@@ -92,25 +91,36 @@ defmodule Chimeway.DeliveryTargets do
     source = Keyword.get(opts, :source, "sync")
     target_id = Keyword.get(opts, :target_id)
 
-    Multi.new()
-    |> Multi.run(:target, fn repo, _ ->
+    Repo.transaction(fn ->
+      parent =
+        Repo.one(
+          from(d in Delivery,
+            where:
+              d.id == ^delivery.id and d.tenant_id == ^tenant_id and d.status == :pending and
+                d.orchestration_state == :ready,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(parent), do: Repo.rollback(:no_eligible_target)
+
       target =
         case target_id do
           id when is_binary(id) ->
-            repo.one(
+            Repo.one(
               from(t in DeliveryTarget,
                 where:
-                  t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and t.id == ^id and
+                  t.delivery_id == ^parent.id and t.tenant_id == ^tenant_id and t.id == ^id and
                     t.status == :pending,
                 lock: "FOR UPDATE"
               )
             )
 
           nil ->
-            repo.one(
+            Repo.one(
               from(t in DeliveryTarget,
                 where:
-                  t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and
+                  t.delivery_id == ^parent.id and t.tenant_id == ^tenant_id and
                     t.status == :pending,
                 order_by: [asc: t.binding_revision_ref],
                 limit: 1,
@@ -119,51 +129,46 @@ defmodule Chimeway.DeliveryTargets do
             )
         end
 
-      case target do
-        nil -> {:error, :no_eligible_target}
-        target -> {:ok, target}
-      end
-    end)
-    |> Multi.update(:claimed_target, fn %{target: target} ->
-      Ecto.Changeset.change(target,
-        status: :claimed,
-        claimed_at: now,
-        lease_expires_at: DateTime.add(now, 60, :second)
-      )
-    end)
-    |> Multi.run(:attempt_number, fn repo, %{target: target} ->
-      {:ok,
-       repo.aggregate(
-         from(a in DeliveryTargetAttempt, where: a.delivery_target_id == ^target.id),
-         :count,
-         :id
-       ) + 1}
-    end)
-    |> Multi.insert(:attempt, fn %{target: target, attempt_number: attempt_number} ->
+      if is_nil(target), do: Repo.rollback(:no_eligible_target)
+
+      claimed_target =
+        target
+        |> Ecto.Changeset.change(
+          status: :claimed,
+          claimed_at: now,
+          lease_expires_at: DateTime.add(now, 60, :second)
+        )
+        |> Repo.update!()
+
+      attempt_number =
+        Repo.aggregate(
+          from(a in DeliveryTargetAttempt, where: a.delivery_target_id == ^target.id),
+          :count,
+          :id
+        ) + 1
+
       {prior_attempt_id, duplicate_risk} = redrive_link(target.claim_token)
 
-      DeliveryTargetAttempt.changeset(%DeliveryTargetAttempt{}, %{
-        tenant_id: tenant_id,
-        delivery_target_id: target.id,
-        attempt_number: attempt_number,
-        outcome: :attempt_started,
-        started_at: now,
-        source: source,
-        prior_attempt_id: prior_attempt_id,
-        duplicate_risk: duplicate_risk,
-        safe_facts: %{}
-      })
+      attempt =
+        DeliveryTargetAttempt.changeset(%DeliveryTargetAttempt{}, %{
+          tenant_id: tenant_id,
+          delivery_target_id: target.id,
+          attempt_number: attempt_number,
+          outcome: :attempt_started,
+          started_at: now,
+          source: source,
+          prior_attempt_id: prior_attempt_id,
+          duplicate_risk: duplicate_risk,
+          safe_facts: %{}
+        })
+        |> Repo.insert!()
+
+      %{target: claimed_target, attempt: attempt}
     end)
-    |> Repo.transaction()
     |> case do
-      {:ok, %{claimed_target: target, attempt: attempt}} ->
-        {:ok, %{target: target, attempt: attempt}}
-
-      {:error, :target, :no_eligible_target, _} ->
-        {:noop, :no_eligible_target}
-
-      {:error, _step, reason, _} ->
-        {:error, reason}
+      {:ok, result} -> {:ok, result}
+      {:error, :no_eligible_target} -> {:noop, :no_eligible_target}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -240,6 +245,18 @@ defmodule Chimeway.DeliveryTargets do
     now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
     Repo.transaction(fn ->
+      parent =
+        Repo.one(
+          from(d in Delivery,
+            join: t in DeliveryTarget,
+            on: t.delivery_id == d.id,
+            where: t.id == ^target_id and t.tenant_id == ^tenant_id and d.tenant_id == ^tenant_id,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      if is_nil(parent), do: Repo.rollback(:not_found)
+
       target =
         Repo.one(
           from(t in DeliveryTarget,
@@ -278,6 +295,12 @@ defmodule Chimeway.DeliveryTargets do
         )
         |> Repo.update!()
 
+      if parent.status in [:failed, :succeeded] do
+        parent
+        |> Ecto.Changeset.change(status: :pending)
+        |> Repo.update!()
+      end
+
       %{target: updated_target}
     end)
     |> case do
@@ -298,6 +321,7 @@ defmodule Chimeway.DeliveryTargets do
              target: DeliveryTarget.t(),
              attempt: DeliveryTargetAttempt.t()
            }}
+          | {:noop, :not_found}
           | {:error, term()}
   def record_target_result(
         %Delivery{} = delivery,
@@ -308,26 +332,66 @@ defmodule Chimeway.DeliveryTargets do
     with {:ok, safe_facts} <- SafeEvidence.target_attempt_facts(result) do
       now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
-      Multi.new()
-      |> Multi.update(
-        :target,
-        Ecto.Changeset.change(target, status: :provider_accepted, lease_expires_at: nil)
-      )
-      |> Multi.update(
-        :attempt,
-        Ecto.Changeset.change(attempt,
-          outcome: :provider_accepted,
-          finished_at: now,
-          safe_facts: safe_facts
-        )
-      )
-      |> Multi.run(:delivery, fn _repo, _ -> recompute_delivery(delivery, delivery.tenant_id) end)
-      |> Repo.transaction()
-      |> case do
-        {:ok, %{delivery: updated, target: updated_target, attempt: updated_attempt}} ->
-          {:ok, %{delivery: updated, target: updated_target, attempt: updated_attempt}}
+      Repo.transaction(fn ->
+        parent =
+          Repo.one(
+            from(d in Delivery,
+              where: d.id == ^delivery.id and d.tenant_id == ^delivery.tenant_id,
+              lock: "FOR UPDATE"
+            )
+          )
 
-        {:error, _step, reason, _} ->
+        if is_nil(parent), do: Repo.rollback(:not_found)
+
+        current_target =
+          Repo.one(
+            from(t in DeliveryTarget,
+              where:
+                t.id == ^target.id and t.delivery_id == ^parent.id and
+                  t.tenant_id == ^delivery.tenant_id and t.status == :claimed,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(current_target), do: Repo.rollback(:not_found)
+
+        current_attempt =
+          Repo.one(
+            from(a in DeliveryTargetAttempt,
+              where:
+                a.id == ^attempt.id and a.delivery_target_id == ^current_target.id and
+                  a.tenant_id == ^delivery.tenant_id and a.outcome == :attempt_started,
+              lock: "FOR UPDATE"
+            )
+          )
+
+        if is_nil(current_attempt), do: Repo.rollback(:not_found)
+
+        updated_target =
+          current_target
+          |> Ecto.Changeset.change(status: :provider_accepted, lease_expires_at: nil)
+          |> Repo.update!()
+
+        updated_attempt =
+          current_attempt
+          |> Ecto.Changeset.change(
+            outcome: :provider_accepted,
+            finished_at: now,
+            safe_facts: safe_facts
+          )
+          |> Repo.update!()
+
+        {:ok, updated_delivery} = recompute_delivery(parent, parent.tenant_id)
+        %{delivery: updated_delivery, target: updated_target, attempt: updated_attempt}
+      end)
+      |> case do
+        {:ok, result} ->
+          {:ok, result}
+
+        {:error, :not_found} ->
+          {:noop, :not_found}
+
+        {:error, reason} ->
           {:error, reason}
       end
     end

@@ -175,9 +175,6 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
   end
 
   test "possible and unknown callback outcomes close as ambiguity and cannot automatically resend" do
-    %{delivery: delivery} =
-      create_pending_delivery(channel: :push, tenant_id: "target-worker-ambiguity")
-
     for {suffix, callback_result} <- [
           {"possible", {:error, :possible_handoff, "raw-token-sentinel"}},
           {"legacy", {:error, "raw-token-sentinel"}},
@@ -185,6 +182,9 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
           {"raised", :raise},
           {"thrown", :throw}
         ] do
+      %{delivery: delivery} =
+        create_pending_delivery(channel: :push, tenant_id: "target-worker-ambiguity-#{suffix}")
+
       target = insert_target(delivery, "cw_binding_revision_ambiguity_#{suffix}")
       target_id = target.id
       Application.put_env(:chimeway, :target_worker_adapter_result, callback_result)
@@ -239,7 +239,10 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
           {:pending, :deferred}
         ] do
       %{delivery: delivery} =
-        create_pending_delivery(channel: :push, tenant_id: "target-parent-#{status}-#{orchestration_state}")
+        create_pending_delivery(
+          channel: :push,
+          tenant_id: "target-parent-#{status}-#{orchestration_state}"
+        )
 
       delivery =
         delivery
@@ -281,11 +284,16 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
       |> Repo.update!()
 
     assert {:noop, :not_found} =
-             DeliveryTargets.record_target_result(delivery, claimed, started, %{provider_code: "accepted"})
+             DeliveryTargets.record_target_result(delivery, claimed, started, %{
+               provider_code: "accepted"
+             })
 
     assert %{status: :ambiguous_handoff} = Repo.get!(DeliveryTarget, closed_target.id)
 
-    assert %{outcome: :ambiguous_handoff, safe_facts: %{"provider_code" => "possible_provider_handoff"}} =
+    assert %{
+             outcome: :ambiguous_handoff,
+             safe_facts: %{"provider_code" => "possible_provider_handoff"}
+           } =
              Repo.get!(DeliveryTargetAttempt, closed_attempt.id)
 
     assert %{status: :pending} = Repo.get!(Delivery, delivery.id)

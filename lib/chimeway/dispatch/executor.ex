@@ -80,6 +80,7 @@ defmodule Chimeway.Dispatch.Executor do
       {:ok, facts} ->
         case DeliveryTargets.record_target_result(delivery, target, attempt, facts) do
           {:ok, result} -> {:ok, result}
+          {:noop, reason} -> {:noop, reason}
           {:error, reason} -> {:error, reason}
         end
 
