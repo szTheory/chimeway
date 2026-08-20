@@ -197,7 +197,10 @@ defmodule Chimeway.DeliveryTargetTest do
 
   test "a failed target does not strand later sync targets and retains aggregate evidence" do
     delivery = create_push_delivery()
-    [failed, accepted] = plan_targets(delivery, ["cw_binding_revision_a", "cw_binding_revision_b"])
+
+    [failed, accepted] =
+      plan_targets(delivery, ["cw_binding_revision_a", "cw_binding_revision_b"])
+
     failed_id = failed.id
     accepted_id = accepted.id
 

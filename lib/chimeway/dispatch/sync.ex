@@ -17,7 +17,7 @@ defmodule Chimeway.Dispatch.Sync do
 
   @behaviour Chimeway.Dispatch
 
-  alias Chimeway.{Deliveries, DeliveryPlanning}
+  alias Chimeway.{Deliveries, DeliveryPlanning, DeliveryTargets}
   alias Chimeway.Dispatch.Executor
   alias Chimeway.Policy
   alias Chimeway.Telemetry
@@ -113,7 +113,7 @@ defmodule Chimeway.Dispatch.Sync do
   defp do_dispatch(delivery) do
     result =
       if delivery.channel == "push",
-        do: Executor.run_target(delivery),
+        do: run_push_targets(delivery),
         else: Executor.run_delivery(delivery)
 
     case result do
@@ -133,6 +133,28 @@ defmodule Chimeway.Dispatch.Sync do
 
       {:noop, _reason} ->
         {{:ok, delivery}, nil}
+    end
+  end
+
+  defp run_push_targets(delivery) do
+    delivery
+    |> DeliveryTargets.actionable_targets()
+    |> Enum.reduce(nil, fn target, first_error ->
+      case Executor.run_target(delivery, target_id: target.id, source: "sync") do
+        {:error, reason} when is_nil(first_error) -> reason
+        _result -> first_error
+      end
+    end)
+    |> reload_push_parent(delivery)
+  end
+
+  defp reload_push_parent(first_error, delivery) do
+    case DeliveryTargets.recompute_delivery(delivery, delivery.tenant_id) do
+      {:ok, %{status: :succeeded} = updated_delivery} -> {:ok, %{delivery: updated_delivery}}
+      {:ok, %{status: :suppressed} = updated_delivery} -> {:ok, %{delivery: updated_delivery}}
+      {:ok, updated_delivery} when is_nil(first_error) -> {:ok, %{delivery: updated_delivery}}
+      {:ok, _updated_delivery} -> {:error, first_error}
+      {:error, reason} -> {:error, reason}
     end
   end
 
