@@ -1,71 +1,45 @@
 ---
 phase: 99-multi-installation-delivery-recovery
-verified: 2026-08-19T22:03:00-04:00
+verified: 2026-08-20T10:05:00-04:00
 status: gaps_found
-score: 2/5 must-haves verified
+score: 3/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
-  previous_score: 3/5
+  previous_score: 2/5
   gaps_closed:
-    - "Adapter errors and unexpected adapter results now close their claimed target attempt through record_target_failure/4."
-    - "Recovery now discovers both trigger-commit gap shapes, uses separate bounded event/target/stale-attempt cursors, and emits its closed summary."
+    - "Common recipient, correlation, and explanation traces now preload and project tenant-scoped target and attempt histories."
+    - "Synchronous push dispatch now snapshots and executes every actionable target by exact durable target ID."
+    - "Final pre-handoff Oban retries now persist retry_exhausted before completion, preventing ordinary recovery resend."
+    - "Target claim requires a locked pending/ready parent, and stale result finalization is conditional on the exact claimed target and started attempt."
   gaps_remaining:
-    - "Independent target history is omitted by common operator trace projections."
-    - "Sync delivery fans out to only one target."
-    - "Target Oban work lacks a terminal-parent gate and retry-exhaustion transition."
-    - "A late provider success can overwrite an ambiguous-handoff closeout."
+    - "The Oban dispatch entry point strands an empty push target snapshot instead of recording no_eligible_targets suppression."
+    - "Stale recovery locks target then parent, conflicting with the parent-then-target execution lock order and does not handle transaction errors."
   regressions: []
 gaps:
-  - truth: "Operators can see each target's independent claim, attempt, retry, expiry, invalidation, and trace history beneath one logical delivery."
+  - truth: "A delivery with no eligible target is suppressed with a stable reason."
     status: failed
-    reason: "The full event trace preloads targets, but recipient, correlation, and delivery-explanation projections preload only parent delivery attempts; SafeEvidence then renders unloaded targets as an empty list."
+    reason: "Oban enqueue of a pending/ready push delivery with no actionable targets returns {:ok, []}; dispatch_delivery/2 reports success but never recomputes the parent, leaving it pending without no_eligible_targets."
     artifacts:
-      - path: "lib/chimeway/traces.ex"
-        issue: "find_traces_for_recipient/2 (line 143), find_traces_by_correlation_id/2 (line 179), and explain_delivery/2 (line 211) omit target/target-attempt preloads."
+      - path: "lib/chimeway/dispatch/oban.ex"
+        issue: "enqueue_delivery/1 lines 108-122 has no empty-snapshot recompute; normalize_dispatch_delivery_result/2 accepts the empty job list."
     missing:
-      - "Use the tenant-qualified target and target-attempt preload in every operator trace/explanation path and test all three paths with multi-target data."
-  - truth: "One notification decision is delivered to all eligible opaque installation targets."
+      - "Atomically recompute the tenant-qualified parent when the actionable snapshot is empty and assert suppressed/no_eligible_targets through the public Oban dispatch path."
+  - truth: "A bounded tenant-scoped worker recovers stranded work with durable, race-safe evidence."
     status: failed
-    reason: "Sync dispatch calls Executor.run_target/1 exactly once; its no-target-id claim query deliberately selects only the first pending target. Remaining selected targets stay pending."
-    artifacts:
-      - path: "lib/chimeway/dispatch/sync.ex"
-        issue: "do_dispatch/1 at lines 113-117 makes one target execution call."
-      - path: "lib/chimeway/delivery_targets.ex"
-        issue: "begin_target_attempt/2 at lines 109-118 selects limit: 1 when no target ID is supplied."
-    missing:
-      - "Enumerate all tenant-qualified pending targets at the sync dispatcher boundary, execute each by target ID, and prove two-target sync fan-out."
-  - truth: "Repeated planning, execution, or recovery creates neither a duplicate target nor an unexplained additional provider request."
-    status: failed
-    reason: "A target-id Oban job returns retryable errors without inspecting its attempt budget or calling exhaust_target/3. After Oban discards it, recovery can invoke the provider again indefinitely."
-    artifacts:
-      - path: "lib/chimeway/dispatch/oban_worker.ex"
-        issue: "The target-job clause at lines 121-129 has no attempt/max_attempts pattern or terminal exhaustion path."
-    missing:
-      - "On a final pre-handoff retryable target job, atomically mark that target retry_exhausted, append terminal evidence, recompute its parent, and prove recovery does not resend it."
-  - truth: "A terminal/suppressed/deferred parent cannot authorize a queued target provider request."
-    status: failed
-    reason: "The target-job fetch and target claim predicate qualify tenant and target status but do not require parent status :pending and orchestration_state :ready. A queued job may hand off after a concurrent suppression/cancellation/deferral and later overwrite the parent aggregate."
+    reason: "Stale closeout acquires the target lock before recompute_delivery/2 acquires the parent lock, while claims and result finalization lock parent then target. A concurrent finalizer can deadlock; the closeout result case handles only :not_found and raises on the database transaction error, aborting the recovery pass."
     artifacts:
       - path: "lib/chimeway/delivery_targets.ex"
-        issue: "fetch_target_delivery/2 (lines 60-72) and begin_target_attempt/2 (lines 90-167) do not join/lock and predicate the parent lifecycle state."
+        issue: "close_stale_started_attempt/2 lines 183-232 locks target/attempt then invokes recompute_delivery/2; begin_target_attempt/2 and record_target_result/4 use the inverse parent-first order."
     missing:
-      - "Make target claim a single locked tenant-qualified target-plus-parent transaction requiring pending/ready; return a non-disclosing noop otherwise and add suppress/cancel/defer interleaving coverage."
-  - truth: "A crash after possible provider handoff remains an explicit ambiguous outcome and is never silently converted to acceptance."
-    status: failed
-    reason: "record_target_result/4 writes caller-supplied stale structs directly, unlike the locked failure path. A late success after close_stale_started_attempt/2 can overwrite ambiguous_handoff with provider_accepted."
-    artifacts:
-      - path: "lib/chimeway/delivery_targets.ex"
-        issue: "record_target_result/4 at lines 302-325 neither reloads/locks the target and attempt nor requires claimed/attempt_started states."
-    missing:
-      - "Lock and tenant-qualify the exact target and attempt, require claimed plus attempt_started before acceptance, noop on conflict, and add the stale-closeout/late-success interleaving test."
+      - "Use a single tenant-qualified parent → target → attempt lock order for stale closeout and aggregate persistence, return safe retryable transaction errors, and add deterministic closeout-versus-finalizer concurrency coverage."
 ---
 
 # Phase 99: Multi-Installation Delivery & Recovery Verification Report
 
 **Phase Goal:** A host can deliver one notification decision to all eligible opaque installations while preserving independent, tenant-safe target truth and recovery.
-**Verified:** 2026-08-19T22:03:00-04:00
+**Verified:** 2026-08-20T10:05:00-04:00
 **Status:** gaps_found
 **Re-verification:** Yes — after gap closure
 
@@ -75,83 +49,91 @@ gaps:
 
 | # | Truth | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | A resolver returns all active eligible tenant-scoped opaque revisions and one durable target is recorded per selected revision. | ✓ VERIFIED | `TargetResolver` normalizes/sorts exact opaque revisions; planning inserts conflict-safe target children. `delivery_target_test.exs` passes its normalization and canonical-target cases. |
-| 2 | Operators can see every target's independent claim, attempt, retry, expiry, invalidation, and trace history beneath one delivery. | ✗ FAILED | Only `get_trace/2` preloads target history. The other normal operator projections omit it; see `Traces` lines 143, 179, and 211. |
-| 3 | Repeated planning/execution/recovery is duplicate-safe and bounded without unexplained provider requests. | ✗ FAILED | Planning/claim tests pass, but target Oban retries never exhaust and recovery can resend indefinitely. |
-| 4 | No eligible target suppresses with a stable reason; terminal mixed target results retain partial failure and succeed only when accepted. | ✓ VERIFIED | `DeliveryTargets.aggregate/1` and `aggregate_status/2` preserve pending state until all targets terminal and derive no-target/partial outcomes. Focused tests pass. The separate parent-gate gap prevents this from being safe for a queued job after suppression. |
-| 5 | A possible post-I/O crash is represented as ambiguous rather than silently resent or accepted. | ✗ FAILED | Stale closeout writes ambiguity, but a late success is allowed to overwrite it because acceptance is not conditional on the current locked state. |
+| 1 | A host resolver returns every active eligible opaque tenant-scoped binding revision and records one durable target per selected revision. | ✓ VERIFIED | `TargetResolver.normalize/2` validates and stable-sorts tenant-qualified revisions; `DeliveryTargets.plan_targets/3` uses the `{delivery_id, binding_revision_ref}` unique key and authoritative tenant reload. Focused delivery-target tests passed. |
+| 2 | Operators can see independent claim, attempt, retry, expiry, invalidation, and trace history for each target beneath one logical delivery. | ✓ VERIFIED | All four trace loaders use `target_history_preload(tenant_id)` and closed `SafeEvidence` target projection; the 57-test trace/tenant suite passed. |
+| 3 | Repeated planning, execution, or recovery creates no duplicate target or unexplained provider request, and bounded tenant recovery remains race-safe. | ✗ FAILED | Claim, target-ID fan-out, retry exhaustion, and ordinary recovery are covered, but stale recovery can deadlock against finalization and then raises instead of completing safely. |
+| 4 | No eligible target is always suppressed with `no_eligible_targets`; mixed terminal targets retain partial failure and only accepted targets produce a succeeded aggregate. | ✗ FAILED | Sync executes the no-target recompute path, but the public Oban dispatcher returns successful empty enqueue without changing its pending parent. |
+| 5 | A possible post-I/O crash is represented as an explicit ambiguous outcome rather than silently resent or accepted. | ✓ VERIFIED | Stale claimed attempts close to `ambiguous_handoff`; acceptance reloads and locks the exact claimed target/started attempt, so a stale success is a noop. Target-worker regression coverage passed. |
 
-**Score:** 2/5 truths verified (0 present, behavior-unverified)
+**Score:** 3/5 truths verified (0 present, behavior-unverified)
 
-### Required Artifacts
+## Required Artifacts
 
 | Artifact | Expected | Status | Details |
 | --- | --- | --- | --- |
-| `priv/repo/migrations/20260819000001_create_chimeway_delivery_targets.exs` | Target and ordered-attempt schema | ✓ VERIFIED | Static-storage checks pass; migration has target/attempt identity constraints. |
-| `priv/chimeway_migrations/035_create_chimeway_delivery_targets.exs` | Prefix-aware copied schema | ✓ VERIFIED | `mix verify.runtime_prefix` and `mix verify.install_golden` pass. |
-| `lib/chimeway/target_resolver.ex` | Opaque tenant-scoped resolver contract | ✓ VERIFIED | Substantive normalized resolver used by push planning. |
-| `lib/chimeway/delivery_targets.ex` | Target lifecycle, aggregation, and race safety | ✗ STUB FOR REQUIRED RACES | Core lifecycle is substantive, but acceptance finalization and claim authority lack required state predicates. |
-| `lib/chimeway/dispatch/sync.ex` | All-target synchronous fan-out | ✗ PARTIAL | Wired to `Executor.run_target/1`, but calls it once. |
-| `lib/chimeway/dispatch/oban_worker.ex` | Parent-gated bounded target execution | ✗ PARTIAL | Target worker is wired but omits parent terminal gate and retry exhaustion. |
-| `lib/chimeway/target_recovery.ex` | Bounded tenant recovery | ✓ VERIFIED | Separate event, target, and stale-attempt cursors and batch cap are present and covered by focused tests. |
-| `lib/chimeway/dispatch/recovery_worker.ex` | Closed observable recovery evidence | ✓ VERIFIED | Emits `[:chimeway, :recovery, :completed]` with the closed summary. |
-| `lib/chimeway/traces.ex` | Tenant-safe target history in operator views | ✗ PARTIAL | Full event trace works; recipient/correlation/explanation views are hollow for targets. |
+| Target/attempt migrations and generated static-mode fixtures | Durable target identity and attempt ordering | ✓ VERIFIED | All 99-01/02 artifact checks pass; supplied schema drift and UI-safety gates passed. |
+| `lib/chimeway/target_resolver.ex` and `delivery_planning.ex` | Opaque tenant-qualified resolution and idempotent child persistence | ✓ VERIFIED | Production plan path is wired to normalization and `plan_targets/3`. |
+| `lib/chimeway/delivery_targets.ex` | Lifecycle, aggregation, recovery and race authority | ✗ PARTIAL | Substantive and broadly wired, but stale recovery uses an unsafe lock order and incomplete error handling. |
+| `lib/chimeway/dispatch/sync.ex` | All-target synchronous fan-out | ✓ VERIFIED | Snapshots `actionable_targets/1`, executes every exact target ID, then recomputes. |
+| `lib/chimeway/dispatch/oban.ex` | Safe asynchronous push enqueue | ✗ PARTIAL | Per-target enqueue exists, but empty snapshot leaves the canonical parent pending. |
+| `lib/chimeway/dispatch/oban_worker.ex` | Parent-gated bounded target execution | ✓ VERIFIED | Target job uses claim authority and final retry invokes guarded exhaustion; focused test passed. |
+| `lib/chimeway/target_recovery.ex` and `recovery_worker.ex` | Bounded, tenant-scoped recovery and closed telemetry | ✗ PARTIAL | Discovery/cursors/telemetry are substantive and wired; stale-closeout transaction can abort this worker. |
+| `lib/chimeway/traces.ex`, `traces/explanation.ex`, `safe_evidence.ex` | Tenant-safe operator target histories | ✓ VERIFIED | Recipient, correlation, full-event, and explanation paths preload real target/attempt data. |
 
-### Key Link Verification
+## Key Link Verification
 
 | From | To | Via | Status | Details |
 | --- | --- | --- | --- | --- |
-| `delivery_planning.ex` | `delivery_targets.ex` | resolver normalization and child insertion | ✓ WIRED | Production planning uses `TargetResolver` and `DeliveryTargets`. |
-| `sync.ex` | `executor.ex` | execute each selected durable target | ✗ PARTIAL | Link exists, but one `run_target/1` cannot fan out. |
-| `oban_worker.ex` | `delivery_targets.ex` | target worker claim/retry authority | ✗ PARTIAL | Fetch/execute link exists but lacks terminal parent and retry-budget predicates. |
-| `executor.ex` | `delivery_targets.ex` | pre-I/O start then durable outcome | ✗ PARTIAL | Failure finalization is locked; success finalization is not. |
-| `traces.ex` | `safe_evidence.ex` | target history projection | ✗ PARTIAL | Target DTO exists, but common loaders do not supply its data. |
-| `recovery_worker.ex` | `target_recovery.ex` | bounded tenant recovery and telemetry | ✓ WIRED | Summary is returned and emitted. |
+| `delivery_planning.ex` | `delivery_targets.ex` | normalize → insert/reload durable children | ✓ WIRED | All relevant plan link checks passed. |
+| `sync.ex` | `executor.ex` | execute every snapshot target through exact target ID | ✓ WIRED | Two-target, repeated, concurrent, mixed-outcome, and empty-sync tests pass. |
+| `oban.ex` | `delivery_targets.ex` | actionable target snapshot → parent terminal outcome | ✗ PARTIAL | It reads the snapshot but does not recompute an empty parent. |
+| `oban_worker.ex` | `delivery_targets.ex` | tenant/target job claim and final retry exhaustion | ✓ WIRED | Guarded parent/target transition and exhaustion path are exercised by the 38-test worker/recovery suite. |
+| `target_recovery.ex` | `delivery_targets.ex` | stale closeout and recovery convergence | ✗ PARTIAL | Link is real but transitions have a deadlock-prone lock-order inversion. |
+| `traces.ex` | `safe_evidence.ex` | tenant-qualified target/attempt history projection | ✓ WIRED | All trace shapes route loaded data into the closed projection. |
 
-### Data-Flow Trace (Level 4)
+## Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 | --- | --- | --- | --- | --- |
-| `Traces.get_trace/2` | `delivery.targets[].attempts` | Tenant-qualified preloads | Yes | ✓ FLOWING |
-| Recipient/correlation/explanation traces | `delivery.targets` | Parent-attempt-only preloads | No | ✗ DISCONNECTED |
-| Recovery telemetry | `summary.counts/reasons/continuations` | `TargetRecovery.recover_tenant/2` | Yes, closed projection | ✓ FLOWING |
+| Common traces/explanations | `delivery.targets[].attempts` | Tenant-qualified Ecto preloads | Yes | ✓ FLOWING |
+| Sync dispatch | ordered actionable target IDs | Tenant-qualified `DeliveryTarget` query | Yes | ✓ FLOWING |
+| Recovery summary | event/target/stale IDs, counts, continuations | Separate bounded tenant-scoped queries | Yes, except stale closeout may abort on a DB conflict | ⚠️ PARTIAL |
+| Oban push enqueue | target-job list | `actionable_targets/1` | Empty list is real, but it is not fed into parent suppression | ✗ HOLLOW TERMINAL FLOW |
 
-### Behavioral Spot-Checks
+## Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| Existing target/recovery contract matrix | `env MIX_ENV=test mix test test/chimeway/dispatch/target_worker_test.exs test/chimeway/orchestration/target_recovery_test.exs test/chimeway/delivery_target_test.exs test/chimeway/traces_target_test.exs test/chimeway/tenant_scope_contract_test.exs --warnings-as-errors` | 27 tests, 0 failures | ✓ PASS — incomplete for the five gaps above |
-| Static prefix routing | `mix verify.runtime_prefix` | 19 tests, 0 failures | ✓ PASS |
-| Generated migration parity | `mix verify.install_golden` | Exited 0 | ✓ PASS |
+| Operator target histories | `env MIX_ENV=test mix test test/chimeway/traces_target_test.exs test/chimeway/traces_test.exs test/chimeway/tenant_scope_contract_test.exs --warnings-as-errors` | 57 tests, 0 failures | ✓ PASS |
+| Sync fan-out and existing lifecycle regression | `env MIX_ENV=test mix test test/chimeway/delivery_target_test.exs test/chimeway/dispatch/target_worker_test.exs test/chimeway/integration/delivery_lifecycle_test.exs --warnings-as-errors` | 36 tests, 0 failures | ✓ PASS |
+| Target worker/recovery race and retry-exhaustion matrix | `env MIX_ENV=test mix test test/chimeway/dispatch/target_worker_test.exs test/chimeway/dispatch/oban_worker_test.exs test/chimeway/orchestration/target_recovery_test.exs test/chimeway/tenant_scope_contract_test.exs --warnings-as-errors` | 38 tests, 0 failures | ✓ PASS — does not exercise either remaining blocker interleaving/path |
+| Compilation | `mix compile --warnings-as-errors` | supplied run passed | ✓ PASS |
+| Prior-phase exact regression suite | supplied exact regression command | 687 tests, 0 failures | ✓ PASS |
+| Full suite | supplied `mix test` run | no assertion failures before configured 600-second timeout | ? INCONCLUSIVE — not credited as passing evidence |
 
-### Requirements Coverage
+## Code Review Blockers Reassessed
 
-| Requirement | Source Plan(s) | Description | Status | Evidence |
+| Finding | Assessment | Evidence | Result |
+| --- | --- | --- | --- |
+| BL-01: Empty-target Oban stranding | Confirmed live | `enqueue_delivery/1` reduces an empty `actionable_targets/1` to `{:ok, []}` at `lib/chimeway/dispatch/oban.ex:108`; lines 149-151 normalize that as success and contain no recompute. | 🛑 BLOCKER — breaks no-target suppression through a supported dispatch entry point. |
+| BL-02: Parent/target lock-order deadlock | Confirmed live | `close_stale_started_attempt/2` locks target at `delivery_targets.ex:183-205` then calls `recompute_delivery/2` (parent `FOR UPDATE`, lines 576-599). Claim/result paths lock parent first (lines 94-116 and 335-364); closeout handles no transaction error other than `:not_found` (lines 229-232). | 🛑 BLOCKER — can abort bounded recovery on a legitimate concurrent finalizer. |
+
+## Requirements Coverage
+
+| Requirement | Source Plans | Description | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| PUSH-01 | 99-01, 99-03, 99-07 | Opaque tenant-scoped resolver returns eligible revisions without raw tokens. | ✓ SATISFIED | Resolver/normalization and focused planning tests. |
-| PUSH-02 | 99-01, 02, 03, 04, 06, 07 | One logical delivery retains independent durable target lifecycle and trace history. | ✗ BLOCKED | Common operator trace paths omit target histories. |
-| PUSH-03 | 99-02, 03, 04, 05, 06, 07 | No duplicate target or unexplained additional provider request. | ✗ BLOCKED | Target-job retry exhaustion is absent, allowing recovery resend after Oban exhaustion. |
-| PUSH-04 | 99-01, 03, 07 | Stable no-target suppression and honest aggregate terminal result. | ✗ BLOCKED | A stale queued target job can hand off after parent suppression/cancel/defer and acceptance can overwrite the parent aggregate. |
-| RECOV-01 | 99-05, 07 | Bounded tenant-scoped recovery with evidence. | ✓ SATISFIED | Both trigger gaps, independent bounded cursors, and closed telemetry are implemented/tested. |
-| RECOV-02 | 99-01, 04, 05, 06, 07 | Pre-I/O evidence and honest ambiguous post-handoff outcome. | ✗ BLOCKED | Late result race can erase `ambiguous_handoff`. |
+| PUSH-01 | 99-01, 03, 07, 09 | Opaque tenant-scoped resolver returns eligible revisions without raw tokens. | ✓ SATISFIED | Normalization, tenant scope, resolver/planning and focused tests. |
+| PUSH-02 | 99-01–10 | One logical delivery has independently durable target lifecycle and trace history. | ✓ SATISFIED | Durable schema, ordered history, all common trace projections, and target lifecycle suites. |
+| PUSH-03 | 99-02–10 | Duplicate planning/job/recovery cannot create duplicate target or unexplained provider request. | ✓ SATISFIED | Unique target identity, exact target claims, duplicate noops, and durable retry exhaustion are covered. |
+| PUSH-04 | 99-01, 03, 07, 09, 10 | No-target suppression and honest terminal aggregate. | ✗ BLOCKED | Public Oban empty-target path strands pending delivery instead of recording `no_eligible_targets`. |
+| RECOV-01 | 99-05, 07, 10 | Bounded tenant-scoped recovery with explainable evidence. | ✗ BLOCKED | Recovery discovery is bounded, but stale-closeout lock inversion can deadlock and raises on the transaction error. |
+| RECOV-02 | 99-01, 04–07, 10 | Pre-I/O evidence and explicit ambiguous post-handoff outcome. | ✓ SATISFIED | Started-attempt evidence, stale ambiguity closeout, conditional success finalization, and focused worker tests. |
 
-All six requirement IDs declared by Phase 99 plans appear in `REQUIREMENTS.md`; none are orphaned. No later roadmap phase explicitly schedules correction of these Phase 99 core-delivery gaps, so none are deferred.
+All six IDs declared by the ten plan frontmatters exist in `REQUIREMENTS.md`; none are orphaned. No later roadmap phase explicitly schedules either Phase 99 correction, so neither failure is deferred.
 
-### Anti-Patterns Found
+## Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 | --- | --- | --- | --- | --- |
-| `lib/chimeway/dispatch/sync.ex` | 115-117 | Single-target execution | 🛑 BLOCKER | Multi-installation fan-out is not achieved. |
-| `lib/chimeway/dispatch/oban_worker.ex` | 121-129 | Missing lifecycle/budget guard | 🛑 BLOCKER | Can issue post-terminal or unbounded requests. |
-| `lib/chimeway/delivery_targets.ex` | 302-325 | Unconditional stale-struct success write | 🛑 BLOCKER | Can erase durable ambiguity. |
-| `lib/chimeway/traces.ex` | 143, 179, 211 | Hollow target data flow | 🛑 BLOCKER | Operators cannot see required per-target truth. |
-| Phase-owned files scanned | — | `TBD`/`FIXME`/`XXX` debt markers | ℹ️ None | No unresolved debt-marker blocker found. |
+| `lib/chimeway/dispatch/oban.ex` | 108-122, 149-151 | Empty target list normalized as successful dispatch | 🛑 BLOCKER | Canonical pending push delivery can remain permanently unexplained. |
+| `lib/chimeway/delivery_targets.ex` | 183-232, 576-599 | Target → parent lock order and incomplete transaction-error match | 🛑 BLOCKER | Recovery can deadlock/raise against a normal finalizer. |
+| Phase-owned code/tests | — | `TBD`/`FIXME`/`XXX` debt markers | ℹ️ None | No debt-marker blocker found. |
 
-### Gaps Summary
+## Gaps Summary
 
-The prior re-verification gaps for adapter-outcome closure and bounded recovery are closed. The phase goal is still not achieved: the actual delivery entry points can miss selected installations, run after their parent becomes terminal, exceed the provider-request retry budget, and overwrite an intentionally ambiguous handoff. Operator views also hide target history outside the full-event trace. The passing matrix proves narrower paths only and contains no two-target sync, terminal-parent race, target-exhaustion, late-result interleaving, or common-trace projection test.
+Plans 99-08 through 99-10 close the five gaps recorded by the previous verification; their artifacts are substantive, wired, and covered by their focused executable suites. The phase nevertheless misses its goal on two supported asynchronous/recovery paths. An empty Oban push snapshot cannot produce the required no-target truth, and stale recovery cannot safely complete under the lock interleaving that ordinary claim/finalization establishes. Both are machine-testable BLOCKER gaps; per project policy, no conversational UAT or human-verification item is emitted.
 
 ---
 
-_Verified: 2026-08-19T22:03:00-04:00_
+_Verified: 2026-08-20T10:05:00-04:00_
 _Verifier: the agent (gsd-verifier)_
