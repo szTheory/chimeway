@@ -101,8 +101,7 @@ defmodule Chimeway.DeliveryTargets do
               from(t in DeliveryTarget,
                 where:
                   t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and t.id == ^id and
-                    (t.status == :pending or
-                       (t.status == :claimed and t.lease_expires_at < ^now)),
+                    t.status == :pending,
                 lock: "FOR UPDATE"
               )
             )
@@ -112,8 +111,7 @@ defmodule Chimeway.DeliveryTargets do
               from(t in DeliveryTarget,
                 where:
                   t.delivery_id == ^delivery.id and t.tenant_id == ^tenant_id and
-                    (t.status == :pending or
-                       (t.status == :claimed and t.lease_expires_at < ^now)),
+                    t.status == :pending,
                 order_by: [asc: t.binding_revision_ref],
                 limit: 1,
                 lock: "FOR UPDATE"

@@ -41,6 +41,10 @@ defmodule Chimeway.SafeEvidence do
     permanent_failure stuck trigger notifier default planner_override channel_disabled superseded
     bounced workflow_stopped progressed_on_delivery_outcome worker_missed
   )
+  @recovery_reasons ~w(
+    claimed skipped_terminal skipped_claimed skipped_expired skipped_invalidated
+    resumed_planning resumed_target left_ambiguous
+  )a
   @timeline_fields %{
     "notification_key" => :notification_key,
     "channel" => :channel,
@@ -219,6 +223,26 @@ defmodule Chimeway.SafeEvidence do
   end
 
   def target_attempt_facts(_value), do: {:error, :unsafe_evidence}
+
+  @doc false
+  @spec recovery_summary(term()) :: map()
+  def recovery_summary(value) when is_map(value) do
+    %{
+      event_ids: lifecycle_ids(Map.get(value, :event_ids, [])),
+      target_ids: lifecycle_ids(Map.get(value, :target_ids, [])),
+      cursor: safe_lifecycle_id(Map.get(value, :cursor)),
+      reason: recovery_reason(Map.get(value, :reason)),
+      reasons:
+        Map.get(value, :reasons, [])
+        |> List.wrap()
+        |> Enum.map(&recovery_reason/1)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.uniq(),
+      counts: Map.get(value, :counts, %{}) |> recovery_counts()
+    }
+  end
+
+  def recovery_summary(_value), do: recovery_summary(%{})
 
   @spec attempt_attrs(map() | list()) :: {:ok, map()} | {:error, :unsafe_evidence, atom()}
   def attempt_attrs(attrs) when is_map(attrs) or is_list(attrs) do
@@ -656,6 +680,36 @@ defmodule Chimeway.SafeEvidence do
   end
 
   defp safe_lifecycle_id(_value), do: nil
+
+  defp lifecycle_ids(values) when is_list(values) do
+    values
+    |> Enum.map(&safe_lifecycle_id/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  end
+
+  defp lifecycle_ids(_values), do: []
+
+  defp recovery_reason(value) when is_atom(value) do
+    if value in @recovery_reasons, do: value, else: nil
+  end
+
+  defp recovery_reason(value) when is_binary(value) do
+    case Enum.find(@recovery_reasons, &(Atom.to_string(&1) == value)) do
+      nil -> nil
+      reason -> reason
+    end
+  end
+
+  defp recovery_reason(_value), do: nil
+
+  defp recovery_counts(value) when is_map(value) do
+    for key <- [:resumed_planning, :resumed_target, :left_ambiguous, :skipped], into: %{} do
+      {key, non_negative_integer(Map.get(value, key, 0)) || 0}
+    end
+  end
+
+  defp recovery_counts(_value), do: %{}
 
   defp safe_code(value) when is_atom(value), do: value |> Atom.to_string() |> safe_code()
 

@@ -1,7 +1,7 @@
 defmodule Chimeway.TenantScopeContractTest do
   use Chimeway.DataCase, async: false
 
-  alias Chimeway.{Deliveries, Delivery, Inbox, Repo, Traces}
+  alias Chimeway.{Deliveries, Delivery, Inbox, Repo, TargetRecovery, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.TenantScope
@@ -126,6 +126,27 @@ defmodule Chimeway.TenantScopeContractTest do
 
     reloaded = Repo.get!(Delivery, delivery.id)
     refute Map.has_key?(reloaded.metadata || %{}, "recovered_at")
+  end
+
+  test "target recovery keeps missing and foreign scopes non-disclosing" do
+    %{delivery: delivery} =
+      Chimeway.Test.DispatchHelpers.create_pending_delivery(tenant_id: "tenant-a", channel: :push)
+
+    target =
+      Repo.insert!(%Chimeway.DeliveryTarget{
+        tenant_id: delivery.tenant_id,
+        delivery_id: delivery.id,
+        binding_revision_ref: "cw_scope_recovery_target",
+        status: :pending
+      })
+
+    assert %{event_ids: [], target_ids: [], reason: :skipped_terminal} =
+             TargetRecovery.recover_tenant("tenant-b")
+
+    assert %{event_ids: [], target_ids: [], reason: :skipped_terminal} =
+             TargetRecovery.recover_tenant(nil)
+
+    assert :pending == Repo.get!(Chimeway.DeliveryTarget, target.id).status
   end
 
   defp insert_tenant_notification!(tenant_id) do

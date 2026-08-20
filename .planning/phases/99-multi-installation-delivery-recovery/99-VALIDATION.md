@@ -2,9 +2,9 @@
 phase: 99
 slug: multi-installation-delivery-recovery
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-08-19
 ---
 
@@ -39,12 +39,12 @@ created: 2026-08-19
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 99-W0-PUSH-01 | TBD | 0 | PUSH-01 | T-99-01 / T-99-03 | Reject unscoped, raw, or uncontrolled resolver input; accept only opaque tenant-scoped revisions | unit/integration | `MIX_ENV=test mix test test/chimeway/delivery_target_test.exs --warnings-as-errors` | ❌ W0 | ⬜ pending |
-| 99-W0-PUSH-02 | TBD | 0 | PUSH-02 | T-99-01 / T-99-03 | Preserve tenant isolation and safe evidence for independent target lifecycles | integration | `MIX_ENV=test mix test test/chimeway/delivery_target_test.exs test/chimeway/traces_target_test.exs --warnings-as-errors` | ❌ W0 | ⬜ pending |
-| 99-W0-PUSH-03 | TBD | 0 | PUSH-03 | T-99-02 | Concurrent planning, jobs, and recovery converge without duplicate targets or unexplained requests | integration/concurrency | `MIX_ENV=test mix test test/chimeway/orchestration/target_recovery_test.exs --warnings-as-errors` | ❌ W0 | ⬜ pending |
-| 99-W0-PUSH-04 | TBD | 0 | PUSH-04 | T-99-04 | Keep no-target suppression and partial/mixed provider outcomes distinct and truthful | integration | `MIX_ENV=test mix test test/chimeway/delivery_target_test.exs test/chimeway/traces_target_test.exs --warnings-as-errors` | ❌ W0 | ⬜ pending |
-| 99-W0-RECOV-01 | TBD | 0 | RECOV-01 | T-99-01 / T-99-02 | Recover only bounded, tenant-qualified work and emit safe claim/skip/resume evidence | integration | `MIX_ENV=test mix test test/chimeway/orchestration/target_recovery_test.exs --warnings-as-errors` | ❌ W0 | ⬜ pending |
-| 99-W0-RECOV-02 | TBD | 0 | RECOV-02 | Persist pre-I/O evidence; close possible post-handoff crashes as ambiguous without automatic resend | integration/fault injection | `MIX_ENV=test mix test test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | ❌ W0 | ⬜ pending |
+| 99-W0-PUSH-01 | 99-01/03 | 1/2 | PUSH-01 | T-99-01 / T-99-03 | Reject unscoped, raw, or uncontrolled resolver input; accept only opaque tenant-scoped revisions | unit/integration | `MIX_ENV=test mix test test/chimeway/delivery_target_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 99-W0-PUSH-02 | 99-01/03 | 1/2 | PUSH-02 | T-99-01 / T-99-03 | Preserve tenant isolation and safe evidence for independent target lifecycles | integration | `MIX_ENV=test mix test test/chimeway/delivery_target_test.exs test/chimeway/traces_target_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 99-W0-PUSH-03 | 99-02/04/05 | 1/3/4 | PUSH-03 | T-99-02 | Concurrent planning, jobs, and recovery converge without duplicate targets or unexplained requests | integration/concurrency | `MIX_ENV=test mix test test/chimeway/orchestration/target_recovery_test.exs test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 99-W0-PUSH-04 | 99-03 | 2 | PUSH-04 | T-99-04 | Keep no-target suppression and partial/mixed provider outcomes distinct and truthful | integration | `MIX_ENV=test mix test test/chimeway/delivery_target_test.exs test/chimeway/traces_target_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 99-W0-RECOV-01 | 99-05 | 4 | RECOV-01 | T-99-05-01 / T-99-05-02 | Recover only bounded, tenant-qualified work and emit safe claim/skip/resume evidence | integration | `MIX_ENV=test mix test test/chimeway/orchestration/target_recovery_test.exs test/chimeway/tenant_scope_contract_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 99-W0-RECOV-02 | 99-04/05 | 3/4 | RECOV-02 | T-99-05-03 / T-99-05-05 | Persist pre-I/O evidence; close possible post-handoff crashes as ambiguous without automatic resend | integration/fault injection | `MIX_ENV=test mix test test/chimeway/dispatch/target_worker_test.exs test/chimeway/orchestration/target_recovery_test.exs --warnings-as-errors` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,11 +52,11 @@ created: 2026-08-19
 
 ## Wave 0 Requirements
 
-- [ ] `test/chimeway/delivery_target_test.exs` — resolver normalization, unique target rows, state transitions, and no-target/mixed aggregation.
-- [ ] `test/chimeway/dispatch/target_worker_test.exs` — claim/start-before-I/O and crash-window fault injection.
-- [ ] `test/chimeway/orchestration/target_recovery_test.exs` — bounded tenant recovery and concurrent claims.
-- [ ] `test/chimeway/traces_target_test.exs` — target histories and safe target trace DTO projection.
-- [ ] Extend existing migration, runtime-prefix, and golden-install suites for every copied template in both supported static storage modes.
+- [x] `test/chimeway/delivery_target_test.exs` — resolver normalization, unique target rows, state transitions, and no-target/mixed aggregation.
+- [x] `test/chimeway/dispatch/target_worker_test.exs` — claim/start-before-I/O and crash-window fault injection.
+- [x] `test/chimeway/orchestration/target_recovery_test.exs` — bounded tenant recovery and concurrent claims.
+- [x] `test/chimeway/traces_target_test.exs` — target histories and safe target trace DTO projection.
+- [x] Existing migration, runtime-prefix, and golden-install suites cover both supported static storage modes.
 
 ---
 
@@ -68,11 +68,11 @@ All Phase 99 tracer and acceptance behavior is objectively machine-testable and 
 
 ## Validation Sign-Off
 
-- [ ] Every planned task has an automated verification command or an explicit Wave 0 dependency.
-- [ ] Sampling continuity: no three consecutive tasks lack automated verification.
-- [ ] Wave 0 covers every currently missing test reference.
-- [ ] No watch-mode flags are used.
-- [ ] Focused feedback latency is below 120 seconds.
-- [ ] `nyquist_compliant: true` is set in frontmatter after validation.
+- [x] Every planned task has an automated verification command or an explicit Wave 0 dependency.
+- [x] Sampling continuity: no three consecutive tasks lack automated verification.
+- [x] Wave 0 covers every currently missing test reference.
+- [x] No watch-mode flags are used.
+- [x] Focused feedback latency is below 120 seconds.
+- [x] `nyquist_compliant: true` is set in frontmatter after validation.
 
-**Approval:** pending
+**Approval:** executable evidence complete — `mix verify.runtime_prefix`, `mix verify.install_golden`, and `mix ci.test` passed on 2026-08-20.

@@ -214,7 +214,17 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
   import Ecto.Query
 
-  alias Chimeway.{Admin, Deliveries, Delivery, Preferences, Reconciliation, Repo, Signal, Traces}
+  alias Chimeway.{
+    Admin,
+    Deliveries,
+    Delivery,
+    Preferences,
+    Reconciliation,
+    Repo,
+    Signal,
+    TargetRecovery,
+    Traces
+  }
 
   alias Chimeway.Dispatch.{
     DeferredResumeWorker,
@@ -311,6 +321,24 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert_prefixed_only("chimeway_delivery_targets", 1)
     assert_prefixed_only("chimeway_delivery_target_attempts", 0)
+  end
+
+  @tag :runtime_prefix_target
+  test "recovery discovery uses configured static storage without a domain prefix argument" do
+    %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "acme")
+
+    binding = %Chimeway.TargetResolver.BindingRevision{
+      tenant_id: delivery.tenant_id,
+      binding_revision_ref: "cw_runtime_recovery_binding_001"
+    }
+
+    assert {:ok, [%{id: target_id}]} =
+             Chimeway.DeliveryTargets.plan_targets(delivery, delivery.tenant_id, [binding])
+
+    assert %{target_ids: [^target_id], reason: :resumed_target} =
+             TargetRecovery.discover_target_work("acme")
+
+    assert_prefixed_only("chimeway_delivery_targets", 1)
   end
 
   @tag :runtime_prefix_operator

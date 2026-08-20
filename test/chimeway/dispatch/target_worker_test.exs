@@ -92,6 +92,15 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
         safe_facts: %{}
       })
 
+    assert :ok =
+             perform_job(ObanWorker, %{
+               delivery_target_id: target.id,
+               tenant_id: delivery.tenant_id
+             })
+
+    target_id = target.id
+    refute_receive {:target_adapter_called, ^target_id}, 50
+
     assert {:ok, %{target: closed_target, attempt: closed_attempt}} =
              DeliveryTargets.close_stale_started_attempt(target.id, delivery.tenant_id)
 
