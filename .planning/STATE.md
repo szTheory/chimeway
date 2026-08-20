@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 99
 current_phase_name: multi-installation-delivery-recovery
 status: executing
-stopped_at: Completed 99-08-PLAN.md
-last_updated: "2026-08-20T13:29:21.082Z"
+stopped_at: Completed 99-09-PLAN.md
+last_updated: "2026-08-20T13:33:27.367Z"
 last_activity: 2026-08-20
 last_activity_desc: Phase 99 execution started
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 39
-  completed_plans: 37
+  completed_plans: 38
   percent: 29
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 99 (multi-installation-delivery-recovery) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 99 execution started
 
@@ -370,6 +370,8 @@ status: complete
 - [Phase ?]: [99-07]: Recovery summaries emit only closed counts, reason atoms, and independent typed continuations; no tenant or target material enters telemetry.
 - [Phase ?]: [99-07]: Event, pending-target, and stale-attempt recovery scans use separate durable-ID cursors and validated batch bounds.
 - [Phase ?]: [99-08]: Common trace loaders share tenant-qualified target history preloads, and explanations reuse SafeEvidence.trace_delivery/1.
+- [Phase ?]: [99-09]: Sync snapshots ordered actionable target IDs and claims each through Executor.run_target/2.
+- [Phase ?]: [99-09]: Sync continues after target errors and returns the recomputed canonical delivery aggregate.
 
 ### Roadmap Evolution
 
@@ -690,8 +692,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T13:29:21.063Z
-Stopped at: Completed 99-08-PLAN.md
+Last session: 2026-08-20T13:33:27.351Z
+Stopped at: Completed 99-09-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -830,3 +832,4 @@ Resume file: None
 | Phase 99 P06 | 8 min | 1 tasks | 4 files |
 | Phase 99 P07 | 24m | 2 tasks | 5 files |
 | Phase 99-multi-installation-delivery-recovery P08 | 12m | 1 tasks | 4 files |
+| Phase 99 P09 | 3m | 1 tasks | 2 files |
