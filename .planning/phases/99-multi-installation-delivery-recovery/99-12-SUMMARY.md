@@ -79,6 +79,7 @@ status: complete
 1. **Task 1: Lock lifecycle authorization to operation-specific source states** - `fd26c5d`, `60b3757`
 2. **Task 2: Add the forward composite tenant-integrity repair** - `063c39a`, `b1d3303`
 3. **Task 3: Preserve installer and static-storage parity for migration 036** - `5c466f0`
+4. **Post-merge recovery: Update generated runtime migration-count proof** - `a7c9015`
 
 ## Decisions Made
 
@@ -90,6 +91,8 @@ status: complete
 - PASS: focused lifecycle and target-worker tests (21 tests).
 - PASS: serial repository and generated migration contract tests (14 tests).
 - PASS: prefix contract test (7 tests) and golden fixtures refreshed using the installer acceptance command.
+- PASS: generated prefixed runtime proof after updating its migration count (1 test).
+- NOT CREDITED: full `mix ci.test` exceeded the 600-second gate budget; the focused release-gate artifact consumer test hit a transient rebar/Mix temporary-lock failure outside Chimeway source behavior.
 
 ## Deviations from Plan
 
@@ -103,6 +106,18 @@ status: complete
 - **Committed in:** `5c466f0`
 
 **Total deviations:** 1 auto-fixed (Rule 2).
+
+### Post-Merge Recovery
+
+**2. [Rule 1 - Test regression] Updated generated prefixed runtime migration counts.**
+- **Found during:** Wave 9 post-merge gate
+- **Issue:** Two generated-runtime proofs still expected 35 migrations after migration 036 was added.
+- **Fix:** Updated the shared generated migration setup and its public proof assertion to require 36 migrations.
+- **Files modified:** `test/support/generated_prefixed_runtime_case.ex`, `test/chimeway/generated_prefixed_runtime_proof_test.exs`
+- **Verification:** Focused generated runtime proof passed.
+- **Committed in:** `a7c9015`
+
+**Gate environment note:** Focused artifact-consumer release-gate execution failed while compiling third-party dependencies with `rebar_dir:get_cwd` `enoent`, followed by Mix's missing temporary lock-file error. No Chimeway source regression was identified; no code workaround was applied.
 
 ## Known Stubs
 
