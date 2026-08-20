@@ -19,7 +19,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 
 - [x] **Phase 97: Tenant Identity & Compatible Upgrade** — Tenant-safe lifecycle identity and a non-guessing upgrade path. (completed 2026-08-12)
 - [x] **Phase 98: Privacy-Safe Delivery Evidence** — Recursive redaction and bounded diagnostics across every observable Chimeway surface. (completed 2026-08-19)
-- [ ] **Phase 99: Multi-Installation Delivery & Recovery** — One logical delivery with independently explainable opaque installation targets.
+- [x] **Phase 99: Multi-Installation Delivery & Recovery** — One logical delivery with independently explainable opaque installation targets. (completed 2026-08-20)
 - [ ] **Phase 100: Optional APNs Adapter** — Opt-in, reason-aware APNs dispatch under host token custody.
 - [ ] **Phase 101: CrossWake Registration & Protected Open** — Authenticated registration and fail-closed offline notification activation.
 - [ ] **Phase 102: Alpha Digital Twin & Hermetic Gate** — Deterministic cross-repository production-path proof in CI.
@@ -258,7 +258,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
 | 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
-| 99. Multi-Installation Delivery & Recovery | 12/12 | In Progress|  |
+| 99. Multi-Installation Delivery & Recovery | 12/12 | Complete    | 2026-08-20 |
 | 100. Optional APNs Adapter | 0/TBD | Not started | - |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
 | 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |
