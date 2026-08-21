@@ -210,7 +210,7 @@ Plans:
   4. Expired reminders are suppressed before initial send or retry, and only host-opted replaceable occurrences use an installation-safe collapse key; distinct notifications remain uncoalesced.
   5. A provider invalidation affects only its exact tenant, environment, and binding revision, never a rotated replacement or another installation.
 
-**Plans**: 7/7 plans executed
+**Plans**: 8 plans (7 executed; 1 gap-closure plan pending)
 
 Plans:
 
@@ -241,6 +241,10 @@ Plans:
 **Wave 7** *(blocked on Wave 6 completion)*
 
 - [x] 100-07-PLAN.md — Prove the public `APNS.deliver/2` → real Pigeon response bridge → classifier → exact host CAS path, including fail-closed variants.
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [ ] 100-08-PLAN.md — Restore packaged ordinary APNs success handling and enforce a deterministic advisory-free enabled-consumer dependency graph.
 
 ### Phase 101: CrossWake Registration & Protected Open
 
