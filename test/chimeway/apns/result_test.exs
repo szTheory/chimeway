@@ -123,6 +123,32 @@ defmodule Chimeway.APNS.ResultTest do
     end
   end
 
+  test "retryable APNs provider reasons remain retryable" do
+    for {status, reason, code, provider_reason, corrective_action} <- [
+          {403, "IdleTimeout", :idle_timeout, "idle_timeout", "refresh_provider_token"},
+          {429, "TooManyRequests", :too_many_requests, "too_many_requests", "retry_later"},
+          {500, "InternalServerError", :internal_server_error, "internal_server_error",
+           "retry_later"},
+          {503, "ServiceUnavailable", :service_unavailable, "service_unavailable", "retry_later"},
+          {503, "Shutdown", :shutdown, "shutdown", "retry_later"}
+        ] do
+      Application.put_env(
+        :chimeway,
+        :apns_fake_transport_result,
+        {:ok, %Transport.Result{outcome: :rejected, code: code, status: status, reason: reason}}
+      )
+
+      assert {:provider_retryable,
+              %{
+                provider_status: ^status,
+                provider_reason: ^provider_reason,
+                provider_code: ^provider_reason,
+                retry_after_ms: 1_000,
+                corrective_action: ^corrective_action
+              }} = APNS.deliver(envelope(), [])
+    end
+  end
+
   defp envelope do
     {:ok, intent} =
       RequestIntent.new(

@@ -62,6 +62,60 @@ defmodule APNSConsumerTest do
   end
 
   if System.get_env("CHIMEWAY_APNS_ENABLED") == "1" do
+    for {status, reason, code} <- [
+          {403, "IdleTimeout", :idle_timeout},
+          {403, "TooManyProviderTokenUpdates", :too_many_provider_token_updates},
+          {429, "TooManyRequests", :too_many_requests},
+          {500, "InternalServerError", :internal_server_error},
+          {503, "ServiceUnavailable", :service_unavailable},
+          {503, "Shutdown", :shutdown}
+        ] do
+      test "a represented Pigeon retryable response returns a closed transport result for #{reason}" do
+        status = unquote(status)
+        reason = unquote(reason)
+        code = unquote(code)
+
+        state = %{
+          config: %Pigeon.APNS.Config{},
+          queue: Pigeon.NotificationQueue.new(),
+          socket: :fixture_socket,
+          stream_id: 1
+        }
+
+        {:ok, dispatcher} =
+          Pigeon.Dispatcher.start_link(
+            adapter: Chimeway.APNS.Transport.PigeonAdapter,
+            chimeway_apns_state: state,
+            name: nil,
+            pool_size: 1
+          )
+
+        task = Task.async(fn -> Transport.pigeon_push(dispatcher, APNSConsumer.request()) end)
+        assert_receive {:pigeon_send_request, _headers}
+
+        [{_, worker, :worker, _}] = Supervisor.which_children(dispatcher)
+
+        send(
+          worker,
+          {:fixture_end_stream,
+           %Pigeon.Http2.Stream{
+             id: 1,
+             status: status,
+             headers: [],
+             body: ~s({"reason":"#{reason}"})
+           }}
+        )
+
+        assert {:ok,
+                %Transport.Result{
+                  outcome: :rejected,
+                  code: ^code,
+                  status: ^status,
+                  reason: ^reason
+                }} = Task.await(task)
+      end
+    end
+
     test "a represented Pigeon 410 response returns a closed transport result through Pigeon.push" do
       state = %{
         config: %Pigeon.APNS.Config{},

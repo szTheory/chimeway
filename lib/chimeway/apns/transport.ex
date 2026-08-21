@@ -117,6 +117,14 @@ defmodule Chimeway.APNS.Transport do
       alias Chimeway.APNS.Transport.Result
 
       @max_error_body_bytes 4_096
+      @retryable_reasons [
+        "IdleTimeout",
+        "TooManyProviderTokenUpdates",
+        "TooManyRequests",
+        "InternalServerError",
+        "ServiceUnavailable",
+        "Shutdown"
+      ]
 
       @impl true
       def init(opts) do
@@ -203,10 +211,35 @@ defmodule Chimeway.APNS.Transport do
         _ -> :error
       end
 
+      defp closed_result(%Pigeon.Http2.Stream{status: status, body: body})
+           when status in [403, 429, 500, 503] and is_binary(body) and
+                  byte_size(body) <= @max_error_body_bytes do
+        with {:ok, %{"reason" => reason}} <- Pigeon.json_library().decode(body),
+             true <- reason in @retryable_reasons do
+          {:ok,
+           %Result{
+             outcome: :rejected,
+             code: normalize_code(reason),
+             status: status,
+             reason: reason
+           }}
+        else
+          _ -> :error
+        end
+      rescue
+        _ -> :error
+      end
+
       defp closed_result(_stream), do: :error
 
       defp normalize_code(:expired_token), do: :expired_token
       defp normalize_code(:unregistered), do: :unregistered
+      defp normalize_code("IdleTimeout"), do: :idle_timeout
+      defp normalize_code("TooManyProviderTokenUpdates"), do: :too_many_provider_token_updates
+      defp normalize_code("TooManyRequests"), do: :too_many_requests
+      defp normalize_code("InternalServerError"), do: :internal_server_error
+      defp normalize_code("ServiceUnavailable"), do: :service_unavailable
+      defp normalize_code("Shutdown"), do: :shutdown
     end
   end
 end
