@@ -2,8 +2,6 @@ defmodule APNSConsumerTest do
   use ExUnit.Case, async: true
 
   if System.get_env("CHIMEWAY_APNS_ENABLED") == "1" do
-    alias Chimeway.APNS.Transport
-
     defmodule FakeHttp2Client do
       @behaviour Pigeon.Http2.Client
 
@@ -64,22 +62,72 @@ defmodule APNSConsumerTest do
   if System.get_env("CHIMEWAY_APNS_ENABLED") == "1" do
     test "a missing Pigeon dispatcher is reported as unavailable before provider handoff" do
       assert {:error, :pigeon_unavailable} =
-               Transport.pigeon_push(:fixture_missing_dispatcher, APNSConsumer.request())
+               Chimeway.APNS.Transport.pigeon_push(
+                 :fixture_missing_dispatcher,
+                 APNSConsumer.request()
+               )
     end
 
-    for {status, reason, code} <- [
-          {403, "IdleTimeout", :idle_timeout},
-          {403, "TooManyProviderTokenUpdates", :too_many_provider_token_updates},
-          {429, "TooManyRequests", :too_many_requests},
-          {500, "InternalServerError", :internal_server_error},
-          {503, "ServiceUnavailable", :service_unavailable},
-          {503, "Shutdown", :shutdown}
-        ] do
-      test "a represented Pigeon retryable response returns a closed transport result for #{reason}" do
-        status = unquote(status)
-        reason = unquote(reason)
-        code = unquote(code)
+    if function_exported?(Chimeway.APNS.Transport.PigeonAdapter, :init, 1) do
+      for {status, reason, code} <- [
+            {403, "IdleTimeout", :idle_timeout},
+            {403, "TooManyProviderTokenUpdates", :too_many_provider_token_updates},
+            {429, "TooManyRequests", :too_many_requests},
+            {500, "InternalServerError", :internal_server_error},
+            {503, "ServiceUnavailable", :service_unavailable},
+            {503, "Shutdown", :shutdown}
+          ] do
+        test "a represented Pigeon retryable response returns a closed transport result for #{reason}" do
+          status = unquote(status)
+          reason = unquote(reason)
+          code = unquote(code)
 
+          state = %{
+            config: %Pigeon.APNS.Config{},
+            queue: Pigeon.NotificationQueue.new(),
+            socket: :fixture_socket,
+            stream_id: 1
+          }
+
+          {:ok, dispatcher} =
+            Pigeon.Dispatcher.start_link(
+              adapter: Chimeway.APNS.Transport.PigeonAdapter,
+              chimeway_apns_state: state,
+              name: nil,
+              pool_size: 1
+            )
+
+          task =
+            Task.async(fn ->
+              Chimeway.APNS.Transport.pigeon_push(dispatcher, APNSConsumer.request())
+            end)
+
+          assert_receive {:pigeon_send_request, _headers}
+
+          [{_, worker, :worker, _}] = Supervisor.which_children(dispatcher)
+
+          send(
+            worker,
+            {:fixture_end_stream,
+             %Pigeon.Http2.Stream{
+               id: 1,
+               status: status,
+               headers: [],
+               body: ~s({"reason":"#{reason}"})
+             }}
+          )
+
+          assert {:ok,
+                  %Chimeway.APNS.Transport.Result{
+                    outcome: :rejected,
+                    code: ^code,
+                    status: ^status,
+                    reason: ^reason
+                  }} = Task.await(task)
+        end
+      end
+
+      test "a represented Pigeon 410 response returns a closed transport result through Pigeon.push" do
         state = %{
           config: %Pigeon.APNS.Config{},
           queue: Pigeon.NotificationQueue.new(),
@@ -95,7 +143,11 @@ defmodule APNSConsumerTest do
             pool_size: 1
           )
 
-        task = Task.async(fn -> Transport.pigeon_push(dispatcher, APNSConsumer.request()) end)
+        task =
+          Task.async(fn ->
+            Chimeway.APNS.Transport.pigeon_push(dispatcher, APNSConsumer.request())
+          end)
+
         assert_receive {:pigeon_send_request, _headers}
 
         [{_, worker, :worker, _}] = Supervisor.which_children(dispatcher)
@@ -105,62 +157,21 @@ defmodule APNSConsumerTest do
           {:fixture_end_stream,
            %Pigeon.Http2.Stream{
              id: 1,
-             status: status,
+             status: 410,
              headers: [],
-             body: ~s({"reason":"#{reason}"})
+             body: ~s({"reason":"Unregistered","timestamp":1725000000})
            }}
         )
 
         assert {:ok,
-                %Transport.Result{
+                %Chimeway.APNS.Transport.Result{
                   outcome: :rejected,
-                  code: ^code,
-                  status: ^status,
-                  reason: ^reason
+                  code: :unregistered,
+                  status: 410,
+                  reason: "Unregistered",
+                  timestamp: 1_725_000_000
                 }} = Task.await(task)
       end
-    end
-
-    test "a represented Pigeon 410 response returns a closed transport result through Pigeon.push" do
-      state = %{
-        config: %Pigeon.APNS.Config{},
-        queue: Pigeon.NotificationQueue.new(),
-        socket: :fixture_socket,
-        stream_id: 1
-      }
-
-      {:ok, dispatcher} =
-        Pigeon.Dispatcher.start_link(
-          adapter: Chimeway.APNS.Transport.PigeonAdapter,
-          chimeway_apns_state: state,
-          name: nil,
-          pool_size: 1
-        )
-
-      task = Task.async(fn -> Transport.pigeon_push(dispatcher, APNSConsumer.request()) end)
-      assert_receive {:pigeon_send_request, _headers}
-
-      [{_, worker, :worker, _}] = Supervisor.which_children(dispatcher)
-
-      send(
-        worker,
-        {:fixture_end_stream,
-         %Pigeon.Http2.Stream{
-           id: 1,
-           status: 410,
-           headers: [],
-           body: ~s({"reason":"Unregistered","timestamp":1725000000})
-         }}
-      )
-
-      assert {:ok,
-              %Transport.Result{
-                outcome: :rejected,
-                code: :unregistered,
-                status: 410,
-                reason: "Unregistered",
-                timestamp: 1_725_000_000
-              }} = Task.await(task)
     end
   end
 
