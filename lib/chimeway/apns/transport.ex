@@ -84,6 +84,7 @@ defmodule Chimeway.APNS.Transport do
     do: {:ok, %Result{outcome: :accepted, code: :accepted}}
 
   defp classify_pigeon_response(%{response: %Result{} = result}), do: {:ok, result}
+  defp classify_pigeon_response(%{response: :not_started}), do: {:error, :pigeon_unavailable}
   defp classify_pigeon_response(%{response: :timeout}), do: {:error, :ambiguous}
   defp classify_pigeon_response(%{response: _}), do: {:error, :rejected}
   defp classify_pigeon_response(_), do: {:error, :ambiguous}

@@ -84,6 +84,7 @@ defmodule Chimeway.Adapters.APNSTest do
 
     assert {:pre_handoff_retryable, %{provider_code: "binding_not_found"}} =
              APNS.deliver(envelope(), [])
+
     refute_receive {:apns_push, _, _}
 
     Application.put_env(:chimeway, :apns_lookup_reply, fn request ->
@@ -102,6 +103,13 @@ defmodule Chimeway.Adapters.APNSTest do
 
     assert {:error, :possible_handoff, :ambiguous_handoff} = APNS.deliver(envelope(), [])
     assert_receive {:apns_push, _, _}
+  end
+
+  test "an unavailable Pigeon dispatcher remains retryable before provider handoff" do
+    Application.put_env(:chimeway, :apns_fake_transport_result, {:error, :pigeon_unavailable})
+
+    assert {:pre_handoff_retryable, %{provider_code: "pigeon_unavailable"}} =
+             APNS.deliver(envelope(), [])
   end
 
   test "Pigeon is optional and raw extraction fails closed unless the invalidation triple is complete" do

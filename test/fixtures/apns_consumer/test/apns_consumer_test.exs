@@ -62,6 +62,11 @@ defmodule APNSConsumerTest do
   end
 
   if System.get_env("CHIMEWAY_APNS_ENABLED") == "1" do
+    test "a missing Pigeon dispatcher is reported as unavailable before provider handoff" do
+      assert {:error, :pigeon_unavailable} =
+               Transport.pigeon_push(:fixture_missing_dispatcher, APNSConsumer.request())
+    end
+
     for {status, reason, code} <- [
           {403, "IdleTimeout", :idle_timeout},
           {403, "TooManyProviderTokenUpdates", :too_many_provider_token_updates},
