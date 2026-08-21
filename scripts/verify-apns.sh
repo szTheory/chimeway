@@ -26,6 +26,9 @@ mkdir -p "$artifact_root"
 package_path=$(find "$artifact_root" -mindepth 1 -maxdepth 2 -name mix.exs -print -quit | xargs -r dirname)
 [[ -n "$package_path" && -f "$package_path/mix.exs" ]] || fail "unpacked package mix.exs is missing"
 
+focus="${CHIMEWAY_APNS_FOCUS:-}"
+[[ -z "$focus" || "$focus" == "bridge_to_cas" ]] || fail "unknown CHIMEWAY_APNS_FOCUS value: $focus"
+
 run_consumer() {
   local mode="$1"
   local consumer_root="$work_root/$mode"
@@ -41,7 +44,12 @@ run_consumer() {
       grep -Eq 'pigeon.*2\.0\.1' "$output" || fail "enabled fixture did not resolve pigeon 2.0.1"
       grep -Eq 'pigeon.*2\.0\.1' mix.lock || fail "enabled fixture lock does not pin pigeon 2.0.1"
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix compile --warnings-as-errors >>"$output"
-      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix test >>"$output"
+      if [[ "$focus" == "bridge_to_cas" ]]; then
+        CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+          mix test --only apns_bridge_to_cas >>"$output"
+      else
+        CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix test >>"$output"
+      fi
     )
   else
     (
@@ -58,8 +66,12 @@ run_consumer() {
   ! grep -q 'fixture-token-never-emitted' "$output" || fail "consumer output leaked the token sentinel"
 }
 
-run_consumer disabled
-run_consumer enabled
+if [[ "$focus" == "bridge_to_cas" ]]; then
+  run_consumer enabled
+else
+  run_consumer disabled
+  run_consumer enabled
+fi
 
 # This is an intentionally narrow proof claim: it describes a synthetic sandbox
 # handoff only, never Apple acceptance, device display, or protected-open proof.

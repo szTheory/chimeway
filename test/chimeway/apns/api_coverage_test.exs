@@ -9,14 +9,24 @@ defmodule Chimeway.APNS.APICoverageTest do
 
     for {capability, disposition, reason} <- rows do
       assert disposition in ["INTEGRATE", "OPT-OUT"], "#{capability} has an invalid disposition"
-      if disposition == "OPT-OUT", do: assert(String.trim(reason) != "", "#{capability} needs a reason")
+
+      if disposition == "OPT-OUT",
+        do: assert(String.trim(reason) != "", "#{capability} needs a reason")
     end
   end
 
   test "the APNs verification alias includes all focused contracts and consumer proof" do
     mix_exs = File.read!("mix.exs")
     assert mix_exs =~ ~s("verify.apns")
-    for required <- ["api_coverage_test.exs", "request_test.exs", "result_test.exs", "safe_evidence_test.exs", "migration_contract_test.exs", "bash scripts/verify-apns.sh"] do
+
+    for required <- [
+          "api_coverage_test.exs",
+          "request_test.exs",
+          "result_test.exs",
+          "safe_evidence_test.exs",
+          "migration_contract_test.exs",
+          "bash scripts/verify-apns.sh"
+        ] do
       assert mix_exs =~ required
     end
   end
@@ -30,6 +40,8 @@ defmodule Chimeway.APNS.APICoverageTest do
     |> Enum.map(fn [capability, disposition, reason] ->
       {String.trim(capability), String.trim(disposition), String.trim(reason)}
     end)
-    |> Enum.reject(fn {_capability, disposition, _reason} -> disposition == "Disposition" end)
+    |> Enum.reject(fn {_capability, disposition, _reason} ->
+      String.downcase(disposition) in ["disposition", "---"]
+    end)
   end
 end

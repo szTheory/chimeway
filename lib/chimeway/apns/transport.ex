@@ -38,7 +38,7 @@ defmodule Chimeway.APNS.Transport do
   def push(dispatcher_ref, %Request{} = request, opts \\ []) do
     transport = Keyword.get(opts, :transport, Application.get_env(:chimeway, :apns_transport))
 
-    if is_atom(transport) do
+    if is_atom(transport) and not is_nil(transport) do
       transport.push(dispatcher_ref, request, opts)
     else
       pigeon_push(dispatcher_ref, request)
@@ -108,6 +108,133 @@ defmodule Chimeway.APNS.Transport do
     end
 
     def extract_response(_), do: {:error, :incomplete_provider_response}
+
+    # Hosts compile Chimeway without Pigeon, then may opt in downstream. Keep this
+    # callback surface available without expanding optional Pigeon structs at the
+    # package compile boundary; all Pigeon calls remain runtime-only.
+    def init(opts) do
+      case Keyword.fetch(opts, :chimeway_apns_state) do
+        {:ok, state} -> {:ok, state}
+        :error -> apply(Module.concat(["Pigeon", "APNS"]), :init, [opts])
+      end
+    end
+
+    def handle_push(notification, %{config: config, queue: queue} = state) do
+      configurable = Module.concat(["Pigeon", "Configurable"])
+      client = apply(Module.concat(["Pigeon", "Http2", "Client"]), :default, [])
+      queue_module = Module.concat(["Pigeon", "NotificationQueue"])
+
+      headers = apply(configurable, :push_headers, [config, notification, []])
+      payload = apply(configurable, :push_payload, [config, notification, []])
+      apply(client, :send_request, [state.socket, headers, payload])
+
+      {:noreply,
+       state
+       |> Map.put(:queue, apply(queue_module, :add, [queue, state.stream_id, notification]))
+       |> Map.update!(:stream_id, &(&1 + 2))}
+    end
+
+    def handle_info(:ping, state) do
+      client = apply(Module.concat(["Pigeon", "Http2", "Client"]), :default, [])
+      apply(client, :send_ping, [state.socket])
+      apply(Module.concat(["Pigeon", "Configurable"]), :schedule_ping, [state.config])
+      {:noreply, state}
+    end
+
+    def handle_info(message, state) do
+      client = apply(Module.concat(["Pigeon", "Http2", "Client"]), :default, [])
+
+      case apply(client, :handle_end_stream, [message, state]) do
+        {:ok, stream} -> process_end_stream(stream, state)
+        _ -> {:noreply, state}
+      end
+    end
+
+    def process_end_stream(%{id: stream_id} = stream, %{queue: queue} = state) do
+      queue_module = Module.concat(["Pigeon", "NotificationQueue"])
+
+      case apply(queue_module, :pop, [queue, stream_id]) do
+        {nil, new_queue} ->
+          {:noreply, %{state | queue: new_queue}}
+
+        {notification, new_queue} ->
+          case runtime_closed_result(stream) do
+            {:ok, result} ->
+              apply(Module.concat(["Pigeon", "Tasks"]), :process_on_response, [
+                %{notification | response: result}
+              ])
+          end
+
+          {:noreply, %{state | queue: new_queue}}
+      end
+    end
+
+    defp runtime_closed_result(%{status: 410, body: body} = stream)
+         when is_binary(body) and byte_size(body) <= 4_096 do
+      json_library = apply(Module.concat(["Pigeon"]), :json_library, [])
+
+      with {:ok, response} <- json_library.decode(body),
+           {:ok, %{reason: reason, timestamp: timestamp}} <-
+             extract_response(Map.put(response, "status", 410)) do
+        {:ok,
+         %Chimeway.APNS.Transport.Result{
+           outcome: :rejected,
+           code: reason,
+           status: 410,
+           reason: if(reason == :expired_token, do: "ExpiredToken", else: "Unregistered"),
+           timestamp: timestamp
+         }}
+      else
+        _ -> {:ok, unrecognized_result(stream)}
+      end
+    rescue
+      _ -> {:ok, unrecognized_result(stream)}
+    end
+
+    defp runtime_closed_result(%{status: status, body: body} = stream)
+         when status in [403, 429, 500, 503] and is_binary(body) and byte_size(body) <= 4_096 do
+      json_library = apply(Module.concat(["Pigeon"]), :json_library, [])
+
+      with {:ok, %{"reason" => reason}} <- json_library.decode(body),
+           true <-
+             reason in [
+               "IdleTimeout",
+               "TooManyProviderTokenUpdates",
+               "TooManyRequests",
+               "InternalServerError",
+               "ServiceUnavailable",
+               "Shutdown"
+             ] do
+        {:ok,
+         %Chimeway.APNS.Transport.Result{
+           outcome: :rejected,
+           code: runtime_code(reason),
+           status: status,
+           reason: reason
+         }}
+      else
+        _ -> {:ok, unrecognized_result(stream)}
+      end
+    rescue
+      _ -> {:ok, unrecognized_result(stream)}
+    end
+
+    defp runtime_closed_result(stream), do: {:ok, unrecognized_result(stream)}
+
+    defp unrecognized_result(stream) do
+      %Chimeway.APNS.Transport.Result{
+        outcome: :rejected,
+        code: :unrecognized_provider_response,
+        status: Map.get(stream, :status)
+      }
+    end
+
+    defp runtime_code("IdleTimeout"), do: :idle_timeout
+    defp runtime_code("TooManyProviderTokenUpdates"), do: :too_many_provider_token_updates
+    defp runtime_code("TooManyRequests"), do: :too_many_requests
+    defp runtime_code("InternalServerError"), do: :internal_server_error
+    defp runtime_code("ServiceUnavailable"), do: :service_unavailable
+    defp runtime_code("Shutdown"), do: :shutdown
 
     # The optional Pigeon implementation is compiled only by hosts that add Pigeon.
     # Keeping every Pigeon reference in this guard preserves package consumers that

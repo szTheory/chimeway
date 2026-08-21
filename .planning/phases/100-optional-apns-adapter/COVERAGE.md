@@ -3,7 +3,7 @@
 **Pinned surface:** Pigeon 2.0.1 APNs notification/dispatcher API and Apple ordinary remote-notification request/response semantics.  
 **Rule:** Chimeway integrates only the target-specific APNs request and result surface. Dispatcher credentials, connection supervision, registration, protected-open authorization, other Pigeon providers, and rich APS presentation options remain outside this phase for the reasons recorded below.
 
-| capability | decision | reason |
+| capability | disposition | reason |
 |---|---|---|
 | Host adds and starts Pigeon 2.0.1 | INTEGRATE | Opted-in hosts add the dependency and supervise the dispatcher; the Chimeway package remains Pigeon-free (D-01, D-02). |
 | `Pigeon.push/3` synchronous single-notification send | INTEGRATE | The pinned host-selected transport sends one target request and returns a target-specific result; timeout is treated as possible handoff (D-09, D-13, D-14). |

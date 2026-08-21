@@ -91,15 +91,17 @@ defmodule APNSConsumerTest do
                     provider_status: 410,
                     provider_reason: provider_reason,
                     provider_timestamp: ^timestamp
-                  }} =
-                   Task.await(task)
+                  }} = result = Task.await(task)
 
           assert provider_reason == Macro.underscore(reason)
 
-          assert_receive {:binding_invalidation, APNSConsumer.original_binding_key()}
+          expected_key = APNSConsumer.original_binding_key()
+          assert_receive {:binding_invalidation, ^expected_key}
 
           assert %{successful_invalidations: 1, original: :invalidated, replacement: :active} =
                    APNSConsumer.binding_state()
+
+          assert_safe_result(result)
         end)
       end
     end
@@ -141,11 +143,13 @@ defmodule APNSConsumerTest do
           task = Task.async(fn -> APNSConsumer.deliver(dispatcher) end)
           assert_receive {:pigeon_send_request, _headers}
           deliver_end_stream(dispatcher, stream)
-          assert {:permanent, _facts} = Task.await(task)
+          assert {:permanent, _facts} = result = Task.await(task)
           refute_receive {:binding_invalidation, _}
 
           assert %{successful_invalidations: 0, original: :active, replacement: :active} =
                    APNSConsumer.binding_state()
+
+          assert_safe_result(result)
         end)
       end
     end
@@ -291,6 +295,10 @@ defmodule APNSConsumerTest do
       {:ok, dispatcher} = APNSConsumer.start_dispatcher()
       {:ok, registry} = APNSConsumer.start_binding_registry(self(), dispatcher)
 
+      previous_lookup = Application.get_env(:chimeway, :apns_binding_lookup)
+      previous_transport = Application.get_env(:chimeway, :apns_transport)
+      previous_registry = Application.get_env(:apns_consumer, :binding_registry)
+
       Application.put_env(:chimeway, :apns_binding_lookup, APNSConsumer)
       Application.delete_env(:chimeway, :apns_transport)
       Application.put_env(:apns_consumer, :binding_registry, registry)
@@ -300,14 +308,25 @@ defmodule APNSConsumerTest do
       after
         if Process.alive?(dispatcher), do: Supervisor.stop(dispatcher)
         if Process.alive?(registry), do: Agent.stop(registry)
-        Application.delete_env(:apns_consumer, :binding_registry)
-        Application.delete_env(:chimeway, :apns_binding_lookup)
+        restore_env(:apns_consumer, :binding_registry, previous_registry)
+        restore_env(:chimeway, :apns_binding_lookup, previous_lookup)
+        restore_env(:chimeway, :apns_transport, previous_transport)
       end
     end
 
     defp deliver_end_stream(dispatcher, stream) do
       [{_, worker, :worker, _}] = Supervisor.which_children(dispatcher)
       send(worker, {:fixture_end_stream, stream})
+    end
+
+    defp restore_env(app, key, nil), do: Application.delete_env(app, key)
+    defp restore_env(app, key, value), do: Application.put_env(app, key, value)
+
+    defp assert_safe_result(result) do
+      evidence = inspect(result)
+      refute evidence =~ "fixture-token-never-emitted"
+      refute evidence =~ "dispatcher"
+      refute evidence =~ "not-json"
     end
   end
 

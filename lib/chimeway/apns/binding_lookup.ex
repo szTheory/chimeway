@@ -74,7 +74,8 @@ defmodule Chimeway.APNS.BindingLookup do
   end
 
   defp valid_transient?(%Transient{device_token: token, dispatcher_ref: dispatcher}) do
-    is_binary(token) and byte_size(token) > 0 and is_binary(dispatcher) and
-      byte_size(dispatcher) > 0
+    is_binary(token) and byte_size(token) > 0 and
+      (is_pid(dispatcher) or is_atom(dispatcher) or
+         (is_binary(dispatcher) and byte_size(dispatcher) > 0))
   end
 end
