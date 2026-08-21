@@ -183,10 +183,11 @@ defmodule Chimeway.APNS.Transport do
         end
       end
 
-      defp closed_result(%Pigeon.Http2.Stream{status: 410, body: body})
+      defp closed_result(%Pigeon.Http2.Stream{status: 410, body: body} = stream)
            when is_binary(body) and byte_size(body) <= @max_error_body_bytes do
         with {:ok, response} <- Pigeon.json_library().decode(body),
-             {:ok, %{reason: reason, timestamp: timestamp}} <- extract_response(response) do
+             {:ok, %{reason: reason, timestamp: timestamp}} <-
+               extract_response(Map.put(response, "status", stream.status)) do
           {:ok,
            %Result{
              outcome: :rejected,
