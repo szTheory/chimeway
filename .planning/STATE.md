@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
 current_phase_name: optional-apns-adapter
 status: executing
-stopped_at: Completed 100-06-PLAN.md
-last_updated: "2026-08-20T23:42:33.491Z"
-last_activity: 2026-08-20
+stopped_at: Completed 100-07-PLAN.md
+last_updated: "2026-08-21T17:52:41.755Z"
+last_activity: 2026-08-21
 last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
-  completed_phases: 3
-  total_plans: 47
-  completed_plans: 46
-  percent: 43
+  completed_phases: 4
+  total_plans: 48
+  completed_plans: 48
+  percent: 57
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 100 (optional-apns-adapter) — EXECUTING
-Plan: 2 of 6
+Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-08-20 — Phase 100 execution started
+Last activity: 2026-08-21 — Phase 100 execution started
 
 ## Deferred Items
 
@@ -387,6 +387,8 @@ status: complete
 - [Phase ?]: [100-04]: Provider invalidation requires complete 410/recognized-reason/timestamp facts and confirmed host exact CAS.
 - [Phase ?]: [100-05]: APNs optionality is proven by fresh packaged consumers; Pigeon 2.0.1 remains an explicit host-only dependency.
 - [Phase ?]: [100-06]: Pigeon raw 410 streams are converted only after queue correlation and a bounded complete response triple.
+- [Phase ?]: [100-07] Absent APNs transport configuration must enter the optional Pigeon path; only non-nil atom overrides are adapter modules.
+- [Phase ?]: [100-07] Pigeon-free package builds retain runtime-only dispatcher callbacks that close malformed provider streams safely.
 
 ### Roadmap Evolution
 
@@ -707,8 +709,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-20T23:42:33.480Z
-Stopped at: Completed 100-06-PLAN.md
+Last session: 2026-08-21T17:52:41.731Z
+Stopped at: Completed 100-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -857,3 +859,4 @@ Resume file: None
 | Phase 100-optional-apns-adapter P04 | 12 min | 2 tasks | 10 files |
 | Phase 100-optional-apns-adapter P05 | 18 min | 2 tasks | 9 files |
 | Phase 100-optional-apns-adapter P06 | 18 min | 2 tasks | 5 files |
+| Phase 100 P07 | 24 min | 1 tasks | 7 files |
