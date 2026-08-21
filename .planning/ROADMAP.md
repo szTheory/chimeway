@@ -214,8 +214,6 @@ Plans:
 
 Plans:
 
-- [ ] 100-07-PLAN.md
-
 **Wave 1**
 
 - [x] 100-01-PLAN.md — Prove the persisted accepted-handoff APNs tracer across planning, target attempt, host custody, bounds, and provider evidence.
@@ -239,6 +237,10 @@ Plans:
 **Wave 6** *(blocked on Wave 5 completion)*
 
 - [x] 100-06-PLAN.md — Carry represented Pigeon 2.0.1 APNs 410 responses through the production callback bridge to exact-binding invalidation, and require that proof in both hosted aggregate gates.
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [ ] 100-07-PLAN.md — Prove the public `APNS.deliver/2` → real Pigeon response bridge → classifier → exact host CAS path, including fail-closed variants.
 
 ### Phase 101: CrossWake Registration & Protected Open
 
