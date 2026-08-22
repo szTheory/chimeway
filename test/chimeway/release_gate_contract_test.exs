@@ -2911,6 +2911,18 @@ defmodule Chimeway.ReleaseGateContractTest do
       refute String.replace(script, "mix hex.audit", "true", global: false) =~ "mix hex.audit"
     end
 
+    test "enabled verifier warning-strictly compiles the unpacked Chimeway dependency first" do
+      script = File.read!(@apns_script)
+      dependency_compile = "mix cmd --cd deps/chimeway mix compile --force --warnings-as-errors"
+      consumer_compile = "mix compile --warnings-as-errors"
+
+      assert script =~ dependency_compile
+      assert :binary.match(script, dependency_compile) < :binary.match(script, consumer_compile)
+
+      refute String.replace(script, "--force --warnings-as-errors", "--force", global: false) =~
+               dependency_compile
+    end
+
     test "disabled consumer audit is baseline-aware about root tzdata's Hackney edge" do
       script = File.read!(@apns_script)
 

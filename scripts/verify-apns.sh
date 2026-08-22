@@ -43,6 +43,7 @@ run_consumer() {
       cd "$consumer_root"
       cp "$fixture_root/apns-enabled.lock" mix.lock
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get --check-locked
+      mix cmd --cd deps/chimeway mix compile --force --warnings-as-errors >>"$output"
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
       grep -Eq 'pigeon.*2\.0\.1' "$tree_output" || fail "enabled fixture did not resolve pigeon 2.0.1"
       grep -Eq 'httpoison.*3\.0\.0' "$tree_output" || fail "enabled fixture did not resolve httpoison 3.0.0"

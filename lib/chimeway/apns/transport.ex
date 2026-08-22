@@ -178,9 +178,7 @@ defmodule Chimeway.APNS.Transport do
 
     defp runtime_closed_result(%{status: 410, body: body} = stream)
          when is_binary(body) and byte_size(body) <= 4_096 do
-      json_library = apply(Module.concat(["Pigeon"]), :json_library, [])
-
-      with {:ok, response} <- json_library.decode(body),
+      with {:ok, response} <- decode_json(body),
            {:ok, %{reason: reason, timestamp: timestamp}} <-
              extract_response(Map.put(response, "status", 410)) do
         {:ok,
@@ -200,9 +198,7 @@ defmodule Chimeway.APNS.Transport do
 
     defp runtime_closed_result(%{status: status, body: body} = stream)
          when status in [403, 429, 500, 503] and is_binary(body) and byte_size(body) <= 4_096 do
-      json_library = apply(Module.concat(["Pigeon"]), :json_library, [])
-
-      with {:ok, %{"reason" => reason}} <- json_library.decode(body),
+      with {:ok, %{"reason" => reason}} <- decode_json(body),
            true <-
              reason in [
                "IdleTimeout",
@@ -229,6 +225,22 @@ defmodule Chimeway.APNS.Transport do
     defp runtime_closed_result(%{status: status}) when status in [200, 201], do: :normalized
     defp runtime_closed_result(stream), do: {:ok, unrecognized_result(stream)}
 
+    defp decode_json(body) do
+      json_library = Application.get_env(:pigeon, :json_library, Module.concat(["Jason"]))
+
+      with module when is_atom(module) <- json_library,
+           true <- Code.ensure_loaded?(module) and function_exported?(module, :decode, 1),
+           {:ok, decoded} <- apply(module, :decode, [body]) do
+        {:ok, decoded}
+      else
+        _ -> {:error, :invalid_json_decoder}
+      end
+    rescue
+      _ -> {:error, :invalid_json_decoder}
+    catch
+      _, _ -> {:error, :invalid_json_decoder}
+    end
+
     defp unrecognized_result(stream) do
       %Chimeway.APNS.Transport.Result{
         outcome: :rejected,
@@ -244,138 +256,5 @@ defmodule Chimeway.APNS.Transport do
     defp runtime_code("ServiceUnavailable"), do: :service_unavailable
     defp runtime_code("Shutdown"), do: :shutdown
 
-    # The optional Pigeon implementation is compiled only by hosts that add Pigeon.
-    # Keeping every Pigeon reference in this guard preserves package consumers that
-    # never opt into APNs.
-    if Code.ensure_loaded?(Pigeon.Adapter) do
-      @behaviour Pigeon.Adapter
-
-      alias Chimeway.APNS.Transport.Result
-
-      @max_error_body_bytes 4_096
-      @retryable_reasons [
-        "IdleTimeout",
-        "TooManyProviderTokenUpdates",
-        "TooManyRequests",
-        "InternalServerError",
-        "ServiceUnavailable",
-        "Shutdown"
-      ]
-
-      @impl true
-      def init(opts) do
-        case Keyword.fetch(opts, :chimeway_apns_state) do
-          {:ok, state} -> {:ok, state}
-          :error -> Pigeon.APNS.init(opts)
-        end
-      end
-
-      @impl true
-      def handle_push(notification, %{config: config, queue: queue} = state) do
-        headers = Pigeon.Configurable.push_headers(config, notification, [])
-        payload = Pigeon.Configurable.push_payload(config, notification, [])
-
-        Pigeon.Http2.Client.default().send_request(state.socket, headers, payload)
-
-        {:noreply,
-         state
-         |> Map.put(:queue, Pigeon.NotificationQueue.add(queue, state.stream_id, notification))
-         |> Map.update!(:stream_id, &(&1 + 2))}
-      end
-
-      @impl true
-      def handle_info(:ping, state) do
-        Pigeon.Http2.Client.default().send_ping(state.socket)
-        Pigeon.Configurable.schedule_ping(state.config)
-        {:noreply, state}
-      end
-
-      def handle_info(message, state) do
-        case Pigeon.Http2.Client.default().handle_end_stream(message, state) do
-          {:ok, %Pigeon.Http2.Stream{} = stream} -> process_end_stream(stream, state)
-          _ -> {:noreply, state}
-        end
-      end
-
-      @doc false
-      def process_end_stream(
-            %Pigeon.Http2.Stream{id: stream_id} = stream,
-            %{queue: queue} = state
-          ) do
-        case Pigeon.NotificationQueue.pop(queue, stream_id) do
-          {nil, new_queue} ->
-            {:noreply, %{state | queue: new_queue}}
-
-          {notification, new_queue} ->
-            case close_response(notification, stream, state.config) do
-              {:closed, response} -> Pigeon.Tasks.process_on_response(response)
-              :normalized -> :ok
-            end
-
-            {:noreply, %{state | queue: new_queue}}
-        end
-      end
-
-      defp close_response(notification, %Pigeon.Http2.Stream{} = stream, config) do
-        case closed_result(stream) do
-          {:ok, result} ->
-            {:closed, %{notification | response: result}}
-
-          :error ->
-            Pigeon.Configurable.handle_end_stream(config, stream, notification)
-            :normalized
-        end
-      end
-
-      defp closed_result(%Pigeon.Http2.Stream{status: 410, body: body} = stream)
-           when is_binary(body) and byte_size(body) <= @max_error_body_bytes do
-        with {:ok, response} <- Pigeon.json_library().decode(body),
-             {:ok, %{reason: reason, timestamp: timestamp}} <-
-               extract_response(Map.put(response, "status", stream.status)) do
-          {:ok,
-           %Result{
-             outcome: :rejected,
-             code: normalize_code(reason),
-             status: 410,
-             reason: reason,
-             timestamp: timestamp
-           }}
-        else
-          _ -> :error
-        end
-      rescue
-        _ -> :error
-      end
-
-      defp closed_result(%Pigeon.Http2.Stream{status: status, body: body})
-           when status in [403, 429, 500, 503] and is_binary(body) and
-                  byte_size(body) <= @max_error_body_bytes do
-        with {:ok, %{"reason" => reason}} <- Pigeon.json_library().decode(body),
-             true <- reason in @retryable_reasons do
-          {:ok,
-           %Result{
-             outcome: :rejected,
-             code: normalize_code(reason),
-             status: status,
-             reason: reason
-           }}
-        else
-          _ -> :error
-        end
-      rescue
-        _ -> :error
-      end
-
-      defp closed_result(_stream), do: :error
-
-      defp normalize_code(:expired_token), do: :expired_token
-      defp normalize_code(:unregistered), do: :unregistered
-      defp normalize_code("IdleTimeout"), do: :idle_timeout
-      defp normalize_code("TooManyProviderTokenUpdates"), do: :too_many_provider_token_updates
-      defp normalize_code("TooManyRequests"), do: :too_many_requests
-      defp normalize_code("InternalServerError"), do: :internal_server_error
-      defp normalize_code("ServiceUnavailable"), do: :service_unavailable
-      defp normalize_code("Shutdown"), do: :shutdown
-    end
   end
 end
