@@ -274,17 +274,17 @@ from(i in OpenIntent,
 | A2 | A Swift local queue implementation can be kept bounded/durable without adding a package. | Responsibility Map | Exact storage and recovery semantics need a CrossWake implementation decision. |
 | A3 | A predicate `update_all` with the listed scope is the selected host implementation. | Code Examples | The authoritative host may choose another transactional primitive, but must preserve one-winner semantics. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **What is the canonical default tap action identifier and normalized serialized shape?**
    - What we know: legacy `true` must mean exactly one default action and all non-default actions require explicit allowlisting. [VERIFIED: codebase grep]
    - What's unclear: the existing authoring type only accepts atoms for explicit actions while runtime evidence currently uses strings. [VERIFIED: codebase grep]
-   - Recommendation: decide one closed string/atom conversion at schema normalization and test it through serialization and resolver membership. [ASSUMED]
+   - Resolution: use `tap` as the canonical default action identifier and `%{actions: [String.t()]}` as the sole normalized compiled/serialized shape. Schema normalization converts accepted atom authoring values to bounded strings; route structs, manifest building/serialization, validation, and resolver membership consume that representation without reinterpretation. This is implemented by Plan 101-02 and enforced at runtime by Plan 101-03. [RESOLVED: 2026-08-22]
 
 2. **How does the host communicate distinct safe intent-denial states without leaking authority data?**
    - What we know: current denial codes cover expiry, replay, binding, route, action, and generic policy; the phase additionally needs explicit session/auth-safe outcomes. [VERIFIED: codebase grep]
    - What's unclear: whether a new stable public subcode is needed or existing `policy_denied` intentionally coalesces session/logout/tenant switch. [VERIFIED: codebase grep]
-   - Recommendation: define the closed mapping before telemetry/host audit implementation and assert no raw state is emitted. [ASSUMED]
+   - Resolution: coalesce logout, session/version, tenant-switch, and current-auth failures to the single stable public code `notification.open.authorization_denied`; keep binding-revoked, binding-mismatched, route/action mismatch, replay, expiry, and default-policy categories distinct. All public detail and telemetry pass through recursively closed bounded-scalar projections. This mapping is implemented and leak-tested by Plan 101-08. [RESOLVED: 2026-08-22]
 
 ## Environment Availability
 
