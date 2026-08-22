@@ -2917,7 +2917,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       dependency_prepare = "mix deps.compile"
 
       chimeway_compile =
-        "mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors"
+        "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors"
 
       fixture_env = "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
 
@@ -2926,13 +2926,17 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert script =~ dependency_prepare
       assert script =~ chimeway_compile
       assert script =~ fixture_env
+      assert script =~ "[[ -n \"$package_path\" && -f \"$package_path/mix.exs\" ]]"
+      refute script =~ "mix cmd --cd deps/chimeway"
+      refute script =~ "deps/chimeway/lib/"
       assert :binary.match(script, "mix deps.get --check-locked") < :binary.match(script, dependency_prepare)
+      assert :binary.match(script, "unpacked package mix.exs is missing") < :binary.match(script, chimeway_compile)
       assert :binary.match(script, dependency_prepare) < :binary.match(script, chimeway_compile)
       assert :binary.match(script, chimeway_compile) < :binary.match(script, consumer_compile)
 
       for {needle, replacement, required} <- [
             {dependency_prepare, "true", dependency_prepare},
-            {"mix cmd --cd deps/chimeway", "mix cmd --cd deps/oban", chimeway_compile},
+            {"mix cmd --cd \"$package_path\"", "mix cmd --cd deps/chimeway", chimeway_compile},
             {"mix compile", "mix compile.elixir", chimeway_compile},
             {"--force-elixir", "--force", chimeway_compile},
             {"--no-deps-check", "", chimeway_compile},
@@ -2953,7 +2957,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert script =~ "warning_gate_mutation"
       assert script =~ "mix deps.compile |& tee -a \"$output\""
       assert script =~ "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
-      assert script =~ "mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a \"$output\""
+      assert script =~ "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a \"$output\""
       assert script =~ "Chimeway warning mutation unexpectedly compiled cleanly"
       assert script =~ "Chimeway warning mutation did not emit compiler diagnostics"
       refute script =~ "2>/dev/null"
