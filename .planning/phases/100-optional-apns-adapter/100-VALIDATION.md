@@ -1,16 +1,16 @@
 ---
 phase: 100
 slug: optional-apns-adapter
-status: draft
+status: validated
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-22
 ---
 
 # Phase 100 — Validation Strategy
 
-Plan-time executable contract for Phase 100. `status: draft` and pending rows mean implementation has not run; `nyquist_compliant: true` means every planned behavior has an automated command and no manual-only acceptance gap.
+Retrospectively audited executable contract for Phase 100. Every executed task and APNS-01 through APNS-06 have green automated evidence; no manual-only acceptance gap remains.
 
 ## Test Infrastructure
 
@@ -21,8 +21,9 @@ Plan-time executable contract for Phase 100. `status: draft` and pending rows me
 | **Quick run command** | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns --warnings-as-errors` |
 | **Phase gate** | `mix verify.apns` |
 | **Cross-phase gate** | `mix ci && mix ci.verify_gates` |
-| **Estimated focused runtime** | 10–60 seconds after compilation |
-| **Estimated phase-gate runtime** | Up to 5 minutes because it builds a package and two clean consumers |
+| **Observed focused runtime** | 16.1 seconds for 34 tests on 2026-08-22 |
+| **Observed phase-gate runtime** | About 2 minutes including fresh disabled/enabled clean consumers on 2026-08-22 |
+| **Observed cross-phase runtime** | 567.7 seconds for 629 tests on 2026-08-22 |
 
 ## Sampling Rate
 
@@ -34,17 +35,26 @@ Plan-time executable contract for Phase 100. `status: draft` and pending rows me
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirements | Threat refs | Secure behavior | Test type | Automated command | File exists at planning | Status |
+| Task ID | Plan | Wave | Requirements | Threat refs | Secure behavior | Test type | Automated command | Evidence exists now | Status |
 |---|---:|---:|---|---|---|---|---|---|---|
-| 100-01-01 | 01 | 1 | APNS-02, APNS-04, APNS-05 | T-100-01..06 | Persisted intent, transient token, bounds, expiry, one handoff | DB tracer | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix ecto.migrate && scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/tracer_test.exs --warnings-as-errors` | ❌ Wave 0 | ⬜ pending |
-| 100-02-01 | 02 | 2 | APNS-02, APNS-04 | T-100-07..10 | No secret columns; public/prefixed template parity | installer contract | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/install/migrations_test.exs test/chimeway/install/golden_diff_test.exs --warnings-as-errors` | ✅ extend | ⬜ pending |
-| 100-02-02 | 02 | 2 | APNS-02, APNS-04 | T-100-07..10 | up/down/up preserves Phase 99 rows/constraints | isolated DB migration | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/install/prefix_contract_test.exs test/chimeway/migration_contract_test.exs test/chimeway/generated_prefixed_runtime_proof_test.exs --warnings-as-errors` | ✅ extend | ⬜ pending |
-| 100-03-01 | 03 | 3 | APNS-02, APNS-04, APNS-05 | T-100-12..13 | Closed payload, byte/expiry/collapse boundaries | unit | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/request_test.exs --warnings-as-errors` | ❌ Wave 0 | ⬜ pending |
-| 100-03-02 | 03 | 3 | APNS-01, APNS-02 | T-100-11, T-100-14..15, T-100-SC | Exact lookup, dynamic Pigeon raw-end-stream adapter, ambiguity, no secret evidence | adapter contract | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/adapters/apns_test.exs test/chimeway/apns/request_test.exs --warnings-as-errors` | ❌ Wave 0 | ⬜ pending |
-| 100-04-01 | 04 | 4 | APNS-03, APNS-04 | T-100-16..18, T-100-21 | Exhaustive result matrix and exact status/reason/timestamp-bound CAS invalidation | DB integration | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/result_test.exs test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | ❌/✅ extend | ⬜ pending |
-| 100-04-02 | 04 | 4 | APNS-03, APNS-06 | T-100-18..20 | Retry exhaustion and distinct redacted operator states | DB integration | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/safe_evidence_test.exs test/chimeway/traces_test.exs test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | ✅ extend | ⬜ pending |
-| 100-05-01 | 05 | 5 | APNS-01, APNS-02 | T-100-22..24, T-100-26, T-100-SC | Package consumer proves Pigeon absent/default and explicit 2.0.1 opt-in | clean consumer | `bash scripts/verify-apns.sh` | ❌ Wave 0 | ⬜ pending |
-| 100-05-02 | 05 | 5 | APNS-01..06 | T-100-23..25, T-100-SC | Full API disposition and local/CI parity | contract + aggregate | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/api_coverage_test.exs test/chimeway/release_gate_contract_test.exs --warnings-as-errors && mix verify.apns` | ❌/✅ extend | ⬜ pending |
+| 100-01-01 | 01 | 1 | APNS-02, APNS-04, APNS-05 | T-100-01..06 | Persisted intent, transient token, bounds, expiry, one handoff | DB tracer | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix ecto.migrate && scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/tracer_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-02-01 | 02 | 2 | APNS-02, APNS-04 | T-100-07..10 | No secret columns; public/prefixed template parity | installer contract | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/install/migrations_test.exs test/chimeway/install/golden_diff_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-02-02 | 02 | 2 | APNS-02, APNS-04 | T-100-07..10 | up/down/up preserves Phase 99 rows/constraints | isolated DB migration | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/install/prefix_contract_test.exs test/chimeway/migration_contract_test.exs test/chimeway/generated_prefixed_runtime_proof_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-03-01 | 03 | 3 | APNS-02, APNS-04, APNS-05 | T-100-12..13 | Closed payload, byte/expiry/collapse boundaries | unit | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/request_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-03-02 | 03 | 3 | APNS-01, APNS-02 | T-100-11, T-100-14..15, T-100-SC | Exact lookup, dynamic Pigeon raw-end-stream adapter, ambiguity, no secret evidence | adapter contract | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/adapters/apns_test.exs test/chimeway/apns/request_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-04-01 | 04 | 4 | APNS-03, APNS-04 | T-100-16..18, T-100-21 | Exhaustive result matrix and exact status/reason/timestamp-bound CAS invalidation | DB integration | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/result_test.exs test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-04-02 | 04 | 4 | APNS-03, APNS-06 | T-100-18..20 | Retry exhaustion and distinct redacted operator states | DB integration | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/safe_evidence_test.exs test/chimeway/traces_test.exs test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-05-01 | 05 | 5 | APNS-01, APNS-02 | T-100-22..24, T-100-26, T-100-SC | Package consumer proves Pigeon absent/default and explicit 2.0.1 opt-in | clean consumer | `bash scripts/verify-apns.sh` | ✅ | ✅ green |
+| 100-05-02 | 05 | 5 | APNS-01..06 | T-100-23..25, T-100-SC | Full API disposition and local/CI parity | contract + aggregate | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/api_coverage_test.exs test/chimeway/release_gate_contract_test.exs --warnings-as-errors && mix verify.apns` | ✅ | ✅ green |
+| 100-06-01 | 06 | 6 | APNS-03 | T-100-27..31, T-100-SC | Correlated complete Pigeon 410 facts reach exact host CAS; malformed streams fail closed | package + result contract | `bash scripts/verify-apns.sh && scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/result_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-06-02 | 06 | 6 | APNS-01 | T-100-32 | APNs lane is required by PR and non-PR aggregate gates | release-gate contract | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors && mix ci.verify_gates` | ✅ | ✅ green |
+| 100-07-01 | 07 | 7 | APNS-03 | T-100-07-01..06 | Public delivery traverses the real optional Pigeon bridge into exact host CAS | clean-consumer tracer | `CHIMEWAY_APNS_FOCUS=bridge_to_cas bash scripts/verify-apns.sh && mix verify.apns` | ✅ | ✅ green |
+| 100-08-01 | 08 | 8 | APNS-03 | T-100-08-01..02, T-100-08-05..06 | Correlated ordinary Pigeon 200 closes as provider accepted only | clean-consumer tracer | `CHIMEWAY_APNS_FOCUS=runtime_success bash scripts/verify-apns.sh && CHIMEWAY_APNS_FOCUS=bridge_to_cas bash scripts/verify-apns.sh` | ✅ | ✅ green |
+| 100-08-02 | 08 | 8 | APNS-01 | T-100-08-03..04, T-100-08-07, T-100-SC | Enabled graph is locked/audited and disabled graph preserves optional isolation | package + release contract | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors && mix verify.apns && mix ci.verify_gates` | ✅ | ✅ green |
+| 100-09-01 | 09 | 9 | APNS-03, APNS-06 | T-100-09-01..03 | Lookup/payload exceptions remain bounded pre-handoff outcomes with no transport call | adapter + lifecycle integration | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/adapters/apns_test.exs test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 100-09-02 | 09 | 9 | APNS-01, APNS-03 | T-100-09-04..07, T-100-SC | One runtime callback bridge and warning-strict unpacked package compile | package + release contract | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --warnings-as-errors && bash scripts/verify-apns.sh && mix verify.apns` | ✅ | ✅ green |
+| 100-10-01 | 10 | 11 | APNS-02, APNS-05 | T-100-10-01..05 | Closed opaque-reference grammar and header-safe collapse IDs reject unsafe input before I/O | boundary + adapter contract | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/request_test.exs --only apns_input_smoke --warnings-as-errors && scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/request_test.exs test/chimeway/adapters/apns_test.exs test/chimeway/apns/tracer_test.exs test/chimeway/apns/result_test.exs test/chimeway/dispatch/target_worker_test.exs test/chimeway/apns/api_coverage_test.exs --warnings-as-errors && bash scripts/verify-apns.sh` | ✅ | ✅ green |
+| 100-11-01 | 11 | 10 | APNS-01 | T-100-11-01..04, T-100-SC | Chimeway-only warning gate has ordered preparation and mutation proof | release-gate contract | `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --only apns_warning_gate_contract --warnings-as-errors` | ✅ | ✅ green |
 
 Status legend: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky.
 
@@ -66,14 +76,14 @@ Status legend: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky.
 
 ## Wave 0 Requirements
 
-- [ ] `test/chimeway/apns/tracer_test.exs` — accepted vertical slice, expiry/bounds, idempotency, concurrency, and leak sentinel.
-- [ ] `test/chimeway/apns/request_test.exs` — intent/payload/collapse edge matrix.
-- [ ] `test/chimeway/adapters/apns_test.exs` — lookup and dynamic transport contract.
-- [ ] `test/chimeway/apns/result_test.exs` — pinned provider result and exact invalidation matrix.
-- [ ] `test/chimeway/apns/api_coverage_test.exs` — full COVERAGE.md disposition/parser gate.
-- [ ] `test/support/apns_fake_transport.ex` — no-network request/result capture.
-- [ ] `scripts/verify-apns.sh` and `test/fixtures/apns_consumer/` — disabled/enabled clean package consumer.
-- [ ] Migration 037 repository/template/golden files — executable public/prefixed up/down/up evidence.
+- [x] `test/chimeway/apns/tracer_test.exs` — accepted vertical slice, expiry/bounds, idempotency, concurrency, and leak sentinel.
+- [x] `test/chimeway/apns/request_test.exs` — intent/payload/collapse edge matrix.
+- [x] `test/chimeway/adapters/apns_test.exs` — lookup and dynamic transport contract.
+- [x] `test/chimeway/apns/result_test.exs` — pinned provider result and exact invalidation matrix.
+- [x] `test/chimeway/apns/api_coverage_test.exs` — full COVERAGE.md disposition/parser gate.
+- [x] `test/support/apns_fake_transport.ex` — no-network request/result capture.
+- [x] `scripts/verify-apns.sh` and `test/fixtures/apns_consumer/` — disabled/enabled clean package consumer.
+- [x] Migration 037 repository/template/golden files — executable public/prefixed up/down/up evidence.
 
 Existing ExUnit, DataCase, PostgreSQL wrapper, installer fixture, release-gate contract, SafeEvidence tests, target worker tests, and CI aggregate infrastructure cover all other prerequisites; no new test framework or root Pigeon dependency is required.
 
@@ -88,8 +98,18 @@ All Phase 100 behaviors have automated verification. Live Apple credentials, a p
 - [x] Wave 0 names every not-yet-existing test/fixture/script/migration.
 - [x] No watch-mode flags or conversational UAT.
 - [x] All six requirement IDs and all 11 edge-probe candidates map to explicit or flagged evidence.
-- [x] `nyquist_compliant: true` records complete plan-time coverage.
-- [ ] Implementation commands executed green.
-- [ ] `status: validated` and `wave_0_complete: true` set by validation after implementation.
+- [x] `nyquist_compliant: true` records complete audited coverage.
+- [x] Implementation commands executed green.
+- [x] `status: validated` and `wave_0_complete: true` set by validation after implementation.
 
-**Approval:** pending implementation evidence
+**Approval:** validated from executable evidence on 2026-08-22
+
+## Validation Audit 2026-08-22
+
+| Metric | Count |
+|---|---:|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+Audit evidence: `mix verify.apns` passed 34 focused tests plus disabled/enabled packaged-consumer proofs; `mix ci.verify_gates` passed 629 tests with 0 failures and 1 excluded. The prior plan-time map was expanded from Plans 01–05 to all 18 executed tasks across Plans 01–11. No test files were generated because every requirement was already covered and green.
