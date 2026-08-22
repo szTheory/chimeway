@@ -72,6 +72,13 @@ The enabled packaged-consumer verifier now compiles dependencies normally and wa
 - **Files modified:** `scripts/verify-apns.sh`, `test/chimeway/release_gate_contract_test.exs`
 - **Commit:** `678de21`
 
+3. [Rule 1 - Bug] Compiled the validated unpacked package instead of assuming a path-dependency checkout under `deps/chimeway`.
+- **Found during:** Plan 100-10's post-wave full package gate.
+- **Issue:** Chimeway is supplied through `CHIMEWAY_PACKAGE_PATH`, so `mix cmd --cd deps/chimeway` could not rely on a directory that does not exist for the fixture's path dependency.
+- **Fix:** Ran the strict compiler and bounded warning mutation probe from the already-validated `$package_path`; the release contract rejects the stale `deps/chimeway` location and requires the extraction-path validation to precede compilation.
+- **Files modified:** `scripts/verify-apns.sh`, `test/chimeway/release_gate_contract_test.exs`
+- **Commit:** `7cf2fe3`
+
 ## Known Stubs
 
 None.
