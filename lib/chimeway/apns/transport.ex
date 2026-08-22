@@ -163,6 +163,13 @@ defmodule Chimeway.APNS.Transport do
               apply(Module.concat(["Pigeon", "Tasks"]), :process_on_response, [
                 %{notification | response: result}
               ])
+
+            :normalized ->
+              apply(Module.concat(["Pigeon", "Configurable"]), :handle_end_stream, [
+                state.config,
+                stream,
+                notification
+              ])
           end
 
           {:noreply, %{state | queue: new_queue}}
@@ -219,6 +226,7 @@ defmodule Chimeway.APNS.Transport do
       _ -> {:ok, unrecognized_result(stream)}
     end
 
+    defp runtime_closed_result(%{status: status}) when status in [200, 201], do: :normalized
     defp runtime_closed_result(stream), do: {:ok, unrecognized_result(stream)}
 
     defp unrecognized_result(stream) do

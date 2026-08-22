@@ -4,6 +4,9 @@ chimeway_admin/_build/
 chimeway_admin/deps/
 chimeway_inbox/_build/
 chimeway_inbox/deps/
+test/fixtures/apns_consumer/_build/
+test/fixtures/apns_consumer/deps/
+test/fixtures/apns_consumer/mix.lock
 
 # If you run "mix test --cover", coverage assets end up here.
 /cover/
