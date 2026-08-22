@@ -4,17 +4,17 @@ milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
 current_phase_name: optional-apns-adapter
-status: planned
-stopped_at: Planned 100-09-PLAN.md
-last_updated: "2026-08-22T15:39:07Z"
+status: executing
+stopped_at: Completed 100-09-PLAN.md
+last_updated: "2026-08-22T15:58:49.755Z"
 last_activity: 2026-08-22
-last_activity_desc: Planned Phase 100 verification gap closure
+last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 3
   total_plans: 50
   completed_plans: 49
-  percent: 57
+  percent: 43
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 
 ## Current Position
 
-Phase: 100 (optional-apns-adapter) — PLANNED
-Plan: 9 of 9
+Phase: 100 (optional-apns-adapter) — EXECUTING
+Plan: 2 of 9
 Status: Ready to execute
-Last activity: 2026-08-22 — Planned Phase 100 verification gap closure
+Last activity: 2026-08-22 — Phase 100 execution started
 
 ## Deferred Items
 
@@ -390,6 +390,8 @@ status: complete
 - [Phase ?]: [100-07] Absent APNs transport configuration must enter the optional Pigeon path; only non-nil atom overrides are adapter modules.
 - [Phase ?]: [100-07] Pigeon-free package builds retain runtime-only dispatcher callbacks that close malformed provider streams safely.
 - [Phase ?]: [100-08]: Disabled APNs consumer isolation permits only the root tzdata -> hackney baseline and rejects all APNs-introduced Pigeon, HTTPoison, or extra Hackney edges.
+- [Phase ?]: [100-09]: APNS ambiguity begins only at Transport.push/2; lookup and payload-builder exceptions are bounded pre-handoff outcomes.
+- [Phase ?]: [100-09]: Enabled package verification force-compiles unpacked Chimeway under warnings-as-errors before consumer compilation.
 
 ### Roadmap Evolution
 
@@ -710,8 +712,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-22T00:33:43.093Z
-Stopped at: Completed 100-08-PLAN.md
+Last session: 2026-08-22T15:58:49.737Z
+Stopped at: Completed 100-09-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -862,3 +864,4 @@ Resume file: None
 | Phase 100-optional-apns-adapter P06 | 18 min | 2 tasks | 5 files |
 | Phase 100 P07 | 24 min | 1 tasks | 7 files |
 | Phase 100 P08 | 30 min | 2 tasks | 6 files |
+| Phase 100-optional-apns-adapter P09 | 18 min | 2 tasks | 5 files |
