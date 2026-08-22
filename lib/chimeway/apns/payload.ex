@@ -1,6 +1,7 @@
 defmodule Chimeway.APNS.Payload do
   @moduledoc "Closed APNs alert payload encoder."
 
+  alias Chimeway.APNS.OpaqueReference
   alias Chimeway.Privacy
 
   @max_bytes 4096
@@ -17,7 +18,7 @@ defmodule Chimeway.APNS.Payload do
     body = Map.get(render_data, :body) || Map.get(render_data, "body")
 
     with true <- valid_render?(render_data, title, body),
-         true <- opaque_ref?(open_ref) do
+         true <- OpaqueReference.valid?(open_ref) do
       json = %{
         "aps" => %{"alert" => %{"title" => title, "body" => body}},
         @open_ref_key => open_ref
@@ -43,8 +44,6 @@ defmodule Chimeway.APNS.Payload do
     (data == %{} or (is_map(data) and Privacy.redact(data) == data)) and is_binary(title) and
       is_binary(body) and not unsafe_string?(title) and not unsafe_string?(body)
   end
-
-  defp opaque_ref?(value), do: byte_size(value) in 1..256 and not unsafe_string?(value)
 
   defp unsafe_string?(value),
     do: String.contains?(String.downcase(value), ["token", "credential", "password", "secret"])

@@ -155,7 +155,12 @@ defmodule Chimeway.Adapters.APNSTest do
         ] do
       target = envelope().target
       storage = Map.put(target.apns_request_intent, field, unsafe_value)
-      result = APNS.deliver(%TargetEnvelope{envelope() | target: %{target | apns_request_intent: storage}}, [])
+
+      result =
+        APNS.deliver(
+          %TargetEnvelope{envelope() | target: %{target | apns_request_intent: storage}},
+          []
+        )
 
       assert {:permanent, %{provider_code: "invalid_request"}} = result
       refute_receive {:apns_push, _, _}

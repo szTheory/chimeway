@@ -43,7 +43,12 @@ defmodule Chimeway.APNS.RequestTest do
 
   @tag :apns_input_smoke
   test "opaque references use one closed grammar at construction, reload, and payload boundaries" do
-    accepted = ["open-ref", "open_opaque_ref", "cw_open_opaque_001", "open-" <> String.duplicate("a", 251)]
+    accepted = [
+      "open-ref",
+      "open_opaque_ref",
+      "cw_open_opaque_001",
+      "open-" <> String.duplicate("a", 251)
+    ]
 
     for open_ref <- accepted do
       assert {:ok, %RequestIntent{open_ref: ^open_ref}} = intent(open_ref: open_ref)
@@ -73,14 +78,22 @@ defmodule Chimeway.APNS.RequestTest do
 
     for open_ref <- rejected do
       assert {:error, :invalid_apns_request_intent} = intent(open_ref: open_ref)
-      assert {:error, :invalid_apns_request_intent} = RequestIntent.from_storage(storage(open_ref: open_ref))
-      assert {:error, :invalid_payload} = Payload.build(%{"title" => "Hello", "body" => "World"}, open_ref)
+
+      assert {:error, :invalid_apns_request_intent} =
+               RequestIntent.from_storage(storage(open_ref: open_ref))
+
+      assert {:error, :invalid_payload} =
+               Payload.build(%{"title" => "Hello", "body" => "World"}, open_ref)
     end
 
     over_bound = "open-" <> String.duplicate("a", 252)
     assert {:error, :invalid_apns_request_intent} = intent(open_ref: over_bound)
-    assert {:error, :invalid_apns_request_intent} = RequestIntent.from_storage(storage(open_ref: over_bound))
-    assert {:error, :invalid_payload} = Payload.build(%{"title" => "Hello", "body" => "World"}, over_bound)
+
+    assert {:error, :invalid_apns_request_intent} =
+             RequestIntent.from_storage(storage(open_ref: over_bound))
+
+    assert {:error, :invalid_payload} =
+             Payload.build(%{"title" => "Hello", "body" => "World"}, over_bound)
   end
 
   test "expiry is absolute at equality and eligible one microsecond later" do

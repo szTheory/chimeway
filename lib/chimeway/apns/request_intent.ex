@@ -1,6 +1,8 @@
 defmodule Chimeway.APNS.RequestIntent do
   @moduledoc "Safe, durable routing intent for an APNs target."
 
+  alias Chimeway.APNS.OpaqueReference
+
   @enforce_keys [:environment, :topic, :apns_id, :expires_at, :open_ref]
   defstruct [:environment, :topic, :apns_id, :expires_at, :open_ref, :collapse_id]
 
@@ -28,11 +30,9 @@ defmodule Chimeway.APNS.RequestIntent do
          true <- bounded?(topic, 1, 255),
          true <- is_binary(apns_id) and Regex.match?(@uuid, apns_id),
          %DateTime{} = expires_at <- normalize_datetime(expires_at),
-         true <- bounded?(open_ref, 1, 256),
-         true <- safe_opaque?(topic) and safe_opaque?(open_ref),
+         true <- safe_opaque?(topic) and OpaqueReference.valid?(open_ref),
          {:ok, collapse_id} <- collapse_id(collapse_id, opts, environment, topic),
-         true <-
-           is_nil(collapse_id) or (bounded?(collapse_id, 1, 64) and safe_opaque?(collapse_id)) do
+         true <- is_nil(collapse_id) or valid_collapse_id?(collapse_id) do
       {:ok,
        %__MODULE__{
          environment: environment,
@@ -124,6 +124,9 @@ defmodule Chimeway.APNS.RequestIntent do
     do:
       is_binary(value) and
         not String.contains?(String.downcase(value), ["token", "credential", "password", "secret"])
+
+  defp valid_collapse_id?(value),
+    do: is_binary(value) and Regex.match?(~r/\A[A-Za-z0-9_-]{1,64}\z/, value)
 
   defp length_delimited(parts),
     do: Enum.map_join(parts, fn part -> <<byte_size(part)::unsigned-32>> <> part end)
