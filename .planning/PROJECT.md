@@ -54,6 +54,7 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Validated
 
+- ✓ v1.18 Phase 100 Optional APNs Adapter — APNS-01/02/03/04/05/06: hosts can opt into a Pigeon-backed APNs adapter without adding push dependencies to non-push consumers; requests preserve host token custody, bounded allowlisted payloads, opaque open references, safe collapse semantics, exact binding invalidation, and target-specific provider evidence. Verified 5/5 roadmap truths with a green packaged-consumer APNs gate, clean 33-file code review, and a 743-test Phase 97–99 regression set; zero human UAT.
 - ✓ v1.18 Phase 99 Multi-Installation Delivery & Recovery — PUSH-01/02/03/04 and RECOV-01/02: one logical push decision now expands into durable tenant-scoped opaque installation targets with independent attempts, lifecycle truth, bounded recovery, and operator explanations; migration 036 enforces composite tenant ownership and same-target attempt lineage across repository and copied public/prefixed installations. Verified 5/5 must-haves with focused lifecycle, migration, recovery, Oban, and trace evidence plus a 688-test cross-phase regression gate; zero human UAT.
 - ✓ v1.18 Phase 97 Tenant Identity & Compatible Upgrade — TENANT-01/02/03: lifecycle identity and idempotency are tenant-scoped; inbox, trace, admin, recovery, and package surfaces fail closed without explicit scope (or explicit single-tenant compatibility); additive migrations and atomic reconciliation preserve legacy upgrade safety without inferring ownership or changing static storage prefixes. Verified 4/4 must-haves with executable evidence and zero human UAT.
 - ✓ v1.17 Adopter Proof Paths — ADPT-01/02, PROOF-01/02/03, CORE-01, MAIL-01/02, ACCR-01/02, GATE-01/02, and DOCS-01 are satisfied. Five phase verifications and the milestone audit pass; the aggregate proof builds once and runs all three clean-room paths against the same immutable artifact.
@@ -128,6 +129,8 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 **Standing hygiene debt (tracked, not this milestone's deliverable):** 3 red CI lanes on `main` (Example host smoke, TeamPulse journeys, Accrue dunning — `ci-gate` at 12/15; see `.planning/CI-HARDENING-BACKLOG.md`). This milestone is doc/asset-only and does not touch runtime code, so it will not worsen CI.
 
 ## Current State
+
+**v1.18 Phase 100 Optional APNs Adapter complete (2026-08-22):** APNs-enabled hosts now have an opt-in Pigeon-backed delivery path with host-controlled token lookup, bounded provider requests, opaque references, safe collapse headers, honest target-specific outcomes, and exact binding invalidation. The packaged-consumer verifier passes for both disabled and enabled hosts, all six APNS requirements passed 5/5 verifier truths, the 33-file review is clean, and the Phase 97–99 regression set passed 743 tests. Phase 101 CrossWake Registration & Protected Open is next.
 
 **v1.18 Phase 99 Multi-Installation Delivery & Recovery complete (2026-08-20):** One logical push delivery now records and executes every eligible opaque installation target independently, with locked lifecycle authorization, tenant-safe composite database constraints, bounded recovery, and target-level operator evidence. All six requirements passed 5/5 verifier must-haves; the Phase 97–98 regression set passed 688 tests. Phase 100 optional APNs adapter is next.
 
@@ -628,4 +631,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-12 after completing Phase 97 Tenant Identity & Compatible Upgrade.*
+*Last updated: 2026-08-22 after completing Phase 100 Optional APNs Adapter.*
