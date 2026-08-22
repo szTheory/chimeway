@@ -2920,12 +2920,17 @@ defmodule Chimeway.ReleaseGateContractTest do
         "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors"
 
       fixture_env = "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
+      consumer_lib_path = "consumer_lib_path=\"$consumer_root/_build/test/lib\""
+      strict_code_path = "ERL_LIBS=\"$consumer_lib_path\" #{fixture_env}"
 
       consumer_compile = "mix compile --warnings-as-errors"
 
       assert script =~ dependency_prepare
       assert script =~ chimeway_compile
       assert script =~ fixture_env
+      assert script =~ consumer_lib_path
+      assert script =~ "[[ -d \"$consumer_lib_path/ecto/ebin\" ]]"
+      assert script =~ strict_code_path
       assert script =~ "[[ -n \"$package_path\" && -f \"$package_path/mix.exs\" ]]"
       refute script =~ "mix cmd --cd deps/chimeway"
       refute script =~ "deps/chimeway/lib/"
@@ -2943,7 +2948,8 @@ defmodule Chimeway.ReleaseGateContractTest do
             {"--warnings-as-errors", "", chimeway_compile},
             {"CHIMEWAY_PACKAGE_PATH=\"$package_path\"", "", fixture_env},
             {"CHIMEWAY_APNS_ENABLED=1", "", fixture_env},
-            {"MIX_ENV=test", "", fixture_env}
+            {"MIX_ENV=test", "", fixture_env},
+            {"ERL_LIBS=\"$consumer_lib_path\"", "", strict_code_path}
           ] do
         refute String.replace(script, needle, replacement, global: true) =~ required,
                "warning gate must reject mutation of #{needle}"
@@ -2955,8 +2961,9 @@ defmodule Chimeway.ReleaseGateContractTest do
       script = File.read!(@apns_script)
 
       assert script =~ "warning_gate_mutation"
+      assert script =~ "strict_compile_probe"
       assert script =~ "mix deps.compile |& tee -a \"$output\""
-      assert script =~ "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
+      assert script =~ "ERL_LIBS=\"$consumer_lib_path\" CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
       assert script =~ "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a \"$output\""
       assert script =~ "Chimeway warning mutation unexpectedly compiled cleanly"
       assert script =~ "Chimeway warning mutation did not emit compiler diagnostics"
