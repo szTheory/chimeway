@@ -2911,16 +2911,46 @@ defmodule Chimeway.ReleaseGateContractTest do
       refute String.replace(script, "mix hex.audit", "true", global: false) =~ "mix hex.audit"
     end
 
-    test "enabled verifier warning-strictly compiles the unpacked Chimeway dependency first" do
+    @tag :apns_warning_gate_contract
+    test "enabled verifier prepares dependencies then warning-strictly compiles only unpacked Chimeway before its consumer" do
       script = File.read!(@apns_script)
-      dependency_compile = "mix cmd --cd deps/chimeway mix compile --force --warnings-as-errors"
+      dependency_prepare = "mix deps.compile"
+
+      chimeway_compile =
+        "mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors"
+
       consumer_compile = "mix compile --warnings-as-errors"
 
-      assert script =~ dependency_compile
-      assert :binary.match(script, dependency_compile) < :binary.match(script, consumer_compile)
+      assert script =~ dependency_prepare
+      assert script =~ chimeway_compile
+      assert :binary.match(script, "mix deps.get --check-locked") < :binary.match(script, dependency_prepare)
+      assert :binary.match(script, dependency_prepare) < :binary.match(script, chimeway_compile)
+      assert :binary.match(script, chimeway_compile) < :binary.match(script, consumer_compile)
 
-      refute String.replace(script, "--force --warnings-as-errors", "--force", global: false) =~
-               dependency_compile
+      for mutation <- [
+            {dependency_prepare, "true"},
+            {"mix cmd --cd deps/chimeway", "mix cmd --cd deps/oban"},
+            {"mix compile", "mix compile.elixir"},
+            {"--force-elixir", "--force"},
+            {"--no-deps-check", ""},
+            {"--warnings-as-errors", ""}
+          ] do
+        {needle, replacement} = mutation
+
+        refute String.replace(script, needle, replacement, global: false) =~ chimeway_compile,
+               "warning gate must reject mutation of #{needle}"
+      end
+    end
+
+    @tag :apns_warning_gate_contract
+    test "warning gate keeps compiler diagnostics visible and forbids dependency-source mutation" do
+      script = File.read!(@apns_script)
+
+      refute script =~ "2>/dev/null"
+      refute script =~ "|| true"
+      refute script =~ "sed -i"
+      refute script =~ "perl -pi"
+      refute script =~ "mix compile --force --warnings-as-errors"
     end
 
     test "disabled consumer audit is baseline-aware about root tzdata's Hackney edge" do
