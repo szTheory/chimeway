@@ -210,7 +210,7 @@ Plans:
   4. Expired reminders are suppressed before initial send or retry, and only host-opted replaceable occurrences use an installation-safe collapse key; distinct notifications remain uncoalesced.
   5. A provider invalidation affects only its exact tenant, environment, and binding revision, never a rotated replacement or another installation.
 
-**Plans**: 8/9 plans executed
+**Plans**: 9/9 plans executed
 
 Plans:
 
@@ -248,7 +248,7 @@ Plans:
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
-- [ ] 100-09-PLAN.md — Preserve honest pre-provider failure evidence and enforce warning-strict enabled-consumer compilation.
+- [x] 100-09-PLAN.md — Preserve honest pre-provider failure evidence and enforce warning-strict enabled-consumer compilation.
 
 ### Phase 101: CrossWake Registration & Protected Open
 
@@ -297,7 +297,7 @@ Plans:
 | 97. Tenant Identity & Compatible Upgrade | 14/14 | Complete    | 2026-08-12 |
 | 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
 | 99. Multi-Installation Delivery & Recovery | 12/12 | Complete    | 2026-08-20 |
-| 100. Optional APNs Adapter | 8/9 | In Progress|  |
+| 100. Optional APNs Adapter | 9/9 | In Progress|  |
 | 101. CrossWake Registration & Protected Open | 0/TBD | Not started | - |
 | 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |
 | 103. Physical iPhone & Adoption Truth | 0/TBD | Blocked by external Apple signing gate until Phase 162 evidence | - |
