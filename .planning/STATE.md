@@ -21,10 +21,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
+See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 100 — optional-apns-adapter
+**Current focus:** Phase 101 — CrossWake Registration & Protected Open
 
 ## Current Position
 

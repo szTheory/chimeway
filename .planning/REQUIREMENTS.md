@@ -89,12 +89,12 @@
 | PUSH-04 | Phase 99 | Gaps Found |
 | RECOV-01 | Phase 99 | Gaps Found |
 | RECOV-02 | Phase 99 | Gaps Found |
-| APNS-01 | Phase 100 | Gaps Found |
-| APNS-02 | Phase 100 | Gaps Found |
-| APNS-03 | Phase 100 | Gaps Found |
-| APNS-04 | Phase 100 | Gaps Found |
-| APNS-05 | Phase 100 | Gaps Found |
-| APNS-06 | Phase 100 | Gaps Found |
+| APNS-01 | Phase 100 | Complete |
+| APNS-02 | Phase 100 | Complete |
+| APNS-03 | Phase 100 | Complete |
+| APNS-04 | Phase 100 | Complete |
+| APNS-05 | Phase 100 | Complete |
+| APNS-06 | Phase 100 | Complete |
 | OPEN-01 | Phase 101 | Pending |
 | OPEN-02 | Phase 101 | Pending |
 | OPEN-03 | Phase 101 | Pending |
