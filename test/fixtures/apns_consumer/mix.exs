@@ -17,6 +17,14 @@ defmodule APNSConsumer.MixProject do
   end
 
   defp pigeon_dep do
-    if System.get_env("CHIMEWAY_APNS_ENABLED") == "1", do: [{:pigeon, "== 2.0.1"}], else: []
+    if System.get_env("CHIMEWAY_APNS_ENABLED") == "1" do
+      [
+        {:pigeon, "== 2.0.1"},
+        {:httpoison, "== 3.0.0", override: true},
+        {:hackney, "== 4.7.4", override: true}
+      ]
+    else
+      []
+    end
   end
 end

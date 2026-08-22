@@ -39,10 +39,16 @@ run_consumer() {
   if [[ "$mode" == "enabled" ]]; then
     (
       cd "$consumer_root"
-      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get
+      cp "$fixture_root/apns-enabled.lock" mix.lock
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get --check-locked
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$output"
       grep -Eq 'pigeon.*2\.0\.1' "$output" || fail "enabled fixture did not resolve pigeon 2.0.1"
+      grep -Eq 'httpoison.*3\.0\.0' "$output" || fail "enabled fixture did not resolve httpoison 3.0.0"
+      grep -Eq 'hackney.*4\.7\.4' "$output" || fail "enabled fixture did not resolve hackney 4.7.4"
       grep -Eq 'pigeon.*2\.0\.1' mix.lock || fail "enabled fixture lock does not pin pigeon 2.0.1"
+      grep -Eq 'httpoison.*3\.0\.0' mix.lock || fail "enabled fixture lock does not pin httpoison 3.0.0"
+      grep -Eq 'hackney.*4\.7\.4' mix.lock || fail "enabled fixture lock does not pin hackney 4.7.4"
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix hex.audit >>"$output"
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix compile --warnings-as-errors >>"$output"
       if [[ "$focus" == "bridge_to_cas" ]]; then
         CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
@@ -60,7 +66,9 @@ run_consumer() {
       CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.get
       CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.tree >"$output"
       ! grep -qi pigeon "$output" || fail "disabled fixture dependency tree contains pigeon"
+      ! grep -Eqi 'httpoison|hackney' "$output" || fail "disabled fixture dependency tree contains enabled HTTP dependencies"
       ! grep -qi pigeon mix.lock || fail "disabled fixture lock contains pigeon"
+      ! grep -Eqi 'httpoison|hackney' mix.lock || fail "disabled fixture lock contains enabled HTTP dependencies"
       CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix compile --warnings-as-errors >>"$output"
       CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix test >>"$output"
     )
