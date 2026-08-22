@@ -41,6 +41,48 @@ defmodule Chimeway.APNS.RequestTest do
     end
   end
 
+  @tag :apns_input_smoke
+  test "opaque references use one closed grammar at construction, reload, and payload boundaries" do
+    accepted = ["open-ref", "open_opaque_ref", "cw_open_opaque_001", "open-" <> String.duplicate("a", 251)]
+
+    for open_ref <- accepted do
+      assert {:ok, %RequestIntent{open_ref: ^open_ref}} = intent(open_ref: open_ref)
+
+      assert {:ok, %RequestIntent{open_ref: ^open_ref}} =
+               RequestIntent.from_storage(storage(open_ref: open_ref))
+
+      assert {:ok, _payload} = Payload.build(%{"title" => "Hello", "body" => "World"}, open_ref)
+    end
+
+    rejected = [
+      nil,
+      "",
+      "user_123",
+      "person@example.com",
+      "https://example.test/open",
+      "//example.test/open",
+      "open ref",
+      "open\0ref",
+      "open\rref",
+      "open\nref",
+      "open" <> <<127>>,
+      "open-é",
+      ~c"open-ref",
+      %{}
+    ]
+
+    for open_ref <- rejected do
+      assert {:error, :invalid_apns_request_intent} = intent(open_ref: open_ref)
+      assert {:error, :invalid_apns_request_intent} = RequestIntent.from_storage(storage(open_ref: open_ref))
+      assert {:error, :invalid_payload} = Payload.build(%{"title" => "Hello", "body" => "World"}, open_ref)
+    end
+
+    over_bound = "open-" <> String.duplicate("a", 252)
+    assert {:error, :invalid_apns_request_intent} = intent(open_ref: over_bound)
+    assert {:error, :invalid_apns_request_intent} = RequestIntent.from_storage(storage(open_ref: over_bound))
+    assert {:error, :invalid_payload} = Payload.build(%{"title" => "Hello", "body" => "World"}, over_bound)
+  end
+
   test "expiry is absolute at equality and eligible one microsecond later" do
     now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
     assert {:ok, expired} = intent(expires_at: now)
@@ -67,6 +109,36 @@ defmodule Chimeway.APNS.RequestTest do
         ] do
       assert {:ok, other} = intent(Keyword.merge([replaceable: true], changed))
       refute other.collapse_id == first.collapse_id
+    end
+  end
+
+  @tag :apns_input_smoke
+  test "explicit collapse IDs are header-safe before intent construction" do
+    for collapse_id <- ["a", String.duplicate("a", 64), "collapse_id-001"] do
+      assert {:ok, %RequestIntent{collapse_id: ^collapse_id}} = intent(collapse_id: collapse_id)
+
+      assert {:ok, %RequestIntent{collapse_id: ^collapse_id}} =
+               RequestIntent.from_storage(storage(collapse_id: collapse_id))
+    end
+
+    for collapse_id <- [
+          "",
+          String.duplicate("a", 65),
+          "has space",
+          "contains.dot",
+          "collapse\0id",
+          "collapse\rid",
+          "collapse\nid",
+          "collapse" <> <<1>>,
+          "collapse" <> <<127>>,
+          "é",
+          ~c"collapse-id",
+          %{}
+        ] do
+      assert {:error, :invalid_apns_request_intent} = intent(collapse_id: collapse_id)
+
+      assert {:error, :invalid_apns_request_intent} =
+               RequestIntent.from_storage(storage(collapse_id: collapse_id))
     end
   end
 
@@ -113,10 +185,26 @@ defmodule Chimeway.APNS.RequestTest do
       [occurrence_ref: "occurrence-1", binding_revision_ref: "cw_binding_revision_001"]
       |> Keyword.merge(overrides)
       |> Enum.split_with(fn {key, _} ->
-        key in [:environment, :topic, :apns_id, :expires_at, :open_ref]
+        key in [:environment, :topic, :apns_id, :expires_at, :open_ref, :collapse_id]
       end)
 
     RequestIntent.new(Map.merge(attrs, Map.new(attr_overrides)), opts)
+  end
+
+  defp storage(overrides) do
+    %{
+      "environment" => "sandbox",
+      "topic" => "com.example.app",
+      "apns_id" => @id,
+      "expires_at" => DateTime.utc_now() |> DateTime.add(60, :second) |> DateTime.to_iso8601(),
+      "open_ref" => "open-ref",
+      "collapse_id" => nil
+    }
+    |> then(fn storage ->
+      Enum.reduce(overrides, storage, fn {key, value}, acc ->
+        Map.put(acc, Atom.to_string(key), value)
+      end)
+    end)
   end
 
   defp encoded_overhead do

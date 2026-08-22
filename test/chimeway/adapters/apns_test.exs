@@ -148,6 +148,21 @@ defmodule Chimeway.Adapters.APNSTest do
     refute inspect(result) =~ "possible_provider_handoff"
   end
 
+  test "malformed stored intent is rejected before lookup or transport" do
+    for {field, unsafe_value} <- [
+          {"open_ref", "https://unsafe.example/open"},
+          {"collapse_id", "unsafe\rheader"}
+        ] do
+      target = envelope().target
+      storage = Map.put(target.apns_request_intent, field, unsafe_value)
+      result = APNS.deliver(%TargetEnvelope{envelope() | target: %{target | apns_request_intent: storage}}, [])
+
+      assert {:permanent, %{provider_code: "invalid_request"}} = result
+      refute_receive {:apns_push, _, _}
+      refute inspect(result) =~ unsafe_value
+    end
+  end
+
   test "Pigeon is optional and raw extraction fails closed unless the invalidation triple is complete" do
     assert {:error, :pigeon_unavailable} = Transport.pigeon_push("dispatcher", request())
 
