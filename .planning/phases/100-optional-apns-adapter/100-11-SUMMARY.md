@@ -52,6 +52,7 @@ The enabled packaged-consumer verifier now compiles dependencies normally and wa
 - PASS: `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --only apns_warning_gate_contract --warnings-as-errors` — 2 tests, 0 failures.
 - PASS: `bash -n scripts/verify-apns.sh`.
 - PASS: Post-wave focused contract rerun after the strict compile environment repair — 2 tests, 0 failures.
+- PASS: `CHIMEWAY_APNS_FOCUS=strict_compile_probe bash scripts/verify-apns.sh` prepared the enabled consumer graph and completed the Chimeway-only warning-strict compiler probe with the consumer dependency code path present.
 - Not run by design: the full `bash scripts/verify-apns.sh` and `mix verify.apns` gates remain owned by Plan 100-10.
 
 ## Deviations from Plan
@@ -78,6 +79,13 @@ The enabled packaged-consumer verifier now compiles dependencies normally and wa
 - **Fix:** Ran the strict compiler and bounded warning mutation probe from the already-validated `$package_path`; the release contract rejects the stale `deps/chimeway` location and requires the extraction-path validation to precede compilation.
 - **Files modified:** `scripts/verify-apns.sh`, `test/chimeway/release_gate_contract_test.exs`
 - **Commit:** `7cf2fe3`
+
+4. [Rule 1 - Bug] Preserved prepared consumer dependency code paths while compiling extracted Chimeway source.
+- **Found during:** Plan 100-10's post-wave full package gate.
+- **Issue:** Running the extracted package project directly could not resolve Ecto because its resolved dependency applications belonged to the prepared consumer build.
+- **Fix:** Passed the prepared consumer `_build/test/lib` through `ERL_LIBS` to the Chimeway-only strict compiler, validated the Ecto path, and added the focused `strict_compile_probe` verifier mode.
+- **Files modified:** `scripts/verify-apns.sh`, `test/chimeway/release_gate_contract_test.exs`
+- **Commit:** `147a8b3`
 
 ## Known Stubs
 
