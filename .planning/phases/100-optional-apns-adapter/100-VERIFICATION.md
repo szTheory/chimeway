@@ -1,49 +1,55 @@
 ---
 phase: 100-optional-apns-adapter
-verified: 2026-08-22T00:43:30Z
+verified: 2026-08-22T16:07:23Z
 status: gaps_found
-score: 42/44 must-haves verified
+score: 2/5 roadmap must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
-  previous_score: 35/37
+  previous_score: 42/44
   gaps_closed:
-    - "A correlated ordinary HTTP 200 stream now reaches Pigeon's normal completion path and produces provider_accepted."
-    - "The enabled consumer now has a committed Pigeon 2.0.1 / HTTPoison 3.0.0 / Hackney 4.7.4 lock and runs mix hex.audit."
-  gaps_remaining: []
+    - "Pre-provider lookup and payload-builder exceptions now produce bounded pre-handoff outcomes rather than possible provider handoff."
+  gaps_remaining:
+    - "The enabled packaged-consumer warning-strict compile still exits nonzero."
   regressions:
-    - "A host lookup or payload exception before Transport.push/2 is recorded as ambiguous_handoff, falsely asserting possible provider emission."
-    - "The enabled package build emits Chimeway warnings, but the APNs script's warnings-as-errors command does not observe that dependency compilation."
+    - "Open references accept personal identifiers and URLs, then persist and send them as chimeway_open_ref."
+    - "Caller-supplied collapse IDs accept CR/LF control characters and reach the APNs request header field."
 gaps:
-  - truth: "Only a timeout, exit, connection loss, or missing post-emission response becomes ambiguous_handoff; pre-provider failures retain pre-handoff retry or terminal truth."
+  - truth: "An APNs-enabled host can use the optional Pigeon-backed adapter through the supported packaged-consumer gate."
     status: failed
-    reason: "APNS.deliver/2 rescues and catches the complete lookup/payload/transport sequence. A BindingLookup.resolve/1 exception before any provider request returns {:error, :possible_handoff, :ambiguous_handoff}."
+    reason: "The mandatory enabled-consumer proof exits nonzero during its warning-strict dependency compile."
     artifacts:
-      - path: "lib/chimeway/adapters/apns.ex"
-        issue: "Lines 9-30 cover pre-I/O work with the provider-ambiguity rescue."
-    missing:
-      - "Limit the ambiguity guard to Transport.push/2 and map pre-I/O callback exceptions to an honest retryable or terminal pre-handoff result."
-      - "Add a regression test that raises from lookup and proves no transport call plus pre-handoff durable evidence."
-  - truth: "A clean enabled packaged consumer compiles with warnings-as-errors as part of the optional APNs proof."
-    status: failed
-    reason: "The enabled proof exits successfully but emits unreachable duplicate callback warnings and undefined Pigeon.json_library/0 warnings from Chimeway.APNS.Transport.PigeonAdapter. The dependency is compiled during mix deps.get, before the later mix compile --warnings-as-errors command, so the claimed gate does not fail closed."
-    artifacts:
-      - path: "lib/chimeway/apns/transport.ex"
-        issue: "Lines 115-175 and 266-379 define overlapping callback clauses; lines 332 and 353 call an undefined Pigeon.json_library/0."
       - path: "scripts/verify-apns.sh"
-        issue: "Lines 43-54 compile the package as a dependency before the later warnings-as-errors command, allowing its warnings to escape the gate."
+        issue: "The forced `deps/chimeway` compile emits Oban.Repo.expected_error?/1 unreachable-clause warning under --warnings-as-errors."
     missing:
-      - "Remove or isolate the unreachable duplicate Pigeon callback implementation and use the runtime-resolved JSON module."
-      - "Make the enabled-consumer proof fail when Chimeway compilation emits warnings."
+      - "Eliminate or isolate the warning so `bash scripts/verify-apns.sh` completes successfully under its declared strict gate."
+  - truth: "Each request carries an opaque one-time open reference and never transfers sensitive routing data to APNs."
+    status: failed
+    reason: "Both durable intent and payload construction use a four-word blacklist rather than a closed opaque-reference format."
+    artifacts:
+      - path: "lib/chimeway/apns/request_intent.ex"
+        issue: "`safe_opaque?/1` accepts `alice@example.com`; `to_storage/1` persists the value."
+      - path: "lib/chimeway/apns/payload.ex"
+        issue: "`opaque_ref?/1` accepts a URL and sends it as `chimeway_open_ref`, including when Payload.build/2 is called directly."
+    missing:
+      - "Require a closed opaque-reference format at both construction boundaries and add rejection tests for identifiers, URLs, and control characters."
+  - truth: "A host-opted collapse key is installation-safe and distinct notifications are never silently coalesced."
+    status: failed
+    reason: "An explicit collapse ID is accepted based only on length and the same blacklist; CR/LF reaches Transport.Request.collapse_id."
+    artifacts:
+      - path: "lib/chimeway/apns/request_intent.ex"
+        issue: "The explicit-collapse branch returns any binary unchanged, allowing header-control characters."
+    missing:
+      - "Constrain explicit collapse IDs to an APNs-header-safe allowlist (or derive all IDs internally) and add CR/LF/control-character regressions."
 ---
 
 # Phase 100: Optional APNs Adapter Verification Report
 
 **Phase Goal:** An APNs-enabled host can dispatch safe, bounded push requests and receive honest target-specific provider outcomes without adding push dependencies to other hosts.
-**Verified:** 2026-08-22T00:43:30Z
+**Verified:** 2026-08-22T16:07:23Z
 **Status:** gaps_found
-**Re-verification:** Yes — after Plan 100-08 gap closure
+**Re-verification:** Yes — after Plan 100-09 gap closure
 
 ## Goal Achievement
 
@@ -51,104 +57,92 @@ gaps:
 
 | # | Truth | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | Non-push hosts run without Pigeon/APNs config; opt-in uses Pigeon through host lookup. | ✓ VERIFIED | Disabled/enabled consumer isolation is encoded in `scripts/verify-apns.sh`; the enabled focused package tracer ran with Pigeon supplied only by the fixture. |
-| 2 | Requests have exact routing, stable ID, bounded allowlisted payload, expiry, and opaque open reference. | ✓ VERIFIED | `RequestIntent`, `Payload`, `BindingLookup`, migration contract, and 30 root APNs tests exercised by `mix verify.apns` passed. |
-| 3 | Provider outcomes remain honest and target-specific. | ✗ FAILED | A local lookup crash before provider I/O is persisted as possible provider handoff; this is not an honest provider outcome. |
-| 4 | Expiry suppresses sends/retries and collapse is opt-in, exact-target scoped, and default absent. | ✓ VERIFIED | Request and tracer contracts cover expiry and 4096/4097-byte/collapse boundaries. |
-| 5 | Invalidation affects only the exact tenant/environment/topic/revision. | ✓ VERIFIED | The packaged 410/CAS fixture and `result_test.exs` use the original four-field invalidation key and reject malformed/non-authoritative inputs. |
+| 1 | Non-push hosts run without Pigeon/APNs config; opting-in hosts use the Pigeon-backed adapter through host lookup. | ✗ FAILED | The disabled path is structurally isolated, but the single supported enabled-consumer proof (`bash scripts/verify-apns.sh`) exits nonzero at `mix cmd --cd deps/chimeway mix compile --force --warnings-as-errors` on an Oban unreachable-clause warning. |
+| 2 | Each request has exact routing, stable ID, bounded allowlisted payload, expiry, and opaque one-time open reference. | ✗ FAILED | Direct execution accepted `alice@example.com` as durable `open_ref` and `Payload.build/2` accepted/sent `https://private.example.test/open`; neither is opaque. |
+| 3 | Provider outcomes are honest and target-specific. | ✓ VERIFIED | The current 15-test adapter/worker suite passed. In particular, raised lookup and payload-builder paths return bounded pre-handoff results with no transport invocation; only `safe_transport/2` maps failures to ambiguity. |
+| 4 | Expiry suppresses sends/retries and collapse is opt-in, exact-target scoped, and default absent. | ✗ FAILED | Expiry and derived-collapse tests pass, but direct execution accepted `"safe\\r\\nvalue"` as a caller-supplied collapse ID and forwards it to `Transport.Request.collapse_id`; this is not installation-safe provider input. |
+| 5 | Invalidation affects only the exact tenant/environment/topic/revision. | ✓ VERIFIED | `result_test.exs` passed and `APNS.classify_result/3` constructs `BindingLookup.InvalidationKey` from the target tenant/revision and persisted environment/topic before conditional invalidation. |
+
+**Score:** 2/5 roadmap truths verified (0 present, behavior-unverified).
 
 ### Plan Must-Haves
 
-All 44 PLAN frontmatter truths were checked. The 42 non-failed items are implemented, wired, and covered by the root APNs contract suite and/or the package consumer tracer. The following groups are specifically evidenced by code and tests: durable immutable intent and target concurrency (100-01); public/prefixed migration parity (100-02); optional dynamic Pigeon boundary, exact lookup, payload, expiry, and collapse (100-03); exact result classification/CAS and safe trace facts (100-04); package/CI/API-coverage wiring (100-05); complete 410 response authority (100-06/07); and ordinary 200 plus locked enabled graph/audit (100-08).
-
-| Plan | Truth count | Result | Evidence |
-| --- | ---: | --- | --- |
-| 100-01 | 8 | ✓ 8/8 | `tracer_test.exs`, request contracts, persisted intent/target path, and root APNs suite. |
-| 100-02 | 4 | ✓ 4/4 | Canonical and golden migration 037 files, migration/prefix contracts. |
-| 100-03 | 6 | ✓ 6/6 | Optional dynamic transport, exact lookup, closed payload, and request/result tests. |
-| 100-04 | 8 | ✗ 7/8 | D-12/D-13 lifecycle boundary fails for a raised pre-provider lookup; all other outcome/CAS/evidence paths pass. |
-| 100-05 | 5 | ✗ 4/5 | Consumer isolation, API coverage, alias and CI wiring exist; the asserted warnings-as-errors compilation proof is not fail-closed. |
-| 100-06 | 5 | ✓ 5/5 | Represented 410 bridge and non-authority matrix are wired and covered. |
-| 100-07 | 3 | ✓ 3/3 | Public `APNS.deliver/2` bridge-to-CAS fixture is present and preserved. |
-| 100-08 | 5 | ✓ 5/5 | Runtime HTTP 200 tracer passed; lock/version/audit commands and CI link exist. The build-warning defect is counted against the original clean-consumer compile claim above, not as a duplicate truth. |
-
-**Score:** 42/44 must-haves verified (0 present-but-behavior-unverified).
+All six requirement IDs declared in Plan frontmatter are accounted for below. The former Plan 100-04/09 pre-provider-honesty gap is closed by executable evidence. The Plan 100-09 strict-compile truth remains failed. Plan assertions that call the stored/sent value an "opaque" reference or an "installation-safe" collapse key are disproven by the direct boundary checks above; presence of the corresponding modules and tests is not sufficient.
 
 ### Required Artifacts
 
-| Artifact group | Status | Details |
-| --- | --- | --- |
-| Request intent, payload, lookup, adapter, target lifecycle, evidence | ✓ VERIFIED | All declared source artifacts exist, are substantive, and are called from planning/executor/adapter paths. |
-| Repository/template/golden migrations | ✓ VERIFIED | All four copies use nullable `apns_request_intent`; migration tests are included in the APNs alias. |
-| Pigeon-neutral transport and package consumer tracer | ⚠️ WIRED WITH GAP | The real ordinary-200 and 410 paths run, but duplicate enabled-only callbacks are unreachable and compile warnings escape the gate. |
-| Locked enabled dependency graph and verifier script | ✓ VERIFIED | `apns-enabled.lock`, exact dependency assertions, `deps.get --check-locked`, and `mix hex.audit` are present and run in enabled mode. |
+| Artifact | Expected | Status | Details |
+| --- | --- | --- | --- |
+| `lib/chimeway/apns/request_intent.ex` | Durable validated APNs intent and safe collapse derivation | ✗ SUBSTANTIVE BUT UNSAFE | Wired through planning and adapter reload, but `safe_opaque?/1` is a blacklist and explicit collapse IDs admit control bytes. |
+| `lib/chimeway/apns/payload.ex` | Closed bounded APNs payload | ✗ SUBSTANTIVE BUT UNSAFE | Wired by `APNS.deliver/2`; direct `Payload.build/2` accepts URLs as open refs and emits them in the provider payload. |
+| `lib/chimeway/adapters/apns.ex` | Stage-scoped delivery and honest classification | ✓ VERIFIED | `safe_lookup/1`, `safe_payload/2`, and `safe_transport/2` have distinct rescue boundaries; focused 15 tests pass. |
+| `lib/chimeway/apns/transport.ex` | Optional dynamic Pigeon bridge | ✓ VERIFIED | Single runtime callback bridge uses configured JSON decoder and normal 200 delegation; no Phase-100 debt markers found. |
+| APNs intent migrations and golden fixtures | Same nullable safe-intent column in repository/public/prefixed modes | ✓ VERIFIED | Migration/prefix contract command passed (16 tests); all copies use `apns_request_intent`. |
+| `scripts/verify-apns.sh` and consumer fixture | Disabled/enabled hermetic optionality proof | ✗ FAILED | Script correctly contains the strict dependency compile but currently terminates on a real warning, so it is not a passing release gate. |
 
 ### Key Link Verification
 
-| Link | Status | Evidence |
-| --- | --- | --- |
-| Planning → persisted exact-target intent → adapter reload | ✓ WIRED | `DeliveryPlanning`/`DeliveryTargets.plan_targets` persist the request intent; `APNS.deliver/2` uses `RequestIntent.from_storage/1`. |
-| Adapter → exact host lookup → closed payload → optional transport | ✓ WIRED | Adapter calls `BindingLookup.resolve`, `Payload.build`, then `Transport.push`; the focused runtime package tracer returns `provider_accepted`. |
-| Raw correlated 410 → closed result → classifier → exact host CAS | ✓ WIRED | `PigeonAdapter.process_end_stream/2`, `classify_result/3`, and the public fixture prove the original four-field key. |
-| Raw correlated HTTP 200 → Pigeon normal handler → accepted result | ✓ WIRED | `runtime_closed_result/1` returns `:normalized` for 200/201 and calls `Pigeon.Configurable.handle_end_stream/3`; `CHIMEWAY_APNS_FOCUS=runtime_success` exited 0. |
-| Local alias → package proof → verify_apns → PR and CI aggregates | ✓ WIRED | `mix.exs`, `scripts/verify-apns.sh`, CI `verify_apns`, `pr-gate`, and `ci-gate` link the same lane. |
+| From | To | Via | Status | Details |
+| --- | --- | --- | --- | --- |
+| Delivery planning | persisted target intent | `DeliveryTargets.plan_targets/3` | ✓ WIRED | The target row stores `RequestIntent.to_storage/1`; adapter reloads with `RequestIntent.from_storage/1`. |
+| APNS adapter | lookup → payload → transport | ordered stage helpers | ✓ WIRED | `deliver/2` invokes lookup and payload before its narrowly guarded `Transport.push/3`; current tests exercise the pre-handoff boundary. |
+| Pigeon end stream | result classifier / exact CAS | `PigeonAdapter.process_end_stream/2` | ✓ WIRED | Correlated 410 is projected into a closed result; `classify_result/3` invokes `BindingLookup.invalidate/1` only for a complete recognized triple. |
+| Mix alias / CI | package gate | `mix verify.apns`, `verify_apns`, `pr-gate`, `ci-gate` | ⚠️ WIRED BUT FAILING | The local and CI wiring exists, but the local command's enabled mode exits nonzero. |
 
 ### Data-Flow Trace (Level 4)
 
-| Artifact | Data | Source to sink | Status |
-| --- | --- | --- | --- |
-| APNs request | persisted safe intent | target row → exact lookup → closed payload/headers → transport | ✓ FLOWING |
-| Ordinary provider success | correlated HTTP 200 | Pigeon stream → original notification callback → `Transport.Result.accepted` → `provider_accepted` | ✓ FLOWING |
-| Invalidation | bounded 410 tuple | stream/body → closed rejected result → exact key → host CAS | ✓ FLOWING |
-| Pre-provider failure | lookup exception | lookup → broad adapter rescue → ambiguous target result | ✗ MISCLASSIFIED |
+| Artifact | Data Variable | Source | Produces Real Data | Status |
+| --- | --- | --- | --- | --- |
+| APNs request | persisted `apns_request_intent` | planned target → adapter → host exact lookup → payload/headers → transport | Yes | ⚠️ FLOWING UNSAFELY — accepted `open_ref` data can be a personal identifier or URL. |
+| Collapse header | `intent.collapse_id` | caller-supplied value → request → optional Pigeon transport | Yes | ✗ UNSAFE — CR/LF is not rejected before the provider header seam. |
+| Pre-provider error | lookup/payload result | stage helper → executor → exact target outcome | Yes | ✓ FLOWING — test evidence confirms retryable/terminal truth with no handoff. |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| Root APNs request/result/adapter contracts | `mix verify.apns` root test command | 30 tests, 0 failures before package-consumer stage. | ✓ PASS |
-| Public ordinary HTTP 200 | `CHIMEWAY_APNS_FOCUS=runtime_success bash scripts/verify-apns.sh` | Exit 0; returned the bounded synthetic `provider_accepted` proof. | ✓ PASS |
-| Pre-I/O lookup exception | isolated `MIX_ENV=test mix run -e ... APNS.deliver(...)` | Returned `{:error, :possible_handoff, :ambiguous_handoff}` before any transport exists. | ✗ FAIL |
-| Exact invalidation/retry classification | `mix test test/chimeway/apns/result_test.exs test/chimeway/adapters/apns_test.exs --warnings-as-errors` | 6 tests, 0 failures. | ✓ PASS, but lacks raised-lookup regression |
-| Enabled compilation quality | focused package proof above | Exit 0 but emitted Chimeway duplicate/unreachable and undefined `Pigeon.json_library/0` warnings. | ✗ FAIL |
+| Pre-provider outcome boundary | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/adapters/apns_test.exs test/chimeway/dispatch/target_worker_test.exs --warnings-as-errors` | 15 tests, 0 failures | ✓ PASS |
+| Intent/payload/result/expiry/collapse contracts | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/apns/request_test.exs test/chimeway/apns/tracer_test.exs test/chimeway/apns/result_test.exs test/chimeway/apns/api_coverage_test.exs --warnings-as-errors` | 11 tests, 0 failures | ✓ PASS — insufficient to prove opaque/header-safe negative cases, which are absent. |
+| Installation and migration parity | `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/migration_contract_test.exs test/chimeway/generated_prefixed_runtime_proof_test.exs test/chimeway/install/migrations_test.exs test/chimeway/install/golden_diff_test.exs test/chimeway/install/prefix_contract_test.exs --warnings-as-errors` | 16 tests, 0 failures | ✓ PASS |
+| Enabled packaged consumer | `bash scripts/verify-apns.sh` | Nonzero: `lib/oban/repo.ex:253` warns that `Oban.Repo.expected_error?/1` clause is never used | ✗ FAIL |
+| Opaque/open and collapse boundaries | `MIX_ENV=test mix run -e '...RequestIntent.new(...open_ref: "alice@example.com", collapse_id: "safe\\r\\nvalue")...; ...Payload.build(..., "https://private.example.test/open")'` | Both calls returned `{:ok, ...}`; payload contained the URL | ✗ FAIL |
 
-The later `release_gate_contract_test.exs` rerun could not acquire PostgreSQL connections (`FATAL 53300 too_many_connections`); this is environmental contention after the already-recorded functional checks, not evidence that either implementation gap is fixed or deferred.
+### Probe Execution
+
+Step 7c: SKIPPED — no Phase 100 `scripts/*/tests/probe-*.sh` probe is declared or present. The executable APNs gate was run directly above.
 
 ### Requirements Coverage
 
-| Requirement | Source plans | Status | Evidence |
-| --- | --- | --- | --- |
-| APNS-01 | 100-03, 05, 06, 08 | ✗ BLOCKED | Optionality and locked graph are implemented, but the consumer's claimed warning-fail-closed compile gate is false. |
-| APNS-02 | 100-01, 02, 03, 05, 08 | ✓ SATISFIED | Safe durable intent, exact lookup, closed payload, and package tracer exist. |
-| APNS-03 | 100-04, 05, 06, 07, 08 | ✗ BLOCKED | A pre-provider lookup exception produces false ambiguous-handoff evidence; 200 and 410 provider paths otherwise pass. |
-| APNS-04 | 100-01 through 05, 08 | ✓ SATISFIED | Absolute expiry gate and durable suppression contract are present and tested. |
-| APNS-05 | 100-01, 03, 05, 08 | ✓ SATISFIED | Collapse remains host-declared, bounded, opaque, and exact-target scoped. |
-| APNS-06 | 100-04, 05, 08 | ✗ BLOCKED | False possible-handoff state prevents fully honest operator outcome vocabulary. |
+| Requirement | Source Plans | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| APNS-01 | 03, 05, 06, 08, 09 | Optional Pigeon adapter without push dependencies for other hosts | ✗ BLOCKED | Disabled isolation is wired, but the required enabled packaged-consumer strict compilation exits nonzero. |
+| APNS-02 | 01, 02, 03, 05, 08 | Exact host custody, safe bounded request, opaque open reference | ✗ BLOCKED | Durable/routing/bounds code and tests exist, but identifier/URL values are accepted, persisted, and/or emitted as the supposed opaque reference. |
+| APNS-03 | 04, 05, 06, 07, 08, 09 | Reason-classified outcomes and exact-binding invalidation | ✓ SATISFIED | Adapter/worker and result suites pass; Plan 09 fixes pre-provider exceptions; complete 410-only CAS remains wired. |
+| APNS-04 | 01, 02, 03, 04, 05, 08 | Absolute expiry before send/retry and explicit suppression | ✓ SATISFIED | Request/tracer and target lifecycle tests pass; adapter checks expiry before lookup/transport. |
+| APNS-05 | 01, 03, 05, 08 | Opaque installation-safe opt-in collapse key; no implicit coalescing | ✗ BLOCKED | Derived identity is bounded/scoped, but explicit collapse input admits CR/LF and is provider-bound. |
+| APNS-06 | 04, 05, 08, 09 | Distinct explainable operator outcome vocabulary | ✓ SATISFIED | Current tested pre-handoff, accepted, retryable, permanent, ambiguous, invalidated, expiry, and trace pathways remain distinct. |
 
-All six requirement IDs declared by Phase 100 plans are accounted for; `REQUIREMENTS.md` maps no additional Phase 100 requirement IDs.
+No additional Phase 100 requirements are mapped by `REQUIREMENTS.md`; no requirement is orphaned.
 
-### Prohibitions and Anti-Patterns
+### Anti-Patterns Found
 
-The 12 plan prohibitions were checked against closed payload/evidence, exact CAS, expiry/collapse, and consumer fixtures. No raw-token/credential/provider-body persistence, cross-binding invalidation, stale send, collapse coalescing, or acceptance-as-engagement path was found. They are objectively testable and require no human UAT.
+| File | Line | Pattern | Severity | Impact |
+| --- | --- | --- | --- | --- |
+| `lib/chimeway/apns/request_intent.ex` | 31-35, 104, 123-126 | Blacklist-as-opaque validation; unrestricted explicit collapse value | 🛑 BLOCKER | Sensitive host routing data can become durable/provider payload; invalid header characters can reach the transport seam. |
+| `lib/chimeway/apns/payload.ex` | 20-24, 47-50 | Duplicate permissive `opaque_ref?/1` boundary | 🛑 BLOCKER | Direct payload construction bypasses the durable-intent boundary and emits non-opaque values. |
+| `scripts/verify-apns.sh` | 46 | Strict compilation observes a real Oban warning | 🛑 BLOCKER | The declared enabled-consumer acceptance gate is red. |
 
-| File | Lines | Finding | Severity |
-| --- | --- | --- | --- |
-| `lib/chimeway/adapters/apns.ex` | 9-30 | Broad rescue turns pre-I/O callback exceptions into provider ambiguity. | 🛑 BLOCKER |
-| `lib/chimeway/apns/transport.ex` | 115-175, 266-379 | Duplicate/unreachable Pigeon callbacks and undefined API calls emit warnings in enabled consumer compilation. | 🛑 BLOCKER |
-
-No unreferenced `TBD`, `FIXME`, or `XXX` markers were found in the Phase 100 implementation artifacts.
+No unreferenced `TBD`, `FIXME`, or `XXX` marker was found in the inspected Phase 100 implementation artifacts.
 
 ### Deferred Items
 
-None. Phase 101 owns registration and protected-open authority, not truthful classification of Phase 100's pre-provider adapter failures or its enabled-package compiler gate.
+None. Later phases cover registration, protected open, and end-to-end twin proof; they do not authorize unsafe routing data/header input or a failing Phase 100 package gate.
 
 ### Gaps Summary
 
-Plan 100-08 closed the previous ordinary-200 and advisory-graph gaps: the real package tracer now succeeds for a correlated 200, and the enabled graph is locked/audited. The current review's two findings are genuine. The broad `APNS.deliver/2` rescue creates a durable provider-handoff claim even when the provider was never reached, directly breaking the phase's honesty contract. Separately, the package verification lane claims warnings-as-errors while allowing its own optional-path warnings to pass; this breaks a stated must-have and leaves dead, divergent provider code in the shipped adapter.
-
-This is an escalation gate. Both gaps are machine-testable; no conversational UAT is appropriate.
+This phase does not achieve its safety goal. The previous false-ambiguity gap is closed, but three observable failures remain: the strict enabled-consumer gate is red, an alleged opaque reference can be a user identifier or URL and is sent to APNs, and explicit collapse values are not header-safe. All are deterministic, machine-testable blockers. Per project policy, no conversational UAT or human-verification item is emitted.
 
 ---
 
-_Verified: 2026-08-22T00:43:30Z_
+_Verified: 2026-08-22T16:07:23Z_
 _Verifier: the agent (gsd-verifier)_
