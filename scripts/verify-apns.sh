@@ -50,7 +50,8 @@ run_consumer() {
         [[ "$warning_probe" == deps/chimeway/lib/* ]] || fail "warning probe escaped unpacked Chimeway source"
         printf '%s\n' 'defmodule Chimeway.APNS.WarningGateProbe do' '  def warning, do: ignored = :warning' 'end' >"$warning_probe"
 
-        if mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"; then
+        if CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+             mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"; then
           fail "Chimeway warning mutation unexpectedly compiled cleanly"
         fi
 
@@ -58,7 +59,8 @@ run_consumer() {
         return
       fi
 
-      mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+        mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
       grep -Eq 'pigeon.*2\.0\.1' "$tree_output" || fail "enabled fixture did not resolve pigeon 2.0.1"
       grep -Eq 'httpoison.*3\.0\.0' "$tree_output" || fail "enabled fixture did not resolve httpoison 3.0.0"

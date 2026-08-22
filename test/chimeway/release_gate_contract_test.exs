@@ -2919,10 +2919,13 @@ defmodule Chimeway.ReleaseGateContractTest do
       chimeway_compile =
         "mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors"
 
+      fixture_env = "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
+
       consumer_compile = "mix compile --warnings-as-errors"
 
       assert script =~ dependency_prepare
       assert script =~ chimeway_compile
+      assert script =~ fixture_env
       assert :binary.match(script, "mix deps.get --check-locked") < :binary.match(script, dependency_prepare)
       assert :binary.match(script, dependency_prepare) < :binary.match(script, chimeway_compile)
       assert :binary.match(script, chimeway_compile) < :binary.match(script, consumer_compile)
@@ -2933,7 +2936,10 @@ defmodule Chimeway.ReleaseGateContractTest do
             {"mix compile", "mix compile.elixir", chimeway_compile},
             {"--force-elixir", "--force", chimeway_compile},
             {"--no-deps-check", "", chimeway_compile},
-            {"--warnings-as-errors", "", chimeway_compile}
+            {"--warnings-as-errors", "", chimeway_compile},
+            {"CHIMEWAY_PACKAGE_PATH=\"$package_path\"", "", fixture_env},
+            {"CHIMEWAY_APNS_ENABLED=1", "", fixture_env},
+            {"MIX_ENV=test", "", fixture_env}
           ] do
         refute String.replace(script, needle, replacement, global: true) =~ required,
                "warning gate must reject mutation of #{needle}"
@@ -2946,6 +2952,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert script =~ "warning_gate_mutation"
       assert script =~ "mix deps.compile |& tee -a \"$output\""
+      assert script =~ "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
       assert script =~ "mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a \"$output\""
       assert script =~ "Chimeway warning mutation unexpectedly compiled cleanly"
       assert script =~ "Chimeway warning mutation did not emit compiler diagnostics"
