@@ -36,6 +36,7 @@ run_consumer() {
   local tree_output="$work_root/$mode-tree.log"
 
   cp -R "$fixture_root" "$consumer_root"
+  rm -rf "$consumer_root/_build" "$consumer_root/deps" "$consumer_root/mix.lock"
 
   if [[ "$mode" == "enabled" ]]; then
     (

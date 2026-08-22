@@ -2917,6 +2917,9 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert script =~ "env -u CHIMEWAY_APNS_ENABLED",
              "disabled proof must not inherit an enabled APNs environment"
 
+      assert script =~ "rm -rf \"$consumer_root/_build\" \"$consumer_root/deps\" \"$consumer_root/mix.lock\"",
+             "each copied consumer must discard local build, dependency, and lock residue before resolving"
+
       assert script =~ "pigeon|httpoison",
              "disabled proof must reject APNs-only Pigeon and HTTPoison edges"
 
