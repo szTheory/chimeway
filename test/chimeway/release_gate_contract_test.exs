@@ -2910,6 +2910,25 @@ defmodule Chimeway.ReleaseGateContractTest do
       refute script =~ "continue-on-error"
       refute String.replace(script, "mix hex.audit", "true", global: false) =~ "mix hex.audit"
     end
+
+    test "disabled consumer audit is baseline-aware about root tzdata's Hackney edge" do
+      script = File.read!(@apns_script)
+
+      assert script =~ "env -u CHIMEWAY_APNS_ENABLED",
+             "disabled proof must not inherit an enabled APNs environment"
+
+      assert script =~ "pigeon|httpoison",
+             "disabled proof must reject APNs-only Pigeon and HTTPoison edges"
+
+      assert script =~ "tzdata-to-Hackney baseline edge",
+             "disabled proof must identify the pre-existing root tzdata-to-Hackney edge"
+
+      assert script =~ "Hackney edge beyond the root tzdata baseline",
+             "disabled proof must reject any additional Hackney edge introduced by APNs"
+
+      refute script =~ "'httpoison|hackney' \"$tree_output\"",
+             "disabled proof must not falsely claim the root graph is globally Hackney-free"
+    end
   end
 
   defp top_level_entries(root) do

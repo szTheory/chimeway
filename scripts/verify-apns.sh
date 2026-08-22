@@ -33,6 +33,7 @@ run_consumer() {
   local mode="$1"
   local consumer_root="$work_root/$mode"
   local output="$work_root/$mode.log"
+  local tree_output="$work_root/$mode-tree.log"
 
   cp -R "$fixture_root" "$consumer_root"
 
@@ -41,10 +42,10 @@ run_consumer() {
       cd "$consumer_root"
       cp "$fixture_root/apns-enabled.lock" mix.lock
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get --check-locked
-      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$output"
-      grep -Eq 'pigeon.*2\.0\.1' "$output" || fail "enabled fixture did not resolve pigeon 2.0.1"
-      grep -Eq 'httpoison.*3\.0\.0' "$output" || fail "enabled fixture did not resolve httpoison 3.0.0"
-      grep -Eq 'hackney.*4\.7\.4' "$output" || fail "enabled fixture did not resolve hackney 4.7.4"
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
+      grep -Eq 'pigeon.*2\.0\.1' "$tree_output" || fail "enabled fixture did not resolve pigeon 2.0.1"
+      grep -Eq 'httpoison.*3\.0\.0' "$tree_output" || fail "enabled fixture did not resolve httpoison 3.0.0"
+      grep -Eq 'hackney.*4\.7\.4' "$tree_output" || fail "enabled fixture did not resolve hackney 4.7.4"
       grep -Eq 'pigeon.*2\.0\.1' mix.lock || fail "enabled fixture lock does not pin pigeon 2.0.1"
       grep -Eq 'httpoison.*3\.0\.0' mix.lock || fail "enabled fixture lock does not pin httpoison 3.0.0"
       grep -Eq 'hackney.*4\.7\.4' mix.lock || fail "enabled fixture lock does not pin hackney 4.7.4"
@@ -63,14 +64,15 @@ run_consumer() {
   else
     (
       cd "$consumer_root"
-      CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.get
-      CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.tree >"$output"
-      ! grep -qi pigeon "$output" || fail "disabled fixture dependency tree contains pigeon"
-      ! grep -Eqi 'httpoison|hackney' "$output" || fail "disabled fixture dependency tree contains enabled HTTP dependencies"
+      env -u CHIMEWAY_APNS_ENABLED CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.get
+      env -u CHIMEWAY_APNS_ENABLED CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.tree >"$tree_output"
+      ! grep -Eqi 'pigeon|httpoison' "$tree_output" || fail "disabled fixture dependency tree contains APNs-only dependencies"
+      [[ $(grep -Eic 'hackney' "$tree_output") -eq 1 ]] || fail "disabled fixture has a Hackney edge beyond the root tzdata baseline"
+      awk '/tzdata ~> 1\.1/{seen = 1; next} seen && /hackney ~> 1\.17/{found = 1; exit} END {exit !found}' "$tree_output" || fail "disabled fixture lost the expected tzdata-to-Hackney baseline edge"
       ! grep -qi pigeon mix.lock || fail "disabled fixture lock contains pigeon"
-      ! grep -Eqi 'httpoison|hackney' mix.lock || fail "disabled fixture lock contains enabled HTTP dependencies"
-      CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix compile --warnings-as-errors >>"$output"
-      CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix test >>"$output"
+      ! grep -qi httpoison mix.lock || fail "disabled fixture lock contains HTTPoison"
+      env -u CHIMEWAY_APNS_ENABLED CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix compile --warnings-as-errors >>"$output"
+      env -u CHIMEWAY_APNS_ENABLED CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix test >>"$output"
     )
   fi
 
