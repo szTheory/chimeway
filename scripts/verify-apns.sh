@@ -27,7 +27,7 @@ package_path=$(find "$artifact_root" -mindepth 1 -maxdepth 2 -name mix.exs -prin
 [[ -n "$package_path" && -f "$package_path/mix.exs" ]] || fail "unpacked package mix.exs is missing"
 
 focus="${CHIMEWAY_APNS_FOCUS:-}"
-[[ -z "$focus" || "$focus" == "bridge_to_cas" || "$focus" == "runtime_success" ]] || fail "unknown CHIMEWAY_APNS_FOCUS value: $focus"
+[[ -z "$focus" || "$focus" == "bridge_to_cas" || "$focus" == "runtime_success" || "$focus" == "warning_gate_mutation" ]] || fail "unknown CHIMEWAY_APNS_FOCUS value: $focus"
 
 run_consumer() {
   local mode="$1"
@@ -43,7 +43,22 @@ run_consumer() {
       cd "$consumer_root"
       cp "$fixture_root/apns-enabled.lock" mix.lock
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get --check-locked
-      mix cmd --cd deps/chimeway mix compile --force --warnings-as-errors >>"$output"
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.compile |& tee -a "$output"
+
+      if [[ "$focus" == "warning_gate_mutation" ]]; then
+        warning_probe="deps/chimeway/lib/chimeway/apns_warning_gate_probe.ex"
+        [[ "$warning_probe" == deps/chimeway/lib/* ]] || fail "warning probe escaped unpacked Chimeway source"
+        printf '%s\n' 'defmodule Chimeway.APNS.WarningGateProbe do' '  def warning, do: ignored = :warning' 'end' >"$warning_probe"
+
+        if mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"; then
+          fail "Chimeway warning mutation unexpectedly compiled cleanly"
+        fi
+
+        grep -q 'warning' "$output" || fail "Chimeway warning mutation did not emit compiler diagnostics"
+        return
+      fi
+
+      mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
       grep -Eq 'pigeon.*2\.0\.1' "$tree_output" || fail "enabled fixture did not resolve pigeon 2.0.1"
       grep -Eq 'httpoison.*3\.0\.0' "$tree_output" || fail "enabled fixture did not resolve httpoison 3.0.0"
@@ -81,7 +96,7 @@ run_consumer() {
   ! grep -q 'fixture-token-never-emitted' "$output" || fail "consumer output leaked the token sentinel"
 }
 
-if [[ "$focus" == "bridge_to_cas" || "$focus" == "runtime_success" ]]; then
+if [[ "$focus" == "bridge_to_cas" || "$focus" == "runtime_success" || "$focus" == "warning_gate_mutation" ]]; then
   run_consumer enabled
 else
   run_consumer disabled

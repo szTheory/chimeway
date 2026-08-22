@@ -2927,17 +2927,15 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert :binary.match(script, dependency_prepare) < :binary.match(script, chimeway_compile)
       assert :binary.match(script, chimeway_compile) < :binary.match(script, consumer_compile)
 
-      for mutation <- [
-            {dependency_prepare, "true"},
-            {"mix cmd --cd deps/chimeway", "mix cmd --cd deps/oban"},
-            {"mix compile", "mix compile.elixir"},
-            {"--force-elixir", "--force"},
-            {"--no-deps-check", ""},
-            {"--warnings-as-errors", ""}
+      for {needle, replacement, required} <- [
+            {dependency_prepare, "true", dependency_prepare},
+            {"mix cmd --cd deps/chimeway", "mix cmd --cd deps/oban", chimeway_compile},
+            {"mix compile", "mix compile.elixir", chimeway_compile},
+            {"--force-elixir", "--force", chimeway_compile},
+            {"--no-deps-check", "", chimeway_compile},
+            {"--warnings-as-errors", "", chimeway_compile}
           ] do
-        {needle, replacement} = mutation
-
-        refute String.replace(script, needle, replacement, global: false) =~ chimeway_compile,
+        refute String.replace(script, needle, replacement, global: true) =~ required,
                "warning gate must reject mutation of #{needle}"
       end
     end
@@ -2946,6 +2944,11 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "warning gate keeps compiler diagnostics visible and forbids dependency-source mutation" do
       script = File.read!(@apns_script)
 
+      assert script =~ "warning_gate_mutation"
+      assert script =~ "mix deps.compile |& tee -a \"$output\""
+      assert script =~ "mix cmd --cd deps/chimeway mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a \"$output\""
+      assert script =~ "Chimeway warning mutation unexpectedly compiled cleanly"
+      assert script =~ "Chimeway warning mutation did not emit compiler diagnostics"
       refute script =~ "2>/dev/null"
       refute script =~ "|| true"
       refute script =~ "sed -i"
