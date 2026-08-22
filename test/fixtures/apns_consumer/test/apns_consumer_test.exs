@@ -106,6 +106,31 @@ defmodule APNSConsumerTest do
       end
     end
 
+    @tag :apns_runtime_success
+    test "the public adapter returns provider accepted for a correlated ordinary Pigeon success" do
+      with_bridge(fn dispatcher ->
+        task = Task.async(fn -> APNSConsumer.deliver(dispatcher) end)
+
+        assert_receive {:pigeon_send_request, _headers}
+
+        deliver_end_stream(dispatcher, %Pigeon.Http2.Stream{
+          id: 1,
+          status: 200,
+          headers: [],
+          body: ""
+        })
+
+        assert {:provider_accepted, facts} = result = Task.await(task)
+        assert is_map(facts)
+        refute_receive {:binding_invalidation, _}
+
+        assert %{successful_invalidations: 0, original: :active, replacement: :active} =
+                 APNSConsumer.binding_state()
+
+        assert_safe_result(result)
+      end)
+    end
+
     @tag :apns_bridge_to_cas
     test "the public adapter rejects non-authoritative streams without a successful host CAS" do
       non_authoritative_streams = [
