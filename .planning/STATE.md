@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
 current_phase_name: optional-apns-adapter
 status: executing
-stopped_at: Completed 100-07-PLAN.md
-last_updated: "2026-08-21T17:52:41.755Z"
+stopped_at: Completed 100-08-PLAN.md
+last_updated: "2026-08-22T00:33:43.112Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 48
-  completed_plans: 48
+  total_plans: 49
+  completed_plans: 49
   percent: 57
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 100 (optional-apns-adapter) — EXECUTING
-Plan: 2 of 7
+Plan: 2 of 8
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 100 execution started
 
@@ -389,6 +389,7 @@ status: complete
 - [Phase ?]: [100-06]: Pigeon raw 410 streams are converted only after queue correlation and a bounded complete response triple.
 - [Phase ?]: [100-07] Absent APNs transport configuration must enter the optional Pigeon path; only non-nil atom overrides are adapter modules.
 - [Phase ?]: [100-07] Pigeon-free package builds retain runtime-only dispatcher callbacks that close malformed provider streams safely.
+- [Phase ?]: [100-08]: Disabled APNs consumer isolation permits only the root tzdata -> hackney baseline and rejects all APNs-introduced Pigeon, HTTPoison, or extra Hackney edges.
 
 ### Roadmap Evolution
 
@@ -709,8 +710,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-21T17:52:41.731Z
-Stopped at: Completed 100-07-PLAN.md
+Last session: 2026-08-22T00:33:43.093Z
+Stopped at: Completed 100-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -860,3 +861,4 @@ Resume file: None
 | Phase 100-optional-apns-adapter P05 | 18 min | 2 tasks | 9 files |
 | Phase 100-optional-apns-adapter P06 | 18 min | 2 tasks | 5 files |
 | Phase 100 P07 | 24 min | 1 tasks | 7 files |
+| Phase 100 P08 | 30 min | 2 tasks | 6 files |

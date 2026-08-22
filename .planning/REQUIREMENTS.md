@@ -26,12 +26,12 @@
 
 ### APNs Dispatch
 
-- [ ] **APNS-01**: An APNs-enabled host can opt into a Pigeon-backed adapter without adding Pigeon or APNs configuration to non-push Chimeway installations.
-- [ ] **APNS-02**: Each request uses host-resolved token custody, the correct environment and topic, a stable `apns-id`, a bounded allowlisted payload, and an opaque one-time open reference.
-- [ ] **APNS-03**: APNs outcomes are classified by reason into accepted handoff, retryable, permanent configuration or payload failure, or exact-binding invalidation; invalidation never affects a rotated replacement or another tenant or environment.
-- [ ] **APNS-04**: The host supplies an absolute expiry; Chimeway checks it before send and retry, maps it to `apns-expiration`, and records explicit expiry suppression instead of delivering stale reminders.
-- [ ] **APNS-05**: A host may opt a replaceable reminder occurrence into an opaque, installation-safe collapse key; distinct notifications omit collapse and are never silently coalesced.
-- [ ] **APNS-06**: Operators can distinguish local dispatch intent, APNs acceptance or rejection, retry exhaustion, target invalidation, protected app open, and inbox seen or read without conflating these states.
+- [x] **APNS-01**: An APNs-enabled host can opt into a Pigeon-backed adapter without adding Pigeon or APNs configuration to non-push Chimeway installations.
+- [x] **APNS-02**: Each request uses host-resolved token custody, the correct environment and topic, a stable `apns-id`, a bounded allowlisted payload, and an opaque one-time open reference.
+- [x] **APNS-03**: APNs outcomes are classified by reason into accepted handoff, retryable, permanent configuration or payload failure, or exact-binding invalidation; invalidation never affects a rotated replacement or another tenant or environment.
+- [x] **APNS-04**: The host supplies an absolute expiry; Chimeway checks it before send and retry, maps it to `apns-expiration`, and records explicit expiry suppression instead of delivering stale reminders.
+- [x] **APNS-05**: A host may opt a replaceable reminder occurrence into an opaque, installation-safe collapse key; distinct notifications omit collapse and are never silently coalesced.
+- [x] **APNS-06**: Operators can distinguish local dispatch intent, APNs acceptance or rejection, retry exhaustion, target invalidation, protected app open, and inbox seen or read without conflating these states.
 
 ### Recovery
 
