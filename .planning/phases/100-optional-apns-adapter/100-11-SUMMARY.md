@@ -52,7 +52,8 @@ The enabled packaged-consumer verifier now compiles dependencies normally and wa
 - PASS: `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --only apns_warning_gate_contract --warnings-as-errors` — 2 tests, 0 failures.
 - PASS: `bash -n scripts/verify-apns.sh`.
 - PASS: Post-wave focused contract rerun after the strict compile environment repair — 2 tests, 0 failures.
-- PASS: `CHIMEWAY_APNS_FOCUS=strict_compile_probe bash scripts/verify-apns.sh` prepared the enabled consumer graph and completed the Chimeway-only warning-strict compiler probe with the consumer dependency code path present.
+- PASS: `CHIMEWAY_APNS_FOCUS=strict_compile_probe bash scripts/verify-apns.sh` prepared the enabled consumer graph, excluded compiled Chimeway ebin, and completed the Chimeway-only warning-strict compiler probe.
+- PASS: `CHIMEWAY_APNS_FOCUS=warning_gate_mutation bash scripts/verify-apns.sh` retained visible diagnostics and a nonzero strict compile for a temporary Chimeway warning without module-redefinition noise.
 - Not run by design: the full `bash scripts/verify-apns.sh` and `mix verify.apns` gates remain owned by Plan 100-10.
 
 ## Deviations from Plan
@@ -86,6 +87,17 @@ The enabled packaged-consumer verifier now compiles dependencies normally and wa
 - **Fix:** Passed the prepared consumer `_build/test/lib` through `ERL_LIBS` to the Chimeway-only strict compiler, validated the Ecto path, and added the focused `strict_compile_probe` verifier mode.
 - **Files modified:** `scripts/verify-apns.sh`, `test/chimeway/release_gate_contract_test.exs`
 - **Commit:** `147a8b3`
+
+5. [Rule 1 - Bug] Excluded Chimeway's already-compiled ebin from the strict compiler process.
+- **Found during:** Plan 100-10's post-wave full package gate.
+- **Issue:** A broad `ERL_LIBS` value included `_build/test/lib/chimeway`, which preloaded Chimeway modules and made the isolated source compile emit redefinition warnings.
+- **Fix:** Built a colon-separated dependency-only ebin root list, skipped the `chimeway` child, and made both focused probes fail on `redefining module Chimeway` output.
+- **Files modified:** `scripts/verify-apns.sh`, `test/chimeway/release_gate_contract_test.exs`
+- **Commit:** `0ea6551`
+
+### Verification Note
+
+The earlier `strict_compile_probe` checked dependency availability but did not assert absence of module redefinition diagnostics. The strengthened probe now exercises the same post-`mix deps.compile` state as the full sequence and rejects that output explicitly.
 
 ## Known Stubs
 
