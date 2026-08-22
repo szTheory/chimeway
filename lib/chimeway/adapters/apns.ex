@@ -2,20 +2,20 @@ defmodule Chimeway.Adapters.APNS do
   @moduledoc "Pigeon-neutral APNs target adapter with host-owned transient custody."
   @behaviour Chimeway.TargetAdapter
 
-  alias Chimeway.APNS.{BindingLookup, Payload, RequestIntent, Transport}
+  alias Chimeway.APNS.{BindingLookup, RequestIntent, Transport}
   alias Chimeway.TargetAdapter.TargetEnvelope
 
   @impl true
   def deliver(%TargetEnvelope{delivery: delivery, target: target}, _opts) do
-    with {:ok, intent} <- RequestIntent.from_storage(target.apns_request_intent),
-         false <- RequestIntent.expired?(intent, DateTime.utc_now()),
-         {:ok, transient} <- BindingLookup.resolve(binding_request(target, intent)),
-         {:ok, payload} <- Payload.build(delivery.render_data || %{}, intent.open_ref),
-       {:ok, result} <-
-           Transport.push(transient.dispatcher_ref, request(transient, intent, payload)) do
+    with {:ok, intent} <- safe_intent(target.apns_request_intent),
+         false <- safe_expired?(intent),
+         {:ok, transient} <- safe_lookup(binding_request(target, intent)),
+         {:ok, payload} <- safe_payload(delivery.render_data || %{}, intent.open_ref),
+         {:ok, result} <- safe_transport(transient.dispatcher_ref, request(transient, intent, payload)) do
       classify_result(result, target, intent)
     else
       true -> {:expired, %{provider_code: "expired"}}
+      {:error, :lookup_failed} -> {:pre_handoff_retryable, %{provider_code: "binding_lookup_failed"}}
       {:error, :ambiguous} -> {:error, :possible_handoff, :ambiguous_handoff}
       {:error, :pigeon_unavailable} -> {:pre_handoff_retryable, %{provider_code: "pigeon_unavailable"}}
       {:error, :rejected} -> {:permanent, %{provider_code: "provider_rejected"}}
@@ -24,10 +24,47 @@ defmodule Chimeway.Adapters.APNS do
       {:error, _} -> {:permanent, %{provider_code: "invalid_request"}}
       _ -> {:permanent, %{provider_code: "invalid_request"}}
     end
+  end
+
+  defp safe_intent(storage) do
+    RequestIntent.from_storage(storage)
   rescue
-    _ -> {:error, :possible_handoff, :ambiguous_handoff}
+    _ -> {:error, :invalid_request}
   catch
-    _, _ -> {:error, :possible_handoff, :ambiguous_handoff}
+    _, _ -> {:error, :invalid_request}
+  end
+
+  defp safe_expired?(intent) do
+    RequestIntent.expired?(intent, DateTime.utc_now())
+  rescue
+    _ -> false
+  catch
+    _, _ -> false
+  end
+
+  defp safe_lookup(request) do
+    BindingLookup.resolve(request)
+  rescue
+    _ -> {:error, :lookup_failed}
+  catch
+    _, _ -> {:error, :lookup_failed}
+  end
+
+  defp safe_payload(render_data, open_ref) do
+    builder = Application.get_env(:chimeway, :apns_payload_builder, Chimeway.APNS.Payload)
+    builder.build(render_data, open_ref)
+  rescue
+    _ -> {:error, :invalid_payload}
+  catch
+    _, _ -> {:error, :invalid_payload}
+  end
+
+  defp safe_transport(dispatcher_ref, request) do
+    Transport.push(dispatcher_ref, request)
+  rescue
+    _ -> {:error, :ambiguous}
+  catch
+    _, _ -> {:error, :ambiguous}
   end
 
   defp classify_result(%Transport.Result{outcome: :accepted}, _target, _intent),

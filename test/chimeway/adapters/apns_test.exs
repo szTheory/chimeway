@@ -13,12 +13,17 @@ defmodule Chimeway.Adapters.APNSTest do
     def invalidate_binding(_key), do: {:ok, %BindingLookup.InvalidationResult{status: :unchanged}}
   end
 
+  defmodule RaisingPayloadBuilder do
+    def build(_, _), do: raise("payload-sentinel-never-emitted")
+  end
+
   setup do
     previous =
       for key <- [
             :apns_binding_lookup,
             :apns_transport,
             :apns_lookup_reply,
+            :apns_payload_builder,
             :apns_fake_transport_pid,
             :apns_fake_transport_result
           ],
@@ -110,6 +115,37 @@ defmodule Chimeway.Adapters.APNSTest do
 
     assert {:pre_handoff_retryable, %{provider_code: "pigeon_unavailable"}} =
              APNS.deliver(envelope(), [])
+  end
+
+  test "lookup and payload-builder exceptions are bounded before transport handoff" do
+    Application.put_env(:chimeway, :apns_lookup_reply, fn _ ->
+      raise "lookup-token-sentinel-never-emitted"
+    end)
+
+    result = APNS.deliver(envelope(), [])
+    assert {:pre_handoff_retryable, %{provider_code: "binding_lookup_failed"}} = result
+    refute_receive {:apns_push, _, _}
+    refute inspect(result) =~ "lookup-token-sentinel-never-emitted"
+    refute inspect(result) =~ "possible_provider_handoff"
+
+    Application.put_env(:chimeway, :apns_lookup_reply, fn request ->
+      {:ok,
+       %BindingLookup.Transient{
+         tenant_id: request.tenant_id,
+         environment: request.environment,
+         topic: request.topic,
+         binding_revision_ref: request.binding_revision_ref,
+         device_token: "raw-token-sentinel",
+         dispatcher_ref: "dispatcher"
+       }}
+    end)
+
+    Application.put_env(:chimeway, :apns_payload_builder, RaisingPayloadBuilder)
+    result = APNS.deliver(envelope(), [])
+    assert {:permanent, %{provider_code: "invalid_request"}} = result
+    refute_receive {:apns_push, _, _}
+    refute inspect(result) =~ "payload-sentinel-never-emitted"
+    refute inspect(result) =~ "possible_provider_handoff"
   end
 
   test "Pigeon is optional and raw extraction fails closed unless the invalidation triple is complete" do
