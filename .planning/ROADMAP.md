@@ -210,7 +210,7 @@ Plans:
   4. Expired reminders are suppressed before initial send or retry, and only host-opted replaceable occurrences use an installation-safe collapse key; distinct notifications remain uncoalesced.
   5. A provider invalidation affects only its exact tenant, environment, and binding revision, never a rotated replacement or another installation.
 
-**Plans**: 9/9 plans executed
+**Plans**: 9/11 plans executed
 
 Plans:
 
@@ -249,6 +249,14 @@ Plans:
 **Wave 9** *(blocked on Wave 8 completion)*
 
 - [x] 100-09-PLAN.md — Preserve honest pre-provider failure evidence and enforce warning-strict enabled-consumer compilation.
+
+**Wave 10** *(blocked on Wave 9 completion)*
+
+- [ ] 100-11-PLAN.md — Restore a passing enabled packaged-consumer gate while preserving warning-strict evidence for Chimeway-owned compilation.
+
+**Wave 11** *(blocked on Wave 10 completion)*
+
+- [ ] 100-10-PLAN.md — Reject unsafe open references and collapse-header bytes consistently before persistence or APNs handoff.
 
 ### Phase 101: CrossWake Registration & Protected Open
 
