@@ -1,8 +1,8 @@
 ---
 phase: 100-optional-apns-adapter
-reviewed: 2026-08-22T00:38:03Z
+reviewed: 2026-08-22T12:02:00Z
 depth: standard
-files_reviewed: 33
+files_reviewed: 32
 files_reviewed_list:
   - .github/workflows/ci.yml
   - lib/chimeway/adapters/apns.ex
@@ -46,66 +46,47 @@ status: issues_found
 
 # Phase 100: Code Review Report
 
-**Reviewed:** 2026-08-22T00:38:03Z
+**Reviewed:** 2026-08-22T12:02:00Z
 **Depth:** standard
-**Files Reviewed:** 33
+**Files Reviewed:** 32
 **Status:** issues_found
 
 ## Summary
 
-The APNs request/response path, durable intent storage, target lifecycle integration, consumer proof, migration templates, and CI hook were reviewed. Provider response facts are bounded before persistence and the 410 invalidation path is correctly gated on the complete response tuple. Two defects remain: pre-handoff failures can be recorded as an ambiguous provider handoff, and the Pigeon-enabled compilation path contains unreachable duplicate callbacks and an undefined Pigeon API call.
+The APNs adapter, target lifecycle integration, migrations, consumer proof, and CI lane were reviewed. The durable routing-intent boundary does not actually require opaque identifiers: arbitrary sensitive values can be retained in the database and sent in the APNs payload. The same loose validation also permits control characters in a caller-supplied APNs collapse identifier.
 
 ## Critical Issues
 
-### CR-01: Pre-handoff exceptions are falsely recorded as possible provider handoffs
+### CR-01: “Opaque” open references can contain and disclose sensitive data
 
-**File:** `lib/chimeway/adapters/apns.ex:9-30`
-**Issue:** The rescue/catch surrounds intent decoding, host binding lookup, payload construction, and the actual `Transport.push/2` call. Consequently, an exception from `BindingLookup.resolve/1` (including a host lookup callback crash) or `Payload.build/2` is converted to `{:error, :possible_handoff, :ambiguous_handoff}` even though no provider request was attempted. `Executor` then durably closes the target as `:ambiguous_handoff`, preventing the normal safe pre-handoff retry. This violates the lifecycle evidence contract and can strand otherwise deliverable notifications after a local/transient host error.
+**File:** `lib/chimeway/apns/request_intent.ex:31`
+**Issue:** `safe_opaque?/1` only rejects four substrings. It accepts values such as `"alice@example.com"`, `"user/123"`, or a signed URL as `open_ref`; `to_storage/1` then persists the value (`:63`) and `Payload.build/2` sends it to APNs as `chimeway_open_ref` (`lib/chimeway/apns/payload.ex:21-24`). This violates the project requirement not to leak sensitive payload fields and the module’s own durable *opaque* routing-intent contract. The payload-side `opaque_ref?/1` repeats the same insufficient validation at `lib/chimeway/apns/payload.ex:47`, so callers can bypass durable-intent construction as well.
 
-**Fix:** Keep the pre-handoff operations outside the transport uncertainty rescue and map their failures to `:pre_handoff_retryable` (or a safe permanent validation result). Only wrap the provider-emission call in the ambiguity guard. For example:
+**Fix:** Require a closed opaque-reference format at both boundaries, rather than attempting to blacklist secret words. For example:
 
 ```elixir
-with {:ok, intent} <- RequestIntent.from_storage(target.apns_request_intent),
-     false <- RequestIntent.expired?(intent, DateTime.utc_now()),
-     {:ok, transient} <- BindingLookup.resolve(binding_request(target, intent)),
-     {:ok, payload} <- Payload.build(delivery.render_data || %{}, intent.open_ref) do
-  push_and_classify(transient, intent, payload, target)
-else
-  {:error, :binding_not_found} -> {:pre_handoff_retryable, %{provider_code: "binding_not_found"}}
-  # other validated pre-handoff cases
-end
+@opaque_ref ~r/^cw_[a-z0-9][a-z0-9_-]{3,159}$/
 
-defp push_and_classify(transient, intent, payload, target) do
-  result =
-    try do
-      Transport.push(transient.dispatcher_ref, request(transient, intent, payload))
-    rescue
-      _ -> {:error, :ambiguous}
-    catch
-      _, _ -> {:error, :ambiguous}
-    end
+defp safe_opaque?(value),
+  do: is_binary(value) and Regex.match?(@opaque_ref, value)
 
-  case result do
-    {:ok, response} -> classify_result(response, target, intent)
-    {:error, :pigeon_unavailable} -> {:pre_handoff_retryable, %{provider_code: "pigeon_unavailable"}}
-    _ -> {:error, :possible_handoff, :ambiguous_handoff}
-  end
-end
+defp opaque_ref?(value),
+  do: is_binary(value) and Regex.match?(@opaque_ref, value)
 ```
 
-Add a regression test where `resolve_binding/1` raises and assert no transport call, a pending/retryable target, and a pre-handoff evidence code.
+If host reference formats must vary, require the host to provide an opaque projection and persist/send only that projection. Add rejection tests for an email address, URL, raw user identifier, and a value containing newline characters.
 
 ## Warnings
 
-### WR-01: Pigeon-enabled build has unreachable duplicate adapter callbacks
+### WR-01: Explicit collapse IDs accept invalid header characters
 
-**File:** `lib/chimeway/apns/transport.ex:115-175,266-379`
-**Issue:** The generic `init/1`, `handle_push/2`, `handle_info/2`, and `process_end_stream/2` clauses are defined before the `if Code.ensure_loaded?(Pigeon.Adapter)` block and match every invocation. When Pigeon is installed, the later callback implementations are therefore unreachable. The Pigeon-enabled consumer compile emits warnings for every duplicate/unreachable clause; it also reports `Pigeon.json_library/0` as undefined at lines 332 and 353. This defeats the claimed warnings-as-errors quality gate for the optional path and leaves two divergent response implementations, one of which is dead.
+**File:** `lib/chimeway/apns/request_intent.ex:104`
+**Issue:** A caller-supplied `collapse_id` is accepted whenever it is 1–64 bytes and lacks one of four secret-related words. Values containing `\r`, `\n`, or other control characters therefore become `Transport.Request.collapse_id` (`lib/chimeway/adapters/apns.ex:158`) and are passed to Pigeon as an APNs header field. Depending on the HTTP/2 client this becomes either a request failure after the target has been claimed or an unsafe header value. It should be rejected before any provider handoff.
 
-**Fix:** Retain one callback implementation. Prefer the dependency-neutral dynamic implementation, remove the conditional duplicate block, and use the dynamically resolved Pigeon JSON module there. Alternatively, put the Pigeon-specific callbacks in a separate module compiled only in the enabled consumer, with no overlapping function heads. Add a consumer compile assertion that fails on warnings originating from Chimeway (not just the fixture application).
+**Fix:** Validate explicit collapse IDs against APNs’ header-safe character contract (or generate every collapse ID internally). At minimum reject control characters and constrain it to an ASCII allowlist, e.g. `~r/^[A-Za-z0-9._-]{1,64}$/`, and add boundary tests for CR/LF, tabs, and non-printable bytes.
 
 ---
 
-_Reviewed: 2026-08-22T00:38:03Z_
+_Reviewed: 2026-08-22T12:02:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
