@@ -1,8 +1,8 @@
 ---
 phase: 100-optional-apns-adapter
-reviewed: 2026-08-21T18:23:45Z
+reviewed: 2026-08-22T00:38:03Z
 depth: standard
-files_reviewed: 32
+files_reviewed: 33
 files_reviewed_list:
   - .github/workflows/ci.yml
   - lib/chimeway/adapters/apns.ex
@@ -17,7 +17,6 @@ files_reviewed_list:
   - lib/chimeway/safe_evidence.ex
   - lib/chimeway/target_adapter.ex
   - lib/chimeway/target_resolver.ex
-  - mix.exs
   - priv/chimeway_migrations/037_add_apns_request_intent.exs
   - priv/repo/migrations/20260820000001_add_apns_request_intent.exs
   - scripts/verify-apns.sh
@@ -30,6 +29,7 @@ files_reviewed_list:
   - test/chimeway/migration_contract_test.exs
   - test/chimeway/release_gate_contract_test.exs
   - test/chimeway/safe_evidence_test.exs
+  - test/fixtures/apns_consumer/apns-enabled.lock
   - test/fixtures/apns_consumer/lib/apns_consumer.ex
   - test/fixtures/apns_consumer/mix.exs
   - test/fixtures/apns_consumer/test/apns_consumer_test.exs
@@ -37,8 +37,8 @@ files_reviewed_list:
   - test/fixtures/installer_golden_public/tree/priv/repo/migrations/TIMESTAMP_add_apns_request_intent.exs
   - test/support/apns_fake_transport.ex
 findings:
-  critical: 2
-  warning: 0
+  critical: 1
+  warning: 1
   info: 0
   total: 2
 status: issues_found
@@ -46,39 +46,66 @@ status: issues_found
 
 # Phase 100: Code Review Report
 
-**Reviewed:** 2026-08-21T18:23:45Z
+**Reviewed:** 2026-08-22T00:38:03Z
 **Depth:** standard
-**Files Reviewed:** 32
+**Files Reviewed:** 33
 **Status:** issues_found
 
 ## Summary
 
-The optional APNs path contains a provider-result handling defect that turns ordinary APNs successes into terminal rejections in the package's normal Pigeon-neutral compilation mode. The supported opt-in consumer fixture also forces a Pigeon release whose resolved HTTP dependency tree reports known security advisories, so the prescribed production integration imports vulnerable code.
-
-## Narrative Findings (AI reviewer)
+The APNs request/response path, durable intent storage, target lifecycle integration, consumer proof, migration templates, and CI hook were reviewed. Provider response facts are bounded before persistence and the 410 invalidation path is correctly gated on the complete response tuple. Two defects remain: pre-handoff failures can be recorded as an ambiguous provider handoff, and the Pigeon-enabled compilation path contains unreachable duplicate callbacks and an undefined Pigeon API call.
 
 ## Critical Issues
 
-### CR-01: Runtime Pigeon adapter rejects successful APNs streams
+### CR-01: Pre-handoff exceptions are falsely recorded as possible provider handoffs
 
-**File:** `lib/chimeway/apns/transport.ex:153-168`
-**Classification:** BLOCKER
+**File:** `lib/chimeway/adapters/apns.ex:9-30`
+**Issue:** The rescue/catch surrounds intent decoding, host binding lookup, payload construction, and the actual `Transport.push/2` call. Consequently, an exception from `BindingLookup.resolve/1` (including a host lookup callback crash) or `Payload.build/2` is converted to `{:error, :possible_handoff, :ambiguous_handoff}` even though no provider request was attempted. `Executor` then durably closes the target as `:ambiguous_handoff`, preventing the normal safe pre-handoff retry. This violates the lifecycle evidence contract and can strand otherwise deliverable notifications after a local/transient host error.
 
-**Issue:** The always-compiled Pigeon-neutral `process_end_stream/2` removes every correlated stream from the queue and passes `runtime_closed_result(stream)` to `Pigeon.Tasks.process_on_response/1`. `runtime_closed_result/1` only recognizes selected error statuses; its catch-all at lines 222-230 produces `%Result{outcome: :rejected, code: :unrecognized_provider_response}`. Consequently, a normal APNs 200 response is completed as a rejection. The Pigeon-specific implementation below has the required fallback to `Pigeon.Configurable.handle_end_stream/3`, but it is not available when Chimeway is compiled without Pigeon (the intended optional-dependency case). No consumer test sends a successful end stream.
+**Fix:** Keep the pre-handoff operations outside the transport uncertainty rescue and map their failures to `:pre_handoff_retryable` (or a safe permanent validation result). Only wrap the provider-emission call in the ambiguity guard. For example:
 
-**Fix:** Preserve Pigeon's normal response handling in the dynamic implementation: make `runtime_closed_result/1` return `:error` for unrecognized/success streams, then invoke `Pigeon.Configurable.handle_end_stream(config, stream, notification)` for that case; only call `process_on_response/1` for the validated closed APNs error results. Add an enabled-consumer test that delivers a correlated 200 stream and asserts `{:provider_accepted, ...}`.
+```elixir
+with {:ok, intent} <- RequestIntent.from_storage(target.apns_request_intent),
+     false <- RequestIntent.expired?(intent, DateTime.utc_now()),
+     {:ok, transient} <- BindingLookup.resolve(binding_request(target, intent)),
+     {:ok, payload} <- Payload.build(delivery.render_data || %{}, intent.open_ref) do
+  push_and_classify(transient, intent, payload, target)
+else
+  {:error, :binding_not_found} -> {:pre_handoff_retryable, %{provider_code: "binding_not_found"}}
+  # other validated pre-handoff cases
+end
 
-### CR-02: The required APNs opt-in pins a dependency tree with published HTTP security advisories
+defp push_and_classify(transient, intent, payload, target) do
+  result =
+    try do
+      Transport.push(transient.dispatcher_ref, request(transient, intent, payload))
+    rescue
+      _ -> {:error, :ambiguous}
+    catch
+      _, _ -> {:error, :ambiguous}
+    end
 
-**File:** `test/fixtures/apns_consumer/mix.exs:19-20`
-**Classification:** BLOCKER
+  case result do
+    {:ok, response} -> classify_result(response, target, intent)
+    {:error, :pigeon_unavailable} -> {:pre_handoff_retryable, %{provider_code: "pigeon_unavailable"}}
+    _ -> {:error, :possible_handoff, :ambiguous_handoff}
+  end
+end
+```
 
-**Issue:** The supported APNs consumer path hard-pins `pigeon` to `2.0.1`. Resolving the fixture in the supplied `verify.apns` workflow currently selects `hackney 1.17.1`; Hex reports the Hackney SSRF advisory `GHSA-vq52-99r9-h5pw` plus multiple 2026 advisories (including host allowlist bypass and CR/LF injection) during that resolution. This is not merely a test-only dependency: the fixture documents and proves the exact host opt-in dependency consumers are directed to add, so production APNs users inherit the vulnerable HTTP client chain.
+Add a regression test where `resolve_binding/1` raises and assert no transport call, a pending/retryable target, and a pre-handoff evidence code.
 
-**Fix:** Upgrade or replace the Pigeon integration with a release whose dependency constraints resolve to patched HTTP-client versions, and lock/contract-test the resulting graph. If no secure compatible Pigeon release exists, remove `pigeon 2.0.1` as the supported adapter dependency and document a secure alternative before shipping the adapter.
+## Warnings
+
+### WR-01: Pigeon-enabled build has unreachable duplicate adapter callbacks
+
+**File:** `lib/chimeway/apns/transport.ex:115-175,266-379`
+**Issue:** The generic `init/1`, `handle_push/2`, `handle_info/2`, and `process_end_stream/2` clauses are defined before the `if Code.ensure_loaded?(Pigeon.Adapter)` block and match every invocation. When Pigeon is installed, the later callback implementations are therefore unreachable. The Pigeon-enabled consumer compile emits warnings for every duplicate/unreachable clause; it also reports `Pigeon.json_library/0` as undefined at lines 332 and 353. This defeats the claimed warnings-as-errors quality gate for the optional path and leaves two divergent response implementations, one of which is dead.
+
+**Fix:** Retain one callback implementation. Prefer the dependency-neutral dynamic implementation, remove the conditional duplicate block, and use the dynamically resolved Pigeon JSON module there. Alternatively, put the Pigeon-specific callbacks in a separate module compiled only in the enabled consumer, with no overlapping function heads. Add a consumer compile assertion that fails on warnings originating from Chimeway (not just the fixture application).
 
 ---
 
-_Reviewed: 2026-08-21T18:23:45Z_
+_Reviewed: 2026-08-22T00:38:03Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
