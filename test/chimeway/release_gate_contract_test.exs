@@ -2877,6 +2877,41 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "optional APNs locked dependency graph" do
+    @fixture_mix "test/fixtures/apns_consumer/mix.exs"
+    @fixture_lock "test/fixtures/apns_consumer/apns-enabled.lock"
+    @apns_script "scripts/verify-apns.sh"
+
+    test "enabled consumer declares the exact patched overrides and committed lock" do
+      fixture_mix = File.read!(@fixture_mix)
+
+      assert fixture_mix =~ "{:pigeon, \"== 2.0.1\"}"
+      assert fixture_mix =~ "{:httpoison, \"== 3.0.0\", override: true}"
+      assert fixture_mix =~ "{:hackney, \"== 4.7.4\", override: true}"
+      assert File.exists?(@fixture_lock)
+    end
+
+    test "packaged APNs verifier locks, audits, and rejects graph drift" do
+      script = File.read!(@apns_script)
+
+      for required <- [
+            "apns-enabled.lock",
+            "cp \"$fixture_root/apns-enabled.lock\" mix.lock",
+            "mix deps.get --check-locked",
+            "httpoison.*3\\.0\\.0",
+            "hackney.*4\\.7\\.4",
+            "mix hex.audit"
+          ] do
+        assert script =~ required
+      end
+
+      refute script =~ "hex.audit --ignore"
+      refute script =~ "mix hex.audit || true"
+      refute script =~ "continue-on-error"
+      refute String.replace(script, "mix hex.audit", "true", global: false) =~ "mix hex.audit"
+    end
+  end
+
   defp top_level_entries(root) do
     root |> File.ls!() |> Enum.sort()
   end
