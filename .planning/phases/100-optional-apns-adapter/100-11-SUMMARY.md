@@ -51,7 +51,7 @@ The enabled packaged-consumer verifier now compiles dependencies normally and wa
 
 - PASS: `CHIMEWAY_SKIP_OBAN=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --only apns_warning_gate_contract --warnings-as-errors` — 2 tests, 0 failures.
 - PASS: `bash -n scripts/verify-apns.sh`.
-- PASS: `CHIMEWAY_APNS_FOCUS=warning_gate_mutation bash scripts/verify-apns.sh` exercised the bounded temporary-source mutation path; it initially exposed a missing fixture environment propagation and then reran with that Rule 1 correction.
+- PASS: Post-wave focused contract rerun after the strict compile environment repair — 2 tests, 0 failures.
 - Not run by design: the full `bash scripts/verify-apns.sh` and `mix verify.apns` gates remain owned by Plan 100-10.
 
 ## Deviations from Plan
@@ -64,6 +64,13 @@ The enabled packaged-consumer verifier now compiles dependencies normally and wa
 - **Fix:** Ran dependency preparation with the same enabled fixture environment used for locked resolution and consumer compilation.
 - **Files modified:** `scripts/verify-apns.sh`
 - **Commit:** `aad7a9e`
+
+2. [Rule 1 - Bug] Passed the enabled fixture environment into the Chimeway-only strict compile.
+- **Found during:** Plan 100-10's post-wave full package gate.
+- **Issue:** The strict `mix cmd --cd deps/chimeway` process did not inherit `CHIMEWAY_PACKAGE_PATH`, so the fixture project could not load.
+- **Fix:** Prefixed both strict compile paths with `CHIMEWAY_PACKAGE_PATH`, `CHIMEWAY_APNS_ENABLED=1`, and `MIX_ENV=test`; added mutation contracts for all three variables.
+- **Files modified:** `scripts/verify-apns.sh`, `test/chimeway/release_gate_contract_test.exs`
+- **Commit:** `678de21`
 
 ## Known Stubs
 
