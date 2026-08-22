@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 100
 current_phase_name: optional-apns-adapter
 status: executing
-stopped_at: Completed 100-11-PLAN.md
-last_updated: "2026-08-22T16:50:36.360Z"
+stopped_at: Completed 100-10-PLAN.md
+last_updated: "2026-08-22T16:58:35.292Z"
 last_activity: 2026-08-22
 last_activity_desc: Phase 100 execution started
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 52
-  completed_plans: 51
-  percent: 43
+  completed_plans: 52
+  percent: 57
 ---
 
 # Project State
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-08-12 after completing Phase 97)
 ## Current Position
 
 Phase: 100 (optional-apns-adapter) — EXECUTING
-Plan: 1 of 11
-Status: Executing Phase 100
+Plan: 2 of 11
+Status: Ready to execute
 Last activity: 2026-08-22 — Phase 100 execution started
 
 ## Deferred Items
@@ -393,6 +393,7 @@ status: complete
 - [Phase ?]: [100-09]: APNS ambiguity begins only at Transport.push/2; lookup and payload-builder exceptions are bounded pre-handoff outcomes.
 - [Phase ?]: [100-09]: Enabled package verification force-compiles unpacked Chimeway under warnings-as-errors before consumer compilation.
 - [Phase ?]: [100-11]: Enabled APNs package proof prepares dependencies normally, then warning-strictly compiles only unpacked Chimeway source.
+- [Phase ?]: [100-10]: Open references use one shared closed ASCII grammar at durable, reload, and direct payload boundaries; explicit collapse IDs use a separate APNs-header-safe allowlist.
 
 ### Roadmap Evolution
 
@@ -713,9 +714,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-22T16:50:36.332Z
-Stopped at: Completed 100-11-PLAN.md
-Resume file: 100-10-PLAN.md
+Last session: 2026-08-22T16:58:35.274Z
+Stopped at: Completed 100-10-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -867,3 +868,4 @@ Resume file: 100-10-PLAN.md
 | Phase 100 P08 | 30 min | 2 tasks | 6 files |
 | Phase 100-optional-apns-adapter P09 | 18 min | 2 tasks | 5 files |
 | Phase 100 P11 | 14 min | 1 tasks | 2 files |
+| Phase 100-optional-apns-adapter P10 | 7 min | 1 tasks | 5 files |

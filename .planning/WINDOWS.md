@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 5
+open_count: 6
 waived_count: 1
 fixed_count: 7
-total_count: 13
-last_updated: 2026-08-19T19:24:29.941Z
+total_count: 14
+last_updated: 2026-08-22T16:58:34.762Z
 ---
 
 # Broken Windows Ledger
@@ -28,6 +28,7 @@ last_updated: 2026-08-19T19:24:29.941Z
 | 11 | 98 | unrun-verify | test/chimeway/release_gate_contract_test.exs |  | Focused release-gate contract could not start because concurrent test processes exhausted PostgreSQL connections (FATAL 53300). | open |  | 2026-08-13T00:24:26.215Z |  |
 | 12 | 99 | deviation | lib/chimeway/safe_evidence.ex |  | Legacy trace projections now treat unloaded target associations as empty. | open |  | 2026-08-19T19:24:29.874Z |  |
 | 13 | 99 | deviation | lib/chimeway/dispatch/sync.ex |  | Sync telemetry reads adapter_module safely for target attempts. | open |  | 2026-08-19T19:24:29.941Z |  |
+| 14 | 100 | unrun-verify | scripts/verify-apns.sh |  | bash scripts/verify-apns.sh exceeded the executor subprocess limit while compiling a fresh consumer fixture; rerun in CI or a non-time-limited shell. | open |  | 2026-08-22T16:58:34.762Z |  |
 
 ````json
 [
@@ -185,6 +186,18 @@ last_updated: 2026-08-19T19:24:29.941Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-19T19:24:29.941Z",
+    "resolved_at": null
+  },
+  {
+    "id": 14,
+    "kind": "unrun-verify",
+    "phase": "100",
+    "file": "scripts/verify-apns.sh",
+    "line": null,
+    "description": "bash scripts/verify-apns.sh exceeded the executor subprocess limit while compiling a fresh consumer fixture; rerun in CI or a non-time-limited shell.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-22T16:58:34.762Z",
     "resolved_at": null
   }
 ]
