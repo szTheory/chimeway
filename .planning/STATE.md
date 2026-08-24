@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: CrossWake Registration & Protected Open
 status: executing
-stopped_at: Completed 101-05-PLAN.md
-last_updated: "2026-08-24T20:11:02.872Z"
+stopped_at: Completed 101-07-PLAN.md
+last_updated: "2026-08-24T20:20:31.880Z"
 last_activity: 2026-08-24
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 61
-  completed_plans: 58
+  completed_plans: 59
   percent: 57
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 ## Current Position
 
 Phase: 101 (CrossWake Registration & Protected Open) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
 Last activity: 2026-08-24 — Phase 101 execution started
 
@@ -404,6 +404,8 @@ status: complete
 - [Phase ?]: [101-03]: Resolver consumes host evidence once, then uses only the current host-bound route/action policy before invoking RouteGate.
 - [Phase ?]: [101-06]: Native permission-loss callbacks require a fully matching authenticated host scope before exact-revision registry CAS.
 - [Phase ?]: [101-05]: Durable notification intents derive authenticated tenant/session scope from the exact active binding, and consumption uses a one-winner predicate-CAS.
+- [Phase ?]: [101-07]: Offline notification evidence is versioned, age/count bounded, opaque-only, and cannot activate locally.
+- [Phase ?]: [101-07]: Reconnect permits native notification activation only after a closed current host allow outcome; denials have no fallback.
 
 ### Roadmap Evolution
 
@@ -724,8 +726,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-24T20:11:02.854Z
-Stopped at: Completed 101-05-PLAN.md
+Last session: 2026-08-24T20:20:31.863Z
+Stopped at: Completed 101-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -885,3 +887,4 @@ Resume file: None
 | Phase 101-crosswake-registration-protected-open P03 | 8 min | 1 tasks | 5 files |
 | Phase 101-crosswake-registration-protected-open P06 | 8 min | 2 tasks | 9 files |
 | Phase 101-crosswake-registration-protected-open P05 | 16 min | 1 tasks | 5 files |
+| Phase 101 P07 | 18 min | 1 tasks | 5 files |
