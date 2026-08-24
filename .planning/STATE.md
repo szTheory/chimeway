@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: CrossWake Registration & Protected Open
 status: executing
-stopped_at: Completed 101-03-PLAN.md
-last_updated: "2026-08-24T19:56:44.812Z"
+stopped_at: Completed 101-06-PLAN.md
+last_updated: "2026-08-24T20:02:24.314Z"
 last_activity: 2026-08-24
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 61
-  completed_plans: 56
+  completed_plans: 57
   percent: 57
 ---
 
@@ -402,6 +402,7 @@ status: complete
 - [Phase ?]: [101-04]: Permission-loss commands require an exact binding revision plus all authenticated scope fields.
 - [Phase ?]: [101-03]: Compiled notification-open policy is valid only as a non-empty, unique canonical string allowlist of tap, reply, or approve.
 - [Phase ?]: [101-03]: Resolver consumes host evidence once, then uses only the current host-bound route/action policy before invoking RouteGate.
+- [Phase ?]: [101-06]: Native permission-loss callbacks require a fully matching authenticated host scope before exact-revision registry CAS.
 
 ### Roadmap Evolution
 
@@ -722,8 +723,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-24T19:56:44.795Z
-Stopped at: Completed 101-03-PLAN.md
+Last session: 2026-08-24T20:02:24.296Z
+Stopped at: Completed 101-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -881,3 +882,4 @@ Resume file: None
 | Phase 101 P02 | 10 min | 1 tasks | 5 files |
 | Phase 101 P04 | 5 min | 1 tasks | 5 files |
 | Phase 101-crosswake-registration-protected-open P03 | 8 min | 1 tasks | 5 files |
+| Phase 101-crosswake-registration-protected-open P06 | 8 min | 2 tasks | 9 files |
