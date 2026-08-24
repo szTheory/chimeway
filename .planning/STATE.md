@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: CrossWake Registration & Protected Open
 status: executing
-stopped_at: Completed 101-04-PLAN.md
-last_updated: "2026-08-24T19:43:50.089Z"
+stopped_at: Completed 101-03-PLAN.md
+last_updated: "2026-08-24T19:56:44.812Z"
 last_activity: 2026-08-24
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 61
-  completed_plans: 55
+  completed_plans: 56
   percent: 57
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 ## Current Position
 
 Phase: 101 (CrossWake Registration & Protected Open) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-08-24 — Phase 101 execution started
 
@@ -400,6 +400,8 @@ status: complete
 - [Phase ?]: [101-02]: Schema normalization returns `%{actions: [String.t()]}` and later policy layers transfer and serialize it unchanged.
 - [Phase ?]: [101-04]: App identity is part of the durable exact binding scope for APNs observation and invalidation.
 - [Phase ?]: [101-04]: Permission-loss commands require an exact binding revision plus all authenticated scope fields.
+- [Phase ?]: [101-03]: Compiled notification-open policy is valid only as a non-empty, unique canonical string allowlist of tap, reply, or approve.
+- [Phase ?]: [101-03]: Resolver consumes host evidence once, then uses only the current host-bound route/action policy before invoking RouteGate.
 
 ### Roadmap Evolution
 
@@ -720,8 +722,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-24T19:43:50.070Z
-Stopped at: Completed 101-04-PLAN.md
+Last session: 2026-08-24T19:56:44.795Z
+Stopped at: Completed 101-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -878,3 +880,4 @@ Resume file: None
 | Phase 101 P01 | 8 min | 1 tasks | 8 files |
 | Phase 101 P02 | 10 min | 1 tasks | 5 files |
 | Phase 101 P04 | 5 min | 1 tasks | 5 files |
+| Phase 101-crosswake-registration-protected-open P03 | 8 min | 1 tasks | 5 files |
