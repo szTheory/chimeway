@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: CrossWake Registration & Protected Open
 status: executing
-stopped_at: Completed 101-02-PLAN.md
-last_updated: "2026-08-24T19:37:00.949Z"
+stopped_at: Completed 101-04-PLAN.md
+last_updated: "2026-08-24T19:43:50.089Z"
 last_activity: 2026-08-24
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 61
-  completed_plans: 54
+  completed_plans: 55
   percent: 57
 ---
 
@@ -398,6 +398,8 @@ status: complete
 - [Phase ?]: [101-01]: Valid OpenResolution contracts require non-empty server-bound route_id and action_ref.
 - [Phase ?]: [101-02]: `tap` is the only legacy-true default action; explicit current action allowlists are bounded to `tap` and `reply`.
 - [Phase ?]: [101-02]: Schema normalization returns `%{actions: [String.t()]}` and later policy layers transfer and serialize it unchanged.
+- [Phase ?]: [101-04]: App identity is part of the durable exact binding scope for APNs observation and invalidation.
+- [Phase ?]: [101-04]: Permission-loss commands require an exact binding revision plus all authenticated scope fields.
 
 ### Roadmap Evolution
 
@@ -718,8 +720,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-24T19:37:00.933Z
-Stopped at: Completed 101-02-PLAN.md
+Last session: 2026-08-24T19:43:50.070Z
+Stopped at: Completed 101-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -875,3 +877,4 @@ Resume file: None
 | Phase 100-optional-apns-adapter P10 | 7 min | 1 tasks | 5 files |
 | Phase 101 P01 | 8 min | 1 tasks | 8 files |
 | Phase 101 P02 | 10 min | 1 tasks | 5 files |
+| Phase 101 P04 | 5 min | 1 tasks | 5 files |
