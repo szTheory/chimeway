@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: CrossWake Registration & Protected Open
 status: executing
-stopped_at: Phase 101 context gathered (assumptions mode)
-last_updated: "2026-08-22T21:44:15.157Z"
-last_activity: 2026-08-22
-last_activity_desc: Phase 100 complete, transitioned to Phase 101
+stopped_at: Completed 101-01-PLAN.md
+last_updated: "2026-08-24T18:37:49.010Z"
+last_activity: 2026-08-24
+last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 61
-  completed_plans: 52
+  completed_plans: 53
   percent: 57
 ---
 
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 ## Current Position
 
-Phase: 101 — CrossWake Registration & Protected Open
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-08-22 — Phase 100 complete, transitioned to Phase 101
+Phase: 101 (CrossWake Registration & Protected Open) — EXECUTING
+Plan: 2 of 9
+Status: Executing Phase 101
+Last activity: 2026-08-24 — Phase 101 execution started
 
 ## Deferred Items
 
@@ -394,6 +394,8 @@ status: complete
 - [Phase ?]: [100-09]: Enabled package verification force-compiles unpacked Chimeway under warnings-as-errors before consumer compilation.
 - [Phase ?]: [100-11]: Enabled APNs package proof prepares dependencies normally, then warning-strictly compiles only unpacked Chimeway source.
 - [Phase ?]: [100-10]: Open references use one shared closed ASCII grammar at durable, reload, and direct payload boundaries; explicit collapse IDs use a separate APNs-header-safe allowlist.
+- [Phase ?]: [101-01]: Resolver consumes opaque evidence before selecting a route or action, and only authorizes host-bound OpenResolution values.
+- [Phase ?]: [101-01]: Valid OpenResolution contracts require non-empty server-bound route_id and action_ref.
 
 ### Roadmap Evolution
 
@@ -714,9 +716,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-22T20:56:23.918Z
-Stopped at: Phase 101 context gathered (assumptions mode)
-Resume file: .planning/phases/101-crosswake-registration-protected-open/101-CONTEXT.md
+Last session: 2026-08-24T18:37:48.993Z
+Stopped at: Completed 101-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -869,3 +871,4 @@ Resume file: .planning/phases/101-crosswake-registration-protected-open/101-CONT
 | Phase 100-optional-apns-adapter P09 | 18 min | 2 tasks | 5 files |
 | Phase 100 P11 | 14 min | 1 tasks | 2 files |
 | Phase 100-optional-apns-adapter P10 | 7 min | 1 tasks | 5 files |
+| Phase 101 P01 | 8 min | 1 tasks | 8 files |
