@@ -52,7 +52,7 @@ status: complete
 ## TDD Gate Compliance
 
 - RED: `9ee9f27f` added the queue, reconnect-outcome, opaque-serialization, and no-fallback activation contract tests; the suite failed because the required types and activation entry did not exist.
-- GREEN: `5f79906` implemented the bounded queue, host delegate seam, and protected activation; both focused suites pass.
+- GREEN: `ef451fae` implemented the bounded queue, host delegate seam, and protected activation; both focused suites pass.
 
 ## Deviations from Plan
 
@@ -67,5 +67,5 @@ None. The queue has a concrete file-backed data source and all activation wiring
 ## Self-Check: PASSED
 
 - Confirmed all five planned Crosswake artifacts exist.
-- Confirmed RED commit `9ee9f27f` and GREEN commit `5f79906` exist in Crosswake history.
+- Confirmed RED commit `9ee9f27f` and GREEN commit `ef451fae` exist in Crosswake history.
 - Confirmed both focused Swift test suites pass.
