@@ -270,7 +270,7 @@ Plans:
   3. A notification tap contains only opaque evidence; offline taps queue safely and reconnect only activates a one-time intent after tenant, revision, expiry, session, manifest, and RouteGate reauthorization.
   4. Replayed, expired, revoked, mismatched, logged-out, tenant-switched, or removed-route opens activate no fallback route and produce sanitized denial evidence.
 
-**Plans**: 9/9 plans executed
+**Plans**: 9/11 plans executed
 
 Plans:
 
@@ -297,6 +297,11 @@ Plans:
 **Wave 5** *(phase acceptance)*
 
 - [x] 101-09-PLAN.md — Prove the complete stale-authority no-fallback denial matrix.
+
+**Wave 6** *(gap closure after phase acceptance)*
+
+- [ ] 101-10-PLAN.md — Restore forward-only host upgrades and posture-independent, conflict-safe binding uniqueness.
+- [ ] 101-11-PLAN.md — Make native permission-loss revocation acknowledgement-driven and retry-safe.
 
 ### Phase 102: Alpha Digital Twin & Hermetic Gate
 
