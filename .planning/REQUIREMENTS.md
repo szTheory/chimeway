@@ -41,7 +41,7 @@
 ### CrossWake Registration and Opens
 
 - [ ] **OPEN-01**: CrossWake supports explicit permission to APNs registration to authenticated host binding, including idempotent token observation, rotation, logout or session revocation, and provider-driven invalidation.
-- [ ] **OPEN-02**: CrossWake's notification action allowlist is normalized consistently with compiled manifests and fails closed for malformed, absent, or unknown route or action configuration.
+- [x] **OPEN-02**: CrossWake's notification action allowlist is normalized consistently with compiled manifests and fails closed for malformed, absent, or unknown route or action configuration.
 - [x] **OPEN-03**: A notification tap carries only opaque evidence; when offline it enters a safe queued state and, after reconnect, atomically consumes the one-time intent and rechecks tenant, binding revision, expiry, session, manifest, and RouteGate authorization.
 - [x] **OPEN-04**: Replayed, expired, revoked, mismatched, logged-out, tenant-switched, or route-removed opens activate no fallback route and produce sanitized explainable denial evidence.
 
@@ -96,7 +96,7 @@
 | APNS-05 | Phase 100 | Complete |
 | APNS-06 | Phase 100 | Complete |
 | OPEN-01 | Phase 101 | Pending |
-| OPEN-02 | Phase 101 | Pending |
+| OPEN-02 | Phase 101 | Complete |
 | OPEN-03 | Phase 101 | Complete |
 | OPEN-04 | Phase 101 | Complete |
 | TWIN-01 | Phase 102 | Pending |

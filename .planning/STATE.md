@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: CrossWake Registration & Protected Open
 status: executing
-stopped_at: Completed 101-01-PLAN.md
-last_updated: "2026-08-24T18:37:49.010Z"
+stopped_at: Completed 101-02-PLAN.md
+last_updated: "2026-08-24T19:37:00.949Z"
 last_activity: 2026-08-24
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 61
-  completed_plans: 53
+  completed_plans: 54
   percent: 57
 ---
 
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 ## Current Position
 
 Phase: 101 (CrossWake Registration & Protected Open) — EXECUTING
-Plan: 2 of 9
-Status: Executing Phase 101
+Plan: 3 of 9
+Status: Ready to execute
 Last activity: 2026-08-24 — Phase 101 execution started
 
 ## Deferred Items
@@ -396,6 +396,8 @@ status: complete
 - [Phase ?]: [100-10]: Open references use one shared closed ASCII grammar at durable, reload, and direct payload boundaries; explicit collapse IDs use a separate APNs-header-safe allowlist.
 - [Phase ?]: [101-01]: Resolver consumes opaque evidence before selecting a route or action, and only authorizes host-bound OpenResolution values.
 - [Phase ?]: [101-01]: Valid OpenResolution contracts require non-empty server-bound route_id and action_ref.
+- [Phase ?]: [101-02]: `tap` is the only legacy-true default action; explicit current action allowlists are bounded to `tap` and `reply`.
+- [Phase ?]: [101-02]: Schema normalization returns `%{actions: [String.t()]}` and later policy layers transfer and serialize it unchanged.
 
 ### Roadmap Evolution
 
@@ -716,8 +718,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-24T18:37:48.993Z
-Stopped at: Completed 101-01-PLAN.md
+Last session: 2026-08-24T19:37:00.933Z
+Stopped at: Completed 101-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -872,3 +874,4 @@ Resume file: None
 | Phase 100 P11 | 14 min | 1 tasks | 2 files |
 | Phase 100-optional-apns-adapter P10 | 7 min | 1 tasks | 5 files |
 | Phase 101 P01 | 8 min | 1 tasks | 8 files |
+| Phase 101 P02 | 10 min | 1 tasks | 5 files |
