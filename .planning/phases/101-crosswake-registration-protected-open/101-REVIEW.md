@@ -2,9 +2,10 @@
 phase: 101-crosswake-registration-protected-open
 reviewed: 2026-08-25T00:00:00Z
 depth: standard
-files_reviewed: 40
+files_reviewed: 42
 files_reviewed_list:
   - /Users/jon/projects/crosswake/examples/phoenix_host/README.md
+  - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex
   - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex
   - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_registration_adapter.ex
   - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex
@@ -12,6 +13,7 @@ files_reviewed_list:
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260602100000_create_chimeway_token_bindings.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260603000000_create_chimeway_notification_open_intents.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_open_intent_test.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_registration_adapter_test.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registration_authority_migration_upgrade_test.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registry_notification_open_test.exs
@@ -45,8 +47,8 @@ files_reviewed_list:
   - /Users/jon/projects/crosswake/test/crosswake/proof/phase60_chimeway_registry_test.exs
   - /Users/jon/projects/crosswake/test/fixtures/chimeway_notification_permission_loss_v1.json
 findings:
-  critical: 1
-  warning: 2
+  critical: 2
+  warning: 1
   info: 0
   total: 3
 status: issues_found
@@ -56,53 +58,34 @@ status: issues_found
 
 **Reviewed:** 2026-08-25T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 40
+**Files Reviewed:** 42
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the supplied Elixir/Phoenix, Swift, contracts, migrations, and focused tests. The current submission closes the prior queue-replay, feedback-authority, and migration-collision defects. However, the public intent-issuance boundary can durably retain raw token/payload data, and two lifecycle operations cannot operate on the valid `:subject_installation` binding scope that the schema explicitly supports.
-
-## Narrative Findings (AI reviewer)
+The protected-open CAS itself is appropriately scoped, but the durable metadata boundary is fail-open and the binding model permits an installation-scoped row to acquire session authority. Both defects contradict the phase's privacy and narrow-revocation guarantees.
 
 ## Critical Issues
 
-### CR-01: Notification intent metadata accepts and persists sensitive token or payload fields
+### CR-01: Metadata sanitization persists unrecognised sensitive fields
 
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex:42`
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex:10-59`
+**Issue:** The sanitizer is a small exact-name blocklist, not an allowlist. It persists every unknown key and recursively preserves unknown nested keys. Common alternate forms such as `deviceToken`, `apnsToken`, `authorization`, `phone_number`, `user_email`, or an opaque provider payload key are therefore written into `TokenBinding` and notification-intent metadata. This violates the stated raw-token/PII persistence boundary and is particularly unsafe because input maps can originate at bridge/provider seams.
+**Fix:** Replace the blocklist with a narrow, documented allowlist of scalar diagnostic fields (as `Redaction.safe_metadata/1` does), reject all other keys and non-scalar/nested values, and add regression cases for camelCase token fields and arbitrary PII-shaped keys.
 
-**Issue:** `changeset/2` casts `:metadata` without sanitizing or rejecting it. `Registry.issue_notification_open_intent/1` forwards caller-controlled attrs directly to this changeset at `registry.ex:1277-1284`. Consequently, a host call can persist raw APNs/FCM token material or notification payload fields in the durable open-intent table, bypassing the project’s raw-token and sensitive-payload boundary. This is especially risky because the generic public issuance API has no closed input contract.
+### CR-02: Installation-scoped bindings can be revoked by a session logout
 
-**Fix:** Apply the same allowlist/redaction policy used for binding metadata, and reject forbidden raw-token keys before insertion. For example:
-
-```elixir
-|> validate_change(:metadata, fn :metadata, metadata ->
-  if MetadataSanitizer.contains_forbidden_token_key?(metadata),
-    do: [metadata: "contains forbidden token material"],
-    else: []
-end)
-|> update_change(:metadata, &MetadataSanitizer.sanitize/1)
-```
-
-Add a test that attempts to issue an intent with `apns_token`, `raw_token`, notification body, and nested payload values, then asserts rejection (or that only explicitly safe metadata is stored).
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/token_binding.ex:153-167`
+**Issue:** `:subject_installation` has no invariant that `session_ref` and `session_version` are nil. `Registry.bind_or_rotate/3` forwards both fields from its otherwise permissive context, so it can create an installation-scoped binding with a session ref. `revoke_for_logout/2` then filters only `subject_ref`, `org_ref`, `session_ref`, and `state` ([registry.ex](/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:550)), and revokes that installation binding. A session-only logout can consequently revoke a longer-lived installation authority.
+**Fix:** Reject any session fields for `:subject_installation` in the changeset and enforce the same rule with a database check constraint. Also add `b.subject_scope == :subject_session` to the logout query as defense in depth, plus a regression test that attempts to bind an installation scope with a session ref.
 
 ## Warnings
 
-### WR-01: Provider invalidation cannot revoke a valid installation-scoped binding
+### WR-01: Permission-loss state is unsynchronised across callback queues
 
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:1526-1548`
-
-**Issue:** `provider_feedback_scope/1` unconditionally requires `session_ref` and `session_version`, then requires them to equal the authenticated context. `TokenBinding` explicitly permits `:subject_installation` bindings with neither field (`token_binding.ex:134-144`). Feedback for such a valid active binding therefore always becomes `{:error, :no_active_bindings}` and leaves an APNs-invalidated token active.
-
-**Fix:** Build and query the feedback scope by `subject_scope`: require and predicate session revision only for `:subject_session`; for `:subject_installation`, require the exact binding reference, authenticated subject/org/installation, provider/platform/environment, and app identity while omitting session predicates. Add an integration test for invalidating feedback against an installation-scoped binding.
-
-### WR-02: Notification open intents cannot be issued for a valid installation-scoped binding
-
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex:48-58`
-
-**Issue:** Open intents always require `session_ref` and `session_version`. Issuance derives both directly from the selected active binding (`registry.ex:1278-1283`); for a supported `:subject_installation` binding they are `nil`, so the insert fails validation. The lifecycle API thus advertises and stores a valid binding scope that cannot receive a protected notification open.
-
-**Fix:** Either deliberately restrict notification registration/open behavior to `:subject_session` and reject installation-scoped binding at bind time for this feature, or model intent authority by scope: store `subject_scope`, require session fields only for session scope, and have consume matching apply the corresponding exact scope predicate. Add a test proving the chosen contract.
+**File:** `/Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationRegistrationCoordinator.swift:85-133`
+**Issue:** This mutable coordinator is neither `@MainActor` nor an actor, yet APNs/permission callbacks can arrive on different queues. Concurrent `recheckPermissionState()` calls can both observe `permissionLossDelivered == false` and send duplicate revocation commands; concurrent token observations can also overwrite `retainedBinding` and state out of order. The backend makes the duplicate safe, but the shell's claimed one-shot lifecycle and diagnostics are not reliable.
+**Fix:** Isolate the coordinator to `@MainActor` (and ensure delegate calls are made from that actor), or make it an actor with an explicit serialized delegate boundary. Add a concurrent recheck/observe test that proves only the latest command is sent once.
 
 ---
 
