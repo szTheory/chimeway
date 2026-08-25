@@ -1,8 +1,8 @@
 ---
 phase: 101-crosswake-registration-protected-open
-reviewed: 2026-08-25T18:48:01Z
+reviewed: 2026-08-25T19:23:45Z
 depth: standard
-files_reviewed: 43
+files_reviewed: 44
 files_reviewed_list:
   - /Users/jon/projects/crosswake/examples/phoenix_host/README.md
   - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex
@@ -49,36 +49,63 @@ files_reviewed_list:
   - /Users/jon/projects/crosswake/test/crosswake/proof/phase60_chimeway_registry_test.exs
   - /Users/jon/projects/crosswake/test/fixtures/chimeway_notification_permission_loss_v1.json
 findings:
-  critical: 0
+  critical: 2
   warning: 1
   info: 0
-  total: 1
+  total: 3
 status: issues_found
 ---
 
 # Phase 101: Code Review Report
 
-**Reviewed:** 2026-08-25T18:48:01Z
+**Reviewed:** 2026-08-25T19:23:45Z
 **Depth:** standard
-**Files Reviewed:** 43
+**Files Reviewed:** 44
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the registration lifecycle, protected-open resolver, iOS queue/coordinator, manifest policy validation, and the two latest closures. Exact-empty caller metadata persistence and the fail-closed matching predicate are correctly applied in the direct paths reviewed. The forward reconciliation nevertheless changes durable intent state without recording the required lifecycle evidence, making legacy denials unexplainable after the migration.
+The protected-open CAS path, closed action-policy validation, metadata stripping, and focused Phoenix/iOS tests were reviewed. Two lifecycle failures remain: a delayed logout can revoke a newer session-version binding, and notification-open audit history is cascade-deleted. The focused Phoenix migration/open suite and iOS notification suites pass, but neither exercises those failure modes.
 
-## Narrative Findings (AI reviewer)
+## Critical Issues
+
+### CR-01: Logout revocation ignores the authenticated session version
+
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:539-545`
+**Issue:** `validate_context/1` requires a non-negative `session_version` for `:subject_session`, but the logout selector uses only `subject_ref`, `org_ref`, and `session_ref`. A delayed logout for session version 1 therefore selects and revokes an active replacement binding for version 2 with the same session reference. This violates the version-guarded authority contract and suppresses notifications for the current session.
+**Fix:** Include the exact authenticated version in both the initial read and conditional update predicates, and add a regression where a stale logout leaves a newer-version binding active.
+
+```elixir
+where:
+  b.subject_ref == ^ctx.subject_ref and
+    b.org_ref == ^ctx.org_ref and
+    b.session_ref == ^session_ref and
+    b.session_version == ^ctx.session_version and
+    b.subject_scope == :subject_session and
+    b.state == :active
+```
+
+### CR-02: Notification-open lifecycle evidence can be destroyed by parent deletion
+
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260603000000_create_chimeway_notification_open_intents.exs:23`
+**Issue:** The append-only `chimeway_notification_open_intent_events` foreign key specifies `on_delete: :delete_all`. Deleting an intent destroys issued, consumed, and `reconciliation_revoked` evidence, defeating the phase's explainability guarantee and creating a durable audit-data-loss path.
+**Fix:** Do not cascade-delete lifecycle events. Prefer no foreign key for this append-only audit relation (matching the token-binding event posture), or use a restrictive foreign key and prohibit intent deletion. Add a migration-level assertion that deleting an intent cannot erase its events.
+
+```elixir
+add :open_intent_id, :binary_id, null: false
+# Keep the opaque relation without an on-delete cascade.
+```
 
 ## Warnings
 
-### WR-01: Reconciled intent revocations have no durable denial event
+### WR-01: Terminal-denial coverage omits one declared denial case
 
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260825190000_backfill_chimeway_notification_open_intent_scope.exs:63`
-**Issue:** The second `UPDATE` changes every unreconcilable issued intent to `revoked`, but writes nothing to `chimeway_notification_open_intent_events`. Normal issuance and consumption use that append-only table (Registry lines 1302-1312 and 1372-1380). Consequently, an operator examining a legacy intent sees an issued event followed by a revoked current row with no timestamped reason or indication that the migration deliberately fail-closed it. This violates the project’s explainable notification lifecycle and prevents distinguishing a reconciliation denial from an ordinary revocation.
-**Fix:** In the same migration transaction, insert one sanitized event for every row selected by the terminal predicate (for example `event_type: "reconciled_revoked"`, `occurred_at: CURRENT_TIMESTAMP`, and empty/static details), then perform the state update. Reuse the identical `NOT EXISTS` authority predicate in both statements, and add an upgrade assertion that each forced-revoked intent has exactly one reconciliation event.
+**File:** `/Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Tests/CrosswakeShellCoreTests/ProtectedNotificationActivationTests.swift:8-19`
+**Issue:** The test claims every protected denial is terminal but excludes `NotificationOpenDenial.routeActionRemoved`. A future implementation can accidentally give that case fallback/activation behavior while the exhaustive-contract test still passes.
+**Fix:** Include `.routeActionRemoved` in `denials` (or derive the test cases from an explicit complete-case list) and assert empty actions for it.
 
 ---
 
-_Reviewed: 2026-08-25T18:48:01Z_
+_Reviewed: 2026-08-25T19:23:45Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
