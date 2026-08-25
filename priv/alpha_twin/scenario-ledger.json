@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "crosswake_remote": "https://github.com/szTheory/crosswake.git",
+  "crosswake_sha": "f2c502cdb1ce572a4a57257d9e3c051665704b90",
+  "scenario_ids": ["accepted_handoff_protected_open"]
+}

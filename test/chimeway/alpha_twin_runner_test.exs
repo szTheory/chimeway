@@ -11,14 +11,16 @@ defmodule Chimeway.AlphaTwinRunnerTest do
     Code.require_file(@proof_path)
 
     proof =
-      Chimeway.AlphaTwinProofRunner.proof_line!(%{
-        archive_digest: String.duplicate("a", 64),
-        crosswake_remote: "https://github.com/szTheory/crosswake.git",
-        crosswake_sha: "f2c502cdb1ce572a4a57257d9e3c051665704b90",
-        scenario_id: "accepted_handoff_protected_open",
-        activation: :authorized,
-        explanation: :accepted
-      })
+      apply(Chimeway.AlphaTwinProofRunner, :proof_line!, [
+        %{
+          archive_digest: String.duplicate("a", 64),
+          crosswake_remote: "https://github.com/szTheory/crosswake.git",
+          crosswake_sha: "f2c502cdb1ce572a4a57257d9e3c051665704b90",
+          scenario_id: "accepted_handoff_protected_open",
+          activation: :authorized,
+          explanation: :accepted
+        }
+      ])
 
     assert proof ==
              "CHIMEWAY_ALPHA_TWIN_PROOF schema=1 scenario=accepted_handoff_protected_open " <>
@@ -32,14 +34,16 @@ defmodule Chimeway.AlphaTwinRunnerTest do
     Code.require_file(@proof_path)
 
     assert_raise ArgumentError, "invalid CrossWake provenance", fn ->
-      Chimeway.AlphaTwinProofRunner.proof_line!(%{
-        archive_digest: String.duplicate("a", 64),
-        crosswake_remote: "https://example.invalid/private-token",
-        crosswake_sha: "main",
-        scenario_id: "accepted_handoff_protected_open",
-        activation: :authorized,
-        explanation: :accepted
-      })
+      apply(Chimeway.AlphaTwinProofRunner, :proof_line!, [
+        %{
+          archive_digest: String.duplicate("a", 64),
+          crosswake_remote: "https://example.invalid/private-token",
+          crosswake_sha: "main",
+          scenario_id: "accepted_handoff_protected_open",
+          activation: :authorized,
+          explanation: :accepted
+        }
+      ])
     end
   end
 end
