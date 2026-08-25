@@ -47,8 +47,8 @@
 
 ### Proof, Documentation, and Gates
 
-- [ ] **TWIN-01**: A sanitized Adopter Alpha host exercises real Chimeway persistence and CrossWake contracts with deterministic time, a host token registry, and a scripted fake APNs transport.
-- [ ] **TWIN-02**: The hermetic twin proves two-installation fan-out, no-target suppression, rotation or revocation races, reason-classified retry, expiry and collapse, trigger crash recovery, recursive leak prevention, and offline, replayed, or denied opens.
+- [x] **TWIN-01**: A sanitized Adopter Alpha host exercises real Chimeway persistence and CrossWake contracts with deterministic time, a host token registry, and a scripted fake APNs transport.
+- [x] **TWIN-02**: The hermetic twin proves two-installation fan-out, no-target suppression, rotation or revocation races, reason-classified retry, expiry and collapse, trigger crash recovery, recursive leak prevention, and offline, replayed, or denied opens.
 - [ ] **TWIN-03**: A physical-iPhone APNs sandbox run proves permission, token registration, APNs acceptance, visible alert, and one-time protected activation while emitting only redacted machine-readable evidence; subjective display confirmation is isolated from executable assertions.
 - [ ] **GATE-01**: Named `mix verify.*` entrypoints run the hermetic cross-repository proof in CI and validate the physical-proof evidence contract without requiring Apple credentials in CI.
 - [ ] **DOCS-01**: Integration and operator guidance accurately documents ownership boundaries, setup, compatibility migration, outcome vocabulary, offline-open behavior, proof commands, and explicit non-goals.
@@ -99,8 +99,8 @@
 | OPEN-02 | Phase 101 | Gaps Found |
 | OPEN-03 | Phase 101 | Gaps Found |
 | OPEN-04 | Phase 101 | Gaps Found |
-| TWIN-01 | Phase 102 | Pending |
-| TWIN-02 | Phase 102 | Pending |
+| TWIN-01 | Phase 102 | Complete |
+| TWIN-02 | Phase 102 | Complete |
 | GATE-01 | Phase 102 | Pending |
 | TWIN-03 | Phase 103 | Pending |
 | DOCS-01 | Phase 103 | Pending |
