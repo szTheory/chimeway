@@ -1,8 +1,8 @@
 ---
 phase: 101-crosswake-registration-protected-open
-reviewed: 2026-08-25T00:00:00Z
+reviewed: 2026-08-25T18:07:39Z
 depth: standard
-files_reviewed: 42
+files_reviewed: 43
 files_reviewed_list:
   - /Users/jon/projects/crosswake/examples/phoenix_host/README.md
   - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex
@@ -13,6 +13,7 @@ files_reviewed_list:
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260602100000_create_chimeway_token_bindings.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260603000000_create_chimeway_notification_open_intents.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260825180000_enforce_chimeway_binding_scope_consistency.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_open_intent_test.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_registration_adapter_test.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registration_authority_migration_upgrade_test.exs
@@ -56,39 +57,69 @@ status: issues_found
 
 # Phase 101: Code Review Report
 
-**Reviewed:** 2026-08-25T00:00:00Z
+**Reviewed:** 2026-08-25T18:07:39Z
 **Depth:** standard
-**Files Reviewed:** 42
+**Files Reviewed:** 43
 **Status:** issues_found
 
 ## Summary
 
-The protected-open CAS itself is appropriately scoped, but the durable metadata boundary is fail-open and the binding model permits an installation-scoped row to acquire session authority. Both defects contradict the phase's privacy and narrow-revocation guarantees.
+The protected-open flow generally re-resolves server authority and terminates denied native outcomes correctly. However, the forward authority migration leaves pre-upgrade intents unusable, and the purported metadata sanitizer still durably retains raw token material and PII under non-enumerated keys. The public intent-issuance API also crashes on malformed input instead of returning a normal error.
 
 ## Critical Issues
 
-### CR-01: Metadata sanitization persists unrecognised sensitive fields
+### CR-01: Authority upgrade leaves existing issued intents without a scope
 
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex:10-59`
-**Issue:** The sanitizer is a small exact-name blocklist, not an allowlist. It persists every unknown key and recursively preserves unknown nested keys. Common alternate forms such as `deviceToken`, `apnsToken`, `authorization`, `phone_number`, `user_email`, or an opaque provider payload key are therefore written into `TokenBinding` and notification-intent metadata. This violates the stated raw-token/PII persistence boundary and is particularly unsafe because input maps can originate at bridge/provider seams.
-**Fix:** Replace the blocklist with a narrow, documented allowlist of scalar diagnostic fields (as `Redaction.safe_metadata/1` does), reject all other keys and non-scalar/nested values, and add regression cases for camelCase token fields and arbitrary PII-shaped keys.
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs:19-25`
+**Issue:** The upgrade copies tenant, subject, and session columns from the binding but never sets `chimeway_notification_open_intents.scope`. Every intent created before this migration retains `NULL` scope. `Registry.consume_current_intent/3` requires `i.scope == scope.scope` (`registry.ex:1358-1362`), so an otherwise valid legacy intent can never be consumed after upgrade. This silently turns still-valid notification opens into failures.
+**Fix:** Backfill scope from the bound row in the same update, and add a migration test that consumes a pre-upgrade, unexpired intent after migration.
 
-### CR-02: Installation-scoped bindings can be revoked by a session logout
+```elixir
+UPDATE chimeway_notification_open_intents
+SET tenant_ref = (SELECT org_ref FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
+    subject_ref = (SELECT subject_ref FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
+    scope = (SELECT subject_scope FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
+    session_ref = (SELECT session_ref FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
+    session_version = (SELECT session_version FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref)
+...
+```
 
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/token_binding.ex:153-167`
-**Issue:** `:subject_installation` has no invariant that `session_ref` and `session_version` are nil. `Registry.bind_or_rotate/3` forwards both fields from its otherwise permissive context, so it can create an installation-scoped binding with a session ref. `revoke_for_logout/2` then filters only `subject_ref`, `org_ref`, `session_ref`, and `state` ([registry.ex](/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:550)), and revokes that installation binding. A session-only logout can consequently revoke a longer-lived installation authority.
-**Fix:** Reject any session fields for `:subject_installation` in the changeset and enforce the same rule with a database check constraint. Also add `b.subject_scope == :subject_session` to the logout query as defense in depth, plus a regression test that attempts to bind an installation scope with a session ref.
+### CR-02: Metadata “sanitization” persists sensitive payloads under arbitrary keys
+
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex:35-39`
+**Issue:** `sanitize/1` is a denylist, despite its allowlist contract. It copies every key not exactly equal to one of the small forbidden spellings. For example, `%{"deviceToken" => raw_token}`, `%{"provider_response" => payload}`, or `%{"diagnostics" => %{...PII...}}` survive and are written to token-binding and audit metadata (`token_binding.ex:176-183`; `registry.ex:1721,1785,1815`). This violates the project’s no-raw-token/no-provider-payload durable-data boundary and lets casing or a new provider field bypass the filter.
+**Fix:** Make durable metadata a strict, recursively checked allowlist with bounded scalar values (or persist `%{}` when no explicitly approved fields are needed); do not attempt to recognize sensitive data by forbidden names.
+
+```elixir
+@allowed_keys [:safe_detail]
+
+def sanitize(metadata) when is_map(metadata) do
+  Enum.reduce(metadata, %{}, fn {key, value}, acc ->
+    if key in @allowed_keys and safe_scalar?(value), do: Map.put(acc, key, value), else: acc
+  end)
+end
+```
 
 ## Warnings
 
-### WR-01: Permission-loss state is unsynchronised across callback queues
+### WR-01: Malformed notification-open issuance input raises a process exception
 
-**File:** `/Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationRegistrationCoordinator.swift:85-133`
-**Issue:** This mutable coordinator is neither `@MainActor` nor an actor, yet APNs/permission callbacks can arrive on different queues. Concurrent `recheckPermissionState()` calls can both observe `permissionLossDelivered == false` and send duplicate revocation commands; concurrent token observations can also overwrite `retainedBinding` and state out of order. The backend makes the duplicate safe, but the shell's claimed one-shot lifecycle and diagnostics are not reliable.
-**Fix:** Isolate the coordinator to `@MainActor` (and ensure delegate calls are made from that actor), or make it an actor with an explicit serialized delegate boundary. Add a concurrent recheck/observe test that proves only the latest command is sent once.
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:1279-1286`
+**Issue:** The public `issue_notification_open_intent/1` accesses `attrs.binding_ref` before validating that `attrs` is a map with that key. A missing key or a non-map therefore raises `KeyError`/`BadMapError`, producing a 500-style failure rather than the documented `{:error, reason}` result. This is especially brittle at the host API boundary.
+**Fix:** Guard the function and use a required-field helper before constructing the transaction; return `{:error, :invalid_notification_open_intent}` for malformed inputs.
+
+```elixir
+def issue_notification_open_intent(attrs) when is_map(attrs) do
+  with {:ok, binding_ref} <- required_string(attrs, :binding_ref) do
+    do_issue_notification_open_intent(Map.put(attrs, :binding_ref, binding_ref))
+  end
+end
+
+def issue_notification_open_intent(_), do: {:error, :invalid_notification_open_intent}
+```
 
 ---
 
-_Reviewed: 2026-08-25T00:00:00Z_
+_Reviewed: 2026-08-25T18:07:39Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
