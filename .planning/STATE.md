@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
-current_phase_name: CrossWake Registration & Protected Open
+current_phase_name: crosswake-registration-protected-open
 status: executing
-stopped_at: Completed 101-crosswake-registration-protected-open-11-PLAN.md
-last_updated: "2026-08-24T21:38:50.566Z"
-last_activity: 2026-08-24
+stopped_at: Completed 101-crosswake-registration-protected-open-13-PLAN.md
+last_updated: "2026-08-25T14:55:08.633Z"
+last_activity: 2026-08-25
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
-  completed_phases: 5
-  total_plans: 63
-  completed_plans: 63
-  percent: 71
+  completed_phases: 4
+  total_plans: 65
+  completed_plans: 64
+  percent: 57
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 101 — CrossWake Registration & Protected Open
+**Current focus:** Phase 101 — crosswake-registration-protected-open
 
 ## Current Position
 
-Phase: 101 (CrossWake Registration & Protected Open) — EXECUTING
-Plan: 3 of 11
+Phase: 101 (crosswake-registration-protected-open) — EXECUTING
+Plan: 2 of 13
 Status: Ready to execute
-Last activity: 2026-08-24 — Phase 101 execution started
+Last activity: 2026-08-25 — Phase 101 execution started
 
 ## Deferred Items
 
@@ -414,6 +414,7 @@ status: complete
 - [Phase ?]: [101-10]: Historical migrations are restored exactly; forward authority reconciliation is isolated in migration 20260824210000.
 - [Phase ?]: [101-10]: app_identity_posture is mutable evidence, while app_identity_ref alone participates in active binding authority identity.
 - [Phase ?]: [101-11]: Rejected permission-loss callbacks retain the exact opaque command; only revoked and staleNoop are terminal acknowledgements.
+- [Phase ?]: [101-13]: A duplicate open_ref is repeated opaque evidence for one pending intent; retain the first item and compact legacy duplicates before host consumption.
 
 ### Roadmap Evolution
 
@@ -734,8 +735,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-24T21:38:50.554Z
-Stopped at: Completed 101-crosswake-registration-protected-open-11-PLAN.md
+Last session: 2026-08-25T14:55:08.621Z
+Stopped at: Completed 101-crosswake-registration-protected-open-13-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -900,3 +901,4 @@ Resume file: None
 | Phase 101 P09 | 6 min | 1 tasks | 4 files |
 | Phase 101-crosswake-registration-protected-open P10 | 15 min | 2 tasks | 8 files |
 | Phase 101-crosswake-registration-protected-open P11 | 00:03:00 | 1 tasks | 2 files |
+| Phase 101 P13 | 00:03:00 | 1 tasks | 2 files |
