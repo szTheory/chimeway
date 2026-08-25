@@ -1,6 +1,8 @@
 Code.require_file("../lib/alpha_twin/clock.ex", __DIR__)
 Code.require_file("../lib/alpha_twin/registry.ex", __DIR__)
 Code.require_file("../lib/alpha_twin/scripted_apns_transport.ex", __DIR__)
+Code.require_file("../lib/alpha_twin/runner.ex", __DIR__)
+Code.require_file("../lib/alpha_twin/proof_summary.ex", __DIR__)
 
 defmodule AlphaTwin.SeamsTest do
   use ExUnit.Case, async: false
@@ -157,4 +159,38 @@ defmodule AlphaTwin.SeamsTest do
 
   defp assert_result(:ambiguous_handoff, {:error, :possible_handoff, :ambiguous_handoff}), do: :ok
   defp assert_result(expected, {expected, _facts}), do: :ok
+end
+
+defmodule AlphaTwin.DeliveryMatrixTest do
+  use ExUnit.Case, async: true
+
+  @moduletag :alpha_twin_delivery_matrix
+
+  test "the complete ordered delivery ledger produces stable, separated durable facts" do
+    ledger = Path.expand("../../../../priv/alpha_twin/scenario-ledger.json", __DIR__)
+
+    assert {:ok, result} = AlphaTwin.Runner.run(ledger: ledger)
+    assert result.scenario_ids == AlphaTwin.Runner.delivery_scenario_ids()
+    assert Enum.all?(result.scenario_results, &(&1.durable == :converged))
+    assert Enum.all?(result.scenario_results, &(&1.explanation == :explained))
+    assert result.claim_taxonomy.provider_acceptance == :provider_accepted
+    assert result.claim_taxonomy.protected_open == :not_attempted
+    assert result.claim_taxonomy.inbox_seen == :not_attempted
+    assert result.claim_taxonomy.inbox_read == :not_attempted
+  end
+
+  test "the ledger rejects missing duplicate reordered unknown non-string and extra fields" do
+    valid = %{"schema_version" => 1, "scenario_ids" => AlphaTwin.Runner.delivery_scenario_ids()}
+
+    for invalid <- [
+          Map.delete(valid, "scenario_ids"),
+          %{valid | "scenario_ids" => valid["scenario_ids"] ++ ["two_installation_fanout"]},
+          %{valid | "scenario_ids" => Enum.reverse(valid["scenario_ids"])},
+          %{valid | "scenario_ids" => valid["scenario_ids"] ++ ["unknown"]},
+          %{valid | "scenario_ids" => [1 | tl(valid["scenario_ids"])]},
+          Map.put(valid, "debug", true)
+        ] do
+      assert {:error, :invalid_ledger} = AlphaTwin.Runner.validate_ledger(invalid)
+    end
+  end
 end
