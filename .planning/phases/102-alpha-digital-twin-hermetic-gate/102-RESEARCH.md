@@ -270,19 +270,13 @@ The adapter must continue to build and send the real transport request through t
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | The pinned CrossWake SHA will remain fetchable from the configured repository during CI. | Standard Stack | CI checkout cannot run until the canonical remote/ref is supplied or confirmed. |
+| A1 | The selected CrossWake implementation SHA is publicly fetchable from the canonical repository during CI. | Open Questions (RESOLVED) | FALSE as of 2026-08-25: canonical GitHub upload-pack returns `not our ref` for the local Phase 101 SHA, so execution must halt until that exact commit is published without changing the pin. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **What exact CrossWake remote and immutable SHA should the CI job pin?**
-   - What we know: the sibling checkout currently resolves to `f2c502cdb1ce572a4a57257d9e3c051665704b90`. [VERIFIED: local codebase inspection]
-   - What's unclear: whether this local SHA is the intended public CI checkout commit after Phase 101 completion.
-   - Recommendation: make the full SHA a single checked-in constant and have a contract test compare it to the CI checkout ref and proof summary.
+1. **Resolved public-CI CrossWake pin and current suitability:** the only implementation pin satisfying D-03 is canonical origin `https://github.com/szTheory/crosswake.git` at the sibling Phase 101 full commit `f2c502cdb1ce572a4a57257d9e3c051665704b90`; substituting advertised `origin/main` (`d16e475abee4e1602bea51c07dc3adf6e8bc91b9` when inspected) is invalid because the sibling Phase 101 contracts differ from it. The pin is **not currently public-CI fetchable**: `git fetch --depth=1 https://github.com/szTheory/crosswake.git f2c502cdb1ce572a4a57257d9e3c051665704b90` returns `upload-pack: not our ref`, `git ls-remote` advertises no ref at that commit, and the sibling branch's upstream is gone. Execution therefore has a machine-checkable precondition that this exact commit be published/reachable from the canonical remote; the plan must halt rather than float to another revision. Once reachable, CI performs a detached checkout at the literal 40-hex SHA, followed by exact `remote get-url origin`, `rev-parse HEAD`, detached-HEAD, and empty-porcelain assertions before either proof command runs. A release-gate mutation test rejects a shortened SHA, branch/tag, different remote, attached HEAD, dirty tree, or proof SHA mismatch. [VERIFIED: `git -C ../crosswake remote -v`; `git -C ../crosswake rev-parse HEAD`; `git -C ../crosswake status --short --branch`; canonical-remote `git ls-remote`; isolated canonical-remote `git fetch --depth=1 <url> <sha>`]
 
-2. **Which existing public entry point should own the trigger-commit crash injection?**
-   - What we know: recovery and target lifecycle APIs exist, but the exact failure injection seam needs source-level design.
-   - What's unclear: whether the clean host can configure a safe post-commit/pre-dispatch hook without widening production API.
-   - Recommendation: add a test-only callback behind the fixture runner and assert recovery via public `TargetRecovery` plus durable explanations; do not insert lifecycle rows directly.
+2. **Resolved trigger-commit crash seam:** use the existing configured dispatcher boundary in `Chimeway.Trigger.dispatch_after_trigger/4`. `Chimeway.Trigger.do_trigger/7` commits the `Ecto.Multi` containing the event and notifications, normalizes the committed result, and only then calls `plan_deliveries_span/4` -> `dispatch_after_trigger/4` -> `Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync).dispatch/2`. The Alpha fixture will configure a fixture-owned crash-once dispatcher whose first `dispatch/2` invocation terminates the trigger process before delivery planning and whose subsequent invocation delegates to the real synchronous dispatcher. The scenario then advances the fixed clock and invokes public `Chimeway.TargetRecovery.recover_tenant/2`, asserting one stranded committed event, one recovered delivery tree, and durable explanation convergence. This names a precise post-commit/pre-plan injection point, exercises real public trigger and recovery paths, and requires no new production callback or direct lifecycle-row insertion. [VERIFIED: `lib/chimeway/trigger.ex` transaction and `dispatch_after_trigger/4`; `lib/chimeway/target_recovery.ex`; `lib/chimeway/deliveries.ex`]
 
 ## Environment Availability
 
