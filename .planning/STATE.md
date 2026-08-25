@@ -4,16 +4,16 @@ milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: crosswake-registration-protected-open
-status: ready_to_execute
-stopped_at: Phase 101 gap-closure plan 19 ready for execution
-last_updated: "2026-08-25T19:00:00.000Z"
+status: executing
+stopped_at: Completed 101-19-PLAN.md
+last_updated: "2026-08-25T19:17:41.150Z"
 last_activity: 2026-08-25
-last_activity_desc: Planned Phase 101 gap closure in 101-19
+last_activity_desc: Phase 101 plan 19 execution complete
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 71
-  completed_plans: 70
+  completed_plans: 71
   percent: 71
 ---
 
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 ## Current Position
 
-Phase: 101 (crosswake-registration-protected-open) — READY TO EXECUTE
+Phase: 101 (crosswake-registration-protected-open) — EXECUTING
 Plan: 19 of 19
-Status: Gap-closure plan 101-19 ready for execution
-Last activity: 2026-08-25 — Planned Phase 101 gap closure in 101-19
+Status: Plan execution complete — awaiting phase verification
+Last activity: 2026-08-25 — Phase 101 plan 19 execution complete
 
 ## Deferred Items
 
@@ -424,6 +424,7 @@ status: complete
 - [Phase ?]: [101-16]: The shared MetadataSanitizer.sanitize/1 contract remains unchanged for token-binding and audit consumers.
 - [Phase ?]: [101-17]: Token-binding and audit caller metadata always projects to %{}; typed lifecycle columns retain the safe durable facts.
 - [Phase ?]: [101-18]: Legacy notification-open scope is derived only from exact active binding authority; unreconcilable issued rows are terminally revoked.
+- [Phase ?]: [101-19]: Reconciliation selects terminal intent IDs only after queued scope backfill, then reuses that set for event insertion and revocation.
 
 ### Roadmap Evolution
 
@@ -744,8 +745,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-25T18:41:46.808Z
-Stopped at: Completed 101-18-PLAN.md
+Last session: 2026-08-25T19:17:41.137Z
+Stopped at: Completed 101-19-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -916,3 +917,4 @@ Resume file: None
 | Phase 101 P16 | 6 min | 1 tasks | 4 files |
 | Phase 101-crosswake-registration-protected-open P17 | 9 min | 1 tasks | 2 files |
 | Phase 101-crosswake-registration-protected-open P18 | 15 min | 1 tasks | 2 files |
+| Phase 101-crosswake-registration-protected-open P19 | 5 min | 1 tasks | 2 files |
