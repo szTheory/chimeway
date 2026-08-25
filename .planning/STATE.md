@@ -4,16 +4,16 @@ milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: crosswake-registration-protected-open
-status: ready_to_execute
-stopped_at: Planned 101-20-PLAN.md
-last_updated: "2026-08-25T19:47:20.000Z"
+status: executing
+stopped_at: Completed 101-20-PLAN.md
+last_updated: "2026-08-25T19:54:37.005Z"
 last_activity: 2026-08-25
-last_activity_desc: Phase 101 gap-closure plan 20 created and verified
+last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 72
-  completed_plans: 71
+  completed_plans: 72
   percent: 71
 ---
 
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 ## Current Position
 
-Phase: 101 (crosswake-registration-protected-open) — READY TO EXECUTE
+Phase: 101 (crosswake-registration-protected-open) — EXECUTING
 Plan: 20 of 20
-Status: Gap-closure plan verified — ready to execute
-Last activity: 2026-08-25 — Phase 101 gap-closure plan 20 created and verified
+Status: Gap-closure plan complete — ready for phase verification
+Last activity: 2026-08-25 — Phase 101 gap-closure plan 20 completed
 
 ## Deferred Items
 
@@ -425,6 +425,8 @@ status: complete
 - [Phase ?]: [101-17]: Token-binding and audit caller metadata always projects to %{}; typed lifecycle columns retain the safe durable facts.
 - [Phase ?]: [101-18]: Legacy notification-open scope is derived only from exact active binding authority; unreconcilable issued rows are terminally revoked.
 - [Phase ?]: [101-19]: Reconciliation selects terminal intent IDs only after queued scope backfill, then reuses that set for event insertion and revocation.
+- [Phase ?]: Logout authority requires exact session-version qualification in both selection and conditional mutation.
+- [Phase ?]: Notification-open parent deletion is restricted by a forward SQLite guard when append-only events exist.
 
 ### Roadmap Evolution
 
@@ -745,8 +747,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-25T19:17:41.137Z
-Stopped at: Completed 101-19-PLAN.md
+Last session: 2026-08-25T19:54:36.992Z
+Stopped at: Completed 101-20-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -918,3 +920,4 @@ Resume file: None
 | Phase 101-crosswake-registration-protected-open P17 | 9 min | 1 tasks | 2 files |
 | Phase 101-crosswake-registration-protected-open P18 | 15 min | 1 tasks | 2 files |
 | Phase 101-crosswake-registration-protected-open P19 | 5 min | 1 tasks | 2 files |
+| Phase 101-crosswake-registration-protected-open P20 | 00:12:00 | 2 tasks | 5 files |

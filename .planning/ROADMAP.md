@@ -270,7 +270,7 @@ Plans:
   3. A notification tap contains only opaque evidence; offline taps queue safely and reconnect only activates a one-time intent after tenant, revision, expiry, session, manifest, and RouteGate reauthorization.
   4. Replayed, expired, revoked, mismatched, logged-out, tenant-switched, or removed-route opens activate no fallback route and produce sanitized denial evidence.
 
-**Plans**: 19/20 plans executed
+**Plans**: 20/20 plans executed
 
 Plans:
 
@@ -328,7 +328,7 @@ Plans:
 
 **Wave 12** *(blocked on Wave 11 completion)*
 
-- [ ] 101-20-PLAN.md — Bind logout to the exact authenticated session version and protect append-only notification-open history from parent deletion.
+- [x] 101-20-PLAN.md — Bind logout to the exact authenticated session version and protect append-only notification-open history from parent deletion.
 
 ### Phase 102: Alpha Digital Twin & Hermetic Gate
 
@@ -364,7 +364,7 @@ Plans:
 | 98. Privacy-Safe Delivery Evidence | 15/15 | Complete    | 2026-08-19 |
 | 99. Multi-Installation Delivery & Recovery | 12/12 | Complete    | 2026-08-20 |
 | 100. Optional APNs Adapter | 11/11 | Complete    | 2026-08-22 |
-| 101. CrossWake Registration & Protected Open | 19/19 | In Progress|  |
+| 101. CrossWake Registration & Protected Open | 20/20 | In Progress|  |
 | 102. Alpha Digital Twin & Hermetic Gate | 0/TBD | Not started | - |
 | 103. Physical iPhone & Adoption Truth | 0/TBD | Blocked by external Apple signing gate until Phase 162 evidence | - |
 
