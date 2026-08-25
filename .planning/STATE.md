@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: crosswake-registration-protected-open
 status: executing
-stopped_at: Completed 101-crosswake-registration-protected-open-13-PLAN.md
-last_updated: "2026-08-25T14:55:08.633Z"
+stopped_at: Completed 101-crosswake-registration-protected-open-12-PLAN.md
+last_updated: "2026-08-25T15:03:53.939Z"
 last_activity: 2026-08-25
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 65
-  completed_plans: 64
-  percent: 57
+  completed_plans: 65
+  percent: 71
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 ## Current Position
 
 Phase: 101 (crosswake-registration-protected-open) — EXECUTING
-Plan: 2 of 13
+Plan: 3 of 13
 Status: Ready to execute
 Last activity: 2026-08-25 — Phase 101 execution started
 
@@ -415,6 +415,8 @@ status: complete
 - [Phase ?]: [101-10]: app_identity_posture is mutable evidence, while app_identity_ref alone participates in active binding authority identity.
 - [Phase ?]: [101-11]: Rejected permission-loss callbacks retain the exact opaque command; only revoked and staleNoop are terminal acknowledgements.
 - [Phase ?]: [101-13]: A duplicate open_ref is repeated opaque evidence for one pending intent; retain the first item and compact legacy duplicates before host consumption.
+- [Phase ?]: [101-12]: Invalidating provider feedback is closed unless a host-authenticated exact binding scope matches at selection and conditional update time.
+- [Phase ?]: [101-12]: Forward upgrades supersede duplicate active token identities by last_seen_at DESC, id DESC after authority-domain reconciliation.
 
 ### Roadmap Evolution
 
@@ -735,8 +737,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-25T14:55:08.621Z
-Stopped at: Completed 101-crosswake-registration-protected-open-13-PLAN.md
+Last session: 2026-08-25T15:03:53.927Z
+Stopped at: Completed 101-crosswake-registration-protected-open-12-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -902,3 +904,4 @@ Resume file: None
 | Phase 101-crosswake-registration-protected-open P10 | 15 min | 2 tasks | 8 files |
 | Phase 101-crosswake-registration-protected-open P11 | 00:03:00 | 1 tasks | 2 files |
 | Phase 101 P13 | 00:03:00 | 1 tasks | 2 files |
+| Phase 101-crosswake-registration-protected-open P12 | 15 min | 2 tasks | 6 files |
