@@ -347,7 +347,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 102-01-PLAN.md — Prove one immutable-package host-to-Chimeway-to-CrossWake accepted tracer.
+- [ ] 102-01-PLAN.md — Publish and machine-verify the exact locked CrossWake commit, then prove one immutable-package host-to-Chimeway-to-CrossWake accepted tracer.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -359,7 +359,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 102-04-PLAN.md — Bind provenance, validate the future physical-proof contract, and require the Alpha lane in both aggregate gates.
+- [ ] 102-04-PLAN.md — Consume Plan 01's exact-SHA reachability evidence, bind provenance, validate the future physical-proof contract, and require the Alpha lane in both aggregate gates.
 
 ### Phase 103: Physical iPhone & Adoption Truth
 
