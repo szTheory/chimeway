@@ -194,3 +194,55 @@ defmodule AlphaTwin.DeliveryMatrixTest do
     end
   end
 end
+
+defmodule AlphaTwin.SafetyMatrixTest do
+  use ExUnit.Case, async: true
+
+  @moduletag :alpha_twin_safety_matrix
+
+  test "the complete ledger adds each protected-open and recursive-scan scenario once" do
+    ledger = Path.expand("../../../../priv/alpha_twin/scenario-ledger.json", __DIR__)
+
+    assert {:ok, result} = AlphaTwin.Runner.run(ledger: ledger)
+    assert result.scenario_ids == AlphaTwin.Runner.all_scenario_ids()
+    assert Enum.count(result.scenario_ids, &(&1 == "offline_reauthorization")) == 1
+    assert Enum.any?(result.scenario_results, &(&1.outcome == :protected_open_once))
+    assert Enum.any?(result.scenario_results, &(&1.outcome == :denied_no_fallback))
+    assert Enum.any?(result.scenario_results, &(&1.outcome == :replay_rejected))
+  end
+
+  test "proof summary recursively rejects sentinels without echoing the sensitive value" do
+    sentinel = "raw-token-alpha-do-not-emit"
+
+    assert {:error, %{rule: :sensitive_value, path: ["trace", "nested"]}} =
+             AlphaTwin.ProofSummary.render(%{
+               "schema_version" => 1,
+               "scenario_results" => [],
+               "claim_taxonomy" => %{},
+               "trace" => %{"nested" => sentinel}
+             })
+
+    refute inspect(AlphaTwin.ProofSummary.render(%{"trace" => sentinel})) =~ sentinel
+  end
+
+  test "proof summary encodes only its exact closed schema with separate outcome taxonomy" do
+    attrs = %{
+      "schema_version" => 1,
+      "proof_class" => "alpha_twin",
+      "chimeway_artifact_sha256" => String.duplicate("a", 64),
+      "crosswake_sha" => String.duplicate("b", 40),
+      "scenario_results" => [%{"id" => "offline_reauthorization", "outcome" => "protected_open_once"}],
+      "claim_taxonomy" => %{
+        "provider_acceptance" => "provider_accepted",
+        "protected_open" => "authorized",
+        "inbox_seen" => "not_attempted",
+        "inbox_read" => "not_attempted"
+      }
+    }
+
+    assert {:ok, proof} = AlphaTwin.ProofSummary.render(attrs)
+    assert proof == Jason.encode!(attrs)
+    assert {:error, %{rule: :invalid_schema, path: []}} =
+             AlphaTwin.ProofSummary.render(Map.put(attrs, "debug", true))
+  end
+end
