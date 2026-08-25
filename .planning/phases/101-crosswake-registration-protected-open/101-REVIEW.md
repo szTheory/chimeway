@@ -1,6 +1,6 @@
 ---
 phase: 101-crosswake-registration-protected-open
-reviewed: 2026-08-25T18:07:39Z
+reviewed: 2026-08-25T18:48:01Z
 depth: standard
 files_reviewed: 43
 files_reviewed_list:
@@ -14,6 +14,7 @@ files_reviewed_list:
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260603000000_create_chimeway_notification_open_intents.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260825180000_enforce_chimeway_binding_scope_consistency.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260825190000_backfill_chimeway_notification_open_intent_scope.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_open_intent_test.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_registration_adapter_test.exs
   - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registration_authority_migration_upgrade_test.exs
@@ -48,78 +49,36 @@ files_reviewed_list:
   - /Users/jon/projects/crosswake/test/crosswake/proof/phase60_chimeway_registry_test.exs
   - /Users/jon/projects/crosswake/test/fixtures/chimeway_notification_permission_loss_v1.json
 findings:
-  critical: 2
+  critical: 0
   warning: 1
   info: 0
-  total: 3
+  total: 1
 status: issues_found
 ---
 
 # Phase 101: Code Review Report
 
-**Reviewed:** 2026-08-25T18:07:39Z
+**Reviewed:** 2026-08-25T18:48:01Z
 **Depth:** standard
 **Files Reviewed:** 43
 **Status:** issues_found
 
 ## Summary
 
-The protected-open flow generally re-resolves server authority and terminates denied native outcomes correctly. However, the forward authority migration leaves pre-upgrade intents unusable, and the purported metadata sanitizer still durably retains raw token material and PII under non-enumerated keys. The public intent-issuance API also crashes on malformed input instead of returning a normal error.
+Reviewed the registration lifecycle, protected-open resolver, iOS queue/coordinator, manifest policy validation, and the two latest closures. Exact-empty caller metadata persistence and the fail-closed matching predicate are correctly applied in the direct paths reviewed. The forward reconciliation nevertheless changes durable intent state without recording the required lifecycle evidence, making legacy denials unexplainable after the migration.
 
-## Critical Issues
-
-### CR-01: Authority upgrade leaves existing issued intents without a scope
-
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs:19-25`
-**Issue:** The upgrade copies tenant, subject, and session columns from the binding but never sets `chimeway_notification_open_intents.scope`. Every intent created before this migration retains `NULL` scope. `Registry.consume_current_intent/3` requires `i.scope == scope.scope` (`registry.ex:1358-1362`), so an otherwise valid legacy intent can never be consumed after upgrade. This silently turns still-valid notification opens into failures.
-**Fix:** Backfill scope from the bound row in the same update, and add a migration test that consumes a pre-upgrade, unexpired intent after migration.
-
-```elixir
-UPDATE chimeway_notification_open_intents
-SET tenant_ref = (SELECT org_ref FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
-    subject_ref = (SELECT subject_ref FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
-    scope = (SELECT subject_scope FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
-    session_ref = (SELECT session_ref FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref),
-    session_version = (SELECT session_version FROM chimeway_token_bindings WHERE binding_ref = chimeway_notification_open_intents.binding_ref)
-...
-```
-
-### CR-02: Metadata “sanitization” persists sensitive payloads under arbitrary keys
-
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex:35-39`
-**Issue:** `sanitize/1` is a denylist, despite its allowlist contract. It copies every key not exactly equal to one of the small forbidden spellings. For example, `%{"deviceToken" => raw_token}`, `%{"provider_response" => payload}`, or `%{"diagnostics" => %{...PII...}}` survive and are written to token-binding and audit metadata (`token_binding.ex:176-183`; `registry.ex:1721,1785,1815`). This violates the project’s no-raw-token/no-provider-payload durable-data boundary and lets casing or a new provider field bypass the filter.
-**Fix:** Make durable metadata a strict, recursively checked allowlist with bounded scalar values (or persist `%{}` when no explicitly approved fields are needed); do not attempt to recognize sensitive data by forbidden names.
-
-```elixir
-@allowed_keys [:safe_detail]
-
-def sanitize(metadata) when is_map(metadata) do
-  Enum.reduce(metadata, %{}, fn {key, value}, acc ->
-    if key in @allowed_keys and safe_scalar?(value), do: Map.put(acc, key, value), else: acc
-  end)
-end
-```
+## Narrative Findings (AI reviewer)
 
 ## Warnings
 
-### WR-01: Malformed notification-open issuance input raises a process exception
+### WR-01: Reconciled intent revocations have no durable denial event
 
-**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:1279-1286`
-**Issue:** The public `issue_notification_open_intent/1` accesses `attrs.binding_ref` before validating that `attrs` is a map with that key. A missing key or a non-map therefore raises `KeyError`/`BadMapError`, producing a 500-style failure rather than the documented `{:error, reason}` result. This is especially brittle at the host API boundary.
-**Fix:** Guard the function and use a required-field helper before constructing the transaction; return `{:error, :invalid_notification_open_intent}` for malformed inputs.
-
-```elixir
-def issue_notification_open_intent(attrs) when is_map(attrs) do
-  with {:ok, binding_ref} <- required_string(attrs, :binding_ref) do
-    do_issue_notification_open_intent(Map.put(attrs, :binding_ref, binding_ref))
-  end
-end
-
-def issue_notification_open_intent(_), do: {:error, :invalid_notification_open_intent}
-```
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260825190000_backfill_chimeway_notification_open_intent_scope.exs:63`
+**Issue:** The second `UPDATE` changes every unreconcilable issued intent to `revoked`, but writes nothing to `chimeway_notification_open_intent_events`. Normal issuance and consumption use that append-only table (Registry lines 1302-1312 and 1372-1380). Consequently, an operator examining a legacy intent sees an issued event followed by a revoked current row with no timestamped reason or indication that the migration deliberately fail-closed it. This violates the project’s explainable notification lifecycle and prevents distinguishing a reconciliation denial from an ordinary revocation.
+**Fix:** In the same migration transaction, insert one sanitized event for every row selected by the terminal predicate (for example `event_type: "reconciled_revoked"`, `occurred_at: CURRENT_TIMESTAMP`, and empty/static details), then perform the state update. Reuse the identical `NOT EXISTS` authority predicate in both statements, and add an upgrade assertion that each forced-revoked intent has exactly one reconciliation event.
 
 ---
 
-_Reviewed: 2026-08-25T18:07:39Z_
+_Reviewed: 2026-08-25T18:48:01Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
