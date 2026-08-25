@@ -1,6 +1,6 @@
 ---
 phase: 101-crosswake-registration-protected-open
-verified: 2026-08-25T17:12:50Z
+verified: 2026-08-25T18:15:00Z
 status: gaps_found
 score: 2/4 must-haves verified
 behavior_unverified: 0
@@ -9,41 +9,43 @@ re_verification:
   previous_status: gaps_found
   previous_score: 2/4
   gaps_closed:
-    - "Installation-scoped provider feedback now accepts nil session authority and conditionally invalidates its exact active binding."
-    - "Installation-scoped bindings now issue and atomically consume one protected-open intent with nil session fields."
-  gaps_remaining: []
-  regressions:
-    - "The metadata sanitizer remains an exact-name blocklist, so arbitrary caller-controlled sensitive fields can be durably persisted in notification-open intent metadata."
-    - "The binding changeset permits :subject_installation rows with session fields; a session logout query can therefore revoke an installation-scoped binding."
+    - "Installation-scoped bindings reject session authority and session lifecycle operations select only subject-session bindings."
+    - "Notification-open caller metadata is projected to an empty durable map."
+  gaps_remaining:
+    - "A matched legacy issued intent is not given its binding's scope by the forward authority migration, so it cannot pass current consumption authorization."
+    - "Token-binding and audit metadata still use a finite forbidden-key blocklist and durably retain arbitrary caller-controlled values."
+  regressions: []
 gaps:
   - truth: "A signed-in user can complete permission, APNs registration, and authenticated host binding; repeated observations, rotation, logout, revocation, and provider invalidation leave only the current binding usable."
     status: failed
-    reason: "The supported :subject_installation scope is not constrained to nil session authority. Registry.bind_or_rotate/3 forwards supplied session fields, and revoke_for_logout/2 selects rows by session_ref without subject_scope. A session logout can revoke a longer-lived installation binding."
-    artifacts:
-      - path: "/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/token_binding.ex"
-        issue: "validate_scope_consistency/1 has no installation-scope nil-session invariant."
-      - path: "/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex"
-        issue: "Logout query at lines 550-557 lacks b.subject_scope == :subject_session."
-    missing:
-      - "Reject session_ref/session_version for :subject_installation at the binding boundary (and preferably in the database), scope logout to :subject_session, and add a bind-plus-logout regression test."
-  - truth: "A notification tap contains only opaque evidence; offline taps queue safely and reconnect only activates a one-time intent after tenant, revision, expiry, session, manifest, and RouteGate reauthorization."
-    status: failed
-    reason: "NotificationOpenIntent changesets call MetadataSanitizer, but that sanitizer preserves every key except a small literal blocklist. Caller-controlled keys such as deviceToken, authorization, user_email, arbitrary provider-body names, and nested variants survive to durable metadata, so the evidence is not demonstrably opaque."
+    reason: "The binding and audit durable metadata boundary is a finite exact-name blocklist. Arbitrary or camelCase token, credential, PII, and provider-body fields flow through token-binding and audit persistence, contradicting the phase's D-04/OPEN-01 durable-evidence contract."
     artifacts:
       - path: "/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/metadata_sanitizer.ex"
-        issue: "Lines 10-60 implement a finite forbidden-key blocklist and recursively retain unknown keys and scalar values."
-      - path: "/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex"
-        issue: "Lines 90-94 persist the blocklist projection rather than an opaque-only allowlist/rejection boundary."
+        issue: "sanitize/1 preserves every key not in a small literal list, recursively."
+      - path: "/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/token_binding.ex"
+        issue: "TokenBinding changesets persist the unsafe generic sanitizer projection."
+      - path: "/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex"
+        issue: "Evidence normalization, binding construction, and audit-event construction all reuse the unsafe generic projection."
     missing:
-      - "Use a narrow documented allowlist (or reject/drop all caller metadata), including recursive scalar/type bounds, and add durable regression cases for camelCase token, authorization/PII, arbitrary provider-body, and nested unknown fields."
+      - "Replace generic binding/audit metadata persistence with a narrow recursively validated allowlist or an empty projection, and add adversarial persistence regressions for camelCase token, authorization/PII, provider-body, and nested unknown values."
+  - truth: "A notification tap contains only opaque evidence; offline taps queue safely and reconnect only activates a one-time intent after tenant, revision, expiry, session, manifest, and RouteGate reauthorization."
+    status: failed
+    reason: "The forward authority migration backfills tenant, subject, and session authority for matched historical intents but omits scope. Current consumption requires intent.scope to equal the authenticated scope, making an otherwise valid legacy issued intent permanently ineligible."
+    artifacts:
+      - path: "/Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs"
+        issue: "The backfill UPDATE omits scope = binding.subject_scope."
+      - path: "/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex"
+        issue: "consume_current_intent/3 requires i.scope == authenticated scope, so the omitted historical value cannot authorize."
+    missing:
+      - "Add a new forward migration that derives scope from the exact bound row for matched issued intents (terminally revoke rows that cannot be made authoritative), plus an upgrade regression that consumes an unexpired matched legacy intent."
 ---
 
 # Phase 101: CrossWake Registration & Protected Open Verification Report
 
 **Phase Goal:** A CrossWake host can bind APNs registrations and activate notification routes only when current host authority permits it.
-**Verified:** 2026-08-25T17:12:50Z
+**Verified:** 2026-08-25T18:15:00Z
 **Status:** gaps_found
-**Re-verification:** Yes — after gap closure
+**Re-verification:** Yes — after Plans 101-15 and 101-16
 
 ## Goal Achievement
 
@@ -51,10 +53,10 @@ gaps:
 
 | # | Truth | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | Signed-in permission, APNs observation, authenticated binding, rotation, logout/revocation, and provider invalidation leave only the current binding usable. | ✗ FAILED | Installation-scoped provider invalidation is now exact and tested, but a binding declared `:subject_installation` can still carry session fields and is then selected by the session-logout query. |
-| 2 | Malformed, absent, or unknown action and route configuration is rejected by a manifest-consistent default-deny policy. | ✓ VERIFIED | Policy schema/builder/validator and resolver exact-action membership are substantive and wired; 60 focused root tests plus 33 companion tests pass. |
-| 3 | A tap carries only opaque evidence; offline queueing and reconnect perform a one-time, currently-authorized protected open. | ✗ FAILED | The queue, atomic consume, and installation scope repair work, but durable intent metadata remains caller-controlled except for a finite key blocklist, violating the opaque-evidence boundary. |
-| 4 | Replayed, expired, revoked, mismatched, logged-out, tenant-switched, or removed-route opens never fall back and return sanitized denial evidence. | ✓ VERIFIED | `Registry.consume_intent/1` atomically consumes before resolver checks; resolver and native terminal-denial suites pass, including all protected-denial cases. |
+| 1 | A signed-in user can complete permission, APNs registration, and authenticated host binding; repeated observations, rotation, logout, revocation, and provider invalidation leave only the current binding usable. | ✗ FAILED | 101-15 correctly separates installation/session authority, but the active registration evidence boundary still durably retains arbitrary sensitive caller metadata through the generic blocklist. This fails the phase's D-04/OPEN-01 durable-evidence must-have. |
+| 2 | Malformed, absent, or unknown action and route configuration is rejected by a manifest-consistent default-deny policy. | ✓ VERIFIED | Policy schema, manifest builder/validator, and resolver exact-membership suites pass: 73 focused root tests and 33 companion tests. |
+| 3 | A notification tap contains only opaque evidence; offline taps queue safely and reconnect only activates a one-time intent after tenant, revision, expiry, session, manifest, and RouteGate reauthorization. | ✗ FAILED | New intent issuance correctly drops caller metadata, but a matched pre-upgrade issued intent has NULL scope because the forward migration omitted that backfill. The current CAS requires a matching scope, so a valid legacy tap cannot activate. |
+| 4 | Replayed, expired, revoked, mismatched, logged-out, tenant-switched, or removed-route opens activate no fallback route and produce sanitized denial evidence. | ✓ VERIFIED | Atomic consume-before-resolve, closed resolver outcomes, and native terminal-denial suites pass; 11 focused Swift tests confirm no fallback activation. |
 
 **Score:** 2/4 truths verified (0 present, behavior-unverified)
 
@@ -62,39 +64,38 @@ gaps:
 
 | Artifact | Expected | Status | Details |
 | --- | --- | --- | --- |
-| `registry.ex` | Exact binding lifecycle and protected-intent issue/consume | ⚠️ INCOMPLETE | L1/L2 substantive and L3 wired. Scope-aware feedback/consume predicates are real, but logout can cross the supported installation/session boundary. |
-| `token_binding.ex` | Durable authority-scope invariants | ✗ INCOMPLETE | L1/L2 substantive, but `:subject_installation` has no nil-session invariant, leaving a cross-lifecycle authority path. |
-| `notification_open_intent.ex` | Scope-consistent, opaque durable one-time intent | ⚠️ INCOMPLETE | Scope checks and sanitizer link are wired, but the linked sanitizer does not make arbitrary caller metadata opaque. |
-| `metadata_sanitizer.ex` | Recursive safe metadata boundary | ✗ UNSAFE | Exists and is used, but it is a narrow blocklist; unknown top-level/nested keys flow through unchanged. |
-| `policy/schema.ex`, `manifest/{types,builder,validator}.ex`, `resolver.ex` | Closed policy and current RouteGate authorization | ✓ VERIFIED | Substantive normalization/validation and consume-first resolver path are covered by focused tests. |
-| iOS registration/open queue/activation coordinators | Transient registration, bounded opaque queue, terminal activation | ✓ VERIFIED | Substantive and wired; selected Swift suites cover registration, reload/duplicate queue compaction, and no-fallback terminal denials. |
+| `token_binding.ex`, `registry.ex`, scope-consistency migration | Exact current binding lifecycle | ⚠️ INCOMPLETE | 101-15 changeset, registry predicates, SQLite guards, and focused bind/logout tests are substantive and wired; generic durable metadata is still unsafe. |
+| `20260824210000_upgrade_chimeway_registration_authority.exs` | Forward authority backfill | ✗ INCOMPLETE | Exists and is exercised by migration tests, but it does not backfill `NotificationOpenIntent.scope`. |
+| `notification_open_intent.ex`, `metadata_sanitizer.ex` | Opaque durable one-time intent | ✓ VERIFIED | `changeset/2` calls `sanitize_notification_open/1`, which unconditionally returns `%{}`; focused adversarial changeset/persistence tests pass. |
+| Policy/manifest/resolver modules | Closed notification policy and current RouteGate authorization | ✓ VERIFIED | Substantive, wired, and covered by focused suites. |
+| iOS registration, queue, and activation coordinators | Host-only registration and terminal protected activation | ✓ VERIFIED | Substantive and wired; focused Swift registration, queue, and protected-activation tests pass. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 | --- | --- | --- | --- | --- |
-| `Registry.provider_feedback_scope/1` | exact feedback select and mutation | scope-aware predicates | ✓ WIRED | Installation and session branches have exact binding/install/tenant/subject predicates; focused install feedback test passes. |
-| `Registry.issue_notification_open_intent/1` | `NotificationOpenIntent.changeset/2` | binding-derived scope/session fields | ✓ WIRED | Installation scope persists nil session fields and consumes once; focused suite passes. |
-| `Registry.consume_intent/1` | `TokenBinding` exact active revision | Ecto `update_all` with `exists` predicate | ✓ WIRED | One predicate-CAS checks active binding and scope before issued→consumed transition. |
-| `NotificationOpenIntent.changeset/2` | `MetadataSanitizer.sanitize/1` | before insert | ✗ NOT WIRED SAFELY | Call is present, but the downstream blocklist admits arbitrary durable metadata. |
-| native protected outcome | `ActivationCoordinator` | allowed route only; denied outcome terminal | ✓ WIRED | Three Swift protected-activation tests pass. |
+| `Registry.bind_or_rotate/3` | changeset, scope guards, logout/session-revocation queries | shared installation/session invariant | ✓ WIRED | Installation scope rejects session facts; both lifecycle queries select only `:subject_session`; 101-15 regression passes. |
+| `NotificationOpenIntent.changeset/2` | `MetadataSanitizer.sanitize_notification_open/1` | caller metadata before insert | ✓ WIRED | The new dedicated method is an exact empty-map projection and persistence evidence passes. |
+| authority upgrade migration | `Registry.consume_current_intent/3` | matched historical intent authority backfill | ✗ NOT WIRED | Migration copies tenant/subject/session but not scope; consume requires `i.scope == scope.scope`. |
+| registration evidence/audit attrs | `MetadataSanitizer.sanitize/1` | generic durable metadata projection | ✗ UNSAFE | Call sites are wired to an exact-name blocklist that preserves unknown values. |
+| native protected outcome | `ActivationCoordinator` | allowed result only; denial terminal | ✓ WIRED | Focused native tests cover allowed activation and denied/no-fallback branches. |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 | --- | --- | --- | --- | --- |
-| Phoenix registry | bindings/intents | Ecto transactions and conditional updates | Yes | ⚠️ PARTIAL — current scope data flows, but malformed installation/session authority flows into logout selection. |
-| Resolver | route/action | host-consumed resolution, current manifest, RouteGate | Yes | ✓ FLOWING |
-| Native queue | opaque `openRef` evidence | file-backed Codable queue | Yes | ✓ FLOWING |
-| Intent metadata | caller `attrs.metadata` | blocklist sanitizer | No safe opaque projection | ✗ UNSAFE |
+| Phoenix registry | bindings and intents | Ecto transactions / conditional updates | Yes | ⚠️ PARTIAL — fresh scopes flow, but matched legacy intent scopes are absent after upgrade. |
+| Notification-open metadata | caller `attrs.metadata` | `sanitize_notification_open/1` | Yes, empty projection | ✓ FLOWING |
+| Binding/audit metadata | evidence and attrs metadata | generic `sanitize/1` | No safe projection | ✗ UNSAFE |
+| Resolver/native queue | host resolution and opaque evidence | current manifest, RouteGate, file-backed queue | Yes | ✓ FLOWING |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| Installation feedback, scope-consistent issue/consume, replay, and named-key metadata removals | `cd examples/phoenix_host && MIX_ENV=test mix test registry_test.exs notification_open_intent_test.exs registry_notification_open_test.exs --seed 0` | 24 tests, 0 failures | ✓ PASS — does not test unknown sensitive metadata or installation scope carrying a session. |
-| Closed policy/manifest normalization and validation | `cd crosswake && MIX_ENV=test mix test schema_test.exs builder_test.exs validator_test.exs --seed 0` | 60 tests, 0 failures | ✓ PASS |
-| Resolver denial/redaction/telemetry contracts | `cd packages/crosswake_chimeway && MIX_ENV=test mix test resolver_test.exs denial_codes_test.exs redaction_test.exs telemetry_test.exs --seed 0` | 33 tests, 0 failures | ✓ PASS |
+| Scope separation, logout/session-revocation isolation, database guards, and drop-all intent metadata | `cd examples/phoenix_host && MIX_ENV=test mix test registration_authority_migration_upgrade_test.exs registry_test.exs notification_open_intent_test.exs registry_notification_open_test.exs --seed 0` | 26 tests, 0 failures | ✓ PASS — does not seed and consume a matched legacy intent or adversarial generic binding/audit metadata. |
+| Closed policy and manifest validation | `cd crosswake && mix test schema_test.exs route_test.exs builder_test.exs validator_test.exs --seed 0` | 73 tests, 0 failures | ✓ PASS |
+| Resolver denial/redaction/telemetry | `cd packages/crosswake_chimeway && mix test resolver_test.exs denial_codes_test.exs redaction_test.exs telemetry_test.exs --seed 0` | 33 tests, 0 failures | ✓ PASS |
 | Native registration, queue, and protected activation | `cd packages/crosswake-shell-core-ios && swift test --filter 'NotificationRegistrationTests|NotificationOpenQueueTests|ProtectedNotificationActivationTests'` | 11 tests, 0 failures | ✓ PASS |
 
 ### Probe Execution
@@ -105,38 +106,35 @@ Step 7c: SKIPPED — no phase-declared or conventional `scripts/*/tests/probe-*.
 
 | Requirement | Source Plans | Description | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| OPEN-01 | 101-04, 06, 09-12, 14 | Authenticated registration lifecycle and exact invalidation | ✗ BLOCKED | Installation scope may receive session authority and be revoked by a session logout. |
+| OPEN-01 | 101-04, 06, 09-12, 14-15 | Authenticated registration lifecycle and exact invalidation | ✗ BLOCKED | Scope separation is repaired, but D-04/OPEN-01 durable binding/audit evidence still admits unknown sensitive fields. |
 | OPEN-02 | 101-02, 03, 09 | Closed manifest-consistent action policy | ✓ SATISFIED | Focused schema, builder, validator, and resolver suites pass. |
-| OPEN-03 | 101-01, 03, 05, 07, 09, 13, 14 | Opaque queued one-time reauthorized protected open | ✗ BLOCKED | A caller can retain unknown sensitive metadata at the durable intent boundary. |
-| OPEN-04 | 101-01, 05, 08, 09 | Sanitized, no-fallback denial outcomes | ✓ SATISFIED | Atomic host outcomes, resolver mappings, and native terminal behavior are executable and pass. |
+| OPEN-03 | 101-01, 03, 05, 07, 09, 13-14, 16 | Opaque offline tap, one-time consume, and current reauthorization | ✗ BLOCKED | New intent metadata is opaque, but matched historical issued intents lack the required scope and cannot reauthorize. |
+| OPEN-04 | 101-01, 05, 08, 09 | Sanitized, no-fallback denial outcomes | ✓ SATISFIED | Consume-first resolver and native terminal-denial evidence pass. |
 
-All four IDs declared across the 14 PLAN frontmatters are accounted for. No Phase 101 requirement is orphaned in `REQUIREMENTS.md`.
+All four IDs declared across the 16 Phase 101 PLAN frontmatters are accounted for. No additional Phase 101 requirement is orphaned in `REQUIREMENTS.md`.
 
-### Must-NOT / Review Disposition
+### Code Review Disposition
 
-| Item | Verdict | Evidence |
+| Finding | Verdict | Evidence |
 | --- | --- | --- |
-| Exact installation feedback must not invalidate another authority scope | ✓ VERIFIED | Exact install/sibling-control test passes and both query/mutation reuse scope predicates. |
-| Intent metadata must not become a durable shadow token/content/payload store | ✗ FAILED — BLOCKER | The plan’s judgment-tier prohibition is contradicted by the finite blocklist implementation; unknown sensitive fields are persisted. |
-| Client evidence must not supply route/action/tenant/binding/session authority; denied opens must not fall back | ✓ VERIFIED | Host-derived `OpenResolution` and Swift terminal-denial test suite. |
-| Review CR-02: logout may revoke installation scope | ✗ CONFIRMED — BLOCKER | Binding invariant and logout predicate together establish the observable cross-scope path; no regression test excludes it. |
-| Review WR-01: native coordinator callback concurrency | ⚠️ WARNING | Mutable state is not isolated and no concurrent test exists. Exact backend CAS limits authority impact, so this does not independently falsify a roadmap truth, but it should be serialized/tested. |
+| CR-01: forward authority migration leaves historical intents without scope | ✗ CONFIRMED — BLOCKER | Migration lines 19-24 omit scope while the CAS at `registry.ex:1358-1362` requires it. This also contradicts Plan 101-10's exact binding-derived authority-backfill acceptance. |
+| CR-02: generic metadata sanitizer retains arbitrary sensitive data | ✗ CONFIRMED — BLOCKER | `sanitize/1` retains all non-literal keys; token binding and audit writes reuse it. Plan 101-16 fixed only notification-open metadata, not this independent D-04/OPEN-01 boundary. |
+| WR-01: malformed public intent issuance raises | ⚠️ WARNING | `issue_notification_open_intent/1` dereferences `attrs.binding_ref` without a shape guard. It is a real API robustness defect, but no Phase 101 roadmap truth requires malformed internal issuance input to return a normal result, so it does not independently block the goal. |
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 | --- | --- | --- | --- | --- |
-| `metadata_sanitizer.ex` | 10-60 | finite literal-key blocklist used as a privacy boundary | 🛑 Blocker | Unrecognised sensitive metadata is durably retained. |
-| `token_binding.ex` | 153-167 | installation scope accepts session authority | 🛑 Blocker | A session lifecycle action can deactivate a longer-lived installation binding. |
-| `registry.ex` | 550-557 | logout predicate lacks `subject_scope` | 🛑 Blocker | Completes the cross-scope revocation path. |
-| `NotificationRegistrationCoordinator.swift` | 85-133 | unsynchronised mutable callback state | ⚠️ Warning | Duplicate/out-of-order shell commands remain possible; CAS makes them fail safe. |
-| Phase-modified sources | — | debt-marker scan | ℹ️ Info | No unreferenced `TBD`, `FIXME`, or `XXX` marker found. |
+| `metadata_sanitizer.ex` | 35-39, 53-65 | finite forbidden-key blocklist used as privacy boundary | 🛑 Blocker | Unknown caller-controlled fields persist in binding/audit metadata. |
+| `20260824210000_upgrade_chimeway_registration_authority.exs` | 19-24 | incomplete authority backfill | 🛑 Blocker | Valid matched historical intents become permanently ineligible under current scope checks. |
+| `registry.ex` | 1279-1286 | unguarded public attrs dereference | ⚠️ Warning | Malformed issuance input raises instead of returning a closed error. |
+| Phase-modified source set | — | debt-marker scan | ℹ️ Info | No unreferenced `TBD`, `FIXME`, or `XXX` marker found. `git diff --check` is clean. |
 
 ### Gaps Summary
 
-The prior installation-feedback and installation-intent failures are genuinely repaired. This re-verification still fails because two separate, machine-testable authority/privacy defects remain: installation authority can be silently coupled to a session lifecycle, and the durable intent boundary accepts unknown caller metadata. Phase 102’s hermetic-proof goal does not explicitly own either repair, so neither is deferred.
+Plans 101-15 and 101-16 genuinely close the previous installation/session and notification-intent metadata gaps. The phase still misses its goal because an existing host cannot upgrade a valid matched issued intent into the complete current authority contract, and registration/audit durable metadata retains arbitrary caller input. Both are specific machine-testable blockers; Phase 102 does not explicitly own either repair, so neither is deferred.
 
 ---
 
-_Verified: 2026-08-25T17:12:50Z_
+_Verified: 2026-08-25T18:15:00Z_
 _Verifier: the agent (gsd-verifier)_
