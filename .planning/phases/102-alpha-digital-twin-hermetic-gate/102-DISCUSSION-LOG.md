@@ -40,4 +40,3 @@ No corrections — all assumptions confirmed.
 - Durable Explainability Bias
 - Least-Surprise DX Default
 - Low-Escalation Recommendation Default
-
