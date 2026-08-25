@@ -12,6 +12,10 @@
     "expiry_before_io",
     "opt_in_installation_safe_collapse",
     "trigger_commit_recovery",
-    "post_handoff_ambiguity"
+    "post_handoff_ambiguity",
+    "recursive_leak_prevention",
+    "offline_reauthorization",
+    "stale_denied_open",
+    "replay_rejection"
   ]
 }

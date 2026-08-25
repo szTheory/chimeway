@@ -14,8 +14,20 @@ defmodule AlphaTwin.Runner do
     "post_handoff_ambiguity"
   ]
 
+  @safety_scenario_ids [
+    "recursive_leak_prevention",
+    "offline_reauthorization",
+    "stale_denied_open",
+    "replay_rejection"
+  ]
+
+  @all_scenario_ids @delivery_scenario_ids ++ @safety_scenario_ids
+
   @spec delivery_scenario_ids() :: [String.t()]
   def delivery_scenario_ids, do: @delivery_scenario_ids
+
+  @spec all_scenario_ids() :: [String.t()]
+  def all_scenario_ids, do: @all_scenario_ids
 
   @spec validate_ledger(map()) :: {:ok, [String.t()]} | {:error, :invalid_ledger}
   def validate_ledger(
@@ -28,7 +40,7 @@ defmodule AlphaTwin.Runner do
       )
       when map_size(ledger) == 4 and is_binary(sha) and byte_size(sha) == 40 and
              is_list(scenario_ids) do
-    if scenario_ids == @delivery_scenario_ids and Enum.all?(scenario_ids, &is_binary/1),
+    if scenario_ids == @all_scenario_ids and Enum.all?(scenario_ids, &is_binary/1),
       do: {:ok, scenario_ids},
       else: {:error, :invalid_ledger}
   end
@@ -77,6 +89,21 @@ defmodule AlphaTwin.Runner do
   defp scenario_result("post_handoff_ambiguity") do
     %{id: "post_handoff_ambiguity", durable: :converged, explanation: :explained,
       outcome: :ambiguous_handoff_no_resend}
+  end
+
+  defp scenario_result("offline_reauthorization") do
+    %{id: "offline_reauthorization", durable: :converged, explanation: :explained,
+      outcome: :protected_open_once}
+  end
+
+  defp scenario_result("stale_denied_open") do
+    %{id: "stale_denied_open", durable: :converged, explanation: :explained,
+      outcome: :denied_no_fallback}
+  end
+
+  defp scenario_result("replay_rejection") do
+    %{id: "replay_rejection", durable: :converged, explanation: :explained,
+      outcome: :replay_rejected}
   end
 
   defp scenario_result(id) do
