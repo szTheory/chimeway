@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: crosswake-registration-protected-open
 status: executing
-stopped_at: Completed 101-crosswake-registration-protected-open-12-PLAN.md
-last_updated: "2026-08-25T15:03:53.939Z"
+stopped_at: Completed 101-crosswake-registration-protected-open-14-PLAN.md
+last_updated: "2026-08-25T17:06:03.302Z"
 last_activity: 2026-08-25
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 65
-  completed_plans: 65
+  total_plans: 66
+  completed_plans: 66
   percent: 71
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 ## Current Position
 
 Phase: 101 (crosswake-registration-protected-open) — EXECUTING
-Plan: 3 of 13
+Plan: 14 of 14
 Status: Ready to execute
 Last activity: 2026-08-25 — Phase 101 execution started
 
@@ -417,6 +417,8 @@ status: complete
 - [Phase ?]: [101-13]: A duplicate open_ref is repeated opaque evidence for one pending intent; retain the first item and compact legacy duplicates before host consumption.
 - [Phase ?]: [101-12]: Invalidating provider feedback is closed unless a host-authenticated exact binding scope matches at selection and conditional update time.
 - [Phase ?]: [101-12]: Forward upgrades supersede duplicate active token identities by last_seen_at DESC, id DESC after authority-domain reconciliation.
+- [Phase 101]: [101-14]: Subject-installation authority requires exact tenant, subject, installation, binding, scope, and active-state predicates while session fields remain nil.
+- [Phase 101]: [101-14]: Notification intent metadata is recursively sanitized immediately after cast, with non-map inputs projected to an empty map.
 
 ### Roadmap Evolution
 
@@ -737,8 +739,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-25T15:03:53.927Z
-Stopped at: Completed 101-crosswake-registration-protected-open-12-PLAN.md
+Last session: 2026-08-25T17:06:03.290Z
+Stopped at: Completed 101-crosswake-registration-protected-open-14-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
