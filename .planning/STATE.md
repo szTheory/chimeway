@@ -4,17 +4,17 @@ milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: crosswake-registration-protected-open
-status: gaps_found
-stopped_at: Phase 101 verification found 2 remaining gaps
-last_updated: "2026-08-25T18:15:00.000Z"
+status: executing
+stopped_at: Completed 101-17-PLAN.md
+last_updated: "2026-08-25T18:37:10.159Z"
 last_activity: 2026-08-25
-last_activity_desc: Phase 101 verification found 2 remaining gaps
+last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
-  completed_phases: 5
-  total_plans: 68
-  completed_plans: 68
-  percent: 71
+  completed_phases: 4
+  total_plans: 70
+  completed_plans: 69
+  percent: 57
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 ## Current Position
 
-Phase: 101 (crosswake-registration-protected-open) — GAPS FOUND
-Plan: 16 of 16
-Status: Verification gaps found — 2 of 4 must-haves verified
-Last activity: 2026-08-25 — Phase 101 verification found 2 remaining gaps
+Phase: 101 (crosswake-registration-protected-open) — EXECUTING
+Plan: 2 of 18
+Status: Ready to execute
+Last activity: 2026-08-25 — Phase 101 execution started
 
 ## Deferred Items
 
@@ -422,6 +422,7 @@ status: complete
 - [Phase ?]: [101-15]: Installation authority accepts only nil session fields, while session lifecycle revocation selects subject-session bindings only.
 - [Phase ?]: [101-16]: Notification-open caller metadata is always projected to %{}; durable intents retain only explicit schema and host-authoritative fields.
 - [Phase ?]: [101-16]: The shared MetadataSanitizer.sanitize/1 contract remains unchanged for token-binding and audit consumers.
+- [Phase ?]: [101-17]: Token-binding and audit caller metadata always projects to %{}; typed lifecycle columns retain the safe durable facts.
 
 ### Roadmap Evolution
 
@@ -742,8 +743,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-25T18:01:28.438Z
-Stopped at: Completed 101-16-PLAN.md
+Last session: 2026-08-25T18:37:10.147Z
+Stopped at: Completed 101-17-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -912,3 +913,4 @@ Resume file: None
 | Phase 101-crosswake-registration-protected-open P12 | 15 min | 2 tasks | 6 files |
 | Phase 101 P15 | 15m | 1 tasks | 5 files |
 | Phase 101 P16 | 6 min | 1 tasks | 4 files |
+| Phase 101-crosswake-registration-protected-open P17 | 9 min | 1 tasks | 2 files |
