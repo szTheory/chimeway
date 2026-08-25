@@ -341,7 +341,21 @@ Plans:
   2. The hermetic proof demonstrates two-installation fan-out, zero-target suppression, rotation/revocation races, classified retry, expiry, collapse, crash recovery, recursive leak prevention, and denied or replayed offline opens.
   3. Named `mix verify.*` entrypoints run the cross-repository proof in CI without Apple credentials and reject malformed physical-proof evidence.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+
+**Wave 1**
+
+- [ ] 102-01-PLAN.md — Prove one immutable-package host-to-Chimeway-to-CrossWake tracer and deterministic authority/transport seams.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 102-02-PLAN.md — Execute the complete ordered delivery, recovery, privacy, and protected-open safety ledger.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 102-03-PLAN.md — Bind provenance, validate the future physical-proof contract, and require the Alpha lane in both aggregate gates.
 
 ### Phase 103: Physical iPhone & Adoption Truth
 
