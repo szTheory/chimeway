@@ -5,16 +5,16 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 101
 current_phase_name: crosswake-registration-protected-open
 status: executing
-stopped_at: Completed 101-15-PLAN.md
-last_updated: "2026-08-25T17:57:24.438Z"
+stopped_at: Completed 101-16-PLAN.md
+last_updated: "2026-08-25T18:01:28.454Z"
 last_activity: 2026-08-25
 last_activity_desc: Phase 101 execution started
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 68
-  completed_plans: 67
-  percent: 57
+  completed_plans: 68
+  percent: 71
 ---
 
 # Project State
@@ -420,6 +420,8 @@ status: complete
 - [Phase 101]: [101-14]: Subject-installation authority requires exact tenant, subject, installation, binding, scope, and active-state predicates while session fields remain nil.
 - [Phase 101]: [101-14]: Notification intent metadata is recursively sanitized immediately after cast, with non-map inputs projected to an empty map.
 - [Phase ?]: [101-15]: Installation authority accepts only nil session fields, while session lifecycle revocation selects subject-session bindings only.
+- [Phase ?]: [101-16]: Notification-open caller metadata is always projected to %{}; durable intents retain only explicit schema and host-authoritative fields.
+- [Phase ?]: [101-16]: The shared MetadataSanitizer.sanitize/1 contract remains unchanged for token-binding and audit consumers.
 
 ### Roadmap Evolution
 
@@ -740,8 +742,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-25T17:57:24.420Z
-Stopped at: Completed 101-15-PLAN.md
+Last session: 2026-08-25T18:01:28.438Z
+Stopped at: Completed 101-16-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -909,3 +911,4 @@ Resume file: None
 | Phase 101 P13 | 00:03:00 | 1 tasks | 2 files |
 | Phase 101-crosswake-registration-protected-open P12 | 15 min | 2 tasks | 6 files |
 | Phase 101 P15 | 15m | 1 tasks | 5 files |
+| Phase 101 P16 | 6 min | 1 tasks | 4 files |
