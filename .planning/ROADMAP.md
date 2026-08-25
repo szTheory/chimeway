@@ -270,7 +270,7 @@ Plans:
   3. A notification tap contains only opaque evidence; offline taps queue safely and reconnect only activates a one-time intent after tenant, revision, expiry, session, manifest, and RouteGate reauthorization.
   4. Replayed, expired, revoked, mismatched, logged-out, tenant-switched, or removed-route opens activate no fallback route and produce sanitized denial evidence.
 
-**Plans**: 16/16 plans executed
+**Plans**: 16/18 plans executed
 
 Plans:
 
@@ -316,6 +316,11 @@ Plans:
 
 - [x] 101-15-PLAN.md — Enforce installation/session authority separation and isolate logout/session revocation selection.
 - [x] 101-16-PLAN.md — Drop all caller-controlled metadata at the durable notification-open boundary.
+
+**Wave 10** *(remaining verifier gap closure; plans run independently)*
+
+- [ ] 101-17-PLAN.md — Drop caller metadata across registration binding and append-only audit persistence.
+- [ ] 101-18-PLAN.md — Backfill exact binding-derived legacy intent scope and prove current-authority consumption.
 
 ### Phase 102: Alpha Digital Twin & Hermetic Gate
 
