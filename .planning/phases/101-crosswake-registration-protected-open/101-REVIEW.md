@@ -1,50 +1,52 @@
 ---
 phase: 101-crosswake-registration-protected-open
-reviewed: 2026-08-24T21:47:22Z
+reviewed: 2026-08-25T00:00:00Z
 depth: standard
-files_reviewed: 38
+files_reviewed: 40
 files_reviewed_list:
-  - ../crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex
-  - ../crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_registration_adapter.ex
-  - ../crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex
-  - ../crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/token_binding.ex
-  - ../crosswake/examples/phoenix_host/priv/repo/migrations/20260602100000_create_chimeway_token_bindings.exs
-  - ../crosswake/examples/phoenix_host/priv/repo/migrations/20260603000000_create_chimeway_notification_open_intents.exs
-  - ../crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs
-  - ../crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_registration_adapter_test.exs
-  - ../crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registration_authority_migration_upgrade_test.exs
-  - ../crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registry_notification_open_test.exs
-  - ../crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registry_test.exs
-  - ../crosswake/lib/crosswake/manifest/types.ex
-  - ../crosswake/lib/crosswake/manifest/validator.ex
-  - ../crosswake/lib/crosswake/policy/route.ex
-  - ../crosswake/lib/crosswake/policy/schema.ex
-  - ../crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/ActivationCoordinator.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/CrosswakeDelegates.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/CrosswakeShellConfig.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationOpenDelegate.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationOpenQueue.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationRegistrationCoordinator.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Tests/CrosswakeShellCoreTests/NotificationOpenQueueTests.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Tests/CrosswakeShellCoreTests/NotificationRegistrationTests.swift
-  - ../crosswake/packages/crosswake-shell-core-ios/Tests/CrosswakeShellCoreTests/ProtectedNotificationActivationTests.swift
-  - ../crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex
-  - ../crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/denial_codes.ex
-  - ../crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/redaction.ex
-  - ../crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/resolver.ex
-  - ../crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/telemetry.ex
-  - ../crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/denial_codes_test.exs
-  - ../crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/redaction_test.exs
-  - ../crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/resolver_test.exs
-  - ../crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/telemetry_test.exs
-  - ../crosswake/packages/crosswake_chimeway/test/crosswake/proof/phase71_notification_workflow_proof_test.exs
-  - ../crosswake/test/crosswake/manifest/builder_test.exs
-  - ../crosswake/test/crosswake/manifest/validator_test.exs
-  - ../crosswake/test/crosswake/policy/schema_test.exs
-  - ../crosswake/test/fixtures/chimeway_notification_permission_loss_v1.json
+  - /Users/jon/projects/crosswake/examples/phoenix_host/README.md
+  - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex
+  - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_registration_adapter.ex
+  - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex
+  - /Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/token_binding.ex
+  - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260602100000_create_chimeway_token_bindings.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260603000000_create_chimeway_notification_open_intents.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/notification_registration_adapter_test.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registration_authority_migration_upgrade_test.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registry_notification_open_test.exs
+  - /Users/jon/projects/crosswake/examples/phoenix_host/test/crosswake_example/chimeway/registry_test.exs
+  - /Users/jon/projects/crosswake/lib/crosswake/manifest/types.ex
+  - /Users/jon/projects/crosswake/lib/crosswake/manifest/validator.ex
+  - /Users/jon/projects/crosswake/lib/crosswake/policy/route.ex
+  - /Users/jon/projects/crosswake/lib/crosswake/policy/schema.ex
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/ActivationCoordinator.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/CrosswakeDelegates.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/CrosswakeShellConfig.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationOpenDelegate.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationOpenQueue.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationRegistrationCoordinator.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Tests/CrosswakeShellCoreTests/NotificationOpenQueueTests.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Tests/CrosswakeShellCoreTests/NotificationRegistrationTests.swift
+  - /Users/jon/projects/crosswake/packages/crosswake-shell-core-ios/Tests/CrosswakeShellCoreTests/ProtectedNotificationActivationTests.swift
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/denial_codes.ex
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/redaction.ex
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/resolver.ex
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/telemetry.ex
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/denial_codes_test.exs
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/redaction_test.exs
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/resolver_test.exs
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/test/crosswake/companions/chimeway/telemetry_test.exs
+  - /Users/jon/projects/crosswake/packages/crosswake_chimeway/test/crosswake/proof/phase71_notification_workflow_proof_test.exs
+  - /Users/jon/projects/crosswake/test/crosswake/manifest/builder_test.exs
+  - /Users/jon/projects/crosswake/test/crosswake/manifest/validator_test.exs
+  - /Users/jon/projects/crosswake/test/crosswake/policy/schema_test.exs
+  - /Users/jon/projects/crosswake/test/crosswake/proof/phase60_chimeway_registry_test.exs
+  - /Users/jon/projects/crosswake/test/fixtures/chimeway_notification_permission_loss_v1.json
 findings:
-  critical: 3
-  warning: 0
+  critical: 1
+  warning: 2
   info: 0
   total: 3
 status: issues_found
@@ -52,37 +54,58 @@ status: issues_found
 
 # Phase 101: Code Review Report
 
-**Reviewed:** 2026-08-24T21:47:22Z
+**Reviewed:** 2026-08-25T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 38
+**Files Reviewed:** 40
 **Status:** issues_found
 
 ## Summary
 
-The policy normalization and consume-first resolver paths are materially fail-closed, but three defects remain in lifecycle scope, migration compatibility, and replay handling. Each can violate a Phase 101 protected-open or binding-lifecycle requirement despite the focused test suites passing.
+Reviewed the supplied Elixir/Phoenix, Swift, contracts, migrations, and focused tests. The current submission closes the prior queue-replay, feedback-authority, and migration-collision defects. However, the public intent-issuance boundary can durably retain raw token/payload data, and two lifecycle operations cannot operate on the valid `:subject_installation` binding scope that the schema explicitly supports.
+
+## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01: Provider invalidation can revoke bindings outside the feedback authority scope
+### CR-01: Notification intent metadata accepts and persists sensitive token or payload fields
 
-**File:** `../crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:929-950`
-**Issue:** Invalidating provider feedback selects every active row matching only token fingerprint (or token ref), provider, platform, and environment. It omits the durable app identity, tenant, subject, installation, session, and binding revision. The subsequent update only guards by the selected binding refs and `:active` state (lines 981-983), so one feedback event can disable another tenant/installation/session's active binding when token evidence is shared or collides across scopes. This directly violates exact-revision invalidation and can suppress delivery for an unrelated authority.
-**Fix:** Make invalidating feedback carry and validate an opaque exact `binding_ref` plus the authenticated scope (at least app identity, tenant, installation, subject, and session/version), and include all of them in both the initial query and conditional update. Fail closed when that scope is unavailable; do not select by fingerprint alone.
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex:42`
 
-### CR-02: The forward migration does not reconcile the new token-identity uniqueness domain
+**Issue:** `changeset/2` casts `:metadata` without sanitizing or rejecting it. `Registry.issue_notification_open_intent/1` forwards caller-controlled attrs directly to this changeset at `registry.ex:1277-1284`. Consequently, a host call can persist raw APNs/FCM token material or notification payload fields in the durable open-intent table, bypassing the project’s raw-token and sensitive-payload boundary. This is especially risky because the generic public issuance API has no closed input contract.
 
-**File:** `../crosswake/examples/phoenix_host/priv/repo/migrations/20260824210000_upgrade_chimeway_registration_authority.exs:86-116`
-**Issue:** `reconcile_active_collisions/0` only supersedes duplicate active rows in the subject/session/installation authority partition. It never reconciles rows that collide in the newly created `chimeway_token_bindings_active_token_identity_index` at lines 106-108. Pre-upgrade data can validly contain two active rows with the same fingerprint/provider/platform/environment/app identity but different old `app_identity_posture` values (the released index keyed on posture), or with different authority partitions. After dropping the old indexes, creating the new token-identity index fails, leaving production databases unable to migrate.
-**Fix:** Before replacing indexes, deterministically reconcile *both* new uniqueness domains. Add a second ranked update partitioned by `token_fingerprint, provider, platform, environment, app_identity_ref`, retaining one current row and superseding the rest, then add an upgrade test that seeds this old-valid/new-conflicting posture case and asserts `Ecto.Migrator.run(..., all: true)` succeeds.
+**Fix:** Apply the same allowlist/redaction policy used for binding metadata, and reject forbidden raw-token keys before insertion. For example:
 
-### CR-03: Duplicate queued evidence overwrites a successful protected open with replay denial
+```elixir
+|> validate_change(:metadata, fn :metadata, metadata ->
+  if MetadataSanitizer.contains_forbidden_token_key?(metadata),
+    do: [metadata: "contains forbidden token material"],
+    else: []
+end)
+|> update_change(:metadata, &MetadataSanitizer.sanitize/1)
+```
 
-**File:** `../crosswake/packages/crosswake-shell-core-ios/Sources/CrosswakeShellCore/NotificationOpenQueue.swift:100-108`
-**Issue:** The queue permits multiple entries with the same `openRef` and drains each one. For a duplicate offline tap, the first item can be allowed and activate; the second is necessarily replayed. The production drain passes that replay outcome to `ActivationCoordinator.handleProtectedNotificationOutcome`, which sets a terminal denial presentation (ActivationCoordinator.swift:399-413). Consequently, a valid one-time open is immediately replaced by an error screen solely because the same opaque evidence was queued twice.
-**Fix:** Deduplicate queue entries by `openRef` (preferably replace/update the pending item during `enqueue`) or suppress duplicate evidence during a drain. Add a test that enqueues the same evidence twice and asserts exactly one delegate consume/activation and that the final presentation remains the allowed route.
+Add a test that attempts to issue an intent with `apns_token`, `raw_token`, notification body, and nested payload values, then asserts rejection (or that only explicitly safe metadata is stored).
+
+## Warnings
+
+### WR-01: Provider invalidation cannot revoke a valid installation-scoped binding
+
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/registry.ex:1526-1548`
+
+**Issue:** `provider_feedback_scope/1` unconditionally requires `session_ref` and `session_version`, then requires them to equal the authenticated context. `TokenBinding` explicitly permits `:subject_installation` bindings with neither field (`token_binding.ex:134-144`). Feedback for such a valid active binding therefore always becomes `{:error, :no_active_bindings}` and leaves an APNs-invalidated token active.
+
+**Fix:** Build and query the feedback scope by `subject_scope`: require and predicate session revision only for `:subject_session`; for `:subject_installation`, require the exact binding reference, authenticated subject/org/installation, provider/platform/environment, and app identity while omitting session predicates. Add an integration test for invalidating feedback against an installation-scoped binding.
+
+### WR-02: Notification open intents cannot be issued for a valid installation-scoped binding
+
+**File:** `/Users/jon/projects/crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/notification_open_intent.ex:48-58`
+
+**Issue:** Open intents always require `session_ref` and `session_version`. Issuance derives both directly from the selected active binding (`registry.ex:1278-1283`); for a supported `:subject_installation` binding they are `nil`, so the insert fails validation. The lifecycle API thus advertises and stores a valid binding scope that cannot receive a protected notification open.
+
+**Fix:** Either deliberately restrict notification registration/open behavior to `:subject_session` and reject installation-scoped binding at bind time for this feature, or model intent authority by scope: store `subject_scope`, require session fields only for session scope, and have consume matching apply the corresponding exact scope predicate. Add a test proving the chosen contract.
 
 ---
 
-_Reviewed: 2026-08-24T21:47:22Z_
+_Reviewed: 2026-08-25T00:00:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
