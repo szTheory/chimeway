@@ -6,23 +6,41 @@ defmodule Chimeway.Adapters.APNS do
   alias Chimeway.TargetAdapter.TargetEnvelope
 
   @impl true
-  def deliver(%TargetEnvelope{delivery: delivery, target: target}, _opts) do
+  def deliver(%TargetEnvelope{delivery: delivery, target: target}, opts) do
     with {:ok, intent} <- safe_intent(target.apns_request_intent),
-         false <- safe_expired?(intent),
+         false <- safe_expired?(intent, now(opts)),
          {:ok, transient} <- safe_lookup(binding_request(target, intent)),
          {:ok, payload} <- safe_payload(delivery.render_data || %{}, intent.open_ref),
-         {:ok, result} <- safe_transport(transient.dispatcher_ref, request(transient, intent, payload)) do
-      classify_result(result, target, intent)
+         {:ok, result} <-
+           safe_transport(transient.dispatcher_ref, request(transient, intent, payload), opts) do
+      classify_result(result, target, intent, now(opts))
     else
-      true -> {:expired, %{provider_code: "expired"}}
-      {:error, :lookup_failed} -> {:pre_handoff_retryable, %{provider_code: "binding_lookup_failed"}}
-      {:error, :ambiguous} -> {:error, :possible_handoff, :ambiguous_handoff}
-      {:error, :pigeon_unavailable} -> {:pre_handoff_retryable, %{provider_code: "pigeon_unavailable"}}
-      {:error, :rejected} -> {:permanent, %{provider_code: "provider_rejected"}}
-      {:error, :binding_not_found} -> {:pre_handoff_retryable, %{provider_code: "binding_not_found"}}
-      {:error, :payload_too_large} -> {:permanent, %{provider_code: "payload_too_large"}}
-      {:error, _} -> {:permanent, %{provider_code: "invalid_request"}}
-      _ -> {:permanent, %{provider_code: "invalid_request"}}
+      true ->
+        {:expired, %{provider_code: "expired"}}
+
+      {:error, :lookup_failed} ->
+        {:pre_handoff_retryable, %{provider_code: "binding_lookup_failed"}}
+
+      {:error, :ambiguous} ->
+        {:error, :possible_handoff, :ambiguous_handoff}
+
+      {:error, :pigeon_unavailable} ->
+        {:pre_handoff_retryable, %{provider_code: "pigeon_unavailable"}}
+
+      {:error, :rejected} ->
+        {:permanent, %{provider_code: "provider_rejected"}}
+
+      {:error, :binding_not_found} ->
+        {:pre_handoff_retryable, %{provider_code: "binding_not_found"}}
+
+      {:error, :payload_too_large} ->
+        {:permanent, %{provider_code: "payload_too_large"}}
+
+      {:error, _} ->
+        {:permanent, %{provider_code: "invalid_request"}}
+
+      _ ->
+        {:permanent, %{provider_code: "invalid_request"}}
     end
   end
 
@@ -34,8 +52,8 @@ defmodule Chimeway.Adapters.APNS do
     _, _ -> {:error, :invalid_request}
   end
 
-  defp safe_expired?(intent) do
-    RequestIntent.expired?(intent, DateTime.utc_now())
+  defp safe_expired?(intent, now) do
+    RequestIntent.expired?(intent, now)
   rescue
     _ -> false
   catch
@@ -59,30 +77,33 @@ defmodule Chimeway.Adapters.APNS do
     _, _ -> {:error, :invalid_payload}
   end
 
-  defp safe_transport(dispatcher_ref, request) do
-    Transport.push(dispatcher_ref, request)
+  defp safe_transport(dispatcher_ref, request, opts) do
+    Transport.push(dispatcher_ref, request, opts)
   rescue
     _ -> {:error, :ambiguous}
   catch
     _, _ -> {:error, :ambiguous}
   end
 
-  defp classify_result(%Transport.Result{outcome: :accepted}, _target, _intent),
-    do: {:provider_accepted, %{provider_code: "accepted", accepted_at: DateTime.utc_now()}}
+  defp classify_result(%Transport.Result{outcome: :accepted}, _target, _intent, now),
+    do: {:provider_accepted, %{provider_code: "accepted", accepted_at: now}}
 
   defp classify_result(
-         %Transport.Result{outcome: :rejected, status: 410, reason: reason, timestamp: timestamp} = result,
+         %Transport.Result{outcome: :rejected, status: 410, reason: reason, timestamp: timestamp} =
+           result,
          target,
-         intent
+         intent,
+         _now
        )
-       when reason in ["ExpiredToken", "Unregistered"] and is_integer(timestamp) and timestamp >= 0 do
+       when reason in ["ExpiredToken", "Unregistered"] and is_integer(timestamp) and
+              timestamp >= 0 do
     case BindingLookup.invalidate(invalidation_key(target, intent)) do
       {:ok, %{status: :invalidated}} -> {:invalidated, provider_facts(result)}
       _ -> {:permanent, provider_facts(result)}
     end
   end
 
-  defp classify_result(%Transport.Result{outcome: :rejected} = result, _target, _intent) do
+  defp classify_result(%Transport.Result{outcome: :rejected} = result, _target, _intent, _now) do
     facts = provider_facts(result)
 
     case Map.fetch!(facts, :provider_reason) do
@@ -94,7 +115,13 @@ defmodule Chimeway.Adapters.APNS do
            corrective_action: "refresh_provider_token"
          })}
 
-      reason when reason in ["too_many_requests", "internal_server_error", "service_unavailable", "shutdown"] ->
+      reason
+      when reason in [
+             "too_many_requests",
+             "internal_server_error",
+             "service_unavailable",
+             "shutdown"
+           ] ->
         {:provider_retryable,
          Map.merge(facts, %{
            provider_code: reason,
@@ -107,8 +134,15 @@ defmodule Chimeway.Adapters.APNS do
     end
   end
 
-  defp classify_result(_, _target, _intent),
+  defp classify_result(_, _target, _intent, _now),
     do: {:possible_handoff, %{provider_code: "possible_provider_handoff"}}
+
+  defp now(opts) do
+    case Keyword.get(opts, :now) do
+      %DateTime{} = resolved -> resolved
+      _ -> Chimeway.Clock.now(opts)
+    end
+  end
 
   defp invalidation_key(target, intent) do
     %BindingLookup.InvalidationKey{
@@ -129,7 +163,8 @@ defmodule Chimeway.Adapters.APNS do
   defp maybe_put(facts, _key, nil), do: facts
   defp maybe_put(facts, key, value), do: Map.put(facts, key, value)
 
-  defp normalize_reason(value) when is_atom(value), do: value |> Atom.to_string() |> normalize_reason()
+  defp normalize_reason(value) when is_atom(value),
+    do: value |> Atom.to_string() |> normalize_reason()
 
   defp normalize_reason(value) when is_binary(value) do
     value

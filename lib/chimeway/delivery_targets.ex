@@ -20,13 +20,17 @@ defmodule Chimeway.DeliveryTargets do
       when is_list(bindings) do
     with {:ok, bindings} <- Chimeway.TargetResolver.normalize(tenant_id, bindings) do
       Repo.transaction(fn ->
-        Enum.each(bindings, fn %BindingRevision{binding_revision_ref: ref, request_intent: request_intent} ->
+        Enum.each(bindings, fn %BindingRevision{
+                                 binding_revision_ref: ref,
+                                 request_intent: request_intent
+                               } ->
           %DeliveryTarget{}
           |> DeliveryTarget.changeset(%{
             tenant_id: tenant_id,
             delivery_id: delivery.id,
             binding_revision_ref: ref,
-            apns_request_intent: if(request_intent, do: Chimeway.APNS.RequestIntent.to_storage(request_intent)),
+            apns_request_intent:
+              if(request_intent, do: Chimeway.APNS.RequestIntent.to_storage(request_intent)),
             status: :pending
           })
           |> Repo.insert!(
@@ -88,7 +92,7 @@ defmodule Chimeway.DeliveryTargets do
           | {:noop, term()}
           | {:error, term()}
   def begin_target_attempt(%Delivery{tenant_id: tenant_id} = delivery, opts \\ []) do
-    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    now = Chimeway.Clock.now(opts)
     source = Keyword.get(opts, :source, "sync")
     target_id = Keyword.get(opts, :target_id)
 
@@ -177,9 +181,16 @@ defmodule Chimeway.DeliveryTargets do
   @spec close_stale_started_attempt(String.t(), String.t()) ::
           {:ok, %{target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
           | {:noop, :not_found}
-  def close_stale_started_attempt(target_id, tenant_id)
+  def close_stale_started_attempt(target_id, tenant_id),
+    do: close_stale_started_attempt(target_id, tenant_id, [])
+
+  @doc false
+  @spec close_stale_started_attempt(String.t(), String.t(), keyword()) ::
+          {:ok, %{target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
+          | {:noop, :not_found}
+  def close_stale_started_attempt(target_id, tenant_id, opts)
       when is_binary(target_id) and is_binary(tenant_id) do
-    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    now = Chimeway.Clock.now(opts)
 
     close_stale_started_attempt_transaction(target_id, tenant_id, now)
     |> normalize_stale_closeout_result()
@@ -440,7 +451,12 @@ defmodule Chimeway.DeliveryTargets do
           | :ambiguous_handoff,
           term()
         ) ::
-          {:ok, %{delivery: Delivery.t(), target: DeliveryTarget.t(), attempt: DeliveryTargetAttempt.t()}}
+          {:ok,
+           %{
+             delivery: Delivery.t(),
+             target: DeliveryTarget.t(),
+             attempt: DeliveryTargetAttempt.t()
+           }}
           | {:noop, :not_found}
           | {:error, term()}
   def record_target_outcome(
