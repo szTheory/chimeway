@@ -22,8 +22,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   @adoption_run_assertion "scripts/ci/assert-adoption-run.sh"
   @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17)
-  @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths verify_inbox verify_apns)
+  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17 verify_alpha_twin)
+  @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths verify_inbox verify_apns verify_alpha_twin)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
   # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
@@ -2679,6 +2679,44 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "Alpha twin hermetic CI contract (GATE-01)" do
+    @tag :alpha_twin_gate_contract
+    test "locks a credential-free canonical CrossWake checkout and both aggregate links" do
+      ci_yml = File.read!(@ci_yml)
+      job = extract_ci_job_block(ci_yml, "verify_alpha_twin")
+      pr_gate = extract_ci_job_block(ci_yml, "pr-gate")
+      ci_gate = extract_ci_job_block(ci_yml, "ci-gate")
+
+      for required <- [
+            "timeout-minutes:",
+            "image: postgres:15",
+            "https://github.com/szTheory/crosswake.git",
+            "f2c502cdb1ce572a4a57257d9e3c051665704b90",
+            "checkout --detach",
+            "rev-parse HEAD",
+            "status --porcelain",
+            "mix ecto.migrate --quiet",
+            "mix verify.alpha_twin",
+            "mix verify.physical_proof_contract"
+          ] do
+        assert job =~ required, "verify_alpha_twin must contain #{required}"
+      end
+
+      for forbidden <- ["macos-", "xcode", "APPLE_", "APNS", "xcodebuild"] do
+        refute job =~ forbidden, "verify_alpha_twin must remain credential-free: #{forbidden}"
+      end
+
+      for {gate, token} <- [{pr_gate, "VERIFY_ALPHA_TWIN"}, {ci_gate, "VERIFY_ALPHA_TWIN"}] do
+        assert gate =~ "verify_alpha_twin"
+        assert gate =~ "#{token}: ${{ needs.verify_alpha_twin.result }}"
+        assert gate =~ "aggregate-gate.sh"
+      end
+
+      assert "verify_alpha_twin" in extract_pr_gate_needs(ci_yml)
+      assert "verify_alpha_twin" in extract_ci_gate_needs(ci_yml)
+    end
+  end
+
   defmodule CoreProofNotifier do
     def notification_key, do: "artifact_consumer.core_trace"
     def version, do: 1
@@ -3067,11 +3105,10 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp extract_ci_job_block(yml, job_id) do
-    # Boundary char class includes 0-9 so digit-bearing job ids (e.g.
-    # test_floor_1_17) are recognized as block boundaries and don't cause an
-    # over-capture into the following job. Hyphenated gate jobs (ci-gate,
-    # nightly-gate) are intentionally still not boundaries.
-    case Regex.run(~r/#{job_id}:(.*?)(?:\n  [a-z0-9_]+:|\z)/s, yml) do
+    # Job identifiers may contain digits, underscores, and hyphens. Treat all
+    # of them as boundaries so a gate's structural contract never captures the
+    # following aggregate job.
+    case Regex.run(~r/#{Regex.escape(job_id)}:(.*?)(?:\n  [a-z0-9_-]+:|\z)/s, yml) do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
     end

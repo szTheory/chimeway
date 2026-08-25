@@ -125,6 +125,7 @@ defmodule Chimeway.MixProject do
       "ci.verify_gates": [
         "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --exclude adoption_paths_e2e --warnings-as-errors"
       ],
+      "ci.alpha_twin": ["verify.alpha_twin", "verify.physical_proof_contract"],
 
       # v1.7 GATE-03: TeamPulse consumer journey proof JOUR-01..08 (10 tests)
       "verify.journeys": [

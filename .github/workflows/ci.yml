@@ -296,10 +296,59 @@ jobs:
           CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
         run: scripts/ci/obs-summary.sh
 
+  verify_alpha_twin:
+    name: Alpha twin hermetic gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+      CROSSWAKE_PATH: ../crosswake
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - name: Fetch locked CrossWake contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init -q ../crosswake
+          git -C ../crosswake remote add origin https://github.com/szTheory/crosswake.git
+          git -C ../crosswake fetch --depth=1 origin f2c502cdb1ce572a4a57257d9e3c051665704b90
+          git -C ../crosswake checkout --detach -q f2c502cdb1ce572a4a57257d9e3c051665704b90
+          test "$(git -C ../crosswake remote get-url origin)" = "https://github.com/szTheory/crosswake.git"
+          test "$(git -C ../crosswake rev-parse HEAD)" = "f2c502cdb1ce572a4a57257d9e3c051665704b90"
+          test -z "$(git -C ../crosswake status --porcelain)"
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix verify.alpha_twin
+      - run: mix verify.physical_proof_contract
+
   pr-gate:
     name: pr-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs, verify_adoption_paths, verify_inbox, verify_apns]
+    needs: [lint, test, verify_gates, verify_docs, verify_adoption_paths, verify_inbox, verify_apns, verify_alpha_twin]
     if: always()
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -312,7 +361,8 @@ jobs:
           VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}
           VERIFY_INBOX: ${{ needs.verify_inbox.result }}
           VERIFY_APNS: ${{ needs.verify_apns.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS VERIFY_INBOX VERIFY_APNS
+          VERIFY_ALPHA_TWIN: ${{ needs.verify_alpha_twin.result }}
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS VERIFY_INBOX VERIFY_APNS VERIFY_ALPHA_TWIN
 
   verify_example:
     name: Example host + admin smoke
@@ -1386,7 +1436,7 @@ jobs:
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, verify_adoption_paths, verify_apns, test_floor_1_17]
+    needs: [lint, test, verify_gates, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, verify_adoption_paths, verify_apns, test_floor_1_17, verify_alpha_twin]
     if: always() && github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -1408,7 +1458,8 @@ jobs:
           VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}
           VERIFY_APNS: ${{ needs.verify_apns.result }}
           TEST_FLOOR_1_17: ${{ needs.test_floor_1_17.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN VERIFY_ADOPTION_PATHS VERIFY_APNS TEST_FLOOR_1_17
+          VERIFY_ALPHA_TWIN: ${{ needs.verify_alpha_twin.result }}
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN VERIFY_ADOPTION_PATHS VERIFY_APNS TEST_FLOOR_1_17 VERIFY_ALPHA_TWIN
 
   # nightly-gate mirrors ci-gate's aggregate pass/fail contract, scoped to
   # exactly the relocated/nightly-composition lanes (TIER-04). It gives a
