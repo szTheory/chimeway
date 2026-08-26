@@ -23,13 +23,25 @@ defmodule Chimeway.MobileProof.ExtensionTest do
              )
   end
 
+  test "does not accept the placeholder fixture digest as a real artifact binding" do
+    fixture = @fixture |> File.read!() |> Jason.decode!()
+
+    assert {:error, %{rule_id: "MP-ARTIFACT-DIGEST", path: ["chimeway_artifact_sha256"]}} =
+             Extension.validate(fixture,
+               artifact_sha256: String.duplicate("b", 64),
+               canonical_validator: &valid_report/1
+             )
+  end
+
   test "rejects reordered canonical assertions through the delegated validator" do
     fixture = @fixture |> File.read!() |> Jason.decode!()
     [first, second | rest] = fixture["crosswake_report"]
     reordered = %{fixture | "crosswake_report" => [second, first | rest]}
 
     assert {:error, %{rule_id: "MP-CROSSWAKE-ASSERTIONS-ORDER", path: ["crosswake_report"]}} =
-             Extension.validate(reordered, canonical_validator: fn _ -> {:error, "PI-ASSERTIONS-ORDER"} end)
+             Extension.validate(reordered,
+               canonical_validator: fn _ -> {:error, "PI-ASSERTIONS-ORDER"} end
+             )
   end
 
   defp valid_report(_report), do: :ok
