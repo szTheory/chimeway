@@ -31,6 +31,18 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
              PhysicalBundle.validate(bundle, selected_sha: selected_sha())
   end
 
+  test "accepts the physical fixture and rejects every declared adversarial case" do
+    valid = fixture!("physical-valid.json")
+    corpus = fixture!("physical-negative-corpus.json")
+
+    assert {:ok, _} = PhysicalBundle.validate(valid, selected_sha: selected_sha())
+
+    for %{"proof" => proof, "rule_id" => rule_id, "path" => path} <- corpus["cases"] do
+      assert {:error, %{rule_id: ^rule_id, path: ^path}} =
+               PhysicalBundle.validate(proof, selected_sha: selected_sha())
+    end
+  end
+
   defp physical_bundle do
     bundle = %{
       "bundle_version" => 1,
@@ -94,4 +106,11 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
   end
 
   defp selected_sha, do: File.read!("priv/mobile_proof/crosswake-selected-sha") |> String.trim()
+
+  defp fixture!(name) do
+    "test/fixtures/alpha_twin_physical_proof"
+    |> Path.join(name)
+    |> File.read!()
+    |> Jason.decode!()
+  end
 end
