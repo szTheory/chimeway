@@ -109,30 +109,7 @@ defmodule Chimeway.DeliveryTargets do
 
       if is_nil(parent), do: Repo.rollback(:no_eligible_target)
 
-      target =
-        case target_id do
-          id when is_binary(id) ->
-            Repo.one(
-              from(t in DeliveryTarget,
-                where:
-                  t.delivery_id == ^parent.id and t.tenant_id == ^tenant_id and t.id == ^id and
-                    t.status == :pending,
-                lock: "FOR UPDATE"
-              )
-            )
-
-          nil ->
-            Repo.one(
-              from(t in DeliveryTarget,
-                where:
-                  t.delivery_id == ^parent.id and t.tenant_id == ^tenant_id and
-                    t.status == :pending,
-                order_by: [asc: t.binding_revision_ref],
-                limit: 1,
-                lock: "FOR UPDATE"
-              )
-            )
-        end
+      target = pending_target(parent.id, tenant_id, target_id)
 
       if is_nil(target), do: Repo.rollback(:no_eligible_target)
 
@@ -175,6 +152,29 @@ defmodule Chimeway.DeliveryTargets do
       {:error, :no_eligible_target} -> {:noop, :no_eligible_target}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp pending_target(delivery_id, tenant_id, id) when is_binary(id) do
+    Repo.one(
+      from(t in DeliveryTarget,
+        where:
+          t.delivery_id == ^delivery_id and t.tenant_id == ^tenant_id and t.id == ^id and
+            t.status == :pending,
+        lock: "FOR UPDATE"
+      )
+    )
+  end
+
+  defp pending_target(delivery_id, tenant_id, nil) do
+    Repo.one(
+      from(t in DeliveryTarget,
+        where:
+          t.delivery_id == ^delivery_id and t.tenant_id == ^tenant_id and t.status == :pending,
+        order_by: [asc: t.binding_revision_ref],
+        limit: 1,
+        lock: "FOR UPDATE"
+      )
+    )
   end
 
   @doc false

@@ -2,6 +2,7 @@ defmodule Chimeway.APNS.Transport do
   @moduledoc "Closed APNs provider handoff contract with an optional dynamic Pigeon path."
 
   defmodule Request do
+    @moduledoc false
     @enforce_keys [
       :device_token,
       :topic,
@@ -26,6 +27,7 @@ defmodule Chimeway.APNS.Transport do
   end
 
   defmodule Result do
+    @moduledoc false
     @enforce_keys [:outcome, :code]
     defstruct [:outcome, :code, :status, :reason, :timestamp, :retry_after_ms]
   end
@@ -255,6 +257,5 @@ defmodule Chimeway.APNS.Transport do
     defp runtime_code("InternalServerError"), do: :internal_server_error
     defp runtime_code("ServiceUnavailable"), do: :service_unavailable
     defp runtime_code("Shutdown"), do: :shutdown
-
   end
 end

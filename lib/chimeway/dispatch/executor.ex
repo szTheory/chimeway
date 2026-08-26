@@ -88,34 +88,54 @@ defmodule Chimeway.Dispatch.Executor do
           {:ok, result} ->
             {:ok, result}
 
-          {:noop, reason} -> {:noop, reason}
-          {:error, reason} -> {:error, reason}
+          {:noop, reason} ->
+            {:noop, reason}
+
+          {:error, reason} ->
+            {:error, reason}
         end
     end
   end
 
   defp target_adapter_result(delivery, target) do
-    try do
-      case target_adapter().deliver(
-             %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},
-             []
-           ) do
-        {:ok, facts} when is_map(facts) -> {:provider_accepted, facts}
-        {:provider_accepted, facts} when is_map(facts) -> {:provider_accepted, facts}
-        {:provider_retryable, facts} when is_map(facts) -> {:provider_retryable, facts}
-        {:permanent, facts} when is_map(facts) -> {:permanent, facts}
-        {:invalidated, facts} when is_map(facts) -> {:invalidated, facts}
-        {:expired, facts} when is_map(facts) -> {:expired, facts}
-        {:pre_handoff_retryable, facts} when is_map(facts) -> {:pre_handoff_retryable, facts}
-        {:possible_handoff, facts} when is_map(facts) -> {:ambiguous_handoff, facts}
-        {:error, :pre_handoff, _reason} -> {:pre_handoff_retryable, %{provider_code: "adapter_pre_handoff_failure"}}
-        _other -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
-      end
-    rescue
-      _exception -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
-    catch
-      _kind, _reason -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
+    case target_adapter().deliver(
+           %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},
+           []
+         ) do
+      {:ok, facts} when is_map(facts) ->
+        {:provider_accepted, facts}
+
+      {:provider_accepted, facts} when is_map(facts) ->
+        {:provider_accepted, facts}
+
+      {:provider_retryable, facts} when is_map(facts) ->
+        {:provider_retryable, facts}
+
+      {:permanent, facts} when is_map(facts) ->
+        {:permanent, facts}
+
+      {:invalidated, facts} when is_map(facts) ->
+        {:invalidated, facts}
+
+      {:expired, facts} when is_map(facts) ->
+        {:expired, facts}
+
+      {:pre_handoff_retryable, facts} when is_map(facts) ->
+        {:pre_handoff_retryable, facts}
+
+      {:possible_handoff, facts} when is_map(facts) ->
+        {:ambiguous_handoff, facts}
+
+      {:error, :pre_handoff, _reason} ->
+        {:pre_handoff_retryable, %{provider_code: "adapter_pre_handoff_failure"}}
+
+      _other ->
+        {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
     end
+  rescue
+    _exception -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
+  catch
+    _kind, _reason -> {:ambiguous_handoff, %{provider_code: "possible_provider_handoff"}}
   end
 
   defp target_adapter do

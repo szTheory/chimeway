@@ -24,6 +24,7 @@ defmodule Chimeway.TargetAdapter do
   @callback deliver(TargetEnvelope.t(), keyword()) :: deliver_result()
 
   defmodule TargetEnvelope do
+    @moduledoc false
     @enforce_keys [:delivery, :target]
     defstruct [:delivery, :target]
     @type t :: %__MODULE__{delivery: Chimeway.Delivery.t(), target: Chimeway.DeliveryTarget.t()}

@@ -8,28 +8,26 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
 
   @impl Mix.Task
   def run([]) do
-    try do
-      load_crosswake!()
-      corpus = read!("negative-corpus.json")
-      validator = &apply(Crosswake.ProofLane.PhysicalIphoneContract, :validate_report, [&1])
+    load_crosswake!()
+    corpus = read!("negative-corpus.json")
+    validator = &apply(Crosswake.ProofLane.PhysicalIphoneContract, :validate_report, [&1])
 
-      with {:ok, artifact} <- build_artifact!(),
-           artifact_sha256 <- sha256!(artifact),
-           {:ok, _} <- validate_built_artifact!(artifact, artifact_sha256),
-           valid <- Map.put(read!("valid.json"), "chimeway_artifact_sha256", artifact_sha256),
-           {:ok, _} <-
-             Extension.validate(valid,
-               artifact_sha256: artifact_sha256,
-               canonical_validator: validator
-             ),
-           :ok <- verify_cases(corpus, validator) do
-        Mix.shell().info("physical proof contract OK")
-      else
-        _ -> exit({:shutdown, 70})
-      end
-    after
-      cleanup_artifact()
+    with {:ok, artifact} <- build_artifact!(),
+         artifact_sha256 <- sha256!(artifact),
+         {:ok, _} <- validate_built_artifact!(artifact, artifact_sha256),
+         valid <- Map.put(read!("valid.json"), "chimeway_artifact_sha256", artifact_sha256),
+         {:ok, _} <-
+           Extension.validate(valid,
+             artifact_sha256: artifact_sha256,
+             canonical_validator: validator
+           ),
+         :ok <- verify_cases(corpus, validator) do
+      Mix.shell().info("physical proof contract OK")
+    else
+      _ -> exit({:shutdown, 70})
     end
+  after
+    cleanup_artifact()
   end
 
   def run(_), do: exit({:shutdown, 64})

@@ -69,6 +69,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       [_, ci_test] = Regex.run(~r/"ci\.test":\s*\[(.*?)\n\s*\],/s, mix_exs)
 
       assert ci_test =~ "CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1"
+      assert mix_exs =~ "test_load_filters: [~r{^(?!test/fixtures/).*_test\\.exs$}]"
       assert mix_exs =~ "test_ignore_filters: [~r{^test/fixtures/}]"
 
       for excluded <- ~w(mailglass accrue threadline sigra) do
@@ -539,7 +540,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 16 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
+    test "ci-gate needs stays 17 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -547,8 +548,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 16,
-             "ci-gate needs must remain exactly 16 lanes after the APNs proof lane joins " <>
+      assert length(needs) == 17,
+             "ci-gate needs must remain exactly 17 lanes after the Alpha twin proof lane joins " <>
                "the non-PR release gate"
 
       assert "test_floor_1_17" in needs,
@@ -2959,7 +2960,10 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       fixture_env = "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
       consumer_lib_path = "consumer_lib_path=\"$consumer_root/_build/test/lib\""
-      dependency_code_path = "dependency_erl_libs=\"${dependency_erl_libs:+$dependency_erl_libs:}$dependency_path\""
+
+      dependency_code_path =
+        "dependency_erl_libs=\"${dependency_erl_libs:+$dependency_erl_libs:}$dependency_path\""
+
       strict_code_path = "ERL_LIBS=\"$dependency_erl_libs\" #{fixture_env}"
 
       consumer_compile = "mix compile --warnings-as-errors"
@@ -2977,8 +2981,13 @@ defmodule Chimeway.ReleaseGateContractTest do
       refute script =~ "mix cmd --cd deps/chimeway"
       refute script =~ "deps/chimeway/lib/"
       refute script =~ "ERL_LIBS=\"$consumer_lib_path\""
-      assert :binary.match(script, "mix deps.get --check-locked") < :binary.match(script, dependency_prepare)
-      assert :binary.match(script, "unpacked package mix.exs is missing") < :binary.match(script, chimeway_compile)
+
+      assert :binary.match(script, "mix deps.get --check-locked") <
+               :binary.match(script, dependency_prepare)
+
+      assert :binary.match(script, "unpacked package mix.exs is missing") <
+               :binary.match(script, chimeway_compile)
+
       assert :binary.match(script, dependency_prepare) < :binary.match(script, chimeway_compile)
       assert :binary.match(script, chimeway_compile) < :binary.match(script, consumer_compile)
 
@@ -3009,8 +3018,13 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert script =~ "warning_gate_mutation"
       assert script =~ "strict_compile_probe"
       assert script =~ "mix deps.compile |& tee -a \"$output\""
-      assert script =~ "ERL_LIBS=\"$dependency_erl_libs\" CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
-      assert script =~ "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a \"$output\""
+
+      assert script =~
+               "ERL_LIBS=\"$dependency_erl_libs\" CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
+
+      assert script =~
+               "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a \"$output\""
+
       assert script =~ "Chimeway warning mutation unexpectedly compiled cleanly"
       assert script =~ "Chimeway warning mutation did not emit compiler diagnostics"
       assert script =~ "strict compiler emitted Chimeway module redefinition warnings"
@@ -3027,7 +3041,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert script =~ "env -u CHIMEWAY_APNS_ENABLED",
              "disabled proof must not inherit an enabled APNs environment"
 
-      assert script =~ "rm -rf \"$consumer_root/_build\" \"$consumer_root/deps\" \"$consumer_root/mix.lock\"",
+      assert script =~
+               "rm -rf \"$consumer_root/_build\" \"$consumer_root/deps\" \"$consumer_root/mix.lock\"",
              "each copied consumer must discard local build, dependency, and lock residue before resolving"
 
       assert script =~ "pigeon|httpoison",

@@ -134,7 +134,8 @@ if Code.ensure_loaded?(Oban) do
               :ok
 
             {:error, reason}
-            when reason in [:pre_handoff_retryable, :provider_retryable] and attempt >= max_attempts ->
+            when reason in [:pre_handoff_retryable, :provider_retryable] and
+                   attempt >= max_attempts ->
               case DeliveryTargets.exhaust_target(delivery, target_id, tenant_id: tenant_id) do
                 {:ok, _target} -> :ok
                 {:noop, _reason} -> :ok

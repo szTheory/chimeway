@@ -199,10 +199,12 @@ defmodule Chimeway.Dispatch.TargetWorkerTest do
 
     [attempt] = attempts_for(target)
     assert attempt.outcome == :failed
+
     assert attempt.safe_facts == %{
              "provider_code" => "too_many_requests",
              "retry_after_ms" => 1_000
            }
+
     refute inspect(attempt) =~ "must-not-persist"
   end
 

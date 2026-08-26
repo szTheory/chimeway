@@ -2,11 +2,13 @@ defmodule Chimeway.APNS.BindingLookup do
   @moduledoc "Tenant-explicit host custody boundary for transient APNs bindings."
 
   defmodule Request do
+    @moduledoc false
     @enforce_keys [:tenant_id, :environment, :topic, :binding_revision_ref]
     defstruct [:tenant_id, :environment, :topic, :binding_revision_ref]
   end
 
   defmodule Transient do
+    @moduledoc false
     @enforce_keys [
       :tenant_id,
       :environment,
@@ -26,11 +28,13 @@ defmodule Chimeway.APNS.BindingLookup do
   end
 
   defmodule InvalidationKey do
+    @moduledoc false
     @enforce_keys [:tenant_id, :environment, :topic, :binding_revision_ref]
     defstruct [:tenant_id, :environment, :topic, :binding_revision_ref]
   end
 
   defmodule InvalidationResult do
+    @moduledoc false
     @enforce_keys [:status]
     defstruct [:status]
   end
