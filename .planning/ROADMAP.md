@@ -372,7 +372,19 @@ Plans:
   2. The proof record is machine-validatable and separates the subjective visible-alert observation from executable provider and protected-open assertions.
   3. Host and operator guidance explains setup, ownership boundaries, compatibility migration, outcome vocabulary, offline-open behavior, proof commands, and explicit non-goals.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+**Wave 1**
+
+- [ ] 103-01-PLAN.md — Establish the source-bound CrossWake notification contract and closed credential-free Chimeway physical bundle tracer.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 103-02-PLAN.md — Ship Threshold-A runner/gate parity and the canonical mobile adoption and operations guide.
+
+**Wave 3** *(blocked on Wave 2 plus CrossWake Phase 162 passed verification and external Apple/device prerequisites)*
+
+- [ ] 103-03-PLAN.md — Execute the signed iPhone run, publish the no-replace bundle, and promote bounded support truth.
 
 ## Progress
 

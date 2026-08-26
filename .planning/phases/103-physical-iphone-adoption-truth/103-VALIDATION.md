@@ -2,8 +2,8 @@
 phase: 103
 slug: physical-iphone-adoption-truth
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-08-26
 ---
 
@@ -38,22 +38,22 @@ created: 2026-08-26
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 103-01-01 | 01 | 1 | TWIN-03 | planner-assigned | Physical proof rejects key, order, owner, revision, digest, privacy, and no-replace violations | unit/contract | `mix verify.physical_proof_contract` | ❌ W0 | ⬜ pending |
-| 103-01-02 | 01 | 1 | TWIN-03 | planner-assigned | Hermetic proof v1 remains immutable | regression | `mix test test/chimeway/mobile_proof_extension_test.exs` | ✅ | ⬜ pending |
-| 103-02-01 | 02 | 2 | TWIN-03 | planner-assigned | Selected CrossWake source bytes, marker, and source-bound compatibility checks pass | integration/contract | selected-SHA compatibility runner plus focused CrossWake tests | ❌ W0 | ⬜ pending |
-| 103-02-02 | 02 | 2 | TWIN-03 | planner-assigned | Automation cannot produce an `observed` visible-alert attestation | unit | `mix test test/chimeway/mobile_physical_proof_test.exs` | ❌ W0 | ⬜ pending |
-| 103-03-01 | 03 | 2 | DOCS-01 | planner-assigned | Guide roles, commands, vocabulary, links, support wording, and non-goals do not drift | doc contract | `mix ci.verify_gates` | ❌ W0 | ⬜ pending |
+| 103-01-01 | 01 | 1 | TWIN-03 | T-103-01..06 | One immutable artifact reaches one no-replace bundle through the selected source-bound CrossWake authority | tracer/integration | `mix test test/chimeway/mobile_physical_proof_test.exs --max-failures 1 --warnings-as-errors && mix verify.physical_proof_contract` | ✅ planned in task | ⬜ pending |
+| 103-01-02 | 01 | 1 | TWIN-03 | T-103-01..06 | Exact key/order/owner/revision/digest/privacy/attestation/no-replace failures reject without echo; hermetic extension remains immutable | unit/contract | `mix test test/chimeway/mobile_proof_extension_test.exs test/chimeway/mobile_physical_proof_test.exs --max-failures 1 --warnings-as-errors && mix verify.physical_proof_contract` | ✅ planned in task | ⬜ pending |
+| 103-02-01 | 02 | 2 | TWIN-03, DOCS-01 | T-103-07..09 | Two-threshold runner stays fail-closed and Threshold A remains credential-free with local/CI parity | integration/contract | `mix test test/chimeway/mobile_physical_proof_runner_test.exs test/chimeway/release_gate_contract_test.exs --max-failures 1 --warnings-as-errors && mix ci.verify_gates` | ✅ planned in task | ⬜ pending |
+| 103-02-02 | 02 | 2 | DOCS-01 | T-103-10..12 | Canonical guide roles, commands, vocabulary, links, pending wording, and non-goals do not drift | doc contract | `mix test test/chimeway/doc_contract_test.exs --max-failures 1 --warnings-as-errors && mix ci.verify_gates` | ✅ planned in task | ⬜ pending |
+| 103-03-01 | 03 | 3 | TWIN-03 | T-103-13..19 | Signed-device run promotes only source-bound machine proof plus separately supplied observed attestation | physical/integration | `mix chimeway.mobile_physical_proof --verify-promoted --json && mix verify.physical_proof_contract && mix verify.alpha_twin` | ✅ runner created in 103-02-01 | ⬜ pending |
+| 103-03-02 | 03 | 3 | TWIN-03, DOCS-01 | T-103-18..19 | Public/planning truth changes only from the validated completion-bound promoted snapshot | doc/release contract | `mix chimeway.mobile_physical_proof --verify-promoted --json && mix ci.verify_gates && mix verify.alpha_twin && mix verify.physical_proof_contract` | ✅ contracts created in 103-02 | ⬜ pending |
 
-*Task and plan IDs are provisional until PLAN.md files are finalized; the planner must reconcile this map with the final decomposition.*
+*Task and plan IDs are final and match 103-01 through 103-03. The two Wave 0 gaps are closed inside the leading TDD tracer and its expansion task; no implementation task lacks a same-task executable test contract.*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] Add the `mix verify.physical_proof_contract` alias and focused physical-proof contract tests.
-- [ ] Add `test/chimeway/mobile_physical_proof_test.exs` fixtures covering attestation states and the automation/observation boundary.
-- [ ] Pin the selected CrossWake SHA and provide a credential-free compatibility command that verifies the source-bound contract.
-- [ ] Extend the doc/release contract exercised by `mix ci.verify_gates` for the canonical adoption guide.
+- [x] 103-01-01/02 create and exercise the physical-proof contract, fixtures, selected-SHA source-bound validation, attestation boundary, and hermetic regression before expansion completes.
+- [x] 103-02-01 creates the runner/release contracts before Threshold-A gate wiring completes.
+- [x] 103-02-02 creates the canonical-guide doc contract in the same task as the guide/navigation changes.
 
 ---
 
@@ -69,11 +69,11 @@ Apple signing credentials, a registered physical device, and sandbox APNs availa
 
 ## Validation Sign-Off
 
-- [ ] All tasks have executable `<automated>` verification or explicit Wave 0 dependencies.
-- [ ] Sampling continuity: no three consecutive tasks lack an automated verification command.
-- [ ] Wave 0 covers every missing test or command above.
-- [ ] No watch-mode flags are used.
-- [ ] Machine-testable tracer and acceptance work is classified `type="auto"`; only visible-alert observation is manual.
-- [ ] `nyquist_compliant: true` is set after the final plans reconcile this map.
+- [x] All tasks have executable `<automated>` verification or explicit prior-plan test dependencies.
+- [x] Sampling continuity: every task has an automated verification command.
+- [x] Wave 0 covers every missing test or command above.
+- [x] No watch-mode flags are used.
+- [x] Machine-testable tracer and acceptance work is `tracer`/`auto`; only the bounded visible-alert state is subjective.
+- [x] `nyquist_compliant: true` is set and this map matches the final plans.
 
-**Approval:** pending
+**Approval:** planned — execution evidence pending
