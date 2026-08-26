@@ -303,7 +303,7 @@ defmodule AlphaTwin.SeamsTest do
 end
 
 defmodule AlphaTwin.DeliveryMatrixTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   @moduletag :alpha_twin_delivery_matrix
 
@@ -317,14 +317,37 @@ defmodule AlphaTwin.DeliveryMatrixTest do
 
     assert Enum.all?(result.scenario_results, &(&1.durable == :converged))
     assert Enum.all?(result.scenario_results, &(&1.explanation == :explained))
+
+    assert Enum.map(result.scenario_results, &{&1.id, &1.outcome}) == [
+             {"accepted_handoff_protected_open", :protected_open_once},
+             {"two_installation_fanout", :fanout_two_provider_acceptances},
+             {"zero_target_suppression", :suppressed_no_targets},
+             {"token_rotation", :old_revision_rejected},
+             {"revocation_race", :exact_revision_cas},
+             {"classified_retry", :retryable_then_accepted},
+             {"expiry_before_io", :expired_before_provider_io},
+             {"opt_in_installation_safe_collapse", :installation_safe_distinct},
+             {"trigger_commit_recovery", :recovery_converged},
+             {"post_handoff_ambiguity", :ambiguous_handoff_no_resend},
+             {"recursive_leak_prevention", :recursive_scan_rejected},
+             {"offline_reauthorization", :protected_open_once},
+             {"stale_denied_open", :denied_no_fallback},
+             {"replay_rejection", :replay_rejected}
+           ]
+
     assert result.claim_taxonomy.provider_acceptance == :provider_accepted
-    assert result.claim_taxonomy.protected_open == :not_attempted
+    assert result.claim_taxonomy.protected_open == :authorized_once
     assert result.claim_taxonomy.inbox_seen == :not_attempted
     assert result.claim_taxonomy.inbox_read == :not_attempted
   end
 
   test "the ledger rejects missing duplicate reordered unknown non-string and extra fields" do
-    valid = %{"schema_version" => 1, "scenario_ids" => AlphaTwin.Runner.delivery_scenario_ids()}
+    valid = %{
+      "schema_version" => 1,
+      "crosswake_remote" => "https://github.com/szTheory/crosswake.git",
+      "crosswake_sha" => "f2c502cdb1ce572a4a57257d9e3c051665704b90",
+      "scenario_ids" => AlphaTwin.Runner.all_scenario_ids()
+    }
 
     for invalid <- [
           Map.delete(valid, "scenario_ids"),
@@ -345,7 +368,7 @@ defmodule AlphaTwin.DeliveryMatrixTest do
 end
 
 defmodule AlphaTwin.SafetyMatrixTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   @moduletag :alpha_twin_safety_matrix
 
