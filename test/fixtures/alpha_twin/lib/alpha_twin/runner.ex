@@ -166,9 +166,6 @@ defmodule AlphaTwin.Runner do
     event =
       Chimeway.Repo.get_by!(Chimeway.Events.Event, tenant_id: "alpha-twin", idempotency_key: key)
 
-    old = DateTime.add(DateTime.utc_now(), -61, :second)
-    {:ok, event} = Ecto.Changeset.change(event, updated_at: old) |> Chimeway.Repo.update()
-
     0 =
       Chimeway.Repo.aggregate(
         from(d in Chimeway.Delivery,
