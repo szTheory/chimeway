@@ -5,15 +5,15 @@ milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 103
 current_phase_name: physical-iphone-adoption-truth
 status: executing
-stopped_at: Completed 103-01-PLAN.md
-last_updated: "2026-08-26T19:06:36.334Z"
+stopped_at: Completed 103-02-PLAN.md
+last_updated: "2026-08-26T19:21:43.869Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 103 execution started
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 80
-  completed_plans: 76
+  completed_plans: 78
   percent: 86
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 ## Current Position
 
 Phase: 103 (physical-iphone-adoption-truth) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-08-26 — Phase 103 execution started
 
@@ -435,6 +435,7 @@ status: complete
 - [Phase ?]: [102-03]: Proof aggregation is a closed recursive scan that reports only stable rule/path failures and keeps provider acceptance, protected open, seen, and read distinct.
 - [Phase ?]: Phase 102 physical-proof validation keeps visible alert observation explicitly not_asserted and delegates CrossWake assertion order/ownership to its pinned canonical contract.
 - [Phase ?]: [103-01]: Chimeway consumes only the full SHA 65dd9f42e218261015823e28045c507db1884cf3 after canonical-ref equality and a fresh detached CrossWake focused-test proof.
+- [Phase ?]: [103-02]: Physical-v1 validates digest-only independent records and publishes only externally supplied observed attestations.
 
 ### Roadmap Evolution
 
@@ -755,8 +756,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-26T19:06:36.321Z
-Stopped at: Completed 103-01-PLAN.md
+Last session: 2026-08-26T19:21:43.856Z
+Stopped at: Completed 103-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -934,3 +935,4 @@ Resume file: None
 | Phase 102-alpha-digital-twin-hermetic-gate P03 | 18 min | 2 tasks | 4 files |
 | Phase 102-alpha-digital-twin-hermetic-gate P04 | 15min | 2 tasks | 9 files |
 | Phase 103-physical-iphone-adoption-truth P01 | 18 min | 1 tasks | 4 files |
+| Phase 103-physical-iphone-adoption-truth P02 | 24 min | 2 tasks | 6 files |
