@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 103
-current_phase_name: Physical iPhone & Adoption Truth
+current_phase_name: physical-iphone-adoption-truth
 status: executing
-stopped_at: Phase 103 context gathered
-last_updated: "2026-08-26T18:55:42.366Z"
+stopped_at: Completed 103-01-PLAN.md
+last_updated: "2026-08-26T19:06:36.334Z"
 last_activity: 2026-08-26
-last_activity_desc: Phase 102 complete, transitioned to Phase 103
+last_activity_desc: Phase 103 execution started
 progress:
   total_phases: 7
   completed_phases: 6
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 102 — alpha-digital-twin-hermetic-gate
+**Current focus:** Phase 103 — physical-iphone-adoption-truth
 
 ## Current Position
 
-Phase: 103 — Physical iPhone & Adoption Truth
-Plan: Not started
+Phase: 103 (physical-iphone-adoption-truth) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-26 — Phase 102 complete, transitioned to Phase 103
+Last activity: 2026-08-26 — Phase 103 execution started
 
 ## Deferred Items
 
@@ -434,6 +434,7 @@ status: complete
 - [Phase ?]: [102-03]: The Alpha Twin consumes a closed ordered string ledger and rejects unknown, reordered, duplicate, non-string, or extra input without atomizing it.
 - [Phase ?]: [102-03]: Proof aggregation is a closed recursive scan that reports only stable rule/path failures and keeps provider acceptance, protected open, seen, and read distinct.
 - [Phase ?]: Phase 102 physical-proof validation keeps visible alert observation explicitly not_asserted and delegates CrossWake assertion order/ownership to its pinned canonical contract.
+- [Phase ?]: [103-01]: Chimeway consumes only the full SHA 65dd9f42e218261015823e28045c507db1884cf3 after canonical-ref equality and a fresh detached CrossWake focused-test proof.
 
 ### Roadmap Evolution
 
@@ -754,9 +755,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-26T17:46:38.489Z
-Stopped at: Phase 103 context gathered
-Resume file: .planning/phases/103-physical-iphone-adoption-truth/103-CONTEXT.md
+Last session: 2026-08-26T19:06:36.321Z
+Stopped at: Completed 103-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -932,3 +933,4 @@ Resume file: .planning/phases/103-physical-iphone-adoption-truth/103-CONTEXT.md
 | Phase 102-alpha-digital-twin-hermetic-gate P02 | 14 min | 1 tasks | 7 files |
 | Phase 102-alpha-digital-twin-hermetic-gate P03 | 18 min | 2 tasks | 4 files |
 | Phase 102-alpha-digital-twin-hermetic-gate P04 | 15min | 2 tasks | 9 files |
+| Phase 103-physical-iphone-adoption-truth P01 | 18 min | 1 tasks | 4 files |

@@ -372,11 +372,11 @@ Plans:
   2. The proof record is machine-validatable and separates the subjective visible-alert observation from executable provider and protected-open assertions.
   3. Host and operator guidance explains setup, ownership boundaries, compatibility migration, outcome vocabulary, offline-open behavior, proof commands, and explicit non-goals.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 **Wave 1**
 
-- [ ] 103-01-PLAN.md — Complete and test the CrossWake notification authority, publish that exact commit, prove remote reachability, and record its sole selected SHA.
+- [x] 103-01-PLAN.md — Complete and test the CrossWake notification authority, publish that exact commit, prove remote reachability, and record its sole selected SHA.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -400,7 +400,7 @@ Plans:
 | 100. Optional APNs Adapter | 11/11 | Complete    | 2026-08-22 |
 | 101. CrossWake Registration & Protected Open | 20/20 | Complete    | 2026-08-25 |
 | 102. Alpha Digital Twin & Hermetic Gate | 4/4 | Complete    | 2026-08-26 |
-| 103. Physical iPhone & Adoption Truth | 0/4 | Blocked by external Apple signing gate until Phase 162 evidence | - |
+| 103. Physical iPhone & Adoption Truth | 1/4 | In Progress |  |
 
 ---
 *Roadmap updated: 2026-08-11 — v1.18 created with Phases 97–103.*
