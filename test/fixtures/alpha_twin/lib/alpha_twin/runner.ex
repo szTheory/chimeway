@@ -119,6 +119,16 @@ defmodule AlphaTwin.Runner do
   # Delivery ledger entries must first traverse the production public trigger /
   # dispatch path.  The scenario-specific seam below is supplemental evidence;
   # it cannot manufacture a durable or explainable success.
+  defp execute_scenario("token_rotation", registry),
+    do: durable_delivery("token_rotation", registry, :old_revision_rejected)
+
+  defp execute_scenario("revocation_race", registry),
+    do: durable_delivery("revocation_race", registry, :exact_revision_cas)
+
+  defp execute_scenario("opt_in_installation_safe_collapse", registry),
+    do:
+      durable_delivery("opt_in_installation_safe_collapse", registry, :installation_safe_distinct)
+
   defp execute_scenario(id, registry) when id in @delivery_scenario_ids do
     with {:ok, delivery, expected_targets, expected_attempts} <- trigger_delivery(id, registry),
          {:ok, explanation} <-
@@ -128,6 +138,21 @@ defmodule AlphaTwin.Runner do
          true <- target_attempt_count(delivery.id) == expected_attempts,
          true <- target_outcomes(delivery.id) == expected_target_outcomes(id),
          {:ok, outcome} <- execute_fixture_scenario(id, registry) do
+      {:ok, outcome, :converged, :explained}
+    else
+      _ -> {:error, :durable_lifecycle_not_proven}
+    end
+  end
+
+  defp durable_delivery(id, registry, outcome) do
+    with {:ok, delivery, expected_targets, expected_attempts} <- trigger_delivery(id, registry),
+         {:ok, explanation} <-
+           Chimeway.Traces.explain_delivery(delivery.id, tenant_id: "alpha-twin"),
+         true <- explanation.delivery_id == delivery.id,
+         true <- explanation.target_aggregate.target_count == expected_targets,
+         true <- target_attempt_count(delivery.id) == expected_attempts,
+         true <- target_outcomes(delivery.id) == expected_target_outcomes(id),
+         true <- collapse_contract?(id, delivery.id) do
       {:ok, outcome, :converged, :explained}
     else
       _ -> {:error, :durable_lifecycle_not_proven}
@@ -273,6 +298,12 @@ defmodule AlphaTwin.Runner do
     {[pair], [{:ambiguous}], 1, 1}
   end
 
+  defp delivery_setup("opt_in_installation_safe_collapse", registry) do
+    {:ok, first} = collapse_binding_intent(registry, "durable-collapse-1", "occurrence-1")
+    {:ok, second} = collapse_binding_intent(registry, "durable-collapse-2", "occurrence-2")
+    {[first, second], [{:accepted}, {:accepted}], 2, 2}
+  end
+
   defp delivery_setup(_id, registry) do
     {:ok, pair} = binding_intent(registry, "durable")
     {[pair], [{:accepted}], 1, 1}
@@ -293,6 +324,28 @@ defmodule AlphaTwin.Runner do
              },
              []
            ) do
+      {:ok, {binding.binding_revision_ref, intent}}
+    end
+  end
+
+  defp collapse_binding_intent(registry, suffix, occurrence_ref) do
+    with {:ok, binding} <- bind(registry, suffix),
+         {:ok, %{intent_ref: open_ref}} <-
+           Registry.issue_intent(registry, binding.binding_revision_ref),
+         {:ok, intent} <-
+           RequestIntent.new(
+             %{
+               environment: :sandbox,
+               topic: "com.example.alpha",
+               apns_id: Ecto.UUID.generate(),
+               expires_at: ~U[2030-08-25 12:00:00Z],
+               open_ref: open_ref
+             },
+             replaceable: true,
+             occurrence_ref: occurrence_ref,
+             binding_revision_ref: binding.binding_revision_ref
+           ),
+         true <- is_binary(intent.collapse_id) do
       {:ok, {binding.binding_revision_ref, intent}}
     end
   end
@@ -327,6 +380,21 @@ defmodule AlphaTwin.Runner do
     do: [:provider_accepted, :provider_accepted]
 
   defp expected_target_outcomes(_), do: [:provider_accepted]
+
+  defp collapse_contract?("opt_in_installation_safe_collapse", delivery_id) do
+    ids =
+      Chimeway.Repo.all(
+        from(t in Chimeway.DeliveryTarget,
+          where: t.delivery_id == ^delivery_id and t.tenant_id == "alpha-twin",
+          order_by: [asc: t.binding_revision_ref],
+          select: fragment("?->>'collapse_id'", t.apns_request_intent)
+        )
+      )
+
+    length(ids) == 2 and Enum.all?(ids, &is_binary/1) and Enum.uniq(ids) == ids
+  end
+
+  defp collapse_contract?(_id, _delivery_id), do: true
 
   defp assert_down(ref, pid) do
     receive do
