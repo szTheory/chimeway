@@ -1,8 +1,8 @@
 ---
 phase: 102-alpha-digital-twin-hermetic-gate
-reviewed: 2026-08-26T14:24:07Z
+reviewed: 2026-08-26T15:02:00Z
 depth: standard
-files_reviewed: 32
+files_reviewed: 34
 files_reviewed_list:
   - .github/workflows/ci.yml
   - lib/chimeway/adapters/apns.ex
@@ -12,6 +12,7 @@ files_reviewed_list:
   - lib/chimeway/delivery_targets.ex
   - lib/chimeway/dispatch/executor.ex
   - lib/chimeway/mobile_proof/extension.ex
+  - lib/chimeway/target_recovery.ex
   - lib/chimeway/target_resolver.ex
   - lib/mix/tasks/verify.alpha_twin.ex
   - lib/mix/tasks/verify.physical_proof_contract.ex
@@ -21,6 +22,7 @@ files_reviewed_list:
   - test/chimeway/alpha_twin_provenance_test.exs
   - test/chimeway/alpha_twin_runner_test.exs
   - test/chimeway/mobile_proof_extension_test.exs
+  - test/chimeway/orchestration/target_recovery_test.exs
   - test/chimeway/release_gate_contract_test.exs
   - test/fixtures/alpha_twin/config/config.exs
   - test/fixtures/alpha_twin/lib/alpha_twin/application.ex
@@ -33,8 +35,8 @@ files_reviewed_list:
   - test/fixtures/alpha_twin/mix.exs
   - test/fixtures/alpha_twin/mix.lock
   - test/fixtures/alpha_twin/test/alpha_twin_test.exs
+  - test/fixtures/alpha_twin/test/proof_summary_contract_test.exs
   - test/fixtures/alpha_twin/test/test_helper.exs
-  - test/fixtures/alpha_twin_physical_proof/negative-corpus.json
   - test/fixtures/alpha_twin_physical_proof/valid.json
 findings:
   critical: 0
@@ -44,29 +46,25 @@ findings:
 status: clean
 ---
 
-# Phase 102: Final Code Review Report
+# Phase 102: Code Review Re-review Report
 
-**Reviewed:** 2026-08-26T14:24:07Z
+**Reviewed:** 2026-08-26T15:02:00Z
 **Depth:** standard
-**Files Reviewed:** 32
+**Files Reviewed:** 34
 **Status:** clean
 
 ## Summary
 
-All prior blockers are resolved.
+Re-reviewed the full Phase 102 source scope after `d13c17d` and `d6234d4`. The recovery path now forwards the explicit clock options to stale-attempt closeout, so stale discovery and its resulting lifecycle timestamps share the caller-selected instant. The Alpha twin now collects persisted rows, trace DTOs, telemetry captures, caught crash evidence, and redacted APNS observations; it scans that complete set and the exact candidate proof bytes before proof emission. The scanner’s key-based checks cover realistic sensitive fields across all sources, and fixture execution still fails closed on invalid evidence.
 
-- The clean-room fixture uses the validated unpacked Chimeway package, generates and applies migrations to a uniquely named disposable database, persists and explains the delivery spine, performs the redacted scripted APNs handoff, and verifies the pinned CrossWake/Sigra protected-open decision plus replay denial.
-- The physical-proof task binds its validation to the SHA-256 of a newly built and archive-validated package.
-- The fixture dependency graph is now committed as `test/fixtures/alpha_twin/mix.lock`, copied into the disposable fixture, and enforced with `mix deps.get --check-locked` before migration generation, database creation, or fixture tests. The regression test proves a lock mismatch aborts that sequence.
-
-The supplied verification evidence reports focused tests green, two byte-identical `mix verify.alpha_twin` runs, `mix ci.verify_gates` passing 630 tests, and strict formatting/Credo plus the physical-proof contract passing. No remaining Critical or Warning issue was identified in this final re-review.
+All reviewed files meet quality standards. No issues found.
 
 ## Narrative Findings (AI reviewer)
 
-No issues found.
+No actionable bugs, security vulnerabilities, or quality defects found in the reviewed scope.
 
 ---
 
-_Reviewed: 2026-08-26T14:24:07Z_
+_Reviewed: 2026-08-26T15:02:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
