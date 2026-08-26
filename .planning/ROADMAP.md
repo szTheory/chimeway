@@ -372,19 +372,23 @@ Plans:
   2. The proof record is machine-validatable and separates the subjective visible-alert observation from executable provider and protected-open assertions.
   3. Host and operator guidance explains setup, ownership boundaries, compatibility migration, outcome vocabulary, offline-open behavior, proof commands, and explicit non-goals.
 
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 **Wave 1**
 
-- [ ] 103-01-PLAN.md — Establish the source-bound CrossWake notification contract and closed credential-free Chimeway physical bundle tracer.
+- [ ] 103-01-PLAN.md — Complete and test the CrossWake notification authority, publish that exact commit, prove remote reachability, and record its sole selected SHA.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 103-02-PLAN.md — Ship Threshold-A runner/gate parity and the canonical mobile adoption and operations guide.
+- [ ] 103-02-PLAN.md — Consume the final selected SHA in the closed credential-free Chimeway physical bundle tracer and complete adversarial corpus.
 
-**Wave 3** *(blocked on Wave 2 plus CrossWake Phase 162 passed verification and external Apple/device prerequisites)*
+**Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 103-03-PLAN.md — Execute the signed iPhone run, publish the no-replace bundle, and promote bounded support truth.
+- [ ] 103-03-PLAN.md — Ship Threshold-A runner/gate parity and the canonical mobile adoption and operations guide.
+
+**Wave 4** *(blocked on Wave 3 plus CrossWake Phase 162 passed verification and external Apple/device prerequisites)*
+
+- [ ] 103-04-PLAN.md — Execute the signed iPhone run, publish the no-replace bundle, and promote bounded support truth.
 
 ## Progress
 
@@ -396,7 +400,7 @@ Plans:
 | 100. Optional APNs Adapter | 11/11 | Complete    | 2026-08-22 |
 | 101. CrossWake Registration & Protected Open | 20/20 | Complete    | 2026-08-25 |
 | 102. Alpha Digital Twin & Hermetic Gate | 4/4 | Complete    | 2026-08-26 |
-| 103. Physical iPhone & Adoption Truth | 0/TBD | Blocked by external Apple signing gate until Phase 162 evidence | - |
+| 103. Physical iPhone & Adoption Truth | 0/4 | Blocked by external Apple signing gate until Phase 162 evidence | - |
 
 ---
 *Roadmap updated: 2026-08-11 — v1.18 created with Phases 97–103.*
