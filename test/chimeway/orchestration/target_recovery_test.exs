@@ -212,6 +212,20 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
              )
   end
 
+  test "forwards the explicit recovery clock when replanning a stranded event" do
+    now = ~U[2040-08-25 12:00:00.000000Z]
+    event = insert_event!("recovery-explicit-clock", "stranded", DateTime.add(now, -61, :second))
+    _notification = insert_notification!(event, "recovery-explicit-clock")
+
+    assert %{event_ids: [event_id], counts: %{resumed_planning: 1}} =
+             TargetRecovery.recover_tenant("recovery-explicit-clock",
+               now: now,
+               older_than: 60
+             )
+
+    assert event_id == event.id
+  end
+
   test "recovery keeps typed continuations independent and caps each stream" do
     %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "recovery-pages")
     now = ~U[2026-08-19 12:00:00.000000Z]

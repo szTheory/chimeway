@@ -21,7 +21,7 @@ defmodule Chimeway.TargetRecovery do
   def recover_tenant(tenant_id, opts \\ []) when is_list(opts) do
     with {:ok, tenant_id} <- tenant_id(tenant_id) do
       events = discover_stranded_events(tenant_id, opts)
-      {event_ids, planning_count} = recover_events(tenant_id, events.event_ids)
+      {event_ids, planning_count} = recover_events(tenant_id, events.event_ids, opts)
       stale = discover_stale_attempts(tenant_id, opts)
       {stale_count, stale_reasons} = close_stale_attempts(tenant_id, stale.target_ids)
       targets = discover_target_work(tenant_id, opts)
@@ -104,14 +104,19 @@ defmodule Chimeway.TargetRecovery do
     end
   end
 
-  defp recover_events(tenant_id, opts) do
-    opts
+  defp recover_events(tenant_id, event_ids, opts) do
+    recovery_opts =
+      opts
+      |> Keyword.take([:now, :older_than, :use_persisted_workflow])
+      |> Keyword.merge(
+        tenant_id: tenant_id,
+        source: "target_recovery",
+        reason: "resumed_planning"
+      )
+
+    event_ids
     |> Enum.reduce({[], 0}, fn event_id, {ids, count} ->
-      case Deliveries.recover_event(event_id,
-             tenant_id: tenant_id,
-             source: "target_recovery",
-             reason: "resumed_planning"
-           ) do
+      case Deliveries.recover_event(event_id, recovery_opts) do
         {:ok, _result} -> {[event_id | ids], count + 1}
         _ -> {[event_id | ids], count}
       end
