@@ -1,8 +1,149 @@
-Code.require_file("../lib/alpha_twin/clock.ex", __DIR__)
-Code.require_file("../lib/alpha_twin/registry.ex", __DIR__)
-Code.require_file("../lib/alpha_twin/scripted_apns_transport.ex", __DIR__)
-Code.require_file("../lib/alpha_twin/runner.ex", __DIR__)
-Code.require_file("../lib/alpha_twin/proof_summary.ex", __DIR__)
+defmodule AlphaTwin.PersistedTraceTest do
+  use ExUnit.Case, async: false
+  import Ecto.Query
+
+  alias Chimeway.APNS.RequestIntent
+
+  setup do
+    previous =
+      for {application, key} <- managed_config(), into: %{} do
+        {{application, key}, Application.get_env(application, key, :alpha_twin_missing)}
+      end
+
+    on_exit(fn ->
+      Enum.each(previous, fn
+        {{application, key}, :alpha_twin_missing} -> Application.delete_env(application, key)
+        {{application, key}, value} -> Application.put_env(application, key, value)
+      end)
+    end)
+
+    :ok
+  end
+
+  test "validated package persists a provider-accepted target and authorizes one protected open" do
+    registry = start_supervised!(AlphaTwin.Registry)
+
+    transport =
+      start_supervised!(
+        {AlphaTwin.ScriptedAPNSTransport, script: [{:accepted}], observer: self()}
+      )
+
+    {:ok, binding} =
+      AlphaTwin.Registry.bind(registry, %{
+        tenant_id: "alpha-twin",
+        environment: :sandbox,
+        topic: "com.example.alpha",
+        installation_ref: "cw_installation_alpha_001",
+        token: "raw-device-value-never-persisted"
+      })
+
+    {:ok, %{intent_ref: open_ref}} =
+      AlphaTwin.Registry.issue_intent(registry, binding.binding_revision_ref)
+
+    {:ok, request_intent} =
+      RequestIntent.new(
+        %{
+          environment: :sandbox,
+          topic: "com.example.alpha",
+          apns_id: Ecto.UUID.generate(),
+          expires_at: ~U[2030-08-25 12:00:00Z],
+          open_ref: open_ref
+        },
+        []
+      )
+
+    Application.put_env(:chimeway, :alpha_twin_registry, registry)
+    Application.put_env(:chimeway, :alpha_twin_apns_script, transport)
+    Application.put_env(:chimeway, :alpha_twin_binding_ref, binding.binding_revision_ref)
+    Application.put_env(:chimeway, :alpha_twin_request_intent, request_intent)
+    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    Application.put_env(:chimeway, :target_resolver, AlphaTwin.IntegrationTargetResolver)
+    Application.put_env(:chimeway, :target_adapter, Chimeway.Adapters.APNS)
+    Application.put_env(:chimeway, :apns_binding_lookup, AlphaTwin.Registry)
+    Application.put_env(:chimeway, :apns_transport, AlphaTwin.ScriptedAPNSTransport)
+    Application.put_env(:crosswake, :companions, [Crosswake.Companions.Sigra])
+
+    assert {:ok, result} =
+             Chimeway.Trigger.trigger(AlphaTwin.IntegrationNotifier, %{},
+               tenant_id: "alpha-twin",
+               idempotency_key: "alpha-twin-#{System.unique_integer([:positive])}"
+             )
+
+    event = result.event
+    [delivery_id] = result.trace.delivery_ids
+
+    notification =
+      Chimeway.Repo.one!(
+        from(n in Chimeway.Notifications.Notification, where: n.event_id == ^event.id)
+      )
+
+    delivery = Chimeway.Repo.get!(Chimeway.Delivery, delivery_id)
+
+    target =
+      Chimeway.Repo.one!(from(t in Chimeway.DeliveryTarget, where: t.delivery_id == ^delivery.id))
+
+    attempt =
+      Chimeway.Repo.one!(
+        from(a in Chimeway.DeliveryTargetAttempt, where: a.delivery_target_id == ^target.id)
+      )
+
+    assert event.id == notification.event_id
+    assert notification.id == delivery.notification_id
+    assert delivery.status == :succeeded
+    assert target.status == :provider_accepted
+    assert target.apns_request_intent["open_ref"] == open_ref
+    assert attempt.outcome == :provider_accepted
+    assert_receive {:alpha_twin_apns_request, redacted_request}
+    refute inspect(redacted_request) =~ "raw-device-value-never-persisted"
+
+    assert {:ok, explanation} =
+             Chimeway.Traces.explain_delivery(delivery.id, tenant_id: "alpha-twin")
+
+    assert explanation.delivery_id == delivery.id
+    assert explanation.event_id == event.id
+    assert explanation.status == :succeeded
+    assert explanation.target_aggregate.target_count == 1
+    assert [%{attempts: [%{outcome: :provider_accepted}]}] = explanation.targets
+
+    evidence = AlphaTwin.ProtectedOpen.evidence(open_ref, binding.binding_revision_ref)
+
+    assert {:allow, decision} =
+             Crosswake.Companions.Chimeway.Resolver.resolve(
+               AlphaTwin.ProtectedOpen.manifest(),
+               evidence,
+               AlphaTwin.IntentConsumer
+             )
+
+    assert decision.status == :allow
+    assert decision.transition == :activate
+    assert decision.route_id == "alpha_protected"
+
+    assert {:deny, denial} =
+             Crosswake.Companions.Chimeway.Resolver.resolve(
+               AlphaTwin.ProtectedOpen.manifest(),
+               evidence,
+               AlphaTwin.IntentConsumer
+             )
+
+    assert denial.reason == :notification_open_denied
+    assert denial.code == "notification.open.replayed"
+  end
+
+  defp managed_config do
+    [
+      chimeway: :alpha_twin_registry,
+      chimeway: :alpha_twin_apns_script,
+      chimeway: :alpha_twin_binding_ref,
+      chimeway: :alpha_twin_request_intent,
+      chimeway: :dispatcher,
+      chimeway: :target_resolver,
+      chimeway: :target_adapter,
+      chimeway: :apns_binding_lookup,
+      chimeway: :apns_transport,
+      crosswake: :companions
+    ]
+  end
+end
 
 defmodule AlphaTwin.SeamsTest do
   use ExUnit.Case, async: false
@@ -167,11 +308,13 @@ defmodule AlphaTwin.DeliveryMatrixTest do
   @moduletag :alpha_twin_delivery_matrix
 
   test "the complete ordered delivery ledger produces stable, separated durable facts" do
-    ledger = Path.expand("../../../../priv/alpha_twin/scenario-ledger.json", __DIR__)
+    ledger = scenario_ledger()
 
     assert {:ok, result} = AlphaTwin.Runner.run(ledger: ledger)
+
     assert Enum.take(result.scenario_ids, length(AlphaTwin.Runner.delivery_scenario_ids())) ==
              AlphaTwin.Runner.delivery_scenario_ids()
+
     assert Enum.all?(result.scenario_results, &(&1.durable == :converged))
     assert Enum.all?(result.scenario_results, &(&1.explanation == :explained))
     assert result.claim_taxonomy.provider_acceptance == :provider_accepted
@@ -194,6 +337,11 @@ defmodule AlphaTwin.DeliveryMatrixTest do
       assert {:error, :invalid_ledger} = AlphaTwin.Runner.validate_ledger(invalid)
     end
   end
+
+  defp scenario_ledger do
+    System.get_env("CHIMEWAY_ALPHA_TWIN_LEDGER") ||
+      Path.expand("../../../../priv/alpha_twin/scenario-ledger.json", __DIR__)
+  end
 end
 
 defmodule AlphaTwin.SafetyMatrixTest do
@@ -202,7 +350,9 @@ defmodule AlphaTwin.SafetyMatrixTest do
   @moduletag :alpha_twin_safety_matrix
 
   test "the complete ledger adds each protected-open and recursive-scan scenario once" do
-    ledger = Path.expand("../../../../priv/alpha_twin/scenario-ledger.json", __DIR__)
+    ledger =
+      System.get_env("CHIMEWAY_ALPHA_TWIN_LEDGER") ||
+        Path.expand("../../../../priv/alpha_twin/scenario-ledger.json", __DIR__)
 
     assert {:ok, result} = AlphaTwin.Runner.run(ledger: ledger)
     assert result.scenario_ids == AlphaTwin.Runner.all_scenario_ids()
@@ -232,7 +382,9 @@ defmodule AlphaTwin.SafetyMatrixTest do
       "proof_class" => "alpha_twin",
       "chimeway_artifact_sha256" => String.duplicate("a", 64),
       "crosswake_sha" => String.duplicate("b", 40),
-      "scenario_results" => [%{"id" => "offline_reauthorization", "outcome" => "protected_open_once"}],
+      "scenario_results" => [
+        %{"id" => "offline_reauthorization", "outcome" => "protected_open_once"}
+      ],
       "claim_taxonomy" => %{
         "provider_acceptance" => "provider_accepted",
         "protected_open" => "authorized",
@@ -243,6 +395,7 @@ defmodule AlphaTwin.SafetyMatrixTest do
 
     assert {:ok, proof} = AlphaTwin.ProofSummary.render(attrs)
     assert proof == Jason.encode!(attrs)
+
     assert {:error, %{rule: :invalid_schema, path: []}} =
              AlphaTwin.ProofSummary.render(Map.put(attrs, "debug", true))
   end

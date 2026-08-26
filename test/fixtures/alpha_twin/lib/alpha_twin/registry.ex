@@ -115,7 +115,7 @@ defmodule AlphaTwin.Registry do
     case Map.get(state.bindings, ref) do
       %{active: true} ->
         intent_ref =
-          "cw_intent_" <> Integer.to_string(state.sequence + map_size(state.intents) + 1)
+          "cw_open_" <> Integer.to_string(state.sequence + map_size(state.intents) + 1)
 
         {:reply, {:ok, %{intent_ref: intent_ref, classification: :issued}},
          %{state | intents: Map.put(state.intents, intent_ref, false)}}

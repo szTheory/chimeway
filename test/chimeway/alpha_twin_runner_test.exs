@@ -59,16 +59,36 @@ defmodule Chimeway.AlphaTwinRunnerTest do
         "/detached/crosswake",
         [
           fixture_runner: fn "mix", command, options ->
-            assert options[:cd] == Path.expand("../fixtures/alpha_twin", __DIR__)
+            assert Path.basename(options[:cd]) == "fixture"
+            assert File.regular?(Path.join(options[:cd], "mix.exs"))
 
-            assert options[:env] == [
-                     {"CHIMEWAY_PACKAGE_PATH", "/validated/package"},
-                     {"CROSSWAKE_PATH", "/detached/crosswake"}
-                   ]
+            assert {"CHIMEWAY_PACKAGE_PATH", "/validated/package"} in options[:env]
+            assert {"CROSSWAKE_PATH", "/detached/crosswake"} in options[:env]
+
+            assert {"CHIMEWAY_ALPHA_TWIN_LEDGER",
+                    "/validated/package/priv/alpha_twin/scenario-ledger.json"} in options[:env]
+
+            assert {"DATABASE_URL", database_url} = List.keyfind(options[:env], "DATABASE_URL", 0)
+            assert database_url =~ "/chimeway_alpha_twin_"
 
             case command do
-              ["deps.get"] -> {"dependencies fetched", 0}
-              ["test"] -> {"1 failure", 1}
+              ["deps.get"] ->
+                {"dependencies fetched", 0}
+
+              ["chimeway.gen.migrations", "--prefix", "public"] ->
+                {"migrations generated", 0}
+
+              ["ecto.create", "-r", "Chimeway.Repo", "--quiet"] ->
+                {"database created", 0}
+
+              ["ecto.migrate", "-r", "Chimeway.Repo", "--quiet", "--migrations-path", _path] ->
+                {"migrated", 0}
+
+              ["test"] ->
+                {"1 failure", 1}
+
+              ["ecto.drop", "-r", "Chimeway.Repo", "--quiet"] ->
+                {"database dropped", 0}
             end
           end
         ]

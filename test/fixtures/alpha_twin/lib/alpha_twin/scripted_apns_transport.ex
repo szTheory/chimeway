@@ -13,8 +13,13 @@ defmodule AlphaTwin.ScriptedAPNSTransport do
 
   def assert_drained(pid), do: GenServer.call(pid, :assert_drained)
   @impl true
-  def push(_dispatcher, %Request{} = request, opts),
-    do: GenServer.call(Keyword.fetch!(opts, :script_pid), {:push, request})
+  def push(_dispatcher, %Request{} = request, opts) do
+    script_pid =
+      Keyword.get(opts, :script_pid) ||
+        Application.fetch_env!(:chimeway, :alpha_twin_apns_script)
+
+    GenServer.call(script_pid, {:push, request})
+  end
 
   @impl true
   def init(state), do: {:ok, state}
@@ -45,7 +50,8 @@ defmodule AlphaTwin.ScriptedAPNSTransport do
        })
        when is_binary(token) and byte_size(token) > 0 and is_binary(topic) and
               byte_size(topic) in 1..255 and env in [:sandbox, :production] and is_integer(bytes) and
-              bytes in 1..4096, do: :ok
+              bytes in 1..4096,
+       do: :ok
 
   defp validate(_), do: :error
 

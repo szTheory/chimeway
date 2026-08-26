@@ -26,7 +26,6 @@ defmodule Chimeway.AlphaTwinProofRunner do
            {:ok, proof} <-
              with_archive.(archive, digest, fn root ->
                with_crosswake_worktree.(fn crosswake_root ->
-                 copy_package_migrations!(root)
                  fixture_output = run_fixture!(root, crosswake_root, opts)
 
                  # This line is intentionally reachable only after the clean-room
@@ -67,22 +66,75 @@ defmodule Chimeway.AlphaTwinProofRunner do
   def run_fixture!(package_root, crosswake_root, opts \\ [])
       when is_binary(package_root) and is_binary(crosswake_root) and is_list(opts) do
     runner = Keyword.get(opts, :fixture_runner, &System.cmd/3)
+    unique = System.unique_integer([:positive])
+    runtime_root = Path.join(System.tmp_dir!(), "chimeway_alpha_fixture_#{unique}")
+    runtime_fixture = Path.join(runtime_root, "fixture")
+    database_url = "postgres://postgres:postgres@127.0.0.1:55432/chimeway_alpha_twin_#{unique}"
+    File.mkdir_p!(runtime_root)
+    copy_fixture!(runtime_fixture)
 
     command_options = [
-      cd: fixture_root(),
+      cd: runtime_fixture,
       env: [
         {"CHIMEWAY_PACKAGE_PATH", package_root},
-        {"CROSSWAKE_PATH", crosswake_root}
+        {"CROSSWAKE_PATH", crosswake_root},
+        {"CHIMEWAY_ALPHA_TWIN_LEDGER",
+         Path.join(package_root, "priv/alpha_twin/scenario-ledger.json")},
+        {"DATABASE_URL", database_url}
       ],
       stderr_to_stdout: true
     ]
 
-    with {_output, 0} <- runner.("mix", ["deps.get"], command_options),
-         {output, 0} when is_binary(output) <- runner.("mix", ["test"], command_options) do
-      output
-    else
-      _ -> raise "alpha twin fixture failed"
+    try do
+      with {_output, 0} <- runner.("mix", ["deps.get"], command_options),
+           {_output, 0} <-
+             runner.("mix", ["chimeway.gen.migrations", "--prefix", "public"], command_options),
+           {_output, 0} <-
+             runner.("mix", ["ecto.create", "-r", "Chimeway.Repo", "--quiet"], command_options),
+           {_output, 0} <-
+             runner.(
+               "mix",
+               [
+                 "ecto.migrate",
+                 "-r",
+                 "Chimeway.Repo",
+                 "--quiet",
+                 "--migrations-path",
+                 Path.join(runtime_fixture, "priv/repo/migrations")
+               ],
+               command_options
+             ),
+           {output, 0} when is_binary(output) <- runner.("mix", ["test"], command_options) do
+        output
+      else
+        _ -> raise "alpha twin fixture failed"
+      end
+    after
+      drop_fixture_database(runner, command_options)
+      File.rm_rf(runtime_root)
     end
+  end
+
+  defp drop_fixture_database(runner, command_options) do
+    runner.("mix", ["ecto.drop", "-r", "Chimeway.Repo", "--quiet"], command_options)
+  rescue
+    _ -> :ok
+  catch
+    _, _ -> :ok
+  end
+
+  defp copy_fixture!(destination) do
+    File.mkdir_p!(destination)
+
+    Enum.each(["config", "lib", "test", "mix.exs"], fn entry ->
+      source = Path.join(fixture_root(), entry)
+      target = Path.join(destination, entry)
+
+      case File.cp_r(source, target) do
+        {:ok, _paths} -> :ok
+        {:error, _path, reason} -> raise File.Error, reason: reason, action: "copy", path: source
+      end
+    end)
   end
 
   defp build_archive! do
@@ -144,25 +196,6 @@ defmodule Chimeway.AlphaTwinProofRunner do
 
   defp run_git(path, arguments),
     do: System.cmd("git", ["-C", path | arguments], stderr_to_stdout: true)
-
-  defp copy_package_migrations!(package_root) do
-    source = Path.join(package_root, "priv/chimeway_migrations")
-
-    destination =
-      Path.join(
-        System.tmp_dir!(),
-        "chimeway_alpha_migrations_#{System.unique_integer([:positive])}"
-      )
-
-    try do
-      true = File.dir?(source)
-      :ok = File.mkdir_p(destination)
-      {:ok, _copied} = File.cp_r(source, destination)
-      :ok
-    after
-      File.rm_rf(destination)
-    end
-  end
 
   defp sha256!(archive),
     do: :crypto.hash(:sha256, File.read!(archive)) |> Base.encode16(case: :lower)
