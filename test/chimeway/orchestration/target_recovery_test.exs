@@ -226,6 +226,47 @@ defmodule Chimeway.Orchestration.TargetRecoveryTest do
     assert event_id == event.id
   end
 
+  test "uses the discovery clock when closing a stale attempt" do
+    now = ~U[2040-08-25 12:00:00.000000Z]
+    %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "recovery-clock")
+
+    target =
+      Repo.insert!(%DeliveryTarget{
+        tenant_id: delivery.tenant_id,
+        delivery_id: delivery.id,
+        binding_revision_ref: "cw_recovery_binding_clock",
+        status: :claimed,
+        claimed_at: DateTime.add(now, -120, :second),
+        lease_expires_at: DateTime.add(now, -1, :second)
+      })
+
+    Repo.insert!(%DeliveryTargetAttempt{
+      tenant_id: delivery.tenant_id,
+      delivery_target_id: target.id,
+      attempt_number: 1,
+      outcome: :attempt_started,
+      started_at: DateTime.add(now, -120, :second),
+      source: "target_recovery",
+      safe_facts: %{}
+    })
+
+    assert %{counts: %{left_ambiguous: 1}} =
+             TargetRecovery.recover_tenant(delivery.tenant_id, now: now, older_than: 60)
+
+    closed_target = Repo.get!(DeliveryTarget, target.id)
+
+    closed_attempt =
+      Repo.one!(
+        from(a in DeliveryTargetAttempt,
+          where: a.delivery_target_id == ^target.id and a.attempt_number == 1
+        )
+      )
+
+    assert closed_target.status == :ambiguous_handoff
+    assert closed_attempt.outcome == :ambiguous_handoff
+    assert closed_attempt.finished_at == now
+  end
+
   test "recovery keeps typed continuations independent and caps each stream" do
     %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "recovery-pages")
     now = ~U[2026-08-19 12:00:00.000000Z]

@@ -23,7 +23,7 @@ defmodule Chimeway.TargetRecovery do
       events = discover_stranded_events(tenant_id, opts)
       {event_ids, planning_count} = recover_events(tenant_id, events.event_ids, opts)
       stale = discover_stale_attempts(tenant_id, opts)
-      {stale_count, stale_reasons} = close_stale_attempts(tenant_id, stale.target_ids)
+      {stale_count, stale_reasons} = close_stale_attempts(tenant_id, stale.target_ids, opts)
       targets = discover_target_work(tenant_id, opts)
       target_results = execute_targets(tenant_id, targets.target_ids)
 
@@ -145,9 +145,11 @@ defmodule Chimeway.TargetRecovery do
     discovery_result(:left_ambiguous, :target_ids, ids)
   end
 
-  defp close_stale_attempts(tenant_id, stale_ids) do
+  defp close_stale_attempts(tenant_id, stale_ids, opts) do
+    clock_opts = Keyword.take(opts, [:now, :clock, :clock_pid])
+
     Enum.reduce(stale_ids, {0, []}, fn target_id, {count, reasons} ->
-      case DeliveryTargets.close_stale_started_attempt(target_id, tenant_id) do
+      case DeliveryTargets.close_stale_started_attempt(target_id, tenant_id, clock_opts) do
         {:ok, _} -> {count + 1, [:left_ambiguous | reasons]}
         _ -> {count, reasons}
       end
