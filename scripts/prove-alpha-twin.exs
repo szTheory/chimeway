@@ -26,23 +26,27 @@ defmodule Chimeway.AlphaTwinProofRunner do
            {:ok, proof} <-
              with_archive.(archive, digest, fn root ->
                with_crosswake_worktree.(fn crosswake_root ->
-                 fixture_output = run_fixture!(root, crosswake_root, opts)
+                 fixture_execution = run_fixture!(root, crosswake_root, opts)
 
                  # This line is intentionally reachable only after the clean-room
                  # fixture has completed successfully against the validated inputs.
                  # The fixture's actual result is included as a bounded derived fact,
                  # rather than emitting a standalone hard-coded success claim.
-                 fixture_result = fixture_result!(fixture_output)
+                 fixture_result = fixture_result!(fixture_execution)
+                 evidence_sources = fixture_evidence!(fixture_execution)
 
-                 proof_line!(%{
-                   archive_digest: digest,
-                   crosswake_remote: @remote,
-                   crosswake_sha: @sha,
-                   scenario_id: "accepted_handoff_protected_open",
-                   activation: :authorized,
-                   explanation: :accepted,
-                   fixture_result: fixture_result
-                 })
+                 proof_line!(
+                   %{
+                     archive_digest: digest,
+                     crosswake_remote: @remote,
+                     crosswake_sha: @sha,
+                     scenario_id: "accepted_handoff_protected_open",
+                     activation: :authorized,
+                     explanation: :accepted,
+                     fixture_result: fixture_result
+                   },
+                   evidence_sources
+                 )
                end)
              end) do
         IO.puts(proof)
@@ -63,12 +67,28 @@ defmodule Chimeway.AlphaTwinProofRunner do
   def proof_line!(attrs), do: AlphaTwin.ProofSummary.render!(attrs)
 
   @doc false
+  def proof_line!(attrs, evidence_sources) when is_map(evidence_sources) do
+    attrs
+    |> proof_line!()
+    |> scan_proof!(evidence_sources)
+  end
+
+  @doc false
+  def scan_proof!(proof, evidence_sources) when is_binary(proof) and is_map(evidence_sources) do
+    case AlphaTwin.ProofSummary.scan_sources(Map.put(evidence_sources, "final_bytes", proof)) do
+      :ok -> proof
+      {:error, _safe_failure} -> raise ArgumentError, "unsafe Alpha twin evidence"
+    end
+  end
+
+  @doc false
   def run_fixture!(package_root, crosswake_root, opts \\ [])
       when is_binary(package_root) and is_binary(crosswake_root) and is_list(opts) do
     runner = Keyword.get(opts, :fixture_runner, &System.cmd/3)
     unique = System.unique_integer([:positive])
     runtime_root = Path.join(System.tmp_dir!(), "chimeway_alpha_fixture_#{unique}")
     runtime_fixture = Path.join(runtime_root, "fixture")
+    evidence_path = Path.join(runtime_root, "runtime-evidence.json")
     database_url = "postgres://postgres:postgres@127.0.0.1:55432/chimeway_alpha_twin_#{unique}"
     File.mkdir_p!(runtime_root)
     copy_fixture!(runtime_fixture)
@@ -80,6 +100,7 @@ defmodule Chimeway.AlphaTwinProofRunner do
         {"CROSSWAKE_PATH", crosswake_root},
         {"CHIMEWAY_ALPHA_TWIN_LEDGER",
          Path.join(package_root, "priv/alpha_twin/scenario-ledger.json")},
+        {"CHIMEWAY_ALPHA_TWIN_EVIDENCE_PATH", evidence_path},
         {"DATABASE_URL", database_url}
       ],
       stderr_to_stdout: true
@@ -104,8 +125,11 @@ defmodule Chimeway.AlphaTwinProofRunner do
                ],
                command_options
              ),
-           {output, 0} when is_binary(output) <- runner.("mix", ["test"], command_options) do
-        output
+           {output, 0} when is_binary(output) <- runner.("mix", ["test"], command_options),
+           {:ok, encoded_evidence} <- File.read(evidence_path),
+           {:ok, evidence_sources} <- Jason.decode(encoded_evidence),
+           :ok <- AlphaTwin.ProofSummary.scan_sources(evidence_sources) do
+        {output, evidence_sources}
       else
         _ -> raise "alpha twin fixture failed"
       end
@@ -202,12 +226,16 @@ defmodule Chimeway.AlphaTwinProofRunner do
 
   defp fixture_root, do: Path.expand("../test/fixtures/alpha_twin", __DIR__)
 
-  defp fixture_result!(output) when is_binary(output) do
+  defp fixture_result!({output, evidence_sources})
+       when is_binary(output) and is_map(evidence_sources) do
     # Mix owns the exact textual summary, so retain only the success exit state in
     # evidence. The output has still been observed before this proof is emitted.
     _ = output
     :passed
   end
+
+  defp fixture_evidence!({_output, evidence_sources}) when is_map(evidence_sources),
+    do: evidence_sources
 
   defp fail(error \\ nil) do
     reason =

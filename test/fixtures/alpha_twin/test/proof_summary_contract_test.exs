@@ -68,6 +68,22 @@ defmodule AlphaTwin.ProofSummaryContractTest do
 
       refute inspect(AlphaTwin.ProofSummary.scan_sources(injected)) =~ sentinel
     end
+
+    for {source, field, value} <- [
+          {"storage", "device_token", "7f16c472cdb4428c9e"},
+          {"traces", "identity", "user-4815"},
+          {"telemetry", "redirect_url", "custom-scheme://private/open"},
+          {"exceptions", "payload", "private notification text"},
+          {"observations", "credential", "apns-signing-material"},
+          {"final_bytes", "provider_body", "provider diagnostic content"}
+        ] do
+      injected = Map.put(clean, source, %{field => value})
+
+      assert {:error, %{rule: :sensitive_value, path: [^source, ^field]}} =
+               AlphaTwin.ProofSummary.scan_sources(injected)
+
+      refute inspect(AlphaTwin.ProofSummary.scan_sources(injected)) =~ value
+    end
   end
 
   defp proof_attrs do

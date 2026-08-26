@@ -49,6 +49,53 @@ defmodule Chimeway.AlphaTwinRunnerTest do
     end
   end
 
+  test "refuses proof emission when any actual evidence source or final bytes are unsafe" do
+    Code.require_file(@fixture_path)
+    Code.require_file(@proof_path)
+
+    attrs = %{
+      archive_digest: String.duplicate("a", 64),
+      crosswake_remote: "https://github.com/szTheory/crosswake.git",
+      crosswake_sha: "f2c502cdb1ce572a4a57257d9e3c051665704b90",
+      scenario_id: "accepted_handoff_protected_open",
+      activation: :authorized,
+      explanation: :accepted,
+      fixture_result: :passed
+    }
+
+    safe_sources = %{
+      "storage" => [%{"status" => "succeeded"}],
+      "traces" => [%{"outcome" => "provider_accepted"}],
+      "telemetry" => [%{"event" => "dispatch.stop"}],
+      "exceptions" => [],
+      "observations" => [%{"provider_status" => 200}],
+      "final_bytes" => "pending_outer_proof"
+    }
+
+    assert apply(Chimeway.AlphaTwinProofRunner, :proof_line!, [attrs, safe_sources]) =~
+             "CHIMEWAY_ALPHA_TWIN_PROOF"
+
+    for {source, unsafe} <- [
+          {"storage", %{"device_token" => "ordinary-device-value"}},
+          {"traces", %{"identity" => "ordinary-user-value"}},
+          {"telemetry", %{"redirect_url" => "custom://private"}},
+          {"exceptions", %{"payload" => "private content"}},
+          {"observations", %{"credential" => "signing material"}}
+        ] do
+      assert_raise ArgumentError, "unsafe Alpha twin evidence", fn ->
+        sources = Map.put(safe_sources, source, unsafe)
+        apply(Chimeway.AlphaTwinProofRunner, :proof_line!, [attrs, sources])
+      end
+    end
+
+    assert_raise ArgumentError, "unsafe Alpha twin evidence", fn ->
+      apply(Chimeway.AlphaTwinProofRunner, :scan_proof!, [
+        "CHIMEWAY_ALPHA_TWIN_PROOF raw-provider-body-private",
+        safe_sources
+      ])
+    end
+  end
+
   test "a failed clean-room fixture command aborts the Alpha twin proof" do
     Code.require_file(@fixture_path)
     Code.require_file(@proof_path)

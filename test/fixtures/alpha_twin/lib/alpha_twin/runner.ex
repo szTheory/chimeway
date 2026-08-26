@@ -27,6 +27,15 @@ defmodule AlphaTwin.Runner do
 
   @all_scenario_ids @delivery_scenario_ids ++ @safety_scenario_ids
   @now ~U[2026-08-25 12:00:00Z]
+  @telemetry_events for span <- [
+                          [:events, :create],
+                          [:deliveries, :plan],
+                          [:policy, :evaluate],
+                          [:dispatch, :sync],
+                          [:attempts, :record]
+                        ],
+                        terminal <- [:start, :stop, :exception],
+                        do: [:chimeway | span] ++ [terminal]
 
   def delivery_scenario_ids, do: @delivery_scenario_ids
   def all_scenario_ids, do: @all_scenario_ids
@@ -59,11 +68,12 @@ defmodule AlphaTwin.Runner do
     with {:ok, contents} <- File.read(Keyword.fetch!(opts, :ledger)),
          {:ok, ledger} <- Jason.decode(contents),
          {:ok, scenario_ids} <- validate_ledger(ledger),
-         {:ok, results} <- execute(scenario_ids) do
+         {:ok, results, evidence_sources} <- execute(scenario_ids) do
       {:ok,
        %{
          scenario_ids: scenario_ids,
          scenario_results: results,
+         evidence_sources: evidence_sources,
          claim_taxonomy: %{
            dispatch_intent: :recorded,
            provider_acceptance: :provider_accepted,
@@ -83,32 +93,39 @@ defmodule AlphaTwin.Runner do
 
   defp execute(ids) do
     {:ok, registry} = Registry.start_link()
+    telemetry_handler = attach_telemetry_capture()
 
     try do
       configure(registry)
 
-      ids
-      |> Enum.reduce_while({:ok, []}, fn id, {:ok, acc} ->
-        case execute_scenario(id, registry) do
-          {:ok, outcome, durable, explanation} ->
-            {:cont,
-             {:ok,
-              [%{id: id, durable: durable, explanation: explanation, outcome: outcome} | acc]}}
+      result =
+        Enum.reduce_while(ids, {:ok, []}, fn id, {:ok, acc} ->
+          case execute_scenario(id, registry) do
+            {:ok, outcome, durable, explanation} ->
+              {:cont,
+               {:ok,
+                [%{id: id, durable: durable, explanation: explanation, outcome: outcome} | acc]}}
 
-          failure ->
-            IO.puts(
-              :stderr,
-              "[alpha-twin] scenario_failed id=#{id} class=#{failure_class(failure)}"
-            )
+            failure ->
+              IO.puts(
+                :stderr,
+                "[alpha-twin] scenario_failed id=#{id} class=#{failure_class(failure)}"
+              )
 
-            {:halt, {:error, :scenario_failed}}
-        end
-      end)
-      |> then(fn
-        {:ok, results} -> {:ok, Enum.reverse(results)}
-        error -> error
-      end)
+              {:halt, {:error, :scenario_failed}}
+          end
+        end)
+
+      with {:ok, reversed} <- result,
+           results = Enum.reverse(reversed),
+           sources = collect_evidence_sources(),
+           :ok <- AlphaTwin.ProofSummary.scan_sources(sources) do
+        {:ok, results, sources}
+      else
+        _ -> {:error, :scenario_failed}
+      end
     after
+      :telemetry.detach(telemetry_handler)
       Application.delete_env(:chimeway, :alpha_twin_registry)
       Process.exit(registry, :normal)
     end
@@ -121,6 +138,128 @@ defmodule AlphaTwin.Runner do
     Application.put_env(:chimeway, :alpha_twin_registry, registry)
     Application.put_env(:chimeway, :apns_binding_lookup, Registry)
     Application.put_env(:crosswake, :companions, [Crosswake.Companions.Sigra])
+  end
+
+  defp attach_telemetry_capture do
+    handler = {:alpha_twin, self(), System.unique_integer([:positive])}
+
+    :ok =
+      :telemetry.attach_many(
+        handler,
+        @telemetry_events,
+        fn event, measurements, metadata, owner ->
+          send(
+            owner,
+            {:alpha_twin_telemetry,
+             %{event: event, measurements: measurements, metadata: metadata}}
+          )
+        end,
+        self()
+      )
+
+    handler
+  end
+
+  defp collect_evidence_sources do
+    %{
+      "storage" => persisted_evidence(),
+      "traces" => trace_evidence(),
+      "telemetry" => drain_messages(:alpha_twin_telemetry),
+      "exceptions" => drain_messages(:alpha_twin_exception),
+      "observations" => drain_messages(:alpha_twin_apns_request),
+      "final_bytes" => "pending_outer_proof"
+    }
+  end
+
+  defp persisted_evidence do
+    deliveries =
+      Chimeway.Repo.all(
+        from(d in Chimeway.Delivery,
+          where: d.tenant_id == "alpha-twin",
+          order_by: [asc: d.id],
+          select: %{
+            id: d.id,
+            channel: d.channel,
+            status: d.status,
+            planning_reason: d.planning_reason,
+            suppression_reason: d.suppression_reason
+          }
+        )
+      )
+
+    targets =
+      Chimeway.Repo.all(
+        from(t in Chimeway.DeliveryTarget,
+          where: t.tenant_id == "alpha-twin",
+          order_by: [asc: t.id],
+          select: %{
+            id: t.id,
+            delivery_id: t.delivery_id,
+            binding_revision_ref: t.binding_revision_ref,
+            status: t.status,
+            request_intent: t.apns_request_intent
+          }
+        )
+      )
+
+    attempts =
+      Chimeway.Repo.all(
+        from(a in Chimeway.DeliveryTargetAttempt,
+          where: a.tenant_id == "alpha-twin",
+          order_by: [asc: a.id],
+          select: %{
+            id: a.id,
+            delivery_target_id: a.delivery_target_id,
+            attempt_number: a.attempt_number,
+            outcome: a.outcome,
+            source: a.source,
+            duplicate_risk: a.duplicate_risk,
+            safe_facts: a.safe_facts
+          }
+        )
+      )
+
+    %{deliveries: deliveries, targets: targets, attempts: attempts}
+  end
+
+  defp trace_evidence do
+    Chimeway.Repo.all(
+      from(d in Chimeway.Delivery,
+        where: d.tenant_id == "alpha-twin",
+        order_by: [asc: d.id],
+        select: d.id
+      )
+    )
+    |> Enum.map(fn delivery_id ->
+      {:ok, explanation} =
+        Chimeway.Traces.explain_delivery(delivery_id, tenant_id: "alpha-twin")
+
+      %{
+        delivery_id: explanation.delivery_id,
+        status: explanation.status,
+        suppression_reason: explanation.suppression_reason,
+        target_count: Map.get(explanation.target_aggregate, :target_count, 0),
+        targets:
+          Enum.map(explanation.targets, fn target ->
+            %{
+              binding_revision_ref: target.binding_revision_ref,
+              status: target.status,
+              attempts:
+                Enum.map(target.attempts, fn attempt ->
+                  %{outcome: attempt.outcome, safe_facts: attempt.safe_facts}
+                end)
+            }
+          end)
+      }
+    end)
+  end
+
+  defp drain_messages(tag, acc \\ []) do
+    receive do
+      {^tag, evidence} -> drain_messages(tag, [evidence | acc])
+    after
+      0 -> Enum.reverse(acc)
+    end
   end
 
   # Every delivery ledger entry traverses the production trigger, planning,
@@ -698,6 +837,11 @@ defmodule AlphaTwin.Runner do
   defp assert_down(ref, pid) do
     receive do
       {:DOWN, ^ref, :process, ^pid, :alpha_twin_post_commit_crash} ->
+        send(self(), {
+          :alpha_twin_exception,
+          %{class: "exit", reason: "alpha_twin_post_commit_crash"}
+        })
+
         :ok
 
       {:DOWN, ^ref, :process, ^pid, _reason} ->

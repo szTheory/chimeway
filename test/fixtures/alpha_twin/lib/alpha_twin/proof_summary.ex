@@ -22,6 +22,8 @@ defmodule AlphaTwin.ProofSummary do
     {"replay_rejection", "replay_rejected"}
   ]
   @source_keys ~w(storage traces telemetry exceptions observations final_bytes)
+  @sensitive_keys ~w(actor body credential credentials device_token email identity open_content password payload provider_body recipient secret token url uri)
+  @sensitive_key_suffixes ~w(_body _credential _credentials _password _payload _secret _token _url _uri)
 
   @doc "Returns a canonical, closed proof or a non-echoing safe failure."
   @spec render(map()) :: {:ok, binary()} | {:error, %{rule: atom(), path: [String.t()]}}
@@ -124,7 +126,10 @@ defmodule AlphaTwin.ProofSummary do
 
   defp sensitive_path(value, path) when is_map(value) do
     Enum.find_value(value, fn {key, nested} ->
-      sensitive_path(nested, path ++ [to_string(key)])
+      key = key |> to_string() |> String.downcase()
+      nested_path = path ++ [key]
+
+      if sensitive_key?(key), do: nested_path, else: sensitive_path(nested, nested_path)
     end)
   end
 
@@ -144,11 +149,17 @@ defmodule AlphaTwin.ProofSummary do
          "raw-payload",
          "raw-credential",
          "raw-provider-body",
+         "http://",
          "https://",
+         "bearer ",
          "actor:"
        ]),
        do: path
   end
 
   defp sensitive_path(_, _), do: nil
+
+  defp sensitive_key?(key) do
+    key in @sensitive_keys or Enum.any?(@sensitive_key_suffixes, &String.ends_with?(key, &1))
+  end
 end

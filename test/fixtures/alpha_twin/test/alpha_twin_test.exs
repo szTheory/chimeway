@@ -173,6 +173,7 @@ defmodule AlphaTwin.SeamsTest do
     now: now
   } do
     assert %DateTime{} = Chimeway.Clock.now()
+    assert ^now = Chimeway.Clock.now(now: now)
     assert ^now = Chimeway.Clock.now(clock: Clock, clock_pid: clock)
     assert :ok = Clock.advance(clock, 61)
     assert Clock.now(clock) == DateTime.add(now, 61, :second)
@@ -339,6 +340,10 @@ defmodule AlphaTwin.DeliveryMatrixTest do
     assert result.claim_taxonomy.protected_open == :authorized_once
     assert result.claim_taxonomy.inbox_seen == :not_attempted
     assert result.claim_taxonomy.inbox_read == :not_attempted
+
+    if evidence_path = System.get_env("CHIMEWAY_ALPHA_TWIN_EVIDENCE_PATH") do
+      File.write!(evidence_path, Jason.encode!(result.evidence_sources))
+    end
   end
 
   test "the ledger rejects missing duplicate reordered unknown non-string and extra fields" do
