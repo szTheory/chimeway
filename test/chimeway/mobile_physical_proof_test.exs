@@ -5,11 +5,14 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
 
   test "validates a closed physical bundle and publishes it exactly once" do
     bundle = physical_bundle()
-    destination = Path.join(System.tmp_dir!(), "physical-bundle-#{System.unique_integer([:positive])}")
+
+    destination =
+      Path.join(System.tmp_dir!(), "physical-bundle-#{System.unique_integer([:positive])}")
 
     try do
       assert {:ok, ^bundle} = PhysicalBundle.validate(bundle, selected_sha: selected_sha())
       assert :ok = PhysicalBundle.publish(bundle, destination, selected_sha: selected_sha())
+
       assert {:error, %{rule_id: "PP-PUBLICATION-COLLISION", path: []}} =
                PhysicalBundle.publish(bundle, destination, selected_sha: selected_sha())
     after
@@ -19,14 +22,17 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
 
   test "rejects a sensitive nested value without echoing it" do
     canary = "CANARY-DEVICE-TOKEN"
-    bundle = put_in(physical_bundle(), ["chimeway_envelope", "facts", "delivery_succeeded"], canary)
 
-    assert {:error, %{rule_id: "PP-SENSITIVE", path: ["chimeway_envelope", "facts", "delivery_succeeded"]}} =
+    bundle =
+      put_in(physical_bundle(), ["chimeway_envelope", "facts", "delivery_succeeded"], canary)
+
+    assert {:error,
+            %{rule_id: "PP-SENSITIVE", path: ["chimeway_envelope", "facts", "delivery_succeeded"]}} =
              PhysicalBundle.validate(bundle, selected_sha: selected_sha())
   end
 
   defp physical_bundle do
-    %{
+    bundle = %{
       "bundle_version" => 1,
       "owner" => "chimeway",
       "proof_class" => "physical",
@@ -55,8 +61,16 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
         "completion_marker_sha256" => String.duplicate("c", 64),
         "assertions" => [
           %{"id" => "permission_observed", "owner" => "device_local", "outcome" => "passed"},
-          %{"id" => "authenticated_registration", "owner" => "backend_authority", "outcome" => "passed"},
-          %{"id" => "protected_activation_once", "owner" => "backend_authority", "outcome" => "passed"}
+          %{
+            "id" => "authenticated_registration",
+            "owner" => "backend_authority",
+            "outcome" => "passed"
+          },
+          %{
+            "id" => "protected_activation_once",
+            "owner" => "backend_authority",
+            "outcome" => "passed"
+          }
         ]
       },
       "visible_alert_attestation" => %{
@@ -75,6 +89,8 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
         "state" => "validated"
       }
     }
+
+    Map.put(bundle, "bundle_sha256", PhysicalBundle.bundle_digest(bundle))
   end
 
   defp selected_sha, do: File.read!("priv/mobile_proof/crosswake-selected-sha") |> String.trim()
