@@ -328,13 +328,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          selected_sha="$(tr -d '\n' < priv/mobile_proof/crosswake-selected-sha)"
+          test "${selected_sha}" = "$(printf '%s' "${selected_sha}" | grep -E '^[0-9a-f]{40}$')"
           git init -q ../crosswake
           git -C ../crosswake remote add origin https://github.com/szTheory/crosswake.git
-          git -C ../crosswake fetch --depth=1 origin f2c502cdb1ce572a4a57257d9e3c051665704b90
-          git -C ../crosswake checkout --detach -q f2c502cdb1ce572a4a57257d9e3c051665704b90
+          test "$(git -C ../crosswake ls-remote origin refs/heads/phase-103-chimeway-notification-proof | cut -f1)" = "${selected_sha}"
+          git -C ../crosswake fetch --depth=1 origin refs/heads/phase-103-chimeway-notification-proof
+          git -C ../crosswake checkout --detach -q "${selected_sha}"
           test "$(git -C ../crosswake remote get-url origin)" = "https://github.com/szTheory/crosswake.git"
-          test "$(git -C ../crosswake rev-parse HEAD)" = "f2c502cdb1ce572a4a57257d9e3c051665704b90"
+          test "$(git -C ../crosswake rev-parse HEAD)" = "${selected_sha}"
           test -z "$(git -C ../crosswake status --porcelain)"
+          test -f ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          test -f ../crosswake/test/fixtures/proof_lane/chimeway-notification-physical-proof.json
+          test -f ../crosswake/test/crosswake/proof_lane/chimeway_notification_physical_proof_test.exs
+          grep -q 'def validate_report' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'def validate_source_bound' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'def schema_version' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'def assertions' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'Evidence.check' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'validate_source_bound' ../crosswake/test/crosswake/proof_lane/chimeway_notification_physical_proof_test.exs
       - run: |
           mix local.rebar --force
           mix local.hex --force

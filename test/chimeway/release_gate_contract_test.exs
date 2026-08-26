@@ -2692,7 +2692,9 @@ defmodule Chimeway.ReleaseGateContractTest do
             "timeout-minutes:",
             "image: postgres:15",
             "https://github.com/szTheory/crosswake.git",
-            "f2c502cdb1ce572a4a57257d9e3c051665704b90",
+            "priv/mobile_proof/crosswake-selected-sha",
+            "refs/heads/phase-103-chimeway-notification-proof",
+            "git ls-remote origin",
             "checkout --detach",
             "rev-parse HEAD",
             "status --porcelain",
@@ -2715,6 +2717,24 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert "verify_alpha_twin" in extract_pr_gate_needs(ci_yml)
       assert "verify_alpha_twin" in extract_ci_gate_needs(ci_yml)
+    end
+
+    test "Threshold A remains credential-free and does not treat provenance as physical proof" do
+      mix_exs = File.read!(@mix_exs)
+      ci_yml = File.read!(@ci_yml)
+      runner = File.read!("lib/mix/tasks/chimeway.mobile_physical_proof.ex")
+
+      assert mix_exs =~
+               "\"ci.alpha_twin\": [\"verify.alpha_twin\", \"verify.physical_proof_contract\"]"
+
+      assert runner =~ "release_ready_physical_pending" or
+               runner =~ "physical support remains pending"
+
+      assert runner =~ "Did the expected Chimeway alert appear on the selected iPhone?"
+
+      for forbidden <- ["APPLE_", "APNS_", "xcodebuild", "macos-", "secrets:"] do
+        refute ci_yml =~ forbidden, "CI must not carry physical-device credentials: #{forbidden}"
+      end
     end
   end
 

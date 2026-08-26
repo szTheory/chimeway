@@ -19,6 +19,9 @@ defmodule Chimeway.MobilePhysicalProofRunnerTest do
   end
 
   test "visible alert input is explicit and limited to the D-13 choices" do
+    assert MobilePhysicalProof.alert_question() ==
+             "Did the expected Chimeway alert appear on the selected iPhone?"
+
     assert MobilePhysicalProof.alert_state("Observed") == {:ok, "observed"}
     assert MobilePhysicalProof.alert_state("Did not appear") == {:ok, "not_observed"}
     assert MobilePhysicalProof.alert_state("Cannot verify") == {:ok, "unavailable"}
