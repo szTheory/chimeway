@@ -4,7 +4,24 @@ defmodule AlphaTwin.ProofSummary do
   @remote "https://github.com/szTheory/crosswake.git"
   @scenario "accepted_handoff_protected_open"
   @proof_keys ~w(schema_version proof_class chimeway_artifact_sha256 crosswake_sha scenario_results claim_taxonomy)
-  @taxonomy_keys ~w(provider_acceptance protected_open inbox_seen inbox_read)
+  @taxonomy_keys ~w(dispatch_intent provider_acceptance invalidation protected_open inbox_seen inbox_read)
+  @scenario_outcomes [
+    {"accepted_handoff_protected_open", "protected_open_once"},
+    {"two_installation_fanout", "fanout_two_provider_acceptances"},
+    {"zero_target_suppression", "suppressed_no_targets"},
+    {"token_rotation", "old_revision_rejected"},
+    {"revocation_race", "exact_revision_cas"},
+    {"classified_retry", "retryable_then_accepted"},
+    {"expiry_before_io", "expired_before_provider_io"},
+    {"opt_in_installation_safe_collapse", "installation_safe_distinct"},
+    {"trigger_commit_recovery", "recovery_converged"},
+    {"post_handoff_ambiguity", "ambiguous_handoff_no_resend"},
+    {"recursive_leak_prevention", "recursive_scan_rejected"},
+    {"offline_reauthorization", "protected_open_once"},
+    {"stale_denied_open", "denied_no_fallback"},
+    {"replay_rejection", "replay_rejected"}
+  ]
+  @source_keys ~w(storage traces telemetry exceptions observations final_bytes)
 
   @doc "Returns a canonical, closed proof or a non-echoing safe failure."
   @spec render(map()) :: {:ok, binary()} | {:error, %{rule: atom(), path: [String.t()]}}
@@ -16,6 +33,21 @@ defmodule AlphaTwin.ProofSummary do
   end
 
   def render(_), do: {:error, %{rule: :invalid_schema, path: []}}
+
+  @doc "Checks the complete closed evidence-source set without serializing diagnostics."
+  @spec scan_sources(map()) :: :ok | {:error, %{rule: atom(), path: [String.t()]}}
+  def scan_sources(sources) when is_map(sources) do
+    if Map.keys(sources) |> Enum.sort() == Enum.sort(@source_keys) do
+      case sensitive_path(sources) do
+        nil -> :ok
+        path -> {:error, %{rule: :sensitive_value, path: path}}
+      end
+    else
+      {:error, %{rule: :invalid_sources, path: []}}
+    end
+  end
+
+  def scan_sources(_), do: {:error, %{rule: :invalid_sources, path: []}}
 
   def render!(%{
         archive_digest: digest,
@@ -46,28 +78,39 @@ defmodule AlphaTwin.ProofSummary do
          true <- digest?(attrs["crosswake_sha"], 40),
          true <- valid_results?(attrs["scenario_results"]),
          true <- valid_taxonomy?(attrs["claim_taxonomy"]) do
-      {:ok, Jason.encode!(attrs)}
+      encoded = Jason.encode!(attrs)
+
+      case sensitive_path(encoded) do
+        nil -> {:ok, encoded}
+        path -> {:error, %{rule: :sensitive_value, path: path}}
+      end
     else
       _ -> {:error, %{rule: :invalid_schema, path: []}}
     end
   end
 
   defp valid_results?(results) when is_list(results) do
-    Enum.all?(results, fn
-      %{"id" => id, "outcome" => outcome} = result
-      when map_size(result) == 2 and is_binary(id) and is_binary(outcome) ->
-        true
+    Enum.map(results, fn
+      %{"id" => id, "outcome" => outcome} = result when map_size(result) == 2 ->
+        {id, outcome}
 
       _ ->
-        false
-    end)
+        :invalid
+    end) == @scenario_outcomes
   end
 
   defp valid_results?(_), do: false
 
   defp valid_taxonomy?(taxonomy) when is_map(taxonomy) do
     Map.keys(taxonomy) |> Enum.sort() == Enum.sort(@taxonomy_keys) and
-      Enum.all?(taxonomy, fn {key, value} -> key in @taxonomy_keys and is_binary(value) end)
+      taxonomy == %{
+        "dispatch_intent" => "recorded",
+        "provider_acceptance" => "provider_accepted",
+        "invalidation" => "observed",
+        "protected_open" => "authorized_once",
+        "inbox_seen" => "not_attempted",
+        "inbox_read" => "not_attempted"
+      }
   end
 
   defp valid_taxonomy?(_), do: false
@@ -95,12 +138,16 @@ defmodule AlphaTwin.ProofSummary do
   defp sensitive_path(value, path) when is_binary(value) do
     if String.contains?(value, [
          "raw-token",
-         "credential",
-         "provider-body",
+         "raw-identity",
+         "raw-url",
+         "raw-open-content",
+         "raw-payload",
+         "raw-credential",
+         "raw-provider-body",
          "https://",
-         "payload",
          "actor:"
-       ]), do: path
+       ]),
+       do: path
   end
 
   defp sensitive_path(_, _), do: nil

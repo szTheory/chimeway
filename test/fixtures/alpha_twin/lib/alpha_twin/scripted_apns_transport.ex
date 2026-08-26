@@ -30,6 +30,25 @@ defmodule AlphaTwin.ScriptedAPNSTransport do
   def handle_call(
         {:push, request},
         _from,
+        %{script: [{:blocked, outcome} | rest], observer: observer} = state
+      ) do
+    with :ok <- validate(request) do
+      send(observer, {:alpha_twin_apns_request, redact(request)})
+      send(observer, {:alpha_twin_apns_blocked, self()})
+
+      receive do
+        :alpha_twin_release -> {:reply, result(outcome), %{state | script: rest}}
+      after
+        5_000 -> {:reply, {:error, :ambiguous}, state}
+      end
+    else
+      :error -> {:reply, {:error, :rejected}, state}
+    end
+  end
+
+  def handle_call(
+        {:push, request},
+        _from,
         %{script: [outcome | rest], observer: observer} = state
       ) do
     with :ok <- validate(request) do

@@ -405,12 +405,12 @@ defmodule AlphaTwin.SafetyMatrixTest do
       "proof_class" => "alpha_twin",
       "chimeway_artifact_sha256" => String.duplicate("a", 64),
       "crosswake_sha" => String.duplicate("b", 40),
-      "scenario_results" => [
-        %{"id" => "offline_reauthorization", "outcome" => "protected_open_once"}
-      ],
+      "scenario_results" => canonical_scenario_results(),
       "claim_taxonomy" => %{
+        "dispatch_intent" => "recorded",
         "provider_acceptance" => "provider_accepted",
-        "protected_open" => "authorized",
+        "invalidation" => "observed",
+        "protected_open" => "authorized_once",
         "inbox_seen" => "not_attempted",
         "inbox_read" => "not_attempted"
       }
@@ -421,5 +421,28 @@ defmodule AlphaTwin.SafetyMatrixTest do
 
     assert {:error, %{rule: :invalid_schema, path: []}} =
              AlphaTwin.ProofSummary.render(Map.put(attrs, "debug", true))
+  end
+
+  defp canonical_scenario_results do
+    outcomes = [
+      "protected_open_once",
+      "fanout_two_provider_acceptances",
+      "suppressed_no_targets",
+      "old_revision_rejected",
+      "exact_revision_cas",
+      "retryable_then_accepted",
+      "expired_before_provider_io",
+      "installation_safe_distinct",
+      "recovery_converged",
+      "ambiguous_handoff_no_resend",
+      "recursive_scan_rejected",
+      "protected_open_once",
+      "denied_no_fallback",
+      "replay_rejected"
+    ]
+
+    AlphaTwin.Runner.all_scenario_ids()
+    |> Enum.zip(outcomes)
+    |> Enum.map(fn {id, outcome} -> %{"id" => id, "outcome" => outcome} end)
   end
 end

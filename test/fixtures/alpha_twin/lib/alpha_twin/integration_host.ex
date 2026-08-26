@@ -36,14 +36,19 @@ defmodule AlphaTwin.IntegrationTargetResolver do
 
   @impl true
   def resolve_targets(tenant_id, _opts) do
-    Application.get_env(
-      :chimeway,
-      :alpha_twin_target_bindings,
-      [
-        {Application.fetch_env!(:chimeway, :alpha_twin_binding_ref),
-         Application.fetch_env!(:chimeway, :alpha_twin_request_intent)}
-      ]
-    )
+    bindings =
+      case Application.fetch_env(:chimeway, :alpha_twin_target_bindings) do
+        {:ok, configured} ->
+          configured
+
+        :error ->
+          [
+            {Application.fetch_env!(:chimeway, :alpha_twin_binding_ref),
+             Application.fetch_env!(:chimeway, :alpha_twin_request_intent)}
+          ]
+      end
+
+    bindings
     |> Enum.reduce_while({:ok, []}, fn {binding_ref, intent}, {:ok, bindings} ->
       case BindingRevision.new_with_request_intent(tenant_id, binding_ref, intent) do
         {:ok, binding} -> {:cont, {:ok, [binding | bindings]}}
@@ -115,6 +120,25 @@ defmodule AlphaTwin.CrashOnceDispatcher do
 
   @impl true
   def dispatch_delivery(_delivery, _opts), do: exit(:alpha_twin_post_commit_crash)
+end
+
+defmodule AlphaTwin.PlanOnlyDispatcher do
+  @moduledoc false
+  @behaviour Chimeway.Dispatch
+
+  @impl true
+  def dispatch(notifications, opts) when is_list(notifications) do
+    notifications
+    |> Enum.reduce_while({:ok, []}, fn notification, {:ok, deliveries} ->
+      case Chimeway.DeliveryPlanning.plan_notification(notification, opts) do
+        {:ok, planned} -> {:cont, {:ok, deliveries ++ planned}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  @impl true
+  def dispatch_delivery(delivery, _opts), do: {:ok, delivery}
 end
 
 defmodule AlphaTwin.ProtectedOpen do
