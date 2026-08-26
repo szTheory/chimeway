@@ -12,28 +12,40 @@ defmodule Chimeway.AlphaTwinProofRunner do
   def run!(opts \\ []) do
     builder = Keyword.get(opts, :builder, &build_archive!/0)
 
+    with_archive =
+      Keyword.get(opts, :with_archive, fn archive, digest, callback ->
+        Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(archive, digest, callback)
+      end)
+
+    with_crosswake_worktree =
+      Keyword.get(opts, :with_crosswake_worktree, &with_crosswake_worktree!/1)
+
     try do
       with {:ok, archive} <- builder.(),
            digest <- sha256!(archive),
            {:ok, proof} <-
-             Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
-               archive,
-               digest,
-               fn root ->
-                 with_crosswake_worktree!(fn _crosswake_root ->
-                   copy_package_migrations!(root)
+             with_archive.(archive, digest, fn root ->
+               with_crosswake_worktree.(fn crosswake_root ->
+                 copy_package_migrations!(root)
+                 fixture_output = run_fixture!(root, crosswake_root, opts)
 
-                   proof_line!(%{
-                     archive_digest: digest,
-                     crosswake_remote: @remote,
-                     crosswake_sha: @sha,
-                     scenario_id: "accepted_handoff_protected_open",
-                     activation: :authorized,
-                     explanation: :accepted
-                   })
-                 end)
-               end
-             ) do
+                 # This line is intentionally reachable only after the clean-room
+                 # fixture has completed successfully against the validated inputs.
+                 # The fixture's actual result is included as a bounded derived fact,
+                 # rather than emitting a standalone hard-coded success claim.
+                 fixture_result = fixture_result!(fixture_output)
+
+                 proof_line!(%{
+                   archive_digest: digest,
+                   crosswake_remote: @remote,
+                   crosswake_sha: @sha,
+                   scenario_id: "accepted_handoff_protected_open",
+                   activation: :authorized,
+                   explanation: :accepted,
+                   fixture_result: fixture_result
+                 })
+               end)
+             end) do
         IO.puts(proof)
         0
       else
@@ -50,6 +62,28 @@ defmodule Chimeway.AlphaTwinProofRunner do
   end
 
   def proof_line!(attrs), do: AlphaTwin.ProofSummary.render!(attrs)
+
+  @doc false
+  def run_fixture!(package_root, crosswake_root, opts \\ [])
+      when is_binary(package_root) and is_binary(crosswake_root) and is_list(opts) do
+    runner = Keyword.get(opts, :fixture_runner, &System.cmd/3)
+
+    command_options = [
+      cd: fixture_root(),
+      env: [
+        {"CHIMEWAY_PACKAGE_PATH", package_root},
+        {"CROSSWAKE_PATH", crosswake_root}
+      ],
+      stderr_to_stdout: true
+    ]
+
+    with {_output, 0} <- runner.("mix", ["deps.get"], command_options),
+         {output, 0} when is_binary(output) <- runner.("mix", ["test"], command_options) do
+      output
+    else
+      _ -> raise "alpha twin fixture failed"
+    end
+  end
 
   defp build_archive! do
     output =
@@ -133,8 +167,22 @@ defmodule Chimeway.AlphaTwinProofRunner do
   defp sha256!(archive),
     do: :crypto.hash(:sha256, File.read!(archive)) |> Base.encode16(case: :lower)
 
+  defp fixture_root, do: Path.expand("../test/fixtures/alpha_twin", __DIR__)
+
+  defp fixture_result!(output) when is_binary(output) do
+    # Mix owns the exact textual summary, so retain only the success exit state in
+    # evidence. The output has still been observed before this proof is emitted.
+    _ = output
+    :passed
+  end
+
   defp fail(error \\ nil) do
-    reason = if match?(%FunctionClauseError{}, error), do: "contract", else: "provenance"
+    reason =
+      cond do
+        match?(%RuntimeError{message: "alpha twin fixture failed"}, error) -> "fixture"
+        match?(%FunctionClauseError{}, error) -> "contract"
+        true -> "provenance"
+      end
 
     IO.binwrite(
       :stderr,

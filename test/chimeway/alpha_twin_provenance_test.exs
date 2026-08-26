@@ -13,7 +13,8 @@ defmodule Chimeway.AlphaTwinProvenanceTest do
              crosswake_sha: sha,
              scenario_id: "accepted_handoff_protected_open",
              activation: :authorized,
-             explanation: :accepted
+             explanation: :accepted,
+             fixture_result: :passed
            }) =~ "archive_sha256=#{digest} crosswake_sha=#{sha}"
   end
 
@@ -25,7 +26,8 @@ defmodule Chimeway.AlphaTwinProvenanceTest do
         crosswake_sha: "f2c502cdb1ce572a4a57257d9e3c051665704b90",
         scenario_id: "accepted_handoff_protected_open",
         activation: :authorized,
-        explanation: :accepted
+        explanation: :accepted,
+        fixture_result: :passed
       })
     end
   end

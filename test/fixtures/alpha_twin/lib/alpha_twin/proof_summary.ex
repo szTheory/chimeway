@@ -23,7 +23,8 @@ defmodule AlphaTwin.ProofSummary do
         crosswake_sha: sha,
         scenario_id: @scenario,
         activation: :authorized,
-        explanation: :accepted
+        explanation: :accepted,
+        fixture_result: :passed
       })
       when is_binary(digest) and byte_size(digest) == 64 and is_binary(sha) and
              byte_size(sha) == 40 do
@@ -32,7 +33,7 @@ defmodule AlphaTwin.ProofSummary do
            do: raise(ArgumentError, "invalid CrossWake provenance")
 
     "CHIMEWAY_ALPHA_TWIN_PROOF schema=1 scenario=#{@scenario} archive_sha256=#{digest} " <>
-      "crosswake_sha=#{sha} delivery=provider_accepted activation=authorized"
+      "crosswake_sha=#{sha} fixture=passed delivery=provider_accepted activation=authorized"
   end
 
   def render!(_), do: raise(ArgumentError, "invalid CrossWake provenance")
@@ -54,8 +55,11 @@ defmodule AlphaTwin.ProofSummary do
   defp valid_results?(results) when is_list(results) do
     Enum.all?(results, fn
       %{"id" => id, "outcome" => outcome} = result
-      when map_size(result) == 2 and is_binary(id) and is_binary(outcome) -> true
-      _ -> false
+      when map_size(result) == 2 and is_binary(id) and is_binary(outcome) ->
+        true
+
+      _ ->
+        false
     end)
   end
 
@@ -67,19 +71,37 @@ defmodule AlphaTwin.ProofSummary do
   end
 
   defp valid_taxonomy?(_), do: false
+
   defp digest?(value, length) when is_binary(value) and byte_size(value) == length,
     do: String.match?(value, ~r/\A[0-9a-f]+\z/)
+
   defp digest?(_, _), do: false
 
   defp sensitive_path(value), do: sensitive_path(value, [])
+
   defp sensitive_path(value, path) when is_map(value) do
-    Enum.find_value(value, fn {key, nested} -> sensitive_path(nested, path ++ [to_string(key)]) end)
+    Enum.find_value(value, fn {key, nested} ->
+      sensitive_path(nested, path ++ [to_string(key)])
+    end)
   end
+
   defp sensitive_path(value, path) when is_list(value) do
-    Enum.with_index(value) |> Enum.find_value(fn {nested, index} -> sensitive_path(nested, path ++ [Integer.to_string(index)]) end)
+    Enum.with_index(value)
+    |> Enum.find_value(fn {nested, index} ->
+      sensitive_path(nested, path ++ [Integer.to_string(index)])
+    end)
   end
+
   defp sensitive_path(value, path) when is_binary(value) do
-    if String.contains?(value, ["raw-token", "credential", "provider-body", "https://", "payload", "actor:"]), do: path
+    if String.contains?(value, [
+         "raw-token",
+         "credential",
+         "provider-body",
+         "https://",
+         "payload",
+         "actor:"
+       ]), do: path
   end
+
   defp sensitive_path(_, _), do: nil
 end
