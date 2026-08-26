@@ -372,7 +372,7 @@ Plans:
   2. The proof record is machine-validatable and separates the subjective visible-alert observation from executable provider and protected-open assertions.
   3. Host and operator guidance explains setup, ownership boundaries, compatibility migration, outcome vocabulary, offline-open behavior, proof commands, and explicit non-goals.
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 **Wave 1**
 
@@ -384,7 +384,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 103-03-PLAN.md — Ship Threshold-A runner/gate parity and the canonical mobile adoption and operations guide.
+- [x] 103-03-PLAN.md — Ship Threshold-A runner/gate parity and the canonical mobile adoption and operations guide.
 
 **Wave 4** *(blocked on Wave 3 plus CrossWake Phase 162 passed verification and external Apple/device prerequisites)*
 
@@ -400,7 +400,7 @@ Plans:
 | 100. Optional APNs Adapter | 11/11 | Complete    | 2026-08-22 |
 | 101. CrossWake Registration & Protected Open | 20/20 | Complete    | 2026-08-25 |
 | 102. Alpha Digital Twin & Hermetic Gate | 4/4 | Complete    | 2026-08-26 |
-| 103. Physical iPhone & Adoption Truth | 2/4 | In Progress|  |
+| 103. Physical iPhone & Adoption Truth | 3/4 | In Progress|  |
 
 ---
 *Roadmap updated: 2026-08-11 — v1.18 created with Phases 97–103.*
