@@ -2,9 +2,9 @@
 phase: 102-alpha-digital-twin-hermetic-gate
 fixed_at: 2026-08-25T22:00:00Z
 review_path: .planning/phases/102-alpha-digital-twin-hermetic-gate/102-REVIEW.md
-iteration: 2
-findings_in_scope: 3
-fixed: 3
+iteration: 3
+findings_in_scope: 4
+fixed: 4
 skipped: 0
 status: all_fixed
 ---
@@ -12,7 +12,7 @@ status: all_fixed
 # Phase 102: Code Review Fix Report
 
 **Source review:** `.planning/phases/102-alpha-digital-twin-hermetic-gate/102-REVIEW.md`
-**Iteration:** 2
+**Iteration:** 3
 
 ## Fixed Issues
 
@@ -33,6 +33,12 @@ status: all_fixed
 **Files modified:** `scripts/prove-alpha-twin.exs`, `test/fixtures/alpha_twin/mix.exs`, `test/fixtures/alpha_twin/config/config.exs`, `test/fixtures/alpha_twin/lib/alpha_twin/integration_host.ex`, `test/fixtures/alpha_twin/lib/alpha_twin/registry.ex`, `test/fixtures/alpha_twin/lib/alpha_twin/scripted_apns_transport.ex`, `test/fixtures/alpha_twin/test/alpha_twin_test.exs`, `test/chimeway/alpha_twin_runner_test.exs`
 **Commit:** `1c51c85`
 **Applied fix:** The clean-room runner now copies only the fixture source into a disposable host, generates public-schema migrations from the validated package, migrates a uniquely named disposable database, and runs a real push lifecycle. The fixture persists and explains event -> notification -> delivery -> target -> provider-accepted target attempt, exercises the scripted APNs transport without persisting its device value, authorizes a Sigra-backed CrossWake protected-open route from the pinned checkout, and proves the identical one-time intent is rejected as replayed. Every database and fixture build directory is removed after the run.
+
+### CR-01 (final re-review): The clean-room dependency graph was mutable
+
+**Files modified:** `scripts/prove-alpha-twin.exs`, `test/fixtures/alpha_twin/mix.lock`, `test/chimeway/alpha_twin_runner_test.exs`
+**Commit:** `44aea4e`
+**Applied fix:** The fixture now commits and copies a reviewed lockfile, and dependency acquisition uses `mix deps.get --check-locked`. A focused regression proves a lock mismatch aborts before migration generation, database creation, or fixture execution.
 
 ## Verification
 
