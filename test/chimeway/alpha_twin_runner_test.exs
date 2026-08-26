@@ -72,7 +72,7 @@ defmodule Chimeway.AlphaTwinRunnerTest do
             assert database_url =~ "/chimeway_alpha_twin_"
 
             case command do
-              ["deps.get"] ->
+              ["deps.get", "--check-locked"] ->
                 {"dependencies fetched", 0}
 
               ["chimeway.gen.migrations", "--prefix", "public"] ->
@@ -89,6 +89,27 @@ defmodule Chimeway.AlphaTwinRunnerTest do
 
               ["ecto.drop", "-r", "Chimeway.Repo", "--quiet"] ->
                 {"database dropped", 0}
+            end
+          end
+        ]
+      ])
+    end
+  end
+
+  test "an unlocked dependency graph aborts before migrations or fixture execution" do
+    Code.require_file(@fixture_path)
+    Code.require_file(@proof_path)
+
+    assert_raise RuntimeError, "alpha twin fixture failed", fn ->
+      apply(Chimeway.AlphaTwinProofRunner, :run_fixture!, [
+        "/validated/package",
+        "/detached/crosswake",
+        [
+          fixture_runner: fn "mix", command, _options ->
+            case command do
+              ["deps.get", "--check-locked"] -> {"lockfile changed", 1}
+              ["ecto.drop", "-r", "Chimeway.Repo", "--quiet"] -> {"not created", 1}
+              later -> flunk("dependency failure must stop before #{inspect(later)}")
             end
           end
         ]

@@ -86,7 +86,7 @@ defmodule Chimeway.AlphaTwinProofRunner do
     ]
 
     try do
-      with {_output, 0} <- runner.("mix", ["deps.get"], command_options),
+      with {_output, 0} <- runner.("mix", ["deps.get", "--check-locked"], command_options),
            {_output, 0} <-
              runner.("mix", ["chimeway.gen.migrations", "--prefix", "public"], command_options),
            {_output, 0} <-
@@ -126,7 +126,7 @@ defmodule Chimeway.AlphaTwinProofRunner do
   defp copy_fixture!(destination) do
     File.mkdir_p!(destination)
 
-    Enum.each(["config", "lib", "test", "mix.exs"], fn entry ->
+    Enum.each(["config", "lib", "test", "mix.exs", "mix.lock"], fn entry ->
       source = Path.join(fixture_root(), entry)
       target = Path.join(destination, entry)
 
