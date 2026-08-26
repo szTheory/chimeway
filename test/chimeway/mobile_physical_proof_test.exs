@@ -37,9 +37,30 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
 
     assert {:ok, _} = PhysicalBundle.validate(valid, selected_sha: selected_sha())
 
-    for %{"proof" => proof, "rule_id" => rule_id, "path" => path} <- corpus["cases"] do
+    for %{"mutation" => mutation, "rule_id" => rule_id, "path" => path} <- corpus["cases"] do
       assert {:error, %{rule_id: ^rule_id, path: ^path}} =
-               PhysicalBundle.validate(proof, selected_sha: selected_sha())
+               PhysicalBundle.validate(mutate(valid, mutation), selected_sha: selected_sha())
+    end
+  end
+
+  test "does not promote an externally supplied non-observed attestation" do
+    bundle = physical_bundle() |> put_in(["visible_alert_attestation", "state"], "not_observed")
+    bundle = Map.put(bundle, "bundle_sha256", PhysicalBundle.bundle_digest(bundle))
+
+    destination =
+      Path.join(System.tmp_dir!(), "physical-non-observed-#{System.unique_integer([:positive])}")
+
+    try do
+      assert {:ok, _} = PhysicalBundle.validate(bundle, selected_sha: selected_sha())
+
+      assert {:error,
+              %{
+                rule_id: "PP-ATTESTATION-NOT-PROMOTABLE",
+                path: ["visible_alert_attestation", "state"]
+              }} =
+               PhysicalBundle.publish(bundle, destination, selected_sha: selected_sha())
+    after
+      File.rm_rf(destination)
     end
   end
 
@@ -113,4 +134,7 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
     |> File.read!()
     |> Jason.decode!()
   end
+
+  defp mutate(valid, %{"path" => path, "value" => value}), do: put_in(valid, path, value)
+  defp mutate(valid, %{"add" => key, "value" => value}), do: Map.put(valid, key, value)
 end

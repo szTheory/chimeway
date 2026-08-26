@@ -1,0 +1,13 @@
+{
+  "cases": [
+    {"id": "unknown_root", "rule_id": "PP-SCHEMA", "path": [], "mutation": {"add": "unknown", "value": "rejected"}},
+    {"id": "wrong_owner", "rule_id": "PP-OWNER", "path": ["owner"], "mutation": {"path": ["owner"], "value": "crosswake"}},
+    {"id": "wrong_class", "rule_id": "PP-PROOF-CLASS", "path": ["proof_class"], "mutation": {"path": ["proof_class"], "value": "hermetic"}},
+    {"id": "wrong_revision", "rule_id": "PP-CROSSWAKE-SHA", "path": ["chimeway_envelope", "crosswake_sha"], "mutation": {"path": ["chimeway_envelope", "crosswake_sha"], "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"id": "wrong_crosswake_owner", "rule_id": "PP-CROSSWAKE-OWNER", "path": ["crosswake_record", "owner"], "mutation": {"path": ["crosswake_record", "owner"], "value": "chimeway"}},
+    {"id": "wrong_assertion_order", "rule_id": "PP-CROSSWAKE-ASSERTIONS", "path": ["crosswake_record", "assertions"], "mutation": {"path": ["crosswake_record", "assertions"], "value": []}},
+    {"id": "bad_attestation_state", "rule_id": "PP-ATTESTATION-STATE", "path": ["visible_alert_attestation", "state"], "mutation": {"path": ["visible_alert_attestation", "state"], "value": "inferred"}},
+    {"id": "sensitive_nested_value", "rule_id": "PP-SENSITIVE", "path": ["chimeway_envelope", "facts", "trace_explainable"], "mutation": {"path": ["chimeway_envelope", "facts", "trace_explainable"], "value": "CANARY-DEVICE-TOKEN"}},
+    {"id": "bundle_digest", "rule_id": "PP-BUNDLE-DIGEST", "path": ["bundle_sha256"], "mutation": {"path": ["bundle_sha256"], "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}}
+  ]
+}

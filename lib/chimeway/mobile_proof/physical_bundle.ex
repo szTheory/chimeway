@@ -52,6 +52,7 @@ defmodule Chimeway.MobileProof.PhysicalBundle do
 
   def publish(bundle, destination, opts) when is_binary(destination) do
     with {:ok, _} <- validate(bundle, opts),
+         :ok <- promotable(bundle),
          :ok <- create_destination(destination),
          :ok <- File.write(Path.join(destination, "physical-bundle.json"), Jason.encode!(bundle)) do
       :ok
@@ -267,6 +268,11 @@ defmodule Chimeway.MobileProof.PhysicalBundle do
       _ -> error("PP-PUBLICATION", [])
     end
   end
+
+  defp promotable(%{"visible_alert_attestation" => %{"state" => "observed"}}), do: :ok
+
+  defp promotable(_),
+    do: error("PP-ATTESTATION-NOT-PROMOTABLE", ["visible_alert_attestation", "state"])
 
   defp error(rule_id, path), do: {:error, %{rule_id: rule_id, path: path}}
 end

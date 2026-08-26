@@ -1,0 +1,46 @@
+{
+  "bundle_version": 1,
+  "owner": "chimeway",
+  "proof_class": "physical",
+  "chimeway_envelope": {
+    "schema_version": 1,
+    "owner": "chimeway",
+    "chimeway_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "crosswake_remote": "https://github.com/szTheory/crosswake.git",
+    "crosswake_sha": "65dd9f42e218261015823e28045c507db1884cf3",
+    "crosswake_contract_version": 1,
+    "crosswake_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "crosswake_completion_marker_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "run_ref": "run-20260826-opaque",
+    "captured_at": "2026-08-26T12:00:00Z",
+    "facts": {"delivery_succeeded": "passed", "apns_provider_accepted": "passed", "trace_explainable": "passed"}
+  },
+  "crosswake_record": {
+    "schema_version": 1,
+    "owner": "crosswake",
+    "crosswake_sha": "65dd9f42e218261015823e28045c507db1884cf3",
+    "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "completion_marker_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "assertions": [
+      {"id": "permission_observed", "owner": "device_local", "outcome": "passed"},
+      {"id": "authenticated_registration", "owner": "backend_authority", "outcome": "passed"},
+      {"id": "protected_activation_once", "owner": "backend_authority", "outcome": "passed"}
+    ]
+  },
+  "visible_alert_attestation": {
+    "schema_version": 1,
+    "run_ref": "run-20260826-opaque",
+    "machine_envelope_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "observed_at": "2026-08-26T12:01:00Z",
+    "attester_ref": "attester-opaque",
+    "state": "observed"
+  },
+  "completion_marker": {
+    "schema_version": 1,
+    "owner": "chimeway",
+    "run_ref": "run-20260826-opaque",
+    "machine_envelope_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "state": "validated"
+  },
+  "bundle_sha256": "0adf55bff3355e0bb6d44d2cdbd5a45b487b65af552b4139079483ddc8d0a701"
+}

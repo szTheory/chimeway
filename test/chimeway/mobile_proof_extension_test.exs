@@ -4,6 +4,15 @@ defmodule Chimeway.MobileProof.ExtensionTest do
   alias Chimeway.MobileProof.Extension
 
   @fixture "test/fixtures/alpha_twin_physical_proof/valid.json"
+  @fixture_sha256 "5b42dfd21f9159e94a678f8d021a61fb2e18f0cb9e7c521d529b1e101176f757"
+  @corpus_sha256 "4831d203853c3c6ae5df796acfa2b06e98263c2b77f2de2e5cace20cd2552787"
+
+  test "keeps the committed hermetic fixture and corpus byte-stable" do
+    assert @fixture_sha256 == sha256(@fixture)
+
+    assert @corpus_sha256 ==
+             sha256("test/fixtures/alpha_twin_physical_proof/negative-corpus.json")
+  end
 
   test "accepts the closed hermetic extension and preserves subjective alert honesty" do
     fixture = @fixture |> File.read!() |> Jason.decode!()
@@ -45,4 +54,7 @@ defmodule Chimeway.MobileProof.ExtensionTest do
   end
 
   defp valid_report(_report), do: :ok
+
+  defp sha256(path),
+    do: path |> File.read!() |> then(&:crypto.hash(:sha256, &1)) |> Base.encode16(case: :lower)
 end
