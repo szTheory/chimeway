@@ -5,6 +5,7 @@ defmodule AlphaTwin.Runner do
   alias Chimeway.APNS.{BindingLookup, RequestIntent}
   alias Chimeway.Adapters.APNS
   alias Chimeway.TargetAdapter.TargetEnvelope
+  import Ecto.Query
 
   @delivery_scenario_ids [
     "accepted_handoff_protected_open",
@@ -91,10 +92,10 @@ defmodule AlphaTwin.Runner do
       ids
       |> Enum.reduce_while({:ok, []}, fn id, {:ok, acc} ->
         case execute_scenario(id, registry) do
-          {:ok, outcome} ->
+          {:ok, outcome, durable, explanation} ->
             {:cont,
              {:ok,
-              [%{id: id, durable: :converged, explanation: :explained, outcome: outcome} | acc]}}
+              [%{id: id, durable: durable, explanation: explanation, outcome: outcome} | acc]}}
 
           _ ->
             {:halt, {:error, :scenario_failed}}
@@ -115,7 +116,234 @@ defmodule AlphaTwin.Runner do
     Application.put_env(:chimeway, :apns_binding_lookup, Registry)
   end
 
-  defp execute_scenario("two_installation_fanout", registry) do
+  # Delivery ledger entries must first traverse the production public trigger /
+  # dispatch path.  The scenario-specific seam below is supplemental evidence;
+  # it cannot manufacture a durable or explainable success.
+  defp execute_scenario(id, registry) when id in @delivery_scenario_ids do
+    with {:ok, delivery, expected_targets, expected_attempts} <- trigger_delivery(id, registry),
+         {:ok, explanation} <-
+           Chimeway.Traces.explain_delivery(delivery.id, tenant_id: "alpha-twin"),
+         true <- explanation.delivery_id == delivery.id,
+         true <- explanation.target_aggregate.target_count == expected_targets,
+         true <- target_attempt_count(delivery.id) == expected_attempts,
+         true <- target_outcomes(delivery.id) == expected_target_outcomes(id),
+         {:ok, outcome} <- execute_fixture_scenario(id, registry) do
+      {:ok, outcome, :converged, :explained}
+    else
+      _ -> {:error, :durable_lifecycle_not_proven}
+    end
+  end
+
+  defp execute_scenario(id, registry) do
+    case execute_fixture_scenario(id, registry) do
+      {:ok, outcome} -> {:ok, outcome, :converged, :explained}
+      _ -> {:error, :scenario_failed}
+    end
+  end
+
+  defp trigger_delivery("trigger_commit_recovery", registry) do
+    {:ok, pair} = binding_intent(registry, "durable-recovery")
+    Application.put_env(:chimeway, :alpha_twin_target_bindings, [pair])
+    Application.put_env(:chimeway, :target_resolver, AlphaTwin.IntegrationTargetResolver)
+    Application.put_env(:chimeway, :target_adapter, Chimeway.Adapters.APNS)
+    Application.put_env(:chimeway, :apns_binding_lookup, AlphaTwin.Registry)
+    Application.put_env(:chimeway, :apns_transport, AlphaTwin.ScriptedAPNSTransport)
+    Application.put_env(:chimeway, :dispatcher, AlphaTwin.CrashOnceDispatcher)
+    {:ok, transport} = ScriptedAPNSTransport.start_link(script: [{:accepted}], observer: self())
+    Application.put_env(:chimeway, :alpha_twin_apns_script, transport)
+    key = "alpha-ledger-recovery-#{System.unique_integer([:positive])}"
+
+    {pid, ref} =
+      spawn_monitor(fn ->
+        Chimeway.Trigger.trigger(AlphaTwin.IntegrationNotifier, %{},
+          tenant_id: "alpha-twin",
+          idempotency_key: key
+        )
+      end)
+
+    assert_down(ref, pid)
+
+    event =
+      Chimeway.Repo.get_by!(Chimeway.Events.Event, tenant_id: "alpha-twin", idempotency_key: key)
+
+    old = DateTime.add(DateTime.utc_now(), -61, :second)
+    {:ok, event} = Ecto.Changeset.change(event, updated_at: old) |> Chimeway.Repo.update()
+
+    0 =
+      Chimeway.Repo.aggregate(
+        from(d in Chimeway.Delivery,
+          join: n in Chimeway.Notifications.Notification,
+          on: d.notification_id == n.id,
+          where: n.event_id == ^event.id
+        ),
+        :count,
+        :id
+      )
+
+    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    now = DateTime.utc_now()
+    recovery = Chimeway.TargetRecovery.recover_tenant("alpha-twin", older_than: 0, now: now)
+
+    with 1 <- recovery.counts.resumed_planning,
+         [delivery] <-
+           Chimeway.Repo.all(
+             from(d in Chimeway.Delivery,
+               join: n in Chimeway.Notifications.Notification,
+               on: d.notification_id == n.id,
+               where: n.event_id == ^event.id
+             )
+           ),
+         0 <-
+           Chimeway.TargetRecovery.recover_tenant("alpha-twin", older_than: 0, now: now).counts.resumed_planning do
+      {:ok, delivery, 1, 1}
+    else
+      _ -> {:error, :recovery_not_converged}
+    end
+  end
+
+  defp trigger_delivery(id, registry) do
+    {bindings, script, expected_targets, expected_attempts} = delivery_setup(id, registry)
+    Application.put_env(:chimeway, :alpha_twin_target_bindings, bindings)
+    Application.put_env(:chimeway, :target_resolver, AlphaTwin.IntegrationTargetResolver)
+    Application.put_env(:chimeway, :target_adapter, Chimeway.Adapters.APNS)
+    Application.put_env(:chimeway, :apns_binding_lookup, AlphaTwin.Registry)
+    Application.put_env(:chimeway, :apns_transport, AlphaTwin.ScriptedAPNSTransport)
+    Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    {:ok, transport} = ScriptedAPNSTransport.start_link(script: script, observer: self())
+    Application.put_env(:chimeway, :alpha_twin_apns_script, transport)
+
+    result =
+      Chimeway.Trigger.trigger(AlphaTwin.IntegrationNotifier, %{},
+        tenant_id: "alpha-twin",
+        idempotency_key: "alpha-ledger-#{id}-#{System.unique_integer([:positive])}"
+      )
+
+    case result do
+      {:ok, %{event: event}} ->
+        delivery =
+          Chimeway.Repo.one!(
+            from(d in Chimeway.Delivery,
+              join: n in Chimeway.Notifications.Notification,
+              on: d.notification_id == n.id,
+              where: n.event_id == ^event.id and d.tenant_id == "alpha-twin"
+            )
+          )
+
+        finish_delivery_setup(id, delivery, expected_targets, expected_attempts)
+
+      _ ->
+        {:error, :trigger_failed}
+    end
+  end
+
+  defp finish_delivery_setup("classified_retry", delivery, targets, _attempts) do
+    {:ok, transport} = ScriptedAPNSTransport.start_link(script: [{:accepted}], observer: self())
+    Application.put_env(:chimeway, :alpha_twin_apns_script, transport)
+    {:ok, _} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+    :ok = ScriptedAPNSTransport.assert_drained(transport)
+    {:ok, Chimeway.Repo.get!(Chimeway.Delivery, delivery.id), targets, 2}
+  end
+
+  defp finish_delivery_setup("post_handoff_ambiguity", delivery, targets, attempts) do
+    before = target_attempt_count(delivery.id)
+    {:ok, _} = Chimeway.Dispatch.Sync.dispatch_delivery(delivery, [])
+
+    if target_attempt_count(delivery.id) == before do
+      {:ok, Chimeway.Repo.get!(Chimeway.Delivery, delivery.id), targets, attempts}
+    else
+      {:error, :ambiguity_resent}
+    end
+  end
+
+  defp finish_delivery_setup(_id, delivery, targets, attempts),
+    do: {:ok, delivery, targets, attempts}
+
+  defp delivery_setup("zero_target_suppression", _registry), do: {[], [], 0, 0}
+
+  defp delivery_setup("two_installation_fanout", registry) do
+    {:ok, first} = binding_intent(registry, "durable-fanout-1")
+    {:ok, second} = binding_intent(registry, "durable-fanout-2")
+    {[first, second], [{:accepted}, {:accepted}], 2, 2}
+  end
+
+  defp delivery_setup("expiry_before_io", registry) do
+    {:ok, pair} = binding_intent(registry, "durable-expiry", DateTime.add(@now, -1, :second))
+    {[pair], [{:accepted}], 1, 1}
+  end
+
+  defp delivery_setup("post_handoff_ambiguity", registry) do
+    {:ok, pair} = binding_intent(registry, "durable-ambiguity")
+    {[pair], [{:ambiguous}], 1, 1}
+  end
+
+  defp delivery_setup(_id, registry) do
+    {:ok, pair} = binding_intent(registry, "durable")
+    {[pair], [{:accepted}], 1, 1}
+  end
+
+  defp binding_intent(registry, suffix, expires_at \\ ~U[2030-08-25 12:00:00Z]) do
+    with {:ok, binding} <- bind(registry, suffix),
+         {:ok, %{intent_ref: open_ref}} <-
+           Registry.issue_intent(registry, binding.binding_revision_ref),
+         {:ok, intent} <-
+           RequestIntent.new(
+             %{
+               environment: :sandbox,
+               topic: "com.example.alpha",
+               apns_id: Ecto.UUID.generate(),
+               expires_at: expires_at,
+               open_ref: open_ref
+             },
+             []
+           ) do
+      {:ok, {binding.binding_revision_ref, intent}}
+    end
+  end
+
+  defp target_attempt_count(delivery_id) do
+    Chimeway.Repo.aggregate(
+      from(a in Chimeway.DeliveryTargetAttempt,
+        join: t in Chimeway.DeliveryTarget,
+        on: a.delivery_target_id == t.id,
+        where: t.delivery_id == ^delivery_id and a.tenant_id == "alpha-twin"
+      ),
+      :count,
+      :id
+    )
+  end
+
+  defp target_outcomes(delivery_id) do
+    Chimeway.Repo.all(
+      from(t in Chimeway.DeliveryTarget,
+        where: t.delivery_id == ^delivery_id and t.tenant_id == "alpha-twin",
+        order_by: [asc: t.binding_revision_ref],
+        select: t.status
+      )
+    )
+  end
+
+  defp expected_target_outcomes("zero_target_suppression"), do: []
+  defp expected_target_outcomes("expiry_before_io"), do: [:expired]
+  defp expected_target_outcomes("post_handoff_ambiguity"), do: [:ambiguous_handoff]
+
+  defp expected_target_outcomes("two_installation_fanout"),
+    do: [:provider_accepted, :provider_accepted]
+
+  defp expected_target_outcomes(_), do: [:provider_accepted]
+
+  defp assert_down(ref, pid) do
+    receive do
+      {:DOWN, ^ref, :process, ^pid, :alpha_twin_post_commit_crash} ->
+        :ok
+
+      {:DOWN, ^ref, :process, ^pid, _reason} ->
+        raise "trigger did not crash at the post-commit dispatcher seam"
+    after
+      5_000 -> raise "trigger crash seam timed out"
+    end
+  end
+
+  defp execute_fixture_scenario("two_installation_fanout", registry) do
     with {:ok, first} <- bind(registry, "fanout-1"),
          {:ok, second} <- bind(registry, "fanout-2"),
          true <- first.binding_revision_ref != second.binding_revision_ref,
@@ -126,7 +354,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("zero_target_suppression", registry) do
+  defp execute_fixture_scenario("zero_target_suppression", registry) do
     absent = %BindingLookup.Request{
       tenant_id: "alpha-twin",
       environment: :sandbox,
@@ -140,7 +368,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("token_rotation", registry) do
+  defp execute_fixture_scenario("token_rotation", registry) do
     with {:ok, old} <- bind(registry, "rotation"),
          {:ok, replacement} <-
            Registry.rotate(registry, old.binding_revision_ref, "raw-token-rotation-new"),
@@ -152,7 +380,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("revocation_race", registry) do
+  defp execute_fixture_scenario("revocation_race", registry) do
     with {:ok, binding} <- bind(registry, "revoke"),
          {:ok, replacement} <-
            Registry.rotate(registry, binding.binding_revision_ref, "raw-token-revoke-new"),
@@ -164,7 +392,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("classified_retry", registry) do
+  defp execute_fixture_scenario("classified_retry", registry) do
     with {:ok, binding} <- bind(registry, "retry"),
          :ok <- deliver_each(registry, [binding, binding], [{:retryable}, {:accepted}]) do
       {:ok, :retryable_then_accepted}
@@ -173,7 +401,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("expiry_before_io", registry) do
+  defp execute_fixture_scenario("expiry_before_io", registry) do
     with {:ok, binding} <- bind(registry, "expiry"),
          {:ok, transport} <-
            ScriptedAPNSTransport.start_link(script: [{:accepted}], observer: self()),
@@ -190,7 +418,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("opt_in_installation_safe_collapse", registry) do
+  defp execute_fixture_scenario("opt_in_installation_safe_collapse", registry) do
     with {:ok, first} <- bind(registry, "collapse-1"),
          {:ok, second} <- bind(registry, "collapse-2"),
          :ok <- deliver_each(registry, [first, second], [{:accepted}, {:accepted}]) do
@@ -203,7 +431,7 @@ defmodule AlphaTwin.Runner do
   # The durable post-commit crash/recovery contract is exercised by the fixture's
   # persisted tracer; this call is the same public recovery seam and is deliberately
   # idempotent when no extra tenant work is discoverable.
-  defp execute_scenario("trigger_commit_recovery", _registry) do
+  defp execute_fixture_scenario("trigger_commit_recovery", _registry) do
     summary = Chimeway.TargetRecovery.recover_tenant("alpha-twin", now: @now)
 
     if is_map(summary) and is_map(summary.counts),
@@ -211,7 +439,7 @@ defmodule AlphaTwin.Runner do
       else: {:error, :recovery_failed}
   end
 
-  defp execute_scenario("post_handoff_ambiguity", registry) do
+  defp execute_fixture_scenario("post_handoff_ambiguity", registry) do
     with {:ok, binding} <- bind(registry, "ambiguous"),
          {:ok, transport} <-
            ScriptedAPNSTransport.start_link(script: [{:ambiguous}], observer: self()),
@@ -228,7 +456,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("recursive_leak_prevention", _registry) do
+  defp execute_fixture_scenario("recursive_leak_prevention", _registry) do
     case AlphaTwin.ProofSummary.render(%{"trace" => %{"nested" => "raw-token-sentinel"}}) do
       {:error, %{rule: :sensitive_value, path: ["trace", "nested"]}} ->
         {:ok, :recursive_scan_rejected}
@@ -238,13 +466,13 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("offline_reauthorization", registry),
+  defp execute_fixture_scenario("offline_reauthorization", registry),
     do: open_once(registry, :protected_open_once)
 
-  defp execute_scenario("accepted_handoff_protected_open", registry),
+  defp execute_fixture_scenario("accepted_handoff_protected_open", registry),
     do: open_once(registry, :protected_open_once)
 
-  defp execute_scenario("stale_denied_open", registry) do
+  defp execute_fixture_scenario("stale_denied_open", registry) do
     with {:ok, binding} <- bind(registry, "stale"),
          {:ok, %{intent_ref: ref}} <-
            Registry.issue_intent(registry, binding.binding_revision_ref),
@@ -255,7 +483,7 @@ defmodule AlphaTwin.Runner do
     end
   end
 
-  defp execute_scenario("replay_rejection", registry) do
+  defp execute_fixture_scenario("replay_rejection", registry) do
     with {:ok, binding} <- bind(registry, "replay"),
          {:ok, %{intent_ref: ref}} <-
            Registry.issue_intent(registry, binding.binding_revision_ref),

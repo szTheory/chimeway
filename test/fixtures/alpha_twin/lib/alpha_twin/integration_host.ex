@@ -36,11 +36,22 @@ defmodule AlphaTwin.IntegrationTargetResolver do
 
   @impl true
   def resolve_targets(tenant_id, _opts) do
-    binding_ref = Application.fetch_env!(:chimeway, :alpha_twin_binding_ref)
-    intent = Application.fetch_env!(:chimeway, :alpha_twin_request_intent)
-
-    case BindingRevision.new_with_request_intent(tenant_id, binding_ref, intent) do
-      {:ok, binding} -> {:ok, [binding]}
+    Application.get_env(
+      :chimeway,
+      :alpha_twin_target_bindings,
+      [
+        {Application.fetch_env!(:chimeway, :alpha_twin_binding_ref),
+         Application.fetch_env!(:chimeway, :alpha_twin_request_intent)}
+      ]
+    )
+    |> Enum.reduce_while({:ok, []}, fn {binding_ref, intent}, {:ok, bindings} ->
+      case BindingRevision.new_with_request_intent(tenant_id, binding_ref, intent) do
+        {:ok, binding} -> {:cont, {:ok, [binding | bindings]}}
+        error -> {:halt, error}
+      end
+    end)
+    |> case do
+      {:ok, bindings} -> {:ok, Enum.reverse(bindings)}
       error -> error
     end
   end
@@ -93,6 +104,17 @@ defmodule AlphaTwin.IntentConsumer do
          %OpenResolution{open_ref: open_ref, state: :policy_denied, resolved_at: @resolved_at}}
     end
   end
+end
+
+defmodule AlphaTwin.CrashOnceDispatcher do
+  @moduledoc false
+  @behaviour Chimeway.Dispatch
+
+  @impl true
+  def dispatch(_notifications, _opts), do: exit(:alpha_twin_post_commit_crash)
+
+  @impl true
+  def dispatch_delivery(_delivery, _opts), do: exit(:alpha_twin_post_commit_crash)
 end
 
 defmodule AlphaTwin.ProtectedOpen do
