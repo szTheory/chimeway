@@ -156,6 +156,7 @@ the full timeline — the answer to "why did (or didn't) this notification go ou
 ## Documentation
 
 - [Adoption Paths](guides/introduction/adoption-paths.md)
+- [Mobile Adoption and Operations](guides/introduction/mobile-adoption-operations.md)
 - [Golden Path Guide](guides/introduction/golden-path.md)
 - [Storage Prefix Upgrade Guide](guides/introduction/storage-prefix-upgrade.md)
 - [Mailglass Integration Guide](guides/introduction/mailglass-integration.md)

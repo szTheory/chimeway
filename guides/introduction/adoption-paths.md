@@ -2,6 +2,8 @@
 
 Choose one proof path, run its focused command, and then follow the linked guide for detailed setup. Each proof builds and checks a clean consumer from a Chimeway artifact; it is compatibility evidence for the listed boundary, not a substitute for your host's policy or provider validation.
 
+For the iPhone-first delivery boundary, follow the canonical [Mobile Adoption and Operations guide](mobile-adoption-operations.md).
+
 ## Core
 
 **Choose this when:** You want to prove a durable notification lifecycle and public trace before adding a delivery partner.

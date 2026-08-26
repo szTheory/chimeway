@@ -251,6 +251,7 @@ defmodule Chimeway.MixProject do
       source_url: "https://github.com/szTheory/chimeway",
       extras: [
         "guides/introduction/adoption-paths.md",
+        "guides/introduction/mobile-adoption-operations.md",
         "guides/introduction/getting-started.md",
         "guides/introduction/installation.md",
         "guides/introduction/golden-path.md",

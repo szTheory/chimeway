@@ -2106,6 +2106,116 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  @mobile_operations_guide "guides/introduction/mobile-adoption-operations.md"
+
+  describe "mobile adoption and operations guide contract (DOCS-01)" do
+    setup do
+      guide = File.read!(@mobile_operations_guide)
+
+      %{
+        guide: guide,
+        readme: File.read!("README.md"),
+        selector: File.read!("guides/introduction/adoption-paths.md"),
+        mix_exs: File.read!("mix.exs")
+      }
+    end
+
+    test "is the sole ExDoc authority with four job entry points and shallow navigation", %{
+      guide: guide,
+      readme: readme,
+      selector: selector,
+      mix_exs: mix_exs
+    } do
+      assert mix_exs =~ "\"guides/introduction/mobile-adoption-operations.md\""
+
+      for marker <- [
+            "Integrate mobile push",
+            "Explain an outcome",
+            "Review the security boundary",
+            "Run or promote proof",
+            "host integrator",
+            "operator/on-call",
+            "security reviewer",
+            "maintainer"
+          ] do
+        assert guide =~ marker
+      end
+
+      assert length(:binary.matches(readme, "mobile-adoption-operations.md")) == 1
+      assert length(:binary.matches(selector, "mobile-adoption-operations.md")) == 1
+    end
+
+    test "keeps DOCS-01 topics, commands, and vocabulary in stable order", %{guide: guide} do
+      headings = [
+        "## Readiness and roles",
+        "## Ownership boundaries",
+        "## Compatible installation and upgrade",
+        "## Tenant, APNs, and host wiring",
+        "## Outcome vocabulary",
+        "## Offline protected opens",
+        "## Proof ladder",
+        "## Troubleshooting and operator actions",
+        "## Non-goals"
+      ]
+
+      assert headings ==
+               Enum.sort_by(headings, fn heading ->
+                 {index, _length} = :binary.match(guide, heading)
+                 index
+               end)
+
+      for marker <- [
+            "logical delivery",
+            "target",
+            "attempt",
+            "provider acceptance",
+            "visible presentation",
+            "protected open",
+            "inbox seen/read",
+            "engagement",
+            "mix ci.verify_gates",
+            "mix verify.alpha_twin",
+            "mix verify.physical_proof_contract",
+            "mix chimeway.mobile_physical_proof --preflight --json",
+            "release_ready_physical_pending",
+            "physical_support_promoted",
+            "Did the expected Chimeway alert appear on the selected iPhone?",
+            "Observed",
+            "Did not appear",
+            "Cannot verify",
+            "golden-path.md",
+            "storage-prefix-upgrade.md",
+            "oban-integration.md",
+            "tracing-a-notification.md",
+            "custom-adapter.md"
+          ] do
+        assert guide =~ marker
+      end
+    end
+
+    test "locks the provider boundary and rejects unsupported or unsafe claims", %{guide: guide} do
+      assert length(:binary.matches(guide, "Provider acceptance is provider handoff only.")) >= 4
+      assert guide =~ "physical evidence pending"
+      assert guide =~ "package, Git revision, Hex artifact, or CI run establishes provenance only"
+
+      for forbidden <- [
+            "Android production proof is delivered",
+            "FCM delivery is delivered",
+            "generic background sync is supported",
+            "broad device support is delivered",
+            "device management is delivered",
+            "general attestation platform is delivered",
+            "raw token",
+            "APNs acceptance establishes receipt and display"
+          ] do
+        refute guide =~ forbidden
+      end
+
+      refute guide =~ "!["
+      refute guide =~ ".png"
+    end
+  end
+
   defp stale_drift_patterns("1", "0"),
     do: ["{:chimeway, \"~> 0.1\"}", "0.1.0", ~s({:chimeway, "~> 0.)]
 
