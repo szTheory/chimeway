@@ -35,7 +35,7 @@ jobs:
       sha: ${{ steps.release.outputs.sha }}
       prs_created: ${{ steps.release.outputs.prs_created }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
 
@@ -82,7 +82,7 @@ jobs:
       - name: Run Release Please
         id: release
         if: ${{ steps.release-preflight.outputs.should_run == 'true' }}
-        uses: googleapis/release-please-action@0dfd8538845b8e92600d271a895a5372865d4062
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
@@ -129,7 +129,7 @@ jobs:
     steps:
       - name: Resolve tagged SHA
         id: resolve-sha
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const tag = '${{ needs.release-please.outputs.tag_name }}';
@@ -148,7 +148,7 @@ jobs:
             core.setOutput('sha', commit.data.sha);
 
       - name: Wait for ci-gate on release SHA
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             // Release Please tags main immediately; ci.yml often has not started yet.
@@ -250,7 +250,7 @@ jobs:
     env:
       RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
 
@@ -260,7 +260,7 @@ jobs:
           otp-version: "27"
 
       - name: Cache library deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             deps

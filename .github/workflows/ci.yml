@@ -89,13 +89,13 @@ jobs:
     env:
       MIX_ENV: test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -154,13 +154,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -215,13 +215,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -258,13 +258,13 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -320,13 +320,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.otp }}
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -362,7 +362,7 @@ jobs:
     needs: [lint, test, verify_gates, verify_accrue_package, verify_docs, verify_adoption_paths]
     if: always()
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Verify required PR lanes
         env:
           LINT: ${{ needs.lint.result }}
@@ -396,13 +396,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -411,7 +411,7 @@ jobs:
           key: build-test-example-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-example-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -476,13 +476,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -535,13 +535,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -550,7 +550,7 @@ jobs:
           key: build-test-journeys-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-journeys-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -616,13 +616,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -631,7 +631,7 @@ jobs:
           key: build-test-mailglass-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-mailglass-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -690,8 +690,8 @@ jobs:
       # package (its mix.exs) is nested one level deeper at accrue/ within it.
       ACCRUE_PATH: ${{ github.workspace }}/accrue/accrue/accrue
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: szTheory/accrue
           ref: 236fa2f1649e771f3b515603495436badeed3c7b
@@ -701,7 +701,7 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -710,7 +710,7 @@ jobs:
           key: build-test-accrue-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-accrue-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -771,13 +771,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -786,7 +786,7 @@ jobs:
           key: build-test-inbox-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-inbox-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_nested_inbox
         with:
           path: |
@@ -795,7 +795,7 @@ jobs:
           key: ${{ runner.os }}-mix-nested-inbox-${{ hashFiles('chimeway_inbox/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-nested-inbox-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -855,8 +855,8 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
       THREADLINE_PATH: ${{ github.workspace }}/threadline/threadline
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: szTheory/threadline
           ref: 46375fafc4df30fc916244ee4a21b7cae01f1ddc
@@ -866,7 +866,7 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -875,7 +875,7 @@ jobs:
           key: build-test-threadline-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-threadline-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -939,8 +939,8 @@ jobs:
       CHIMEWAY_SKIP_THREADLINE_DEP: "1"
       SIGRA_PATH: ${{ github.workspace }}/sigra/sigra
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: szTheory/sigra
           ref: 62ceb46a38c4e617f6c06d874ecb12e1ab19d97c
@@ -950,7 +950,7 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -959,7 +959,7 @@ jobs:
           key: build-test-sigra-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-sigra-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -1027,18 +1027,18 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "22"
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -1047,14 +1047,14 @@ jobs:
           key: build-test-admin-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             build-test-admin-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-playwright-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_nested_admin
         with:
           path: |
@@ -1063,7 +1063,7 @@ jobs:
           key: ${{ runner.os }}-mix-nested-admin-${{ hashFiles('chimeway_admin/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-nested-admin-
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_demo
         with:
           path: |
@@ -1128,7 +1128,7 @@ jobs:
       PGPASSWORD: postgres
       PGHOST: localhost
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - name: Detect installer-related changes (PRs only)
@@ -1147,7 +1147,7 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         if: steps.detect.outputs.run == 'true'
         with:
@@ -1215,13 +1215,13 @@ jobs:
       PGPASSWORD: postgres
       PGHOST: localhost
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -1277,7 +1277,7 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
@@ -1326,13 +1326,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           elixir-version: "1.17"
           otp-version: "27"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -1376,13 +1376,13 @@ jobs:
       MIX_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         id: cache_main
         with:
           path: |
@@ -1406,7 +1406,7 @@ jobs:
     needs: [lint, test, verify_gates, verify_accrue_package, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, verify_adoption_paths, test_floor_1_17]
     if: always() && github.event_name != 'pull_request'
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Verify required CI lanes
         env:
           LINT: ${{ needs.lint.result }}
@@ -1439,7 +1439,7 @@ jobs:
     needs: [resolve_tiers, nightly_cold_build, test, test_floor_1_17, verify_admin, test_seed_zero]
     if: always() && needs.resolve_tiers.outputs.run_nightly == 'true'
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Verify required nightly lanes
         env:
           NIGHTLY_COLD_BUILD: ${{ needs.nightly_cold_build.result }}
