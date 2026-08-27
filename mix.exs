@@ -116,10 +116,16 @@ defmodule Chimeway.MixProject do
       ],
       "ci.install_golden": ["verify.install_golden"],
 
-      # GATE-01 doc-contract + version alignment gates (pre-ship; no Postgres required)
-      "ci.verify_gates": [
-        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --exclude adoption_paths_e2e --warnings-as-errors"
+      # GATE-01 doc-contract + version alignment gates. Keep the packaged
+      # Accrue clean-consumer proof independently runnable so CI can give it a
+      # dedicated timeout while the canonical release alias still runs both.
+      "ci.verify_contracts": [
+        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --exclude adoption_paths_e2e --exclude accrue_packaged_cli --warnings-as-errors"
       ],
+      "ci.verify_accrue_package": [
+        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --only accrue_packaged_cli --warnings-as-errors"
+      ],
+      "ci.verify_gates": ["ci.verify_contracts", "ci.verify_accrue_package"],
 
       # v1.7 GATE-03: TeamPulse consumer journey proof JOUR-01..08 (10 tests)
       "verify.journeys": [
