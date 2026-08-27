@@ -129,7 +129,7 @@ jobs:
     steps:
       - name: Resolve tagged SHA
         id: resolve-sha
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const tag = '${{ needs.release-please.outputs.tag_name }}';
@@ -148,7 +148,7 @@ jobs:
             core.setOutput('sha', commit.data.sha);
 
       - name: Wait for ci-gate on release SHA
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             // Release Please tags main immediately; ci.yml often has not started yet.
