@@ -49,10 +49,12 @@ This runs `mix ci.lint` (format check + compile + credo strict) followed by `mix
 ## What runs on your PR
 
 On a pull request the required status check is the fast **`pr-gate`** aggregate. It fans in a
-small subset of lanes — lint, the full test suite, the release-gate contract (`mix ci.verify_gates`),
-and the HexDocs build (`mix ci.docs`) — and mirrors what your local `mix ci` already covers, so a
-green local `mix ci` (plus `mix ci.docs`) is a good predictor of a green `pr-gate`. `pr-gate` stays
-fast and always reports a conclusion so PRs never strand waiting on a required check.
+small subset of lanes — lint, the full test suite, the ordinary release contracts
+(`mix ci.verify_contracts`), the independently bounded packaged-Accrue contract
+(`mix ci.verify_accrue_package`), and the HexDocs build (`mix ci.docs`). The canonical
+`mix ci.verify_gates` command runs both contract aliases for local and release parity. A green
+local `mix ci` plus `mix ci.docs` and `mix ci.verify_gates` is therefore a good predictor of a
+green `pr-gate`; the aggregate always reports a conclusion so required checks never strand.
 
 The full **`ci-gate`** aggregate (all lanes, including the ecosystem-integration gates for Accrue,
 Threadline, Sigra, Mailglass, Inbox, and the installer golden contract) runs on push-to-`main` and on
