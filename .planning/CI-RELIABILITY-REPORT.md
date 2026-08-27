@@ -1,12 +1,12 @@
 # CI Reliability Report (REL-01)
 
-**Recorded:** 2026-07-30 · **Commit:** 596361f6387dab75f0107478ff04348fd10d1706 · **Measured via:** `scripts/ci/reliability-report.sh`
+**Recorded:** 2026-08-27 · **Implementation commit:** fca4245d7d1d901601d6fca7d11c04717df527d8 · **Measured via:** `scripts/ci/reliability-report.sh`
 
 **Re-run:** `scripts/ci/reliability-report.sh` (requires `gh auth status` with `actions:read`/`repo` scope on `szTheory/chimeway`).
 
 ## Population definition
 
-This report classifies the **`ci-gate` JOB conclusion** on **`event=push`, `branch=main`** runs only — never the run-level conclusion, and never `workflow_dispatch`, `release-please--branches--main`, or nightly-tier dispatch runs. The run-level conclusion is contaminated by those other trigger types; the `ci-gate` job's own conclusion on a push-to-`main` run is the trustworthy release-confidence signal.
+This report classifies the **`ci-gate` job conclusion** on **`event=push`, `branch=main`** runs only — never the run-level conclusion, and never `workflow_dispatch`, `release-please--branches--main`, or scheduled nightly-tier runs. The run-level conclusion is contaminated by those other trigger types; the `ci-gate` job's own conclusion on a push-to-`main` run is the trustworthy release-confidence signal.
 
 - **success** → GREEN
 - **failure** → REAL FAILURE (counts against the rate)
@@ -16,10 +16,19 @@ This report classifies the **`ci-gate` JOB conclusion** on **`event=push`, `bran
 
 ## Measured result (last 30 push-on-main runs)
 
-**`failures=2 excluded=0 rate=6% streak=10`** — **RELIABILITY BAR MET** (`scripts/ci/reliability-report.sh` exits 0): failure rate 6% is under the 10% bar, and the 10-run consecutive-green streak clears the `>= 5` bar.
+**`failures=3 excluded=0 rate=10% streak=7`** — **RELIABILITY BAR MISSED** (`scripts/ci/reliability-report.sh` exits 1): the seven-run consecutive-green streak clears the `>= 5` bar, but the 10% historical failure rate does not satisfy the strict `< 10%` bar.
 
 | Run ID | ci-gate | Permalink |
 |--------|---------|-----------|
+| 31521321013 | success | https://github.com/szTheory/chimeway/actions/runs/31521321013 |
+| 30578892744 | success | https://github.com/szTheory/chimeway/actions/runs/30578892744 |
+| 30578612967 | success | https://github.com/szTheory/chimeway/actions/runs/30578612967 |
+| 30575692636 | success | https://github.com/szTheory/chimeway/actions/runs/30575692636 |
+| 30575589192 | success | https://github.com/szTheory/chimeway/actions/runs/30575589192 |
+| 30574933923 | success | https://github.com/szTheory/chimeway/actions/runs/30574933923 |
+| 30573877353 | success | https://github.com/szTheory/chimeway/actions/runs/30573877353 |
+| 30572883891 | failure | https://github.com/szTheory/chimeway/actions/runs/30572883891 |
+| 30571853256 | failure | https://github.com/szTheory/chimeway/actions/runs/30571853256 |
 | 30558617430 | success | https://github.com/szTheory/chimeway/actions/runs/30558617430 |
 | 30556372077 | success | https://github.com/szTheory/chimeway/actions/runs/30556372077 |
 | 30512806893 | success | https://github.com/szTheory/chimeway/actions/runs/30512806893 |
@@ -41,21 +50,19 @@ This report classifies the **`ci-gate` JOB conclusion** on **`event=push`, `bran
 | 30467757897 | success | https://github.com/szTheory/chimeway/actions/runs/30467757897 |
 | 30464950563 | success | https://github.com/szTheory/chimeway/actions/runs/30464950563 |
 | 30416472070 | success | https://github.com/szTheory/chimeway/actions/runs/30416472070 |
-| 30410779443 | success | https://github.com/szTheory/chimeway/actions/runs/30410779443 |
-| 30408121735 | success | https://github.com/szTheory/chimeway/actions/runs/30408121735 |
-| 30403831638 | success | https://github.com/szTheory/chimeway/actions/runs/30403831638 |
-| 30403256578 | failure | https://github.com/szTheory/chimeway/actions/runs/30403256578 |
-| 30401525463 | success | https://github.com/szTheory/chimeway/actions/runs/30401525463 |
-| 30398520317 | success | https://github.com/szTheory/chimeway/actions/runs/30398520317 |
-| 30397211848 | success | https://github.com/szTheory/chimeway/actions/runs/30397211848 |
-| 30396178500 | success | https://github.com/szTheory/chimeway/actions/runs/30396178500 |
-| 30391464361 | success | https://github.com/szTheory/chimeway/actions/runs/30391464361 |
 
-## Notes on the two real failures
+## Notes on the three historical failures
 
-- **`30403256578`** (`fix(release): publish in :dev (drop obsolete sigra override) so hex d…`) — the workflow run's own conclusion is `failure` (not superseded/cancelled); the `ci-gate` job genuinely failed on this push. A real, since-fixed failure — correctly counted against the rate.
-- **`30502247481`** (`chore(89-05): add --warnings-as-errors to ci.test alias`) — the **overall workflow run's** conclusion is `cancelled` (superseded by a subsequent push under the `pull_request`/push concurrency group), but the **`ci-gate` job's own conclusion** resolves to `failure` — GitHub reports a dependent aggregate job as `failure`, not `cancelled`, when its upstream `needs` were cancelled. Per REL-01's population definition (classify the **JOB** conclusion, not the run conclusion), this counts as a real failure in the strict, literal classification the script implements. This is a known counting nuance: a run-level `cancelled` supersession can still surface as a JOB-level `failure` on `ci-gate`. It does not change the outcome here (6% rate still clears the <10% bar) — documented so a future re-run doesn't misread genuine supersession noise as unexplained script behavior.
+- **`30571853256`** (`docs(92-03): complete nightly seed-0 guard plan`) — `mix format --check-formatted` rejected `test/chimeway/release_gate_contract_test.exs`; the next push corrected the formatting.
+- **`30572883891`** (`fix(92-03): mix format release_gate_contract_test signature`) — formatting passed, but strict Credo rejected a chained pair of `Enum.filter/2` calls in `test/chimeway/ci_observability_contract_test.exs`; a later push corrected the lint finding.
+- **`30502247481`** (`chore(89-05): add --warnings-as-errors to ci.test alias`) — the workflow run was cancelled by a superseding push, but GitHub recorded the dependent `ci-gate` job as `failure`. REL-01 deliberately classifies the job conclusion, so this remains in the strict historical count.
+
+## Scheduled-run stabilization context
+
+Scheduled full-tier runs are intentionally outside the REL-01 population. On the current `main` SHA, runs `32005544485` (2026-08-17) and `32559022522` (2026-08-22) failed when the packaged Accrue archive proof exceeded the old 10-minute test budget; run `31933324722` (2026-08-16) failed on a transient Hex registry/package-resolution error. Five subsequent scheduled runs through `33062458005` are green.
+
+Implementation commit `fca4245d7d1d901601d6fca7d11c04717df527d8` isolates the packaged Accrue proof into its own required CI job, raises that proof's test budget to 20 minutes, and gives the job a 30-minute ceiling while preserving `mix ci.verify_gates` as the canonical combined local/release entrypoint.
 
 ## Bar status
 
-**MET.** `failure_rate` (6%) is strictly under 10%, and the consecutive-green streak (10) clears the `>= 5` bar. Re-running `scripts/ci/reliability-report.sh` re-measures this on demand against live `main` push history.
+**MISSED (historical window).** The green streak (7) clears its bar, while the failure rate (10%) must age below the strict `< 10%` threshold through ordinary successful `main` pushes. No synthetic pushes or exclusions will be used to manipulate the window.
