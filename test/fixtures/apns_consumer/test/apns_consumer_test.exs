@@ -131,6 +131,41 @@ defmodule APNSConsumerTest do
       end)
     end
 
+    @tag :apns_runtime_success
+    test "the physical harness keeps its live token in transient binding custody" do
+      with_bridge(fn dispatcher ->
+        APNSConsumer.install_live_binding(
+          String.duplicate("ab", 32),
+          dispatcher,
+          "dev.crosswake.chimewayproof"
+        )
+
+        on_exit(&APNSConsumer.clear_live_binding/0)
+
+        task =
+          Task.async(fn ->
+            APNSConsumer.deliver_live(
+              "dev.crosswake.chimewayproof",
+              "cw_open_physical_proof"
+            )
+          end)
+
+        assert_receive {:pigeon_send_request, _headers}
+
+        deliver_end_stream(dispatcher, %Pigeon.Http2.Stream{
+          id: 1,
+          status: 200,
+          headers: [],
+          body: ""
+        })
+
+        assert {:provider_accepted, facts} = result = Task.await(task)
+        assert is_map(facts)
+        assert_safe_result(result)
+        refute inspect(result) =~ String.duplicate("ab", 32)
+      end)
+    end
+
     @tag :apns_bridge_to_cas
     test "the public adapter rejects non-authoritative streams without a successful host CAS" do
       non_authoritative_streams = [
