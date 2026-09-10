@@ -6,6 +6,7 @@ defmodule APNSConsumer.MixProject do
       app: :apns_consumer,
       version: "0.1.0",
       elixir: "~> 1.17",
+      lockfile: System.get_env("MIX_LOCKFILE") || "mix.lock",
       deps: deps()
     ]
   end
