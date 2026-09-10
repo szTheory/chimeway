@@ -22,8 +22,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   @adoption_run_assertion "scripts/ci/assert-adoption-run.sh"
   @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17 verify_alpha_twin)
-  @pr_gate_lanes ~w(lint test verify_gates verify_docs verify_adoption_paths verify_inbox verify_apns verify_alpha_twin)
+  @ci_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17 verify_alpha_twin)
+  @pr_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_adoption_paths verify_inbox verify_apns verify_alpha_twin)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
   # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
@@ -241,9 +241,18 @@ defmodule Chimeway.ReleaseGateContractTest do
       }
     end
 
-    test "verify_gates job runs mix ci.verify_gates", %{ci_yml: ci_yml} do
+    test "verify_gates job runs the ordinary contract subset", %{ci_yml: ci_yml} do
       job_block = extract_ci_job_block(ci_yml, "verify_gates")
-      assert String.contains?(job_block, "mix ci.verify_gates")
+      assert String.contains?(job_block, "mix ci.verify_contracts")
+      refute String.contains?(job_block, "mix ci.verify_gates")
+    end
+
+    test "packaged Accrue proof has a dedicated required job", %{ci_yml: ci_yml} do
+      job_block = extract_ci_job_block(ci_yml, "verify_accrue_package")
+
+      assert String.contains?(job_block, "name: Packaged Accrue contract")
+      assert String.contains?(job_block, "timeout-minutes: 30")
+      assert String.contains?(job_block, "mix ci.verify_accrue_package")
     end
 
     test "verify_docs job runs mix ci.docs", %{ci_yml: ci_yml} do
@@ -540,7 +549,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 17 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
+    test "ci-gate needs stays 18 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -548,9 +557,9 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 17,
-             "ci-gate needs must remain exactly 17 lanes after the Alpha twin proof lane joins " <>
-               "the non-PR release gate"
+      assert length(needs) == 18,
+             "ci-gate needs must remain exactly 18 lanes after the packaged Accrue proof is isolated " <>
+               "and the APNs plus Alpha twin proof lanes join the non-PR release gate"
 
       assert "test_floor_1_17" in needs,
              "ci-gate must need test_floor_1_17 so the 1.17 floor genuinely gates on push (D-15)"
@@ -1826,7 +1835,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   describe "packaged Accrue archive proof CLI (ACCR-01/ACCR-02)" do
     @tag :accrue_packaged_cli
-    @tag timeout: 600_000
+    @tag timeout: 1_200_000
     test "runs only from a verified archive with package-owned proof support" do
       archive = build_package_archive!()
       on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
@@ -1968,7 +1977,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "rejects a valid-digest symbolic-link directory before it can escape scratch" do
       outside = temporary_path!("outside-created.txt")
       File.write!(outside, "unchanged")
-      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+      on_exit(fn -> File.rm(outside) end)
 
       archive =
         malicious_package_archive!([
@@ -1994,7 +2003,11 @@ defmodule Chimeway.ReleaseGateContractTest do
       outside = temporary_path!("outside-marker.ex")
       marker = temporary_path!("outside-marker.txt")
       File.write!(outside, "File.write!(#{inspect(marker)}, \"loaded\")")
-      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+
+      on_exit(fn ->
+        File.rm(outside)
+        File.rm(marker)
+      end)
 
       archive =
         malicious_package_archive!([
@@ -2213,7 +2226,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
       outside = temporary_path!("outside-special.txt")
       File.write!(outside, "unchanged")
-      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+      on_exit(fn -> File.rm(outside) end)
 
       for type <- @unsupported_tar_types do
         archive = malicious_package_archive!([{"special-#{type}", type, outside, <<>>}])
@@ -2573,7 +2586,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert pr_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}"
 
       assert pr_gate =~
-               "aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS"
+               "aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_ACCRUE_PACKAGE VERIFY_DOCS VERIFY_ADOPTION_PATHS"
 
       for mutated <- [
             String.replace(ci_yml, "verify_adoption_paths:", "verify_adoption_path:",
@@ -2694,7 +2707,7 @@ defmodule Chimeway.ReleaseGateContractTest do
             "https://github.com/szTheory/crosswake.git",
             "priv/mobile_proof/crosswake-selected-sha",
             "refs/heads/phase-103-chimeway-notification-proof",
-            "git ls-remote origin",
+            "git -C ../crosswake ls-remote origin",
             "checkout --detach",
             "rev-parse HEAD",
             "status --porcelain",
@@ -3161,7 +3174,7 @@ defmodule Chimeway.ReleaseGateContractTest do
         gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}" and
         gate =~ "INSTALL_GOLDEN VERIFY_ADOPTION_PATHS TEST_FLOOR_1_17" and
         pr_gate =~ "VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}" and
-        pr_gate =~ "VERIFY_GATES VERIFY_DOCS VERIFY_ADOPTION_PATHS"
+        pr_gate =~ "VERIFY_GATES VERIFY_ACCRUE_PACKAGE VERIFY_DOCS VERIFY_ADOPTION_PATHS"
     else
       _ -> false
     end

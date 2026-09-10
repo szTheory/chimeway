@@ -765,7 +765,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 97 with /gsd-plan-phase 97
+- Resume Phase 103 Plan 04 after CrossWake Phase 162 verification and the external Apple signing, provisioning, APNs sandbox, and physical-iPhone prerequisites are satisfied.
 
 ## Performance Metrics
 
