@@ -7,6 +7,13 @@ fixture_root="$repo_root/test/fixtures/apns_consumer"
 work_root=$(mktemp -d "${TMPDIR:-/tmp}/chimeway-apns.XXXXXX")
 artifact_root="$work_root/archive"
 
+# Keep asdf shims pinned after the proof moves into clean-room directories that
+# intentionally do not contain the repository's .tool-versions file.
+if [[ -f "$repo_root/.tool-versions" ]]; then
+  export ASDF_ERLANG_VERSION="${ASDF_ERLANG_VERSION:-$(awk '$1 == "erlang" { print $2; exit }' "$repo_root/.tool-versions")}"
+  export ASDF_ELIXIR_VERSION="${ASDF_ELIXIR_VERSION:-$(awk '$1 == "elixir" { print $2; exit }' "$repo_root/.tool-versions")}"
+fi
+
 cleanup() {
   if [[ "${CHIMEWAY_APNS_KEEP_TEMP:-}" != "1" ]]; then
     rm -rf "$work_root"
@@ -46,7 +53,7 @@ run_consumer() {
       cd "$consumer_root"
       cp "$fixture_root/apns-enabled.lock" mix.lock
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get --check-locked
-      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.compile |& tee -a "$output"
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.compile 2>&1 | tee -a "$output"
       [[ -d "$consumer_lib_path/ecto/ebin" ]] || fail "prepared consumer Ecto code path is missing"
 
       for dependency_path in "$consumer_lib_path"/*; do
@@ -64,7 +71,7 @@ run_consumer() {
 
       if [[ "$focus" == "strict_compile_probe" ]]; then
         ERL_LIBS="$dependency_erl_libs" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
-          mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"
+          mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"
         assert_no_chimeway_redefinition
         return
       fi
@@ -75,7 +82,7 @@ run_consumer() {
         printf '%s\n' 'defmodule Chimeway.APNS.WarningGateProbe do' '  def warning, do: ignored = :warning' 'end' >"$warning_probe"
 
         if ERL_LIBS="$dependency_erl_libs" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
-             mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"; then
+             mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"; then
           fail "Chimeway warning mutation unexpectedly compiled cleanly"
         fi
 
@@ -85,7 +92,7 @@ run_consumer() {
       fi
 
       ERL_LIBS="$dependency_erl_libs" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
-        mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"
+        mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"
       assert_no_chimeway_redefinition
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
       grep -Eq 'pigeon.*2\.0\.1' "$tree_output" || fail "enabled fixture did not resolve pigeon 2.0.1"
