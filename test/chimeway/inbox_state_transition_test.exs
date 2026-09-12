@@ -1,5 +1,5 @@
 defmodule Chimeway.InboxStateTransitionTest do
-  use Chimeway.DataCase, async: true
+  use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
 
   # Requirements: INBX-02, INBX-03, READ-02
@@ -9,6 +9,20 @@ defmodule Chimeway.InboxStateTransitionTest do
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
   alias Chimeway.Signals.Signal
+
+  defmodule RecordingPublisher do
+    @behaviour Chimeway.Inbox.ChangePublisher
+
+    def publish(change) do
+      send(Application.fetch_env!(:chimeway, :inbox_change_test_pid), {:inbox_change, change})
+      :ok
+    end
+  end
+
+  defmodule FailingPublisher do
+    @behaviour Chimeway.Inbox.ChangePublisher
+    def publish(_change), do: raise("private lifecycle publisher failure")
+  end
 
   test "mark_seen/3 sets seen_at without mutating read_at or archived_at" do
     notification = insert_notification!("seen-case")
@@ -129,6 +143,63 @@ defmodule Chimeway.InboxStateTransitionTest do
     end
   end
 
+  describe "inbox change publication (INBX-03)" do
+    setup do
+      previous = Application.get_env(:chimeway, :inbox_change_publisher)
+      Application.put_env(:chimeway, :inbox_change_publisher, RecordingPublisher)
+      Application.put_env(:chimeway, :inbox_change_test_pid, self())
+
+      on_exit(fn ->
+        restore_env(:inbox_change_publisher, previous)
+        Application.delete_env(:chimeway, :inbox_change_test_pid)
+      end)
+    end
+
+    for {api, event} <- [mark_seen: :seen, mark_read: :read, archive: :archived] do
+      test "#{api} publishes #{event} exactly once" do
+        notification = insert_notification!("#{unquote(api)}-change")
+
+        assert :ok =
+                 apply(Inbox, unquote(api), [notification.id, "cw_user_42", [tenant_id: "acme"]])
+
+        assert_receive {:inbox_change,
+                        %Chimeway.Inbox.Change{
+                          event: unquote(event),
+                          tenant_id: "acme",
+                          recipient_ref: "cw_user_42"
+                        }}
+
+        first =
+          Repo.get!(Notification, notification.id) |> Map.fetch!(timestamp_field(unquote(api)))
+
+        assert :ok =
+                 apply(Inbox, unquote(api), [notification.id, "cw_user_42", [tenant_id: "acme"]])
+
+        refute_receive {:inbox_change, _}
+
+        assert Repo.get!(Notification, notification.id)
+               |> Map.fetch!(timestamp_field(unquote(api))) == first
+      end
+    end
+
+    test "wrong scope publishes nothing" do
+      notification = insert_notification!("wrong-scope-change")
+
+      assert {:error, :not_found} =
+               Inbox.archive(notification.id, "cw_user_42", tenant_id: "other")
+
+      refute_receive {:inbox_change, _}
+    end
+
+    test "publisher failure leaves the first durable transition successful" do
+      Application.put_env(:chimeway, :inbox_change_publisher, FailingPublisher)
+      notification = insert_notification!("publisher-failure-change")
+
+      assert :ok = Inbox.archive(notification.id, "cw_user_42", tenant_id: "acme")
+      assert Repo.get!(Notification, notification.id).archived_at
+    end
+  end
+
   defp insert_notification!(idempotency_key) do
     event =
       %Event{}
@@ -151,4 +222,11 @@ defmodule Chimeway.InboxStateTransitionTest do
     })
     |> Repo.insert!()
   end
+
+  defp timestamp_field(:mark_seen), do: :seen_at
+  defp timestamp_field(:mark_read), do: :read_at
+  defp timestamp_field(:archive), do: :archived_at
+
+  defp restore_env(key, nil), do: Application.delete_env(:chimeway, key)
+  defp restore_env(key, value), do: Application.put_env(:chimeway, key, value)
 end
