@@ -14,6 +14,9 @@ defmodule DemoHostWeb.InboxBellProofTest do
   @moduletag :inbox
 
   test "DEMO-08 list, mark_read, and badge update" do
+    assert {:ok, _opaque_ref} =
+             Chimeway.SafeEvidence.opaque_ref(:recipient, DemoHost.Seeds.alex_identity())
+
     assert {:ok, %{notification_ids: [first_id | _]}} = DemoHost.Seeds.seed_inbox()
 
     conn =

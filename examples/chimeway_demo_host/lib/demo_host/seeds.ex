@@ -45,8 +45,17 @@ defmodule DemoHost.Seeds do
   @doc "Primary demo user email (successful invite + admin search)."
   def alex_email, do: @alex_email
 
-  @doc "Recipient identity string for a TeamPulse user email."
-  def recipient_identity(email) when is_binary(email), do: "user:#{email}"
+  @doc "Stable opaque recipient identity derived from a TeamPulse user email."
+  def recipient_identity(email) when is_binary(email) do
+    digest =
+      email
+      |> String.trim()
+      |> String.downcase()
+      |> then(&:crypto.hash(:sha256, &1))
+      |> Base.encode16(case: :lower)
+
+    "cw_demo_#{digest}"
+  end
 
   @doc "Alex's recipient identity — use in admin search."
   def alex_identity, do: recipient_identity(@alex_email)
