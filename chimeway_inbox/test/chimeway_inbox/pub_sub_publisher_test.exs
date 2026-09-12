@@ -29,7 +29,7 @@ defmodule ChimewayInbox.PubSubPublisherTest do
 
     assert :ok = ChangeStream.subscribe(@tenant, @recipient)
     assert {:ok, change} = Change.new(@tenant, @recipient, :created)
-    assert :ok = PubSubPublisher.publish(change)
+    assert :ok = Task.async(fn -> PubSubPublisher.publish(change) end) |> Task.await()
     assert_receive @reload
     refute_receive _other
   end

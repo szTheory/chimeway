@@ -38,7 +38,10 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   @impl true
   def handle_info(@reload_message, socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
-      {:noreply, load_inbox(socket, socket.assigns.recipient_identity, socket.assigns.tenant_id)}
+      socket =
+        load_inbox(socket, socket.assigns.recipient_identity, socket.assigns.tenant_id)
+
+      {:noreply, maybe_mark_visible_seen(socket)}
     else
       {:error, socket} -> {:noreply, socket}
     end
@@ -49,7 +52,9 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   @impl true
   def handle_event("toggle_panel", _params, socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
-      {:noreply, assign(socket, :panel_open, !socket.assigns.panel_open)}
+      opening? = not socket.assigns.panel_open
+      socket = assign(socket, :panel_open, opening?)
+      {:noreply, if(opening?, do: mark_visible_seen(socket), else: socket)}
     else
       {:error, socket} -> {:noreply, socket}
     end
@@ -90,6 +95,8 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
 
       case fetch_page(recipient_identity, tenant_id, cursor_from_last(socket.assigns.items)) do
         {:ok, %{items: items, has_more: has_more}} ->
+          mark_items_seen(items, recipient_identity, tenant_id)
+
           {:noreply,
            assign(socket,
              items: socket.assigns.items ++ items,
@@ -265,4 +272,33 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   defp unread?(item), do: is_nil(item["read_at"])
 
   defp any_unread?(items), do: Enum.any?(items, &unread?/1)
+
+  defp maybe_mark_visible_seen(%{assigns: %{panel_open: true}} = socket),
+    do: mark_visible_seen(socket)
+
+  defp maybe_mark_visible_seen(socket), do: socket
+
+  defp mark_visible_seen(socket) do
+    unseen_items = Enum.filter(socket.assigns.items, &is_nil(&1["seen_at"]))
+
+    if unseen_items == [] do
+      socket
+    else
+      mark_items_seen(
+        unseen_items,
+        socket.assigns.recipient_identity,
+        socket.assigns.tenant_id
+      )
+
+      load_inbox(socket, socket.assigns.recipient_identity, socket.assigns.tenant_id)
+    end
+  end
+
+  defp mark_items_seen(items, recipient_identity, tenant_id) do
+    Enum.each(items, fn item ->
+      if is_nil(item["seen_at"]) do
+        _ = Chimeway.mark_seen(item["id"], recipient_identity, tenant_id: tenant_id)
+      end
+    end)
+  end
 end

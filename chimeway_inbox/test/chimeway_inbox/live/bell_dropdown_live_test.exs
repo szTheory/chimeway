@@ -161,6 +161,9 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
 
     assert is_nil(Repo.get!(Notification, mounted_notification.id).read_at)
     assert is_nil(Repo.get!(Notification, changed_identity_notification.id).read_at)
+    assert is_nil(Repo.get!(Notification, mounted_notification.id).seen_at)
+    assert is_nil(Repo.get!(Notification, changed_identity_notification.id).seen_at)
+    assert seen_signal_count() == 0
   end
 
   test "unauthorized mount redirects without inbox chrome", %{conn: conn} do
@@ -385,6 +388,7 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     view |> element("button[phx-click=\"load_more\"]") |> render_click()
     assert Repo.get!(Notification, oldest.id).seen_at
     assert seen_signal_count() == 21
+    assert view |> render() |> count_items() == 21
   end
 
   test "a relevant reload marks a new item seen only while the panel is open", %{conn: conn} do

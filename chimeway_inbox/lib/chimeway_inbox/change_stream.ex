@@ -45,7 +45,9 @@ defmodule ChimewayInbox.ChangeStream do
   @spec broadcast_topic(term()) :: :ok | {:error, :invalid_stream}
   def broadcast_topic(@prefix <> _digest = topic) do
     with {:ok, server} <- pubsub_server() do
-      safe_pubsub(fn -> Phoenix.PubSub.broadcast(server, topic, @reload_message) end)
+      safe_pubsub(fn ->
+        Phoenix.PubSub.broadcast_from(server, self(), topic, @reload_message)
+      end)
     end
   end
 
