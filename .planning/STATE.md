@@ -4,11 +4,11 @@ milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
 current_phase: 103
 current_phase_name: physical-iphone-adoption-truth
-status: verifying
+status: complete
 stopped_at: Completed 103-04-PLAN.md
 last_updated: "2026-09-12T04:30:00Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 103 physical proof promoted and release gates passed
+last_activity_desc: Phase 103 verification passed; v1.18 ready for milestone audit and closeout
 progress:
   total_phases: 7
   completed_phases: 7
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 103 — final verification and v1.18 closeout
+**Current focus:** v1.18 milestone audit and closeout
 
 ## Current Position
 
-Phase: 103 (physical-iphone-adoption-truth) — IMPLEMENTATION COMPLETE
+Phase: 103 (physical-iphone-adoption-truth) — COMPLETE
 Plan: 4 of 4
-Status: Ready for phase verification
-Last activity: 2026-09-12 — Physical proof promoted; automated release gates passed
+Status: Verification passed
+Last activity: 2026-09-12 — Phase 103 verified; v1.18 ready to close
 
 ## Deferred Items
 
@@ -765,7 +765,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Run Phase 103 verification/audit, then close v1.18 and select the next milestone from the existing backlog and roadmap candidates.
+- Audit and close v1.18, then select the next milestone from the existing backlog and roadmap candidates.
 
 ## Performance Metrics
 
