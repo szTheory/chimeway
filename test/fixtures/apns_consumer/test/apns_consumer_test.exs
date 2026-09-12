@@ -112,6 +112,11 @@ defmodule APNSConsumerTest do
              )
   end
 
+  test "physical proof run references satisfy the retained opaque schema" do
+    assert APNSConsumer.PhysicalProof.opaque_run_ref() =~
+             ~r/\Acw-physical-[a-f0-9]{24}\z/
+  end
+
   test "enabled fixture preserves the complete synthetic 410 tuple" do
     assert {:ok, %{status: 410, reason: :expired_token, timestamp: 1_725_000_000}} =
              APNSConsumer.expired_token_result()

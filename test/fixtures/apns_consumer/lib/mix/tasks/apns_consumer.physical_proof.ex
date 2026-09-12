@@ -107,7 +107,7 @@ defmodule APNSConsumer.PhysicalProof do
          host_address: host_address,
          session_auth: random_ref(32),
          open_ref: "cw_open_" <> random_ref(16),
-         run_ref: "cw-physical-" <> random_ref(12)
+         run_ref: opaque_run_ref()
        }}
     else
       _ -> {:error, "PHYSICAL-PROOF-CONFIG"}
@@ -562,6 +562,9 @@ defmodule APNSConsumer.PhysicalProof do
   defp derived_data(crosswake_root),
     do: Path.join(Path.dirname(crosswake_root), "chimeway-physical-derived-data")
 
+  @doc false
+  def opaque_run_ref, do: "cw-physical-" <> random_ref(12)
+
   defp random_ref(bytes),
-    do: :crypto.strong_rand_bytes(bytes) |> Base.url_encode64(padding: false) |> String.downcase()
+    do: :crypto.strong_rand_bytes(bytes) |> Base.encode16(case: :lower)
 end
