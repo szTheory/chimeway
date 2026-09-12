@@ -22,6 +22,7 @@ key-decisions:
 metrics:
   duration: 16 min
   tasks_completed: 2
+requirements-completed: [TENANT-01, TENANT-02, TENANT-03]
 status: complete
 ---
 

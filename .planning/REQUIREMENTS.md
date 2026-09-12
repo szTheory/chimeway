@@ -81,24 +81,24 @@
 | TENANT-01 | Phase 97 | Complete |
 | TENANT-02 | Phase 97 | Complete |
 | TENANT-03 | Phase 97 | Complete |
-| PRIV-03 | Phase 98 | Gaps Found |
-| PRIV-04 | Phase 98 | Gaps Found |
-| PUSH-01 | Phase 99 | Gaps Found |
-| PUSH-02 | Phase 99 | Gaps Found |
-| PUSH-03 | Phase 99 | Gaps Found |
-| PUSH-04 | Phase 99 | Gaps Found |
-| RECOV-01 | Phase 99 | Gaps Found |
-| RECOV-02 | Phase 99 | Gaps Found |
+| PRIV-03 | Phase 98 | Complete |
+| PRIV-04 | Phase 98 | Complete |
+| PUSH-01 | Phase 99 | Complete |
+| PUSH-02 | Phase 99 | Complete |
+| PUSH-03 | Phase 99 | Complete |
+| PUSH-04 | Phase 99 | Complete |
+| RECOV-01 | Phase 99 | Complete |
+| RECOV-02 | Phase 99 | Complete |
 | APNS-01 | Phase 100 | Complete |
 | APNS-02 | Phase 100 | Complete |
 | APNS-03 | Phase 100 | Complete |
 | APNS-04 | Phase 100 | Complete |
 | APNS-05 | Phase 100 | Complete |
 | APNS-06 | Phase 100 | Complete |
-| OPEN-01 | Phase 101 | Gaps Found |
-| OPEN-02 | Phase 101 | Gaps Found |
-| OPEN-03 | Phase 101 | Gaps Found |
-| OPEN-04 | Phase 101 | Gaps Found |
+| OPEN-01 | Phase 101 | Complete |
+| OPEN-02 | Phase 101 | Complete |
+| OPEN-03 | Phase 101 | Complete |
+| OPEN-04 | Phase 101 | Complete |
 | TWIN-01 | Phase 102 | Complete |
 | TWIN-02 | Phase 102 | Complete |
 | GATE-01 | Phase 102 | Complete |

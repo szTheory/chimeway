@@ -1,7 +1,7 @@
 ---
 phase: 103
 slug: physical-iphone-adoption-truth
-status: complete
+status: validated
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-08-26
