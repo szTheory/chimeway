@@ -17,7 +17,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 ## Phases
 
 - [x] **Phase 104: CrossWake Provider-Feedback Recipe Truth** — Repair the external copy-paste path and lock it to real authority APIs without moving v1.18 proof truth. (completed 2026-09-12)
-- [ ] **Phase 105: Tenant-Safe Inbox Change Stream** — Publish closed durable-change hints and refresh only the authorized connected bell.
+- [x] **Phase 105: Tenant-Safe Inbox Change Stream** — Publish closed durable-change hints and refresh only the authorized connected bell. (completed 2026-09-12)
 - [ ] **Phase 106: Idempotent Seen Lifecycle & Workflow Proof** — Wire panel visibility to first-seen state and prove safe workflow progression.
 - [ ] **Phase 107: Operator Timeline, Guidance & Gate Parity** — Expose safe seen/read facts and require the completed adopter journey everywhere it matters.
 
@@ -34,7 +34,10 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 2. Executable CrossWake examples cover accepted advisory feedback, exact invalidation, stale or mismatched denial, and recursively sanitized evidence without a vacuous or nonexistent API path.
 3. A Chimeway contract verifies the separately selected CrossWake documentation revision from a fresh remote checkout and proves that the immutable v1.18 physical-proof revision did not move.
 
-**Plans**: TBD
+**Plans**: 2/2 complete
+
+- [x] `104-01` — Publish a source-valid CrossWake provider-feedback recipe and exact documentation revision.
+- [x] `104-02` — Enforce detached documentation truth across Chimeway CI and release gates.
 
 ### Phase 105: Tenant-Safe Inbox Change Stream
 
@@ -48,7 +51,10 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 3. `chimeway_inbox` subscribes only after host authorization to an opaque tenant-and-recipient topic, reloads authoritative state on relevant messages, and ignores unrelated tenant or recipient messages.
 4. A non-Phoenix Chimeway consumer still compiles and runs without Phoenix PubSub or `chimeway_inbox` dependencies.
 
-**Plans**: TBD
+**Plans**: 2/2 complete
+
+- [x] `105-01` — Add the Phoenix-free durable inbox change publisher and lifecycle hooks.
+- [x] `105-02` — Add opaque PubSub routing and authorized LiveView refresh.
 
 ### Phase 106: Idempotent Seen Lifecycle & Workflow Proof
 
@@ -96,7 +102,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 104. CrossWake Provider-Feedback Recipe Truth | 2/2 | Complete    | 2026-09-12 |
-| 105. Tenant-Safe Inbox Change Stream | 1/2 | In Progress|  |
+| 105. Tenant-Safe Inbox Change Stream | 2/2 | Complete    | 2026-09-12 |
 | 106. Idempotent Seen Lifecycle & Workflow Proof | 0/TBD | Not started | — |
 | 107. Operator Timeline, Guidance & Gate Parity | 0/TBD | Not started | — |
 
