@@ -61,6 +61,11 @@ defmodule APNSConsumerTest do
 
     assert "CODE_SIGN_STYLE=Manual" in manual
 
+    assert "INFOPLIST_KEY_NSLocalNetworkUsageDescription=Connect to the local Chimeway proof listener." in
+             manual
+
+    assert "INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking=YES" in manual
+
     assert "PROVISIONING_PROFILE_SPECIFIER=Chimeway CrossWake Physical Proof Development" in manual
 
     refute "-allowProvisioningUpdates" in manual

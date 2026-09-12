@@ -95,7 +95,7 @@ defmodule APNSConsumer.PhysicalProof do
          true <- Regex.match?(~r/\A[A-Z0-9]{10}\z/, key_id),
          crosswake_root when is_binary(crosswake_root) <- System.get_env("CROSSWAKE_ROOT"),
          true <- File.dir?(crosswake_root),
-         {:ok, host_ip} <- host_ip() do
+         {:ok, host_address} <- host_address() do
       {:ok,
        %{
          key_path: key_path,
@@ -104,7 +104,7 @@ defmodule APNSConsumer.PhysicalProof do
          bundle_id: System.get_env("CHIMEWAY_APPLE_BUNDLE_ID") || @bundle_id,
          profile_specifier: optional_env("CHIMEWAY_APPLE_PROFILE_SPECIFIER"),
          crosswake_root: Path.expand(crosswake_root),
-         host_ip: host_ip,
+         host_address: host_address,
          session_auth: random_ref(32),
          open_ref: "cw_open_" <> random_ref(16),
          run_ref: "cw-physical-" <> random_ref(12)
@@ -394,6 +394,8 @@ defmodule APNSConsumer.PhysicalProof do
       "DEVELOPMENT_TEAM=#{config.team_id}",
       "PRODUCT_BUNDLE_IDENTIFIER=#{config.bundle_id}",
       "CODE_SIGN_ENTITLEMENTS=CrosswakeProofLane/ChimewayPhysicalProof.entitlements",
+      "INFOPLIST_KEY_NSLocalNetworkUsageDescription=Connect to the local Chimeway proof listener.",
+      "INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking=YES",
       "CODE_SIGNING_ALLOWED=YES",
       "CODE_SIGNING_REQUIRED=YES"
     ]
@@ -438,7 +440,7 @@ defmodule APNSConsumer.PhysicalProof do
     environment =
       Jason.encode!(%{
         "CROSSWAKE_CHIMEWAY_PHYSICAL_PROOF" => "1",
-        "CROSSWAKE_CHIMEWAY_HOST_URL" => "http://#{config.host_ip}:#{port}/",
+        "CROSSWAKE_CHIMEWAY_HOST_URL" => "http://#{config.host_address}:#{port}/",
         "CROSSWAKE_CHIMEWAY_SESSION_AUTH" => config.session_auth
       })
 
@@ -482,13 +484,12 @@ defmodule APNSConsumer.PhysicalProof do
     end
   end
 
-  defp host_ip do
-    with {route, 0} <- System.cmd("route", ["-n", "get", "default"], stderr_to_stdout: true),
-         [interface] <- Regex.run(~r/interface:\s+(\S+)/, route, capture: :all_but_first),
-         {address, 0} <- System.cmd("ipconfig", ["getifaddr", interface], stderr_to_stdout: true),
-         address <- String.trim(address),
-         {:ok, _} <- :inet.parse_ipv4_address(String.to_charlist(address)) do
-      {:ok, address}
+  defp host_address do
+    with {hostname, 0} <-
+           System.cmd("scutil", ["--get", "LocalHostName"], stderr_to_stdout: true),
+         hostname <- String.trim(hostname),
+         true <- Regex.match?(~r/\A[a-zA-Z0-9][a-zA-Z0-9-]{0,62}\z/, hostname) do
+      {:ok, String.downcase(hostname) <> ".local"}
     else
       _ -> {:error, "PHYSICAL-PROOF-HOST-NETWORK"}
     end
