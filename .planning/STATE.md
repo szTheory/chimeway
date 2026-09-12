@@ -4,8 +4,8 @@ milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 current_phase: 106
 current_phase_name: Idempotent Seen Lifecycle & Workflow Proof
-status: ready_to_discuss
-stopped_at: Phase 105 complete
+status: executing
+stopped_at: Phase 106 planned
 last_updated: "2026-09-12T16:40:42.678Z"
 last_activity: 2026-09-12
 last_activity_desc: Phase 105 complete, transitioned to Phase 106
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 ## Current Position
 
 Phase: 106 — Idempotent Seen Lifecycle & Workflow Proof
-Plan: Not started
-Status: Ready to discuss
+Plan: 1 of 2
+Status: Ready to execute
 Last activity: 2026-09-12 — Phase 105 complete, transitioned to Phase 106
 
 ## Deferred Items

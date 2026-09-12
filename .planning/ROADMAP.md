@@ -68,7 +68,10 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 3. A deterministic demo journey proves that the first seen signal progresses an eligible waiting workflow exactly once, while replay, wrong-tenant, wrong-recipient, and authorization-change paths do not progress it.
 4. The bell reloads durable state after reconnect or publication gaps instead of treating ephemeral messages as lifecycle truth.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+- [ ] `106-01` — Mark authorized visible inbox items seen idempotently.
+- [ ] `106-02` — Prove mounted seen-to-workflow progression and scope denials.
 
 ### Phase 107: Operator Timeline, Guidance & Gate Parity
 
