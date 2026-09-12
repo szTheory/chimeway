@@ -2,10 +2,12 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
   use ChimewayInbox.LiveViewCase, async: false
 
   import Phoenix.LiveViewTest
+  import Ecto.Query
 
   alias Chimeway.Inbox.Change
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
+  alias Chimeway.Signals.Signal
   alias ChimewayInbox.PubSubPublisher
   alias ChimewayInbox.TestSupport.DenyAuth
 
@@ -347,6 +349,63 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     assert view |> element("button[data-cw-inbox-bell]") |> render_click() =~ "Still usable"
   end
 
+  test "opening marks the visible first page seen exactly once while closed and reopen do not", %{
+    conn: conn
+  } do
+    notification = insert_inbox_notification!("cw_user_42")
+
+    {:ok, view, _html} = mount_bell(conn)
+    assert is_nil(Repo.get!(Notification, notification.id).seen_at)
+    assert seen_signal_count() == 0
+
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert Repo.get!(Notification, notification.id).seen_at
+    assert seen_signal_count() == 1
+
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert seen_signal_count() == 1
+  end
+
+  test "load more marks only rows as they become visible", %{conn: conn} do
+    oldest =
+      for index <- 1..21 do
+        insert_inbox_notification!("cw_user_42", %{
+          idempotency_key: "seen-visible-page-#{index}"
+        })
+      end
+      |> hd()
+
+    {:ok, view, _html} = mount_bell(conn)
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    assert seen_signal_count() == 20
+    assert is_nil(Repo.get!(Notification, oldest.id).seen_at)
+
+    view |> element("button[phx-click=\"load_more\"]") |> render_click()
+    assert Repo.get!(Notification, oldest.id).seen_at
+    assert seen_signal_count() == 21
+  end
+
+  test "a relevant reload marks a new item seen only while the panel is open", %{conn: conn} do
+    {:ok, closed_view, _html} = mount_bell(conn)
+    closed_item = insert_inbox_notification!("cw_user_42")
+    publish_change!("tenant-a", "cw_user_42")
+    _ = render(closed_view)
+
+    assert is_nil(Repo.get!(Notification, closed_item.id).seen_at)
+
+    closed_view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert Repo.get!(Notification, closed_item.id).seen_at
+
+    open_item = insert_inbox_notification!("cw_user_42")
+    publish_change!("tenant-a", "cw_user_42")
+    _ = render(closed_view)
+
+    assert Repo.get!(Notification, open_item.id).seen_at
+    assert seen_signal_count() == 2
+  end
+
   defp use_mutable_auth!(recipient_identity, tenant_id) do
     previous_auth_module = Application.get_env(:chimeway_inbox, :auth_module)
     previous_redirect = Application.get_env(:chimeway_inbox, :unauthorized_redirect)
@@ -377,6 +436,12 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     |> String.split("data-notification-id=")
     |> length()
     |> Kernel.-(1)
+  end
+
+  defp seen_signal_count do
+    Repo.one(
+      from(s in Signal, where: s.event_name == "chimeway.notification.seen", select: count())
+    )
   end
 
   # mark_seen is not invoked by BellDropdownLive v1.9 (D-08 discretion) — only mark_read
