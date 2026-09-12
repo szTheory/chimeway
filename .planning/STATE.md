@@ -4,16 +4,16 @@ milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 current_phase: 105
 current_phase_name: Tenant-Safe Inbox Change Stream
-status: verifying
-stopped_at: Phase 105 planned
-last_updated: "2026-09-12T16:22:21.191Z"
+status: executing
+stopped_at: Completed 105-01-PLAN.md
+last_updated: "2026-09-12T16:27:47.490Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 104 complete, transitioned to Phase 105
+last_activity_desc: Phase 105 execution started
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 25
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 104 — CrossWake Provider-Feedback Recipe Truth
+**Current focus:** Phase 105 — Tenant-Safe Inbox Change Stream
 
 ## Current Position
 
-Phase: 105 — Tenant-Safe Inbox Change Stream
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-09-12 — Phase 104 complete, transitioned to Phase 105
+Phase: 105 (Tenant-Safe Inbox Change Stream) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-09-12 — Phase 105 execution started
 
 ## Deferred Items
 
@@ -773,9 +773,9 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-09-12T16:22:21.184Z
-Stopped at: Phase 105 planned
-Resume file: .planning/phases/105-tenant-safe-inbox-change-stream/105-01-PLAN.md
+Last session: 2026-09-12T16:27:47.483Z
+Stopped at: Completed 105-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
@@ -957,3 +957,4 @@ Resume file: .planning/phases/105-tenant-safe-inbox-change-stream/105-01-PLAN.md
 | Phase 103-physical-iphone-adoption-truth P04 | 8h | 2 tasks | 18 files |
 | Phase 104 P01 | 6 min | 2 tasks | 3 files |
 | Phase 104 P02 | 34 min | 2 tasks | 8 files |
+| Phase 105 P01 | 7 min | 2 tasks | 8 files |

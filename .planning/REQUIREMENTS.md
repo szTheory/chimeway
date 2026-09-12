@@ -13,7 +13,7 @@
 
 ### Tenant-Safe Inbox Changes
 
-- [ ] **INBX-03**: A host can opt into a replaceable inbox-change publisher that emits a closed event only after durable notification creation or a first seen, read, or archive transition, without adding Phoenix or PubSub as a core dependency.
+- [x] **INBX-03**: A host can opt into a replaceable inbox-change publisher that emits a closed event only after durable notification creation or a first seen, read, or archive transition, without adding Phoenix or PubSub as a core dependency.
 - [ ] **INBX-04**: A connected `chimeway_inbox` bell subscribes only to its currently authorized tenant and opaque recipient stream and refreshes its badge and visible items on relevant arrival and lifecycle events without polling or cross-tenant disclosure.
 
 ### Seen, Read, and Explanation
@@ -62,7 +62,7 @@ Which phases cover which requirements. Filled during roadmap creation.
 |-------------|-------|--------|
 | DOCS-02 | Phase 104 | Complete |
 | GATE-02 | Phase 104 | Complete |
-| INBX-03 | Phase 105 | Pending |
+| INBX-03 | Phase 105 | Complete |
 | INBX-04 | Phase 105 | Pending |
 | INT-03 | Phase 106 | Pending |
 | INT-04 | Phase 106 | Pending |
