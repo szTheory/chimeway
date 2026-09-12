@@ -38,7 +38,7 @@ defmodule APNSConsumer.PhysicalProof do
   @moduledoc false
 
   @bundle_id "dev.crosswake.chimewayproof"
-  @team_id "ZP67WW2L67"
+  @team_id "WZSSVMVZB5"
   @timeout_ms 600_000
 
   def run do
@@ -104,6 +104,7 @@ defmodule APNSConsumer.PhysicalProof do
          key_id: key_id,
          team_id: System.get_env("CHIMEWAY_APPLE_TEAM_ID") || @team_id,
          bundle_id: System.get_env("CHIMEWAY_APPLE_BUNDLE_ID") || @bundle_id,
+         profile_specifier: optional_env("CHIMEWAY_APPLE_PROFILE_SPECIFIER"),
          crosswake_root: Path.expand(crosswake_root),
          host_ip: host_ip,
          session_auth: random_ref(32),
@@ -112,6 +113,19 @@ defmodule APNSConsumer.PhysicalProof do
        }}
     else
       _ -> {:error, "PHYSICAL-PROOF-CONFIG"}
+    end
+  end
+
+  defp optional_env(name) do
+    case System.get_env(name) do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> nil
+          value -> value
+        end
+
+      _ ->
+        nil
     end
   end
 
@@ -339,7 +353,16 @@ defmodule APNSConsumer.PhysicalProof do
   end
 
   defp build_app(config, destination) do
-    args = [
+    safe_command(
+      "xcodebuild",
+      build_arguments(config, destination),
+      "PHYSICAL-PROOF-SIGNED-BUILD"
+    )
+  end
+
+  @doc false
+  def build_arguments(config, destination) do
+    common = [
       "-project",
       ios_project(config.crosswake_root),
       "-scheme",
@@ -352,18 +375,30 @@ defmodule APNSConsumer.PhysicalProof do
       "id=#{destination}",
       "-derivedDataPath",
       derived_data(config.crosswake_root),
-      "CODE_SIGN_STYLE=Automatic",
       "DEVELOPMENT_TEAM=#{config.team_id}",
       "PRODUCT_BUNDLE_IDENTIFIER=#{config.bundle_id}",
       "CODE_SIGN_ENTITLEMENTS=CrosswakeProofLane/ChimewayPhysicalProof.entitlements",
       "CODE_SIGNING_ALLOWED=YES",
-      "CODE_SIGNING_REQUIRED=YES",
-      "-allowProvisioningUpdates",
-      "-allowProvisioningDeviceRegistration",
-      "build"
+      "CODE_SIGNING_REQUIRED=YES"
     ]
 
-    safe_command("xcodebuild", args, "PHYSICAL-PROOF-SIGNED-BUILD")
+    signing =
+      case config.profile_specifier do
+        profile when is_binary(profile) ->
+          [
+            "CODE_SIGN_STYLE=Manual",
+            "PROVISIONING_PROFILE_SPECIFIER=#{profile}"
+          ]
+
+        nil ->
+          [
+            "CODE_SIGN_STYLE=Automatic",
+            "-allowProvisioningUpdates",
+            "-allowProvisioningDeviceRegistration"
+          ]
+      end
+
+    common ++ signing ++ ["build"]
   end
 
   defp install_app(config, destination) do

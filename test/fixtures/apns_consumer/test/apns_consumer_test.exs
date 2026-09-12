@@ -44,6 +44,40 @@ defmodule APNSConsumerTest do
     assert %{} == APNSConsumer.core_smoke()
   end
 
+  test "physical proof build arguments support portal-managed manual signing" do
+    root = Path.expand("../../../../../crosswake-current", __DIR__)
+
+    base = %{
+      crosswake_root: root,
+      team_id: "WZSSVMVZB5",
+      bundle_id: "dev.crosswake.chimewayproof"
+    }
+
+    manual =
+      APNSConsumer.PhysicalProof.build_arguments(
+        Map.put(base, :profile_specifier, "Chimeway CrossWake Physical Proof Development"),
+        "fixture-device"
+      )
+
+    assert "CODE_SIGN_STYLE=Manual" in manual
+
+    assert "PROVISIONING_PROFILE_SPECIFIER=Chimeway CrossWake Physical Proof Development" in manual
+
+    refute "-allowProvisioningUpdates" in manual
+    assert List.last(manual) == "build"
+
+    automatic =
+      APNSConsumer.PhysicalProof.build_arguments(
+        Map.put(base, :profile_specifier, nil),
+        "fixture-device"
+      )
+
+    assert "CODE_SIGN_STYLE=Automatic" in automatic
+    assert "-allowProvisioningUpdates" in automatic
+    assert "-allowProvisioningDeviceRegistration" in automatic
+    refute Enum.any?(automatic, &String.starts_with?(&1, "PROVISIONING_PROFILE_SPECIFIER="))
+  end
+
   test "enabled fixture preserves the complete synthetic 410 tuple" do
     assert {:ok, %{status: 410, reason: :expired_token, timestamp: 1_725_000_000}} =
              APNSConsumer.expired_token_result()
