@@ -1,38 +1,33 @@
 ---
 gsd_state_version: "1.0"
-milestone: v1.18
-milestone_name: Adopter Alpha Mobile Delivery Readiness
-status: Awaiting next milestone
-stopped_at: Completed 103-04-PLAN.md
-last_updated: "2026-09-12T05:51:18.946Z"
+milestone: v1.19
+milestone_name: Adopter Hardening & Inbox Lifecycle
+status: planning
+last_updated: "2026-09-12T15:01:03.830Z"
 last_activity: 2026-09-12
-last_activity_desc: Milestone v1.18 completed and archived
-state_head: e42138560b320faebc6525c5435715e164bab9f0
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 80
-  completed_plans: 80
-  percent: 100
-current_phase: 103
-current_phase_name: physical-iphone-adoption-truth
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-12 after shipping v1.18)
+See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Planning the next milestone
+**Current focus:** Defining v1.19 requirements
 
 ## Current Position
 
-Phase: Milestone v1.18 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-09-12 — Milestone v1.18 completed and archived
+Status: Defining requirements
+Last activity: 2026-09-12 — Milestone v1.19 started
 
 ## Deferred Items
 

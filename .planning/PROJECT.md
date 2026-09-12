@@ -8,6 +8,17 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
+## Current Milestone: v1.19 Adopter Hardening & Inbox Lifecycle
+
+**Goal:** Close the remaining copy-paste adoption seam from v1.18 and make inbox arrival, seen, and read state update in real time and appear honestly in operator explanations without weakening tenant or privacy boundaries.
+
+**Target features:**
+- A source-valid CrossWake provider-feedback worker recipe with an executable drift contract, tracked separately from the immutable v1.18 physical-proof authority.
+- A host-configurable, Phoenix-optional inbox change stream scoped to one tenant and opaque recipient reference.
+- Real-time `chimeway_inbox` bell and item refresh for notification arrival plus seen/read/archive lifecycle changes.
+- Bell panel `mark_seen` wiring with idempotent workflow progression proof.
+- Privacy-safe inbox seen/read events on the operator delivery timeline, with docs and aggregate gate coverage.
+
 ## Latest Shipped Milestone: v1.18 Adopter Alpha Mobile Delivery Readiness
 
 **Status:** ✅ SHIPPED 2026-09-12 — all 7 phases and 80 plans complete; 26/26 requirements satisfied. The milestone audit passed with 7/7 phase verifications, 7/7 integration connections, and 4/4 end-to-end flows. Seven older housekeeping records were acknowledged without changing their underlying status; none is a v1.18 acceptance gap.
@@ -49,7 +60,11 @@ Validated requirements are summarized below. Milestone-scoped source sets live u
 
 ### Active
 
-None — the next milestone has not been selected.
+- [ ] Hosts can copy a CrossWake provider-feedback worker recipe that calls the real conversion boundary and supplies the complete authenticated binding scope.
+- [ ] Connected inbox users receive tenant-safe real-time badge and item updates without polling.
+- [ ] Opening the bell panel marks only the currently visible authorized items seen, once.
+- [ ] Operators can distinguish notification seen and read facts on the delivery timeline without exposing recipient identity or caller metadata.
+- [ ] Named inbox and release gates prove the complete arrival → seen → read → workflow/timeline path.
 
 ### Validated
 
@@ -201,18 +216,16 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 
 **Latest shipped:** v1.18 Adopter Alpha Mobile Delivery Readiness (2026-09-12 — 26/26 requirements, 7/7 phase verifications, passed milestone audit).
 
-**Next milestone:** Not selected. Start a new planning cycle with `$gsd-new-milestone`; the candidates below remain context, not committed scope.
+**Current milestone:** v1.19 Adopter Hardening & Inbox Lifecycle. This takes the first two recommendations as one bounded adoption-quality release.
 
-**Recommended order for scope discussion:**
+**Planned sequence after v1.19:**
 
-1. **Adopter hardening fast-follow** — correct the non-blocking CrossWake provider-feedback README recipe and add any missing executable contract around it without moving the immutable v1.18 proof reference.
-2. **Inbox lifecycle completion** — finish INBX-03/INT-02/INT-03: PubSub badge updates, operator-timeline projection, and `mark_seen` end-to-end wiring.
-3. **CACHE-05 compile-once spike** (`CI-HARDENING-BACKLOG.md` #4) — isolate why warm consumers still recompile `ex_cldr`, rebar dependencies, and the application despite cache hits; turn the result into milestone scope only after the mechanism is proven.
-4. **Android/FCM expansion** — add a provider-neutral FCM adapter and physical Android proof only after the smaller adoption and reliability seams are closed.
+1. **CACHE-05 compile-once spike** (`CI-HARDENING-BACKLOG.md` #4) — isolate why warm consumers still recompile `ex_cldr`, rebar dependencies, and the application despite cache hits; turn the result into milestone scope only after the mechanism is proven.
+2. **Android/FCM expansion** — add a provider-neutral FCM adapter and physical Android proof only after the smaller adoption and reliability seams are closed.
 
 **Other deferred CI/quality items (v2 — tracked, not scheduled):** DEF-DIALYZER (nightly Dialyzer), DEF-COVERAGE (ExCoveralls threshold), DEF-AUDIT-BLOCK (promote `mix_audit`/`hex.audit` advisory→blocking), DEF-PARTNER-NIGHTLY (move partner lanes to nightly). Plus the two v1.15 accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation).
 
-**Explicitly deferred (product, unchanged):** tenant spine redesign, dynamic per-tenant database prefixes, automatic production data moves, Oban optionality behavior changes, recursive redaction refactor, admin redesign, new ecosystem integrations, inbox PubSub polish, broad channel matrix, full TeamPulse SaaS shell, generic CRUD admin, template editing, provider configuration UI, visual workflow editor, arbitrary bulk recovery, cross-app SaaS console, cohort analytics, and publishing `chimeway_admin`/`chimeway_inbox` unless separately approved.
+**Explicitly deferred (product, unchanged):** tenant spine redesign, dynamic per-tenant database prefixes, automatic production data moves, Oban optionality behavior changes, recursive redaction refactor, admin redesign, new ecosystem integrations, broad channel matrix, full TeamPulse SaaS shell, generic CRUD admin, template editing, provider configuration UI, visual workflow editor, arbitrary bulk recovery, cross-app SaaS console, cohort analytics, and publishing `chimeway_admin`/`chimeway_inbox` unless separately approved.
 
 ### Shipped v1.13 Features (Validated)
 
@@ -649,4 +662,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-12 after shipping v1.18 Adopter Alpha Mobile Delivery Readiness.*
+*Last updated: 2026-09-12 when starting v1.19 Adopter Hardening & Inbox Lifecycle.*
