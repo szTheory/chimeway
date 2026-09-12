@@ -3,9 +3,14 @@ status: investigating
 trigger: "Phase 99 Wave 1 post-merge integration: mix test has 24 failures in installer migration fixtures, prefixed/runtime proofs, trace shape, and Threadline/Accrue lifecycle tests."
 created: 2026-08-19T00:00:00-04:00
 updated: 2026-08-19T00:00:00-04:00
+audit_acknowledged:
+  milestone: v1.18
+  at: 2026-09-12
+  status: investigating
 ---
 
 ## Current Focus
+
 <!-- OVERWRITE on each update - reflects NOW -->
 
 reasoning_checkpoint:
@@ -24,6 +29,7 @@ reasoning_checkpoint:
 next_action: "Regenerate both committed migration golden fixture sets and run focused suites."
 
 ## Symptoms
+
 <!-- Written during gathering, then IMMUTABLE -->
 
 expected: "The complete Mix test suite passes after Phase 99-01 is merged."
@@ -33,9 +39,11 @@ reproduction: "Run the focused failing test files, then mix test."
 started: "Post-merge of Phase 99 Plan 99-01 at HEAD."
 
 ## Eliminated
+
 <!-- APPEND only - prevents re-investigating -->
 
 ## Evidence
+
 <!-- APPEND only - facts discovered -->
 
 - timestamp: 2026-08-19T00:00:00-04:00
@@ -52,12 +60,14 @@ started: "Post-merge of Phase 99 Plan 99-01 at HEAD."
   implication: "Confirmed root causes are fixture/contract drift, not a target runtime defect or an acceptable relaxation of privacy validation."
 
 ## Resolution
+
 <!-- OVERWRITE as understanding evolves -->
 
 root_cause: "Phase 99-01 added copied migration 035 and nested target trace projection, but generated migration fixtures and exact contracts remained on the 34-migration/pre-target shape; Threadline and Accrue harness values did not use SafeEvidence-approved opaque recipient references."
 fix: "Regenerated public/prefixed migration fixtures with 035; updated exact count/runtime/trace expectations; changed test-only Threadline and Accrue fixture identities to opaque references without changing SafeEvidence."
 verification: "Focused post-merge suites exercised the reported clusters without errors. Full `mix test` completed after its adoption-path and installer consumer subprocesses with no failure output."
 files_changed:
+
   - .planning/phases/99-multi-installation-delivery-recovery/99-01-SUMMARY.md
   - test/chimeway/generated_prefixed_runtime_proof_test.exs
   - test/chimeway/install/golden_diff_test.exs

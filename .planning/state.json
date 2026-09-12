@@ -1,0 +1,48 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v1.18 — Adopter Alpha Mobile Delivery Readiness",
+  "phases": [
+    {
+      "number": "97",
+      "name": "Tenant Identity & Compatible Upgrade",
+      "status": "complete"
+    },
+    {
+      "number": "98",
+      "name": "Privacy-Safe Delivery Evidence",
+      "status": "complete"
+    },
+    {
+      "number": "99",
+      "name": "Multi-Installation Delivery & Recovery",
+      "status": "complete"
+    },
+    {
+      "number": "100",
+      "name": "Optional APNs Adapter",
+      "status": "complete"
+    },
+    {
+      "number": "101",
+      "name": "CrossWake Registration & Protected Open",
+      "status": "complete"
+    },
+    {
+      "number": "102",
+      "name": "Alpha Digital Twin & Hermetic Gate",
+      "status": "complete"
+    },
+    {
+      "number": "103",
+      "name": "Physical iPhone & Adoption Truth",
+      "status": "complete"
+    }
+  ],
+  "next": {
+    "command": "/gsd:progress",
+    "label": "Show progress",
+    "reason": "Unsure of state — showing progress"
+  },
+  "updated_at": "2026-09-12T05:51:18.963Z"
+}

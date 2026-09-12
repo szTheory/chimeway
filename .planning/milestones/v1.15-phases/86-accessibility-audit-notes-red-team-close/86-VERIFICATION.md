@@ -6,12 +6,17 @@ score: 4/6 must-haves verified (2 owner-waived accepted-risk human-verification 
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
+
   - test: "A11Y-04 CVD emulation — open brandbook/index.html via file:// in Chrome; DevTools → Rendering → 'Emulate vision deficiencies'; cycle Protanopia/Deuteranopia/Tritanopia/Achromatopsia and confirm every status pill (Succeeded/Suppressed/Failed/Enqueued/Planned/Sending) stays tellable apart by label + icon, not hue."
     expected: "Every status remains distinguishable by label + icon under all four CVD emulations (never color-alone)."
     why_human: "CVD emulation is an inherently manual browser pass (no CVD tooling/binaries permitted this milestone). WAIVED by project owner 2026-07-28 — recorded as accepted-risk known gap in notes/accessibility-checks.md §6.1, NOT a PASS. Mitigated (not substituted) by the grep-backed never-color-alone architecture (§5, index.html:176-183). Surface for ship decision."
   - test: "A11Y-03 focus-not-obscured (SC 2.4.11) — click into the rendered file:// page, Tab through every interactive control (brandmark link, 10 jump-nav anchors, 3 theme-toggle buttons, in-content links) and confirm no focused control is ENTIRELY hidden behind the sticky .cwb-nav bar (partial overlap allowed)."
     expected: "No focused control is entirely hidden behind the sticky nav on keyboard tab."
     why_human: "Focus-not-obscured requires a real keyboard-tab pass on the rendered page. WAIVED by project owner 2026-07-28 — recorded as accepted-risk known gap in notes/accessibility-checks.md §6.2, NOT a PASS. Mitigated (not substituted) by RESEARCH A3 low-risk assessment + rendered-CSS focus evidence (§4). Surface for ship decision."
+audit_acknowledged:
+  milestone: v1.18
+  at: 2026-09-12
+  status: human_needed
 ---
 
 # Phase 86: Accessibility Audit, Notes & Red-Team Close — Verification Report

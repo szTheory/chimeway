@@ -3,9 +3,14 @@ status: investigating
 trigger: "Diagnose and fix seven Phase 98 Wave 7 post-merge mix test failures: render channel expectations, Mailglass evidence identifiers, Sigra integration load, Trigger result projection, and atom-count subprocess assertion."
 created: 2026-08-13T00:00:00-04:00
 updated: 2026-08-13T00:00:00-04:00
+audit_acknowledged:
+  milestone: v1.18
+  at: 2026-09-12
+  status: investigating
 ---
 
 ## Current Focus
+
 <!-- OVERWRITE on each update - reflects NOW -->
 
 hypothesis: "The tenant-consistent fixture reaches the trace; the remaining KeyError is a stale assertion because Phase 98 intentionally omits provider_message_id and adapter_module from webhook timeline projection."
@@ -29,6 +34,7 @@ reasoning_checkpoint:
   and_gate: "no — each failure maps to an independent code, configuration, environment, or obsolete-contract condition; the Mailglass correlation failure itself needs only the raw external ID condition and strict persistence boundary."
 
 ## Symptoms
+
 <!-- Written during gathering, then IMMUTABLE -->
 
 expected: "The post-merge test gate passes while maintaining Phase 98 privacy-safe delivery evidence contracts."
@@ -38,9 +44,11 @@ reproduction: "Run the named post-merge test gate, or the seven targeted test fi
 started: "After Phase 98 Wave 7 post-merge integration."
 
 ## Eliminated
+
 <!-- APPEND only - prevents re-investigating -->
 
 ## Evidence
+
 <!-- APPEND only - facts discovered -->
 
 - timestamp: 2026-08-13T00:00:00-04:00
@@ -89,6 +97,7 @@ started: "After Phase 98 Wave 7 post-merge integration."
   implication: "All six non-release post-merge failures, including the two Trigger assertions, are resolved without relaxing privacy or tenant isolation."
 
 ## Resolution
+
 <!-- OVERWRITE as understanding evolves -->
 
 root_cause: "Seven independent post-merge contract mismatches: (1) two stale public Trigger recipient assertions, (2) one stale render-channel expectation after the Plan 98-09 email-channel correction, (3) stale raw adapter-detail and webhook-trace assertions, (4) e227692's raw provider ID rejection breaks Mailglass correlation, (5) a mixed-tenant Mailglass fixture that Traces correctly hides, (6) a Hex-vs-local optional Sigra integration assumption, and (7) a global atom-count assertion that races unrelated VM atom creation."

@@ -3,9 +3,14 @@ status: verifying
 trigger: "Diagnose and fix the cross-phase regression: `mix cmd --cd chimeway_inbox mix test test/chimeway_inbox/live/bell_dropdown_live_test.exs:83 --warnings-as-errors` fails during `mount_bell(conn)`, while Phoenix's missing `ChimewayInbox.ErrorView` masks the original exception."
 created: 2026-08-13T15:20:00-04:00
 updated: 2026-08-13T15:38:00-04:00
+audit_acknowledged:
+  milestone: v1.18
+  at: 2026-09-12
+  status: verifying
 ---
 
 ## Current Focus
+
 <!-- OVERWRITE on each update - reflects NOW -->
 
 reasoning_checkpoint:
@@ -29,6 +34,7 @@ expecting: The target passes, no unsafe value appears in UI output, and the pack
 next_action: Inspect the final diff, run the exact original command once more, then commit only owned source/test/config files.
 
 ## Symptoms
+
 <!-- Written during gathering, then IMMUTABLE -->
 
 expected: The Bell dropdown LiveView mounts successfully for a tenant-scoped recipient.
@@ -38,9 +44,11 @@ reproduction: `mix cmd --cd chimeway_inbox mix test test/chimeway_inbox/live/bel
 started: After Phase 98 privacy-safe Trigger projection and render-context resolver work.
 
 ## Eliminated
+
 <!-- APPEND only - prevents re-investigating -->
 
 ## Evidence
+
 <!-- APPEND only - facts discovered -->
 
 - timestamp: 2026-08-13T15:20:00-04:00
@@ -69,6 +77,7 @@ started: After Phase 98 privacy-safe Trigger projection and render-context resol
   implication: The correction preserves both opaque-reference fail-closed behavior and a safe operator-visible fallback.
 
 ## Resolution
+
 <!-- OVERWRITE as understanding evolves -->
 
 root_cause: "Phase 98's opaque-recipient validation makes raw `user:42` return `{:error, :unsafe_evidence}`. The inbox test auth/fixtures remained raw, and BellDropdownLive treated the result of unread_count as an integer then interpolated the tuple in its aria label. The missing test ErrorView obscured this actual exception."

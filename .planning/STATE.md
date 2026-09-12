@@ -1,39 +1,54 @@
 ---
-gsd_state_version: 1.0
+gsd_state_version: "1.0"
 milestone: v1.18
 milestone_name: Adopter Alpha Mobile Delivery Readiness
-current_phase: 103
-current_phase_name: physical-iphone-adoption-truth
-status: complete
+status: Awaiting next milestone
 stopped_at: Completed 103-04-PLAN.md
-last_updated: "2026-09-12T04:30:00Z"
+last_updated: "2026-09-12T05:51:18.946Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 103 verification passed; v1.18 ready for milestone audit and closeout
+last_activity_desc: Milestone v1.18 completed and archived
+state_head: e42138560b320faebc6525c5435715e164bab9f0
 progress:
   total_phases: 7
   completed_phases: 7
   total_plans: 80
   completed_plans: 80
   percent: 100
+current_phase: 103
+current_phase_name: physical-iphone-adoption-truth
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-22 after completing Phase 100)
+See: .planning/PROJECT.md (updated 2026-09-12 after shipping v1.18)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** v1.18 milestone audit and closeout
+**Current focus:** Planning the next milestone
 
 ## Current Position
 
-Phase: 103 (physical-iphone-adoption-truth) — COMPLETE
-Plan: 4 of 4
-Status: Verification passed
-Last activity: 2026-09-12 — Phase 103 verified; v1.18 ready to close
+Phase: Milestone v1.18 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-09-12 — Milestone v1.18 completed and archived
 
 ## Deferred Items
+
+Items acknowledged and deferred at v1.18 milestone close on 2026-09-12 (override_closeout; all predate or sit outside the verified v1.18 scope):
+
+| Category | Item | Status | Deferred At | Milestone |
+|----------|------|--------|-------------|-----------|
+| debug_sessions | inbox-bell-phase98-regression | verifying | 2026-09-12 | v1.18 |
+| debug_sessions | release-proof-privacy-projection | investigating | 2026-09-12 | v1.18 |
+| debug_sessions | wave1-post-merge-regressions | investigating | 2026-09-12 | v1.18 |
+| debug_sessions | wave7-postmerge-regressions | investigating | 2026-09-12 | v1.18 |
+| verification_gaps | 84/84-VERIFICATION.md | human_needed | 2026-09-12 | v1.18 |
+| verification_gaps | 86/86-VERIFICATION.md | human_needed | 2026-09-12 | v1.18 |
+| deferred_items | 73/deferred-items.md: historical formatting drift record | acknowledged | 2026-09-12 | v1.18 |
+
+---
 
 Items acknowledged and deferred at v1.16 milestone close on 2026-07-30 (override_closeout — accepted-risk):
 
@@ -765,7 +780,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Audit and close v1.18, then select the next milestone from the existing backlog and roadmap candidates.
+- Start the next milestone with /gsd-new-milestone
 
 ## Performance Metrics
 

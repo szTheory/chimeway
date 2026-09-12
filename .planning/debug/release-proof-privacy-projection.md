@@ -3,6 +3,10 @@ status: investigating
 trigger: "Phase 98 release proof regressions: Core proof invalid timeline_events; Mailglass and Accrue generated proof assertions fail after SafeEvidence privacy projection changes."
 created: 2026-08-13T00:00:00-04:00
 updated: 2026-08-13T00:31:00-04:00
+audit_acknowledged:
+  milestone: v1.18
+  at: 2026-09-12
+  status: investigating
 ---
 
 ## Current Focus

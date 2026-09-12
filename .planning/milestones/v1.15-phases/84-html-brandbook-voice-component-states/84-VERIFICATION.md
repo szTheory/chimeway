@@ -6,9 +6,14 @@ score: 8/8 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
+
   - test: "Open brandbook/index.html directly in Chromium via file:// (double-click / file:// URL, no server). Toggle Light / Dark / System; resize from mobile to wide desktop."
     expected: "Book renders professionally and responsively; the live contrast matrix badges recompute on each theme flip; fixed-color logo lockups swap light↔inverse and read natively in both themes; no console errors; the OG card renders as a light-only bordered thumbnail."
     why_human: "Visual polish, responsive layout across viewports, and actual in-browser JS execution (matrix recompute, theme swap) are runtime/visual qualities that grep and CSS-specificity analysis cannot fully confirm. Roadmap flags 'UI hint: yes' and success criterion 3 requires 'professional and responsive across viewports.'"
+audit_acknowledged:
+  milestone: v1.18
+  at: 2026-09-12
+  status: human_needed
 ---
 
 # Phase 84: HTML Brandbook, Voice & Component States — Verification Report
@@ -42,6 +47,7 @@ human_verification:
 `bash scripts/brandbook-guards.sh --scope` → **exit 0, working tree carries only allowed phase paths**.
 
 Non-vacuity audit of the seams the guard was hardened to close:
+
 - **Family 5 (selector-coverage)** iterates over the 23 real `cwb-*` classes in index.html and fails any without a `brandbook.css` selector (regex boundary prevents `.cwb-do` satisfying `.cwb-dont`). Real input, real assertion.
 - **Family 6 (theme-resolution)** requires `:root:not([data-theme])` gating on the media block and fails any column-0 unqualified `[data-theme=…]` selector — a deterministic CSS-specificity proof that an explicit toggle outranks OS preference. Confirmed in tokens.css: `:root[data-theme="light"|"dark"]` (116/147) qualified; `@media (prefers-color-scheme: dark) { :root:not([data-theme]) }` (194-195).
 - **Family 7 (adaptive-logo)** asserts the three inverse assets exist and are true paper inverses (no ink `#102027`, has paper `#fffdf8`), each lockup ships a matched `.cwb-logo--light`+`.cwb-logo--dark` `<img>` pair, and brandbook.css swaps them on the same theme-resolution (brandbook.css:272-286). Hard-coded file list — cannot pass vacuously.
