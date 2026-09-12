@@ -516,7 +516,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "test_floor_1_17 must pin elixir-version 1.17 (mix.exs's ~> 1.17 floor)"
 
       assert String.contains?(job_block, ~S(otp-version: "27")),
-             "test_floor_1_17 must pin otp-version 27 (matches release.yml/publish-hex.yml)"
+             "test_floor_1_17 must pin otp-version 27"
 
       assert String.contains?(job_block, "test-floor-"),
              "test_floor_1_17 must use its own test-floor- cache-key namespace"
@@ -2792,6 +2792,20 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert physical_job =~ "refs/heads/resume/chimeway-notification-physical-proof"
       assert physical_job =~ "priv/mobile_proof/crosswake-selected-sha"
       refute physical_job =~ "crosswake-provider-feedback-docs-selected-sha"
+    end
+
+    test "release replays use the checked-in 1.19 toolchain while the 1.17 floor stays separate" do
+      for workflow <- [@release_yml, @publish_hex_yml] do
+        source = File.read!(workflow)
+        assert source =~ "version-file: .tool-versions"
+        assert source =~ "version-type: strict"
+        assert source =~ "mix ci.verify_gates"
+        refute source =~ ~S(elixir-version: "1.17")
+      end
+
+      floor = File.read!(@ci_yml) |> extract_ci_job_block("test_floor_1_17")
+      assert floor =~ ~S(elixir-version: "1.17")
+      assert floor =~ ~S(otp-version: "27")
     end
   end
 
