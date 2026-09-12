@@ -60,22 +60,22 @@ Which phases cover which requirements. Filled during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOCS-02 | TBD | Pending |
-| GATE-02 | TBD | Pending |
-| INBX-03 | TBD | Pending |
-| INBX-04 | TBD | Pending |
-| INT-02 | TBD | Pending |
-| INT-03 | TBD | Pending |
-| INT-04 | TBD | Pending |
-| DOCS-03 | TBD | Pending |
-| GATE-03 | TBD | Pending |
+| DOCS-02 | Phase 104 | Pending |
+| GATE-02 | Phase 104 | Pending |
+| INBX-03 | Phase 105 | Pending |
+| INBX-04 | Phase 105 | Pending |
+| INT-03 | Phase 106 | Pending |
+| INT-04 | Phase 106 | Pending |
+| INT-02 | Phase 107 | Pending |
+| DOCS-03 | Phase 107 | Pending |
+| GATE-03 | Phase 107 | Pending |
 
 **Coverage:**
 
 - v1.19 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9
+- Mapped to phases: 9
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-12*
-*Last updated: 2026-09-12 after v1.19 scope definition*
+*Last updated: 2026-09-12 after v1.19 roadmap mapping*
