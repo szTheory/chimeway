@@ -8,7 +8,7 @@
 
 ### Adopter Recipe Truth
 
-- [ ] **DOCS-02**: A CrossWake host can copy a durable provider-feedback worker recipe that uses the real provider-attribute conversion boundary and supplies every authenticated binding-authority option required by the registry.
+- [x] **DOCS-02**: A CrossWake host can copy a durable provider-feedback worker recipe that uses the real provider-attribute conversion boundary and supplies every authenticated binding-authority option required by the registry.
 - [ ] **GATE-02**: A maintainer can run an executable contract against a separately selected CrossWake documentation revision that rejects nonexistent APIs, incomplete authority scope, and vacuous examples without changing the immutable v1.18 physical-proof revision.
 
 ### Tenant-Safe Inbox Changes
@@ -60,7 +60,7 @@ Which phases cover which requirements. Filled during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOCS-02 | Phase 104 | Pending |
+| DOCS-02 | Phase 104 | Complete |
 | GATE-02 | Phase 104 | Pending |
 | INBX-03 | Phase 105 | Pending |
 | INBX-04 | Phase 105 | Pending |
