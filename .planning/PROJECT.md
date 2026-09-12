@@ -60,12 +60,12 @@ Validated requirements are summarized below. Milestone-scoped source sets live u
 
 ### Active
 
-- [ ] Opening the bell panel marks only the currently visible authorized items seen, once.
 - [ ] Operators can distinguish notification seen and read facts on the delivery timeline without exposing recipient identity or caller metadata.
 - [ ] Named inbox and release gates prove the complete arrival → seen → read → workflow/timeline path.
 
 ### Validated
 
+- ✓ v1.19 Phase 106 Idempotent Seen Lifecycle & Workflow Proof — INT-03/04: authorized panel-open and load-more mark only visible items seen through the existing conditional lifecycle; closed, repeated, cross-scope, and authorization-drift paths cannot duplicate or disclose state. A mounted demo bell progresses one exact waiting workflow once through the real signal queue/router. Verified 6/6 truths with 24 optional-package and 4 demo-host tests; zero human UAT.
 - ✓ v1.19 Phase 105 Tenant-Safe Inbox Change Stream — INBX-03/04: core emits contained post-commit reload hints through a replaceable Phoenix-free behaviour; the optional package derives HMAC-scoped PubSub topics, subscribes only after authorization, reauthorizes before authoritative refresh, and rejects cross-tenant/recipient disclosure. Verified 8/8 truths with 22 core tests, 21 optional-package tests, and 2 demo-host tests; zero human UAT.
 - ✓ v1.19 Phase 104 CrossWake Provider-Feedback Recipe Truth — DOCS-02/GATE-02: the real provider-feedback conversion/registry recipe executes at a separately pinned CrossWake documentation revision, while the v1.18 physical-proof authority remains frozen. Verified 6/6 truths through detached remote replay and required local/CI/release contracts; zero human UAT.
 - ✓ v1.18 Phase 103 Physical iPhone & Adoption Truth — TWIN-03/DOCS-01: one signed APNs-sandbox iPhone run now binds an immutable Chimeway artifact to source-validated CrossWake permission, authenticated registration, provider handoff, an isolated observed visible alert, one-time protected activation, and explainable delivery truth. The four-file no-replace snapshot revalidates as `physical_support_promoted`; the claim remains limited to the recorded iPhone-first path and does not imply device-receipt breadth, inbox state, engagement, Android/FCM, or background sync.
@@ -146,6 +146,8 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 **Standing hygiene debt (tracked, not this milestone's deliverable):** 3 red CI lanes on `main` (Example host smoke, TeamPulse journeys, Accrue dunning — `ci-gate` at 12/15; see `.planning/CI-HARDENING-BACKLOG.md`). This milestone is doc/asset-only and does not touch runtime code, so it will not worsen CI.
 
 ## Current State
+
+**v1.19 Phase 106 Idempotent Seen Lifecycle & Workflow Proof complete (2026-09-12):** Opening the authorized bell marks only visible page-one rows seen; load-more marks newly revealed rows, closed refreshes do not imply engagement, and sender-excluded PubSub echoes preserve pagination. Reopen/replay and scope/auth drift remain no-ops. The mounted demo path advances one eligible waiting workflow exactly once through the real signal queue. INT-03/04 passed 6/6 verifier truths with no human UAT. Phase 107 Operator Timeline, Guidance & Gate Parity is next.
 
 **v1.19 Phase 105 Tenant-Safe Inbox Change Stream complete (2026-09-12):** Core notification creation and first seen/read/archive transitions now emit closed, best-effort reload hints only after durable writes. The optional inbox package maps exact tenant/opaque-recipient scope to secret-derived PubSub topics and reauthorizes connected bells before every authoritative refresh. Cross-scope and unrelated messages cannot reload or reveal state; pagination resets to page one without closing the panel. INBX-03/04 passed 8/8 verifier truths with no human UAT. Phase 106 Idempotent Seen Lifecycle & Workflow Proof is next.
 

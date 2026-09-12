@@ -20,7 +20,7 @@
 
 - [ ] **INT-02**: An operator can distinguish notification-seen and notification-read facts on each correlated delivery timeline using stable event names, timestamps, and allowlisted detail without recipient identity or caller metadata.
 - [x] **INT-03**: Opening the bell panel marks only the currently visible, re-authorized inbox items seen, and repeated panel opens produce neither duplicate state transitions nor duplicate seen signals.
-- [ ] **INT-04**: A deterministic end-to-end journey proves that the first `chimeway.notification.seen` signal can progress an eligible waiting workflow while replay, wrong-tenant, and wrong-recipient paths do not progress it.
+- [x] **INT-04**: A deterministic end-to-end journey proves that the first `chimeway.notification.seen` signal can progress an eligible waiting workflow while replay, wrong-tenant, and wrong-recipient paths do not progress it.
 
 ### Guidance and Gates
 
@@ -65,7 +65,7 @@ Which phases cover which requirements. Filled during roadmap creation.
 | INBX-03 | Phase 105 | Complete |
 | INBX-04 | Phase 105 | Complete |
 | INT-03 | Phase 106 | Complete |
-| INT-04 | Phase 106 | Pending |
+| INT-04 | Phase 106 | Complete |
 | INT-02 | Phase 107 | Pending |
 | DOCS-03 | Phase 107 | Pending |
 | GATE-03 | Phase 107 | Pending |
