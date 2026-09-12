@@ -13,8 +13,15 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
       assert {:ok, ^bundle} = PhysicalBundle.validate(bundle, selected_sha: selected_sha())
       assert :ok = PhysicalBundle.publish(bundle, destination, selected_sha: selected_sha())
 
+      assert {:ok, ^bundle} =
+               PhysicalBundle.verify_directory(destination, selected_sha: selected_sha())
+
+      before = publication_bytes(destination)
+
       assert {:error, %{rule_id: "PP-PUBLICATION-COLLISION", path: []}} =
                PhysicalBundle.publish(bundle, destination, selected_sha: selected_sha())
+
+      assert publication_bytes(destination) == before
     after
       File.rm_rf(destination)
     end
@@ -45,7 +52,7 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
 
   test "does not promote an externally supplied non-observed attestation" do
     bundle = physical_bundle() |> put_in(["visible_alert_attestation", "state"], "not_observed")
-    bundle = Map.put(bundle, "bundle_sha256", PhysicalBundle.bundle_digest(bundle))
+    bundle = PhysicalBundle.seal(bundle)
 
     destination =
       Path.join(System.tmp_dir!(), "physical-non-observed-#{System.unique_integer([:positive])}")
@@ -89,9 +96,13 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
       "crosswake_record" => %{
         "schema_version" => 1,
         "owner" => "crosswake",
+        "crosswake_remote" => "https://github.com/szTheory/crosswake.git",
         "crosswake_sha" => selected_sha(),
+        "crosswake_contract_version" => 1,
         "evidence_sha256" => String.duplicate("b", 64),
         "completion_marker_sha256" => String.duplicate("c", 64),
+        "run_ref" => "run-20260826-opaque",
+        "outcome" => "passed",
         "assertions" => [
           %{"id" => "permission_observed", "owner" => "device_local", "outcome" => "passed"},
           %{
@@ -119,11 +130,18 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
         "owner" => "chimeway",
         "run_ref" => "run-20260826-opaque",
         "machine_envelope_sha256" => String.duplicate("d", 64),
+        "component_digests" => %{
+          "chimeway-envelope.json" => String.duplicate("e", 64),
+          "crosswake-record.json" => String.duplicate("f", 64),
+          "visible-alert-attestation.json" => String.duplicate("0", 64)
+        },
+        "bundle_digest" => String.duplicate("1", 64),
         "state" => "validated"
-      }
+      },
+      "bundle_digest" => String.duplicate("1", 64)
     }
 
-    Map.put(bundle, "bundle_sha256", PhysicalBundle.bundle_digest(bundle))
+    PhysicalBundle.seal(bundle)
   end
 
   defp selected_sha, do: File.read!("priv/mobile_proof/crosswake-selected-sha") |> String.trim()
@@ -137,4 +155,11 @@ defmodule Chimeway.MobileProof.PhysicalBundleTest do
 
   defp mutate(valid, %{"path" => path, "value" => value}), do: put_in(valid, path, value)
   defp mutate(valid, %{"add" => key, "value" => value}), do: Map.put(valid, key, value)
+
+  defp publication_bytes(destination) do
+    destination
+    |> File.ls!()
+    |> Enum.sort()
+    |> Map.new(&{&1, File.read!(Path.join(destination, &1))})
+  end
 end

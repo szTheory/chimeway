@@ -2706,7 +2706,7 @@ defmodule Chimeway.ReleaseGateContractTest do
             "image: postgres:15",
             "https://github.com/szTheory/crosswake.git",
             "priv/mobile_proof/crosswake-selected-sha",
-            "refs/heads/phase-103-chimeway-notification-proof",
+            "refs/heads/resume/chimeway-notification-physical-proof",
             "git -C ../crosswake ls-remote origin",
             "checkout --detach",
             "rev-parse HEAD",

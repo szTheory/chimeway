@@ -1,6 +1,6 @@
 # Mobile Adoption and Operations
 
-This is the canonical guide for Chimeway's iPhone-first mobile delivery path. It is deliberately literal: the current public state is **physical evidence pending**. A green package, Git revision, Hex artifact, or CI run establishes provenance only; none establishes physical-device behavior.
+This is the canonical guide for Chimeway's iPhone-first mobile delivery path. It is deliberately literal: one bounded production path is now **`physical_support_promoted`**. A green package, Git revision, Hex artifact, or CI run establishes provenance only; physical-device behavior comes only from the completion-bound promoted record.
 
 ## Start with your job
 
@@ -50,9 +50,17 @@ mix verify.physical_proof_contract
 mix chimeway.mobile_physical_proof --preflight --json
 ```
 
-The result remains physical evidence pending. It is not physical behavior evidence.
+Threshold A alone remains physical evidence pending. It is not physical behavior evidence.
 
 **Threshold B — `physical_support_promoted`.** After Apple signing/provisioning, APNs sandbox, the selected iPhone, host authority, and the CrossWake Phase 162 reconciliation are ready, run the signed-device process. The runner asks exactly: “Did the expected Chimeway alert appear on the selected iPhone?” Choose **Observed**, **Did not appear**, or **Cannot verify**. That observation confirms visible presentation only; it does not establish APNs acceptance, protected activation, inbox state, or engagement. A promotion requires an explicit `Observed` answer and an append-only validated bundle.
+
+The retained 2026-09-12 proof is `physical_support_promoted` for opaque run `cw-physical-57aa04f3f7f2c1a81d9d2c93`. It binds immutable Chimeway artifact `1af6079bed2ec25c95768f0122e0fcd2373636de1999a47e2196409b629229b5` to CrossWake contract v1 at `3165ab6938fa673f8a289c27699658bb78650ef3`; the source-owned evidence and marker digests are `e63ae014bc57c9fab81b8a892ed04e48b197df151e8ac2073daa35f0f3992d6a` and `153eed13526824922a0b804ad453123f484b96556cfb91390b5c22c3eca7c19b`. Bundle digest `e84ba08c151af2f227f2e0a9e550289f576c8004f3f9b65c13b57ba17e3863fc` closes passed delivery, provider-handoff, explanation, permission, registration, protected-activation, and separately observed visible-presentation outcomes. Revalidate it with:
+
+```bash
+mix chimeway.mobile_physical_proof --verify-promoted --json
+```
+
+This is evidence for that recorded iPhone-first path only. APNs acceptance remains provider handoff, not proof of receipt or display; visible presentation and protected activation are separate facts. The proof makes no inbox seen/read or engagement claim.
 
 ## Troubleshooting and operator actions
 
@@ -72,13 +80,13 @@ The result remains physical evidence pending. It is not physical behavior eviden
 
 **How to fix:** Resolve the host session, tenant, binding revision, and route authorization, then create a fresh intent. Use a new proof run; never overwrite retained evidence.
 
-### The release gate is green but physical support is still pending
+### The release gate is green before physical promotion
 
 **What happened:** Threshold A completed.
 
 **Why it matters:** Package/CI provenance is not APNs receipt, display, or protected-open evidence.
 
-**How to fix:** Keep public support wording at physical evidence pending until the signed-device Threshold-B bundle is validated and promoted.
+**How to fix:** Keep public support wording at physical evidence pending until the signed-device Threshold-B bundle is validated and promoted. Once promoted, keep the claim bounded to the recorded path and revalidate the completion-bound snapshot.
 
 ## Non-goals
 

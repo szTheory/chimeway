@@ -23,7 +23,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 - [x] **Phase 100: Optional APNs Adapter** — Opt-in, reason-aware APNs dispatch under host token custody. (completed 2026-08-22)
 - [x] **Phase 101: CrossWake Registration & Protected Open** — Authenticated registration and fail-closed offline notification activation. (completed 2026-08-25)
 - [x] **Phase 102: Alpha Digital Twin & Hermetic Gate** — Deterministic cross-repository production-path proof in CI. (completed 2026-08-26)
-- [ ] **Phase 103: Physical iPhone & Adoption Truth** — Redacted real-device sandbox evidence and operational adoption guidance.
+- [x] **Phase 103: Physical iPhone & Adoption Truth** — Redacted real-device sandbox evidence and operational adoption guidance. (completed 2026-09-12)
 
 ## Phase Details
 
@@ -372,7 +372,7 @@ Plans:
   2. The proof record is machine-validatable and separates the subjective visible-alert observation from executable provider and protected-open assertions.
   3. Host and operator guidance explains setup, ownership boundaries, compatibility migration, outcome vocabulary, offline-open behavior, proof commands, and explicit non-goals.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 **Wave 1**
 
@@ -387,6 +387,8 @@ Plans:
 - [x] 103-03-PLAN.md — Ship Threshold-A runner/gate parity and the canonical mobile adoption and operations guide.
 
 **Wave 4** *(blocked on Wave 3 plus CrossWake Phase 162 passed verification and external Apple/device prerequisites)*
+
+- [x] 103-04-PLAN.md — Execute the signed APNs-sandbox iPhone proof, publish the four-file no-replace evidence snapshot, and promote only the bounded completion-backed support truth.
 
 - [ ] 103-04-PLAN.md — Execute the signed iPhone run, publish the no-replace bundle, and promote bounded support truth.
 

@@ -8,6 +8,7 @@
     {"id": "wrong_assertion_order", "rule_id": "PP-CROSSWAKE-ASSERTIONS", "path": ["crosswake_record", "assertions"], "mutation": {"path": ["crosswake_record", "assertions"], "value": []}},
     {"id": "bad_attestation_state", "rule_id": "PP-ATTESTATION-STATE", "path": ["visible_alert_attestation", "state"], "mutation": {"path": ["visible_alert_attestation", "state"], "value": "inferred"}},
     {"id": "sensitive_nested_value", "rule_id": "PP-SENSITIVE", "path": ["chimeway_envelope", "facts", "trace_explainable"], "mutation": {"path": ["chimeway_envelope", "facts", "trace_explainable"], "value": "CANARY-DEVICE-TOKEN"}},
-    {"id": "bundle_digest", "rule_id": "PP-BUNDLE-DIGEST", "path": ["bundle_sha256"], "mutation": {"path": ["bundle_sha256"], "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}}
+    {"id": "component_digest", "rule_id": "PP-COMPONENT-DIGEST", "path": ["completion_marker", "component_digests"], "mutation": {"path": ["completion_marker", "component_digests", "chimeway-envelope.json"], "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}},
+    {"id": "bundle_digest", "rule_id": "PP-BUNDLE-DIGEST", "path": ["bundle_digest"], "mutation": {"path": ["bundle_digest"], "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}}
   ]
 }

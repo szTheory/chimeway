@@ -2193,9 +2193,39 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
+    test "binds promoted support wording to the verified completion snapshot", %{guide: guide} do
+      selected_sha = File.read!("priv/mobile_proof/crosswake-selected-sha") |> String.trim()
+
+      assert {:ok, bundle} =
+               Chimeway.MobileProof.PhysicalBundle.verify_directory(
+                 "evidence/mobile_physical/promoted",
+                 selected_sha: selected_sha
+               )
+
+      envelope = bundle["chimeway_envelope"]
+
+      for value <- [
+            envelope["captured_at"] |> String.slice(0, 10),
+            envelope["run_ref"],
+            envelope["chimeway_artifact_sha256"],
+            envelope["crosswake_sha"],
+            envelope["crosswake_evidence_sha256"],
+            envelope["crosswake_completion_marker_sha256"],
+            bundle["bundle_digest"]
+          ] do
+        assert guide =~ value
+      end
+
+      assert guide =~ "mix chimeway.mobile_physical_proof --verify-promoted --json"
+      assert guide =~ "one bounded production path"
+      assert bundle["visible_alert_attestation"]["state"] == "observed"
+      assert bundle["completion_marker"]["state"] == "validated"
+    end
+
     test "locks the provider boundary and rejects unsupported or unsafe claims", %{guide: guide} do
       assert length(:binary.matches(guide, "Provider acceptance is provider handoff only.")) >= 4
-      assert guide =~ "physical evidence pending"
+      assert guide =~ "Threshold A alone remains physical evidence pending"
+      assert guide =~ "physical_support_promoted"
       assert guide =~ "package, Git revision, Hex artifact, or CI run establishes provenance only"
 
       for forbidden <- [

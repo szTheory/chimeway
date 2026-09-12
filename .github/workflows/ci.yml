@@ -392,8 +392,8 @@ jobs:
           test "${selected_sha}" = "$(printf '%s' "${selected_sha}" | grep -E '^[0-9a-f]{40}$')"
           git init -q ../crosswake
           git -C ../crosswake remote add origin https://github.com/szTheory/crosswake.git
-          test "$(git -C ../crosswake ls-remote origin refs/heads/phase-103-chimeway-notification-proof | cut -f1)" = "${selected_sha}"
-          git -C ../crosswake fetch --depth=1 origin refs/heads/phase-103-chimeway-notification-proof
+          test "$(git -C ../crosswake ls-remote origin refs/heads/resume/chimeway-notification-physical-proof | cut -f1)" = "${selected_sha}"
+          git -C ../crosswake fetch --depth=1 origin refs/heads/resume/chimeway-notification-physical-proof
           git -C ../crosswake checkout --detach -q "${selected_sha}"
           test "$(git -C ../crosswake remote get-url origin)" = "https://github.com/szTheory/crosswake.git"
           test "$(git -C ../crosswake rev-parse HEAD)" = "${selected_sha}"

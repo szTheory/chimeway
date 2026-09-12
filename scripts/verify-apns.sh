@@ -53,7 +53,7 @@ run_consumer() {
       cd "$consumer_root"
       cp "$fixture_root/apns-enabled.lock" mix.lock
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get --check-locked
-      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.compile 2>&1 | tee -a "$output"
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.compile |& tee -a "$output"
       [[ -d "$consumer_lib_path/ecto/ebin" ]] || fail "prepared consumer Ecto code path is missing"
 
       for dependency_path in "$consumer_lib_path"/*; do
@@ -71,7 +71,7 @@ run_consumer() {
 
       if [[ "$focus" == "strict_compile_probe" ]]; then
         ERL_LIBS="$dependency_erl_libs" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
-          mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"
+          mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"
         assert_no_chimeway_redefinition
         return
       fi
@@ -82,7 +82,7 @@ run_consumer() {
         printf '%s\n' 'defmodule Chimeway.APNS.WarningGateProbe do' '  def warning, do: ignored = :warning' 'end' >"$warning_probe"
 
         if ERL_LIBS="$dependency_erl_libs" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
-             mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"; then
+             mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"; then
           fail "Chimeway warning mutation unexpectedly compiled cleanly"
         fi
 
@@ -92,7 +92,7 @@ run_consumer() {
       fi
 
       ERL_LIBS="$dependency_erl_libs" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
-        mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"
+        mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors |& tee -a "$output"
       assert_no_chimeway_redefinition
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
       grep -Eq 'pigeon.*2\.0\.1' "$tree_output" || fail "enabled fixture did not resolve pigeon 2.0.1"

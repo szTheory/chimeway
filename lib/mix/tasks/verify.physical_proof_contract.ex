@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
   @shortdoc "Verify the selected CrossWake physical-proof contract without credentials"
   @authority "priv/mobile_proof/crosswake-selected-sha"
   @remote "https://github.com/szTheory/crosswake.git"
-  @ref "refs/heads/phase-103-chimeway-notification-proof"
+  @ref "refs/heads/resume/chimeway-notification-physical-proof"
   @module "lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex"
   @fixture "test/fixtures/proof_lane/chimeway-notification-physical-proof.json"
   @focused_test "test/crosswake/proof_lane/chimeway_notification_physical_proof_test.exs"
@@ -134,9 +134,10 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
            {:ok, _} <- validate_built_artifact!(artifact, artifact_sha256),
            bundle <-
              put_in(bundle, ["chimeway_envelope", "chimeway_artifact_sha256"], artifact_sha256),
-           bundle <- Map.put(bundle, "bundle_sha256", PhysicalBundle.bundle_digest(bundle)),
+           bundle <- PhysicalBundle.seal(bundle),
            {:ok, _} <- PhysicalBundle.validate(bundle, selected_sha: sha),
            :ok <- PhysicalBundle.publish(bundle, destination, selected_sha: sha),
+           {:ok, _} <- PhysicalBundle.verify_directory(destination, selected_sha: sha),
            {:error, %{rule_id: "PP-PUBLICATION-COLLISION"}} <-
              PhysicalBundle.publish(bundle, destination, selected_sha: sha) do
         :ok
@@ -176,9 +177,13 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
       "crosswake_record" => %{
         "schema_version" => 1,
         "owner" => "crosswake",
+        "crosswake_remote" => @remote,
         "crosswake_sha" => sha,
+        "crosswake_contract_version" => 1,
         "evidence_sha256" => envelope["crosswake_evidence_sha256"],
         "completion_marker_sha256" => envelope["crosswake_completion_marker_sha256"],
+        "run_ref" => envelope["run_ref"],
+        "outcome" => "passed",
         "assertions" => [
           %{"id" => "permission_observed", "owner" => "device_local", "outcome" => "passed"},
           %{
@@ -206,8 +211,15 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
         "owner" => "chimeway",
         "run_ref" => envelope["run_ref"],
         "machine_envelope_sha256" => String.duplicate("d", 64),
+        "component_digests" => %{
+          "chimeway-envelope.json" => String.duplicate("e", 64),
+          "crosswake-record.json" => String.duplicate("f", 64),
+          "visible-alert-attestation.json" => String.duplicate("0", 64)
+        },
+        "bundle_digest" => String.duplicate("1", 64),
         "state" => "validated"
-      }
+      },
+      "bundle_digest" => String.duplicate("1", 64)
     }
   end
 
