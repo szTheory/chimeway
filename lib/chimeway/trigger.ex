@@ -33,6 +33,7 @@ defmodule Chimeway.Trigger do
   import Ecto.Query, only: [from: 2]
 
   alias Chimeway.Events.Event
+  alias Chimeway.Inbox.ChangePublisher
   alias Chimeway.Notifications.Notification
   alias Chimeway.Notifier
   alias Chimeway.Repo
@@ -241,6 +242,7 @@ defmodule Chimeway.Trigger do
           {:ok,
            %{
              count: count,
+             inbox_changes: inbox_changes(notifications),
              precomputed_rendering: precomputed_rendering(notifications),
              recipient_handoffs: recipient_handoffs(notifications)
            }}
@@ -333,6 +335,12 @@ defmodule Chimeway.Trigger do
     |> Enum.reduce(%{}, &Map.merge/2)
   end
 
+  defp inbox_changes(notifications) do
+    Enum.map(notifications, fn notification ->
+      {notification.row.tenant_id, notification.row.recipient_identity}
+    end)
+  end
+
   defp recipient_handoffs(notifications) do
     Enum.reduce(notifications, %{}, fn notification, handoffs ->
       case notification.recipient_address do
@@ -351,6 +359,7 @@ defmodule Chimeway.Trigger do
             event: event,
             notifications: %{
               count: notifications_inserted,
+              inbox_changes: inbox_changes,
               precomputed_rendering: precomputed_rendering,
               recipient_handoffs: recipient_handoffs
             }
@@ -358,6 +367,10 @@ defmodule Chimeway.Trigger do
          _idempotency_key,
          _tenant_id
        ) do
+    Enum.each(inbox_changes, fn {tenant_id, recipient_ref} ->
+      ChangePublisher.publish(tenant_id, recipient_ref, :created)
+    end)
+
     public_result = %{
       event: event,
       notification_key: event.notification_key,

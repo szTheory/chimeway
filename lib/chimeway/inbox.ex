@@ -6,6 +6,7 @@ defmodule Chimeway.Inbox do
   import Ecto.Query
 
   alias Chimeway.Inbox.Item
+  alias Chimeway.Inbox.ChangePublisher
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
   alias Chimeway.SafeEvidence
@@ -158,21 +159,6 @@ defmodule Chimeway.Inbox do
 
   defp maybe_filter_unread(query, _false), do: query
 
-  defp update_lifecycle_timestamp(notification_id, recipient_identity, tenant_id, field, at, nil) do
-    timestamp = DateTime.truncate(at, :microsecond)
-
-    query =
-      Notification
-      |> where([notification], notification.id == ^notification_id)
-      |> where([notification], notification.recipient_identity == ^recipient_identity)
-      |> where([notification], notification.tenant_id == ^tenant_id)
-
-    case Repo.update_all(query, set: [{field, timestamp}, {:updated_at, timestamp}]) do
-      {1, _} -> :ok
-      _other -> {:error, :not_found}
-    end
-  end
-
   defp update_lifecycle_timestamp(
          notification_id,
          recipient_identity,
@@ -195,6 +181,7 @@ defmodule Chimeway.Inbox do
          ) do
       {1, _} ->
         maybe_emit_inbox_signal(notification_id, recipient_identity, tenant_id, event_name)
+        ChangePublisher.publish(tenant_id, recipient_identity, change_event(field))
         :ok
 
       {0, _} ->
@@ -213,8 +200,16 @@ defmodule Chimeway.Inbox do
   end
 
   defp maybe_emit_inbox_signal(notification_id, recipient_identity, tenant_id, event_name) do
-    emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name)
+    if event_name do
+      emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name)
+    else
+      :ok
+    end
   end
+
+  defp change_event(:seen_at), do: :seen
+  defp change_event(:read_at), do: :read
+  defp change_event(:archived_at), do: :archived
 
   defp emit_inbox_signal(tenant_id, recipient_identity, notification_id, event_name) do
     Signal.track(
