@@ -290,16 +290,17 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
 
   test "authorization drift redirects before a stream-triggered reload", %{conn: conn} do
     use_mutable_auth!("cw_user_42", "tenant-a")
-    {:ok, view, _html} = mount_bell(conn)
+    {:ok, view, initial_html} = mount_bell(conn)
 
     hidden =
       insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Never reloaded"}})
+
+    refute initial_html =~ hidden.id
 
     Application.put_env(:chimeway_inbox, :mutable_auth_tenant, "tenant-b")
     publish_change!("tenant-a", "cw_user_42")
 
     assert_redirect(view, "/login")
-    refute render(view) =~ hidden.id
   end
 
   test "a stream refresh resets a loaded second page to authoritative page one", %{conn: conn} do

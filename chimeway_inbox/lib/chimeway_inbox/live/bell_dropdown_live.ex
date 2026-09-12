@@ -7,7 +7,9 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
   """
   use ChimewayInbox.Live, :live_view
 
-  alias ChimewayInbox.LiveAuth
+  alias ChimewayInbox.{ChangeStream, LiveAuth}
+
+  @reload_message {:chimeway_inbox, :reload, 1}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -26,8 +28,23 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
       )
       |> load_inbox(recipient_identity, tenant_id)
 
+    if connected?(socket) do
+      _ = ChangeStream.subscribe(tenant_id, recipient_identity)
+    end
+
     {:ok, socket}
   end
+
+  @impl true
+  def handle_info(@reload_message, socket) do
+    with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
+      {:noreply, load_inbox(socket, socket.assigns.recipient_identity, socket.assigns.tenant_id)}
+    else
+      {:error, socket} -> {:noreply, socket}
+    end
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("toggle_panel", _params, socket) do
