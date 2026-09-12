@@ -13,9 +13,11 @@ defmodule Chimeway.MobilePhysicalProofRunnerTest do
     assert Enum.all?(result.checks, &(&1.outcome in ["passed", "blocked", "unavailable"]))
 
     encoded = Jason.encode!(result)
+    selected_sha = File.read!("priv/mobile_proof/crosswake-selected-sha") |> String.trim()
+
     refute encoded =~ "crosswake-selected-sha"
     refute encoded =~ File.cwd!()
-    refute encoded =~ "65dd9f42e218261015823e28045c507db1884cf3"
+    refute encoded =~ selected_sha
   end
 
   test "visible alert input is explicit and limited to the D-13 choices" do

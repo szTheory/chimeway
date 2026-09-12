@@ -7,7 +7,7 @@
     "owner": "chimeway",
     "chimeway_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "crosswake_remote": "https://github.com/szTheory/crosswake.git",
-    "crosswake_sha": "65dd9f42e218261015823e28045c507db1884cf3",
+    "crosswake_sha": "3165ab6938fa673f8a289c27699658bb78650ef3",
     "crosswake_contract_version": 1,
     "crosswake_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "crosswake_completion_marker_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -18,7 +18,7 @@
   "crosswake_record": {
     "schema_version": 1,
     "owner": "crosswake",
-    "crosswake_sha": "65dd9f42e218261015823e28045c507db1884cf3",
+    "crosswake_sha": "3165ab6938fa673f8a289c27699658bb78650ef3",
     "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "completion_marker_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     "assertions": [
@@ -42,5 +42,5 @@
     "machine_envelope_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "state": "validated"
   },
-  "bundle_sha256": "0adf55bff3355e0bb6d44d2cdbd5a45b487b65af552b4139079483ddc8d0a701"
+  "bundle_sha256": "6b77f20022fe5e4bec46b0688fbcce74bbdfbe805aa979206fe9655d4a863548"
 }
