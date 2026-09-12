@@ -1,7 +1,7 @@
 ---
 phase: 103
 slug: physical-iphone-adoption-truth
-status: draft
+status: complete
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-08-26
@@ -43,8 +43,8 @@ created: 2026-08-26
 | 103-02-02 | 02 | 2 | TWIN-03 | T-103-04..07 | Exact key/order/owner/revision/digest/privacy/attestation/no-replace failures reject without echo and hermetic Extension v1 remains immutable | unit/contract | `mix test test/chimeway/mobile_proof_extension_test.exs test/chimeway/mobile_physical_proof_test.exs --max-failures 1 --warnings-as-errors && mix verify.physical_proof_contract && git diff --exit-code -- lib/chimeway/mobile_proof/extension.ex test/fixtures/alpha_twin_physical_proof/valid.json test/fixtures/alpha_twin_physical_proof/negative-corpus.json` | ✅ planned in task | ⬜ pending |
 | 103-03-01 | 03 | 3 | TWIN-03, DOCS-01 | T-103-08..10 | Two-threshold runner stays fail-closed and Threshold A remains credential-free with exact selected-SHA local/CI parity | integration/contract | `mix test test/chimeway/mobile_physical_proof_runner_test.exs test/chimeway/release_gate_contract_test.exs --max-failures 1 --warnings-as-errors && mix ci.verify_gates && mix verify.alpha_twin && mix verify.physical_proof_contract` | ✅ planned in task | ⬜ pending |
 | 103-03-02 | 03 | 3 | DOCS-01 | T-103-11..13 | Canonical guide roles, commands, vocabulary, links, pending wording, and non-goals do not drift | doc contract | `mix test test/chimeway/doc_contract_test.exs --max-failures 1 --warnings-as-errors && mix ci.verify_gates` | ✅ planned in task | ⬜ pending |
-| 103-04-01 | 04 | 4 | TWIN-03 | T-103-14..20 | Signed-device run promotes only fresh-source-bound machine proof plus separately supplied observed attestation | physical/integration | `mix chimeway.mobile_physical_proof --verify-promoted --json && mix verify.physical_proof_contract && mix verify.alpha_twin` | ✅ runner created in 103-03-01 | ⬜ pending |
-| 103-04-02 | 04 | 4 | TWIN-03, DOCS-01 | T-103-19..20 | Public/planning truth changes only from the validated completion-bound promoted snapshot | doc/release contract | `mix chimeway.mobile_physical_proof --verify-promoted --json && mix ci.verify_gates && mix verify.alpha_twin && mix verify.physical_proof_contract` | ✅ contracts created in 103-03 | ⬜ pending |
+| 103-04-01 | 04 | 4 | TWIN-03 | T-103-14..20 | Signed-device run promotes only fresh-source-bound machine proof plus separately supplied observed attestation | physical/integration | `mix chimeway.mobile_physical_proof --verify-promoted --json && mix verify.physical_proof_contract && mix verify.alpha_twin` | ✅ runner created in 103-03-01 | ✅ passed |
+| 103-04-02 | 04 | 4 | TWIN-03, DOCS-01 | T-103-19..20 | Public/planning truth changes only from the validated completion-bound promoted snapshot | doc/release contract | `mix chimeway.mobile_physical_proof --verify-promoted --json && mix ci.verify_gates && mix verify.alpha_twin && mix verify.physical_proof_contract` | ✅ contracts created in 103-03 | ✅ passed |
 
 *Task and plan IDs are final and match 103-01 through 103-04. CrossWake authority completion/publication is isolated from all Chimeway consumers, and no implementation task lacks a same-task executable test contract.*
 
