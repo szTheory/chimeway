@@ -49,7 +49,7 @@ defmodule APNSConsumerTest do
 
     base = %{
       crosswake_root: root,
-      team_id: "WZSSVMVZB5",
+      team_id: "6CH9Y797RU",
       bundle_id: "dev.crosswake.chimewayproof"
     }
 

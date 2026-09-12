@@ -38,7 +38,7 @@ defmodule APNSConsumer.PhysicalProof do
   @moduledoc false
 
   @bundle_id "dev.crosswake.chimewayproof"
-  @team_id "WZSSVMVZB5"
+  @team_id "6CH9Y797RU"
   @timeout_ms 600_000
 
   def run do
