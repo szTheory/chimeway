@@ -106,7 +106,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 |-------|----------------|--------|-----------|
 | 104. CrossWake Provider-Feedback Recipe Truth | 2/2 | Complete    | 2026-09-12 |
 | 105. Tenant-Safe Inbox Change Stream | 2/2 | Complete    | 2026-09-12 |
-| 106. Idempotent Seen Lifecycle & Workflow Proof | 0/TBD | Not started | — |
+| 106. Idempotent Seen Lifecycle & Workflow Proof | 1/2 | In Progress|  |
 | 107. Operator Timeline, Guidance & Gate Parity | 0/TBD | Not started | — |
 
 ---
