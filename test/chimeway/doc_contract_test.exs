@@ -28,6 +28,19 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  describe "CrossWake provider-feedback docs authority (DOCS-02/GATE-02)" do
+    test "packages one strict documentation selector independently from physical proof" do
+      mix_exs = File.read!("mix.exs")
+      docs_sha = File.read!("priv/adoption/crosswake-provider-feedback-docs-selected-sha")
+      physical_sha = File.read!("priv/mobile_proof/crosswake-selected-sha")
+
+      assert mix_exs =~ "~w(lib priv guides"
+      assert Regex.match?(~r/\A[0-9a-f]{40}\n\z/, docs_sha)
+      assert Regex.match?(~r/\A[0-9a-f]{40}\n\z/, physical_sha)
+      refute docs_sha == physical_sha
+    end
+  end
+
   @journey_guide "guides/flows/multi-step-journeys.md"
 
   describe "journey guide doc contract (DOCS-03)" do

@@ -22,8 +22,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   @adoption_run_assertion "scripts/ci/assert-adoption-run.sh"
   @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17 verify_alpha_twin)
-  @pr_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_adoption_paths verify_inbox verify_apns verify_alpha_twin)
+  @ci_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17 verify_alpha_twin verify_crosswake_provider_feedback_docs)
+  @pr_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_adoption_paths verify_inbox verify_apns verify_alpha_twin verify_crosswake_provider_feedback_docs)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
   # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
@@ -549,7 +549,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 18 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
+    test "ci-gate needs stays 19 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -557,9 +557,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 18,
-             "ci-gate needs must remain exactly 18 lanes after the packaged Accrue proof is isolated " <>
-               "and the APNs plus Alpha twin proof lanes join the non-PR release gate"
+      assert length(needs) == 19,
+             "ci-gate needs must contain the 18 established lanes plus the CrossWake provider-feedback docs gate"
 
       assert "test_floor_1_17" in needs,
              "ci-gate must need test_floor_1_17 so the 1.17 floor genuinely gates on push (D-15)"
@@ -2748,6 +2747,51 @@ defmodule Chimeway.ReleaseGateContractTest do
       for forbidden <- ["APPLE_", "APNS_", "xcodebuild", "macos-", "secrets:"] do
         refute ci_yml =~ forbidden, "CI must not carry physical-device credentials: #{forbidden}"
       end
+    end
+  end
+
+  describe "CrossWake provider-feedback documentation gate (GATE-02)" do
+    test "local aggregate and named CI lane invoke the exact same verifier once" do
+      mix_exs = File.read!(@mix_exs)
+      ci_yml = File.read!(@ci_yml)
+      job = extract_ci_job_block(ci_yml, "verify_crosswake_provider_feedback_docs")
+      verifier = File.read!("lib/mix/tasks/verify.crosswake_provider_feedback_docs.ex")
+
+      assert mix_exs =~
+               "\"ci.crosswake_provider_feedback_docs\": [\"verify.crosswake_provider_feedback_docs\"]"
+
+      [_, aggregate] = Regex.run(~r/"ci\.verify_gates":\s*\[(.*?)\]/s, mix_exs)
+      assert length(:binary.matches(aggregate, "ci.crosswake_provider_feedback_docs")) == 1
+      assert length(:binary.matches(job, "mix verify.crosswake_provider_feedback_docs")) == 1
+
+      assert job =~ "contents: read"
+
+      for marker <- [
+            "priv/adoption/crosswake-provider-feedback-docs-selected-sha",
+            "refs/heads/phase-104-provider-feedback-recipe-truth"
+          ] do
+        assert verifier =~ marker
+      end
+    end
+
+    test "both aggregate gates fail closed on the named lane while physical proof stays separate" do
+      ci_yml = File.read!(@ci_yml)
+      lane = "verify_crosswake_provider_feedback_docs"
+
+      assert lane in extract_pr_gate_needs(ci_yml)
+      assert lane in extract_ci_gate_needs(ci_yml)
+
+      for gate_name <- ["pr-gate", "ci-gate"] do
+        gate = extract_ci_job_block(ci_yml, gate_name)
+        assert gate =~ "VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS: ${{ needs.#{lane}.result }}"
+        assert gate =~ "aggregate-gate.sh"
+        assert gate =~ "VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS"
+      end
+
+      physical_job = extract_ci_job_block(ci_yml, "verify_alpha_twin")
+      assert physical_job =~ "refs/heads/resume/chimeway-notification-physical-proof"
+      assert physical_job =~ "priv/mobile_proof/crosswake-selected-sha"
+      refute physical_job =~ "crosswake-provider-feedback-docs-selected-sha"
     end
   end
 
