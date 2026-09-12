@@ -3,9 +3,13 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias Chimeway.Inbox.Change
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
+  alias ChimewayInbox.PubSubPublisher
   alias ChimewayInbox.TestSupport.DenyAuth
+
+  @reload {:chimeway_inbox, :reload, 1}
 
   defmodule MissingTenantAuth do
     @behaviour ChimewayInbox.Auth
@@ -247,6 +251,101 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     assert panel_html =~ "Load more notifications"
   end
 
+  test "a same-scope change refreshes the badge and open panel without polling", %{conn: conn} do
+    {:ok, view, _html} = mount_bell(conn)
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    notification =
+      insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Arrived live"}})
+
+    publish_change!("tenant-a", "cw_user_42")
+
+    html = render(view)
+    assert html =~ "Notifications, 1 unread"
+    assert html =~ ~s(data-cw-inbox-panel)
+    assert html =~ ~s(data-notification-id="#{notification.id}")
+    assert html =~ "Arrived live"
+    refute_receive @reload
+  end
+
+  test "wrong-scope and unrelated messages do not refresh or reveal durable state", %{conn: conn} do
+    {:ok, view, _html} = mount_bell(conn)
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    notification =
+      insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Still hidden"}})
+
+    publish_change!("tenant-b", "cw_user_42")
+    publish_change!("tenant-a", "cw_user_99")
+    send(view.pid, {:chimeway_inbox, :unrelated, 1})
+
+    html = render(view)
+    refute html =~ notification.id
+    refute html =~ "Still hidden"
+    refute html =~ "1 unread"
+
+    publish_change!("tenant-a", "cw_user_42")
+    assert render(view) =~ notification.id
+  end
+
+  test "authorization drift redirects before a stream-triggered reload", %{conn: conn} do
+    use_mutable_auth!("cw_user_42", "tenant-a")
+    {:ok, view, _html} = mount_bell(conn)
+
+    hidden =
+      insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Never reloaded"}})
+
+    Application.put_env(:chimeway_inbox, :mutable_auth_tenant, "tenant-b")
+    publish_change!("tenant-a", "cw_user_42")
+
+    assert_redirect(view, "/login")
+    refute render(view) =~ hidden.id
+  end
+
+  test "a stream refresh resets a loaded second page to authoritative page one", %{conn: conn} do
+    oldest =
+      for index <- 1..21 do
+        insert_inbox_notification!("cw_user_42", %{
+          metadata: %{"subject" => "Before refresh #{index}"},
+          idempotency_key: "inbox-stream-page-#{index}"
+        })
+      end
+      |> hd()
+
+    {:ok, view, _html} = mount_bell(conn)
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    loaded_html = view |> element("button[phx-click=\"load_more\"]") |> render_click()
+    assert count_items(loaded_html) == 21
+    assert loaded_html =~ oldest.id
+
+    newest =
+      insert_inbox_notification!("cw_user_42", %{
+        metadata: %{"subject" => "Newest authoritative item"}
+      })
+
+    publish_change!("tenant-a", "cw_user_42")
+
+    refreshed_html = render(view)
+    assert refreshed_html =~ ~s(data-cw-inbox-panel)
+    assert count_items(refreshed_html) == 20
+    assert refreshed_html =~ newest.id
+    refute refreshed_html =~ oldest.id
+    assert refreshed_html =~ "Load more notifications"
+  end
+
+  test "invalid stream configuration leaves the current bell render usable", %{conn: conn} do
+    previous_server = Application.get_env(:chimeway_inbox, :pubsub_server)
+    Application.put_env(:chimeway_inbox, :pubsub_server, "invalid")
+    on_exit(fn -> restore_env(:pubsub_server, previous_server) end)
+
+    insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Still usable"}})
+
+    {:ok, view, html} = mount_bell(conn)
+    assert html =~ "Notifications, 1 unread"
+    assert view |> element("button[data-cw-inbox-bell]") |> render_click() =~ "Still usable"
+  end
+
   defp use_mutable_auth!(recipient_identity, tenant_id) do
     previous_auth_module = Application.get_env(:chimeway_inbox, :auth_module)
     previous_redirect = Application.get_env(:chimeway_inbox, :unauthorized_redirect)
@@ -266,6 +365,18 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
 
   defp restore_env(key, nil), do: Application.delete_env(:chimeway_inbox, key)
   defp restore_env(key, value), do: Application.put_env(:chimeway_inbox, key, value)
+
+  defp publish_change!(tenant_id, recipient_ref) do
+    assert {:ok, change} = Change.new(tenant_id, recipient_ref, :created)
+    assert :ok = PubSubPublisher.publish(change)
+  end
+
+  defp count_items(html) do
+    html
+    |> String.split("data-notification-id=")
+    |> length()
+    |> Kernel.-(1)
+  end
 
   # mark_seen is not invoked by BellDropdownLive v1.9 (D-08 discretion) — only mark_read
   # is wired from row actions. Seen lifecycle remains host/API responsibility until a
