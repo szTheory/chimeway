@@ -78,6 +78,35 @@ defmodule APNSConsumerTest do
     refute Enum.any?(automatic, &String.starts_with?(&1, "PROVISIONING_PROFILE_SPECIFIER="))
   end
 
+  test "physical proof callbacks fail closed without retaining diagnostic detail" do
+    initial = %{permission: false, device_token: nil, terminal_error: nil}
+
+    assert {204, permission_denied} =
+             APNSConsumer.PhysicalProof.device_callback(
+               "/permission",
+               %{"outcome" => "blocked"},
+               initial
+             )
+
+    assert permission_denied.terminal_error == "PHYSICAL-PROOF-NOTIFICATION-PERMISSION"
+
+    assert {204, registration_failed} =
+             APNSConsumer.PhysicalProof.device_callback(
+               "/registration-failed",
+               %{"outcome" => "blocked"},
+               initial
+             )
+
+    assert registration_failed.terminal_error == "PHYSICAL-PROOF-APNS-REGISTRATION"
+
+    assert {422, ^initial} =
+             APNSConsumer.PhysicalProof.device_callback(
+               "/register",
+               %{"provider" => "apns", "token" => "not-a-device-token"},
+               initial
+             )
+  end
+
   test "enabled fixture preserves the complete synthetic 410 tuple" do
     assert {:ok, %{status: 410, reason: :expired_token, timestamp: 1_725_000_000}} =
              APNSConsumer.expired_token_result()

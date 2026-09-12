@@ -5,8 +5,6 @@ defmodule Mix.Tasks.ApnsConsumer.PhysicalProof do
 
   @impl Mix.Task
   def run([]) do
-    Mix.Task.run("app.start")
-
     case APNSConsumer.PhysicalProof.run() do
       {:ok, result} ->
         :ok = maybe_write_result(result)
@@ -135,6 +133,7 @@ defmodule APNSConsumer.PhysicalProof do
         expected_open_ref: open_ref,
         permission: false,
         device_token: nil,
+        terminal_error: nil,
         received: false,
         activation_count: 0,
         activation_replays: 0,
@@ -189,19 +188,12 @@ defmodule APNSConsumer.PhysicalProof do
     :gen_tcp.close(socket)
   end
 
-  defp route("POST", "/permission", %{"outcome" => "passed"}, state) do
-    Agent.update(state, &Map.put(&1, :permission, true))
-    204
-  end
-
-  defp route("POST", "/register", %{"provider" => "apns", "token" => token}, state)
-       when is_binary(token) do
-    if Regex.match?(~r/\A[0-9a-f]{64,512}\z/, token) do
-      Agent.update(state, &Map.put(&1, :device_token, token))
-      204
-    else
-      422
-    end
+  defp route("POST", path, body, state)
+       when path in ["/permission", "/register", "/registration-failed"] do
+    Agent.get_and_update(state, fn current ->
+      {status, updated} = device_callback(path, body, current)
+      {status, updated}
+    end)
   end
 
   defp route("POST", "/received", %{"open_ref" => open_ref}, state) do
@@ -218,6 +210,30 @@ defmodule APNSConsumer.PhysicalProof do
   end
 
   defp route(_, _, _, _), do: 404
+
+  @doc false
+  def device_callback("/permission", %{"outcome" => "passed"}, current) do
+    {204, Map.put(current, :permission, true)}
+  end
+
+  def device_callback("/permission", %{"outcome" => "blocked"}, current) do
+    {204, Map.put(current, :terminal_error, "PHYSICAL-PROOF-NOTIFICATION-PERMISSION")}
+  end
+
+  def device_callback("/register", %{"provider" => "apns", "token" => token}, current)
+      when is_binary(token) do
+    if Regex.match?(~r/\A[0-9a-f]{64,512}\z/, token) do
+      {204, Map.put(current, :device_token, token)}
+    else
+      {422, current}
+    end
+  end
+
+  def device_callback("/registration-failed", %{"outcome" => "blocked"}, current) do
+    {204, Map.put(current, :terminal_error, "PHYSICAL-PROOF-APNS-REGISTRATION")}
+  end
+
+  def device_callback(_, _, current), do: {404, current}
 
   defp consume_activation(state, open_ref) do
     Agent.get_and_update(state, fn current ->
@@ -484,22 +500,26 @@ defmodule APNSConsumer.PhysicalProof do
   end
 
   defp await_until(state, key, deadline) do
-    value = Agent.get(state, &Map.get(&1, key))
+    {value, terminal_error} = Agent.get(state, &{Map.get(&1, key), &1.terminal_error})
 
-    if value not in [nil, false, 0] do
-      {:ok, value}
-    else
-      if System.monotonic_time(:millisecond) < deadline do
+    cond do
+      is_binary(terminal_error) ->
+        {:error, terminal_error}
+
+      value not in [nil, false, 0] ->
+        {:ok, value}
+
+      System.monotonic_time(:millisecond) < deadline ->
         Process.sleep(250)
         await_until(state, key, deadline)
-      else
+
+      true ->
         {:error, "PHYSICAL-PROOF-TIMEOUT"}
-      end
     end
   end
 
   defp safe_snapshot(state) do
-    snapshot = Agent.get(state, &Map.drop(&1, [:device_token, :expected_open_ref]))
+    snapshot = Agent.get(state, &Map.drop(&1, [:device_token, :expected_open_ref, :terminal_error]))
 
     if snapshot.permission and snapshot.provider_accepted and snapshot.activation_count == 1 and
          snapshot.activation_replays == 1 do
