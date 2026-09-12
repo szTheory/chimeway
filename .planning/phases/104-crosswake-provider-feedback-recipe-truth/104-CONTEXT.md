@@ -14,22 +14,22 @@ Close the adopter-facing CrossWake provider-feedback documentation seam on a sep
 ## Implementation Decisions
 
 ### Recipe contract
-- D-01: Normalize provider attributes only through `Crosswake.Companions.Chimeway.Redaction.feedback_from_provider_attrs/1`; the contract struct is not a constructor API.
-- D-02: The worker must use a host-owned resolver that returns a keyword list containing `:authenticated_context`, `:binding_ref`, `:installation_ref`, `:app_identity_ref`, and current `:session_ref` plus `:session_version` when the binding is session-scoped.
-- D-03: Provider token references and fingerprints are corroborating evidence only and never authenticate or broaden invalidation authority.
-- D-04: Preserve the registry result instead of unconditionally returning `:ok`, so durable job retry/discard policy can act on explicit outcomes.
+- **D-01:** Normalize provider attributes only through `Crosswake.Companions.Chimeway.Redaction.feedback_from_provider_attrs/1`; the contract struct is not a constructor API.
+- **D-02:** The worker must use a host-owned resolver that returns a keyword list containing `:authenticated_context`, `:binding_ref`, `:installation_ref`, `:app_identity_ref`, and current `:session_ref` plus `:session_version` when the binding is session-scoped.
+- **D-03:** Provider token references and fingerprints are corroborating evidence only and never authenticate or broaden invalidation authority.
+- **D-04:** Preserve the registry result instead of unconditionally returning `:ok`, so durable job retry/discard policy can act on explicit outcomes.
 
 ### Executable evidence
-- D-05: Exercise the README's real public conversion and registry boundaries from an example-host test rather than accepting a string-only or compile-only sample.
-- D-06: Cover advisory acceptance, exact invalidation, stale or mismatched authority denial, and recursive evidence sanitization with behavior assertions.
-- D-07: The documentation contract must reject the known nonexistent constructor and incomplete option scope, and must detect vacuous examples that never execute the registry path.
-- D-08: Keep test data synthetic and assert that raw recipient identity, raw tokens, and provider payload content do not escape through evidence.
+- **D-05:** Exercise the README's real public conversion and registry boundaries from an example-host test rather than accepting a string-only or compile-only sample.
+- **D-06:** Cover advisory acceptance, exact invalidation, stale or mismatched authority denial, and recursive evidence sanitization with behavior assertions.
+- **D-07:** The documentation contract must reject the known nonexistent constructor and incomplete option scope, and must detect vacuous examples that never execute the registry path.
+- **D-08:** Keep test data synthetic and assert that raw recipient identity, raw tokens, and provider payload content do not escape through evidence.
 
 ### Revision selection and immutability
-- D-09: Select the CrossWake documentation revision independently from the existing physical-proof selection; never repurpose or overwrite the v1.18 selection file.
-- D-10: Verify the documentation revision from a clean remote checkout at an exact SHA, while separately asserting that `resume/chimeway-notification-physical-proof` still resolves to `3165ab6938fa673f8a289c27699658bb78650ef3`.
-- D-11: Build the documentation revision from CrossWake's proof-backed Phase 101/103 lineage where the authenticated provider-feedback runtime exists, not from the older physical-proof-only branch.
-- D-12: Publish only a new documentation branch if the fresh-remote contract requires reachability; do not move, force-update, or merge into the physical-proof branch.
+- **D-09:** Select the CrossWake documentation revision independently from the existing physical-proof selection; never repurpose or overwrite the v1.18 selection file.
+- **D-10:** Verify the documentation revision from a clean remote checkout at an exact SHA, while separately asserting that `resume/chimeway-notification-physical-proof` still resolves to `3165ab6938fa673f8a289c27699658bb78650ef3`.
+- **D-11:** Build the documentation revision from CrossWake's proof-backed Phase 101/103 lineage where the authenticated provider-feedback runtime exists, not from the older physical-proof-only branch.
+- **D-12:** Publish only a new documentation branch if the fresh-remote contract requires reachability; do not move, force-update, or merge into the physical-proof branch.
 
 ### the agent's Discretion
 - Exact test-module naming, fixture layout, and whether the Chimeway verifier is a focused Mix task or a release-gate contract are implementation details, provided the named aggregate gate remains deterministic and Phoenix stays optional for Chimeway core.

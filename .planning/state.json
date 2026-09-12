@@ -1,48 +1,33 @@
 {
   "contract": "1.0.0",
   "flavor": "core",
-  "milestone": "v1.18 — Adopter Alpha Mobile Delivery Readiness",
+  "milestone": "v1.19 — Adopter Hardening & Inbox Lifecycle",
   "phases": [
     {
-      "number": "97",
-      "name": "Tenant Identity & Compatible Upgrade",
-      "status": "complete"
+      "number": "104",
+      "name": "CrossWake Provider-Feedback Recipe Truth",
+      "status": "pending"
     },
     {
-      "number": "98",
-      "name": "Privacy-Safe Delivery Evidence",
-      "status": "complete"
+      "number": "105",
+      "name": "Tenant-Safe Inbox Change Stream",
+      "status": "pending"
     },
     {
-      "number": "99",
-      "name": "Multi-Installation Delivery & Recovery",
-      "status": "complete"
+      "number": "106",
+      "name": "Idempotent Seen Lifecycle & Workflow Proof",
+      "status": "pending"
     },
     {
-      "number": "100",
-      "name": "Optional APNs Adapter",
-      "status": "complete"
-    },
-    {
-      "number": "101",
-      "name": "CrossWake Registration & Protected Open",
-      "status": "complete"
-    },
-    {
-      "number": "102",
-      "name": "Alpha Digital Twin & Hermetic Gate",
-      "status": "complete"
-    },
-    {
-      "number": "103",
-      "name": "Physical iPhone & Adoption Truth",
-      "status": "complete"
+      "number": "107",
+      "name": "Operator Timeline, Guidance & Gate Parity",
+      "status": "pending"
     }
   ],
   "next": {
-    "command": "/gsd:progress",
-    "label": "Show progress",
-    "reason": "Unsure of state — showing progress"
+    "command": "/gsd:progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 104 of 4 · 0% · executing"
   },
-  "updated_at": "2026-09-12T05:51:18.963Z"
+  "updated_at": "2026-09-12T15:16:07.535Z"
 }
