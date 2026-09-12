@@ -2,12 +2,18 @@ import Config
 
 config :chimeway_inbox, auth_module: ChimewayInbox.TestSupport.DenyAuth
 config :chimeway_inbox, :endpoint, ChimewayInbox.TestSupport.Endpoint
+config :chimeway_inbox, :pubsub_server, ChimewayInbox.TestSupport.PubSub
+config :chimeway_inbox, :topic_secret, String.duplicate("test-topic-secret-", 2)
+
+config :chimeway,
+  inbox_change_publisher: ChimewayInbox.PubSubPublisher
 
 config :chimeway_inbox, ChimewayInbox.TestSupport.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4003],
   server: false,
   debug_errors: true,
   secret_key_base: String.duplicate("abcdefghijklmnopqrstuvwxyz012345", 2),
+  pubsub_server: ChimewayInbox.TestSupport.PubSub,
   live_view: [signing_salt: "chimeway-inbox-test"]
 
 repo_config =

@@ -24,6 +24,7 @@ defmodule ChimewayInbox.MixProject do
       {:oban, "~> 2.17"},
       {:chimeway, path: ".."},
       {:phoenix, "~> 1.7"},
+      {:phoenix_pubsub, "~> 2.1"},
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_view, "~> 1.0"},
       {:jason, "~> 1.4"},
