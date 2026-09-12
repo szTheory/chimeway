@@ -172,8 +172,8 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
       ```
       authenticated_context binding_ref installation_ref app_identity_ref
       A session-scoped binding also requires session_ref and session_version.
-      Installation-scoped authority omits both session keys.
-      Provider tokens are corroborating evidence only and never authenticate invalidation.
+      installation-scoped authority omits both session keys.
+      Provider tokens are corroborating evidence only and never authenticates invalidation.
       '''
     )
 
@@ -189,6 +189,7 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
           opts[:app_identity_ref]
           opts[:session_ref]
           opts[:session_version]
+          {:error, :invalid_provider_feedback_scope}
         end
       end
       '''
