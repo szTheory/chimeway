@@ -1,6 +1,7 @@
 ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:chimeway)
+
 {:ok, _} =
   Supervisor.start_link(
     [{Phoenix.PubSub, name: ChimewayInbox.TestSupport.PubSub}],
