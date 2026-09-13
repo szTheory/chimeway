@@ -1,6 +1,7 @@
 defmodule Mix.Tasks.Demo.Up do
   @moduledoc """
-  Prepare TeamPulse demo data for local click-around and CI smoke checks.
+  Prepare TeamPulse demo data from a Chimeway source checkout for local
+  click-around and CI smoke checks.
 
   ## Usage
 
@@ -9,7 +10,7 @@ defmodule Mix.Tasks.Demo.Up do
       mix demo.up --serve      # migrate + seed + start demo host admin UI
 
   """
-  @shortdoc "Migrate, seed TeamPulse demo, print admin URL"
+  @shortdoc "Prepare the source-checkout TeamPulse demo"
 
   use Mix.Task
 
@@ -17,6 +18,7 @@ defmodule Mix.Tasks.Demo.Up do
 
   @impl Mix.Task
   def run(args) do
+    demo_host_path = demo_host_path!()
     check? = "--check" in args
     serve? = "--serve" in args
 
@@ -30,7 +32,7 @@ defmodule Mix.Tasks.Demo.Up do
 
     {output, status} =
       System.cmd("mix", ["demo.seed"],
-        cd: demo_host_path(),
+        cd: demo_host_path,
         env: demo_env(),
         stderr_to_stdout: true
       )
@@ -42,7 +44,7 @@ defmodule Mix.Tasks.Demo.Up do
     print_banner()
 
     if serve? and not check? do
-      System.cmd("mix", ["demo.admin"], cd: demo_host_path(), env: demo_env(), into: IO.stream())
+      System.cmd("mix", ["demo.admin"], cd: demo_host_path, env: demo_env(), into: IO.stream())
     end
 
     :ok
@@ -57,8 +59,33 @@ defmodule Mix.Tasks.Demo.Up do
     Mix.shell().info("")
   end
 
-  defp demo_host_path do
-    Path.expand("examples/chimeway_demo_host", File.cwd!())
+  @doc false
+  def demo_host_path!(root \\ active_project_root()) when is_binary(root) do
+    demo_host_path = root |> Path.expand() |> Path.join("examples/chimeway_demo_host")
+
+    if File.dir?(demo_host_path) and File.regular?(Path.join(demo_host_path, "mix.exs")) do
+      demo_host_path
+    else
+      Mix.raise("""
+      mix demo.up requires a Chimeway source checkout containing:
+      #{demo_host_path}
+
+      Installed packages do not include the demo host. Follow
+      guides/introduction/golden-path.md for the public integration path.
+      """)
+    end
+  end
+
+  defp active_project_root do
+    case Mix.Project.project_file() do
+      project_file when is_binary(project_file) ->
+        project_file
+        |> Path.expand()
+        |> Path.dirname()
+
+      _ ->
+        Mix.raise("mix demo.up requires an active Chimeway Mix project")
+    end
   end
 
   defp demo_env do
