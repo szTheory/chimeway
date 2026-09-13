@@ -14,7 +14,8 @@ defmodule DemoHost.Notifiers.PasswordReset do
 
   @impl true
   def recipients(%{email: email}) do
-    {:ok, [%{recipient_identity: DemoHost.Seeds.recipient_identity(email), recipient_type: "user"}]}
+    {:ok,
+     [%{recipient_identity: DemoHost.Seeds.recipient_identity(email), recipient_type: "user"}]}
   end
 
   @impl true
@@ -37,7 +38,10 @@ defmodule DemoHost.Notifiers.PasswordReset do
        assigns: %{
          "headline" => "Reset your password",
          "body" => "Use the link below to choose a new password.",
-         "primary_action" => %{"label" => "Reset password", "url" => "https://teampulse.test/reset"},
+         "primary_action" => %{
+           "label" => "Reset password",
+           "url" => "https://teampulse.test/reset"
+         },
          "subject" => "Reset your TeamPulse password",
          "html_body" => "<p>Use the link below to choose a new password.</p>",
          "text_body" => "Use the link below to choose a new password."

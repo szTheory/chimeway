@@ -22,7 +22,7 @@ defmodule ChimewayInbox.Router do
 
       live_session :chimeway_inbox_bell,
         on_mount: [{ChimewayInbox.LiveAuth, :inbox_bell}] do
-        live "/", ChimewayInbox.Live.BellDropdownLive, :index
+        live("/", ChimewayInbox.Live.BellDropdownLive, :index)
       end
     end
   end

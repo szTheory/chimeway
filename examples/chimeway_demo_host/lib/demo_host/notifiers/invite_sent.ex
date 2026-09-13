@@ -14,7 +14,8 @@ defmodule DemoHost.Notifiers.InviteSent do
 
   @impl true
   def recipients(%{email: email}) do
-    {:ok, [%{recipient_identity: DemoHost.Seeds.recipient_identity(email), recipient_type: "user"}]}
+    {:ok,
+     [%{recipient_identity: DemoHost.Seeds.recipient_identity(email), recipient_type: "user"}]}
   end
 
   @impl true
@@ -37,7 +38,10 @@ defmodule DemoHost.Notifiers.InviteSent do
        assigns: %{
          "headline" => "You're invited to #{team_name}",
          "body" => "Join your team on TeamPulse.",
-         "primary_action" => %{"label" => "Accept invite", "url" => "https://teampulse.test/invite"},
+         "primary_action" => %{
+           "label" => "Accept invite",
+           "url" => "https://teampulse.test/invite"
+         },
          "subject" => "You're invited to #{team_name}",
          "html_body" => "<p>Join your team on TeamPulse.</p>",
          "text_body" => "Join your team on TeamPulse."
