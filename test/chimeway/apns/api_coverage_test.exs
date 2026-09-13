@@ -1,11 +1,11 @@
 defmodule Chimeway.APNS.APICoverageTest do
   use ExUnit.Case, async: true
 
-  @coverage ".planning/phases/100-optional-apns-adapter/COVERAGE.md"
+  @coverage Path.expand("../../../guides/reference/apns-api-coverage.md", __DIR__)
 
-  test "every external capability has one supported disposition and opt-outs explain why" do
+  test "the APNs capability matrix is complete and every opt-out explains why" do
     rows = coverage_rows(File.read!(@coverage))
-    assert rows != []
+    assert length(rows) == 36
 
     for {capability, disposition, reason} <- rows do
       assert disposition in ["INTEGRATE", "OPT-OUT"], "#{capability} has an invalid disposition"

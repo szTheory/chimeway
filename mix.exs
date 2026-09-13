@@ -286,12 +286,14 @@ defmodule Chimeway.MixProject do
         "guides/recipes/password-reset-support-trace.md",
         "guides/recipes/feedback-escalation-workflow.md",
         "guides/recipes/mention-escalation.md",
+        "guides/reference/apns-api-coverage.md",
         "guides/cheatsheet.cheatmd"
       ],
       groups_extras: [
         Introduction: ~r/guides\/introduction\//,
         Flows: ~r/guides\/flows\//,
-        Recipes: ~r/guides\/recipes\//
+        Recipes: ~r/guides\/recipes\//,
+        Reference: ~r/guides\/reference\//
       ]
     ]
   end
