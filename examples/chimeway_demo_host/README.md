@@ -11,7 +11,8 @@ mix deps.get && mix ecto.create && mix ecto.migrate
 mix demo.up --serve
 ```
 
-Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway) and search `user:alex@teampulse.test`.
+Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway) and search
+the opaque recipient reference printed by `mix demo.up`.
 
 Or from this directory:
 
@@ -82,7 +83,8 @@ iex -S mix
 
 ## Supplementary: TraceDemo IEx walkthrough
 
-**Primary adoption path:** TeamPulse personas via `mix demo.up` / `DemoHost.Seeds` → admin UI with `user:alex@teampulse.test` (Alex, Sam, Morgan scenarios).
+**Primary adoption path:** TeamPulse personas via `mix demo.up` / `DemoHost.Seeds` → admin UI
+with the opaque recipient reference printed by `mix demo.up` (Alex, Sam, Morgan scenarios).
 
 **This section:** minimal single-delivery explainability via `TraceDemo` + `mix demo.trace` — no TeamPulse domain setup required.
 
@@ -153,7 +155,7 @@ Open [http://localhost:4001/admin/chimeway](http://localhost:4001/admin/chimeway
 | Page | Purpose |
 |------|---------|
 | Command Center | Landing page with Trace Lookup as the primary operator action and secondary paths to Health, Recovery, Definitions, and Feed Debug. |
-| Trace Lookup | Search by recipient identity or correlation ID, for example `user:alex@teampulse.test` (TeamPulse seeds) or `user:demo_user_1` (TraceDemo). |
+| Trace Lookup | Search by recipient identity or correlation ID, for example the opaque recipient reference printed by `mix demo.up` (TeamPulse seeds) or `user:demo_user_1` (TraceDemo). |
 | Trace Detail | Inspect one delivery's unified lifecycle timeline. |
 | Feed Debug | Inspect recipient notification lifecycle rows for operator debugging. |
 | Definitions | Review DB-inferred durable notification key/version usage, channels, and persisted activity. |

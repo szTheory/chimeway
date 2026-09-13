@@ -15,6 +15,7 @@ defmodule Mix.Tasks.Demo.Up do
   use Mix.Task
 
   @demo_storage_prefix "chimeway"
+  @alex_email "alex@teampulse.test"
 
   @impl Mix.Task
   def run(args) do
@@ -54,9 +55,20 @@ defmodule Mix.Tasks.Demo.Up do
     Mix.shell().info("")
     Mix.shell().info("TeamPulse demo ready")
     Mix.shell().info("  Admin UI:  http://localhost:4001/admin/chimeway")
-    Mix.shell().info("  Recipient: user:alex@teampulse.test")
+    Mix.shell().info("  Recipient: #{recipient_ref(@alex_email)}")
     Mix.shell().info("  Run:       cd examples/chimeway_demo_host && mix demo.admin")
     Mix.shell().info("")
+  end
+
+  defp recipient_ref(email) do
+    digest =
+      email
+      |> String.trim()
+      |> String.downcase()
+      |> then(&:crypto.hash(:sha256, &1))
+      |> Base.encode16(case: :lower)
+
+    "cw_demo_#{digest}"
   end
 
   @doc false

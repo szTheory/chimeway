@@ -54,6 +54,8 @@ defmodule Mix.Tasks.Demo.UpTest do
 
     assert status == 0, "mix demo.up --check failed:\n#{output}"
     assert output =~ "TeamPulse demo ready"
+    assert output =~ "Recipient: cw_demo_"
+    refute output =~ "user:alex@teampulse.test"
     assert output =~ "admin/chimeway"
   end
 end

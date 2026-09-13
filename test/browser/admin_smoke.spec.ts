@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+
+const alexRecipientRef = demoRecipientRef("alex@teampulse.test");
 
 const navRoutes = [
   { label: "Command Center", path: "/admin/chimeway" },
@@ -91,7 +94,7 @@ async function exerciseTraceLookup(page: Page) {
   await expect(page.locator("#trace-search-form")).toBeVisible();
 
   await page.locator('#trace-search-form select[name="mode"]').selectOption("recipient");
-  await page.locator('#trace-search-form input[name="query"]').fill("user:alex@teampulse.test");
+  await page.locator('#trace-search-form input[name="query"]').fill(alexRecipientRef);
   await page.locator('#trace-search-form input[name="notification_key"]').fill("");
   await page.locator("#trace-search-form").getByRole("button", { name: "Search traces" }).click();
 
@@ -119,7 +122,7 @@ async function exerciseFeedDebug(page: Page) {
   await page.goto("/admin/chimeway/feed");
   await expect(page.locator("#feed-search-form")).toBeVisible();
 
-  await page.locator('#feed-search-form input[name="recipient_id"]').fill("user:alex@teampulse.test");
+  await page.locator('#feed-search-form input[name="recipient_id"]').fill(alexRecipientRef);
   await page.locator("#feed-search-form").getByRole("button", { name: "Inspect feed" }).click();
 
   await expect(page.getByRole("heading", { name: "Feed Debug" })).toBeVisible();
@@ -148,6 +151,11 @@ async function exerciseRecoverySafety(page: Page) {
 
   await assertNoUnexpectedDocumentOverflow(page);
   await assertNoGlobalSensitiveValues(page);
+}
+
+function demoRecipientRef(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  return `cw_demo_${createHash("sha256").update(normalizedEmail).digest("hex")}`;
 }
 
 async function assertNoGlobalSensitiveValues(page: Page) {
