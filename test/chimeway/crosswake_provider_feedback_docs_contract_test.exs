@@ -338,6 +338,38 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     refute_received :focused_test_executed
   end
 
+  test "a reachable cyclic helper graph terminates and preserves complete proof markers", %{
+    root: root,
+    opts: opts
+  } do
+    write_focused!(
+      root,
+      ~S'''
+      defmodule CompleteCyclicProof do
+        use ExUnit.Case
+
+        test "complete cycle" do
+          first(recipe, attrs, feedback, opts)
+        end
+
+        defp first(recipe, attrs, feedback, opts) do
+          Code.compile_string(recipe)
+          second(recipe, attrs, feedback, opts)
+        end
+
+        defp second(recipe, attrs, feedback, opts) do
+          Redaction.feedback_from_provider_attrs(attrs)
+          Registry.apply_provider_feedback(feedback, opts)
+          first(recipe, attrs, feedback, opts)
+        end
+      end
+      '''
+    )
+
+    assert :ok = CrosswakeProviderFeedbackDocs.verify(opts)
+    assert_received :focused_test_executed
+  end
+
   test "rejects either missing executable boundary call", %{root: root, opts: opts} do
     focused = Path.join(root, focused_test_path())
     original = File.read!(focused)

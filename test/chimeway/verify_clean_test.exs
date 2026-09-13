@@ -77,6 +77,24 @@ defmodule Chimeway.VerifyCleanTest do
     assert_raise ExUnit.AssertionError, fn -> assert_verify_clean_alias!(mutated) end
   end
 
+  test "the production guard has one porcelain-v1 source of truth" do
+    source = File.read!(@script)
+    assert_guard_source!(source)
+
+    for mutated <- [
+          String.replace(source, "--untracked-files=all", "--untracked-files=no", global: false),
+          String.replace(
+            source,
+            "git status --porcelain=v1 --untracked-files=all",
+            "git diff --exit-code",
+            global: false
+          ),
+          source <> "\ngit diff --exit-code\n"
+        ] do
+      assert_raise ExUnit.AssertionError, fn -> assert_guard_source!(mutated) end
+    end
+  end
+
   defp run_guard(root) do
     System.cmd("bash", [@script], cd: root, stderr_to_stdout: true)
   end
@@ -90,6 +108,16 @@ defmodule Chimeway.VerifyCleanTest do
   defp assert_verify_clean_alias!(mix_exs) do
     assert mix_exs =~ ~S("verify.clean": ["cmd bash scripts/ci/verify-clean.sh"])
     refute mix_exs =~ ~S("verify.clean": ["cmd git diff --exit-code"])
+  end
+
+  defp assert_guard_source!(source) do
+    assert source =~ "set -euo pipefail"
+
+    assert length(:binary.matches(source, "git status --porcelain=v1 --untracked-files=all")) ==
+             1
+
+    refute source =~ "git diff"
+    refute source =~ "git clean"
   end
 
   defp allocate_owned_repository! do

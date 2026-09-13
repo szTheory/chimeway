@@ -1200,6 +1200,39 @@ defmodule Chimeway.ReleaseGateContractTest do
         end
       end
 
+      early_tag_check =
+        String.replace(
+          preflight,
+          ~S(pr_json=$(gh pr view),
+          ~S(expected_tag="forged-before-identity"
+          pr_json=$(gh pr view),
+          global: false
+        )
+
+      assert_raise ExUnit.AssertionError, fn ->
+        assert_release_preflight_contract!(
+          String.replace(release_yml, preflight, early_tag_check, global: false)
+        )
+      end
+
+      for message <- [
+            "No merge PR number in head commit; running release-please.",
+            "Release PR lookup failed; running release-please.",
+            "Release PR metadata was malformed; running release-please.",
+            "Merged PR is not the exact Release Please PR; running release-please."
+          ] do
+        fail_open = "echo \"#{message}\"\n            echo \"should_run=true\""
+        fail_closed = "echo \"#{message}\"\n            echo \"should_run=false\""
+        mutated_step = String.replace(preflight, fail_open, fail_closed, global: false)
+        refute mutated_step == preflight, "mutation must locate fail-open branch #{message}"
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_preflight_contract!(
+            String.replace(release_yml, preflight, mutated_step, global: false)
+          )
+        end
+      end
+
       identity_guard =
         substring_offset(preflight, ~S([ "$head_ref" != "release-please--branches--main" ]))
 
@@ -1260,10 +1293,42 @@ defmodule Chimeway.ReleaseGateContractTest do
             &String.replace(&1, "      pull-requests: read\n", "      pull-requests: write\n",
               global: false
             ),
+            &String.replace(&1, "      pull-requests: read\n", "", global: false),
+            &String.replace(
+              &1,
+              "      pull-requests: read\n    steps:",
+              "      pull-requests: read\n      checks: read\n    steps:",
+              global: false
+            ),
+            fn source ->
+              source
+              |> String.replace(
+                "      actions: write\n      contents: read",
+                "      contents: read",
+                global: false
+              )
+              |> String.replace(
+                "      contents: read\n    env:\n      RELEASE_VERSION",
+                "      contents: read\n      actions: write\n    env:\n      RELEASE_VERSION",
+                global: false
+              )
+            end,
             &String.replace(
               &1,
               "      contents: read\n    env:\n      RELEASE_VERSION",
               "      contents: write\n    env:\n      RELEASE_VERSION",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "      contents: read\n    env:\n      RELEASE_VERSION",
+              "    env:\n      RELEASE_VERSION",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "      contents: read\n    env:\n      RELEASE_VERSION",
+              "      contents: read\n      actions: read\n    env:\n      RELEASE_VERSION",
               global: false
             ),
             &String.replace(
@@ -1280,10 +1345,60 @@ defmodule Chimeway.ReleaseGateContractTest do
             ),
             &String.replace(
               &1,
+              "          PRS_CREATED:",
+              "          RAW_RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}\n          PRS_CREATED:",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "          open_count=$(gh pr list",
+              "          echo ${{ secrets.RELEASE_PLEASE_TOKEN }}\n          open_count=$(gh pr list",
+              global: false
+            ),
+            fn source ->
+              source
+              |> String.replace(
+                ~S(token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}),
+                "token: ${{ secrets.GITHUB_TOKEN }}",
+                global: false
+              )
+              |> String.replace(
+                "          PRS_CREATED:",
+                "          RAW_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}\n          PRS_CREATED:",
+                global: false
+              )
+            end,
+            &String.replace(
+              &1,
               "        run: mix hex.publish --dry-run --yes",
               "        run: mix hex.publish --dry-run --yes ${{ secrets.HEX_API_KEY }}",
               global: false
             ),
+            &String.replace(
+              &1,
+              "permissions:\n  contents: write",
+              "env:\n  HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n\npermissions:\n  contents: write",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "      - name: Fetch library deps",
+              "      - name: Fetch library deps\n        env:\n          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}",
+              global: false
+            ),
+            fn source ->
+              source
+              |> String.replace(
+                "          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n        run: mix hex.publish --dry-run --yes",
+                "        run: mix hex.publish --dry-run --yes",
+                global: false
+              )
+              |> String.replace(
+                "permissions:\n  contents: write",
+                "env:\n  HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n\npermissions:\n  contents: write",
+                global: false
+              )
+            end,
             &String.replace(
               &1,
               "          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n        run: mix hex.publish --yes",
@@ -3795,7 +3910,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     assert positions == Enum.sort(positions),
            "release preflight identity checks must precede tagged-label and manifest-tag skip logic"
 
-    assert length(Regex.scan(~r/echo "should_run=true" >>"\$GITHUB_OUTPUT"/, preflight)) >= 4,
+    assert length(Regex.scan(~r/echo "should_run=true" >>"\$GITHUB_OUTPUT"/, preflight)) == 5,
            "missing PR number, lookup failure, malformed JSON, and identity mismatch must all run release-please"
 
     assert preflight =~
@@ -3804,6 +3919,15 @@ defmodule Chimeway.ReleaseGateContractTest do
     assert preflight =~ "Release PR lookup failed; running release-please."
     assert preflight =~ "Release PR metadata was malformed; running release-please."
     assert preflight =~ "Merged PR is not the exact Release Please PR; running release-please."
+
+    for message <- [
+          "No merge PR number in head commit; running release-please.",
+          "Release PR lookup failed; running release-please.",
+          "Release PR metadata was malformed; running release-please.",
+          "Merged PR is not the exact Release Please PR; running release-please."
+        ] do
+      assert preflight =~ "echo \"#{message}\"\n            echo \"should_run=true\""
+    end
   end
 
   defp assert_release_ci_bootstrap_contract!(release_yml) do
@@ -3869,6 +3993,10 @@ defmodule Chimeway.ReleaseGateContractTest do
                release_yml
              )
            ) == 1
+
+    assert length(
+             Regex.scan(~r/\$\{\{ secrets\.RELEASE_PLEASE_TOKEN(?:\s|\||!)[^}]*\}\}/, release_yml)
+           ) == 2
 
     assert release_step =~
              "uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7"
