@@ -27,9 +27,6 @@ if Code.ensure_loaded?(Accrue) do
       end
 
       if Code.ensure_loaded?(Accrue.Integrations.Chimeway) do
-        alias Accrue.Billing.Subscription
-        alias Accrue.TestRepo, as: Repo
-
         test "invoice.payment_failed trigger_event reaches DefaultHandler path" do
           customer = insert_customer!()
           subscription = insert_subscription!(customer)
@@ -47,7 +44,7 @@ if Code.ensure_loaded?(Accrue) do
 
           assert {:ok, _row} = Accrue.Test.trigger_event(:invoice_payment_failed, payload)
 
-          reloaded = Repo.get!(Subscription, subscription.id)
+          reloaded = Accrue.TestRepo.get!(Accrue.Billing.Subscription, subscription.id)
           assert reloaded.status == :past_due
           assert %DateTime{} = reloaded.dunning_campaign_started_at
         end
