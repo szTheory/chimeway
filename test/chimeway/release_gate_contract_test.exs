@@ -1166,6 +1166,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   describe "release workflow decision and authority boundaries" do
+    @describetag :release_hardening
+
     setup do
       %{release_yml: File.read!(@release_yml)}
     end
@@ -3837,6 +3839,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     bootstrap_step =
       extract_release_step!(bootstrap_job, "Dispatch CI when release PR is open or updated")
 
+    bootstrap_run = bootstrap_step |> String.split("        run: |", parts: 2) |> List.last()
+
     dry_run_step = extract_release_step!(publish_job, "Dry run Hex publish")
     publish_step = extract_release_step!(publish_job, "Publish to Hex")
 
@@ -3871,8 +3875,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     assert release_step =~ "token: #{fallback}"
     assert bootstrap_job =~ "RELEASE_PLEASE_TOKEN_CONFIGURED: #{configured}"
-    refute bootstrap_step =~ fallback
-    refute bootstrap_step =~ configured
+    refute bootstrap_run =~ fallback
+    refute bootstrap_run =~ configured
 
     assert length(Regex.scan(~r/\$\{\{ secrets\.HEX_API_KEY \}\}/, release_yml)) == 2
     assert dry_run_step =~ "HEX_API_KEY: ${{ secrets.HEX_API_KEY }}"

@@ -60,7 +60,37 @@ jobs:
             exit 0
           fi
 
-          labels=$(gh pr view "$pr_number" --json labels --jq '.labels[].name' 2>/dev/null || true)
+          pr_json=$(gh pr view "$pr_number" --json headRefName,baseRefName,title,labels 2>/dev/null) || {
+            echo "Release PR lookup failed; running release-please."
+            echo "should_run=true" >>"$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          if ! jq -e '
+            type == "object" and
+            (.headRefName | type == "string") and
+            (.baseRefName | type == "string") and
+            (.title | type == "string") and
+            (.labels | type == "array")
+          ' >/dev/null 2>&1 <<<"$pr_json"; then
+            echo "Release PR metadata was malformed; running release-please."
+            echo "should_run=true" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          head_ref=$(jq -r '.headRefName' <<<"$pr_json")
+          base_ref=$(jq -r '.baseRefName' <<<"$pr_json")
+          title=$(jq -r '.title' <<<"$pr_json")
+
+          if [ "$head_ref" != "release-please--branches--main" ] || \
+             [ "$base_ref" != "main" ] || \
+             [[ "$title" != "chore(main): release "* ]]; then
+            echo "Merged PR is not the exact Release Please PR; running release-please."
+            echo "should_run=true" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          labels=$(jq -r '.labels[].name' <<<"$pr_json")
           if grep -qx 'autorelease: tagged' <<<"$labels"; then
             echo "Release PR #$pr_number is already tagged; skipping release-please rerun."
             echo "should_run=false" >>"$GITHUB_OUTPUT"
@@ -101,6 +131,7 @@ jobs:
       - name: Dispatch CI when release PR is open or updated
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PLEASE_TOKEN_CONFIGURED: ${{ secrets.RELEASE_PLEASE_TOKEN != '' }}
           PRS_CREATED: ${{ needs.release-please.outputs.prs_created }}
         run: |
           set -euo pipefail
@@ -112,11 +143,13 @@ jobs:
             --json number \
             -R "${{ github.repository }}" | jq 'length')
 
-          if [ "${PRS_CREATED:-false}" = "true" ]; then
-            echo "Release Please updated the PR — pull_request CI runs via RELEASE_PLEASE_TOKEN; skipping workflow_dispatch."
-          elif [ "$open_count" -gt 0 ]; then
-            echo "Open release PR without a fresh Release Please update — dispatching CI (open=$open_count)"
+          if [ "$open_count" -gt 0 ] && \
+             { [ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ] || \
+               [ "${PRS_CREATED:-false}" != "true" ]; }; then
+            echo "Open release PR needs explicit CI bootstrap — dispatching CI (open=$open_count)"
             gh workflow run ci.yml --ref release-please--branches--main -R "${{ github.repository }}"
+          elif [ "$open_count" -gt 0 ]; then
+            echo "PAT-backed fresh Release Please update uses native pull_request CI; skipping duplicate dispatch."
           else
             echo "No open release PR — skipping CI bootstrap."
           fi
