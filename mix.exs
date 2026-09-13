@@ -86,7 +86,7 @@ defmodule Chimeway.MixProject do
       "ci.audit": ["hex.audit", "deps.audit"],
 
       # Post-publish verify trio (run locally by maintainer, not in pre-merge CI)
-      "verify.clean": ["cmd git diff --exit-code"],
+      "verify.clean": ["cmd bash scripts/ci/verify-clean.sh"],
       # D-08: local artifact proof — build + unpack the default root package under
       # MIX_ENV=prod (so the override is absent and Hex accepts the build), with no
       # Sigra skip envs, and fail unless the unpacked root carries every package
