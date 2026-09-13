@@ -75,10 +75,13 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
     end
   end
 
-  defp verify_checkout(root, sha) do
+  @doc false
+  def verify_checkout(root, sha, opts \\ []) do
     module = Path.join(root, @module)
     fixture = Path.join(root, @fixture)
     focused = Path.join(root, @focused_test)
+    runner = Keyword.get(opts, :runner, &System.cmd/3)
+    command_options = [cd: root, stderr_to_stdout: true, env: crosswake_test_env()]
 
     with {^sha <> "\n", 0} <-
            System.cmd("git", ["rev-parse", "HEAD"], cd: root, stderr_to_stdout: true),
@@ -92,12 +95,11 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
          true <- marker?(module, "def validate_source_bound"),
          true <- marker?(module, "Evidence.check"),
          true <- marker?(focused, "validate_source_bound"),
+         {_, 0} <- runner.("mix", ["deps.get", "--check-locked"], command_options),
          {_, 0} <-
-           System.cmd("mix", ["test", @focused_test, "--max-failures", "1"],
-             cd: root,
-             stderr_to_stdout: true,
-             env: crosswake_test_env()
-           ) do
+           runner.("mix", ["test", @focused_test, "--max-failures", "1"], command_options),
+         {"", 0} <-
+           System.cmd("git", ["status", "--porcelain"], cd: root, stderr_to_stdout: true) do
       :ok
     else
       _ -> :error
@@ -106,8 +108,8 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
 
   defp marker?(path, marker), do: path |> File.read!() |> String.contains?(marker)
 
-  # The freshly detached source remains the test subject; this only reuses already
-  # installed dependency artifacts so the credential-free verifier never mutates it.
+  # Dependency and build artifacts live outside the detached source so the
+  # credential-free verifier can fetch its locked graph without mutating provenance.
   defp crosswake_test_env do
     dependency_root =
       System.get_env("CROSSWAKE_DEPENDENCY_ROOT") || Path.expand("../crosswake", File.cwd!())
