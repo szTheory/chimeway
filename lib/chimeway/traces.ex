@@ -531,6 +531,7 @@ defmodule Chimeway.Traces do
     signal_event_name = lookup_signal_received_event_name(delivery, repo_opts)
     webhook_received_entries = webhook_received_entries(attempts, signal_event_name)
     workflow_transition_entries = workflow_transition_entries(delivery, repo_opts)
+    notification_lifecycle_entries = notification_lifecycle_entries(notification)
 
     (base ++
        deferred_entries ++
@@ -541,8 +542,23 @@ defmodule Chimeway.Traces do
        digest_entries ++
        attempt_entries ++
        webhook_received_entries ++
-       workflow_transition_entries)
+       workflow_transition_entries ++
+       notification_lifecycle_entries)
     |> Enum.sort_by(&timeline_sort_key/1)
+  end
+
+  defp notification_lifecycle_entries(notification) do
+    [
+      notification_lifecycle_entry(notification.seen_at, :notification_seen),
+      notification_lifecycle_entry(notification.read_at, :notification_read)
+    ]
+    |> Enum.concat()
+  end
+
+  defp notification_lifecycle_entry(nil, _event), do: []
+
+  defp notification_lifecycle_entry(%DateTime{} = at, event) do
+    [%{at: at, event: event, detail: SafeEvidence.timeline_detail(%{})}]
   end
 
   defp explanation_resume_fields(%Delivery{} = delivery) do
@@ -608,7 +624,7 @@ defmodule Chimeway.Traces do
   end
 
   defp timeline_sort_key(%{event: event, at: at}) do
-    {timeline_rank(event), at}
+    {DateTime.to_unix(at, :microsecond), timeline_rank(event)}
   end
 
   defp timeline_rank(:event_created), do: 0
@@ -629,6 +645,8 @@ defmodule Chimeway.Traces do
   defp timeline_rank(:workflow_waiting), do: 15
   defp timeline_rank(:workflow_stopped), do: 16
   defp timeline_rank(:workflow_completed), do: 17
+  defp timeline_rank(:notification_seen), do: 18
+  defp timeline_rank(:notification_read), do: 19
   defp timeline_rank(_event), do: 99
 
   # ---------------------------------------------------------------------

@@ -33,7 +33,8 @@ defmodule Chimeway.SafeEvidence do
   @timeline_events ~w(
     event_created notification_created delivery_planned deferred resumed recovered suppressed cancelled
     digested digest_skipped emitted_immediately digest_emitted attempt_recorded webhook_received
-    workflow_progressed workflow_waiting workflow_stopped workflow_completed
+    workflow_progressed workflow_waiting workflow_stopped workflow_completed notification_seen
+    notification_read
   )a
   @digest_outcomes ~w(digested skipped_by_policy emitted_immediately deferred)
   @digest_reasons ~w(
