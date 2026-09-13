@@ -137,8 +137,8 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
          {:ok, focused_test} <- read(root, @focused_test),
          true <- not String.contains?(readme, "Contracts.ProviderFeedback.from_attrs"),
          {:ok, recipe} <- provider_feedback_recipe(readme),
-         true <- remote_call?(recipe, :Redaction, :feedback_from_provider_attrs),
-         true <- remote_call?(recipe, :Registry, :apply_provider_feedback),
+         true <- remote_call?(recipe, [:Redaction], :feedback_from_provider_attrs),
+         true <- remote_call?(recipe, [:Registry], :apply_provider_feedback),
          true <- String.contains?(recipe, "authenticated_provider_feedback_opts!"),
          true <- required_readme_scope?(readme),
          true <- registry_scope_contract?(registry),
@@ -308,7 +308,7 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
          calls
        )
        when is_list(args) do
-    markers = record_remote_marker(markers, List.last(aliases), function)
+    markers = record_remote_marker(markers, aliases, function)
     scan_reachable_expression(args, markers, calls)
   end
 
@@ -318,7 +318,7 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
          calls
        ) do
     markers =
-      if List.last(aliases) == :ChimewayProviderFeedbackWorker do
+      if aliases == [:MyApp, :Workers, :ChimewayProviderFeedbackWorker] do
         MapSet.put(markers, :worker)
       else
         markers
@@ -345,13 +345,13 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
 
   defp scan_reachable_expression(_literal, markers, calls), do: {markers, calls}
 
-  defp record_remote_marker(markers, :Code, :compile_string),
+  defp record_remote_marker(markers, [:Code], :compile_string),
     do: MapSet.put(markers, :compile)
 
-  defp record_remote_marker(markers, :Redaction, :feedback_from_provider_attrs),
+  defp record_remote_marker(markers, [:Redaction], :feedback_from_provider_attrs),
     do: MapSet.put(markers, :conversion)
 
-  defp record_remote_marker(markers, :Registry, :apply_provider_feedback),
+  defp record_remote_marker(markers, [:Registry], :apply_provider_feedback),
     do: MapSet.put(markers, :registry)
 
   defp record_remote_marker(markers, _module, _function), do: markers
@@ -374,12 +374,12 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
 
   defp keyword_do(_arguments), do: nil
 
-  defp remote_call?(source, module, function) do
+  defp remote_call?(source, expected_aliases, function) do
     with {:ok, ast} <- Code.string_to_quoted(source) do
       {_ast, found?} =
         Macro.prewalk(ast, false, fn
           {{:., _, [{:__aliases__, _, aliases}, ^function]}, _, _args} = node, found? ->
-            {node, found? or List.last(aliases) == module}
+            {node, found? or aliases == expected_aliases}
 
           node, found? ->
             {node, found?}
