@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "batch_id": "260912-x9e",
+  "created_at": "2026-09-13T03:56:52.228Z",
+  "options": {},
+  "base_revision": "3952b5b46a7e28ea0c866fb1aaf4acb263556294",
+  "items": [
+    {
+      "quick_id": "260912-x9f",
+      "client_id": null,
+      "description": "Fix Trigger notifier-rendering error propagation, add the missing rendering-failure rollback/no-publish contract, and add one mounted trigger-to-bell refresh test.",
+      "status": "complete",
+      "depends_on": [],
+      "planned_files": [
+        "lib/chimeway/trigger.ex",
+        "test/chimeway/trigger_inbox_change_test.exs",
+        "examples/chimeway_demo_host/test/demo_host_web/inbox_bell_proof_test.exs"
+      ],
+      "directory": null,
+      "worktree": null,
+      "dispatched_worktree": null,
+      "dispatched_branch": null,
+      "dispatched_base": null,
+      "wave": 0,
+      "commit": "8e0f708f",
+      "failure_reason": null
+    },
+    {
+      "quick_id": "260912-x9g",
+      "client_id": null,
+      "description": "Harden release automation and release proof semantics: ordinary merges must not masquerade as completed releases, Release Please fallback must preserve required checks/dispatch, detached CrossWake proof must reject unreachable dead-helper calls, and verify.clean must detect staged and untracked files.",
+      "status": "complete",
+      "depends_on": [],
+      "planned_files": [
+        ".github/workflows/release.yml",
+        "test/chimeway/release_gate_contract_test.exs",
+        "lib/mix/tasks/verify.crosswake_provider_feedback_docs.ex",
+        "test/chimeway/crosswake_provider_feedback_docs_contract_test.exs",
+        "scripts/ci/verify-clean.sh",
+        "mix.exs",
+        "test/chimeway/verify_clean_test.exs"
+      ],
+      "directory": null,
+      "worktree": null,
+      "dispatched_worktree": null,
+      "dispatched_branch": null,
+      "dispatched_base": null,
+      "wave": 0,
+      "commit": "f52064b5",
+      "failure_reason": null
+    },
+    {
+      "quick_id": "260912-x9h",
+      "client_id": null,
+      "description": "Clean public documentation and repository metadata: correct inbox callback/version/gate wording, README notifier callbacks and repository links, remove placeholder/internal phase-plan language, repair Demo.Up, stale comments, roadmap plan checkboxes, and directory/formatting drift.",
+      "status": "complete",
+      "depends_on": [
+        "260912-x9g"
+      ],
+      "planned_files": [
+        "README.md",
+        "SECURITY.md",
+        "AGENTS.md",
+        "MAINTAINING.md",
+        "guides/introduction/inbox-integration.md",
+        "guides/flows/multi-step-journeys.md",
+        "guides/recipes/feedback-escalation-workflow.md",
+        "guides/recipes/password-reset-support-trace.md",
+        "test/chimeway/doc_contract_test.exs",
+        "lib/mix/tasks/demo.up.ex",
+        "examples/chimeway_demo_host/test/mix/tasks/demo_up_test.exs",
+        "GSD-CONTEXT.md",
+        "guides/flows/trigger-to-delivery.md",
+        "guides/flows/async-dispatch.md",
+        "guides/flows/policy-and-preferences.md"
+      ],
+      "directory": null,
+      "worktree": null,
+      "dispatched_worktree": null,
+      "dispatched_branch": null,
+      "dispatched_base": null,
+      "wave": 1,
+      "commit": "419297e6",
+      "failure_reason": null
+    },
+    {
+      "quick_id": "260912-x9i",
+      "client_id": null,
+      "description": "Triage and remediate dependency advisories and open PR/issue state to the lowest-risk release-ready point, documenting any constrained residual risk.",
+      "status": "complete",
+      "depends_on": [
+        "260912-x9h"
+      ],
+      "planned_files": [
+        "mix.lock",
+        "chimeway_admin/mix.lock",
+        "chimeway_inbox/mix.lock",
+        "examples/chimeway_demo_host/mix.exs",
+        "examples/chimeway_demo_host/mix.lock",
+        ".github/workflows/ci.yml",
+        "test/chimeway/release_gate_contract_test.exs",
+        "SECURITY.md"
+      ],
+      "directory": null,
+      "worktree": null,
+      "dispatched_worktree": null,
+      "dispatched_branch": null,
+      "dispatched_base": null,
+      "wave": 2,
+      "commit": "7559b58b",
+      "failure_reason": null
+    }
+  ]
+}

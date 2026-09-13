@@ -4,11 +4,11 @@ milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 current_phase: 107
 status: completed
-stopped_at: Completed 107-02-PLAN.md
-last_updated: "2026-09-13T03:31:21.524Z"
-last_activity: 2026-09-12
-last_activity_desc: Phase 107 complete
-state_head: 80fb2724b5d100b3d822d46bd0616288909cd6ac
+stopped_at: Release stabilization complete; ready to ship
+last_updated: "2026-09-13T14:13:46Z"
+last_activity: 2026-09-13
+last_activity_desc: Release stabilization quick batch 260912-x9e complete
+state_head: 2afb22ac0704a73ceaeddc608271702042cfd24e
 progress:
   total_phases: 4
   completed_phases: 4
@@ -24,22 +24,25 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Phase 107 — Operator Timeline, Guidance & Gate Parity
+**Current focus:** v1.19 complete — stabilized candidate ready to ship
 
 ## Current Position
 
 Phase: 107
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-09-13 - Completed quick task 260913-b0l: Accept only the real fully qualified detached README aliases while retaining exact focused-proof identities and anti-spoof rejection
+Plan: Complete (2 of 2)
+Status: Release stabilization complete; ready to ship
+Last activity: 2026-09-13 - Completed release stabilization quick batch 260912-x9e
 
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
-| 260912-x9f | Fix Trigger notifier-rendering error propagation, add the missing rendering-failure rollback/no-publish contract, and add one mounted trigger-to-bell refresh test. | 2026-09-13 | 8e0f708f | — | .planning/quick/260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis |
+| 260912-x9f | Fix Trigger notifier-rendering error propagation, add the missing rendering-failure rollback/no-publish contract, and add one mounted trigger-to-bell refresh test. | 2026-09-13 | 8e0f708f | Verified | [260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis](./quick/260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis/) |
 | 260913-a2h | Reject prefix-spoofed CrossWake aliases by requiring exact module identity and add adversarial contract coverage | 2026-09-13 | 3979004e | Verified | [260913-a2h-reject-prefix-spoofed-crosswake-aliases-](./quick/260913-a2h-reject-prefix-spoofed-crosswake-aliases-/) |
 | 260913-b0l | Accept only the real fully qualified detached README aliases while retaining exact focused-proof identities and anti-spoof rejection | 2026-09-13 | d9841654 | Verified | [260913-b0l-accept-only-the-real-fully-qualified-det](./quick/260913-b0l-accept-only-the-real-fully-qualified-det/) |
+| 260912-x9g | Harden release automation and release proof semantics: ordinary merges must not masquerade as completed releases, Release Please fallback must preserve required checks/dispatch, detached CrossWake proof must reject unreachable dead-helper calls, and verify.clean must detect staged and untracked files. | 2026-09-13 | f52064b5 | Verified | [260912-x9g-harden-release-automation-and-release-proof-semantics-ordina](./quick/260912-x9g-harden-release-automation-and-release-proof-semantics-ordina/) |
+| 260912-x9h | Clean public documentation and repository metadata: correct inbox callback/version/gate wording, README notifier callbacks and repository links, remove placeholder/internal phase-plan language, repair Demo.Up, stale comments, roadmap plan checkboxes, and directory/formatting drift. | 2026-09-13 | 419297e6 | Verified | [260912-x9h-clean-public-documentation-and-repository-metadata-correct-i](./quick/260912-x9h-clean-public-documentation-and-repository-metadata-correct-i/) |
+| 260912-x9i | Triage and remediate dependency advisories and open PR/issue state to the lowest-risk release-ready point, documenting any constrained residual risk. | 2026-09-13 | 7559b58b | Verified | [260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue](./quick/260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue/) |
 
 ## Deferred Items
 

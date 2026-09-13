@@ -70,8 +70,8 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 
 **Plans**: 2 plans
 
-- [ ] `106-01` — Mark authorized visible inbox items seen idempotently.
-- [ ] `106-02` — Prove mounted seen-to-workflow progression and scope denials.
+- [x] `106-01` — Mark authorized visible inbox items seen idempotently.
+- [x] `106-02` — Prove mounted seen-to-workflow progression and scope denials.
 
 ### Phase 107: Operator Timeline, Guidance & Gate Parity
 
@@ -87,8 +87,8 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 
 **Plans**: 2 plans
 
-- [ ] `107-01` — Project durable seen/read facts through the safe operator timeline and mounted demo path.
-- [ ] `107-02` — Publish canonical inbox guidance, harden release-test cleanup, and enforce gate parity.
+- [x] `107-01` — Project durable seen/read facts through the safe operator timeline and mounted demo path.
+- [x] `107-02` — Publish canonical inbox guidance, harden release-test cleanup, and enforce gate parity.
 
 <details>
 <summary>✅ v1.18 Adopter Alpha Mobile Delivery Readiness (Phases 97–103) — SHIPPED 2026-09-12</summary>

@@ -60,8 +60,8 @@ Validated requirements are summarized below. Milestone-scoped source sets live u
 
 ### Active
 
-- [ ] Operators can distinguish notification seen and read facts on the delivery timeline without exposing recipient identity or caller metadata.
-- [ ] Named inbox and release gates prove the complete arrival → seen → read → workflow/timeline path.
+- [x] Operators can distinguish notification seen and read facts on the delivery timeline without exposing recipient identity or caller metadata.
+- [x] Named inbox and release gates prove the complete arrival → seen → read → workflow/timeline path.
 
 ### Validated
 
