@@ -200,10 +200,179 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
   end
 
   defp executable_focused_test?(source) do
-    remote_call?(source, :Code, :compile_string) and
-      remote_call?(source, :Redaction, :feedback_from_provider_attrs) and
-      (remote_call?(source, :Registry, :apply_provider_feedback) or worker_perform_call?(source))
+    with {:ok, ast} <- Code.string_to_quoted(source) do
+      ast
+      |> module_proof_graphs()
+      |> Enum.any?(&proof_graph_complete?/1)
+    else
+      _ -> false
+    end
   end
+
+  defp module_proof_graphs(ast) do
+    ast
+    |> ast_forms()
+    |> Enum.flat_map(fn
+      {:defmodule, _, [_module, body]} ->
+        case keyword_do(body) do
+          nil -> []
+          module_body -> [{exunit_roots(module_body), local_definitions(module_body)}]
+        end
+
+      _other ->
+        []
+    end)
+  end
+
+  defp exunit_roots(module_body) do
+    module_body
+    |> ast_forms()
+    |> Enum.flat_map(&declaration_roots/1)
+  end
+
+  defp declaration_roots({name, _, args}) when name in [:setup, :setup_all, :test] do
+    case keyword_do(args) do
+      nil -> []
+      body -> [body]
+    end
+  end
+
+  defp declaration_roots({:describe, _, args}) do
+    case keyword_do(args) do
+      nil -> []
+      body -> exunit_roots(body)
+    end
+  end
+
+  defp declaration_roots(_other), do: []
+
+  defp local_definitions(module_body) do
+    module_body
+    |> ast_forms()
+    |> Enum.reduce(%{}, fn
+      {kind, _, [head, body]}, definitions when kind in [:def, :defp] ->
+        with {name, arity} <- local_definition_key(head),
+             definition_body when not is_nil(definition_body) <- keyword_do(body) do
+          Map.update(definitions, {name, arity}, [definition_body], &[definition_body | &1])
+        else
+          _ -> definitions
+        end
+
+      _other, definitions ->
+        definitions
+    end)
+  end
+
+  defp local_definition_key({:when, _, [head | _guards]}), do: local_definition_key(head)
+
+  defp local_definition_key({name, _, args}) when is_atom(name) and is_list(args),
+    do: {name, length(args)}
+
+  defp local_definition_key({name, _, nil}) when is_atom(name), do: {name, 0}
+  defp local_definition_key(_head), do: nil
+
+  defp proof_graph_complete?({roots, definitions}) when roots != [] do
+    {markers, _visited} = walk_reachable(roots, definitions, MapSet.new(), MapSet.new())
+
+    MapSet.member?(markers, :compile) and
+      MapSet.member?(markers, :conversion) and
+      (MapSet.member?(markers, :registry) or MapSet.member?(markers, :worker))
+  end
+
+  defp proof_graph_complete?(_graph), do: false
+
+  defp walk_reachable([], _definitions, markers, visited), do: {markers, visited}
+
+  defp walk_reachable([expression | rest], definitions, markers, visited) do
+    {markers, calls} = scan_reachable_expression(expression, markers, MapSet.new())
+
+    {definition_bodies, visited} =
+      Enum.reduce(calls, {[], visited}, fn key, {bodies, seen} ->
+        if MapSet.member?(seen, key) do
+          {bodies, seen}
+        else
+          {Map.get(definitions, key, []) ++ bodies, MapSet.put(seen, key)}
+        end
+      end)
+
+    walk_reachable(rest ++ definition_bodies, definitions, markers, visited)
+  end
+
+  defp scan_reachable_expression({:quote, _, _args}, markers, calls), do: {markers, calls}
+  defp scan_reachable_expression({:fn, _, _clauses}, markers, calls), do: {markers, calls}
+  defp scan_reachable_expression({:&, _, _capture}, markers, calls), do: {markers, calls}
+
+  defp scan_reachable_expression(
+         {{:., _, [{:__aliases__, _, aliases}, function]}, _, args},
+         markers,
+         calls
+       )
+       when is_list(args) do
+    markers = record_remote_marker(markers, List.last(aliases), function)
+    scan_reachable_expression(args, markers, calls)
+  end
+
+  defp scan_reachable_expression(
+         {:apply, _, [{:__aliases__, _, aliases}, :perform, args]},
+         markers,
+         calls
+       ) do
+    markers =
+      if List.last(aliases) == :ChimewayProviderFeedbackWorker do
+        MapSet.put(markers, :worker)
+      else
+        markers
+      end
+
+    scan_reachable_expression(args, markers, calls)
+  end
+
+  defp scan_reachable_expression({name, _, args}, markers, calls)
+       when is_atom(name) and is_list(args) do
+    calls = MapSet.put(calls, {name, length(args)})
+    scan_reachable_expression(args, markers, calls)
+  end
+
+  defp scan_reachable_expression(list, markers, calls) when is_list(list) do
+    Enum.reduce(list, {markers, calls}, fn child, {found, local_calls} ->
+      scan_reachable_expression(child, found, local_calls)
+    end)
+  end
+
+  defp scan_reachable_expression(tuple, markers, calls) when is_tuple(tuple) do
+    tuple |> Tuple.to_list() |> scan_reachable_expression(markers, calls)
+  end
+
+  defp scan_reachable_expression(_literal, markers, calls), do: {markers, calls}
+
+  defp record_remote_marker(markers, :Code, :compile_string),
+    do: MapSet.put(markers, :compile)
+
+  defp record_remote_marker(markers, :Redaction, :feedback_from_provider_attrs),
+    do: MapSet.put(markers, :conversion)
+
+  defp record_remote_marker(markers, :Registry, :apply_provider_feedback),
+    do: MapSet.put(markers, :registry)
+
+  defp record_remote_marker(markers, _module, _function), do: markers
+
+  defp ast_forms({:__block__, _, forms}), do: forms
+  defp ast_forms(form), do: [form]
+
+  defp keyword_do(arguments) when is_list(arguments) do
+    if Keyword.keyword?(arguments) do
+      Keyword.get(arguments, :do)
+    else
+      arguments
+      |> Enum.reverse()
+      |> Enum.find_value(fn
+        keyword when is_list(keyword) -> Keyword.get(keyword, :do)
+        _other -> nil
+      end)
+    end
+  end
+
+  defp keyword_do(_arguments), do: nil
 
   defp remote_call?(source, module, function) do
     with {:ok, ast} <- Code.string_to_quoted(source) do
@@ -211,23 +380,6 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
         Macro.prewalk(ast, false, fn
           {{:., _, [{:__aliases__, _, aliases}, ^function]}, _, _args} = node, found? ->
             {node, found? or List.last(aliases) == module}
-
-          node, found? ->
-            {node, found?}
-        end)
-
-      found?
-    else
-      _ -> false
-    end
-  end
-
-  defp worker_perform_call?(source) do
-    with {:ok, ast} <- Code.string_to_quoted(source) do
-      {_ast, found?} =
-        Macro.prewalk(ast, false, fn
-          {:apply, _, [{:__aliases__, _, aliases}, :perform, _args]} = node, found? ->
-            {node, found? or List.last(aliases) == :ChimewayProviderFeedbackWorker}
 
           node, found? ->
             {node, found?}
