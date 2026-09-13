@@ -8,6 +8,7 @@ defmodule Chimeway.AlphaTwinProofRunner do
   @moduledoc false
   @remote "https://github.com/szTheory/crosswake.git"
   @sha "f2c502cdb1ce572a4a57257d9e3c051665704b90"
+  @fallback_database_url "postgres://postgres:postgres@127.0.0.1:55432/chimeway_alpha_twin"
 
   def run!(opts \\ []) do
     builder = Keyword.get(opts, :builder, &build_archive!/0)
@@ -89,7 +90,12 @@ defmodule Chimeway.AlphaTwinProofRunner do
     runtime_root = Path.join(System.tmp_dir!(), "chimeway_alpha_fixture_#{unique}")
     runtime_fixture = Path.join(runtime_root, "fixture")
     evidence_path = Path.join(runtime_root, "runtime-evidence.json")
-    database_url = "postgres://postgres:postgres@127.0.0.1:55432/chimeway_alpha_twin_#{unique}"
+
+    database_url =
+      opts
+      |> Keyword.get(:database_url, System.get_env("DATABASE_URL"))
+      |> fixture_database_url!(unique)
+
     File.mkdir_p!(runtime_root)
     copy_fixture!(runtime_fixture)
 
@@ -136,6 +142,22 @@ defmodule Chimeway.AlphaTwinProofRunner do
     after
       drop_fixture_database(runner, command_options)
       File.rm_rf(runtime_root)
+    end
+  end
+
+  @doc false
+  def fixture_database_url!(base_url, unique) when is_integer(unique) do
+    base_url = base_url || @fallback_database_url
+
+    with true <- is_binary(base_url),
+         {:ok, uri} <- URI.new(base_url),
+         true <- uri.scheme in ["postgres", "postgresql"],
+         true <- is_binary(uri.host) and uri.host != "" do
+      uri
+      |> Map.put(:path, "/chimeway_alpha_twin_#{unique}")
+      |> URI.to_string()
+    else
+      _ -> raise ArgumentError, "invalid Alpha twin database URL"
     end
   end
 

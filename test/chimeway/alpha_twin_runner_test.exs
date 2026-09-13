@@ -105,6 +105,8 @@ defmodule Chimeway.AlphaTwinRunnerTest do
         "/validated/package",
         "/detached/crosswake",
         [
+          database_url:
+            "postgres://ci_user:ci-secret@localhost:5432/chimeway_test?sslmode=disable",
           fixture_runner: fn "mix", command, options ->
             assert Path.basename(options[:cd]) == "fixture"
             assert File.regular?(Path.join(options[:cd], "mix.exs"))
@@ -116,7 +118,17 @@ defmodule Chimeway.AlphaTwinRunnerTest do
                     "/validated/package/priv/alpha_twin/scenario-ledger.json"} in options[:env]
 
             assert {"DATABASE_URL", database_url} = List.keyfind(options[:env], "DATABASE_URL", 0)
-            assert database_url =~ "/chimeway_alpha_twin_"
+
+            assert %URI{
+                     scheme: "postgres",
+                     userinfo: "ci_user:ci-secret",
+                     host: "localhost",
+                     port: 5432,
+                     path: "/chimeway_alpha_twin_" <> unique,
+                     query: "sslmode=disable"
+                   } = URI.parse(database_url)
+
+            assert unique != ""
 
             case command do
               ["deps.get", "--check-locked"] ->
@@ -141,6 +153,81 @@ defmodule Chimeway.AlphaTwinRunnerTest do
         ]
       ])
     end
+  end
+
+  test "derives the fixture database from the configured connection without changing options" do
+    Code.require_file(@fixture_path)
+    Code.require_file(@proof_path)
+
+    database_url =
+      apply(Chimeway.AlphaTwinProofRunner, :fixture_database_url!, [
+        "postgresql://ci_user:ci-secret@[::1]:5433/chimeway_test?sslmode=require&pool_size=5",
+        42
+      ])
+
+    assert %URI{
+             scheme: "postgresql",
+             userinfo: "ci_user:ci-secret",
+             host: "::1",
+             port: 5433,
+             path: "/chimeway_alpha_twin_42",
+             query: "sslmode=require&pool_size=5"
+           } = URI.parse(database_url)
+  end
+
+  test "uses the local test database fallback only when no database URL is configured" do
+    Code.require_file(@fixture_path)
+    Code.require_file(@proof_path)
+
+    database_url =
+      apply(Chimeway.AlphaTwinProofRunner, :fixture_database_url!, [nil, 42])
+
+    assert database_url ==
+             "postgres://postgres:postgres@127.0.0.1:55432/chimeway_alpha_twin_42"
+  end
+
+  test "rejects malformed database URLs without exposing their contents" do
+    Code.require_file(@fixture_path)
+    Code.require_file(@proof_path)
+
+    for database_url <- [
+          "not-a-database-url",
+          "postgres://ci_user:do-not-leak@/chimeway_test",
+          "postgres://ci_user:do-not-leak@localhost:not-a-port/chimeway_test",
+          "https://ci_user:do-not-leak@localhost/chimeway_test"
+        ] do
+      error =
+        assert_raise ArgumentError, fn ->
+          apply(Chimeway.AlphaTwinProofRunner, :fixture_database_url!, [database_url, 42])
+        end
+
+      assert Exception.message(error) == "invalid Alpha twin database URL"
+      refute Exception.message(error) =~ "ci_user"
+      refute Exception.message(error) =~ "do-not-leak"
+    end
+  end
+
+  test "a malformed configured database URL aborts before running fixture commands" do
+    Code.require_file(@fixture_path)
+    Code.require_file(@proof_path)
+
+    error =
+      assert_raise ArgumentError, fn ->
+        apply(Chimeway.AlphaTwinProofRunner, :run_fixture!, [
+          "/validated/package",
+          "/detached/crosswake",
+          [
+            database_url: "postgres://ci_user:do-not-leak@/chimeway_test",
+            fixture_runner: fn _command, _arguments, _options ->
+              flunk("an invalid database URL must fail before fixture execution")
+            end
+          ]
+        ])
+      end
+
+    assert Exception.message(error) == "invalid Alpha twin database URL"
+    refute Exception.message(error) =~ "ci_user"
+    refute Exception.message(error) =~ "do-not-leak"
   end
 
   test "an unlocked dependency graph aborts before migrations or fixture execution" do
