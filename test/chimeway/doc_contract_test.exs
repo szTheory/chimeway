@@ -1231,22 +1231,21 @@ defmodule Chimeway.DocContractTest do
   describe "inbox integration guide ownership and lifecycle parity (DOCS-03)" do
     @describetag :inbox_gate_parity
 
-    @unsafe_inbox_caller_metadata_forms [
-      "caller_metadata: session",
-      "caller_metadata: params",
-      ~s("caller_metadata" =>),
-      "metadata: session",
-      "metadata: params"
+    @unsafe_inbox_caller_metadata_patterns [
+      {"atom caller_metadata from session or params",
+       ~r/\bcaller_metadata\s*:\s*(?:session|params)\b/},
+      {"string caller_metadata key", ~r/["']caller_metadata["']\s*=>/},
+      {"atom metadata from session or params", ~r/\bmetadata\s*:\s*(?:session|params)\b/},
+      {"string metadata from session or params", ~r/["']metadata["']\s*=>\s*(?:session|params)\b/}
     ]
 
-    @unsafe_inbox_notification_content_forms [
-      "notification_content:",
-      ~s("notification_content" =>),
-      "render_assigns:",
-      ~s("render_assigns" =>),
-      "content: notification.",
-      ~s("subject" => notification.),
-      ~s("body" => notification.)
+    @unsafe_inbox_notification_content_patterns [
+      {"atom notification_content or render_assigns key",
+       ~r/\b(?:notification_content|render_assigns)\s*:/},
+      {"string notification_content or render_assigns key",
+       ~r/["'](?:notification_content|render_assigns)["']\s*=>/},
+      {"notification-derived content value", ~r/\bcontent\s*:\s*notification\s*\./},
+      {"notification-derived subject or body value", ~r/\bnotification\s*\.\s*(?:subject|body)\b/}
     ]
 
     setup do
@@ -1337,17 +1336,35 @@ defmodule Chimeway.DocContractTest do
              "inbox guide must not use raw email-shaped recipient identities"
     end
 
-    for forbidden <- @unsafe_inbox_caller_metadata_forms do
-      test "forbids raw caller metadata form #{forbidden}", %{content: content} do
-        refute String.contains?(content, unquote(forbidden)),
-               "inbox guide must not publish raw caller metadata via #{inspect(unquote(forbidden))}"
+    for {description, pattern} <- @unsafe_inbox_caller_metadata_patterns do
+      test "forbids raw caller metadata form #{description}", %{content: content} do
+        refute Regex.match?(unquote(Macro.escape(pattern)), content),
+               "inbox guide must not publish raw caller metadata via #{unquote(description)}"
       end
     end
 
-    for forbidden <- @unsafe_inbox_notification_content_forms do
-      test "forbids raw notification content form #{forbidden}", %{content: content} do
-        refute String.contains?(content, unquote(forbidden)),
-               "inbox guide must not publish notification content via #{inspect(unquote(forbidden))}"
+    for {description, pattern} <- @unsafe_inbox_notification_content_patterns do
+      test "forbids raw notification content form #{description}", %{content: content} do
+        refute Regex.match?(unquote(Macro.escape(pattern)), content),
+               "inbox guide must not publish notification content via #{unquote(description)}"
+      end
+    end
+
+    test "notification-content contract detects whitespace and nested atom-key mutations" do
+      mutations = [
+        "metadata: %{subject: notification.subject}",
+        "metadata: %{\n  body:   notification.body\n}",
+        "metadata: %{audit: %{subject: notification.subject}}",
+        ~s("metadata" => %{"body"   => notification.body})
+      ]
+
+      for mutation <- mutations do
+        assert_raise ExUnit.AssertionError, fn ->
+          for {_description, pattern} <- @unsafe_inbox_notification_content_patterns do
+            refute Regex.match?(pattern, mutation),
+                   "notification-content contract must reject mutation #{inspect(mutation)}"
+          end
+        end
       end
     end
   end
