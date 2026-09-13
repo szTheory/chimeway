@@ -300,6 +300,8 @@ defmodule Chimeway.Trigger do
             }
             | acc
           ], workflow_cache}}
+      else
+        {:error, _reason} = error -> {:halt, error}
       end
     end)
     |> case do
