@@ -45,6 +45,7 @@
     "code_review": true,
     "code_review_depth": "standard",
     "test_command": "mix ci.test",
+    "test_gate_timeout": 900,
     "_auto_chain_active": false,
     "use_worktrees": false,
     "ai_integration_phase": true
