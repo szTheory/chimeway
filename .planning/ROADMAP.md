@@ -85,7 +85,10 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 3. Host guidance documents publisher and topic ownership, tenant/recipient isolation, reconnect behavior, and the difference between arrival, provider handoff, protected activation, inbox seen/read, and engagement.
 4. `mix verify.inbox` and both aggregate CI gates require packaged LiveView, demo journey, workflow progression, operator timeline, docs-contract, and Phoenix-optional boundary evidence.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+- [ ] `107-01` — Project durable seen/read facts through the safe operator timeline and mounted demo path.
+- [ ] `107-02` — Publish canonical inbox guidance, harden release-test cleanup, and enforce gate parity.
 
 <details>
 <summary>✅ v1.18 Adopter Alpha Mobile Delivery Readiness (Phases 97–103) — SHIPPED 2026-09-12</summary>
@@ -107,7 +110,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 | 104. CrossWake Provider-Feedback Recipe Truth | 2/2 | Complete    | 2026-09-12 |
 | 105. Tenant-Safe Inbox Change Stream | 2/2 | Complete    | 2026-09-12 |
 | 106. Idempotent Seen Lifecycle & Workflow Proof | 2/2 | Complete    | 2026-09-12 |
-| 107. Operator Timeline, Guidance & Gate Parity | 0/TBD | Not started | — |
+| 107. Operator Timeline, Guidance & Gate Parity | 0/2 | Planned    |  |
 
 ---
 *Roadmap updated: 2026-09-12 when creating the v1.19 roadmap.*
