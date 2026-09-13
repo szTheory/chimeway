@@ -21,7 +21,7 @@ There is no separate inbox blueprint recipe — this guide owns the end-to-end p
 ```elixir
 def deps do
   [
-    {:chimeway, "~> 1.1"},
+    {:chimeway, "~> 1.2"},
     {:chimeway_inbox, path: "../chimeway_inbox"}
   ]
 end
