@@ -1196,11 +1196,17 @@ defmodule Chimeway.DocContractTest do
     test "uses chimeway_inbox path dependency and preserves root Chimeway dep (D-05)", %{
       content: content
     } do
+      mix_exs = File.read!("mix.exs")
+      [_, version] = Regex.run(~r/@version "([^"]+)"/, mix_exs)
+      [major, minor, _patch] = String.split(version, ".")
+
       assert String.contains?(content, ~s({:chimeway_inbox, path: "../chimeway_inbox"})),
              "inbox guide must keep the chimeway_inbox path dependency for preview usage"
 
-      assert String.contains?(content, ~s({:chimeway, "~> 1.0"})),
-             "inbox guide must preserve the root {:chimeway, \"~> 1.0\"} dependency"
+      expected = ~s({:chimeway, "~> #{major}.#{minor}"})
+
+      assert String.contains?(content, expected),
+             "inbox guide must preserve the current root dependency #{expected}"
     end
 
     test "forbids current-Hex chimeway_inbox install claim (D-06)", %{content: content} do
@@ -1365,6 +1371,106 @@ defmodule Chimeway.DocContractTest do
                    "notification-content contract must reject mutation #{inspect(mutation)}"
           end
         end
+      end
+    end
+  end
+
+  describe "release-facing public Markdown truth" do
+    test "README notifier block matches the executable WelcomeUser fixture" do
+      readme = File.read!("README.md")
+      fixture = File.read!("test/chimeway/integration/readme_snippet_test.exs")
+
+      [_, notifier_block] =
+        Regex.run(
+          ~r/defmodule MyApp\.Notifiers\.WelcomeUser do\n(?<body>.*?)\nend\n```/s,
+          readme
+        )
+
+      for callback <- ~w(notification_key version recipients build rendering) do
+        assert Regex.match?(~r/def #{callback}\b/, notifier_block),
+               "README WelcomeUser must define #{callback}"
+
+        assert Regex.match?(~r/def #{callback}\b/, fixture),
+               "executable WelcomeUser fixture must define #{callback}"
+      end
+
+      for stable_value <- [
+            ~s("welcome_user"),
+            ~s(recipient_identity: "user:\#{user_id}"),
+            ~s(recipient_ref: "cw_\#{user_id}"),
+            ~s(recipient_type: "user"),
+            ~s(title: "Welcome"),
+            ~s("headline" => "Welcome"),
+            ~s("body" => "Welcome aboard"),
+            ~s("primary_action" => %{"label" => "Open", "url" => "https://example.test/welcome"}),
+            ~s(render_key: "welcome_user.in_app"),
+            "render_version: 1"
+          ] do
+        assert String.contains?(notifier_block, stable_value),
+               "README WelcomeUser must retain stable value #{inspect(stable_value)}"
+
+        assert String.contains?(fixture, stable_value),
+               "executable WelcomeUser fixture must retain stable value #{inspect(stable_value)}"
+      end
+    end
+
+    test "inbox dependency and auth wording follow current source truth" do
+      guide = File.read!(@inbox_integration_guide)
+      mix_exs = File.read!("mix.exs")
+      [_, version] = Regex.run(~r/@version "([^"]+)"/, mix_exs)
+      [major, minor, _patch] = String.split(version, ".")
+
+      assert String.contains?(guide, ~s({:chimeway, "~> #{major}.#{minor}"}))
+      assert String.contains?(guide, "Phoenix session map and a context map")
+
+      for security_anchor <- [
+            "currently authorized tenant",
+            "currently authorized recipient",
+            "independently",
+            "stable opaque recipient",
+            "host-custodied high-entropy secret",
+            "before every authoritative reload",
+            "On receipt or reconnect",
+            "re-runs both host authorization callbacks"
+          ] do
+        assert String.contains?(guide, security_anchor),
+               "inbox guide must retain security boundary #{inspect(security_anchor)}"
+      end
+    end
+
+    test "public Markdown uses the canonical repository and contains no empty-guide markers" do
+      public_markdown =
+        ["README.md", "SECURITY.md", "MAINTAINING.md"] ++
+          Path.wildcard("guides/**/*.md") ++
+          Path.wildcard("examples/**/*.md") ++ Path.wildcard("chimeway_*/README.md")
+
+      for path <- Enum.uniq(public_markdown), content = File.read!(path) do
+        refute String.contains?(content, "https://github.com/jonlunsford/chimeway"),
+               "#{path} must use the canonical szTheory/chimeway owner"
+
+        refute String.contains?(
+                 content,
+                 "This guide is a stub. Full content coming in v1.0 docs."
+               ),
+               "#{path} must not ship the empty-guide banner"
+
+        refute String.contains?(content, "<!-- TODO: expand with full content -->"),
+               "#{path} must not ship the empty-guide TODO marker"
+
+        for retired <- ~w(trigger-to-delivery.md async-dispatch.md policy-and-preferences.md) do
+          refute String.contains?(content, retired),
+                 "#{path} must not link to retired guide #{retired}"
+        end
+      end
+    end
+
+    test "empty placeholder guides are absent" do
+      for path <- [
+            "guides/flows/trigger-to-delivery.md",
+            "guides/flows/async-dispatch.md",
+            "guides/flows/policy-and-preferences.md"
+          ] do
+        refute File.exists?(path), "retired placeholder guide must be absent: #{path}"
       end
     end
   end
@@ -1807,9 +1913,9 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
-    test "forbids identity: in README", %{content: content} do
-      refute String.contains?(content, "identity:"),
-             "README must not reference identity:"
+    test "forbids identity: (not recipient_identity:) in README", %{content: content} do
+      refute Regex.match?(~r/(?<!recipient_)identity:/, content),
+             "README must not reference bare identity: (recipient_identity: is permitted)"
     end
 
     test "forbids Chimeway.Workflow module (not Workflows) in README", %{content: content} do

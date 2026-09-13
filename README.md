@@ -124,6 +124,34 @@ defmodule MyApp.Notifiers.WelcomeUser do
 
   @impl true
   def version, do: 1
+
+  @impl true
+  def recipients(%{user_id: user_id}) do
+    {:ok,
+     [
+       %{
+         recipient_identity: "user:#{user_id}",
+         recipient_ref: "cw_#{user_id}",
+         recipient_type: "user"
+       }
+     ]}
+  end
+
+  @impl true
+  def build(_params, _recipient), do: {:ok, %{title: "Welcome"}}
+
+  @impl true
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "headline" => "Welcome",
+         "body" => "Welcome aboard",
+         "primary_action" => %{"label" => "Open", "url" => "https://example.test/welcome"}
+       },
+       channels: %{in_app: %{render_key: "welcome_user.in_app", render_version: 1}}
+     }}
+  end
 end
 ```
 

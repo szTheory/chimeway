@@ -5,7 +5,7 @@
 Please **do not** open a public GitHub issue for security vulnerabilities.
 
 To report a security issue:
-1. Use [GitHub's private vulnerability reporting](https://github.com/jonlunsford/chimeway/security/advisories/new), or
+1. Use [GitHub's private vulnerability reporting](https://github.com/szTheory/chimeway/security/advisories/new), or
 2. Email `security@jonlunsford.com` with a description of the issue and steps to reproduce.
 
 We aim to acknowledge reports within **72 hours**.

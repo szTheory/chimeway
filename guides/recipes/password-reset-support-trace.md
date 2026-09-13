@@ -87,7 +87,7 @@ If support has a `correlation_id` from application logs:
 Chimeway.Traces.find_traces_by_correlation_id("req-abc-123")
 ```
 
-**Runnable proof in the repo:** The [Demo host trace walkthrough](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/README.md) runs the same `find_traces_for_recipient/2` and `explain_delivery/1` APIs with `DemoHost.Notifiers.TraceDemo` instead of `MyApp` placeholders — no webhook setup required. Optionally use the [operator trace UI](https://github.com/jonlunsford/chimeway/blob/main/examples/chimeway_demo_host/README.md#operator-trace-ui-browser) at `/admin/chimeway` for the same lookup in a browser.
+**Runnable proof in the repo:** The [Demo host trace walkthrough](https://github.com/szTheory/chimeway/blob/main/examples/chimeway_demo_host/README.md) runs the same `find_traces_for_recipient/2` and `explain_delivery/1` APIs with `DemoHost.Notifiers.TraceDemo` instead of `MyApp` placeholders — no webhook setup required. Optionally use the [operator trace UI](https://github.com/szTheory/chimeway/blob/main/examples/chimeway_demo_host/README.md#operator-trace-ui-browser) at `/admin/chimeway` for the same lookup in a browser.
 
 ## Diagnostic branches
 
@@ -100,7 +100,7 @@ Use the fields above in IEx to classify what happened.
 | Deferred send | `status: :pending`, `planning_reason: "quiet_hours"` | Policy held the delivery until quiet hours end |
 | Blocked channel | `status: :suppressed`, `suppression_reason: "channel_disabled"` | User preference or policy disabled the email channel |
 
-Chimeway recorded the decision — the policy model is covered by the Policy and preferences guide (still a stub and not yet published; treat this note as orientation, not exhaustive reference).
+Chimeway recorded the decision. See [Tracing a Notification](tracing-a-notification.md) for policy-evaluation telemetry and trace diagnosis.
 
 ### Delivery failure
 
@@ -119,4 +119,4 @@ When `status: :succeeded`, Chimeway completed its delivery obligation. The trace
 
 - [Tracing a Notification](tracing-a-notification.md) — telemetry, correlation IDs, and deeper diagnosis
 - [Golden Path](../introduction/golden-path.md) — install-to-first-trace baseline
-- Policy and preferences — policy model overview (stub, not yet published)
+- [Oban Integration](oban-integration.md) — async dispatch, retries, and worker configuration

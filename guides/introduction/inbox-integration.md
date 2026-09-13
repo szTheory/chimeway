@@ -2,7 +2,7 @@
 
 This guide is the canonical adoption path for composing Chimeway with the optional `chimeway_inbox` package. Follow it when you want one credible vertical slice: add Chimeway and the inbox package, configure tenant and recipient authorization, mount the bell dropdown LiveView, and verify durable arrival → visible seen → explicit read → operator timeline.
 
-There is no separate inbox blueprint recipe in v1.9 — this guide owns the end-to-end path from dependency to verification.
+There is no separate inbox blueprint recipe — this guide owns the end-to-end path from dependency to verification.
 
 ## Responsibility split
 
@@ -21,7 +21,7 @@ There is no separate inbox blueprint recipe in v1.9 — this guide owns the end-
 ```elixir
 def deps do
   [
-    {:chimeway, "~> 1.0"},
+    {:chimeway, "~> 1.1"},
     {:chimeway_inbox, path: "../chimeway_inbox"}
   ]
 end
@@ -97,7 +97,7 @@ defmodule MyApp.InboxAuth do
 end
 ```
 
-Both callbacks receive the Phoenix session map and a context keyword list. Return `{:ok, value}` only from current host authorization; otherwise return `{:error, :unauthorized}`. `current_tenant/2` owns tenant membership enforcement, while `current_recipient/2` owns the stable opaque recipient mapping within that authorized tenant. The same human may have different recipient references in different tenants.
+Both callbacks receive the Phoenix session map and a context map. Return `{:ok, value}` only from current host authorization; otherwise return `{:error, :unauthorized}`. `current_tenant/2` owns tenant membership enforcement, while `current_recipient/2` owns the stable opaque recipient mapping within that authorized tenant. The same human may have different recipient references in different tenants.
 
 **Do not** reuse operator admin identity (`"demo:operator"`) for end-user inbox — that is `ChimewayAdmin.Auth` territory. End-user bell UI resolves stable opaque references such as `"cw_recipient_01HZX7F9N8Q4T2M6V3K1"`; raw email addresses and other mutable profile fields are not recipient identities.
 
@@ -194,7 +194,7 @@ After wiring dependencies, config, auth, and router mount, run the named proof c
 mix verify.inbox --warnings-as-errors
 ```
 
-This exercises focused core lifecycle/timeline/privacy/Phoenix-optional evidence, the full `chimeway_inbox` package, focused admin timeline/redaction evidence, the tagged guide/release contracts, and the DEMO-08 demo-host `:inbox` journey. No sibling repo checkout is required.
+This exercises focused core lifecycle, timeline, privacy, and Phoenix-optional evidence; the full `chimeway_inbox` package; focused admin timeline and redaction evidence; the tagged guide/release contracts; and the demo-host `:inbox` journey. No sibling repo checkout is required.
 
 Seed the demo host inbox scenario:
 
@@ -204,7 +204,7 @@ DemoHost.Seeds.seed_inbox/0
 
 Then visit `/inbox` in the demo host (session must include `"demo_user_email"`) to inspect the bell badge, open the dropdown, and mark notifications read.
 
-The selective proof module `DemoHostWeb.InboxBellProofTest` is tagged `@moduletag :inbox` — it proves durable arrival → mounted visible seen → once-only workflow progression → explicit read → authorized Trace Detail labels. Journey suite tests keep default Logger adapter isolation (D-06).
+The selective proof module `DemoHostWeb.InboxBellProofTest` is tagged `@moduletag :inbox` — it proves durable arrival → mounted visible seen → once-only workflow progression → explicit read → authorized Trace Detail labels. Journey suite tests keep the default Logger adapter isolated from optional channel integrations.
 
 Search `/admin/chimeway` by recipient identity to inspect delivery attempts for seeded notifications alongside operator traces.
 
