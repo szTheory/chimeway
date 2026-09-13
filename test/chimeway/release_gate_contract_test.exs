@@ -50,6 +50,63 @@ defmodule Chimeway.ReleaseGateContractTest do
     {"verify.admin", "verify_admin", "mix verify.admin"}
   ]
 
+  describe "release-contract recursive cleanup safety" do
+    @describetag :release_cleanup_safety
+
+    test "all closed owned temp prefixes are removable" do
+      assert function_exported?(__MODULE__, :owned_temp_directory!, 1),
+             "release contract must expose its test-only owned temp constructor"
+
+      assert function_exported?(__MODULE__, :remove_owned_temp_dir!, 1),
+             "release contract must expose its test-only guarded cleanup boundary"
+
+      for prefix <- [
+            "chimeway_release_gate_",
+            "chimeway_release_archive_",
+            "chimeway_adoption_security_",
+            "chimeway_adoption_run_"
+          ] do
+        directory = apply(__MODULE__, :owned_temp_directory!, [prefix])
+        assert File.dir?(directory)
+        apply(__MODULE__, :remove_owned_temp_dir!, [directory])
+        refute File.exists?(directory)
+      end
+    end
+
+    test "refuses the temp root, nested paths, outside paths, and unowned siblings" do
+      assert function_exported?(__MODULE__, :owned_temp_directory!, 1)
+      assert function_exported?(__MODULE__, :remove_owned_temp_dir!, 1)
+
+      owned = apply(__MODULE__, :owned_temp_directory!, ["chimeway_release_gate_"])
+      nested = Path.join(owned, "chimeway_release_archive_nested")
+      File.mkdir!(nested)
+      unowned = Path.join(System.tmp_dir!(), "unowned_#{System.unique_integer([:positive])}")
+      File.mkdir!(unowned)
+
+      on_exit(fn ->
+        apply(__MODULE__, :remove_owned_temp_dir!, [owned])
+        File.rmdir!(unowned)
+      end)
+
+      for forbidden <- [System.tmp_dir!(), nested, File.cwd!(), unowned] do
+        assert_raise ArgumentError, ~r/refusing recursive cleanup/, fn ->
+          apply(__MODULE__, :remove_owned_temp_dir!, [forbidden])
+        end
+
+        assert File.exists?(forbidden)
+      end
+    end
+
+    test "the guarded helper owns the module's only recursive removal call" do
+      source = File.read!(__ENV__.file)
+
+      assert source =~ "def remove_owned_temp_dir!(directory)"
+      assert Regex.scan(~r/File\.rm_rf!?/, source) == [["File.rm_rf!"]]
+      refute source =~ "File.rm_rf!(output)"
+      refute Regex.match?(~r/File\.rm_rf!?\(Path\.dirname\(/, source)
+    end
+  end
+
   describe "release gate parity doc contract (GATE-05)" do
     setup do
       maintaining = File.read!(@maintaining)
