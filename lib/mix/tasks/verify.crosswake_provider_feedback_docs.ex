@@ -137,8 +137,18 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
          {:ok, focused_test} <- read(root, @focused_test),
          true <- not String.contains?(readme, "Contracts.ProviderFeedback.from_attrs"),
          {:ok, recipe} <- provider_feedback_recipe(readme),
-         true <- remote_call?(recipe, [:Redaction], :feedback_from_provider_attrs),
-         true <- remote_call?(recipe, [:Registry], :apply_provider_feedback),
+         true <-
+           remote_call?(
+             recipe,
+             [:Crosswake, :Companions, :Chimeway, :Redaction],
+             :feedback_from_provider_attrs
+           ),
+         true <-
+           remote_call?(
+             recipe,
+             [:CrosswakeExample, :Chimeway, :Registry],
+             :apply_provider_feedback
+           ),
          true <- String.contains?(recipe, "authenticated_provider_feedback_opts!"),
          true <- required_readme_scope?(readme),
          true <- registry_scope_contract?(registry),
