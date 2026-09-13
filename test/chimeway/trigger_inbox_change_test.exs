@@ -26,6 +26,19 @@ defmodule Chimeway.TriggerInboxChangeTest do
     def channels(_params, _recipient), do: {:ok, [:in_app]}
   end
 
+  defmodule FailingTransactionNotifier do
+    @behaviour Chimeway.Notifier
+
+    def notification_key, do: "inbox.change.failed"
+    def version, do: 1
+
+    def recipients(_params) do
+      {:ok, [%{recipient_identity: "user-1", recipient_ref: "cw_failed"}]}
+    end
+
+    def build(_params, _recipient), do: {:ok, %{"topic" => "synthetic"}}
+  end
+
   defmodule RecordingPublisher do
     @behaviour Chimeway.Inbox.ChangePublisher
 
@@ -86,6 +99,21 @@ defmodule Chimeway.TriggerInboxChangeTest do
 
     assert {:duplicate, _event} = trigger("duplicate")
     refute_receive {:change, _, _}
+  end
+
+  test "a failed notification transaction publishes no creation hint" do
+    assert {:error, {:notifications_insert_failed, _reason}} =
+             Trigger.trigger(FailingTransactionNotifier, %{},
+               idempotency_key: "failed-transaction",
+               tenant_id: "tenant-a"
+             )
+
+    refute_receive {:change, _, _}
+
+    assert Repo.aggregate(
+             from(n in Notification, where: n.tenant_id == "tenant-a"),
+             :count
+           ) == 0
   end
 
   test "publisher failure cannot falsify committed trigger success" do

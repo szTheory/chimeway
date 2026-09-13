@@ -34,6 +34,11 @@ defmodule Chimeway.InboxChangePublisherTest do
     def publish(_change), do: exit(:must_not_escape)
   end
 
+  defmodule ThrowingPublisher do
+    @behaviour Chimeway.Inbox.ChangePublisher
+    def publish(_change), do: throw(:must_not_escape)
+  end
+
   setup do
     previous = Application.get_env(:chimeway, :inbox_change_publisher)
     Application.put_env(:chimeway, :inbox_change_test_pid, self())
@@ -98,7 +103,13 @@ defmodule Chimeway.InboxChangePublisherTest do
 
     on_exit(fn -> :telemetry.detach(handler) end)
 
-    for publisher <- [ErrorPublisher, InvalidPublisher, RaisingPublisher, ExitPublisher] do
+    for publisher <- [
+          ErrorPublisher,
+          InvalidPublisher,
+          RaisingPublisher,
+          ExitPublisher,
+          ThrowingPublisher
+        ] do
       Application.put_env(:chimeway, :inbox_change_publisher, publisher)
       assert :ok = ChangePublisher.publish("tenant-a", "cw_recipient_42", :read)
 

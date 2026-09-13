@@ -47,6 +47,22 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     end
   end
 
+  defmodule CountingAuth do
+    @behaviour ChimewayInbox.Auth
+
+    @impl true
+    def current_recipient(_session, _context) do
+      send(Application.fetch_env!(:chimeway_inbox, :counting_auth_pid), :recipient_authorized)
+      {:ok, "cw_user_42"}
+    end
+
+    @impl true
+    def current_tenant(_session, _context) do
+      send(Application.fetch_env!(:chimeway_inbox, :counting_auth_pid), :tenant_authorized)
+      {:ok, "tenant-a"}
+    end
+  end
+
   defp mount_bell(conn, session \\ %{"current_actor" => "cw_user_42"}) do
     conn
     |> Phoenix.ConnTest.init_test_session(session)
@@ -273,6 +289,23 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     refute_receive @reload
   end
 
+  test "connected mount subscribes once so one hint triggers one authorization check", %{
+    conn: conn
+  } do
+    use_counting_auth!()
+    {:ok, view, _html} = mount_bell(conn)
+    flush_authorization_messages()
+
+    insert_inbox_notification!("cw_user_42")
+    publish_change!("tenant-a", "cw_user_42")
+
+    assert_receive :recipient_authorized
+    assert_receive :tenant_authorized
+    refute_receive :recipient_authorized, 100
+    refute_receive :tenant_authorized, 100
+    assert render(view) =~ "Notifications, 1 unread"
+  end
+
   test "wrong-scope and unrelated messages do not refresh or reveal durable state", %{conn: conn} do
     {:ok, view, _html} = mount_bell(conn)
     view |> element("button[data-cw-inbox-bell]") |> render_click()
@@ -446,6 +479,27 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
       Application.delete_env(:chimeway_inbox, :mutable_auth_recipient)
       Application.delete_env(:chimeway_inbox, :mutable_auth_tenant)
     end)
+  end
+
+  defp use_counting_auth! do
+    previous_auth_module = Application.get_env(:chimeway_inbox, :auth_module)
+
+    Application.put_env(:chimeway_inbox, :auth_module, CountingAuth)
+    Application.put_env(:chimeway_inbox, :counting_auth_pid, self())
+
+    on_exit(fn ->
+      restore_env(:auth_module, previous_auth_module)
+      Application.delete_env(:chimeway_inbox, :counting_auth_pid)
+    end)
+  end
+
+  defp flush_authorization_messages do
+    receive do
+      message when message in [:recipient_authorized, :tenant_authorized] ->
+        flush_authorization_messages()
+    after
+      0 -> :ok
+    end
   end
 
   defp restore_env(key, nil), do: Application.delete_env(:chimeway_inbox, key)
