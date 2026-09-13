@@ -18,21 +18,19 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
     "bearer-token-71",
     "api-key-secret-71",
     "alex.full-pii@example.test",
-    "+15551234567"
+    "+15551234567",
+    "nested-mixed-case-token-sentinel",
+    "nested-mixed-case-secret-sentinel"
   ]
 
   test "dashboard omits raw sensitive values while showing masked operator facts", %{conn: conn} do
     fixture = privacy_fixture()
 
-    {:ok, _view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.DashboardLive,
-        session: session(fixture.tenant_id),
-        on_mount: [{ChimewayAdmin.LiveAuth, :search_traces}]
-      )
+    {:ok, _view, html} = conn |> with_session(fixture.tenant_id) |> live("/")
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
+    assert html =~ "cw***"
     assert html =~ "email"
     assert html =~ "Recovery queue"
   end
@@ -47,8 +45,8 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
-    assert html =~ "corr-privacy-71"
+    assert html =~ "cw***"
+    assert html =~ "cw_correlation_"
     assert html =~ "email"
     assert html =~ "temporary"
     assert html =~ "privacy.render v1"
@@ -57,11 +55,7 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
   test "feed search accepts full recipient input without echoing full PII", %{conn: conn} do
     fixture = privacy_fixture()
 
-    {:ok, view, _html} =
-      live_isolated(conn, ChimewayAdmin.Live.FeedLive,
-        session: session(fixture.tenant_id),
-        on_mount: [{ChimewayAdmin.LiveAuth, :view_feed}]
-      )
+    {:ok, view, _html} = conn |> with_session(fixture.tenant_id) |> live("/feed")
 
     html =
       view
@@ -70,18 +64,14 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
-    assert html =~ "corr-privacy-71"
+    assert html =~ "cw***"
+    assert html =~ "cw_correlation_"
   end
 
   test "recovery omits raw sensitive values while keeping safe candidate evidence", %{conn: conn} do
     fixture = privacy_fixture()
 
-    {:ok, view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.RecoveryLive,
-        session: session(fixture.tenant_id),
-        on_mount: [{ChimewayAdmin.LiveAuth, :list_recovery_candidates}]
-      )
+    {:ok, view, html} = conn |> with_session(fixture.tenant_id) |> live("/recovery")
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
@@ -95,17 +85,13 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
     assert_no_sensitive_values(html)
     assert html =~ "Resource ID"
     assert html =~ fixture.recovery_delivery.id
-    assert html =~ "corr-privacy-71"
+    assert html =~ "cw_correlation_"
   end
 
   test "definitions omit sensitive values while showing DB-inferred facts", %{conn: conn} do
     fixture = privacy_fixture()
 
-    {:ok, _view, html} =
-      live_isolated(conn, ChimewayAdmin.Live.DefinitionsLive,
-        session: session(fixture.tenant_id),
-        on_mount: [{ChimewayAdmin.LiveAuth, :view_definitions}]
-      )
+    {:ok, _view, html} = conn |> with_session(fixture.tenant_id) |> live("/definitions")
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
@@ -117,11 +103,7 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
   test "trace search does not retain raw full recipient or auth-code query values", %{conn: conn} do
     fixture = privacy_fixture()
 
-    {:ok, view, _html} =
-      live_isolated(conn, ChimewayAdmin.Live.TraceSearchLive,
-        session: session(fixture.tenant_id),
-        on_mount: [{ChimewayAdmin.LiveAuth, :search_traces}]
-      )
+    {:ok, view, _html} = conn |> with_session(fixture.tenant_id) |> live("/traces")
 
     html =
       view
@@ -134,7 +116,7 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
 
     assert_no_sensitive_values(html)
     assert html =~ "privacy.leak.71"
-    assert html =~ "a***@example.test"
+    assert html =~ "cw***"
     assert html =~ "email"
   end
 
@@ -155,7 +137,8 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
           "auth_code" => "params-auth-code-71",
           "recipient_phone" => "+15551234567"
         },
-        correlation_id: "corr-privacy-71"
+        correlation_id: "corr-privacy-71",
+        tenant_id: tenant_id
       })
       |> Repo.insert!()
       |> Ecto.Changeset.change(%{inserted_at: old, updated_at: old})
@@ -167,6 +150,7 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
         event_id: event.id,
         recipient_identity: recipient_id,
         recipient_type: "user",
+        tenant_id: tenant_id,
         metadata: %{"session" => "session-secret-71"},
         render_assigns: %{
           "secret" => "render-assign-secret-71",
@@ -188,7 +172,13 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
         metadata: %{
           "secret" => "metadata-secret-71",
           "phone" => "+15551234567",
-          "policy_checkpoint" => "privacy_policy"
+          "policy_checkpoint" => "privacy_policy",
+          "operator_detail" => [
+            %{
+              "ToKeN" => "nested-mixed-case-token-sentinel",
+              "nested" => [SeCrEt: "nested-mixed-case-secret-sentinel"]
+            }
+          ]
         },
         render_key: "privacy.render",
         render_version: 1,
@@ -245,6 +235,8 @@ defmodule ChimewayAdmin.Live.PrivacyLeakLiveTest do
       "session_secret" => "session-secret-71"
     }
   end
+
+  defp with_session(conn, tenant_id), do: Plug.Test.init_test_session(conn, session(tenant_id))
 
   defp assert_no_sensitive_values(html) do
     Enum.each(@sensitive_values, fn value ->

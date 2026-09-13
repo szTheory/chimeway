@@ -20,7 +20,7 @@ defmodule Chimeway.PersistenceTransactionTest do
     @impl true
     def recipients(_params) do
       # Intentionally missing recipient_type/channel to trigger a DB insert error.
-      {:ok, [%{recipient_identity: "user-1"}]}
+      {:ok, [%{recipient_identity: "user-1", recipient_ref: "cw_persistence_failure"}]}
     end
 
     @impl true

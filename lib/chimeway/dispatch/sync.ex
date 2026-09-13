@@ -10,14 +10,14 @@ defmodule Chimeway.Dispatch.Sync do
   5. Classify outcome (dispatcher responsibility, not adapter's).
   6. Record attempt + transition to final status atomically.
 
-  Swap to `Chimeway.Dispatch.Oban` in Phase 3 via config:
+  To enqueue adapter calls as background jobs, configure `Chimeway.Dispatch.Oban`:
 
       config :chimeway, :dispatcher, Chimeway.Dispatch.Oban
   """
 
   @behaviour Chimeway.Dispatch
 
-  alias Chimeway.{Deliveries, DeliveryPlanning}
+  alias Chimeway.{Deliveries, DeliveryPlanning, DeliveryTargets}
   alias Chimeway.Dispatch.Executor
   alias Chimeway.Policy
   alias Chimeway.Telemetry
@@ -92,7 +92,7 @@ defmodule Chimeway.Dispatch.Sync do
         correlation_id: Map.get(delivery.metadata || %{}, "correlation_id")
       }),
       fn ->
-        # D-22: do_dispatch/1 now returns {result, adapter_module} so the stop-meta
+        # do_dispatch/1 returns {result, adapter_module} so the stop metadata
         # closure can include adapter_module without a second DB round-trip.
         {result, adapter_module} = do_dispatch(delivery)
         outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
@@ -100,8 +100,8 @@ defmodule Chimeway.Dispatch.Sync do
         stop_meta =
           Telemetry.safe_meta(%{
             outcome: outcome,
-            # D-22: nil for failed transitions or pre-Phase-29 attempts; safe_meta/1
-            # uses Map.take/2 which preserves nil values for allowed keys.
+            # nil for failed transitions or attempts created before adapter identity
+            # was persisted; safe_meta/1 preserves nil values for allowed keys.
             adapter_module: adapter_module
           })
 
@@ -111,10 +111,15 @@ defmodule Chimeway.Dispatch.Sync do
   end
 
   defp do_dispatch(delivery) do
-    case Executor.run_delivery(delivery) do
+    result =
+      if delivery.channel == "push",
+        do: run_push_targets(delivery),
+        else: Executor.run_delivery(delivery)
+
+    case result do
       {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
-        # D-22: thread adapter_module up to the sync,:stop telemetry metadata.
-        {{:ok, updated_delivery}, attempt.adapter_module}
+        # Thread adapter_module into the sync,:stop telemetry metadata.
+        {{:ok, updated_delivery}, Map.get(attempt, :adapter_module)}
 
       {:ok, %{delivery: updated_delivery}} ->
         # Defensive: attempt key missing from the executor return shape.
@@ -125,6 +130,31 @@ defmodule Chimeway.Dispatch.Sync do
 
       {:error, _reason} = error ->
         {error, nil}
+
+      {:noop, _reason} ->
+        {{:ok, delivery}, nil}
+    end
+  end
+
+  defp run_push_targets(delivery) do
+    delivery
+    |> DeliveryTargets.actionable_targets()
+    |> Enum.reduce(nil, fn target, first_error ->
+      case Executor.run_target(delivery, target_id: target.id, source: "sync") do
+        {:error, reason} when is_nil(first_error) -> reason
+        _result -> first_error
+      end
+    end)
+    |> reload_push_parent(delivery)
+  end
+
+  defp reload_push_parent(first_error, delivery) do
+    case DeliveryTargets.recompute_delivery(delivery, delivery.tenant_id) do
+      {:ok, %{status: :succeeded} = updated_delivery} -> {:ok, %{delivery: updated_delivery}}
+      {:ok, %{status: :suppressed} = updated_delivery} -> {:ok, %{delivery: updated_delivery}}
+      {:ok, updated_delivery} when is_nil(first_error) -> {:ok, %{delivery: updated_delivery}}
+      {:ok, _updated_delivery} -> {:error, first_error}
+      {:error, reason} -> {:error, reason}
     end
   end
 

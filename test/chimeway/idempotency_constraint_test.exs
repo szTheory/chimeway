@@ -19,7 +19,14 @@ defmodule Chimeway.IdempotencyConstraintTest do
 
     @impl true
     def recipients(_params) do
-      {:ok, [%{recipient_identity: "user-1", recipient_type: "member"}]}
+      {:ok,
+       [
+         %{
+           recipient_identity: "user-1",
+           recipient_ref: "cw_idempotency_user",
+           recipient_type: "member"
+         }
+       ]}
     end
 
     @impl true

@@ -37,19 +37,25 @@ defmodule Chimeway.Install.MigrationsTest do
     "add_adapter_module_to_chimeway_delivery_attempts",
     "add_provider_message_id_to_delivery_attempts",
     "add_tenant_and_actor_to_chimeway_deliveries",
-    "create_chimeway_webhook_ingress"
+    "create_chimeway_webhook_ingress",
+    "add_tenant_identity_to_events_and_notifications",
+    "make_chimeway_delivery_tenant_nullable",
+    "privacy_safe_delivery_evidence",
+    "create_chimeway_delivery_targets",
+    "enforce_delivery_target_tenant_integrity",
+    "add_apns_request_intent"
   ]
 
-  test "list_templates/0 returns 31 ordered entries matching canonical slugs" do
+  test "list_templates/0 returns 37 ordered entries matching canonical slugs" do
     templates = Migrations.list_templates()
 
-    assert length(templates) == 31
+    assert length(templates) == 37
 
     slugs = Enum.map(templates, fn {_order, slug, _path} -> slug end)
     assert slugs == @expected_slugs
 
     orders = Enum.map(templates, fn {order, _slug, _path} -> order end)
-    assert orders == Enum.to_list(1..31)
+    assert orders == Enum.to_list(1..37)
 
     refute "create_oban_jobs_tables" in slugs
   end
@@ -263,7 +269,7 @@ defmodule Chimeway.Install.MigrationsTest do
   end
 
   describe "run/1 in tmp host" do
-    test "first run creates 31 files with host namespaces" do
+    test "first run creates 37 files with host namespaces" do
       tmp = scaffold_tmp_host!(include_config: true)
       restore_repo_env()
 
@@ -279,7 +285,7 @@ defmodule Chimeway.Install.MigrationsTest do
       migrations_dir = Path.join(tmp, "priv/repo/migrations")
       files = File.ls!(migrations_dir)
 
-      assert length(files) == 31
+      assert length(files) == 37
       refute Enum.any?(files, &String.contains?(&1, "create_oban_jobs_tables"))
 
       Enum.each(files, fn file ->
@@ -293,7 +299,7 @@ defmodule Chimeway.Install.MigrationsTest do
         |> String.split("\n", trim: true)
         |> Enum.filter(&String.starts_with?(&1, "created "))
 
-      assert length(created_lines) == 31
+      assert length(created_lines) == 37
       assert Enum.all?(created_lines, &String.contains?(&1, "priv/repo/migrations/"))
     end
 
@@ -307,7 +313,7 @@ defmodule Chimeway.Install.MigrationsTest do
       end)
 
       migrations_dir = Path.join(tmp, "priv/repo/migrations")
-      assert length(File.ls!(migrations_dir)) == 31
+      assert length(File.ls!(migrations_dir)) == 37
 
       [sample | _] = File.ls!(migrations_dir)
       content = File.read!(Path.join(migrations_dir, sample))
@@ -327,14 +333,14 @@ defmodule Chimeway.Install.MigrationsTest do
             assert :ok = Migrations.run()
           end)
 
-        assert length(File.ls!("priv/repo/migrations")) == 31
+        assert length(File.ls!("priv/repo/migrations")) == 37
 
         lines = second_output |> String.split("\n", trim: true)
 
         unchanged_lines = Enum.filter(lines, &String.starts_with?(&1, "unchanged "))
         created_lines = Enum.filter(lines, &String.starts_with?(&1, "created "))
 
-        assert length(unchanged_lines) == 31
+        assert length(unchanged_lines) == 37
         assert created_lines == []
       end)
     end
@@ -355,7 +361,7 @@ defmodule Chimeway.Install.MigrationsTest do
       end
 
       migrations_dir = Path.join(tmp, "priv/repo/migrations")
-      assert length(File.ls!(migrations_dir)) == 31
+      assert length(File.ls!(migrations_dir)) == 37
     end
 
     test "invalid generation prefix inputs fail with actionable accepted flags" do

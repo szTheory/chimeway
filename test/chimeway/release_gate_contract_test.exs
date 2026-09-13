@@ -22,8 +22,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   @adoption_run_assertion "scripts/ci/assert-adoption-run.sh"
   @adoption_run_fixture "test/fixtures/ci/adoption_run_success.json"
   @sibling_packages ~w(chimeway_admin chimeway_inbox)
-  @ci_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths test_floor_1_17)
-  @pr_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_adoption_paths)
+  @ci_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_example verify_runtime_prefix verify_journeys verify_mailglass verify_accrue verify_inbox verify_threadline verify_sigra install_golden_contract verify_adoption_paths verify_apns test_floor_1_17 verify_alpha_twin verify_crosswake_provider_feedback_docs)
+  @pr_gate_lanes ~w(lint test verify_gates verify_accrue_package verify_docs verify_adoption_paths verify_inbox verify_apns verify_alpha_twin verify_crosswake_provider_feedback_docs)
 
   # (job_id, lane slug) for the eight lanes that compile examples/chimeway_demo_host
   # and therefore carry a per-lane demo-host mix cache (CI-05, D-11).
@@ -49,6 +49,238 @@ defmodule Chimeway.ReleaseGateContractTest do
     {"verify.sigra", "verify_sigra", "mix verify.sigra"},
     {"verify.admin", "verify_admin", "mix verify.admin"}
   ]
+  @owned_temp_prefixes [
+    "chimeway_release_gate_",
+    "chimeway_release_archive_",
+    "chimeway_adoption_security_",
+    "chimeway_adoption_run_"
+  ]
+  @owned_temp_marker ".chimeway-release-gate-owner"
+  @owned_temp_registry_key {__MODULE__, :owned_temp_directories}
+  @owned_temp_lock {__MODULE__, :owned_temp_lock}
+  @verify_inbox_commands [
+    "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/inbox_state_transition_test.exs test/chimeway/inbox_change_publisher_test.exs test/chimeway/trigger_inbox_change_test.exs test/chimeway/traces_test.exs test/chimeway/safe_evidence_test.exs --warnings-as-errors",
+    "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors",
+    "cmd --shell cd chimeway_admin && mix deps.get && mix test test/chimeway_admin/components/timeline_event_test.exs test/chimeway_admin/redaction_test.exs --warnings-as-errors",
+    "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --only inbox_gate_parity --warnings-as-errors",
+    "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only inbox --warnings-as-errors"
+  ]
+
+  describe "release-contract recursive cleanup safety" do
+    @describetag :release_cleanup_safety
+
+    test "all closed owned temp prefixes are removable" do
+      assert function_exported?(__MODULE__, :owned_temp_directory!, 1),
+             "release contract must expose its test-only owned temp constructor"
+
+      assert function_exported?(__MODULE__, :remove_owned_temp_dir!, 1),
+             "release contract must expose its test-only guarded cleanup boundary"
+
+      for prefix <- [
+            "chimeway_release_gate_",
+            "chimeway_release_archive_",
+            "chimeway_adoption_security_",
+            "chimeway_adoption_run_"
+          ] do
+        directory = apply(__MODULE__, :owned_temp_directory!, [prefix])
+        assert File.dir?(directory)
+        apply(__MODULE__, :remove_owned_temp_dir!, [directory])
+        refute File.exists?(directory)
+      end
+    end
+
+    test "refuses the temp root, nested paths, outside paths, and unowned siblings" do
+      assert function_exported?(__MODULE__, :owned_temp_directory!, 1)
+      assert function_exported?(__MODULE__, :remove_owned_temp_dir!, 1)
+
+      owned = apply(__MODULE__, :owned_temp_directory!, ["chimeway_release_gate_"])
+      nested = Path.join(owned, "chimeway_release_archive_nested")
+      File.mkdir!(nested)
+      unowned = Path.join(System.tmp_dir!(), "unowned_#{System.unique_integer([:positive])}")
+      File.mkdir!(unowned)
+
+      unowned_matching_prefix =
+        Path.join(
+          System.tmp_dir!(),
+          "chimeway_release_gate_unowned_#{Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)}"
+        )
+
+      File.mkdir!(unowned_matching_prefix)
+
+      on_exit(fn ->
+        apply(__MODULE__, :remove_owned_temp_dir!, [owned])
+        File.rmdir!(unowned)
+
+        if File.exists?(unowned_matching_prefix) do
+          File.rmdir!(unowned_matching_prefix)
+        end
+      end)
+
+      for forbidden <- [
+            System.tmp_dir!(),
+            nested,
+            File.cwd!(),
+            unowned,
+            unowned_matching_prefix
+          ] do
+        assert_raise ArgumentError, ~r/refusing recursive cleanup/, fn ->
+          apply(__MODULE__, :remove_owned_temp_dir!, [forbidden])
+        end
+
+        assert File.exists?(forbidden)
+      end
+    end
+
+    test "allocator reserves unique owned directories under concurrent use" do
+      directories =
+        1..32
+        |> Task.async_stream(
+          fn _ -> apply(__MODULE__, :owned_temp_directory!, ["chimeway_release_gate_"]) end,
+          max_concurrency: 16,
+          ordered: false,
+          timeout: 5_000
+        )
+        |> Enum.map(fn {:ok, directory} -> directory end)
+
+      on_exit(fn ->
+        Enum.each(directories, fn directory ->
+          apply(__MODULE__, :remove_owned_temp_dir!, [directory])
+        end)
+      end)
+
+      assert length(Enum.uniq(directories)) == length(directories)
+      assert Enum.all?(directories, &File.dir?/1)
+    end
+
+    test "failed unpacked package build releases its scratch directory and ownership" do
+      test_pid = self()
+
+      failing_build = fn output ->
+        scratch = Path.dirname(output)
+
+        on_exit(fn ->
+          if File.exists?(scratch), do: remove_owned_temp_dir!(scratch)
+        end)
+
+        send(test_pid, {:unpacked_build_scratch, scratch})
+        {"forced unpack failure", 1}
+      end
+
+      assert_raise ExUnit.AssertionError, ~r/mix hex.build --unpack must succeed/, fn ->
+        build_unpacked_package!(failing_build)
+      end
+
+      assert_receive {:unpacked_build_scratch, scratch}
+      refute File.exists?(scratch)
+
+      ownership = :persistent_term.get(@owned_temp_registry_key, %{})
+      refute Map.has_key?(ownership, scratch)
+    end
+
+    test "the guarded helper owns the module's only recursive removal call" do
+      source = File.read!(__ENV__.file)
+
+      assert source =~ "def remove_owned_temp_dir!(directory)"
+      assert Regex.scan(~r/File\.rm_rf!?/, source) == [[Enum.join(["File", "rm_rf!"], ".")]]
+      refute source =~ "File." <> "rm_rf!(output)"
+      refute Regex.match?(~r/File\.rm_rf!?\(Path\.dirname\(/, source)
+    end
+  end
+
+  describe "inbox alias and aggregate gate parity" do
+    @describetag :inbox_gate_parity
+
+    setup do
+      %{
+        mix_exs: File.read!(@mix_exs),
+        ci_yml: File.read!(@ci_yml),
+        maintaining: File.read!(@maintaining)
+      }
+    end
+
+    test "verify.inbox owns exactly five warning-strict evidence commands in order", %{
+      mix_exs: mix_exs
+    } do
+      assert_verify_inbox_alias!(mix_exs)
+      alias_source = extract_verify_inbox_alias_source!(mix_exs)
+
+      for command <- @verify_inbox_commands do
+        mutated_alias = String.replace(alias_source, command, "", global: false)
+        mutated = String.replace(mix_exs, alias_source, mutated_alias, global: false)
+
+        refute mutated == mix_exs, "mutation fixture must locate #{inspect(command)}"
+
+        assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_alias!(mutated) end
+      end
+
+      [first, second | _] = @verify_inbox_commands
+
+      reordered =
+        alias_source
+        |> String.replace(first, "__FIRST_INBOX_COMMAND__", global: false)
+        |> String.replace(second, first, global: false)
+        |> String.replace("__FIRST_INBOX_COMMAND__", second, global: false)
+
+      reordered = String.replace(mix_exs, alias_source, reordered, global: false)
+
+      assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_alias!(reordered) end
+    end
+
+    test "the verify_inbox CI job invokes the single local alias and no sibling verify alias", %{
+      ci_yml: ci_yml
+    } do
+      assert_verify_inbox_job!(ci_yml)
+
+      mutated =
+        String.replace(ci_yml, "- run: mix verify.inbox", "- run: mix verify.example",
+          global: false
+        )
+
+      assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_job!(mutated) end
+    end
+
+    test "pr-gate and ci-gate consume exactly one identical verify_inbox edge", %{ci_yml: ci_yml} do
+      assert extract_pr_gate_needs(ci_yml) == @pr_gate_lanes
+      assert extract_ci_gate_needs(ci_yml) == @ci_gate_lanes
+
+      for gate <- ["pr-gate", "ci-gate"] do
+        block = extract_ci_job_block(ci_yml, gate)
+        assert_inbox_aggregate_block!(block)
+
+        for mutated <- [
+              String.replace(
+                block,
+                ~S(VERIFY_INBOX: ${{ needs.verify_inbox.result }}),
+                "VERIFY_INBOX: success",
+                global: false
+              ),
+              String.replace(block, " VERIFY_INBOX ", " VERIFY_EXAMPLE ", global: false)
+            ] do
+          assert_raise ExUnit.AssertionError, fn -> assert_inbox_aggregate_block!(mutated) end
+        end
+      end
+
+      for needs <- [extract_pr_gate_needs(ci_yml), extract_ci_gate_needs(ci_yml)],
+          excluded <- ~w(verify_admin nightly_cold_build test_seed_zero) do
+        refute excluded in needs
+      end
+    end
+
+    test "maintainer instructions enumerate the complete inbox lane and equal consumers", %{
+      maintaining: maintaining
+    } do
+      for required <- [
+            "focused root lifecycle, timeline, privacy, and Phoenix-optional",
+            "full `chimeway_inbox` package",
+            "focused `chimeway_admin` timeline and redaction",
+            "tagged inbox documentation and release-parity contracts",
+            "demo-host `:inbox` journey",
+            "`pr-gate` and `ci-gate` consume the same `verify_inbox` result"
+          ] do
+        assert maintaining =~ required, "MAINTAINING.md must include #{inspect(required)}"
+      end
+    end
+  end
 
   describe "release gate parity doc contract (GATE-05)" do
     setup do
@@ -63,6 +295,18 @@ defmodule Chimeway.ReleaseGateContractTest do
         ci_yml: ci_yml,
         pre_ship_block: pre_ship_block
       }
+    end
+
+    test "ci.test skips partner repo setup owned by excluded verify lanes", %{mix_exs: mix_exs} do
+      [_, ci_test] = Regex.run(~r/"ci\.test":\s*\[(.*?)\n\s*\],/s, mix_exs)
+
+      assert ci_test =~ "CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1"
+      assert mix_exs =~ "test_load_filters: [~r{^(?!test/fixtures/).*_test\\.exs$}]"
+      assert mix_exs =~ "test_ignore_filters: [~r{^test/fixtures/}]"
+
+      for excluded <- ~w(mailglass accrue threadline sigra) do
+        assert ci_test =~ "--exclude #{excluded}"
+      end
     end
 
     for {_alias, slug, command} <- @pre_ship_verify_commands do
@@ -178,17 +422,36 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
-    test "verify_accrue job checks out szTheory/accrue with ACCRUE_PATH", %{ci_yml: ci_yml} do
+    test "verify_accrue job checks out immutable Accrue 1.5.1 with ACCRUE_PATH", %{
+      ci_yml: ci_yml
+    } do
       job_block = extract_ci_job_block(ci_yml, "verify_accrue")
+      checkout = extract_ci_repository_checkout!(job_block, "szTheory/accrue")
+      expected_ref = "d30fc25dbf6ba551792c66ff451b4b93c0af4bf1"
 
-      assert String.contains?(job_block, "szTheory/accrue"),
-             "verify_accrue job must checkout szTheory/accrue sibling repo"
+      assert accrue_checkout_contract_intact?(job_block, expected_ref),
+             "verify_accrue must pin the szTheory/accrue checkout to Accrue 1.5.1"
 
       assert String.contains?(job_block, "ACCRUE_PATH"),
              "verify_accrue job must set ACCRUE_PATH for sibling checkout"
 
-      assert String.contains?(job_block, "236fa2f1649e771f3b515603495436badeed3c7b"),
-             "verify_accrue job must pin Accrue integration ref"
+      refute accrue_checkout_contract_intact?(
+               String.replace(
+                 job_block,
+                 checkout,
+                 String.replace(checkout, expected_ref, "bad-ref")
+               ),
+               expected_ref
+             )
+
+      refute accrue_checkout_contract_intact?(
+               String.replace(
+                 job_block,
+                 checkout,
+                 String.replace(checkout, "          ref: #{expected_ref}\n", "")
+               ),
+               expected_ref
+             )
     end
 
     test "verify_threadline job checks out szTheory/threadline with THREADLINE_PATH", %{
@@ -248,7 +511,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert String.contains?(job_block, "mix ci.docs")
     end
 
-    test "ci-gate aggregates every required lane", %{ci_yml: ci_yml} do
+    test "ci-gate aggregates APNs verification with every required lane", %{ci_yml: ci_yml} do
       needs = extract_ci_gate_needs(ci_yml)
 
       assert length(needs) == length(@ci_gate_lanes)
@@ -295,6 +558,29 @@ defmodule Chimeway.ReleaseGateContractTest do
         refute String.contains?(job_block, "paths-ignore:"),
                "#{lane} job must not carry a paths-ignore: filter (would strand required pr-gate)"
       end
+    end
+
+    test "verify_inbox is an unfiltered required PR lane", %{ci_yml: ci_yml} do
+      needs = extract_pr_gate_needs(ci_yml)
+      inbox_block = extract_ci_job_block(ci_yml, "verify_inbox")
+
+      assert "verify_inbox" in needs
+
+      refute String.contains?(inbox_block, "if: github.event_name != 'pull_request'"),
+             "verify_inbox must run on pull requests so pr-gate never accepts a skipped Inbox lane"
+    end
+
+    test "verify_apns is an unfiltered required PR lane with one aggregate token", %{
+      ci_yml: ci_yml
+    } do
+      needs = extract_pr_gate_needs(ci_yml)
+      apns_block = extract_ci_job_block(ci_yml, "verify_apns")
+      pr_gate = extract_ci_job_block(ci_yml, "pr-gate")
+
+      assert "verify_apns" in needs
+      refute String.contains?(apns_block, "if: github.event_name != 'pull_request'")
+      assert pr_gate =~ "VERIFY_APNS: ${{ needs.verify_apns.result }}"
+      assert length(Regex.scan(~r/VERIFY_APNS/, pr_gate)) == 2
     end
 
     test "ci-gate is push/dispatch-only and keeps its literal name (CI-02)", %{ci_yml: ci_yml} do
@@ -481,7 +767,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "test_floor_1_17 must pin elixir-version 1.17 (mix.exs's ~> 1.17 floor)"
 
       assert String.contains?(job_block, ~S(otp-version: "27")),
-             "test_floor_1_17 must pin otp-version 27 (matches release.yml/publish-hex.yml)"
+             "test_floor_1_17 must pin otp-version 27"
 
       assert String.contains?(job_block, "test-floor-"),
              "test_floor_1_17 must use its own test-floor- cache-key namespace"
@@ -514,7 +800,7 @@ defmodule Chimeway.ReleaseGateContractTest do
              "nightly-gate must pass the five uppercase lane tokens to aggregate-gate.sh"
     end
 
-    test "ci-gate needs stays 16 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
+    test "ci-gate needs stays 19 lanes and excludes the nightly-only jobs (T-90-03/QUAL-05)", %{
       ci_yml: ci_yml
     } do
       # Use the specialized ci-gate needs extractor, NOT the generic block
@@ -522,9 +808,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       # over-capture past ci-gate into nightly-gate's own body.
       needs = extract_ci_gate_needs(ci_yml)
 
-      assert length(needs) == 16,
-             "ci-gate needs must remain exactly 16 lanes after the packaged Accrue proof is isolated " <>
-               "from the ordinary contract lane"
+      assert length(needs) == 19,
+             "ci-gate needs must contain the 18 established lanes plus the CrossWake provider-feedback docs gate"
 
       assert "test_floor_1_17" in needs,
              "ci-gate must need test_floor_1_17 so the 1.17 floor genuinely gates on push (D-15)"
@@ -899,10 +1184,261 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "release workflow decision and authority boundaries" do
+    @describetag :release_hardening
+
+    setup do
+      %{release_yml: File.read!(@release_yml)}
+    end
+
+    test "release suppression requires positive Release Please PR identity before tag checks", %{
+      release_yml: release_yml
+    } do
+      assert_release_preflight_contract!(release_yml)
+
+      preflight =
+        release_yml
+        |> extract_release_job!("release-please")
+        |> extract_release_step!("Detect already-tagged release PR")
+
+      for {needle, replacement} <- [
+            {~S([ "$head_ref" != "release-please--branches--main" ]),
+             ~S([ "$head_ref" != "main" ])},
+            {~S([ "$base_ref" != "main" ]), ~S([ "$base_ref" != "develop" ])},
+            {~S|[[ "$title" != "chore(main): release "* ]]|,
+             ~S|[[ "$title" != "chore(main): "* ]]|},
+            {"--json headRefName,baseRefName,title,labels", "--json labels"},
+            {"if ! jq -e", "if jq -e"}
+          ] do
+        mutated_step = String.replace(preflight, needle, replacement, global: false)
+        refute mutated_step == preflight, "mutation must locate #{inspect(needle)}"
+        mutated = String.replace(release_yml, preflight, mutated_step, global: false)
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_preflight_contract!(mutated)
+        end
+      end
+
+      early_tag_check =
+        String.replace(
+          preflight,
+          ~S(pr_json=$(gh pr view),
+          ~S(expected_tag="forged-before-identity"
+          pr_json=$(gh pr view),
+          global: false
+        )
+
+      assert_raise ExUnit.AssertionError, fn ->
+        assert_release_preflight_contract!(
+          String.replace(release_yml, preflight, early_tag_check, global: false)
+        )
+      end
+
+      for message <- [
+            "No merge PR number in head commit; running release-please.",
+            "Release PR lookup failed; running release-please.",
+            "Release PR metadata was malformed; running release-please.",
+            "Merged PR is not the exact Release Please PR; running release-please."
+          ] do
+        fail_open = "echo \"#{message}\"\n            echo \"should_run=true\""
+        fail_closed = "echo \"#{message}\"\n            echo \"should_run=false\""
+        mutated_step = String.replace(preflight, fail_open, fail_closed, global: false)
+        refute mutated_step == preflight, "mutation must locate fail-open branch #{message}"
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_preflight_contract!(
+            String.replace(release_yml, preflight, mutated_step, global: false)
+          )
+        end
+      end
+
+      identity_guard =
+        substring_offset(preflight, ~S([ "$head_ref" != "release-please--branches--main" ]))
+
+      tagged_guard = substring_offset(preflight, "autorelease: tagged")
+      tag_lookup = substring_offset(preflight, "expected_tag=")
+
+      assert is_integer(identity_guard)
+      assert identity_guard < tagged_guard
+      assert identity_guard < tag_lookup
+    end
+
+    test "release PR CI bootstrap is token-aware and exact-branch scoped", %{
+      release_yml: release_yml
+    } do
+      assert_release_ci_bootstrap_contract!(release_yml)
+
+      bootstrap = extract_release_job!(release_yml, "bootstrap-release-pr-ci")
+
+      for {needle, replacement} <- [
+            {~S(RELEASE_PLEASE_TOKEN_CONFIGURED: ${{ secrets.RELEASE_PLEASE_TOKEN != '' }}),
+             "RELEASE_PLEASE_TOKEN_CONFIGURED: true"},
+            {~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ]),
+             ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" = "true" ])},
+            {~S([ "${PRS_CREATED:-false}" != "true" ]), ~S([ "${PRS_CREATED:-false}" = "true" ])},
+            {"gh workflow run ci.yml --ref release-please--branches--main",
+             "gh workflow run ci.yml --ref main"}
+          ] do
+        mutated = String.replace(bootstrap, needle, replacement, global: false)
+        refute mutated == bootstrap, "mutation must locate #{inspect(needle)}"
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_ci_bootstrap_contract!(
+            String.replace(release_yml, bootstrap, mutated, global: false)
+          )
+        end
+      end
+    end
+
+    test "permissions and secret placement remain least-privilege and step-scoped", %{
+      release_yml: release_yml
+    } do
+      assert_release_authority_contract!(release_yml)
+
+      for mutation <- [
+            &String.replace(
+              &1,
+              "  actions: write\n\nconcurrency:",
+              "  actions: read\n\nconcurrency:",
+              global: false
+            ),
+            &String.replace(&1, "  issues: write\n", "", global: false),
+            &String.replace(
+              &1,
+              "  actions: write\n\nconcurrency:",
+              "  actions: write\n  checks: write\n\nconcurrency:",
+              global: false
+            ),
+            &String.replace(&1, "      pull-requests: read\n", "      pull-requests: write\n",
+              global: false
+            ),
+            &String.replace(&1, "      pull-requests: read\n", "", global: false),
+            &String.replace(
+              &1,
+              "      pull-requests: read\n    steps:",
+              "      pull-requests: read\n      checks: read\n    steps:",
+              global: false
+            ),
+            fn source ->
+              source
+              |> String.replace(
+                "      actions: write\n      contents: read",
+                "      contents: read",
+                global: false
+              )
+              |> String.replace(
+                "      contents: read\n    env:\n      RELEASE_VERSION",
+                "      contents: read\n      actions: write\n    env:\n      RELEASE_VERSION",
+                global: false
+              )
+            end,
+            &String.replace(
+              &1,
+              "      contents: read\n    env:\n      RELEASE_VERSION",
+              "      contents: write\n    env:\n      RELEASE_VERSION",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "      contents: read\n    env:\n      RELEASE_VERSION",
+              "    env:\n      RELEASE_VERSION",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "      contents: read\n    env:\n      RELEASE_VERSION",
+              "      contents: read\n      actions: read\n    env:\n      RELEASE_VERSION",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              ~S(token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}),
+              "token: ${{ secrets.GITHUB_TOKEN }}",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "          PRS_CREATED:",
+              "          RAW_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}\n          PRS_CREATED:",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "          PRS_CREATED:",
+              "          RAW_RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}\n          PRS_CREATED:",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "          open_count=$(gh pr list",
+              "          echo ${{ secrets.RELEASE_PLEASE_TOKEN }}\n          open_count=$(gh pr list",
+              global: false
+            ),
+            fn source ->
+              source
+              |> String.replace(
+                ~S(token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}),
+                "token: ${{ secrets.GITHUB_TOKEN }}",
+                global: false
+              )
+              |> String.replace(
+                "          PRS_CREATED:",
+                "          RAW_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}\n          PRS_CREATED:",
+                global: false
+              )
+            end,
+            &String.replace(
+              &1,
+              "        run: mix hex.publish --dry-run --yes",
+              "        run: mix hex.publish --dry-run --yes ${{ secrets.HEX_API_KEY }}",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "permissions:\n  contents: write",
+              "env:\n  HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n\npermissions:\n  contents: write",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "      - name: Fetch library deps",
+              "      - name: Fetch library deps\n        env:\n          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}",
+              global: false
+            ),
+            fn source ->
+              source
+              |> String.replace(
+                "          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n        run: mix hex.publish --dry-run --yes",
+                "        run: mix hex.publish --dry-run --yes",
+                global: false
+              )
+              |> String.replace(
+                "permissions:\n  contents: write",
+                "env:\n  HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n\npermissions:\n  contents: write",
+                global: false
+              )
+            end,
+            &String.replace(
+              &1,
+              "          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n        run: mix hex.publish --yes",
+              "        run: mix hex.publish --yes",
+              global: false
+            )
+          ] do
+        mutated = mutation.(release_yml)
+        refute mutated == release_yml, "authority mutation must change release.yml"
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_authority_contract!(mutated)
+        end
+      end
+    end
+  end
+
   describe "unpacked Hex package artifact truth (TRUTH-01/TRUTH-02/TRUTH-03, D-08)" do
     setup do
-      output = build_unpacked_package!()
-      on_exit(fn -> File.rm_rf(output) end)
+      {scratch, output} = build_unpacked_package!()
+      on_exit(fn -> remove_owned_temp_dir!(scratch) end)
       %{output: output, root: unpacked_package_root!(output)}
     end
 
@@ -994,8 +1530,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     # lifecycle are expensive shared external resources. The fixture still gives
     # every invocation unique filesystem and database identities.
     setup do
-      output = build_unpacked_package!()
-      on_exit(fn -> File.rm_rf(output) end)
+      {scratch, output} = build_unpacked_package!()
+      on_exit(fn -> remove_owned_temp_dir!(scratch) end)
       %{root: unpacked_package_root!(output)}
     end
 
@@ -1013,17 +1549,30 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert Map.keys(proof.evidence) |> Enum.sort() ==
                [
+                 :channel,
                  :delivery_id,
+                 :last_attempt_number,
                  :last_attempt_outcome,
                  :notification_key,
                  :notification_version,
+                 :outcome_classification,
+                 :provider_handoff,
+                 :render_key,
+                 :render_version,
                  :status,
                  :timeline_events
                ]
 
       assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+
+      assert proof.proof_source =~
+               "explain_delivery(delivery_id, tenant_id: \"artifact-proof-tenant\")"
+
       assert proof.proof_source =~ "Chimeway.Repo.get_dynamic_repo()"
       assert proof.proof_source =~ "Chimeway.Repo.put_dynamic_repo(ArtifactConsumer.Repo)"
+      refute proof.mix_source =~ "{:mailglass,"
+      refute proof.config_source =~ "config :mailglass"
+      refute proof.application_source =~ "Mailglass"
 
       proof_source_without_dynamic_repo_handoff =
         proof.proof_source
@@ -1064,6 +1613,16 @@ defmodule Chimeway.ReleaseGateContractTest do
                )
     end
 
+    test "generated Mailglass mailable accepts fixed atom or string render aliases without atomizing" do
+      source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
+
+      assert source =~ "fetch_assign!(assigns, \"to\", :to)"
+      assert source =~ "fetch_assign!(assigns, \"subject\", :subject)"
+      assert source =~ "fetch_assign!(assigns, \"html_body\", :html_body)"
+      assert source =~ "fetch_assign!(assigns, \"text_body\", :text_body)"
+      refute source =~ "String.to_atom"
+    end
+
     @tag timeout: 120_000
     test "a clean consumer proves one host-owned Mailglass transaction from only the unpacked artifact",
          %{
@@ -1072,36 +1631,40 @@ defmodule Chimeway.ReleaseGateContractTest do
       proof = ArtifactConsumerFixture.prove_mailglass!(root)
 
       assert proof.output =~ "CHIMEWAY_MAILGLASS_PROOF"
-      assert proof.output =~ "transport=fake"
+      assert proof.output =~ "provider_handoff=accepted"
 
       assert Map.keys(proof.evidence) |> Enum.sort() ==
                [
-                 :adapter_module,
                  :channel,
                  :delivery_id,
                  :last_attempt_number,
                  :last_attempt_outcome,
                  :notification_key,
                  :notification_version,
+                 :outcome_classification,
+                 :provider_handoff,
                  :render_key,
                  :render_version,
                  :status,
-                 :timeline_events,
-                 :transport
+                 :timeline_events
                ]
 
-      assert proof.evidence.transport == "fake"
       assert proof.evidence.channel == "email"
       assert proof.evidence.notification_key == "artifact_consumer.mailglass_proof"
       assert proof.evidence.notification_version == "1"
       assert proof.evidence.render_key == "artifact_consumer.mailglass_proof.email"
       assert proof.evidence.render_version == "1"
       assert proof.evidence.status == "succeeded"
+      assert proof.evidence.outcome_classification == "succeeded"
       assert proof.evidence.last_attempt_outcome == "succeeded"
-      assert proof.evidence.adapter_module == "Chimeway.Adapters.Mailglass"
+      assert proof.evidence.provider_handoff == "accepted"
       assert proof.evidence.last_attempt_number == "1"
 
       assert length(Regex.scan(~r/Chimeway\.Traces\.explain_delivery\(/, proof.proof_source)) == 1
+
+      assert proof.proof_source =~
+               "explain_delivery(delivery_id, tenant_id: \"artifact-proof-tenant\")"
+
       assert proof.proof_source =~ "Mailglass.Adapters.Fake.checkout()"
       assert proof.proof_source =~ "Mailglass.Adapters.Fake.set_shared(self())"
       assert proof.proof_source =~ "length(Mailglass.Adapters.Fake.deliveries()) == 1"
@@ -1188,7 +1751,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       complete = %Chimeway.Traces.Explanation{
         delivery_id: "delivery-id",
         status: :succeeded,
-        last_attempt: %{outcome: :succeeded},
+        last_attempt: %{outcome: :succeeded, attempt_number: 1},
         timeline:
           Enum.map(
             [:event_created, :notification_created, :delivery_planned, :attempt_recorded],
@@ -1243,23 +1806,63 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
+    test "core proof accepts only validated safe lifecycle and handoff facts" do
+      complete =
+        "CHIMEWAY_CORE_PROOF notification_key=artifact_consumer.core_trace " <>
+          "notification_version=1 delivery_id=2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e " <>
+          "channel=in_app render_key=artifact_consumer.core_trace.in_app render_version=1 " <>
+          "status=succeeded outcome_classification=succeeded last_attempt_outcome=succeeded " <>
+          "last_attempt_number=1 provider_handoff=not_applicable " <>
+          "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded,webhook_received"
+
+      assert %{provider_handoff: "not_applicable", outcome_classification: "succeeded"} =
+               ArtifactConsumerFixture.parse_evidence!(complete)
+
+      for {key, value} <- [
+            {"notification_key", "recipient@example.test"},
+            {"delivery_id", "raw-device-token-sentinel"},
+            {"render_key", "https://private.example.test/open"},
+            {"outcome_classification", "opened"},
+            {"provider_handoff", "raw-provider-body-sentinel"}
+          ] do
+        assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
+          ArtifactConsumerFixture.parse_evidence!(
+            Regex.replace(~r/(^|\s)#{Regex.escape(key)}=[^\s]*/, complete, "\\1#{key}=#{value}")
+          )
+        end
+      end
+    end
+
+    test "proof source projects safe facts and limits provider acceptance to handoff" do
+      source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
+
+      assert source =~ "Chimeway.SafeEvidence.proof"
+      assert source =~ "provider_handoff"
+      refute source =~ "adapter_module: explanation.last_attempt.adapter_module"
+      refute source =~ "transport: \"fake\""
+
+      for forbidden <- ["display", "opened", "seen", "read", "engagement"] do
+        refute source =~ "provider_handoff=#{forbidden}"
+      end
+    end
+
     test "Mailglass proof evidence accepts only one complete safe allowlist without atomizing keys" do
       complete = mailglass_evidence_line()
 
       assert Map.keys(ArtifactConsumerFixture.parse_mailglass_evidence!(complete)) |> Enum.sort() ==
                [
-                 :adapter_module,
                  :channel,
                  :delivery_id,
                  :last_attempt_number,
                  :last_attempt_outcome,
                  :notification_key,
                  :notification_version,
+                 :outcome_classification,
+                 :provider_handoff,
                  :render_key,
                  :render_version,
                  :status,
-                 :timeline_events,
-                 :transport
+                 :timeline_events
                ]
 
       unknown_key = "untrusted_mailglass_key_#{System.unique_integer([:positive])}"
@@ -1276,7 +1879,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert_raise RuntimeError, ~r/exactly the safe evidence allowlist/, fn ->
         ArtifactConsumerFixture.parse_mailglass_evidence!(
-          String.replace(complete, " adapter_module=Chimeway.Adapters.Mailglass", "")
+          String.replace(complete, " provider_handoff=accepted", "")
         )
       end
 
@@ -1288,10 +1891,8 @@ defmodule Chimeway.ReleaseGateContractTest do
         ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> "\n" <> complete)
       end
 
-      assert_raise RuntimeError, ~r/fake transport/, fn ->
-        ArtifactConsumerFixture.parse_mailglass_evidence!(
-          String.replace(complete, "transport=fake", "transport=live")
-        )
+      assert_raise RuntimeError, ~r/unknown evidence key/, fn ->
+        ArtifactConsumerFixture.parse_mailglass_evidence!(complete <> " transport=live")
       end
     end
 
@@ -1321,8 +1922,12 @@ defmodule Chimeway.ReleaseGateContractTest do
             "secret",
             "credential",
             "api_key",
+            "token",
+            "endpoint",
+            "trusted_link",
             "raw_mailglass",
             "provider_id",
+            "provider_body",
             "provider_response",
             "metadata"
           ] do
@@ -1337,12 +1942,6 @@ defmodule Chimeway.ReleaseGateContractTest do
     test "Mailglass proof evidence rejects forged values beneath every allowlisted key" do
       complete = mailglass_evidence_line()
 
-      assert_raise RuntimeError, ~r/must declare fake transport/, fn ->
-        ArtifactConsumerFixture.parse_mailglass_evidence!(
-          replace_mailglass_evidence_value(complete, "transport", "live")
-        )
-      end
-
       mutations = [
         {"notification_key", "recipient@example.test"},
         {"notification_version", "2"},
@@ -1353,13 +1952,21 @@ defmodule Chimeway.ReleaseGateContractTest do
         {"status", "failed"},
         {"last_attempt_outcome", "failed"},
         {"last_attempt_number", "2"},
-        {"adapter_module", "provider-secret"}
+        {"outcome_classification", "opened"}
       ]
 
       for {key, value} <- mutations do
         assert_raise RuntimeError, ~r/invalid #{key}/, fn ->
           ArtifactConsumerFixture.parse_mailglass_evidence!(
             replace_mailglass_evidence_value(complete, key, value)
+          )
+        end
+      end
+
+      for forged_handoff <- ["device_displayed", "opened", "seen", "read", "engagement"] do
+        assert_raise RuntimeError, ~r/invalid provider_handoff/, fn ->
+          ArtifactConsumerFixture.parse_mailglass_evidence!(
+            replace_mailglass_evidence_value(complete, "provider_handoff", forged_handoff)
           )
         end
       end
@@ -1534,7 +2141,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert %{
                provenance: "released_package",
-               accrue_version: "1.3.0",
+               accrue_version: "1.5.0",
                workflow_key: "accrue.dunning",
                waiting_state: "waiting",
                waiting_reason: "waiting_for_step_progression",
@@ -1558,7 +2165,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert %{
                provenance: "compatibility",
-               accrue_ref: "236fa2f1649e771f3b515603495436badeed3c7b",
+               accrue_ref: "cafc526f752b917a0abf8cbdbf3030cb367ae346",
                workflow_key: "accrue.dunning",
                waiting_state: "waiting",
                outcome_state: "active"
@@ -1591,7 +2198,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert %{
                provenance: "released_package",
-               accrue_version: "1.3.0",
+               accrue_version: "1.5.0",
                workflow_key: "accrue.dunning"
              } =
                ArtifactConsumerFixture.parse_accrue_evidence!(line)
@@ -1621,7 +2228,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       for forged <- [
             line <> " #{unknown}=value",
             line <> " outcome_state=active",
-            line <> " accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b",
+            line <> " accrue_ref=cafc526f752b917a0abf8cbdbf3030cb367ae346",
             String.replace(line, " chimeway_version=1.0.0", ""),
             line <> "\n" <> line,
             line <> " customer_id=private",
@@ -1639,7 +2246,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :accrue_artifact_proof
     test "Accrue compatibility is SHA-only and proof source is event-to-signal shaped" do
       compatibility =
-        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=236fa2f1649e771f3b515603495436badeed3c7b " <>
+        "CHIMEWAY_ACCRUE_PROOF provenance=compatibility accrue_ref=cafc526f752b917a0abf8cbdbf3030cb367ae346 " <>
           "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
           "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid " <>
           "outcome_state=active outcome_reason=signal_received " <>
@@ -1649,7 +2256,7 @@ defmodule Chimeway.ReleaseGateContractTest do
                ArtifactConsumerFixture.parse_accrue_evidence!(compatibility)
 
       assert_raise RuntimeError, fn ->
-        ArtifactConsumerFixture.parse_accrue_evidence!(compatibility <> " accrue_version=1.3.0")
+        ArtifactConsumerFixture.parse_accrue_evidence!(compatibility <> " accrue_version=1.5.0")
       end
 
       runner = File.read!("scripts/prove-accrue-consumer.exs")
@@ -1683,7 +2290,7 @@ defmodule Chimeway.ReleaseGateContractTest do
             "\"application_version\" => to_string(Application.spec(:accrue, :vsn))",
             "descriptor[\"scm\"] == Hex.SCM",
             "descriptor[\"scm\"] == Mix.SCM.Git",
-            "descriptor[\"metadata\"][<<\"version\">>] == <<\"1.3.0\">>",
+            "descriptor[\"metadata\"][<<\"version\">>] == <<\"1.5.0\">>",
             "module_source == integration_source"
           ] do
         assert proof_source =~ marker,
@@ -1732,10 +2339,11 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag timeout: 1_200_000
     test "runs only from a verified archive with package-owned proof support" do
       archive = build_package_archive!()
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
       digest = sha256!(archive)
-      unpacked = build_unpacked_package!()
-      on_exit(fn -> File.rm_rf(unpacked) end)
+      {unpacked_scratch, unpacked} = build_unpacked_package!()
+      on_exit(fn -> remove_owned_temp_dir!(unpacked_scratch) end)
       root = unpacked_package_root!(unpacked)
       metadata = File.read!(Path.join(root, "hex_metadata.config"))
 
@@ -1769,7 +2377,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag timeout: 600_000
     test "rejects malformed archive provenance without a proof line" do
       archive = build_package_archive!()
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       altered = Path.join(Path.dirname(archive), "altered.tar")
       File.cp!(archive, altered)
@@ -1803,7 +2412,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       archive = build_package_archive!()
       malformed = Path.join(Path.dirname(archive), "malformed.tar")
       File.write!(malformed, "not a Hex package archive")
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       for {path, digest} <- [
             {archive, String.duplicate("0", 64)},
@@ -1869,9 +2479,10 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     @tag :adoption_archive_security
     test "rejects a valid-digest symbolic-link directory before it can escape scratch" do
-      outside = temporary_path!("outside-created.txt")
+      outside_directory = owned_temp_directory!("chimeway_adoption_security_")
+      outside = Path.join(outside_directory, "outside-created.txt")
       File.write!(outside, "unchanged")
-      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+      on_exit(fn -> remove_owned_temp_dir!(outside_directory) end)
 
       archive =
         malicious_package_archive!([
@@ -1879,7 +2490,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"escape/payload.txt", ?0, "", "owned"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:error, _} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -1894,10 +2506,11 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     @tag :adoption_archive_security
     test "rejects a required-file symbolic link before validation can read or load its target" do
-      outside = temporary_path!("outside-marker.ex")
-      marker = temporary_path!("outside-marker.txt")
+      outside_directory = owned_temp_directory!("chimeway_adoption_security_")
+      outside = Path.join(outside_directory, "outside-marker.ex")
+      marker = Path.join(outside_directory, "outside-marker.txt")
       File.write!(outside, "File.write!(#{inspect(marker)}, \"loaded\")")
-      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+      on_exit(fn -> remove_owned_temp_dir!(outside_directory) end)
 
       archive =
         malicious_package_archive!([
@@ -1905,7 +2518,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:error, _} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -1927,7 +2541,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -1947,7 +2562,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :adoption_archive_security
     test "rejects correctly digested hostile metadata without interning atoms or invoking its callback" do
       warm_archive = malicious_package_archive!(valid_proof_entries())
-      on_exit(fn -> File.rm_rf(Path.dirname(warm_archive)) end)
+      warm_archive_directory = Path.dirname(warm_archive)
+      on_exit(fn -> remove_owned_temp_dir!(warm_archive_directory) end)
 
       assert {:ok, :warmed} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -1966,7 +2582,8 @@ defmodule Chimeway.ReleaseGateContractTest do
         valid_proof_entries()
         |> malicious_package_archive!(metadata)
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       before_count = :erlang.system_info(:atom_count)
 
@@ -1994,7 +2611,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           ~s({<<"labels">>, [<<"atom_looking_value">>, <<"still_binary">>]}.\n)
 
       archive = malicious_package_archive!(valid_proof_entries(), metadata)
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2023,7 +2641,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       for suffix <- invalid_metadata do
         archive = malicious_package_archive!(valid_proof_entries(), default_metadata() <> suffix)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, "package metadata is malformed"} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2037,7 +2656,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :adoption_archive_security
     test "validates a freshly built Hex archive through the metadata parser exactly once" do
       archive = build_package_archive!()
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2087,7 +2707,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           ~s({<<"nested">>, #{nested_metadata_value(30)}}.\n)
 
       accepted_archive = malicious_package_archive!(valid_proof_entries(), accepted_metadata)
-      on_exit(fn -> File.rm_rf(Path.dirname(accepted_archive)) end)
+      accepted_archive_directory = Path.dirname(accepted_archive)
+      on_exit(fn -> remove_owned_temp_dir!(accepted_archive_directory) end)
 
       assert {:ok, :nested_boundary} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2101,7 +2722,8 @@ defmodule Chimeway.ReleaseGateContractTest do
             metadata_with_files(4_097)
           ] do
         archive = malicious_package_archive!(valid_proof_entries(), metadata)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, "package metadata is malformed"} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2114,13 +2736,15 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     @tag :adoption_archive_security
     test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
-      outside = temporary_path!("outside-special.txt")
+      outside_directory = owned_temp_directory!("chimeway_adoption_security_")
+      outside = Path.join(outside_directory, "outside-special.txt")
       File.write!(outside, "unchanged")
-      on_exit(fn -> File.rm_rf(Path.dirname(outside)) end)
+      on_exit(fn -> remove_owned_temp_dir!(outside_directory) end)
 
       for type <- @unsupported_tar_types do
         archive = malicious_package_archive!([{"special-#{type}", type, outside, <<>>}])
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2145,7 +2769,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(valid)) end)
+      valid_directory = Path.dirname(valid)
+      on_exit(fn -> remove_owned_temp_dir!(valid_directory) end)
 
       assert {:ok, :valid_directory_tree} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2161,7 +2786,8 @@ defmodule Chimeway.ReleaseGateContractTest do
             [{"/mix.exs", ?0, "", "outside"}]
           ] do
         archive = malicious_package_archive!(entries)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2180,7 +2806,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       for contents <- [truncated, invalid_checksum] do
         archive = malicious_package_archive_from_contents!(contents)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2214,10 +2841,12 @@ defmodule Chimeway.ReleaseGateContractTest do
       accepted_digest = sha256!(archive_a)
       replacement_digest = sha256!(replacement)
       parent = self()
+      archive_a_directory = Path.dirname(archive_a)
+      archive_b_directory = Path.dirname(archive_b)
 
       on_exit(fn ->
-        File.rm_rf(Path.dirname(archive_a))
-        File.rm_rf(Path.dirname(archive_b))
+        remove_owned_temp_dir!(archive_a_directory)
+        remove_owned_temp_dir!(archive_b_directory)
       end)
 
       validator =
@@ -2282,7 +2911,6 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :adoption_archive_limits
     test "fails closed one byte or member past every archive budget before the callback" do
       outer = malicious_package_archive!([])
-      on_exit(fn -> File.rm_rf(Path.dirname(outer)) end)
       File.write!(outer, :binary.copy(<<0>>, 32 * 1024 * 1024 + 1), [:append])
 
       compressed =
@@ -2300,7 +2928,8 @@ defmodule Chimeway.ReleaseGateContractTest do
         ])
 
       for archive <- [outer, compressed, expanded, member_count, member_size] do
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2323,7 +2952,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"large.bin", ?0, "", :binary.copy(<<0>>, 8 * 1024 * 1024)}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2583,41 +3213,280 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "Alpha twin hermetic CI contract (GATE-01)" do
+    @tag :alpha_twin_gate_contract
+    test "locks a credential-free canonical CrossWake checkout and both aggregate links" do
+      ci_yml = File.read!(@ci_yml)
+      job = extract_ci_job_block(ci_yml, "verify_alpha_twin")
+      pr_gate = extract_ci_job_block(ci_yml, "pr-gate")
+      ci_gate = extract_ci_job_block(ci_yml, "ci-gate")
+
+      for required <- [
+            "timeout-minutes:",
+            "image: postgres:15",
+            "https://github.com/szTheory/crosswake.git",
+            "priv/mobile_proof/crosswake-selected-sha",
+            "refs/heads/resume/chimeway-notification-physical-proof",
+            "git -C ../crosswake ls-remote origin",
+            "checkout --detach",
+            "rev-parse HEAD",
+            "status --porcelain",
+            "mix ecto.migrate --quiet",
+            "mix verify.alpha_twin",
+            "mix verify.physical_proof_contract"
+          ] do
+        assert job =~ required, "verify_alpha_twin must contain #{required}"
+      end
+
+      for forbidden <- ["macos-", "xcode", "APPLE_", "APNS", "xcodebuild"] do
+        refute job =~ forbidden, "verify_alpha_twin must remain credential-free: #{forbidden}"
+      end
+
+      for {gate, token} <- [{pr_gate, "VERIFY_ALPHA_TWIN"}, {ci_gate, "VERIFY_ALPHA_TWIN"}] do
+        assert gate =~ "verify_alpha_twin"
+        assert gate =~ "#{token}: ${{ needs.verify_alpha_twin.result }}"
+        assert gate =~ "aggregate-gate.sh"
+      end
+
+      assert "verify_alpha_twin" in extract_pr_gate_needs(ci_yml)
+      assert "verify_alpha_twin" in extract_ci_gate_needs(ci_yml)
+    end
+
+    test "Threshold A remains credential-free and does not treat provenance as physical proof" do
+      mix_exs = File.read!(@mix_exs)
+      ci_yml = File.read!(@ci_yml)
+      runner = File.read!("lib/mix/tasks/chimeway.mobile_physical_proof.ex")
+
+      assert mix_exs =~
+               "\"ci.alpha_twin\": [\"verify.alpha_twin\", \"verify.physical_proof_contract\"]"
+
+      assert runner =~ "release_ready_physical_pending" or
+               runner =~ "physical support remains pending"
+
+      assert runner =~ "Did the expected Chimeway alert appear on the selected iPhone?"
+
+      for forbidden <- ["APPLE_", "APNS_", "xcodebuild", "macos-", "secrets:"] do
+        refute ci_yml =~ forbidden, "CI must not carry physical-device credentials: #{forbidden}"
+      end
+    end
+  end
+
+  describe "CrossWake provider-feedback documentation gate (GATE-02)" do
+    test "local aggregate and named CI lane invoke the exact same verifier once" do
+      mix_exs = File.read!(@mix_exs)
+      ci_yml = File.read!(@ci_yml)
+      job = extract_ci_job_block(ci_yml, "verify_crosswake_provider_feedback_docs")
+      verifier = File.read!("lib/mix/tasks/verify.crosswake_provider_feedback_docs.ex")
+
+      assert mix_exs =~
+               "\"ci.crosswake_provider_feedback_docs\": [\"verify.crosswake_provider_feedback_docs\"]"
+
+      [_, aggregate] = Regex.run(~r/"ci\.verify_gates":\s*\[(.*?)\]/s, mix_exs)
+      assert length(:binary.matches(aggregate, "ci.crosswake_provider_feedback_docs")) == 1
+      assert length(:binary.matches(job, "mix verify.crosswake_provider_feedback_docs")) == 1
+
+      assert job =~ "contents: read"
+
+      for marker <- [
+            "priv/adoption/crosswake-provider-feedback-docs-selected-sha",
+            "refs/heads/phase-104-provider-feedback-recipe-truth"
+          ] do
+        assert verifier =~ marker
+      end
+    end
+
+    test "both aggregate gates fail closed on the named lane while physical proof stays separate" do
+      ci_yml = File.read!(@ci_yml)
+      lane = "verify_crosswake_provider_feedback_docs"
+
+      assert lane in extract_pr_gate_needs(ci_yml)
+      assert lane in extract_ci_gate_needs(ci_yml)
+
+      for gate_name <- ["pr-gate", "ci-gate"] do
+        gate = extract_ci_job_block(ci_yml, gate_name)
+        assert gate =~ "VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS: ${{ needs.#{lane}.result }}"
+        assert gate =~ "aggregate-gate.sh"
+        assert gate =~ "VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS"
+      end
+
+      physical_job = extract_ci_job_block(ci_yml, "verify_alpha_twin")
+      assert physical_job =~ "refs/heads/resume/chimeway-notification-physical-proof"
+      assert physical_job =~ "priv/mobile_proof/crosswake-selected-sha"
+      refute physical_job =~ "crosswake-provider-feedback-docs-selected-sha"
+    end
+
+    test "release replays use the checked-in 1.19 toolchain while the 1.17 floor stays separate" do
+      for workflow <- [@release_yml, @publish_hex_yml] do
+        source = File.read!(workflow)
+        assert source =~ "version-file: .tool-versions"
+        assert source =~ "version-type: strict"
+        assert source =~ "mix ci.verify_gates"
+        refute source =~ ~S(elixir-version: "1.17")
+      end
+
+      floor = File.read!(@ci_yml) |> extract_ci_job_block("test_floor_1_17")
+      assert floor =~ ~S(elixir-version: "1.17")
+      assert floor =~ ~S(otp-version: "27")
+    end
+  end
+
   defmodule CoreProofNotifier do
     def notification_key, do: "artifact_consumer.core_trace"
     def version, do: 1
   end
 
-  # Builds the default root Hex package into a unique temp dir and unpacks it.
+  @doc false
+  def owned_temp_directory!(prefix) when prefix in @owned_temp_prefixes do
+    with_owned_temp_lock(fn ->
+      directory = allocate_owned_temp_directory!(prefix)
+      token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+      marker = Path.join(directory, @owned_temp_marker)
+
+      try do
+        File.write!(marker, token, [:exclusive])
+        {:ok, stat} = File.lstat(directory)
+
+        ownership = %{token: token, identity: temp_directory_identity(stat)}
+
+        @owned_temp_registry_key
+        |> :persistent_term.get(%{})
+        |> Map.put(directory, ownership)
+        |> then(&:persistent_term.put(@owned_temp_registry_key, &1))
+
+        directory
+      rescue
+        error ->
+          _ = File.rm(marker)
+          _ = File.rmdir(directory)
+          reraise error, __STACKTRACE__
+      end
+    end)
+  end
+
+  def owned_temp_directory!(_prefix) do
+    raise ArgumentError, "refusing to create an unowned temp directory"
+  end
+
+  @doc false
+  def remove_owned_temp_dir!(directory) when is_binary(directory) do
+    with_owned_temp_lock(fn ->
+      temp_root = Path.expand(System.tmp_dir!())
+      directory = Path.expand(directory)
+      basename = Path.basename(directory)
+      ownership = :persistent_term.get(@owned_temp_registry_key, %{})[directory]
+
+      owned_prefix? = Enum.any?(@owned_temp_prefixes, &String.starts_with?(basename, &1))
+
+      marker_matches? =
+        match?(%{token: token} when is_binary(token), ownership) and
+          File.read(Path.join(directory, @owned_temp_marker)) == {:ok, ownership.token}
+
+      final_stat = File.lstat(directory)
+
+      owned_directory? =
+        case {ownership, final_stat} do
+          {%{identity: expected}, {:ok, %File.Stat{type: :directory} = stat}} ->
+            temp_directory_identity(stat) == expected
+
+          _other ->
+            false
+        end
+
+      if directory != temp_root and Path.dirname(directory) == temp_root and owned_prefix? and
+           marker_matches? and owned_directory? do
+        File.rm_rf!(directory)
+        unregister_owned_temp_directory!(directory)
+      else
+        raise ArgumentError, "refusing recursive cleanup outside an owned temp directory"
+      end
+    end)
+  end
+
+  def remove_owned_temp_dir!(_directory) do
+    raise ArgumentError, "refusing recursive cleanup outside an owned temp directory"
+  end
+
+  defp allocate_owned_temp_directory!(prefix, attempts \\ 32)
+
+  defp allocate_owned_temp_directory!(_prefix, 0) do
+    raise RuntimeError, "could not reserve a unique owned temp directory"
+  end
+
+  defp allocate_owned_temp_directory!(prefix, attempts) do
+    suffix = Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)
+    directory = Path.join(Path.expand(System.tmp_dir!()), prefix <> suffix)
+
+    case File.mkdir(directory) do
+      :ok ->
+        directory
+
+      {:error, :eexist} ->
+        allocate_owned_temp_directory!(prefix, attempts - 1)
+
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "make directory", path: directory
+    end
+  end
+
+  defp temp_directory_identity(%File.Stat{} = stat) do
+    {stat.major_device, stat.minor_device, stat.inode}
+  end
+
+  defp unregister_owned_temp_directory!(directory) do
+    remaining =
+      @owned_temp_registry_key
+      |> :persistent_term.get(%{})
+      |> Map.delete(directory)
+
+    if remaining == %{} do
+      :persistent_term.erase(@owned_temp_registry_key)
+    else
+      :persistent_term.put(@owned_temp_registry_key, remaining)
+    end
+  end
+
+  defp with_owned_temp_lock(fun) do
+    case :global.trans({@owned_temp_lock, self()}, fun) do
+      {:aborted, reason} ->
+        raise RuntimeError, "owned temp directory lock aborted: #{inspect(reason)}"
+
+      result ->
+        result
+    end
+  end
+
+  # Builds the default root Hex package beneath an atomically reserved scratch root.
   # Runs in a separate OS process under MIX_ENV=prod: the prod package build omits
   # the dev/test-only Sigra override, so `mix hex.build` succeeds exactly as it does
   # at release time (no CHIMEWAY_SKIP_SIGRA_DEP).
-  defp build_unpacked_package! do
-    output =
-      Path.join(System.tmp_dir!(), "chimeway_release_gate_#{System.unique_integer([:positive])}")
+  defp build_unpacked_package!(build_command \\ &run_unpacked_build/1) do
+    scratch = owned_temp_directory!("chimeway_release_gate_")
+    output = Path.join(scratch, "unpacked")
 
-    File.rm_rf!(output)
+    try do
+      {out, status} = build_command.(output)
 
-    {out, status} =
-      System.cmd("mix", ["hex.build", "--unpack", "--output", output],
-        stderr_to_stdout: true,
-        env: [{"MIX_ENV", "prod"}]
-      )
+      assert status == 0,
+             "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
 
-    assert status == 0,
-           "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
+      {scratch, output}
+    catch
+      kind, reason ->
+        stacktrace = __STACKTRACE__
+        remove_owned_temp_dir!(scratch)
+        :erlang.raise(kind, reason, stacktrace)
+    end
+  end
 
-    output
+  defp run_unpacked_build(output) do
+    System.cmd("mix", ["hex.build", "--unpack", "--output", output],
+      stderr_to_stdout: true,
+      env: [{"MIX_ENV", "prod"}]
+    )
   end
 
   defp build_package_archive! do
-    output =
-      Path.join(
-        System.tmp_dir!(),
-        "chimeway_release_archive_#{System.unique_integer([:positive])}"
-      )
-
-    File.mkdir_p!(output)
+    output = owned_temp_directory!("chimeway_release_archive_")
     archive = Path.join(output, "chimeway.tar")
 
     {out, status} =
@@ -2641,8 +3510,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp package_archive_from_compressed_contents!(contents, metadata \\ default_metadata()) do
-    output = temporary_path!("archive")
-    File.mkdir_p!(output)
+    output = owned_temp_directory!("chimeway_adoption_security_")
     archive = Path.join(output, "malicious.tar")
 
     File.write!(
@@ -2725,13 +3593,6 @@ defmodule Chimeway.ReleaseGateContractTest do
     value |> Integer.to_string(8) |> String.pad_leading(6, "0") |> Kernel.<>(<<0, 32>>)
   end
 
-  defp temporary_path!(suffix) do
-    Path.join(
-      System.tmp_dir!(),
-      "chimeway_adoption_security_#{System.unique_integer([:positive])}_#{suffix}"
-    )
-  end
-
   defp packaged_accrue_cli(root, archive, digest) do
     System.cmd(
       "mix",
@@ -2781,6 +3642,148 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "optional APNs locked dependency graph" do
+    @fixture_mix "test/fixtures/apns_consumer/mix.exs"
+    @fixture_lock "test/fixtures/apns_consumer/apns-enabled.lock"
+    @apns_script "scripts/verify-apns.sh"
+
+    test "enabled consumer declares the exact patched overrides and committed lock" do
+      fixture_mix = File.read!(@fixture_mix)
+
+      assert fixture_mix =~ "{:pigeon, \"== 2.0.1\"}"
+      assert fixture_mix =~ "{:httpoison, \"== 3.0.0\", override: true}"
+      assert fixture_mix =~ "{:hackney, \"== 4.7.4\", override: true}"
+      assert File.exists?(@fixture_lock)
+    end
+
+    test "packaged APNs verifier locks, audits, and rejects graph drift" do
+      script = File.read!(@apns_script)
+
+      for required <- [
+            "apns-enabled.lock",
+            "cp \"$fixture_root/apns-enabled.lock\" mix.lock",
+            "mix deps.get --check-locked",
+            "httpoison.*3\\.0\\.0",
+            "hackney.*4\\.7\\.4",
+            "mix hex.audit"
+          ] do
+        assert script =~ required
+      end
+
+      refute script =~ "hex.audit --ignore"
+      refute script =~ "mix hex.audit || true"
+      refute script =~ "continue-on-error"
+      refute String.replace(script, "mix hex.audit", "true", global: false) =~ "mix hex.audit"
+    end
+
+    @tag :apns_warning_gate_contract
+    test "enabled verifier prepares dependencies then warning-strictly compiles only unpacked Chimeway before its consumer" do
+      script = File.read!(@apns_script)
+      dependency_prepare = "mix deps.compile 2>&1 | tee -a \"$output\""
+
+      chimeway_compile =
+        "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors"
+
+      fixture_env = "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
+      consumer_lib_path = "consumer_lib_path=\"$consumer_root/_build/test/lib\""
+      ecto_beam = "$consumer_lib_path/ecto/ebin/Elixir.Ecto.Schema.beam"
+      consumer_build = "MIX_BUILD_PATH=\"$consumer_root/_build/test\""
+      consumer_deps = "MIX_DEPS_PATH=\"$consumer_root/deps\""
+      package_lock = "cp \"$consumer_root/mix.lock\" \"$package_path/mix.lock\""
+
+      consumer_compile = "mix compile --warnings-as-errors"
+
+      assert script =~ dependency_prepare
+      assert script =~ chimeway_compile
+      assert script =~ fixture_env
+      assert script =~ consumer_lib_path
+      assert script =~ "[[ -f \"#{ecto_beam}\" ]]"
+      assert script =~ consumer_build
+      assert script =~ consumer_deps
+      assert script =~ package_lock
+      assert script =~ "[[ -n \"$package_path\" && -f \"$package_path/mix.exs\" ]]"
+      refute script =~ "mix cmd --cd deps/chimeway"
+      refute script =~ "deps/chimeway/lib/"
+      refute script =~ "ERL_LIBS="
+
+      assert :binary.match(script, "mix deps.get --check-locked") <
+               :binary.match(script, dependency_prepare)
+
+      assert :binary.match(script, "unpacked package mix.exs is missing") <
+               :binary.match(script, chimeway_compile)
+
+      assert :binary.match(script, dependency_prepare) < :binary.match(script, package_lock)
+      assert :binary.match(script, package_lock) < :binary.match(script, chimeway_compile)
+      assert :binary.match(script, chimeway_compile) < :binary.match(script, consumer_compile)
+
+      for {needle, replacement, required} <- [
+            {dependency_prepare, "true", dependency_prepare},
+            {"mix cmd --cd \"$package_path\"", "mix cmd --cd deps/chimeway", chimeway_compile},
+            {"mix compile", "mix compile.elixir", chimeway_compile},
+            {"--force-elixir", "--force", chimeway_compile},
+            {"--no-deps-check", "", chimeway_compile},
+            {"--warnings-as-errors", "", chimeway_compile},
+            {"CHIMEWAY_PACKAGE_PATH=\"$package_path\"", "", fixture_env},
+            {"CHIMEWAY_APNS_ENABLED=1", "", fixture_env},
+            {"MIX_ENV=test", "", fixture_env},
+            {consumer_build, "", consumer_build},
+            {consumer_deps, "", consumer_deps},
+            {package_lock, "true", package_lock}
+          ] do
+        refute String.replace(script, needle, replacement, global: true) =~ required,
+               "warning gate must reject mutation of #{needle}"
+      end
+    end
+
+    @tag :apns_warning_gate_contract
+    test "warning gate keeps compiler diagnostics visible and forbids dependency-source mutation" do
+      script = File.read!(@apns_script)
+
+      assert script =~ "warning_gate_mutation"
+      assert script =~ "strict_compile_probe"
+      assert script =~ "mix deps.compile 2>&1 | tee -a \"$output\""
+
+      assert script =~
+               "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
+
+      assert script =~
+               "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a \"$output\""
+
+      assert script =~ "Chimeway warning mutation unexpectedly compiled cleanly"
+      assert script =~ "Chimeway warning mutation did not emit compiler diagnostics"
+      assert script =~ "strict compiler emitted Chimeway module redefinition warnings"
+      refute script =~ "2>/dev/null"
+      refute script =~ "|| true"
+      refute script =~ "|&"
+      refute script =~ "sed -i"
+      refute script =~ "perl -pi"
+      refute script =~ "mix compile --force --warnings-as-errors"
+    end
+
+    test "disabled consumer audit is baseline-aware about root tzdata's Hackney edge" do
+      script = File.read!(@apns_script)
+
+      assert script =~ "env -u CHIMEWAY_APNS_ENABLED",
+             "disabled proof must not inherit an enabled APNs environment"
+
+      assert script =~
+               "rm -rf \"$consumer_root/_build\" \"$consumer_root/deps\" \"$consumer_root/mix.lock\"",
+             "each copied consumer must discard local build, dependency, and lock residue before resolving"
+
+      assert script =~ "pigeon|httpoison",
+             "disabled proof must reject APNs-only Pigeon and HTTPoison edges"
+
+      assert script =~ "tzdata-to-Hackney baseline edge",
+             "disabled proof must identify the pre-existing root tzdata-to-Hackney edge"
+
+      assert script =~ "Hackney edge beyond the root tzdata baseline",
+             "disabled proof must reject any additional Hackney edge introduced by APNs"
+
+      refute script =~ "'httpoison|hackney' \"$tree_output\"",
+             "disabled proof must not falsely claim the root graph is globally Hackney-free"
+    end
+  end
+
   defp top_level_entries(root) do
     root |> File.ls!() |> Enum.sort()
   end
@@ -2796,11 +3799,11 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   defp mailglass_evidence_line do
     "CHIMEWAY_MAILGLASS_PROOF " <>
-      "transport=fake notification_key=artifact_consumer.mailglass_proof " <>
+      "notification_key=artifact_consumer.mailglass_proof " <>
       "notification_version=1 delivery_id=2f1c8b94-3a5e-4d70-8c16-2e3a4b5c6d7e channel=email " <>
       "render_key=artifact_consumer.mailglass_proof.email render_version=1 " <>
-      "status=succeeded last_attempt_outcome=succeeded last_attempt_number=1 " <>
-      "adapter_module=Chimeway.Adapters.Mailglass " <>
+      "status=succeeded outcome_classification=succeeded last_attempt_outcome=succeeded " <>
+      "last_attempt_number=1 provider_handoff=accepted " <>
       "timeline_events=event_created,notification_created,delivery_planned,attempt_recorded,webhook_received"
   end
 
@@ -2809,7 +3812,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp accrue_evidence_line do
-    "CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.3.0 chimeway_version=1.0.0 " <>
+    "CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.5.0 chimeway_version=1.0.0 " <>
       "workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting " <>
       "waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active " <>
       "outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received"
@@ -2827,6 +3830,55 @@ defmodule Chimeway.ReleaseGateContractTest do
     end)
   end
 
+  defp assert_verify_inbox_alias!(mix_exs) do
+    assert extract_verify_inbox_commands(mix_exs) == @verify_inbox_commands
+  end
+
+  defp extract_verify_inbox_commands(mix_exs) do
+    case Regex.run(~r/"verify\.inbox":\s*\[(.*?)\n\s*\],/s, mix_exs) do
+      [_, block] ->
+        ~r/^\s*"([^"]+)"[,]?$/m
+        |> Regex.scan(block, capture: :all_but_first)
+        |> List.flatten()
+
+      _ ->
+        flunk("Could not extract verify.inbox alias from mix.exs")
+    end
+  end
+
+  defp extract_verify_inbox_alias_source!(mix_exs) do
+    case Regex.run(~r/"verify\.inbox":\s*\[(.*?)\n\s*\],/s, mix_exs) do
+      [source, _block] -> source
+      _ -> flunk("Could not extract verify.inbox alias from mix.exs")
+    end
+  end
+
+  defp assert_verify_inbox_job!(ci_yml) do
+    verify_commands =
+      ci_yml
+      |> extract_ci_job_block("verify_inbox")
+      |> then(
+        &Regex.scan(~r/^\s*- run:\s+(mix verify\.[^\s]+)\s*$/m, &1, capture: :all_but_first)
+      )
+      |> List.flatten()
+
+    assert verify_commands == ["mix verify.inbox"]
+  end
+
+  defp assert_inbox_aggregate_block!(block) do
+    assert block =~ ~S(VERIFY_INBOX: ${{ needs.verify_inbox.result }})
+    assert length(Regex.scan(~r/needs\.verify_inbox\.result/, block)) == 1
+    assert length(Regex.scan(~r/\bVERIFY_INBOX\b/, block)) == 2
+
+    aggregate_line =
+      block
+      |> String.split("\n")
+      |> Enum.find(&String.contains?(&1, "run: scripts/ci/aggregate-gate.sh"))
+
+    assert is_binary(aggregate_line)
+    assert Enum.count(String.split(aggregate_line), &(&1 == "VERIFY_INBOX")) == 1
+  end
+
   defp extract_pre_ship_block(maintaining) do
     ~r/```bash\n(.*?)```/s
     |> Regex.scan(maintaining)
@@ -2842,13 +3894,200 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp extract_ci_job_block(yml, job_id) do
-    # Boundary char class includes 0-9 so digit-bearing job ids (e.g.
-    # test_floor_1_17) are recognized as block boundaries and don't cause an
-    # over-capture into the following job. Hyphenated gate jobs (ci-gate,
-    # nightly-gate) are intentionally still not boundaries.
-    case Regex.run(~r/#{job_id}:(.*?)(?:\n  [a-z0-9_]+:|\z)/s, yml) do
+    # Job identifiers may contain digits, underscores, and hyphens. Treat all
+    # of them as boundaries so a gate's structural contract never captures the
+    # following aggregate job.
+    case Regex.run(~r/#{Regex.escape(job_id)}:(.*?)(?:\n  [a-z0-9_-]+:|\z)/s, yml) do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
+    end
+  end
+
+  defp extract_ci_repository_checkout!(job, repository) do
+    case Regex.run(
+           ~r/^      - uses: actions\/checkout@[0-9a-f]+\n        with:\n(?:(?:          .+\n)*?          repository: #{Regex.escape(repository)}\n(?:          .+\n)*)/m,
+           job
+         ) do
+      [checkout] -> checkout
+      _ -> flunk("Could not extract #{repository} checkout step from CI job")
+    end
+  end
+
+  defp accrue_checkout_contract_intact?(job, expected_ref) do
+    checkout = extract_ci_repository_checkout!(job, "szTheory/accrue")
+    Regex.match?(~r/^          ref: #{Regex.escape(expected_ref)}$/m, checkout)
+  end
+
+  defp assert_release_preflight_contract!(release_yml) do
+    preflight =
+      release_yml
+      |> extract_release_job!("release-please")
+      |> extract_release_step!("Detect already-tagged release PR")
+
+    required_in_order = [
+      "--json headRefName,baseRefName,title,labels",
+      "if ! jq -e",
+      ~S([ "$head_ref" != "release-please--branches--main" ]),
+      ~S([ "$base_ref" != "main" ]),
+      ~S|[[ "$title" != "chore(main): release "* ]]|,
+      "autorelease: tagged",
+      "expected_tag=",
+      "gh release view"
+    ]
+
+    positions = Enum.map(required_in_order, &substring_offset(preflight, &1))
+
+    assert Enum.all?(positions, &is_integer/1),
+           "release preflight must query and positively identify exact Release Please PR metadata before tag checks"
+
+    assert positions == Enum.sort(positions),
+           "release preflight identity checks must precede tagged-label and manifest-tag skip logic"
+
+    assert length(Regex.scan(~r/echo "should_run=true" >>"\$GITHUB_OUTPUT"/, preflight)) == 5,
+           "missing PR number, lookup failure, malformed JSON, and identity mismatch must all run release-please"
+
+    assert preflight =~
+             ~S|pr_json=$(gh pr view "$pr_number" --json headRefName,baseRefName,title,labels 2>/dev/null)|
+
+    assert preflight =~ "Release PR lookup failed; running release-please."
+    assert preflight =~ "Release PR metadata was malformed; running release-please."
+    assert preflight =~ "Merged PR is not the exact Release Please PR; running release-please."
+
+    for message <- [
+          "No merge PR number in head commit; running release-please.",
+          "Release PR lookup failed; running release-please.",
+          "Release PR metadata was malformed; running release-please.",
+          "Merged PR is not the exact Release Please PR; running release-please."
+        ] do
+      assert preflight =~ "echo \"#{message}\"\n            echo \"should_run=true\""
+    end
+  end
+
+  defp assert_release_ci_bootstrap_contract!(release_yml) do
+    bootstrap = extract_release_job!(release_yml, "bootstrap-release-pr-ci")
+    step = extract_release_step!(bootstrap, "Dispatch CI when release PR is open or updated")
+
+    assert bootstrap =~
+             ~S(RELEASE_PLEASE_TOKEN_CONFIGURED: ${{ secrets.RELEASE_PLEASE_TOKEN != '' }})
+
+    assert step =~ "--head release-please--branches--main"
+    assert step =~ ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ])
+    assert step =~ ~S([ "${PRS_CREATED:-false}" != "true" ])
+    assert step =~ "gh workflow run ci.yml --ref release-please--branches--main"
+
+    configured =
+      substring_offset(step, ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ]))
+
+    fresh = substring_offset(step, ~S([ "${PRS_CREATED:-false}" != "true" ]))
+
+    dispatch =
+      substring_offset(step, "gh workflow run ci.yml --ref release-please--branches--main")
+
+    assert configured < dispatch and fresh < dispatch
+    refute step =~ ~S(if [ "${PRS_CREATED:-false}" = "true" ]; then)
+  end
+
+  defp assert_release_authority_contract!(release_yml) do
+    release_job = extract_release_job!(release_yml, "release-please")
+    bootstrap_job = extract_release_job!(release_yml, "bootstrap-release-pr-ci")
+    publish_job = extract_release_job!(release_yml, "publish-hex")
+    release_step = extract_release_step!(release_job, "Run Release Please")
+
+    bootstrap_step =
+      extract_release_step!(bootstrap_job, "Dispatch CI when release PR is open or updated")
+
+    bootstrap_run = bootstrap_step |> String.split("        run: |", parts: 2) |> List.last()
+
+    dry_run_step = extract_release_step!(publish_job, "Dry run Hex publish")
+    publish_step = extract_release_step!(publish_job, "Publish to Hex")
+
+    assert extract_permission_map!(release_yml, 0) == %{
+             "actions" => "write",
+             "contents" => "write",
+             "issues" => "write",
+             "pull-requests" => "write"
+           }
+
+    assert extract_permission_map!(bootstrap_job, 4) == %{
+             "actions" => "write",
+             "contents" => "read",
+             "pull-requests" => "read"
+           }
+
+    assert extract_permission_map!(publish_job, 4) == %{"contents" => "read"}
+    refute Regex.match?(~r/^    permissions:/m, release_job)
+
+    fallback = ~S(${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }})
+    configured = ~S(${{ secrets.RELEASE_PLEASE_TOKEN != '' }})
+
+    assert length(
+             Regex.scan(
+               ~r/\$\{\{ secrets\.RELEASE_PLEASE_TOKEN \|\| secrets\.GITHUB_TOKEN \}\}/,
+               release_yml
+             )
+           ) == 1
+
+    assert length(
+             Regex.scan(~r/\$\{\{ secrets\.RELEASE_PLEASE_TOKEN(?:\s|\||!)[^}]*\}\}/, release_yml)
+           ) == 2
+
+    assert release_step =~
+             "uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7"
+
+    assert release_step =~ "token: #{fallback}"
+    assert bootstrap_job =~ "RELEASE_PLEASE_TOKEN_CONFIGURED: #{configured}"
+    refute bootstrap_run =~ fallback
+    refute bootstrap_run =~ configured
+
+    assert length(Regex.scan(~r/\$\{\{ secrets\.HEX_API_KEY \}\}/, release_yml)) == 2
+    assert dry_run_step =~ "HEX_API_KEY: ${{ secrets.HEX_API_KEY }}"
+    assert dry_run_step =~ "run: mix hex.publish --dry-run --yes"
+    assert publish_step =~ "HEX_API_KEY: ${{ secrets.HEX_API_KEY }}"
+    assert publish_step =~ "run: mix hex.publish --yes"
+  end
+
+  defp extract_release_job!(yml, job_id) do
+    case Regex.run(~r/^  #{Regex.escape(job_id)}:(.*?)(?=^  [a-z0-9_-]+:|\z)/ms, yml) do
+      [_, block] -> block
+      _ -> flunk("Could not extract #{job_id} job from release.yml")
+    end
+  end
+
+  defp extract_release_step!(job, step_name) do
+    case Regex.run(
+           ~r/^      - name: #{Regex.escape(step_name)}\n(.*?)(?=^      - (?:name:|uses:)|\z)/ms,
+           job
+         ) do
+      [block, _] -> block
+      _ -> flunk("Could not extract #{step_name} step from release job")
+    end
+  end
+
+  defp extract_permission_map!(source, base_indent) do
+    indent = String.duplicate(" ", base_indent)
+    entry_indent = String.duplicate(" ", base_indent + 2)
+
+    case Regex.run(
+           ~r/^#{indent}permissions:\n((?:#{entry_indent}[a-z-]+: (?:read|write)\n)+)/m,
+           source
+         ) do
+      [_, entries] ->
+        entries
+        |> String.split("\n", trim: true)
+        |> Map.new(fn line ->
+          [scope, access] = line |> String.trim() |> String.split(": ", parts: 2)
+          {scope, access}
+        end)
+
+      _ ->
+        flunk("Could not extract permissions at indentation #{base_indent}")
+    end
+  end
+
+  defp substring_offset(haystack, needle) do
+    case :binary.match(haystack, needle) do
+      {offset, _length} -> offset
+      :nomatch -> nil
     end
   end
 
@@ -2924,14 +4163,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp write_adoption_run_fixture!(payload) do
-    directory =
-      Path.join(
-        System.tmp_dir!(),
-        "chimeway_adoption_run_#{System.unique_integer([:positive])}"
-      )
-
-    File.mkdir_p!(directory)
-    on_exit(fn -> File.rm_rf!(directory) end)
+    directory = owned_temp_directory!("chimeway_adoption_run_")
+    on_exit(fn -> remove_owned_temp_dir!(directory) end)
 
     path = Path.join(directory, "run.json")
     File.write!(path, Jason.encode!(payload))

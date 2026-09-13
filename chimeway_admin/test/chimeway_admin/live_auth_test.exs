@@ -8,8 +8,14 @@ defmodule ChimewayAdmin.LiveAuthTest do
 
   setup do
     previous = Application.get_env(:chimeway_admin, :auth_module)
+    previous_redirect = Application.fetch_env(:chimeway_admin, :unauthorized_redirect)
     Application.put_env(:chimeway_admin, :auth_module, DenyAuth)
-    on_exit(fn -> Application.put_env(:chimeway_admin, :auth_module, previous) end)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway_admin, :auth_module, previous)
+      restore_env(:unauthorized_redirect, previous_redirect)
+    end)
+
     :ok
   end
 
@@ -46,6 +52,25 @@ defmodule ChimewayAdmin.LiveAuthTest do
 
     assert {:halt, _} =
              LiveAuth.on_mount(:search_traces, %{}, %{"current_actor" => "ops:1"}, socket)
+  end
+
+  test "falls back to a valid local redirect when the configured path is nil" do
+    Application.put_env(:chimeway_admin, :auth_module, ChimewayAdmin.TestSupport.UnexpectedAuth)
+    Application.put_env(:chimeway_admin, :unauthorized_redirect, nil)
+
+    socket =
+      %Phoenix.LiveView.Socket{
+        assigns: %{__changed__: %{}},
+        endpoint: ChimewayAdmin.TestSupport.Endpoint,
+        router: ChimewayAdmin.Router,
+        view: ChimewayAdmin.Live.TraceSearchLive,
+        private: %{}
+      }
+
+    assert {:halt, redirected} =
+             LiveAuth.on_mount(:search_traces, %{}, %{"current_actor" => "ops:1"}, socket)
+
+    assert {:redirect, %{to: "/"}} = redirected.redirected
   end
 
   test "does not log secret-bearing unexpected authorize returns" do
@@ -117,11 +142,51 @@ defmodule ChimewayAdmin.LiveAuthTest do
              LiveAuth.on_mount(
                :view_trace,
                %{"delivery_id" => "del-1"},
-               %{"current_actor" => "ops:1"},
+               %{"current_actor" => "ops:1", "tenant_id" => "tenant-a"},
                socket
              )
 
     assert_receive {:authorized, :view_trace, %{params: %{"delivery_id" => "del-1"}}}
+  end
+
+  test "halts after host authorization when tenant context is absent or invalid" do
+    Application.put_env(:chimeway_admin, :auth_module, ChimewayAdmin.TestSupport.AllowAuth)
+    Application.put_env(:chimeway_admin, :unauthorized_redirect, "/login")
+
+    socket = %Phoenix.LiveView.Socket{
+      assigns: %{__changed__: %{}},
+      endpoint: ChimewayAdmin.TestSupport.Endpoint,
+      router: ChimewayAdmin.Router,
+      view: ChimewayAdmin.Live.TraceSearchLive,
+      private: %{}
+    }
+
+    for tenant <- [nil, "   ", 123] do
+      session = %{"current_actor" => "ops:1", "tenant_id" => tenant}
+
+      assert {:halt, redirected} = LiveAuth.on_mount(:search_traces, %{}, session, socket)
+      assert {:redirect, %{to: "/login"}} = redirected.redirected
+    end
+  end
+
+  test "validated contexts always include their tenant in read and recovery options" do
+    socket = %Phoenix.LiveView.Socket{assigns: %{__changed__: %{}}, private: %{}}
+
+    assert {:ok, context} =
+             ChimewayAdmin.Context.build(
+               %{},
+               %{"current_actor" => "ops:1", "tenant_id" => " tenant-a "},
+               socket
+             )
+
+    assert [tenant_id: "tenant-a", limit: 10] =
+             ChimewayAdmin.Context.read_opts(context, limit: 10)
+
+    assert [source: "chimeway_admin", tenant_id: "tenant-a", actor_ref: "ops:1"] =
+             ChimewayAdmin.Context.recovery_opts(context, nil, nil)
+
+    assert {:error, :invalid_tenant} = ChimewayAdmin.Context.read_opts(nil)
+    assert {:error, :invalid_tenant} = ChimewayAdmin.Context.recovery_opts(nil, nil, nil)
   end
 
   test "passes actor, action, tenant, params, session, and live view into authorization context" do
@@ -249,4 +314,7 @@ defmodule ChimewayAdmin.LiveAuthTest do
     refute Keyword.has_key?(opts, :params)
     refute Keyword.has_key?(opts, :session)
   end
+
+  defp restore_env(key, :error), do: Application.delete_env(:chimeway_admin, key)
+  defp restore_env(key, {:ok, value}), do: Application.put_env(:chimeway_admin, key, value)
 end

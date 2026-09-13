@@ -7,7 +7,7 @@ defmodule ChimewayTest.Notifiers.LifecycleA do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test A"}}
 
@@ -32,7 +32,7 @@ defmodule ChimewayTest.Notifiers.LifecycleB do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test B"}}
 
@@ -57,7 +57,7 @@ defmodule ChimewayTest.Notifiers.LifecycleC do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test C"}}
 
@@ -82,7 +82,7 @@ defmodule ChimewayTest.Notifiers.LifecycleFanout do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test Fanout"}}
 
@@ -113,7 +113,7 @@ defmodule ChimewayTest.Notifiers.LifecycleDelayedFallback do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test Delayed Fallback"}}
 
@@ -145,7 +145,7 @@ defmodule ChimewayTest.Notifiers.LifecycleNoDelayedFallback do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Test No Delayed Fallback"}}
 
@@ -176,7 +176,7 @@ defmodule ChimewayTest.Notifiers.LifecycleCustomChannel do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Custom Channel"}}
   def channels(_params, _recipient), do: {:ok, ["webhook_partner"]}
@@ -188,7 +188,7 @@ defmodule ChimewayTest.Notifiers.LifecycleDigestHeld do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Digest Held"}}
   def channels(_params, _recipient), do: {:ok, [:email]}
@@ -215,7 +215,7 @@ defmodule ChimewayTest.Notifiers.LifecycleRenderedEmail do
   def version, do: 3
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient) do
     if test_pid = test_pid(), do: send(test_pid, {:build_called, self()})
@@ -253,7 +253,7 @@ defmodule ChimewayTest.Notifiers.LifecycleWorkflow do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do: {:ok, [%{recipient_ref: "cw_lifecycle_user_#{user_id}", recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Workflow lifecycle"}}
   def channels(_params, _recipient), do: {:ok, [:email]}
@@ -338,7 +338,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       notifications =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:1"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_1"
           )
         )
 
@@ -408,7 +408,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
             on: n.event_id == e.id,
             where:
               e.notification_key == "test.lifecycle_b" and
-                n.recipient_identity == "user:2"
+                n.recipient_identity == "cw_lifecycle_user_2"
           )
         )
 
@@ -522,7 +522,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       notification_count =
         Repo.aggregate(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:3"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_3"
           ),
           :count,
           :id
@@ -534,7 +534,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:3"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_3"
           )
         )
 
@@ -602,7 +602,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       notification_count =
         Repo.aggregate(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:4"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_4"
           ),
           :count,
           :id
@@ -613,7 +613,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:4"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_4"
           )
         )
 
@@ -684,7 +684,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:5"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_5"
           )
         )
 
@@ -733,7 +733,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:6"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_6"
           )
         )
 
@@ -768,7 +768,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       [notification] =
         Repo.all(
           from(n in Notification,
-            where: n.event_id == ^event.id and n.recipient_identity == "user:7"
+            where: n.event_id == ^event.id and n.recipient_identity == "cw_lifecycle_user_7"
           )
         )
 
@@ -782,7 +782,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert delivery.status == :succeeded
 
       assert {:ok, %Chimeway.Traces.Explanation{channel: "webhook_partner", timeline: timeline}} =
-               Traces.explain_delivery(delivery.id)
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
       assert :delivery_planned in Enum.map(timeline, & &1.event)
     end
@@ -805,10 +805,12 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert Map.has_key?(result.trace, :correlation_id)
       assert is_list(result.trace.delivery_ids)
 
-      assert {:ok, trace_event} = Traces.get_trace(result.trace.event_id)
+      assert {:ok, trace_event} = Traces.get_trace(result.trace.event_id, tenant_id: "acme")
       assert trace_event.id == result.event.id
 
-      events = Traces.find_traces_by_correlation_id(result.trace.correlation_id)
+      events =
+        Traces.find_traces_by_correlation_id(result.trace.correlation_id, tenant_id: "acme")
+
       assert Enum.any?(events, &(&1.id == result.event.id))
 
       notification_ids =
@@ -835,7 +837,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     test "quiet-hours deferral stays pending with zero attempts and explainable planning facts" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
-                 recipient_id: "user:9",
+                 recipient_id: "cw_lifecycle_user_9",
                  quiet_hours_start_minute: 22 * 60,
                  quiet_hours_end_minute: 8 * 60,
                  time_zone: "America/New_York"
@@ -866,7 +868,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert DateTime.compare(delivery.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
       assert attempt_count(delivery.id) == 0
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.status == :pending
       assert explanation.last_attempt == nil
     end
@@ -896,7 +900,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert delivery.next_eligible_at == nil
       assert attempt_count(delivery.id) == 0
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.status == :pending
       assert explanation.last_attempt == nil
     end
@@ -920,7 +926,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     test "resume_deferred_delivery keeps the canonical row lifecycle-safe when perform-time policy re-evaluates" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
-                 recipient_id: "user:11",
+                 recipient_id: "cw_lifecycle_user_11",
                  quiet_hours_start_minute: 22 * 60,
                  quiet_hours_end_minute: 8 * 60,
                  time_zone: "America/New_York"
@@ -950,6 +956,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                Chimeway.Deliveries.resume_deferred_delivery(
                  delivery.id,
                  now: ~U[2026-01-15 13:00:00Z],
+                 tenant_id: delivery.tenant_id,
                  source: "scheduled_resume"
                )
 
@@ -983,7 +990,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
                :id
              ) == 1
 
-      assert {:ok, explanation} = Traces.explain_delivery(updated_delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(updated_delivery.id, tenant_id: updated_delivery.tenant_id)
+
       assert Map.get(explanation, :resume_source) == "scheduled_resume"
 
       assert DateTime.compare(
@@ -1049,7 +1058,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
     test "cancel_deferred_delivery keeps the same row and marks supersession on suppression_reason == \"superseded\"" do
       assert {:ok, _settings} =
                Settings.upsert_settings(%{
-                 recipient_id: "user:12",
+                 recipient_id: "cw_lifecycle_user_12",
                  quiet_hours_start_minute: 22 * 60,
                  quiet_hours_end_minute: 8 * 60,
                  time_zone: "America/New_York"
@@ -1072,24 +1081,30 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
         )
 
       original_id = delivery.id
+      cancel_now = DateTime.add(delivery.updated_at, 1, :second)
 
       assert {:ok, cancelled_delivery} =
                Chimeway.Deliveries.cancel_deferred_delivery(
                  delivery,
                  "superseded",
-                 now: ~U[2026-01-15 12:55:00Z]
+                 now: cancel_now,
+                 tenant_id: delivery.tenant_id
                )
 
       assert cancelled_delivery.id == original_id
       assert cancelled_delivery.status == :cancelled
       assert cancelled_delivery.orchestration_state == :deferred
       assert cancelled_delivery.suppression_reason == "superseded"
-      assert DateTime.compare(cancelled_delivery.updated_at, ~U[2026-01-15 12:55:00Z]) == :eq
+      assert DateTime.compare(cancelled_delivery.updated_at, cancel_now) == :eq
       assert attempt_count(cancelled_delivery.id) == 0
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: cancelled_delivery.id})
 
-      assert {:ok, explanation} = Traces.explain_delivery(cancelled_delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(cancelled_delivery.id,
+                 tenant_id: cancelled_delivery.tenant_id
+               )
+
       assert explanation.status == :cancelled
       assert explanation.suppression_reason == "superseded"
       assert explanation.last_attempt == nil
@@ -1104,7 +1119,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
              ]
 
       [%{at: cancelled_at}] = Enum.filter(explanation.timeline, &(&1.event == :cancelled))
-      assert DateTime.compare(cancelled_at, ~U[2026-01-15 12:55:00Z]) == :eq
+      assert DateTime.compare(cancelled_at, cancel_now) == :eq
     end
   end
 
@@ -1122,12 +1137,12 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       :ok
     end
 
-    test "dispatch uses preplanned render_data without a second rendering callback" do
+    test "dispatch uses private rendered data without persisting or returning it" do
       Application.put_env(:chimeway, ChimewayTest.Notifiers.LifecycleRenderedEmail,
         test_pid: self()
       )
 
-      assert {:ok, _result} =
+      assert {:ok, result} =
                Chimeway.trigger(
                  ChimewayTest.Notifiers.LifecycleRenderedEmail,
                  %{user_id: 13},
@@ -1146,15 +1161,33 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           )
         )
 
-      assert delivery.render_data == %{
+      assert delivery.render_data == %{}
+
+      assert [delivered] = TestAdapter.delivered_messages()
+      assert delivered.id == delivery.id
+
+      assert delivered.render_data == %{
                "subject" => "Render subject",
                "html_body" => "<p>Render body</p>",
                "text_body" => "Render body"
              }
 
-      assert [delivered] = TestAdapter.delivered_messages()
-      assert delivered.id == delivery.id
-      assert delivered.render_data == delivery.render_data
+      assert result.dispatch_outcome == :ok
+      assert result.dispatch_mode == :sync
+      assert result.trace.delivery_ids == [delivery.id]
+
+      public_result = inspect(result)
+
+      for sentinel <- [
+            "recipients",
+            "precomputed_rendering",
+            "recipient_handoffs",
+            "Render subject",
+            "<p>Render body</p>",
+            "Render body"
+          ] do
+        refute public_result =~ sentinel
+      end
     end
 
     test "explanations expose render identity without render bodies or raw render_data" do
@@ -1179,12 +1212,30 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
           )
         )
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.render_key == "test.lifecycle_rendered_email.email"
       assert explanation.render_version == 3
       refute Map.has_key?(Map.from_struct(explanation), :render_data)
       refute Map.has_key?(Map.from_struct(explanation), :html_body)
       refute Map.has_key?(Map.from_struct(explanation), :text_body)
+
+      event_id =
+        Repo.one!(
+          from(n in Notification,
+            where: n.id == ^delivery.notification_id,
+            select: n.event_id
+          )
+        )
+
+      assert {:ok, trace} = Traces.get_trace(event_id, tenant_id: delivery.tenant_id)
+
+      trace_text = inspect(trace)
+
+      for sentinel <- ["Render subject", "<p>Render body</p>", "Render body"] do
+        refute trace_text =~ sentinel
+      end
     end
   end
 
@@ -1210,11 +1261,11 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       fixture =
         Chimeway.Test.DispatchHelpers.create_notification(
           notification_key: "test.lifecycle_recovery",
-          recipient_identity: "user:15"
+          recipient_identity: "cw_lifecycle_user_15"
         )
 
       {:ok, delivery} =
-        Deliveries.plan_delivery(fixture.notification.id, :email,
+        Deliveries.plan_delivery(fixture.notification.id, :in_app,
           tenant_id: "default",
           actor_id: "system"
         )
@@ -1228,6 +1279,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       assert {:ok, recovery} =
                Chimeway.recover_delivery(delivery.id,
+                 tenant_id: delivery.tenant_id,
                  now: ~U[2026-01-15 12:30:00Z],
                  older_than: 60,
                  source: "ops_console",
@@ -1250,7 +1302,9 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert recovered.metadata["recovery_reason"] == "stuck_after_trigger"
       assert recovered.metadata["recovered_at"] == "2026-01-15T12:30:00.000000Z"
 
-      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      assert {:ok, explanation} =
+               Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+
       assert explanation.status == :succeeded
       assert Enum.any?(explanation.timeline, &(&1.event == :delivery_planned))
 
@@ -1258,6 +1312,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
 
       assert {:noop, duplicate} =
                Chimeway.recover_delivery(delivery.id,
+                 tenant_id: delivery.tenant_id,
                  now: ~U[2026-01-15 12:31:00Z],
                  older_than: 60,
                  source: "ops_console",

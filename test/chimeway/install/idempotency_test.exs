@@ -28,7 +28,7 @@ defmodule Chimeway.Install.IdempotencyTest do
           |> InstallerFixture.snapshot_migrations_tree!()
           |> InstallerFixture.normalize_tree()
 
-        assert map_size(before) == 31
+        assert map_size(before) == 37
 
         {second_stdout, 0} = InstallerFixture.run_install!(root, prefix: context.install_prefix)
 
@@ -38,7 +38,7 @@ defmodule Chimeway.Install.IdempotencyTest do
           |> InstallerFixture.normalize_tree()
 
         assert before == after_tree
-        assert map_size(after_tree) == 31
+        assert map_size(after_tree) == 37
 
         normalized_stdout = InstallerFixture.normalize_stdout(second_stdout)
 
@@ -52,11 +52,25 @@ defmodule Chimeway.Install.IdempotencyTest do
           |> String.split("\n", trim: true)
           |> Enum.filter(&String.starts_with?(&1, "created priv/repo/migrations/"))
 
-        assert length(unchanged_lines) == 31
+        assert length(unchanged_lines) == 37
         assert created_lines == []
       after
         File.rm_rf!(root)
       end
+    end
+  end
+
+  test "fixture roots remain distinct across repeated same-name allocations" do
+    first = InstallerFixture.new_fixture_root!("same_name")
+    second = InstallerFixture.new_fixture_root!("same_name")
+
+    try do
+      refute first == second
+      assert File.dir?(first)
+      assert File.dir?(second)
+    after
+      File.rm_rf!(first)
+      File.rm_rf!(second)
     end
   end
 end

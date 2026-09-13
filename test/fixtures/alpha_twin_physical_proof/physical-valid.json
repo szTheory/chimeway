@@ -1,0 +1,60 @@
+{
+  "bundle_digest": "35cff0ce7854273e842d269649a74cae179d1162db8de6b61d9ff43b4b74859c",
+  "bundle_version": 1,
+  "chimeway_envelope": {
+    "captured_at": "2026-08-26T12:00:00Z",
+    "chimeway_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "crosswake_completion_marker_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "crosswake_contract_version": 1,
+    "crosswake_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "crosswake_remote": "https://github.com/szTheory/crosswake.git",
+    "crosswake_sha": "3165ab6938fa673f8a289c27699658bb78650ef3",
+    "facts": {
+      "apns_provider_accepted": "passed",
+      "delivery_succeeded": "passed",
+      "trace_explainable": "passed"
+    },
+    "owner": "chimeway",
+    "run_ref": "run-20260826-opaque",
+    "schema_version": 1
+  },
+  "completion_marker": {
+    "bundle_digest": "35cff0ce7854273e842d269649a74cae179d1162db8de6b61d9ff43b4b74859c",
+    "component_digests": {
+      "chimeway-envelope.json": "7151b33c741283d74dd303243e79dc29b12e4932d121c55caf6fe2cbfbdf29bb",
+      "crosswake-record.json": "69c6bce03fabd968efade7ab0aea2cb30301ff519daa095b01e71643f9fff562",
+      "visible-alert-attestation.json": "914df88d1cdff3019f8500bc8e937c410f444b6dd5198d6be635477c303e1a85"
+    },
+    "machine_envelope_sha256": "7151b33c741283d74dd303243e79dc29b12e4932d121c55caf6fe2cbfbdf29bb",
+    "owner": "chimeway",
+    "run_ref": "run-20260826-opaque",
+    "schema_version": 1,
+    "state": "validated"
+  },
+  "crosswake_record": {
+    "assertions": [
+      {"id": "permission_observed", "outcome": "passed", "owner": "device_local"},
+      {"id": "authenticated_registration", "outcome": "passed", "owner": "backend_authority"},
+      {"id": "protected_activation_once", "outcome": "passed", "owner": "backend_authority"}
+    ],
+    "completion_marker_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "crosswake_contract_version": 1,
+    "crosswake_remote": "https://github.com/szTheory/crosswake.git",
+    "crosswake_sha": "3165ab6938fa673f8a289c27699658bb78650ef3",
+    "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "outcome": "passed",
+    "owner": "crosswake",
+    "run_ref": "run-20260826-opaque",
+    "schema_version": 1
+  },
+  "owner": "chimeway",
+  "proof_class": "physical",
+  "visible_alert_attestation": {
+    "attester_ref": "attester-opaque",
+    "machine_envelope_sha256": "7151b33c741283d74dd303243e79dc29b12e4932d121c55caf6fe2cbfbdf29bb",
+    "observed_at": "2026-08-26T12:01:00Z",
+    "run_ref": "run-20260826-opaque",
+    "schema_version": 1,
+    "state": "observed"
+  }
+}

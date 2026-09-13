@@ -1,111 +1,125 @@
-# Feature Landscape: Chimeway v1.17 Adopter Proof Paths
+# Feature Research: Chimeway v1.18 Adopter Alpha Mobile Delivery Readiness
 
-**Domain:** Open-source Elixir/Phoenix library adoption and evaluation
-**Researched:** 2026-08-08
-**Confidence:** HIGH for the current Chimeway surface (repository evidence); LOW for general ecosystem comparison because the configured web-search provider was unavailable.
+**Domain:** Production APNs-first mobile notification delivery for an embedded Elixir/Phoenix library
+**Researched:** 2026-08-11
+**Confidence:** HIGH for existing boundaries and APNs constraints; MEDIUM for production-operational recommendations.
 
-## Scope Finding
+## Feature Landscape
 
-Chimeway already has credible canonical guides, a deterministic demo host, named `verify.*` lanes, doc contracts, and a packaged-artifact parity check. The adoption gap is not another feature set or another UI: it is the missing **adopter-facing route from intent to a clean, independently repeatable proof**. Existing `mix verify.mailglass` and `mix verify.accrue` primarily execute maintainer-oriented test suites in the repository; they are valuable release evidence but are not, by themselves, a fresh-host proof a prospect can understand or reproduce.
+### Table Stakes (Users Expect These)
 
-The v1.17 MVP should therefore package three focused tracer bullets behind one concise selector: (1) Chimeway core trigger-to-explanation, (2) Mailglass transactional email, and (3) Accrue billing-event dunning. Each must install/use the shipped or locally built Chimeway artifact, operate with deterministic data and no production credentials, assert visible outcome evidence, and state precisely what the host, Chimeway, and the integration partner own.
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| APNs-first provider adapter | A mobile adopter needs an actual server-to-APNs delivery path, not only contracts. | HIGH | Build from an explicit transport behaviour; persist a safe request correlation and APNs response outcome for every request. APNs acceptance is not device, user, or open confirmation. |
+| Active-installation fanout | A person may use more than one active installation. | HIGH | Select every active, eligible APNs binding within the host's tenant/subject scope; model each installation target independently from the one logical `push` delivery. |
+| Durable provider-attempt truth | Retries and uncertain network outcomes must remain explainable. | HIGH | Stable Chimeway attempt identity, idempotent Oban execution, redacted APNs request ID/reason, bounded retry classification, and a terminal outcome for every target. |
+| Token lifecycle feedback | Invalid/unregistered tokens must stop future sends without erasing history. | MEDIUM | Apply APNs feedback to backend-owned Crosswake bindings: invalidating feedback changes binding state; transient/provider failures remain audit-only. |
+| Host-controlled expiry | Time-sensitive notifications must not be delivered after their business value expires. | MEDIUM | Host supplies absolute expiry; Chimeway suppresses before dispatch and derives `apns-expiration` from it. Never invent expiry from user/device state. |
+| Privacy-safe bounded payload | Push payloads travel through a third-party provider and are size limited. | HIGH | Strict size/field validation; opaque notification/open references only; no raw tokens, credentials, recipient identity, sensitive content, or trusted deep links. APNs rejects ordinary payloads over 4 KB. [Apple: Generating a remote notification](https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification?changes=_3) |
+| Protected notification-open path | A push tap must not bypass current authorization or route policy. | HIGH | Pass evidence through Crosswake's one-time open intent, manifest route/action allowlist, and current auth/step-up check. No fallback route on expiry, revocation, or denial. |
+| Tenant-safe operator trace | Operators need to answer why a given installation did not receive a notification without data leakage. | MEDIUM | Show selection, suppression/expiry, each target attempt, response, binding mutation, and open decision; enforce tenant scope and redact sensitive data. |
 
-## Table Stakes
-
-Features an evaluator reasonably needs before trusting a library integration.
-
-| Feature | Why Expected | Complexity | Concrete requirement / evidence |
-|---|---|---:|---|
-| Goal-based adoption front door | A prospect should choose a relevant proof without reading several overlapping guides first. | Low | Add one short selector in the README/HexDocs entry surface: **I need explainable notifications** → Core; **I send transactional email** → Mailglass; **I run billing dunning** → Accrue. Each card declares prerequisites, duration, outcome, and canonical guide. |
-| Explicit responsibility split per route | Integration confidence depends on knowing what is orchestrated versus owned by the host/partner. | Low | Keep the existing Chimeway/Mailglass and Chimeway/Accrue boundaries, but surface them beside each selected route. Core must explicitly state host ownership of recipients, auth, tenancy, DB, and provider credentials. |
-| Clean-room core tracer bullet | The foundational claim is durable, local-first, explainable notification delivery. | Medium | From an empty throwaway host/database, install a built/unpacked Chimeway artifact; generate/run migrations using `prefix: "chimeway"`; define a public-API notifier with stable key/version; trigger with `tenant_id` and `idempotency_key`; assert `explain_delivery/1` reports a terminal status and timeline. |
-| Clean-room Mailglass tracer bullet | An email adopter must prove adapter routing and traceability without live provider credentials. | Medium | Fresh host adds Chimeway + Mailglass compatible artifacts, configures one host mailable and `render_key`, uses a safe local/test delivery seam, triggers an email, and proves the trace contains the Mailglass adapter/attempt evidence. Optional webhook feedback stays clearly optional. |
-| Clean-room Accrue tracer bullet | Billing teams need proof of event-driven progression and termination, not a direct notifier call. | High | Fresh host configures the Accrue dunning engine, starts from `invoice.payment_failed`, observes initial delivery and `:waiting`, then sends `invoice.paid` and proves the Outcome Signal stops/progresses the waiting workflow. Preserve the sibling/path prerequisite honestly until partner packaging makes it unnecessary. |
-| Copyable command contract | Docs are credible only when the exact commands are continuously executable. | Medium | One named command per path, with all required environment values documented and deterministic. Commands must return non-zero on absent expected lifecycle evidence, not merely on test failures. |
-| Human-readable proof output | A green test alone does not explain what was proven. | Medium | Each tracer bullet prints: artifact source/version, migration/schema target, stable `notification_key`, event/delivery/correlation identifiers, lifecycle state(s) asserted, trace lookup command, and partner-boundary note. Never print payload body, secrets, or provider credentials. |
-| Packaged/local-release artifact coverage | A repository checkout can hide missing packaged files or path-dependency coupling. | Medium | Reuse `mix verify.parity` as the package prerequisite, then run tracer bullets against its unpacked artifact or a release-equivalent local package. The proof must not import Chimeway internals from the source checkout. |
-| Docs-to-proof contract | Canonical guide names, command names, prerequisites, and expected evidence must not silently drift. | Low | Extend existing doc/release contract testing to lock selector labels, route ownership statements, clean-room command names, and expected output markers. |
-
-## Differentiators
-
-Features that make Chimeway's adoption experience reflect its local-first, explainability-first product promise.
+### Differentiators (Competitive Advantage)
 
 | Feature | Value Proposition | Complexity | Notes |
-|---|---|---:|---|
-| Explainability as the success criterion | The proof validates not only “a notification was sent,” but “an operator can answer why.” | Medium | Require a trace/timeline assertion in every path. For Accrue, include workflow and signal evidence; for Mailglass, include adapter/attempt evidence. |
-| Route-specific responsibility matrix | Eliminates the common integration ambiguity between orchestration, domain state, rendering, provider send, and auth. | Low | A compact three-column matrix per path is better than prose: Host / Chimeway / Partner. Clearly label Accrue as an engine + workflow bridge, not an adapter. |
-| Credential-free default proofs | Lets evaluators validate architecture before signing up for or exposing a provider account. | Medium | Core uses in-app/synchronous delivery; Mailglass uses its safe test/local delivery seam; Accrue uses logger email plus deterministic event fixtures. Live provider delivery and webhooks remain follow-ons. |
-| Stable-identity evidence | Shows the durable contract adopters will maintain through refactors. | Low | Proof output includes the stable notification key/version, tenant, idempotency key, and correlation/event/delivery identifiers—never module name as the durable identity. |
-| Failure/suppression-oriented evidence | Matches the real support question: why was it not sent? | Medium | Core proof should optionally include one controlled suppression/error assertion after the happy path. Do not make browser UI or webhook configuration a prerequisite. |
-| One source of truth, two audiences | Guides remain learning material while proof scripts remain executable artifacts. | Medium | The command prints concise evidence for evaluators; contract tests protect the guide. Avoid copying long code samples into three separate documents. |
+|---------|-------------------|------------|-------|
+| Explainable fanout ledger | Separates partial delivery from total failure, with an answer for each installation. | MEDIUM | Logical delivery can succeed when at least one eligible target is accepted while retaining failures/retries for other targets. Never collapse a mixed result into a misleading whole-delivery status. |
+| Hermetic APNs digital twin | Makes transport headers, payload shape, expiry, retries, feedback, and protected opens merge-blocking without Apple credentials. | HIGH | Deterministic scripted adapter replaces live APNs in CI; include token rotation and crash/retry recovery scenarios. |
+| Physical-iPhone sandbox proof | Confirms entitlement, sandbox environment, token acquisition, visible notification, and protected activation on a real generated shell. | MEDIUM | Separate non-hermetic acceptance evidence from the CI twin; record redacted evidence only and do not expand claims to delivery/read analytics. |
+| Explicit delivery-claim taxonomy | Prevents overclaiming while preserving useful operations data. | LOW | Distinguish Chimeway dispatch, APNs accepted/rejected, binding revoked, app-open authorized/denied, inbox seen, and inbox read. |
+| Opt-in semantic coalescing | Lets an adopter replace stale reminders without incorrectly merging distinct learning events. | MEDIUM | Host may supply a semantic collapse key; persist it and why it was used. APNs can retain only one pending notification per bundle ID, so universal collapse IDs are unsafe. [Apple: Sending notification requests to APNs](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns?changes=_3) |
 
-## Anti-Features
+### Anti-Features (Commonly Requested, Often Problematic)
 
-Features to explicitly not build in this milestone.
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| FCM transport in this milestone | “Cross-platform” can suggest two provider implementations at once. | Divides validation and production hardening before the APNs path is proven. | Keep provider-neutral contracts; defer FCM transport and Android physical proof. |
+| Generic offline/background-sync promise | Push seems like a way to keep all local data fresh. | Crosswake expressly supports one route-scoped replay seam, not app-wide background sync; background pushes are throttled and not guaranteed. [Crosswake offline guide](../../../crosswake/guides/offline.md) [Apple: Pushing background updates](https://developer.apple.com/documentation/usernotifications/pushing-background-updates-to-your-app) | Use a visible push to direct the user to canonical server data; retain Crosswake's explicit offline-island boundaries. |
+| “Delivered/read/opened” provider analytics | Product teams want engagement measurement. | APNs acceptance does not prove presentation, receipt, read, or safe route activation. | Persist request outcomes; treat authorized app-submitted open and explicit inbox transitions as separate facts. |
+| Raw-token storage or payload logging | Simplifies debugging. | Violates the safe token/evidence boundary and risks credential or user-data exposure. | Store opaque `token_ref`/fingerprint and redacted correlation evidence only. |
+| Chimeway-owned identity, eligibility, timezone, deep links, or expiry policy | A library can appear easier when it owns application decisions. | Violates local-first host ownership and creates wrong authority boundaries. | Host supplies domain eligibility/time/route intent; Crosswake activates a permitted route; Chimeway owns delivery truth. |
+| Generic campaign builder/device-management UI | A broad UI looks like a complete mobile offering. | Adds a SaaS control plane and distracts from durable embedded delivery. | Deliver queryable trace projections and host-controlled operator surfaces. |
+| Silent fallback navigation after invalid open | Helps avoid a dead-end tap. | Can bypass intended route policy or conceal revocation/step-up. | Return an explicit safe denial and let the host show the appropriate recovery UI. |
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|---|---|---|
-| A new browser/admin evaluation UI | Browser iteration is out of scope and would obscure the public API proof. | Use IEx/CLI evidence as the canonical proof; link the existing demo admin only as optional visual inspection. |
-| Treating `verify.*` test lanes as adopter instructions | Those lanes depend on repository topology, test tags, fixtures, and sibling paths; a prospect cannot infer adoption readiness from them. | Keep them as internal CI evidence and add clean-room commands built for an external host. |
-| A fake “all integrations” mega-demo | It forces unrelated dependencies, creates opaque failures, and weakens route selection. | Maintain three independent vertical tracer bullets with clear dependency boundaries. |
-| Live provider accounts, real inboxes, or webhook secrets as baseline prerequisites | Credentials turn evaluation into account setup and make proofs nondeterministic. | Default to safe local/test adapters and deterministic fixtures; document live delivery/webhook validation as optional next steps. |
-| Direct host calls to the Accrue notifier | This tests the wrong boundary and bypasses billing event ownership. | Drive the Accrue proof through payment-failed and paid events / Accrue engine APIs. |
-| Teaching consumers to copy internal fixtures or private modules | It couples adopters to test implementation and contradicts the public-API promise. | Put all tracer-bullet host code in an intentionally public fixture/template and test only public `Chimeway.*` APIs. |
-| New runtime delivery semantics or partner features | This milestone is adoption clarity, not an engine expansion. | Limit changes to docs, proof templates/scripts, contracts, and CI wiring required to verify them. |
-| Reporting sensitive data in proof logs | Evidence output can otherwise violate Chimeway’s trust boundary. | Emit identifiers, lifecycle status, and redacted metadata only; leave payload/content and credentials out. |
+## User, Host, and Operator Behaviors
+
+| Actor | Required behavior | Boundary |
+|-------|-------------------|----------|
+| Host | Supplies tenant, recipient eligibility, identity/session lifecycle, timezone, absolute expiry, semantic event data, and intended route/action. Handles raw tokens at its boundary. | The host remains authority for business decisions and raw credentials. |
+| Crosswake | Acquires permission/token evidence, identifies installation, binds safe token references, and activates only a route/action still permitted by current policy and auth. | Evidence never grants delivery, identity, or route authority. |
+| Chimeway | Selects eligible active bindings, renders a bounded APNs payload, schedules/retries sends, persists per-target provider truth, and explains outcomes. | It does not assert device presentation or engagement. |
+| Operator | Traces a notification from selection through APNs outcome and binding state without seeing secrets or cross-tenant data. | A partial fanout remains visible as per-target facts. |
+| End user | Receives a minimal alert and, on tap, reaches the intended route only if the binding and authorization remain valid. | Open is not automatically `seen` or `read`. |
 
 ## Feature Dependencies
 
 ```text
-Adoption selector + route ownership matrix
-  ├──> Core clean-room tracer bullet
-  │      └──> public trigger → durable rows → explain_delivery evidence
-  ├──> Mailglass clean-room tracer bullet
-  │      └──> Core prerequisites + Mailglass mailable/render_key + adapter-attempt evidence
-  └──> Accrue clean-room tracer bullet
-         └──> Core prerequisites + Accrue engine/event harness + workflow/signal evidence
-
-Packaged/local-release artifact proof
-  └──> all three tracer bullets
-
-Tracer-bullet commands + stable output markers
-  └──> doc-contract / CI verification
+Tenant/privacy invariants + Crosswake binding authority
+  └──> APNs transport contract + per-installation target/attempt persistence
+         └──> active binding selection + host expiry + idempotent Oban dispatch
+                └──> APNs feedback -> binding lifecycle update
+                       └──> protected open correlation + operator trace
+                              ├──> hermetic APNs digital twin
+                              └──> physical-iPhone APNs sandbox proof
 ```
 
 ### Dependency Notes
 
-- The selector must land before detailed guides are reorganized: it establishes which guide is canonical for each adopter goal.
-- Core clean-room proof is the shared foundation; Mailglass and Accrue may reuse only clearly documented setup, never hidden repository fixtures.
-- Mailglass proof depends on a safe local delivery mode and a public host mailable example; webhook ingress is deliberately a separate optional proof.
-- Accrue proof has the highest integration dependency and must preserve the current explicit sibling checkout/ref requirement until an independently installable partner artifact is proven.
-- `mix verify.parity` proves package contents, not consumer installation. A v1.17 tracer bullet must bridge that gap by executing from an external/throwaway host against the produced artifact.
+- **Per-installation target/attempt persistence requires the current delivery spine to be extended:** `chimeway_deliveries` is currently unique by notification and channel, so it cannot itself represent independent all-installation results ([delivery.ex](../../lib/chimeway/delivery.ex)). Keep it as the logical channel plan and add a target/attempt layer beneath it.
+- **Dispatch requires active binding authority:** Crosswake bindings already carry installation, provider/platform/environment, scoped backend identity, lifecycle state, and safe token references ([contracts.ex](../../../crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex); [token_binding.ex](../../../crosswake/examples/phoenix_host/lib/crosswake_example/chimeway/token_binding.ex)).
+- **Protected open requires delivery correlation, not a trusted deep link:** Crosswake's companion guide specifies backend-bound token/open records, route allowlists, and current RouteGate/Sigra evaluation ([companions.md](../../../crosswake/guides/companions.md)).
+- **The physical proof is downstream of the hermetic twin:** native entitlement and APNs sandbox credentials are external acceptance evidence; they must not be the only regression gate.
 
-## MVP Recommendation
+## MVP Definition
 
-Prioritize:
+### Launch With (v1.18)
 
-1. **Adopter route selector and ownership matrix** — establish the front door and prevent route/partner confusion before adding more narrative.
-2. **Core clean-room tracer bullet with explainability output** — prove the local-first lifecycle, storage prefix, idempotency, tenancy, and trace claim from a consumer perspective.
-3. **Mailglass clean-room tracer bullet** — prove the most direct transactional-email extension without provider credentials.
-4. **Accrue clean-room tracer bullet** — prove the event-driven dunning path, including Outcome Signal termination; scope the external checkout as a declared prerequisite.
-5. **Executable-doc and artifact contracts** — run all proof paths in CI against a packaged/local-release artifact and lock their user-facing instructions/output.
+- [ ] APNs-first adapter plus logical-delivery / per-installation target-attempt model — essential for all-active-installation production use without false aggregate truth.
+- [ ] Binding selection, tenant/privacy enforcement, host expiry suppression, durable idempotent dispatch, and feedback-to-binding lifecycle — essential safety and recovery foundation.
+- [ ] Opaque bounded payload and protected Crosswake notification-open correlation — essential to preserve authority and privacy boundaries.
+- [ ] Operator-explainable trace and hermetic digital twin — essential CI proof of production behavior.
+- [ ] Physical-iPhone APNs sandbox proof — essential to validate the real entitlement/token/provider path after hermetic coverage exists.
 
-Defer:
+### Add After Validation (v1.x)
 
-- Browser walkthrough redesign, inbox/badge behavior, generalized partner marketplace, performance optimization, live-provider acceptance, and new runtime notification features. These do not reduce the adoption uncertainty this milestone targets.
+- [ ] Opt-in host-semantic APNs collapse keys — add after the adopter has verified which reminder classes are safely replaceable.
+- [ ] Operator UI projections or inbox progression integration — add only when trace queries expose a demonstrated usability gap; do not infer `seen`/`read` from a push tap.
+- [ ] FCM delivery adapter and Android physical proof — add after the APNs data model and retry/feedback semantics are stable.
+
+### Future Consideration (v2+)
+
+- [ ] Rich notification extensions, media, categories, and quick actions — defer until there is a concrete, privacy-reviewed adopter workflow.
+- [ ] Aggregated engagement analytics — defer unless a consented, independently authoritative event model is specified.
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Per-installation durable APNs attempts | HIGH | HIGH | P1 |
+| Expiry, retry, and feedback lifecycle | HIGH | HIGH | P1 |
+| Protected open and privacy boundary | HIGH | HIGH | P1 |
+| Hermetic digital twin | HIGH | HIGH | P1 |
+| Physical-iPhone sandbox proof | HIGH | MEDIUM | P1 |
+| Semantic collapse keys | MEDIUM | MEDIUM | P2 |
+| FCM transport and Android proof | HIGH | HIGH | P3 |
 
 ## Sources
 
 ### Repository evidence (HIGH confidence)
 
-- [Project scope](../PROJECT.md) — v1.17 goal and target features.
-- [README](../../README.md) — local-first positioning, host-owned boundaries, public trigger-to-trace API, and current documentation front door.
-- [Golden Path](../../guides/introduction/golden-path.md) — current core lifecycle, required invariants, trace proof, and optional UI/webhook boundaries.
-- [Mailglass Integration](../../guides/introduction/mailglass-integration.md) — adapter seam, mailable/render-key mapping, and optional inbound feedback boundary.
-- [Accrue Dunning Integration](../../guides/introduction/accrue-dunning-integration.md) — event-driven dunning, engine boundary, Outcome Signal termination, and local checkout constraint.
-- [Demo Host README](../../examples/chimeway_demo_host/README.md) — deterministic demo commands, public API walkthrough, and explicit warning not to copy internal fixtures.
-- [Mix aliases](../../mix.exs) — existing `verify.parity`, `verify.mailglass`, and `verify.accrue` lanes and their repository/test orientation.
+- [Chimeway project context](../PROJECT.md) — local-first, explainability-first product contract.
+- [Delivery schema](../../lib/chimeway/delivery.ex) — durable logical per-channel delivery and current uniqueness boundary.
+- [Inbox lifecycle](../../lib/chimeway/inbox.ex) — recipient-scoped, idempotent `seen`/`read` facts.
+- [Crosswake Chimeway contracts](../../../crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex) — safe token evidence/binding vocabulary and one-time open evidence.
+- [Crosswake Chimeway companion guide](../../../crosswake/guides/companions.md) — host authority, backend binding, protected resolver, and current non-claims.
+- [Crosswake offline guide](../../../crosswake/guides/offline.md) — narrow route-scoped offline boundary and no background-sync claim.
 
-### Ecosystem comparison (LOW confidence)
+### Primary external sources (HIGH confidence)
 
-The configured Brave provider was unavailable (`BRAVE_API_KEY` absent), so no external web findings are treated as authoritative. This document deliberately bases recommendations on current, directly verified Chimeway evidence rather than unsupported generalizations.
+- [Apple: Sending notification requests to APNs](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns?changes=_3) — best-effort delivery, retention/expiry, ordering, and pending-notification behavior.
+- [Apple: Generating a remote notification](https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification?changes=_3) — payload structure and 4 KB non-VoIP limit.
+- [Apple: Pushing background updates to your app](https://developer.apple.com/documentation/usernotifications/pushing-background-updates-to-your-app) — low-priority, throttled, non-guaranteed background notifications.
+
+---
+*Feature research for: Chimeway v1.18 Adopter Alpha mobile delivery readiness*
+*Researched: 2026-08-11*

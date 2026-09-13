@@ -10,7 +10,7 @@ defmodule Chimeway.Reliability.DuplicateProtectionTest.IdempotentNotifier do
 
   @impl true
   def recipients(_params),
-    do: {:ok, [%{recipient_identity: "user-1", recipient_type: "member"}]}
+    do: {:ok, [%{recipient_ref: "cw_reliability_idempotent_user_1", recipient_type: "member"}]}
 
   @impl true
   def build(_params, _recipient), do: {:ok, %{"topic" => "mentions"}}

@@ -2,7 +2,7 @@ defmodule Chimeway.Trigger do
   @moduledoc """
   Orchestrates notifier triggering with deterministic recipient normalization.
 
-  ## Duplicate-trigger contract (Phase 14 / D-03)
+  ## Duplicate-trigger contract
 
   When `trigger/3` returns `{:duplicate, event}`, `dispatch_after_trigger/4` is INERT
   — it does NOT re-drive dispatch for the existing event. This means:
@@ -12,14 +12,14 @@ defmodule Chimeway.Trigger do
   - The pre-existing pending deliveries from the first trigger remain in their
     current state (whether already-dispatched, retrying, or terminal).
 
-  If a host application crashes between event-insert commit and the dispatcher being
-  called, deliveries from that aborted trigger ARE NOT recovered by a subsequent
-  re-fire. Recovery for that scenario is explicitly deferred to a future operability
-  phase.   Operators investigating "why wasn't this delivered after a duplicate
-  trigger?" should look at the original event's deliveries via
+  If a host application crashes between the event insert committing and the dispatcher
+  being called, a subsequent re-fire does not recover deliveries from the interrupted
+  trigger. Recovery requires an explicit operator replay. Operators investigating
+  "why wasn't this delivered after a duplicate trigger?" should inspect the original
+  event's deliveries via
   `Chimeway.Traces.get_trace/1`, not at the duplicate.
 
-  ## Payload sanitization (D-08)
+  ## Payload sanitization
 
   `trigger/3` strips `@sensitive_keys` from persisted event `payload` and from
   notification `metadata` / `render_assigns`. Auth-flow keys `url`, `code`,
@@ -33,41 +33,57 @@ defmodule Chimeway.Trigger do
   import Ecto.Query, only: [from: 2]
 
   alias Chimeway.Events.Event
+  alias Chimeway.Inbox.ChangePublisher
   alias Chimeway.Notifications.Notification
   alias Chimeway.Notifier
   alias Chimeway.Repo
-  alias Chimeway.Telemetry
+  alias Chimeway.{Privacy, Rendering, SafeEvidence, Telemetry}
   alias Chimeway.Workflows
   alias Ecto.Multi
   alias Ecto.UUID
 
-  @sensitive_keys ~w(password token secret url code raw_token magic_link_url)
-
   @spec trigger(module(), map(), keyword()) ::
           {:ok, map()} | {:duplicate, struct()} | {:error, term()}
   def trigger(notifier, params, opts \\ []) do
-    correlation_id =
+    correlation_ref =
       case Keyword.fetch(opts, :correlation_id) do
-        {:ok, cid} when is_binary(cid) -> cid
-        _ -> Logger.metadata()[:request_id]
+        {:ok, cid} -> cid
+        :error -> Keyword.get(opts, :correlation_ref)
       end
 
     with {:ok, idempotency_key} <- Keyword.fetch(opts, :idempotency_key),
-         {:ok, tenant_id} <- fetch_tenant_id(opts),
+         {:ok, tenant_id} <- fetch_and_normalize_tenant_id(opts),
          :ok <- validate_idempotency_key(idempotency_key),
-         :ok <- validate_tenant_id(tenant_id),
          :ok <- Notifier.validate_module!(notifier),
-         {:ok, recipients} <- notifier.recipients(params) do
-      do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients, tenant_id)
+         {:ok, correlation_ref} <- optional_correlation_ref(correlation_ref),
+         {:ok, recipients} <- notifier.recipients(params),
+         {:ok, normalized_recipients} <- normalize_recipients(recipients) do
+      opts = Keyword.put(opts, :tenant_id, tenant_id)
+
+      do_trigger(
+        notifier,
+        params,
+        opts,
+        idempotency_key,
+        correlation_ref,
+        normalized_recipients,
+        tenant_id
+      )
     else
       :error -> {:error, :missing_idempotency_key}
       {:error, _reason} = error -> error
     end
   end
 
-  defp do_trigger(notifier, params, opts, idempotency_key, correlation_id, recipients, tenant_id) do
-    normalized_recipients = normalize_recipients(recipients)
-
+  defp do_trigger(
+         notifier,
+         params,
+         opts,
+         idempotency_key,
+         correlation_id,
+         normalized_recipients,
+         tenant_id
+       ) do
     Telemetry.span(
       [:events, :create],
       Telemetry.safe_meta(%{
@@ -83,7 +99,8 @@ defmodule Chimeway.Trigger do
               notifier,
               idempotency_key,
               params,
-              correlation_id
+              correlation_id,
+              tenant_id
             )
           )
           |> Multi.run(:notifications, fn repo, %{event: event} ->
@@ -107,25 +124,72 @@ defmodule Chimeway.Trigger do
         {result, extra}
       end
     )
-    |> normalize_trigger_result(idempotency_key, normalized_recipients)
+    |> normalize_trigger_result(idempotency_key, tenant_id)
     |> then(&plan_deliveries_span(&1, notifier, params, opts))
   end
 
-  @spec normalize_recipients([map()]) :: [map()]
+  @spec normalize_recipients([map()]) :: {:ok, [map()]} | {:error, :unsafe_evidence}
   def normalize_recipients(recipients) when is_list(recipients) do
     recipients
-    |> Enum.reduce(%{}, fn recipient, acc ->
-      case recipient_identity(recipient) do
-        identity when is_binary(identity) and byte_size(identity) > 0 ->
-          Map.put_new(acc, identity, recipient)
+    |> Enum.reduce_while({:ok, %{}}, fn recipient, {:ok, acc} ->
+      case normalize_recipient(recipient) do
+        {:ok, ref, normalized_recipient} ->
+          {:cont, {:ok, Map.put_new(acc, ref, normalized_recipient)}}
 
-        _identity ->
-          acc
+        :error ->
+          {:halt, {:error, :unsafe_evidence}}
       end
     end)
-    |> Enum.sort_by(fn {identity, _recipient} -> identity end)
-    |> Enum.map(fn {_identity, recipient} -> recipient end)
+    |> case do
+      {:ok, recipients_by_ref} ->
+        {:ok,
+         recipients_by_ref
+         |> Map.values()
+         |> Enum.sort_by(&(recipient_identity(&1) || recipient_ref(&1) || ""))}
+
+      error ->
+        error
+    end
   end
+
+  def normalize_recipients(_recipients), do: {:error, :unsafe_evidence}
+
+  defp normalize_recipient(recipient) when is_map(recipient) do
+    with {:ok, recipient_ref} <- logical_recipient_value(recipient, :recipient_ref),
+         {:ok, recipient_identity} <- logical_recipient_value(recipient, :recipient_identity),
+         {:ok, reference} <- SafeEvidence.recipient_reference(recipient_ref || recipient_identity) do
+      normalized =
+        recipient
+        |> Map.drop([:recipient_ref, "recipient_ref", :recipient_identity, "recipient_identity"])
+        |> Map.put(:recipient_ref, reference)
+        |> maybe_put_recipient_identity(recipient_identity)
+
+      {:ok, reference, normalized}
+    else
+      _ -> :error
+    end
+  end
+
+  defp normalize_recipient(_recipient), do: :error
+
+  defp logical_recipient_value(recipient, field) do
+    values =
+      [field, Atom.to_string(field)]
+      |> Enum.flat_map(fn key ->
+        if Map.has_key?(recipient, key), do: [Map.fetch!(recipient, key)], else: []
+      end)
+
+    case values do
+      [] -> {:ok, nil}
+      [value] -> {:ok, value}
+      _ -> :ambiguous
+    end
+  end
+
+  defp maybe_put_recipient_identity(recipient, nil), do: recipient
+
+  defp maybe_put_recipient_identity(recipient, identity),
+    do: Map.put(recipient, :recipient_identity, identity)
 
   defp validate_idempotency_key(idempotency_key) when is_binary(idempotency_key) do
     if String.trim(idempotency_key) == "" do
@@ -137,44 +201,51 @@ defmodule Chimeway.Trigger do
 
   defp validate_idempotency_key(_idempotency_key), do: {:error, :invalid_idempotency_key}
 
-  defp fetch_tenant_id(opts) do
+  defp fetch_and_normalize_tenant_id(opts) do
     case Keyword.fetch(opts, :tenant_id) do
-      {:ok, tenant_id} -> {:ok, tenant_id}
+      {:ok, tenant_id} -> normalize_tenant_id(tenant_id)
       :error -> {:error, :missing_tenant_id}
     end
   end
 
-  defp validate_tenant_id(tenant_id) when is_binary(tenant_id) do
-    if String.trim(tenant_id) == "" do
-      {:error, :invalid_tenant_id}
-    else
-      :ok
+  defp normalize_tenant_id(tenant_id) when is_binary(tenant_id) do
+    case String.trim(tenant_id) do
+      "" -> {:error, :invalid_tenant_id}
+      normalized_tenant_id -> {:ok, normalized_tenant_id}
     end
   end
 
-  defp validate_tenant_id(_tenant_id), do: {:error, :invalid_tenant_id}
+  defp normalize_tenant_id(_tenant_id), do: {:error, :invalid_tenant_id}
 
-  defp event_changeset(notifier, idempotency_key, params, correlation_id) do
+  defp event_changeset(notifier, idempotency_key, params, correlation_id, tenant_id) do
     Event.changeset(%Event{}, %{
       notification_key: notifier.notification_key(),
       notification_version: notifier.version(),
       idempotency_key: idempotency_key,
-      payload: sanitize_payload(params),
+      tenant_id: tenant_id,
+      payload: params |> Privacy.redact() |> SafeEvidence.event_payload(),
       correlation_id: correlation_id
     })
     |> Ecto.Changeset.unique_constraint(:idempotency_key,
-      name: :chimeway_events_idempotency_key_idx
+      name: :chimeway_events_tenant_id_idempotency_key_index
     )
   end
 
   defp insert_notifications(repo, notifier, params, event, recipients, tenant_id) do
-    with {:ok, notifications} <- notifications_attrs(repo, notifier, params, event, recipients) do
+    with {:ok, notifications} <-
+           notifications_attrs(repo, notifier, params, event, recipients, tenant_id) do
       try do
         rows = Enum.map(notifications, & &1.row)
         {count, _rows} = repo.insert_all("chimeway_notifications", rows)
 
         with :ok <- insert_workflow_runs(repo, notifications, tenant_id) do
-          {:ok, count}
+          {:ok,
+           %{
+             count: count,
+             inbox_changes: inbox_changes(notifications),
+             precomputed_rendering: precomputed_rendering(notifications),
+             recipient_handoffs: recipient_handoffs(notifications)
+           }}
         end
       rescue
         error -> {:error, error}
@@ -182,7 +253,7 @@ defmodule Chimeway.Trigger do
     end
   end
 
-  defp notifications_attrs(repo, notifier, params, event, recipients) do
+  defp notifications_attrs(repo, notifier, params, event, recipients, tenant_id) do
     timestamp = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
     recipients
@@ -191,14 +262,23 @@ defmodule Chimeway.Trigger do
            {:ok, orchestration} <- Notifier.resolve_orchestration(notifier, params, recipient),
            {:ok, workflow_definition, workflow_cache} <-
              resolve_workflow_definition(repo, notifier, params, recipient, workflow_cache) do
-        render_assigns = sanitize_render_assigns(rendering.assigns)
-        render_channels = sanitize_render_channels(Map.get(rendering, :channels, %{}))
+        render_assigns =
+          rendering.assigns |> Privacy.redact() |> SafeEvidence.notification_metadata()
+
+        render_channels =
+          rendering
+          |> Map.get(:channels, %{})
+          |> SafeEvidence.render_channels()
+
         orchestration = Notifier.serialize_orchestration(orchestration)
 
+        notification_id = UUID.generate()
+
         row = %{
-          id: UUID.generate() |> UUID.dump!(),
+          id: notification_id |> UUID.dump!(),
           event_id: UUID.dump!(event.id),
-          recipient_identity: recipient_identity(recipient),
+          tenant_id: tenant_id,
+          recipient_identity: recipient_ref(recipient),
           recipient_type: recipient_type(recipient),
           metadata: render_assigns,
           render_assigns: render_assigns,
@@ -210,7 +290,18 @@ defmodule Chimeway.Trigger do
         }
 
         {:cont,
-         {:ok, [%{row: row, workflow_definition: workflow_definition} | acc], workflow_cache}}
+         {:ok,
+          [
+            %{
+              row: row,
+              workflow_definition: workflow_definition,
+              precomputed_rendering: precompute_rendering(notification_id, rendering),
+              recipient_address: recipient_address(recipient_identity(recipient))
+            }
+            | acc
+          ], workflow_cache}}
+      else
+        {:error, _reason} = error -> {:halt, error}
       end
     end)
     |> case do
@@ -219,36 +310,99 @@ defmodule Chimeway.Trigger do
     end
   end
 
+  defp precompute_rendering(notification_id, %{assigns: assigns, channels: channels}) do
+    assigns = Map.drop(assigns, [:recipient, "recipient"])
+
+    channels
+    |> Enum.reduce(%{}, fn {channel, declaration}, acc ->
+      with {:ok, rendered} <-
+             Rendering.render_delivery(
+               channel,
+               declaration.render_key,
+               declaration.render_version,
+               assigns
+             ) do
+        Map.put(acc, {notification_id, to_string(channel)}, rendered)
+      else
+        _ -> acc
+      end
+    end)
+  end
+
+  defp precompute_rendering(_notification_id, _rendering), do: %{}
+
+  defp precomputed_rendering(notifications) do
+    notifications
+    |> Enum.map(& &1.precomputed_rendering)
+    |> Enum.reduce(%{}, &Map.merge/2)
+  end
+
+  defp inbox_changes(notifications) do
+    Enum.map(notifications, fn notification ->
+      {notification.row.tenant_id, notification.row.recipient_identity}
+    end)
+  end
+
+  defp recipient_handoffs(notifications) do
+    Enum.reduce(notifications, %{}, fn notification, handoffs ->
+      case notification.recipient_address do
+        address when is_binary(address) ->
+          Map.put(handoffs, Ecto.UUID.load!(notification.row.id), address)
+
+        _ ->
+          handoffs
+      end
+    end)
+  end
+
   defp normalize_trigger_result(
-         {:ok, %{event: event, notifications: notifications_inserted}},
+         {:ok,
+          %{
+            event: event,
+            notifications: %{
+              count: notifications_inserted,
+              inbox_changes: inbox_changes,
+              precomputed_rendering: precomputed_rendering,
+              recipient_handoffs: recipient_handoffs
+            }
+          }},
          _idempotency_key,
-         recipients
+         _tenant_id
        ) do
-    {:ok,
-     %{
-       event: event,
-       notification_key: event.notification_key,
-       notification_version: event.notification_version,
-       idempotency_key: event.idempotency_key,
-       recipients: recipients,
-       notifications_inserted: notifications_inserted,
-       dispatch_outcome: :pending,
-       dispatch_mode: :unknown,
-       trace: %{
-         event_id: event.id,
-         correlation_id: event.correlation_id,
-         delivery_ids: []
-       }
-     }}
+    Enum.each(inbox_changes, fn {tenant_id, recipient_ref} ->
+      ChangePublisher.publish(tenant_id, recipient_ref, :created)
+    end)
+
+    public_result = %{
+      event: event,
+      notification_key: event.notification_key,
+      notification_version: event.notification_version,
+      idempotency_key: event.idempotency_key,
+      notifications_inserted: notifications_inserted,
+      dispatch_outcome: :pending,
+      dispatch_mode: :unknown,
+      trace: %{
+        event_id: event.id,
+        correlation_id: event.correlation_id,
+        delivery_ids: []
+      }
+    }
+
+    dispatch_context = %{
+      precomputed_rendering: precomputed_rendering,
+      recipient_handoffs: recipient_handoffs
+    }
+
+    {:ok, public_result, dispatch_context}
   end
 
   defp normalize_trigger_result(
          {:error, :event, %Ecto.Changeset{} = changeset, _changes},
          idempotency_key,
-         _recipients
+         tenant_id
        ) do
     if idempotency_conflict?(changeset) do
-      case Repo.get_by(Event, idempotency_key: idempotency_key) do
+      case Repo.get_by(Event, tenant_id: tenant_id, idempotency_key: idempotency_key) do
         nil -> {:error, :duplicate_event_not_found}
         existing_event -> {:duplicate, existing_event}
       end
@@ -260,7 +414,7 @@ defmodule Chimeway.Trigger do
   defp normalize_trigger_result(
          {:error, :notifications, reason, _changes},
          _idempotency_key,
-         _recipients
+         _tenant_id
        ) do
     {:error, {:notifications_insert_failed, reason}}
   end
@@ -270,58 +424,16 @@ defmodule Chimeway.Trigger do
       {:idempotency_key, {_message, opts}} ->
         opts[:constraint] == :unique and
           opts[:constraint_name] in [
-            :chimeway_events_idempotency_key_index,
-            "chimeway_events_idempotency_key_index",
-            :chimeway_events_idempotency_key_idx,
-            "chimeway_events_idempotency_key_idx"
+            :chimeway_events_tenant_id_idempotency_key_index,
+            "chimeway_events_tenant_id_idempotency_key_index",
+            :chimeway_events_tenant_id_idempotency_key_idx,
+            "chimeway_events_tenant_id_idempotency_key_idx"
           ]
 
       _ ->
         false
     end)
   end
-
-  defp sanitize_payload(payload), do: sanitize_map(payload)
-
-  defp sanitize_render_assigns(assigns), do: sanitize_map(assigns)
-
-  defp sanitize_render_channels(channels) when is_map(channels) do
-    Enum.reduce(channels, %{}, fn {channel, info}, acc ->
-      if is_map(info) do
-        sanitized = %{}
-
-        sanitized =
-          case Map.fetch(info, :render_key) do
-            {:ok, val} ->
-              Map.put(sanitized, :render_key, val)
-
-            :error ->
-              case Map.fetch(info, "render_key") do
-                {:ok, val} -> Map.put(sanitized, :render_key, val)
-                :error -> sanitized
-              end
-          end
-
-        sanitized =
-          case Map.fetch(info, :render_version) do
-            {:ok, val} ->
-              Map.put(sanitized, :render_version, val)
-
-            :error ->
-              case Map.fetch(info, "render_version") do
-                {:ok, val} -> Map.put(sanitized, :render_version, val)
-                :error -> sanitized
-              end
-          end
-
-        Map.put(acc, channel, sanitized)
-      else
-        acc
-      end
-    end)
-  end
-
-  defp sanitize_render_channels(_not_map), do: %{}
 
   defp resolve_workflow_definition(repo, notifier, params, recipient, workflow_cache) do
     with {:ok, nil} <- Notifier.resolve_workflow(notifier, params, recipient) do
@@ -373,25 +485,23 @@ defmodule Chimeway.Trigger do
   defp workflow_definition_id(nil), do: nil
   defp workflow_definition_id(%{id: id}), do: UUID.dump!(id)
 
-  defp sanitize_map(map) when is_map(map) do
-    Enum.reduce(map, %{}, fn {key, value}, acc ->
-      if sensitive_key?(key) do
-        acc
-      else
-        Map.put(acc, key, value)
-      end
-    end)
+  defp recipient_ref(%{recipient_ref: ref}), do: ref
+  defp recipient_ref(%{"recipient_ref" => ref}), do: ref
+  defp recipient_ref(_recipient), do: nil
+
+  defp recipient_identity(%{recipient_identity: value}), do: value
+  defp recipient_identity(%{"recipient_identity" => value}), do: value
+  defp recipient_identity(_recipient), do: nil
+
+  defp recipient_address("user:" <> address)
+       when is_binary(address) and byte_size(address) in 3..160 do
+    if String.match?(address, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/), do: address, else: nil
   end
 
-  defp sanitize_map(_not_map), do: %{}
+  defp recipient_address(_recipient_identity), do: nil
 
-  defp sensitive_key?(key) when is_atom(key), do: sensitive_key?(Atom.to_string(key))
-  defp sensitive_key?(key) when is_binary(key), do: String.downcase(key) in @sensitive_keys
-  defp sensitive_key?(_key), do: false
-
-  defp recipient_identity(%{recipient_identity: identity}), do: identity
-  defp recipient_identity(%{"recipient_identity" => identity}), do: identity
-  defp recipient_identity(_recipient), do: nil
+  defp optional_correlation_ref(nil), do: {:ok, nil}
+  defp optional_correlation_ref(value), do: SafeEvidence.opaque_ref(:correlation, value)
 
   defp recipient_type(%{recipient_type: recipient_type}),
     do: normalize_recipient_type(recipient_type)
@@ -437,23 +547,30 @@ defmodule Chimeway.Trigger do
 
   # Dispatch after the trigger transaction commits.
   #
-  # D-03 contract: this function returns its input unchanged on `{:duplicate, event}`
+  # This function returns its input unchanged on `{:duplicate, event}`
   # via the catch-all clause below. The duplicate path is INTENTIONALLY inert — do
   # NOT add a "resume dispatch on duplicate" path here. That scenario (host crashed
-  # between event-insert commit and dispatcher invocation) is deferred to a future
-  # operability/recovery phase. See @moduledoc § "Duplicate-trigger contract" for
-  # the rationale.
-  defp dispatch_after_trigger({:ok, %{event: event} = trigger_result}, notifier, params, opts) do
+  # between the event insert committing and dispatcher invocation) requires explicit
+  # operator replay. See @moduledoc § "Duplicate-trigger contract" for the rationale.
+  defp dispatch_after_trigger(
+         {:ok, %{event: event} = trigger_result, dispatch_context},
+         notifier,
+         params,
+         opts
+       ) do
     dispatcher = Application.get_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
     notifications = Repo.all(from(n in Notification, where: n.event_id == ^event.id))
 
     dispatch_opts =
       opts
+      |> Keyword.drop([:precomputed_rendering, :recipient_handoffs])
       |> Keyword.put_new(:notifier, notifier)
       |> Keyword.put_new(:trigger_params, params)
       |> Keyword.put_new(:notification_key, event.notification_key)
       |> Keyword.put_new(:event_id, event.id)
       |> Keyword.put_new(:correlation_id, event.correlation_id)
+      |> Keyword.put(:precomputed_rendering, dispatch_context.precomputed_rendering)
+      |> Keyword.put(:recipient_handoffs, dispatch_context.recipient_handoffs)
 
     case dispatcher.dispatch(notifications, dispatch_opts) do
       {:ok, deliveries} ->
@@ -461,7 +578,7 @@ defmodule Chimeway.Trigger do
          merge_dispatch_outcome(trigger_result, :ok, dispatch_mode_for(dispatcher), deliveries)}
 
       {:error, reason} ->
-        Logger.warning("Dispatch failed after trigger: #{inspect(reason)}")
+        Logger.warning("Dispatch failed after trigger")
 
         {:ok,
          merge_dispatch_outcome(
@@ -473,7 +590,7 @@ defmodule Chimeway.Trigger do
     end
   end
 
-  # D-03 catch-all: returns {:duplicate, event} | {:error, _} unchanged. Inert by design.
+  # Returns {:duplicate, event} | {:error, _} unchanged. Inert by design.
   defp dispatch_after_trigger(result, _notifier, _params, _opts), do: result
 
   defp dispatch_mode_for(Chimeway.Dispatch.Sync), do: :sync

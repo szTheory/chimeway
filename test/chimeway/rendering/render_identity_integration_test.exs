@@ -18,7 +18,8 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
     @impl true
     def recipients(_params) do
-      {:ok, [%{recipient_identity: "user:render", recipient_type: "user"}]}
+      {:ok,
+       [%{recipient_identity: "user:render", recipient_ref: "cw_render", recipient_type: "user"}]}
     end
 
     @impl true
@@ -65,7 +66,8 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
     test "changeset accepts render_assigns while keeping existing required fields" do
       attrs = %{
         event_id: Ecto.UUID.generate(),
-        recipient_identity: "user:render",
+        tenant_id: "default",
+        recipient_identity: "cw_render",
         recipient_type: "user",
         metadata: %{"subject" => "Hello"},
         render_assigns: %{"headline" => "Welcome"}
@@ -118,6 +120,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
           notification_key: "comment.created",
           notification_version: 1,
           idempotency_key: "render_identity_001",
+          tenant_id: "default",
           payload: %{"comment_id" => 123}
         })
         |> Repo.insert!()
@@ -126,7 +129,8 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
         %Notification{}
         |> Notification.changeset(%{
           event_id: event.id,
-          recipient_identity: "user:1",
+          tenant_id: event.tenant_id,
+          recipient_identity: "cw_render_1",
           recipient_type: "user",
           metadata: %{"legacy_subject" => "Comment created"},
           render_assigns: %{"comment_id" => 123, "actor_name" => "Ada"}
@@ -168,22 +172,10 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
       notification =
         Notification
-        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "user:render")
+        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "cw_render")
 
-      expected_assigns = %{
-        "headline" => "Welcome",
-        "body" => "Ada commented",
-        "subject" => "Welcome",
-        "html_body" => "<p>Ada commented</p>",
-        "text_body" => "Ada commented",
-        "primary_action" => %{"label" => "Open", "url" => "https://example.test/render"}
-      }
-
-      assert notification.render_assigns == expected_assigns
-      assert notification.metadata == expected_assigns
-      refute Map.has_key?(notification.render_assigns, "token")
-      refute Map.has_key?(notification.metadata, "token")
-      refute notification.metadata["legacy_subject"] == "stale compatibility data"
+      assert notification.render_assigns == %{}
+      assert notification.metadata == %{}
     end
 
     test "trigger persists render_channels snapshot on notifications" do
@@ -197,7 +189,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
       notification =
         Notification
-        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "user:render")
+        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "cw_render")
 
       assert notification.render_channels == %{
                "email" => %{"render_key" => "comment.created.email", "render_version" => 4},
@@ -216,13 +208,10 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
 
       notification =
         Notification
-        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "user:render")
+        |> Repo.get_by!(event_id: result.event.id, recipient_identity: "cw_render")
 
-      email_channel = notification.render_channels["email"]
       in_app_channel = notification.render_channels["in_app"]
 
-      refute Map.has_key?(email_channel, "render_data")
-      refute Map.has_key?(email_channel, :render_data)
       refute Map.has_key?(in_app_channel, "body")
       refute Map.has_key?(in_app_channel, :body)
     end
@@ -234,6 +223,7 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
           notification_key: "comment.created.rendering",
           notification_version: 2,
           idempotency_key: "render-planning-001",
+          tenant_id: "default",
           payload: %{"headline" => "Welcome", "body" => "Ada commented"}
         })
         |> Repo.insert!()
@@ -242,7 +232,8 @@ defmodule Chimeway.Rendering.RenderIdentityIntegrationTest do
         %Notification{}
         |> Notification.changeset(%{
           event_id: event.id,
-          recipient_identity: "user:render",
+          tenant_id: event.tenant_id,
+          recipient_identity: "cw_render",
           recipient_type: "user",
           metadata: %{
             "headline" => "Welcome",

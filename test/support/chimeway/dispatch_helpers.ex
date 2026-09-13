@@ -21,18 +21,21 @@ defmodule Chimeway.Test.DispatchHelpers do
     recipient_type = Keyword.get(opts, :recipient_type, "user")
     payload = Keyword.get(opts, :payload, %{})
     metadata = Keyword.get(opts, :metadata, %{})
+    tenant_id = Keyword.get(opts, :tenant_id, "default")
 
     {:ok, event} =
       Repo.insert(%Event{
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "test-#{System.unique_integer()}",
+        tenant_id: tenant_id,
         payload: payload
       })
 
     {:ok, notification} =
       Repo.insert(%Notification{
         event_id: event.id,
+        tenant_id: tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: recipient_type,
         metadata: metadata,
@@ -74,18 +77,21 @@ defmodule Chimeway.Test.DispatchHelpers do
     recipient_identity = Keyword.get(opts, :recipient_identity, "user:#{System.unique_integer()}")
     channel = Keyword.get(opts, :channel, :in_app)
     delay_fallback = Keyword.get(opts, :delay_fallback, false)
+    tenant_id = Keyword.get(opts, :tenant_id, "default")
 
     {:ok, event} =
       Repo.insert(%Event{
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "test-#{System.unique_integer()}",
+        tenant_id: tenant_id,
         payload: %{}
       })
 
     {:ok, notification} =
       Repo.insert(%Notification{
         event_id: event.id,
+        tenant_id: tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{},
@@ -111,7 +117,7 @@ defmodule Chimeway.Test.DispatchHelpers do
         channel: to_string(channel),
         status: :pending,
         delay_fallback: delay_fallback,
-        tenant_id: "default",
+        tenant_id: tenant_id,
         actor_id: "system"
       })
       |> Repo.insert()

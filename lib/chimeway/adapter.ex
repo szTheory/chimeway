@@ -73,7 +73,7 @@ defmodule Chimeway.Adapter do
 
   @doc """
   Extract a stable provider-assigned event ID from a parsed provider webhook payload.
-  Used for idempotent deduplication of provider retries (Phase 33 D-05 / A4).
+  Used for idempotent deduplication of provider retries.
   Optional: adapters without stable event IDs omit this callback; those callbacks
   get `provider_event_id = nil` (no dedup — the partial unique index ignores NULLs).
   """

@@ -5,7 +5,9 @@ defmodule ChimewayTest.Notifiers.RuntimePrefix do
   def version, do: 1
 
   def recipients(%{recipient_id: recipient_id}),
-    do: {:ok, [%{recipient_identity: recipient_id, recipient_type: "user"}]}
+    do:
+      {:ok,
+       [%{recipient_identity: recipient_id, recipient_ref: recipient_id, recipient_type: "user"}]}
 
   def build(params, _recipient) do
     {:ok,
@@ -16,7 +18,7 @@ defmodule ChimewayTest.Notifiers.RuntimePrefix do
      }}
   end
 
-  def channels(_params, _recipient), do: {:ok, [:in_app, :email]}
+  def channels(_params, _recipient), do: {:ok, [:in_app]}
 
   def rendering(_params, _recipient) do
     {:ok,
@@ -44,7 +46,9 @@ defmodule ChimewayTest.Notifiers.RuntimePrefixWorkflow do
   def version, do: 1
 
   def recipients(%{recipient_id: recipient_id}),
-    do: {:ok, [%{recipient_identity: recipient_id, recipient_type: "user"}]}
+    do:
+      {:ok,
+       [%{recipient_identity: recipient_id, recipient_ref: recipient_id, recipient_type: "user"}]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Runtime workflow"}}
 
@@ -96,6 +100,58 @@ defmodule ChimewayTest.Notifiers.RuntimePrefixWorkflow do
   end
 end
 
+defmodule ChimewayTest.Notifiers.RuntimePrefixPush do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "test.runtime_prefix.push"
+  def version, do: 1
+
+  def recipients(%{recipient_id: recipient_id}),
+    do:
+      {:ok,
+       [%{recipient_identity: recipient_id, recipient_ref: recipient_id, recipient_type: "user"}]}
+
+  def build(_params, _recipient), do: {:ok, %{title: "Runtime prefix push"}}
+  def channels(_params, _recipient), do: {:ok, [:push]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{},
+       channels: %{
+         push: %{
+           render_key: "test.runtime_prefix.push",
+           render_version: 1,
+           title: "Runtime prefix push",
+           body: "Runtime prefix push body"
+         }
+       }
+     }}
+  end
+end
+
+defmodule ChimewayTest.RuntimePrefixTargetResolver do
+  @behaviour Chimeway.TargetResolver
+
+  @impl true
+  def resolve_targets(tenant_id, _opts) do
+    {:ok,
+     [
+       %Chimeway.TargetResolver.BindingRevision{
+         tenant_id: tenant_id,
+         binding_revision_ref: "cw_runtime_prefix_binding_001"
+       }
+     ]}
+  end
+end
+
+defmodule ChimewayTest.RuntimePrefixTargetAdapter do
+  @behaviour Chimeway.TargetAdapter
+
+  @impl true
+  def deliver(_envelope, _opts), do: {:ok, %{provider_code: "accepted"}}
+end
+
 defmodule ChimewayTest.Adapters.RuntimePrefixWebhook do
   @behaviour Chimeway.Adapter
 
@@ -116,6 +172,39 @@ defmodule ChimewayTest.Adapters.RuntimePrefixWebhook do
   def resolve_provider_event_id(_parsed), do: :none
 end
 
+defmodule ChimewayTest.RuntimePrefixRenderContextResolver do
+  @behaviour Chimeway.RenderContextResolver
+
+  @impl true
+  def resolve("test.runtime_prefix", 1, recipient_ref) do
+    {:ok,
+     %{
+       notifier: ChimewayTest.Notifiers.RuntimePrefix,
+       params: %{},
+       recipient: %{
+         recipient_identity: recipient_ref,
+         recipient_ref: recipient_ref,
+         recipient_type: "user"
+       }
+     }}
+  end
+
+  def resolve("test.runtime_prefix.workflow", 1, recipient_ref) do
+    {:ok,
+     %{
+       notifier: ChimewayTest.Notifiers.RuntimePrefixWorkflow,
+       params: %{},
+       recipient: %{
+         recipient_identity: recipient_ref,
+         recipient_ref: recipient_ref,
+         recipient_type: "user"
+       }
+     }}
+  end
+
+  def resolve(_, _, _), do: {:error, :render_context_unavailable}
+end
+
 defmodule Chimeway.RuntimePrefixIntegrationTest do
   use Chimeway.PrefixedRuntimeCase
   use Oban.Testing, repo: Chimeway.Repo, prefix: "public"
@@ -125,7 +214,17 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
   import Ecto.Query
 
-  alias Chimeway.{Admin, Deliveries, Delivery, Preferences, Repo, Signal, Traces}
+  alias Chimeway.{
+    Admin,
+    Deliveries,
+    Delivery,
+    Preferences,
+    Reconciliation,
+    Repo,
+    Signal,
+    TargetRecovery,
+    Traces
+  }
 
   alias Chimeway.Dispatch.{
     DeferredResumeWorker,
@@ -136,7 +235,6 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   }
 
   alias Chimeway.Digests.{Accumulation, DigestBucket}
-  alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Policy
   alias Chimeway.Policy.Settings
@@ -152,14 +250,28 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   setup do
     previous_adapter = Application.fetch_env(:chimeway, :adapter)
     previous_dispatcher = Application.fetch_env(:chimeway, :dispatcher)
+    previous_resolvers = Application.fetch_env(:chimeway, :render_context_resolvers)
+    previous_target_resolver = Application.fetch_env(:chimeway, :target_resolver)
+    previous_target_adapter = Application.fetch_env(:chimeway, :target_adapter)
 
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
     Application.put_env(:chimeway, :dispatcher, Chimeway.Dispatch.Sync)
+    Application.put_env(:chimeway, :target_resolver, ChimewayTest.RuntimePrefixTargetResolver)
+    Application.put_env(:chimeway, :target_adapter, ChimewayTest.RuntimePrefixTargetAdapter)
+
+    Application.put_env(:chimeway, :render_context_resolvers, %{
+      {"test.runtime_prefix", 1} => ChimewayTest.RuntimePrefixRenderContextResolver,
+      {"test.runtime_prefix.workflow", 1} => ChimewayTest.RuntimePrefixRenderContextResolver
+    })
+
     Chimeway.Adapters.Test.clear()
 
     on_exit(fn ->
       restore_env(:adapter, previous_adapter)
       restore_env(:dispatcher, previous_dispatcher)
+      restore_env(:render_context_resolvers, previous_resolvers)
+      restore_env(:target_resolver, previous_target_resolver)
+      restore_env(:target_adapter, previous_target_adapter)
       Chimeway.Adapters.Test.clear()
     end)
 
@@ -177,10 +289,12 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
                trigger_opts("trigger")
              )
 
+    assert result.dispatch_outcome == :ok
+
     assert_prefixed_only("chimeway_events", 1)
     assert_prefixed_only("chimeway_notifications", 1)
-    assert_prefixed_only("chimeway_deliveries", 2)
-    assert_prefixed_only("chimeway_delivery_attempts", 2)
+    assert_prefixed_only("chimeway_deliveries", 1)
+    assert_prefixed_only("chimeway_delivery_attempts", 1)
 
     assert {:duplicate, duplicate_event} =
              Chimeway.trigger(
@@ -191,6 +305,40 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
              )
 
     assert duplicate_event.id == result.event.id
+  end
+
+  @tag :runtime_prefix_target
+  test "push target planning writes only through the configured static runtime prefix" do
+    %{delivery: delivery} = create_pending_delivery(channel: :push)
+
+    binding = %Chimeway.TargetResolver.BindingRevision{
+      tenant_id: delivery.tenant_id,
+      binding_revision_ref: "cw_runtime_prefix_binding_001"
+    }
+
+    assert {:ok, [_target]} =
+             Chimeway.DeliveryTargets.plan_targets(delivery, delivery.tenant_id, [binding])
+
+    assert_prefixed_only("chimeway_delivery_targets", 1)
+    assert_prefixed_only("chimeway_delivery_target_attempts", 0)
+  end
+
+  @tag :runtime_prefix_target
+  test "recovery discovery uses configured static storage without a domain prefix argument" do
+    %{delivery: delivery} = create_pending_delivery(channel: :push, tenant_id: "acme")
+
+    binding = %Chimeway.TargetResolver.BindingRevision{
+      tenant_id: delivery.tenant_id,
+      binding_revision_ref: "cw_runtime_recovery_binding_001"
+    }
+
+    assert {:ok, [%{id: target_id}]} =
+             Chimeway.DeliveryTargets.plan_targets(delivery, delivery.tenant_id, [binding])
+
+    assert %{target_ids: [^target_id], reason: :resumed_target} =
+             TargetRecovery.discover_target_work("acme")
+
+    assert_prefixed_only("chimeway_delivery_targets", 1)
   end
 
   @tag :runtime_prefix_operator
@@ -206,20 +354,25 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
                trigger_opts("operator")
              )
 
-    assert [%Notification{id: notification_id}] = Chimeway.list_for_recipient(recipient_id)
+    assert [%Notification{id: notification_id}] =
+             Chimeway.list_for_recipient(recipient_id, tenant_id: "acme")
 
-    assert :ok = Chimeway.mark_seen(notification_id, recipient_id)
-    assert :ok = Chimeway.mark_read(notification_id, recipient_id)
+    assert :ok = Chimeway.mark_seen(notification_id, recipient_id, tenant_id: "acme")
+    assert :ok = Chimeway.mark_read(notification_id, recipient_id, tenant_id: "acme")
 
-    assert Chimeway.unread_count(recipient_id) == 0
+    assert Chimeway.unread_count(recipient_id, tenant_id: "acme") == 0
 
-    assert {:ok, %Event{notifications: [_notification]}} = Traces.get_trace(event.id)
+    assert {:ok, %{id: event_id, tenant_id: "acme", notifications: [_notification]}} =
+             Traces.get_trace(event.id, tenant_id: "acme")
+
+    assert event_id == event.id
 
     problem =
       create_pending_delivery(
         notification_key: "test.runtime_prefix.admin.problem",
         recipient_identity: recipient_id,
-        channel: :email
+        channel: :email,
+        tenant_id: "acme"
       )
 
     problem_delivery =
@@ -242,7 +395,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       create_pending_delivery(
         notification_key: "test.runtime_prefix.admin.recovery_candidate",
         recipient_identity: recipient_id,
-        channel: :in_app
+        channel: :in_app,
+        tenant_id: "acme"
       )
 
     recovery_candidate_delivery =
@@ -256,7 +410,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       create_pending_delivery(
         notification_key: "test.runtime_prefix.recovery.begin",
         recipient_identity: unique_recipient("recovery-begin"),
-        channel: :email
+        channel: :email,
+        tenant_id: "acme"
       )
 
     begin_candidate_delivery =
@@ -268,6 +423,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert {:ok, claimed_delivery} =
              Deliveries.begin_recovery(begin_candidate_delivery.id,
+               tenant_id: "acme",
                now: now,
                older_than: 60,
                source: "runtime_prefix_operator",
@@ -283,7 +439,8 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
       create_pending_delivery(
         notification_key: "test.runtime_prefix.recovery.delivery",
         recipient_identity: unique_recipient("recovery-delivery"),
-        channel: :email
+        channel: :email,
+        tenant_id: "acme"
       )
 
     delivery_recovery_candidate =
@@ -295,6 +452,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert {:ok, recovered_delivery} =
              Deliveries.recover_delivery(delivery_recovery_candidate.id,
+               tenant_id: "acme",
                now: now,
                older_than: 60,
                source: "runtime_prefix_operator",
@@ -308,8 +466,9 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     event_recovery =
       create_notification(
-        notification_key: "test.runtime_prefix.recovery.event",
-        recipient_identity: unique_recipient("recovery-event")
+        notification_key: "test.runtime_prefix",
+        recipient_identity: unique_recipient("recovery-event"),
+        tenant_id: "acme"
       )
 
     event_recovery.event
@@ -320,6 +479,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert {:ok, recovered_event} =
              Deliveries.recover_event(event_recovery.event.id,
+               tenant_id: "acme",
                now: now,
                older_than: 60,
                source: "runtime_prefix_operator",
@@ -385,14 +545,14 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     assert_prefixed_only("chimeway_events", 1)
     assert_prefixed_only("chimeway_notifications", 1)
-    assert_prefixed_only("chimeway_deliveries", 2)
+    assert_prefixed_only("chimeway_deliveries", 1)
 
-    assert public_count("oban_jobs") == 2
+    assert public_count("oban_jobs") == 1
     assert prefixed_count("oban_jobs") == 0
 
     oban_worker_jobs = all_enqueued(worker: ObanWorker)
 
-    assert length(oban_worker_jobs) == 2
+    assert length(oban_worker_jobs) == 1
 
     assert Enum.all?(oban_worker_jobs, fn %{args: args} ->
              map_size(args) == 1 and is_binary(args["delivery_id"])
@@ -548,7 +708,10 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
     # Chimeway.Dispatch.ObanWorker.perform/1 and
     # Chimeway.Dispatch.DeferredResumeWorker.perform/1 must reload by durable delivery_id.
-    assert :ok = DeferredResumeWorker.perform(%Oban.Job{args: %{"delivery_id" => deferred.id}})
+    assert :ok =
+             DeferredResumeWorker.perform(%Oban.Job{
+               args: %{"delivery_id" => deferred.id, "tenant_id" => deferred.tenant_id}
+             })
   end
 
   @tag :runtime_prefix_digest
@@ -714,10 +877,11 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
 
       assert public_count("chimeway_events") == 1
       assert public_count("chimeway_notifications") == 1
-      assert public_count("chimeway_deliveries") == 2
+      assert public_count("chimeway_deliveries") == 1
       assert prefixed_count("chimeway_events") == 0
       assert prefixed_count("chimeway_notifications") == 0
       assert prefixed_count("chimeway_deliveries") == 0
+      assert %{events: 0, notifications: 0} = Reconciliation.report().counts
     end)
   end
 
@@ -761,7 +925,7 @@ defmodule Chimeway.RuntimePrefixIntegrationTest do
   defp trigger_opts(label), do: [idempotency_key: unique_key(label), tenant_id: "acme"]
 
   defp unique_recipient(label),
-    do: "user:runtime-prefix:#{label}:#{System.unique_integer([:positive])}"
+    do: "cw_runtime_prefix_#{label}_#{System.unique_integer([:positive])}"
 
   defp update_delivery!(%Delivery{} = delivery, attrs) do
     delivery

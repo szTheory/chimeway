@@ -26,7 +26,7 @@ defmodule Chimeway.Install.PrefixContractTest do
       |> Path.wildcard()
       |> Enum.sort()
 
-    assert length(files) == 31
+    assert length(files) == 37
 
     {:ok, files: files}
   end
@@ -72,9 +72,68 @@ defmodule Chimeway.Install.PrefixContractTest do
       refute Regex.match?(~r/\bDROP\s+SCHEMA\b/i, content),
              "#{path} must not generate DROP SCHEMA rollback SQL"
 
-      refute Regex.match?(~r/\bCASCADE\b/i, content),
-             "#{path} must not generate destructive CASCADE cleanup"
+      refute Regex.match?(~r/\bDROP\s+(?:TABLE|INDEX|CONSTRAINT)\b[^;]*\bCASCADE\b/is, content),
+             "#{path} must not generate destructive object-drop CASCADE cleanup"
     end
+  end
+
+  test "prefixed target migration helper-qualifies every target relation and constraint" do
+    migration =
+      Path.join(
+        @prefixed_root,
+        "TIMESTAMP_create_chimeway_delivery_targets.exs"
+      )
+      |> File.read!()
+
+    for relation <- [
+          ":chimeway_delivery_targets",
+          ":chimeway_delivery_target_attempts",
+          ":chimeway_deliveries"
+        ] do
+      assert migration =~ relation
+    end
+
+    assert migration =~ "chimeway_table(:chimeway_delivery_targets"
+    assert migration =~ "chimeway_table(:chimeway_delivery_target_attempts"
+    assert migration =~ "chimeway_references(:chimeway_deliveries"
+    assert migration =~ "chimeway_references(:chimeway_delivery_targets"
+
+    assert migration =~
+             "chimeway_index(:chimeway_delivery_targets, [:delivery_id, :binding_revision_ref]"
+
+    assert migration =~
+             "chimeway_index(:chimeway_delivery_target_attempts, [:delivery_target_id, :attempt_number]"
+
+    refute migration =~ "prefix: tenant"
+    refute migration =~ "prefix: binding"
+  end
+
+  test "prefixed tenant-integrity repair keeps referential cascades and fixed relations" do
+    migration =
+      Path.join(@prefixed_root, "TIMESTAMP_enforce_delivery_target_tenant_integrity.exs")
+      |> File.read!()
+
+    assert migration =~ ~s(@chimeway_prefix "chimeway")
+    assert migration =~ "chimeway_relation(:chimeway_deliveries)"
+    assert migration =~ "chimeway_relation(:chimeway_delivery_targets)"
+    assert migration =~ "chimeway_relation(:chimeway_delivery_target_attempts)"
+    assert migration =~ "ON DELETE CASCADE"
+    assert migration =~ "chimeway_delivery_targets_tenant_delivery_fkey"
+    assert migration =~ "chimeway_delivery_target_attempts_tenant_target_fkey"
+    assert migration =~ "chimeway_delivery_target_attempts_prior_same_target_fkey"
+  end
+
+  test "prefixed APNs intent migration alters only the fixed target relation" do
+    migration =
+      Path.join(@prefixed_root, "TIMESTAMP_add_apns_request_intent.exs")
+      |> File.read!()
+
+    assert migration =~ ~s(@chimeway_prefix "chimeway")
+    assert migration =~ "alter chimeway_table(:chimeway_delivery_targets)"
+    assert migration =~ "add(:apns_request_intent, :map)"
+    assert migration =~ "remove(:apns_request_intent)"
+    refute migration =~ "prefix: tenant"
+    refute migration =~ "prefix: binding"
   end
 
   test "local and CI installer gates run the same verify.install_golden proof" do

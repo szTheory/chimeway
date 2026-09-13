@@ -4,6 +4,7 @@ defmodule Chimeway.TriggerSanitizationTest do
   import Ecto.Query, only: [from: 2]
 
   alias Chimeway.Events.Event
+  alias Chimeway.Delivery
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
   alias Chimeway.Trigger
@@ -19,7 +20,14 @@ defmodule Chimeway.TriggerSanitizationTest do
 
     @impl true
     def recipients(%{"user_id" => user_id}) do
-      {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+      {:ok,
+       [
+         %{
+           recipient_identity: "user:#{user_id}",
+           recipient_ref: "cw_user_#{user_id}",
+           recipient_type: "user"
+         }
+       ]}
     end
 
     @impl true
@@ -51,6 +59,36 @@ defmodule Chimeway.TriggerSanitizationTest do
     end
   end
 
+  defmodule RecipientReferenceNotifier do
+    @behaviour Chimeway.Notifier
+
+    @impl true
+    def notification_key, do: "test.auth_flow_sanitization"
+
+    @impl true
+    def version, do: 1
+
+    @impl true
+    def recipients(%{"recipient" => recipient}), do: {:ok, [recipient]}
+
+    @impl true
+    def build(_params, _recipient), do: {:ok, %{}}
+
+    @impl true
+    def channels(_params, _recipient), do: {:ok, [:in_app]}
+
+    @impl true
+    def rendering(_params, _recipient) do
+      {:ok,
+       %{
+         assigns: %{},
+         channels: %{
+           in_app: %{render_key: "test.auth_flow_sanitization.in_app", render_version: 1}
+         }
+       }}
+    end
+  end
+
   @sensitive_values %{
     "url" => "https://secret.example/login/abc",
     "code" => "123456",
@@ -59,6 +97,61 @@ defmodule Chimeway.TriggerSanitizationTest do
   }
 
   describe "sanitize_payload/1 auth-flow keys (D-08)" do
+    test "public Trigger results omit private recipient and render handoffs" do
+      assert {:ok, result} =
+               Trigger.trigger(
+                 AuthFlowSanitizationNotifier,
+                 %{"user_id" => "42"},
+                 idempotency_key: "sanitization-public-result-#{System.unique_integer()}",
+                 tenant_id: "tenant-1"
+               )
+
+      assert result.dispatch_outcome == :ok
+      assert result.trace.event_id == result.event.id
+
+      public_result = inspect(result)
+
+      for sentinel <- [
+            "recipients",
+            "precomputed_rendering",
+            "recipient_handoffs",
+            "https://secret.example/login/abc",
+            "Sanitized assigns"
+          ] do
+        refute public_result =~ sentinel
+      end
+    end
+
+    test "approved fact keys cannot retain recipient, credential, URL, or rendered text" do
+      hostile_facts = %{
+        "category" => "alex@example.test",
+        "reason" => "reset-token=abc",
+        "scheduled_at" => "https://secret.example/reset",
+        :category => "comment"
+      }
+
+      assert {:ok, %{event: event}} =
+               Trigger.trigger(
+                 AuthFlowSanitizationNotifier,
+                 Map.merge(hostile_facts, %{"user_id" => "1"}),
+                 idempotency_key: "approved-key-values-#{System.unique_integer()}",
+                 tenant_id: "tenant-1"
+               )
+
+      reloaded = Repo.get!(Event, event.id)
+      encoded = inspect(reloaded.payload)
+
+      assert reloaded.payload == %{}
+
+      for sentinel <- [
+            "alex@example.test",
+            "reset-token=abc",
+            "https://secret.example/reset"
+          ] do
+        refute encoded =~ sentinel
+      end
+    end
+
     test "strips url, code, raw_token, and magic_link_url from persisted event payload" do
       params =
         Map.merge(@sensitive_values, %{
@@ -75,7 +168,7 @@ defmodule Chimeway.TriggerSanitizationTest do
 
       reloaded = Repo.get!(Event, event.id)
 
-      assert reloaded.payload["user_id"] == "1"
+      assert reloaded.payload == %{}
 
       for {key, value} <- @sensitive_values do
         refute Map.has_key?(reloaded.payload, key)
@@ -111,8 +204,71 @@ defmodule Chimeway.TriggerSanitizationTest do
         refute Map.has_key?(notification.metadata, key)
       end
 
-      assert notification.render_assigns["user_id"] == "1"
-      assert notification.render_assigns["headline"] == "Auth test"
+      assert notification.render_assigns == %{}
+      assert notification.recipient_identity == "cw_user_1"
     end
+  end
+
+  describe "recipient reference persistence boundary" do
+    test "raw recipient values and duplicate aliases fail before lifecycle writes" do
+      for recipient <- [
+            %{recipient_identity: "alex-smith", recipient_type: "user"},
+            %{recipient_identity: "another-raw-slug", recipient_type: "user"},
+            %{
+              "recipient_ref" => "cw_recipient_42",
+              recipient_ref: "cw_recipient_42",
+              recipient_type: "user"
+            },
+            %{
+              "recipient_ref" => "cw_recipient_42",
+              recipient_ref: "cw_recipient_42",
+              recipient_type: "user"
+            },
+            %{
+              "recipient_identity" => "cw_recipient_42",
+              recipient_identity: "cw_recipient_42",
+              recipient_type: "user"
+            }
+          ] do
+        before = lifecycle_counts()
+
+        assert {:error, :unsafe_evidence} =
+                 Trigger.trigger(
+                   RecipientReferenceNotifier,
+                   %{"recipient" => recipient},
+                   idempotency_key: "recipient-reference-rejection-#{System.unique_integer()}",
+                   tenant_id: "tenant-1"
+                 )
+
+        assert lifecycle_counts() == before
+      end
+    end
+
+    test "explicit opaque recipient references persist an explainable lifecycle spine" do
+      assert {:ok, %{event: event, trace: trace}} =
+               Trigger.trigger(
+                 RecipientReferenceNotifier,
+                 %{
+                   "recipient" => %{
+                     recipient_ref: "cw_recipient_42",
+                     recipient_type: "user"
+                   }
+                 },
+                 idempotency_key: "recipient-reference-control-#{System.unique_integer()}",
+                 tenant_id: "tenant-1"
+               )
+
+      notification = Repo.one!(from(n in Notification, where: n.event_id == ^event.id))
+      assert notification.recipient_identity == "cw_recipient_42"
+      assert trace.event_id == event.id
+    end
+  end
+
+  defp lifecycle_counts do
+    %{
+      events: Repo.aggregate(Event, :count),
+      notifications: Repo.aggregate(Notification, :count),
+      deliveries: Repo.aggregate(Delivery, :count)
+    }
   end
 end

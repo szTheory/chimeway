@@ -6,14 +6,35 @@ defmodule DemoHostWeb.InboxBellProofTest do
   """
   use DemoHostWeb.ConnCase, async: false
 
+  import Ecto.Query
   import Phoenix.LiveViewTest
+  use Oban.Testing, repo: Chimeway.Repo, prefix: "chimeway"
 
+  alias Chimeway.{Delivery, Events.Event}
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
+  alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun, WorkflowStep, WorkflowTransition}
 
   @moduletag :inbox
 
+  defmodule MutableInboxAuth do
+    @behaviour ChimewayInbox.Auth
+
+    @impl true
+    def current_recipient(_session, _context) do
+      {:ok, Application.fetch_env!(:demo_host, :inbox_proof_recipient)}
+    end
+
+    @impl true
+    def current_tenant(_session, _context) do
+      {:ok, Application.fetch_env!(:demo_host, :inbox_proof_tenant)}
+    end
+  end
+
   test "DEMO-08 list, mark_read, and badge update" do
+    assert {:ok, _opaque_ref} =
+             Chimeway.SafeEvidence.opaque_ref(:recipient, DemoHost.Seeds.alex_identity())
+
     assert {:ok, %{notification_ids: [first_id | _]}} = DemoHost.Seeds.seed_inbox()
 
     conn =
@@ -40,12 +61,301 @@ defmodule DemoHostWeb.InboxBellProofTest do
     assert persisted.read_at
   end
 
+  test "DEMO-08 public trigger refreshes a previously mounted bell" do
+    suffix = System.unique_integer([:positive])
+    team_name = "Arrival Team #{suffix}"
+
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{"demo_user_email" => DemoHost.Seeds.alex_email()})
+
+    {:ok, view, html} = live(conn, "/inbox")
+
+    assert html =~ ~s(aria-label="Notifications")
+    assert has_element?(view, "[data-cw-inbox-badge][hidden]", "0")
+    refute html =~ team_name
+
+    assert {:ok, %{event: event, notifications_inserted: 1}} =
+             Chimeway.trigger(
+               DemoHost.Notifiers.InviteSent,
+               %{email: DemoHost.Seeds.alex_email(), team_name: team_name},
+               idempotency_key: "demo-mounted-arrival-#{suffix}",
+               tenant_id: DemoHost.Seeds.tenant_id()
+             )
+
+    notification =
+      Repo.one!(
+        from(n in Notification,
+          where:
+            n.event_id == ^event.id and
+              n.tenant_id == ^DemoHost.Seeds.tenant_id() and
+              n.recipient_identity == ^DemoHost.Seeds.alex_identity()
+        )
+      )
+
+    assert render(view) =~ "Notifications, 1 unread"
+
+    opened_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert opened_html =~ ~s(data-notification-id="#{notification.id}")
+    refute opened_html =~ team_name
+  end
+
   test "DEMO-08 mark_seen via host API" do
     assert {:ok, %{notification_ids: [_first_id, second_id | _]}} = DemoHost.Seeds.seed_inbox()
 
-    assert :ok = Chimeway.mark_seen(second_id, DemoHost.Seeds.alex_identity())
+    assert :ok =
+             Chimeway.mark_seen(second_id, DemoHost.Seeds.alex_identity(),
+               tenant_id: DemoHost.Seeds.tenant_id()
+             )
 
     persisted = Repo.get!(Notification, second_id)
     assert persisted.seen_at
   end
+
+  test "DEMO-08 mounted bell progresses an eligible seen workflow exactly once" do
+    assert {:ok, %{notification_ids: [first_id | _]}} = DemoHost.Seeds.seed_inbox()
+    run = insert_waiting_seen_run!(first_id, DemoHost.Seeds.tenant_id())
+
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{"demo_user_email" => DemoHost.Seeds.alex_email()})
+
+    {:ok, view, _html} = live(conn, "/inbox")
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    drain_signal_queue!()
+
+    assert Repo.get!(WorkflowRun, run.id).state == :active
+    assert signal_transition_count(run.id) == 1
+
+    assert {:ok, _replayed_signal} =
+             Chimeway.Signal.track(
+               DemoHost.Seeds.tenant_id(),
+               DemoHost.Seeds.alex_identity(),
+               "chimeway.notification.seen",
+               %{"notification_id" => first_id}
+             )
+
+    drain_signal_queue!()
+    assert Repo.get!(WorkflowRun, run.id).state == :active
+    assert signal_transition_count(run.id) == 1
+
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    _ = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
+
+    assert signal_transition_count(run.id) == 1
+  end
+
+  test "DEMO-08 arrival through seen and read renders the authorized operator timeline" do
+    assert {:ok, %{notification_ids: [first_id | _]}} = DemoHost.Seeds.seed_inbox()
+
+    notification = Repo.get!(Notification, first_id)
+    assert is_nil(notification.seen_at)
+    assert is_nil(notification.read_at)
+
+    notification
+    |> Ecto.Changeset.change(%{
+      metadata: %{"caller_metadata" => "caller-hostile-sentinel"},
+      render_assigns: %{"recipient" => "recipient-hostile-sentinel"}
+    })
+    |> Repo.update!()
+
+    delivery_id =
+      Repo.one!(
+        from(d in Delivery,
+          where: d.notification_id == ^first_id and d.channel == "in_app",
+          select: d.id
+        )
+      )
+
+    run = insert_waiting_seen_run!(first_id, DemoHost.Seeds.tenant_id())
+
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{"demo_user_email" => DemoHost.Seeds.alex_email()})
+
+    {:ok, view, arrival_html} = live(conn, "/inbox")
+    assert arrival_html =~ "Notifications, 2 unread"
+
+    opened_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert opened_html =~ ~s(data-notification-id="#{first_id}")
+    drain_signal_queue!()
+
+    seen = Repo.get!(Notification, first_id)
+    assert seen.seen_at
+    assert is_nil(seen.read_at)
+    assert Repo.get!(WorkflowRun, run.id).state == :active
+    assert signal_transition_count(run.id) == 1
+
+    view
+    |> element("button[phx-click=\"mark_read\"][phx-value-id=\"#{first_id}\"]")
+    |> render_click()
+
+    read = Repo.get!(Notification, first_id)
+    assert read.read_at
+
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+    render_click(view, "mark_read", %{"id" => first_id})
+    send(view.pid, {:chimeway_inbox, :reload, 1})
+    _ = render(view)
+    _ = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
+
+    repeated = Repo.get!(Notification, first_id)
+    assert repeated.seen_at == seen.seen_at
+    assert repeated.read_at == read.read_at
+    assert signal_transition_count(run.id) == 1
+
+    {:ok, detail_view, detail_html} =
+      live(conn, "/admin/chimeway/deliveries/#{delivery_id}")
+
+    detail_html = detail_html <> render(detail_view)
+    assert detail_html =~ "Trace Detail"
+    assert detail_html =~ "Notification seen"
+    assert detail_html =~ "Notification read"
+    assert detail_html =~ ~s(data-cw-timeline-event="notification_seen")
+    assert detail_html =~ ~s(data-cw-timeline-event="notification_read")
+    refute detail_html =~ DemoHost.Seeds.alex_identity()
+    refute detail_html =~ "recipient-hostile-sentinel"
+    refute detail_html =~ "caller-hostile-sentinel"
+  end
+
+  test "DEMO-08 wrong tenant and recipient seen signals leave waiting workflows unchanged" do
+    expected_recipient = "cw_demo_scope_expected"
+    notification = insert_notification!("teampulse", expected_recipient)
+    run = insert_waiting_seen_run!(notification.id, "teampulse")
+
+    assert {:ok, _signal} =
+             Chimeway.Signal.track(
+               "other-tenant",
+               expected_recipient,
+               "chimeway.notification.seen"
+             )
+
+    assert {:ok, _signal} =
+             Chimeway.Signal.track(
+               "teampulse",
+               "cw_demo_scope_other",
+               "chimeway.notification.seen"
+             )
+
+    drain_signal_queue!()
+
+    assert Repo.get!(WorkflowRun, run.id).state == :waiting
+    assert signal_transition_count(run.id) == 0
+  end
+
+  test "DEMO-08 authorization change before open leaves the seen workflow waiting" do
+    assert {:ok, %{notification_ids: [first_id | _]}} = DemoHost.Seeds.seed_inbox()
+    run = insert_waiting_seen_run!(first_id, DemoHost.Seeds.tenant_id())
+    use_mutable_inbox_auth!()
+
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{"demo_user_email" => DemoHost.Seeds.alex_email()})
+
+    {:ok, view, _html} = live(conn, "/inbox")
+    Application.put_env(:demo_host, :inbox_proof_recipient, "cw_demo_changed_recipient")
+
+    assert {:error, {:redirect, %{to: "/"}}} =
+             render_click(view, "toggle_panel", %{})
+
+    assert is_nil(Repo.get!(Notification, first_id).seen_at)
+    assert Repo.get!(WorkflowRun, run.id).state == :waiting
+    assert signal_transition_count(run.id) == 0
+  end
+
+  defp insert_waiting_seen_run!(notification_id, tenant_id) do
+    suffix = System.unique_integer([:positive])
+
+    definition =
+      %WorkflowDefinition{}
+      |> WorkflowDefinition.changeset(%{
+        workflow_key: "demo.seen-proof.#{suffix}",
+        workflow_version: 1,
+        notification_key: "teampulse.invite_sent"
+      })
+      |> Repo.insert!()
+
+    step =
+      %WorkflowStep{}
+      |> WorkflowStep.changeset(%{
+        workflow_definition_id: definition.id,
+        step_key: "wait_for_seen",
+        step_order: 1,
+        channel: "in_app",
+        config: %{}
+      })
+      |> Repo.insert!()
+
+    now = DateTime.utc_now()
+
+    %WorkflowRun{}
+    |> WorkflowRun.changeset(%{
+      notification_id: notification_id,
+      workflow_definition_id: definition.id,
+      current_step_id: step.id,
+      state: :waiting,
+      started_at: now,
+      last_transition_at: now,
+      status_reason: "waiting_for_signal",
+      tenant_id: tenant_id,
+      pending_signals: ["chimeway.notification.seen"]
+    })
+    |> Repo.insert!()
+  end
+
+  defp insert_notification!(tenant_id, recipient_identity) do
+    event =
+      Repo.insert!(%Event{
+        notification_key: "test.seen_scope",
+        notification_version: 1,
+        idempotency_key: "seen-scope-#{System.unique_integer([:positive])}",
+        tenant_id: tenant_id,
+        payload: %{}
+      })
+
+    Repo.insert!(%Notification{
+      event_id: event.id,
+      tenant_id: tenant_id,
+      recipient_identity: recipient_identity,
+      recipient_type: "user",
+      metadata: %{},
+      render_assigns: %{},
+      render_channels: %{}
+    })
+  end
+
+  defp signal_transition_count(run_id) do
+    Repo.one(
+      from(t in WorkflowTransition,
+        where: t.workflow_run_id == ^run_id and t.reason == "signal_received",
+        select: count()
+      )
+    )
+  end
+
+  defp drain_signal_queue! do
+    result = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
+    assert result.success >= 1
+  end
+
+  defp use_mutable_inbox_auth! do
+    previous_auth_module = Application.get_env(:chimeway_inbox, :auth_module)
+    previous_recipient = Application.get_env(:demo_host, :inbox_proof_recipient)
+    previous_tenant = Application.get_env(:demo_host, :inbox_proof_tenant)
+
+    Application.put_env(:chimeway_inbox, :auth_module, MutableInboxAuth)
+    Application.put_env(:demo_host, :inbox_proof_recipient, DemoHost.Seeds.alex_identity())
+    Application.put_env(:demo_host, :inbox_proof_tenant, DemoHost.Seeds.tenant_id())
+
+    on_exit(fn ->
+      restore_env(:chimeway_inbox, :auth_module, previous_auth_module)
+      restore_env(:demo_host, :inbox_proof_recipient, previous_recipient)
+      restore_env(:demo_host, :inbox_proof_tenant, previous_tenant)
+    end)
+  end
+
+  defp restore_env(app, key, nil), do: Application.delete_env(app, key)
+  defp restore_env(app, key, value), do: Application.put_env(app, key, value)
 end

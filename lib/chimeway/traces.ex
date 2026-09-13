@@ -30,7 +30,17 @@ defmodule Chimeway.Traces do
 
   import Ecto.Query
 
-  alias Chimeway.{Delivery, Events.Event, Notifications.Notification, Repo}
+  alias Chimeway.{
+    Delivery,
+    DeliveryTarget,
+    DeliveryTargetAttempt,
+    Events.Event,
+    Notifications.Notification,
+    Repo,
+    SafeEvidence,
+    TenantScope
+  }
+
   alias Chimeway.Digests.DigestMembership
   alias Chimeway.Traces.Explanation
   alias Chimeway.Workflows.{WorkflowRun, WorkflowStep, WorkflowTransition}
@@ -40,19 +50,41 @@ defmodule Chimeway.Traces do
 
   Preloads: `[notifications: [deliveries: :attempts]]`
 
-  Returns `{:ok, event}` or `{:error, :not_found}`.
+  Returns `{:ok, closed_event_map}` or `{:error, :not_found}`.
   """
-  @spec get_trace(String.t(), keyword()) :: {:ok, Event.t()} | {:error, :not_found}
+  @spec get_trace(String.t(), keyword()) :: {:ok, map()} | {:error, :not_found}
   def get_trace(event_id, opts \\ []) do
-    repo_opts = repo_opts(opts)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      repo_opts = repo_opts(opts, [:tenant_id])
 
-    case Repo.get(Event, event_id, repo_opts) do
-      nil ->
-        {:error, :not_found}
+      case Repo.one(
+             from(e in Event, where: e.id == ^event_id and e.tenant_id == ^tenant_id),
+             repo_opts
+           ) do
+        nil ->
+          {:error, :not_found}
 
-      event ->
-        loaded = Repo.preload(event, [notifications: [deliveries: :attempts]], repo_opts)
-        {:ok, loaded}
+        event ->
+          notifications_query = from(n in Notification, where: n.tenant_id == ^tenant_id)
+          deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
+
+          loaded =
+            Repo.preload(
+              event,
+              [
+                notifications:
+                  {notifications_query,
+                   [
+                     deliveries: {deliveries_query, target_history_preload(tenant_id)}
+                   ]}
+              ],
+              repo_opts
+            )
+
+          {:ok, SafeEvidence.trace_event(loaded)}
+      end
+    else
+      {:error, _reason} -> {:error, :not_found}
     end
   end
 
@@ -65,30 +97,44 @@ defmodule Chimeway.Traces do
 
   Uses explicit joins to avoid N+1 queries.
   """
-  @spec find_traces_for_recipient(String.t(), keyword()) :: [Notification.t()]
+  @spec find_traces_for_recipient(String.t(), keyword()) :: [map()]
   def find_traces_for_recipient(recipient_id, opts \\ []) do
-    limit = Keyword.get(opts, :limit, 50)
-    notification_key = Keyword.get(opts, :notification_key)
-    repo_opts = repo_opts(opts, [:limit, :notification_key])
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      limit = Keyword.get(opts, :limit, 50)
+      notification_key = Keyword.get(opts, :notification_key)
+      repo_opts = repo_opts(opts, [:limit, :notification_key, :tenant_id])
 
-    query =
-      from(n in Notification,
-        join: e in Event,
-        on: e.id == n.event_id,
-        where: n.recipient_identity == ^recipient_id,
-        order_by: [desc: n.inserted_at],
-        limit: ^limit,
-        preload: [deliveries: :attempts, event: []]
+      query =
+        from(n in Notification,
+          join: e in Event,
+          on: e.id == n.event_id,
+          where:
+            n.recipient_identity == ^recipient_id and n.tenant_id == ^tenant_id and
+              e.tenant_id == ^tenant_id,
+          order_by: [desc: n.inserted_at],
+          limit: ^limit,
+          preload: [event: []]
+        )
+
+      query =
+        if notification_key do
+          from([n, e] in query, where: e.notification_key == ^notification_key)
+        else
+          query
+        end
+
+      deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
+
+      Repo.all(query, repo_opts)
+      |> Repo.preload(
+        [deliveries: {deliveries_query, target_history_preload(tenant_id)}],
+        repo_opts
       )
-
-    query =
-      if notification_key do
-        from([n, e] in query, where: e.notification_key == ^notification_key)
-      else
-        query
-      end
-
-    Repo.all(query, repo_opts)
+      |> Enum.map(&Map.put(&1, :notification_key, &1.event.notification_key))
+      |> Enum.map(&SafeEvidence.trace_notification/1)
+    else
+      {:error, _reason} -> []
+    end
   end
 
   @doc """
@@ -100,27 +146,36 @@ defmodule Chimeway.Traces do
   Returns `[]` when no events match — never returns an error tuple since
   correlation IDs are user-supplied and may not be unique or present.
   """
-  @spec find_traces_by_correlation_id(String.t(), keyword()) :: [Event.t()]
+  @spec find_traces_by_correlation_id(String.t(), keyword()) :: [map()]
   def find_traces_by_correlation_id(correlation_id, opts \\ []) do
-    limit = Keyword.get(opts, :limit)
-    repo_opts = repo_opts(opts, [:limit])
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      limit = Keyword.get(opts, :limit)
+      repo_opts = repo_opts(opts, [:limit, :tenant_id])
 
-    query =
-      from(e in Event,
-        where: e.correlation_id == ^correlation_id,
-        order_by: [desc: e.inserted_at]
+      query =
+        from(e in Event,
+          where: e.correlation_id == ^correlation_id and e.tenant_id == ^tenant_id,
+          order_by: [desc: e.inserted_at]
+        )
+
+      query = if limit, do: from(e in query, limit: ^limit), else: query
+      events = Repo.all(query, repo_opts)
+      notifications_query = from(n in Notification, where: n.tenant_id == ^tenant_id)
+      deliveries_query = from(d in Delivery, where: d.tenant_id == ^tenant_id)
+
+      Repo.preload(
+        events,
+        [
+          notifications:
+            {notifications_query,
+             [deliveries: {deliveries_query, target_history_preload(tenant_id)}]}
+        ],
+        repo_opts
       )
-
-    query =
-      if limit do
-        from(e in query, limit: ^limit)
-      else
-        query
-      end
-
-    events = Repo.all(query, repo_opts)
-
-    Repo.preload(events, [notifications: [deliveries: :attempts]], repo_opts)
+      |> Enum.map(&SafeEvidence.trace_event/1)
+    else
+      {:error, _reason} -> []
+    end
   end
 
   @doc """
@@ -133,53 +188,76 @@ defmodule Chimeway.Traces do
   """
   @spec explain_delivery(String.t(), keyword()) :: {:ok, Explanation.t()} | {:error, :not_found}
   def explain_delivery(delivery_id, opts \\ []) do
-    repo_opts = repo_opts(opts)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      repo_opts = repo_opts(opts, [:tenant_id])
 
-    delivery =
-      Repo.one(
-        from(d in Delivery,
-          where: d.id == ^delivery_id,
-          preload: [notification: :event, attempts: []]
-        ),
-        repo_opts
-      )
+      delivery =
+        Repo.one(
+          from(d in Delivery,
+            join: n in Notification,
+            on: n.id == d.notification_id,
+            join: e in Event,
+            on: e.id == n.event_id,
+            where:
+              d.id == ^delivery_id and d.tenant_id == ^tenant_id and n.tenant_id == ^tenant_id and
+                e.tenant_id == ^tenant_id,
+            preload: [notification: :event, attempts: []]
+          ),
+          repo_opts
+        )
 
-    case delivery do
-      nil ->
-        {:error, :not_found}
+      case delivery && Repo.preload(delivery, target_history_preload(tenant_id), repo_opts) do
+        nil ->
+          {:error, :not_found}
 
-      %Delivery{notification: notification, attempts: attempts} ->
-        event = notification.event
-        last_attempt = last_attempt_summary(attempts)
-        resume_fields = explanation_resume_fields(delivery)
-        digest_context = digest_context(delivery, repo_opts)
+        %Delivery{notification: notification, attempts: attempts} = loaded_delivery ->
+          event = notification.event
+          last_attempt = last_attempt_summary(attempts)
+          resume_fields = explanation_resume_fields(loaded_delivery)
+          digest_context = digest_context(loaded_delivery, repo_opts)
 
-        timeline =
-          build_timeline(event, notification, delivery, attempts, digest_context, repo_opts)
+          timeline =
+            build_timeline(
+              event,
+              notification,
+              loaded_delivery,
+              attempts,
+              digest_context,
+              repo_opts
+            )
 
-        explanation = %Explanation{
-          delivery_id: delivery.id,
-          event_id: event.id,
-          correlation_id: event.correlation_id,
-          notification_key: event.notification_key,
-          recipient_id: notification.recipient_identity,
-          channel: delivery.channel,
-          render_key: delivery.render_key,
-          render_version: delivery.render_version,
-          status: delivery.status,
-          planning_reason: delivery.planning_reason,
-          planning_context: explanation_planning_context(delivery),
-          next_eligible_at: delivery.next_eligible_at,
-          resume_source: resume_fields.resume_source,
-          resume_scheduled_at: resume_fields.resume_scheduled_at,
-          resumed_at: resume_fields.resumed_at,
-          suppression_reason: delivery.suppression_reason,
-          digest: digest_context,
-          last_attempt: last_attempt,
-          timeline: timeline
-        }
+          target_evidence = SafeEvidence.trace_delivery(loaded_delivery)
 
-        {:ok, explanation}
+          explanation =
+            %{
+              delivery_id: loaded_delivery.id,
+              event_id: event.id,
+              correlation_id: event.correlation_id,
+              notification_key: event.notification_key,
+              recipient_id: notification.recipient_identity,
+              channel: loaded_delivery.channel,
+              render_key: loaded_delivery.render_key,
+              render_version: loaded_delivery.render_version,
+              status: loaded_delivery.status,
+              planning_reason: loaded_delivery.planning_reason,
+              planning_context: explanation_planning_context(loaded_delivery),
+              next_eligible_at: loaded_delivery.next_eligible_at,
+              resume_source: resume_fields.resume_source,
+              resume_scheduled_at: resume_fields.resume_scheduled_at,
+              resumed_at: resume_fields.resumed_at,
+              suppression_reason: loaded_delivery.suppression_reason,
+              digest: digest_context,
+              last_attempt: last_attempt,
+              timeline: timeline
+            }
+            |> SafeEvidence.trace()
+            |> Map.merge(Map.take(target_evidence, [:target_aggregate, :targets]))
+            |> then(&struct(Explanation, &1))
+
+          {:ok, explanation}
+      end
+    else
+      {:error, _reason} -> {:error, :not_found}
     end
   end
 
@@ -199,72 +277,79 @@ defmodule Chimeway.Traces do
   """
   @spec aggregate_outcomes(keyword()) :: [map()]
   def aggregate_outcomes(opts \\ []) do
-    repo_opts =
-      repo_opts(opts, [
-        :notification_key,
-        :channel,
-        :outcomes,
-        :inserted_after,
-        :inserted_before,
-        :updated_after,
-        :updated_before
-      ])
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      repo_opts =
+        repo_opts(opts, [
+          :notification_key,
+          :channel,
+          :outcomes,
+          :inserted_after,
+          :inserted_before,
+          :updated_after,
+          :updated_before,
+          :tenant_id
+        ])
 
-    base_query =
-      from(d in Delivery,
-        join: n in Notification,
-        on: n.id == d.notification_id,
-        join: e in Event,
-        on: e.id == n.event_id,
-        select: %{
-          notification_key: e.notification_key,
-          channel: d.channel,
-          outcome:
-            fragment(
-              """
-              CASE
-                WHEN ? = 'succeeded' THEN 'sent'
-                WHEN ? = 'suppressed' THEN 'suppressed'
-                WHEN ? = 'pending' AND ? = 'deferred' THEN 'delayed'
-                WHEN ? = 'digested' THEN 'digested'
-                WHEN ? = 'failed' THEN 'failed'
-                WHEN ? = 'cancelled' AND ? = 'retries_exhausted' THEN 'exhausted'
-                ELSE NULL
-              END
-              """,
-              d.status,
-              d.status,
-              d.status,
-              d.orchestration_state,
-              d.status,
-              d.status,
-              d.status,
-              d.suppression_reason
-            )
-        }
-      )
-      |> maybe_filter_notification_key(Keyword.get(opts, :notification_key))
-      |> maybe_filter_channel(Keyword.get(opts, :channel))
-      |> maybe_filter_delivery_inserted_after(Keyword.get(opts, :inserted_after))
-      |> maybe_filter_delivery_inserted_before(Keyword.get(opts, :inserted_before))
-      |> maybe_filter_delivery_updated_after(Keyword.get(opts, :updated_after))
-      |> maybe_filter_delivery_updated_before(Keyword.get(opts, :updated_before))
+      base_query =
+        from(d in Delivery,
+          join: n in Notification,
+          on: n.id == d.notification_id,
+          join: e in Event,
+          on: e.id == n.event_id,
+          where:
+            d.tenant_id == ^tenant_id and n.tenant_id == ^tenant_id and e.tenant_id == ^tenant_id,
+          select: %{
+            notification_key: e.notification_key,
+            channel: d.channel,
+            outcome:
+              fragment(
+                """
+                CASE
+                  WHEN ? = 'succeeded' THEN 'sent'
+                  WHEN ? = 'suppressed' THEN 'suppressed'
+                  WHEN ? = 'pending' AND ? = 'deferred' THEN 'delayed'
+                  WHEN ? = 'digested' THEN 'digested'
+                  WHEN ? = 'failed' THEN 'failed'
+                  WHEN ? = 'cancelled' AND ? = 'retries_exhausted' THEN 'exhausted'
+                  ELSE NULL
+                END
+                """,
+                d.status,
+                d.status,
+                d.status,
+                d.orchestration_state,
+                d.status,
+                d.status,
+                d.status,
+                d.suppression_reason
+              )
+          }
+        )
+        |> maybe_filter_notification_key(Keyword.get(opts, :notification_key))
+        |> maybe_filter_channel(Keyword.get(opts, :channel))
+        |> maybe_filter_delivery_inserted_after(Keyword.get(opts, :inserted_after))
+        |> maybe_filter_delivery_inserted_before(Keyword.get(opts, :inserted_before))
+        |> maybe_filter_delivery_updated_after(Keyword.get(opts, :updated_after))
+        |> maybe_filter_delivery_updated_before(Keyword.get(opts, :updated_before))
 
-    aggregate_query =
-      from(row in subquery(base_query),
-        where: not is_nil(row.outcome),
-        group_by: [row.notification_key, row.channel, row.outcome],
-        order_by: [asc: row.notification_key, asc: row.channel, asc: row.outcome],
-        select: %{
-          notification_key: row.notification_key,
-          channel: row.channel,
-          outcome: row.outcome,
-          count: count(row.outcome)
-        }
-      )
-      |> maybe_filter_aggregate_outcomes(Keyword.get(opts, :outcomes))
+      aggregate_query =
+        from(row in subquery(base_query),
+          where: not is_nil(row.outcome),
+          group_by: [row.notification_key, row.channel, row.outcome],
+          order_by: [asc: row.notification_key, asc: row.channel, asc: row.outcome],
+          select: %{
+            notification_key: row.notification_key,
+            channel: row.channel,
+            outcome: row.outcome,
+            count: count(row.outcome)
+          }
+        )
+        |> maybe_filter_aggregate_outcomes(Keyword.get(opts, :outcomes))
 
-    Repo.all(aggregate_query, repo_opts)
+      Repo.all(aggregate_query, repo_opts)
+    else
+      {:error, _reason} -> []
+    end
   end
 
   @doc """
@@ -277,6 +362,22 @@ defmodule Chimeway.Traces do
   end
 
   # --- Private helpers ---
+
+  defp target_history_preload(tenant_id) do
+    targets_query =
+      from(t in DeliveryTarget,
+        where: t.tenant_id == ^tenant_id,
+        order_by: [asc: t.binding_revision_ref, asc: t.id]
+      )
+
+    target_attempts_query =
+      from(a in DeliveryTargetAttempt,
+        where: a.tenant_id == ^tenant_id,
+        order_by: [asc: a.attempt_number, asc: a.id]
+      )
+
+    [attempts: [], targets: {targets_query, attempts: target_attempts_query}]
+  end
 
   defp last_attempt_summary([]), do: nil
 
@@ -298,14 +399,7 @@ defmodule Chimeway.Traces do
   end
 
   defp build_last_attempt_map(attempt) do
-    %{
-      outcome: attempt.outcome,
-      inserted_at: attempt.inserted_at,
-      attempt_number: attempt.attempt_number,
-      error_class: attempt.error_class,
-      adapter_module: attempt.adapter_module
-      # Phase 29 D-22 — nil for pre-Phase-29 rows
-    }
+    SafeEvidence.trace_attempt(attempt)
   end
 
   defp build_timeline(event, notification, delivery, attempts, digest_context, repo_opts) do
@@ -317,14 +411,18 @@ defmodule Chimeway.Traces do
       %{
         at: event.inserted_at,
         event: :event_created,
-        detail: %{notification_key: event.notification_key}
+        detail: SafeEvidence.timeline_detail(%{notification_key: event.notification_key})
       },
       %{
         at: notification.inserted_at,
         event: :notification_created,
-        detail: %{recipient_id: notification.recipient_identity}
+        detail: SafeEvidence.timeline_detail(%{recipient_id: notification.recipient_identity})
       },
-      %{at: delivery.inserted_at, event: :delivery_planned, detail: %{channel: delivery.channel}}
+      %{
+        at: delivery.inserted_at,
+        event: :delivery_planned,
+        detail: SafeEvidence.timeline_detail(%{channel: delivery.channel})
+      }
     ]
 
     deferred_entries =
@@ -333,13 +431,13 @@ defmodule Chimeway.Traces do
           %{
             at: deferred_at(delivery),
             event: :deferred,
-            detail: %{
-              reason: delivery.planning_reason,
-              time_zone: planning_context && planning_context["time_zone"],
-              rule_identity: planning_context && planning_context["rule_identity"],
-              next_eligible_at: delivery.next_eligible_at,
-              planning_context: planning_context
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                reason: delivery.planning_reason,
+                time_zone: planning_context && planning_context["time_zone"],
+                rule_identity: planning_context && planning_context["rule_identity"],
+                next_eligible_at: delivery.next_eligible_at
+              })
           }
         ]
       else
@@ -352,10 +450,11 @@ defmodule Chimeway.Traces do
           %{
             at: resume_fields.resumed_at,
             event: :resumed,
-            detail: %{
-              resume_source: resume_fields.resume_source,
-              resume_scheduled_at: resume_fields.resume_scheduled_at
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                resume_source: resume_fields.resume_source,
+                resume_scheduled_at: resume_fields.resume_scheduled_at
+              })
           }
         ]
       else
@@ -368,13 +467,12 @@ defmodule Chimeway.Traces do
           %{
             at: recovery_fields.recovered_at,
             event: :recovered,
-            detail: %{
-              recovery_source: recovery_fields.recovery_source,
-              recovery_reason: recovery_fields.recovery_reason,
-              recovery_actor_ref: recovery_fields.recovery_actor_ref,
-              recovery_confirmation_marker: recovery_fields.recovery_confirmation_marker,
-              recovered_at: recovery_fields.recovered_at
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                recovery_source: recovery_fields.recovery_source,
+                recovery_reason: recovery_fields.recovery_reason,
+                recovered_at: recovery_fields.recovered_at
+              })
           }
         ]
       else
@@ -387,13 +485,12 @@ defmodule Chimeway.Traces do
           %{
             at: delivery.updated_at,
             event: :suppressed,
-            detail: %{
-              reason: delivery.suppression_reason,
-              policy_checkpoint:
-                Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown"),
-              delayed_fallback_source:
-                Map.get(delivery.metadata || %{}, "delayed_fallback_source", "unknown")
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                reason: delivery.suppression_reason,
+                policy_checkpoint:
+                  Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+              })
           }
         ]
       else
@@ -408,10 +505,12 @@ defmodule Chimeway.Traces do
           %{
             at: delivery.updated_at,
             event: :cancelled,
-            detail: %{
-              reason: reason,
-              policy_checkpoint: Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
-            }
+            detail:
+              SafeEvidence.timeline_detail(%{
+                reason: reason,
+                policy_checkpoint:
+                  Map.get(delivery.metadata || %{}, "policy_checkpoint", "unknown")
+              })
           }
         ]
       else
@@ -423,13 +522,7 @@ defmodule Chimeway.Traces do
         %{
           at: attempt.inserted_at,
           event: :attempt_recorded,
-          detail: %{
-            outcome: attempt.outcome,
-            attempt_number: attempt.attempt_number,
-            error_class: attempt.error_class,
-            adapter_module: attempt.adapter_module
-            # Phase 29 D-22 — nil for pre-Phase-29 rows
-          }
+          detail: SafeEvidence.timeline_detail(attempt)
         }
       end)
 
@@ -438,6 +531,7 @@ defmodule Chimeway.Traces do
     signal_event_name = lookup_signal_received_event_name(delivery, repo_opts)
     webhook_received_entries = webhook_received_entries(attempts, signal_event_name)
     workflow_transition_entries = workflow_transition_entries(delivery, repo_opts)
+    notification_lifecycle_entries = notification_lifecycle_entries(notification)
 
     (base ++
        deferred_entries ++
@@ -448,8 +542,23 @@ defmodule Chimeway.Traces do
        digest_entries ++
        attempt_entries ++
        webhook_received_entries ++
-       workflow_transition_entries)
+       workflow_transition_entries ++
+       notification_lifecycle_entries)
     |> Enum.sort_by(&timeline_sort_key/1)
+  end
+
+  defp notification_lifecycle_entries(notification) do
+    [
+      notification_lifecycle_entry(notification.seen_at, :notification_seen),
+      notification_lifecycle_entry(notification.read_at, :notification_read)
+    ]
+    |> Enum.concat()
+  end
+
+  defp notification_lifecycle_entry(nil, _event), do: []
+
+  defp notification_lifecycle_entry(%DateTime{} = at, event) do
+    [%{at: at, event: event, detail: SafeEvidence.timeline_detail(%{})}]
   end
 
   defp explanation_resume_fields(%Delivery{} = delivery) do
@@ -515,7 +624,7 @@ defmodule Chimeway.Traces do
   end
 
   defp timeline_sort_key(%{event: event, at: at}) do
-    {timeline_rank(event), at}
+    {DateTime.to_unix(at, :microsecond), timeline_rank(event)}
   end
 
   defp timeline_rank(:event_created), do: 0
@@ -536,10 +645,12 @@ defmodule Chimeway.Traces do
   defp timeline_rank(:workflow_waiting), do: 15
   defp timeline_rank(:workflow_stopped), do: 16
   defp timeline_rank(:workflow_completed), do: 17
+  defp timeline_rank(:notification_seen), do: 18
+  defp timeline_rank(:notification_read), do: 19
   defp timeline_rank(_event), do: 99
 
   # ---------------------------------------------------------------------
-  # Phase 32 — webhook + workflow timeline projection (TRAC-01, TRAC-02)
+  # Webhook and workflow timeline projection
   # ---------------------------------------------------------------------
 
   @spec webhook_received_entries([map()], String.t() | nil) :: [map()]
@@ -548,12 +659,11 @@ defmodule Chimeway.Traces do
       %{
         at: attempt.inserted_at,
         event: :webhook_received,
-        detail: %{
-          outcome: attempt.outcome,
-          provider_message_id: attempt.provider_message_id,
-          adapter_module: attempt.adapter_module,
-          signal_event_name: signal_event_name
-        }
+        detail:
+          SafeEvidence.timeline_detail(%{
+            outcome: attempt.outcome,
+            signal_event_name: signal_event_name
+          })
       }
     end)
   end
@@ -585,15 +695,23 @@ defmodule Chimeway.Traces do
   @spec project_workflow_transition(map()) :: [map()]
   defp project_workflow_transition(%{reason: reason} = row) do
     case project_workflow_reason(reason) do
-      nil -> []
-      atom -> [%{at: row.at, event: atom, detail: build_workflow_detail(atom, row)}]
+      nil ->
+        []
+
+      atom ->
+        [
+          %{
+            at: row.at,
+            event: atom,
+            detail: atom |> build_workflow_detail(row) |> SafeEvidence.timeline_detail()
+          }
+        ]
     end
   end
 
-  # Literal-string -> atom dispatch (D-07). The five new event atoms are
-  # compile-time literals; runtime atom-table allocation from untrusted strings
-  # is forbidden per atom-safety gate (T-32-T2 — D-16).
-  # Suppresses the three internal cursor reasons (D-08) and any unknown
+  # Literal-string-to-atom dispatch uses compile-time event literals; runtime
+  # atom-table allocation from untrusted strings is forbidden.
+  # Suppresses the internal cursor reasons and any unknown
   # reason via the nil fallback.
   @spec project_workflow_reason(String.t()) :: atom() | nil
   defp project_workflow_reason("progressed_on_delivery_outcome"), do: :workflow_progressed
@@ -617,8 +735,8 @@ defmodule Chimeway.Traces do
 
   # The three progression-row atoms (:workflow_progressed,
   # :workflow_stopped, :workflow_completed) share the same seven-field
-  # detail shape per D-12. `reason` is a verbatim copy of `transition.reason`
-  # for operator readability (UI-SPEC §A example at line 273).
+  # detail shape. `reason` is a verbatim copy of `transition.reason` for operator
+  # readability.
   defp build_workflow_detail(_atom, row) do
     ctx = row.context || %{}
 
@@ -711,15 +829,7 @@ defmodule Chimeway.Traces do
   defp safe_planning_context(%Delivery{planning_context: planning_context})
        when is_map(planning_context) do
     planning_context
-    |> Map.take([
-      "rule",
-      "rule_identity",
-      "time_zone",
-      "quiet_hours_start_minute",
-      "quiet_hours_end_minute",
-      "channel",
-      "source"
-    ])
+    |> SafeEvidence.planning_context()
     |> case do
       map when map_size(map) == 0 -> nil
       map -> map
@@ -783,7 +893,8 @@ defmodule Chimeway.Traces do
   defp source_digest_delivery?(_delivery), do: false
 
   defp emitted_digest_delivery?(%Delivery{metadata: metadata}) when is_map(metadata) do
-    is_map(Map.get(metadata, "digest"))
+    is_binary(Map.get(metadata, "digest_rule_key")) and
+      is_integer(Map.get(metadata, "digest_rule_version"))
   end
 
   defp emitted_digest_delivery?(_delivery), do: false
@@ -832,13 +943,13 @@ defmodule Chimeway.Traces do
         repo_opts
       )
 
-    digest_metadata = Map.get(delivery.metadata || %{}, "digest", %{})
+    digest_metadata = delivery.metadata || %{}
 
     %{
       "kind" => "emitted_digest",
       "rule_identity" =>
-        digest_metadata["rule_key"] &&
-          "#{digest_metadata["rule_key"]}:v#{digest_metadata["rule_version"]}",
+        digest_metadata["digest_rule_key"] &&
+          "#{digest_metadata["digest_rule_key"]}:v#{digest_metadata["digest_rule_version"]}",
       "included" => resolution_entries(memberships, :included),
       "excluded" => resolution_entries(memberships, :skipped_by_policy),
       "deferred" => [],
@@ -940,7 +1051,7 @@ defmodule Chimeway.Traces do
   defp maybe_put_digest_value(map, key, %DateTime{} = value), do: Map.put(map, key, value)
   defp maybe_put_digest_value(map, key, value), do: Map.put(map, key, value)
 
-  defp repo_opts(opts, drop_keys \\ []) do
+  defp repo_opts(opts, drop_keys) do
     opts
     |> Keyword.drop(drop_keys)
     |> Chimeway.Storage.repo_opts()

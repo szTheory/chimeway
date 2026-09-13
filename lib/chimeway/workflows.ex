@@ -5,6 +5,7 @@ defmodule Chimeway.Workflows do
 
   alias Ecto.Multi
   alias Chimeway.Repo
+  alias Chimeway.SafeEvidence
   alias Chimeway.Signals.Signal
 
   alias Chimeway.Workflows.{
@@ -282,7 +283,7 @@ defmodule Chimeway.Workflows do
   State Spine fields plus the current step key for operator-friendly inspection.
 
   Returns `{:error, :not_found}` if the run does not exist or belongs to a
-  different tenant — preventing cross-tenant information disclosure (T-27-05).
+  different tenant, preventing cross-tenant information disclosure.
   """
   @spec explain(String.t(), Ecto.UUID.t()) ::
           {:ok,
@@ -328,7 +329,7 @@ defmodule Chimeway.Workflows do
 
   Trace context intentionally contains only structural progression metadata
   (e.g., `event_name`, `step_key`). Raw signal payloads are never written to
-  transition context, making this surface payload-safe by construction (T-27-04).
+  transition context, making this surface payload-safe by construction.
 
   Returns `{:error, :not_found}` if the workflow run does not exist or belongs
   to a different tenant.
@@ -340,7 +341,7 @@ defmodule Chimeway.Workflows do
           {:ok, [WorkflowTransition.t()]} | {:error, :not_found}
   def list_traces(tenant_id, execution_id, opts \\ [])
       when is_binary(tenant_id) and is_binary(execution_id) do
-    # First confirm the run exists and belongs to this tenant (T-27-04 / T-27-05)
+    # First confirm the run exists and belongs to this tenant.
     run_query =
       from(wr in WorkflowRun,
         where: wr.id == ^execution_id and wr.tenant_id == ^tenant_id,
@@ -374,15 +375,14 @@ defmodule Chimeway.Workflows do
   Routes an incoming signal to all waiting workflow runs for the same tenant
   that match either:
 
-    * `pending_signals` contains the signal's `event_name` (READ-01 / journey path), or
+    * `pending_signals` contains the signal's `event_name`, or
     * `pending_signals` is empty and `status_context["rule_kind"]` is `"wait_until"`
       (Accrue 1.3 Outcome Signal termination without rule-config `cancel_signals`).
 
   For each matched run the function:
     1. Transitions the run from `:waiting` to `:active` and clears `pending_signals`.
     2. Appends an immutable `WorkflowTransition` recording the `event_name` (but
-       **not** the raw payload — payload safety is enforced here per the threat
-       model requirement T-27-03).
+       **not** the raw payload, enforcing payload safety at this boundary.
 
   All mutations per run are wrapped in one `Ecto.Multi` transaction so the state
   update and the trace record are always atomically consistent.
@@ -435,25 +435,30 @@ defmodule Chimeway.Workflows do
   end
 
   # Finds all WorkflowRun rows that are:
-  #   - owned by the given tenant and actor_id (cross-tenant isolation, T-27-03, T-27-07-01)
+  #   - owned by the given tenant and an explicit host-supplied opaque actor reference
+  #     (cross-tenant isolation)
   #   - currently in the :waiting state
   #   - match pending_signals OR empty pending_signals on a wait_until step
   defp find_runs_waiting_for_signal(tenant_id, actor_id, event_name) do
-    Repo.all(
-      from(wr in WorkflowRun,
-        join: n in Chimeway.Notifications.Notification,
-        on: wr.notification_id == n.id,
-        where:
-          wr.tenant_id == ^tenant_id and
-            n.recipient_identity == ^actor_id and
-            wr.state == :waiting and
-            (^event_name in wr.pending_signals or
-               (wr.pending_signals == [] and
-                  fragment("?->>'rule_kind' = 'wait_until'", wr.status_context))),
-        lock: "FOR UPDATE",
-        select: wr
+    with {:ok, recipient_ref} <- SafeEvidence.recipient_reference(actor_id) do
+      Repo.all(
+        from(wr in WorkflowRun,
+          join: n in Chimeway.Notifications.Notification,
+          on: wr.notification_id == n.id,
+          where:
+            wr.tenant_id == ^tenant_id and
+              n.recipient_identity == ^recipient_ref and
+              wr.state == :waiting and
+              (^event_name in wr.pending_signals or
+                 (wr.pending_signals == [] and
+                    fragment("?->>'rule_kind' = 'wait_until'", wr.status_context))),
+          lock: "FOR UPDATE",
+          select: wr
+        )
       )
-    )
+    else
+      {:error, :unsafe_evidence} -> []
+    end
   end
 
   defp preload_steps(_repo, nil), do: nil

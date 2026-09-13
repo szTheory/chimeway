@@ -9,8 +9,11 @@ defmodule Chimeway.Test.InstallerFixture do
   """
   @spec new_fixture_root!(String.t()) :: Path.t()
   def new_fixture_root!(name) when is_binary(name) do
-    unique = Integer.to_string(System.unique_integer([:positive]))
-    root = Path.join(System.tmp_dir!(), "chimeway_installer_#{name}_#{unique}")
+    # `System.unique_integer/1` is local to one BEAM VM. Installer tests run
+    # from independent Mix VMs as well, so their roots need process-independent
+    # entropy to avoid deleting each other's transient build trees.
+    suffix = :crypto.strong_rand_bytes(12) |> Base.encode32(case: :lower, padding: false)
+    root = Path.join(System.tmp_dir!(), "chimeway_installer_#{name}_#{suffix}")
     File.rm_rf!(root)
     File.mkdir_p!(root)
     root
@@ -40,7 +43,7 @@ defmodule Chimeway.Test.InstallerFixture do
     System.cmd("mix", install_args(Keyword.get(opts, :prefix, :default)),
       cd: root,
       stderr_to_stdout: true,
-      env: [{"MIX_ENV", "dev"}]
+      env: command_env()
     )
   end
 
@@ -209,7 +212,7 @@ defmodule Chimeway.Test.InstallerFixture do
       System.cmd("mix", ["deps.get"],
         cd: root,
         stderr_to_stdout: true,
-        env: [{"MIX_ENV", "dev"}]
+        env: command_env()
       )
 
     if status != 0 do
@@ -220,7 +223,7 @@ defmodule Chimeway.Test.InstallerFixture do
       System.cmd("mix", ["compile"],
         cd: root,
         stderr_to_stdout: true,
-        env: [{"MIX_ENV", "dev"}]
+        env: command_env()
       )
 
     if compile_status != 0 do
@@ -236,6 +239,19 @@ defmodule Chimeway.Test.InstallerFixture do
     raise ArgumentError,
           "unsupported installer fixture prefix #{inspect(prefix)}; " <>
             "expected :default, :chimeway, or :public"
+  end
+
+  # The installer host exercises Chimeway's migration generator only. Keep
+  # optional ecosystem adapters out of its dependency graph so unrelated
+  # partner packages and their compiler toolchains cannot affect the fixture.
+  defp command_env do
+    [
+      {"MIX_ENV", "dev"},
+      {"CHIMEWAY_SKIP_MAILGLASS_DEP", "1"},
+      {"CHIMEWAY_SKIP_ACCRUE_DEP", "1"},
+      {"CHIMEWAY_SKIP_THREADLINE_DEP", "1"},
+      {"CHIMEWAY_SKIP_SIGRA_DEP", "1"}
+    ]
   end
 
   defp host_mix_exs do

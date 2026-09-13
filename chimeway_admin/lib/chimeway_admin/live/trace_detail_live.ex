@@ -5,18 +5,25 @@ defmodule ChimewayAdmin.Live.TraceDetailLive do
   use ChimewayAdmin.Live, :live_view
 
   alias Chimeway.Traces
-  alias ChimewayAdmin.Components.TimelineEvent
+  alias ChimewayAdmin.{Components.TimelineEvent, Context}
   alias ChimewayAdmin.Redaction
   alias ChimewayAdmin.Routes
 
   @impl true
   def mount(%{"delivery_id" => delivery_id}, _session, socket) do
-    case Traces.explain_delivery(delivery_id) do
+    case explain_delivery(socket, delivery_id) do
       {:ok, explanation} ->
         {:ok, assign(socket, explanation: explanation, not_found: false)}
 
       {:error, :not_found} ->
         {:ok, assign(socket, explanation: nil, not_found: true, delivery_id: delivery_id)}
+    end
+  end
+
+  defp explain_delivery(socket, delivery_id) do
+    case Context.read_opts(socket.assigns[:chimeway_admin_context]) do
+      opts when is_list(opts) -> Traces.explain_delivery(delivery_id, opts)
+      {:error, :invalid_tenant} -> {:error, :not_found}
     end
   end
 

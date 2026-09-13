@@ -6,7 +6,18 @@ defmodule Chimeway.DeliveryPlanning do
   `Chimeway.Deliveries.plan_delivery/3` directly.
   """
 
-  alias Chimeway.{Deliveries, Delivery, Notifier, Policy, Rendering, Repo, Workflows}
+  alias Chimeway.{
+    Deliveries,
+    DeliveryTargets,
+    Delivery,
+    Notifier,
+    Policy,
+    RenderContextResolver,
+    Rendering,
+    Repo,
+    Workflows
+  }
+
   alias Chimeway.Digests.Accumulation
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -30,6 +41,32 @@ defmodule Chimeway.DeliveryPlanning do
         error
     end
   end
+
+  @doc false
+  @spec hydrate_execution_delivery(Delivery.t()) :: {:ok, Delivery.t()} | {:error, atom()}
+  def hydrate_execution_delivery(%Delivery{channel: "email"} = delivery) do
+    with %Notification{} = notification <- Repo.get(Notification, delivery.notification_id),
+         %Event{notification_key: key, notification_version: version} <-
+           Repo.get(Event, notification.event_id),
+         {:ok, %{notifier: notifier, params: params, recipient: recipient}} <-
+           RenderContextResolver.resolve(key, version, notification.recipient_identity),
+         {:ok, recipient_address} <- execution_recipient_address(recipient),
+         {:ok, assigns} <- render_assigns_from_notifier(notifier, params, recipient),
+         {:ok, rendered} <-
+           Rendering.render_delivery(
+             "email",
+             delivery.render_key,
+             delivery.render_version,
+             assigns
+           ) do
+      {:ok, %{delivery | recipient_address: recipient_address, render_data: rendered.render_data}}
+    else
+      nil -> {:error, :render_context_unavailable}
+      {:error, _reason} -> {:error, :render_context_unavailable}
+    end
+  end
+
+  def hydrate_execution_delivery(%Delivery{}), do: {:error, :unsupported_execution_channel}
 
   @spec plan_notification(Notification.t(), keyword()) :: {:ok, [Delivery.t()]} | {:error, term()}
   def plan_notification(%Notification{} = notification, opts \\ []) do
@@ -82,7 +119,7 @@ defmodule Chimeway.DeliveryPlanning do
   cursor to the next step — the planner reuses the same idempotent
   `Deliveries.plan_delivery/3` path and the same `resolve_workflow_linkage/3`
   helper so progression-emitted next-step rows go through one canonical
-  planning seam (D-10).
+  planning seam.
   """
   @spec plan_next_step_delivery(Notification.t(), atom() | binary(), keyword()) ::
           {:ok, Delivery.t()} | {:error, term()}
@@ -103,35 +140,82 @@ defmodule Chimeway.DeliveryPlanning do
     trigger_params = render_trigger_params(notification, Keyword.get(opts, :trigger_params, %{}))
     recipient = notification_recipient(notification)
     workflow_linkage = resolve_workflow_linkage(notification, channel, opts)
+    precomputed_rendering = optional_map(Keyword.get(opts, :precomputed_rendering))
+    transient_render_data? = Map.has_key?(precomputed_rendering, {notification.id, channel})
 
-    with {:ok, render_result} <-
+    recipient_address =
+      opts
+      |> Keyword.get(:recipient_handoffs)
+      |> optional_map()
+      |> Map.get(notification.id)
+
+    opts = Keyword.put_new(opts, :recipient, recipient)
+
+    with {:ok, tenant_id} <- resolve_delivery_tenant(notification, opts),
+         {:ok, render_result} <-
            resolve_render_result(notification, channel, trigger_params, opts),
          {:ok, delivery} <-
            Deliveries.plan_delivery(notification.id, channel,
-             tenant_id: Keyword.get(opts, :tenant_id, "default"),
+             tenant_id: tenant_id,
              actor_id: notification.recipient_identity || "system",
              delay_fallback: delay_fallback,
              delayed_fallback_source: source,
              notification_key: Keyword.get(opts, :notification_key),
              event_id: Keyword.get(opts, :event_id),
              correlation_id: Keyword.get(opts, :correlation_id),
-             render_key: render_result[:render_key],
-             render_version: render_result[:render_version],
-             render_data: render_result[:render_data],
+             render_key: render_value(render_result, :render_key),
+             render_version: render_value(render_result, :render_version),
+             render_data: %{},
              workflow_run_id: workflow_linkage[:workflow_run_id],
              workflow_step_id: workflow_linkage[:workflow_step_id]
            ),
-         {:ok, delivery} <- maybe_apply_render_result(delivery, render_result),
+         {:ok, delivery} <-
+           maybe_apply_render_result(delivery, render_result),
+         {:ok, delivery} <- attach_recipient_address(delivery, recipient_address),
          {:ok, delivery} <- maybe_apply_workflow_linkage(delivery, workflow_linkage),
          {:ok, orchestration} <-
            resolve_orchestration(notification, opts, trigger_params, recipient),
          {:ok, delivery} <- apply_declared_orchestration(delivery, channel, orchestration) do
       with {:ok, delivery} <- evaluate_planning_policy(delivery, opts),
+           {:ok, delivery} <- maybe_plan_push_targets(delivery, channel, tenant_id, opts),
            {:ok, delivery} <- maybe_accumulate_digest_delivery(delivery) do
+        {:ok, attach_render_data(delivery, render_result, transient_render_data?)}
+      end
+    end
+  end
+
+  defp maybe_plan_push_targets(
+         %Delivery{status: :suppressed} = delivery,
+         _channel,
+         _tenant_id,
+         _opts
+       ),
+       do: {:ok, delivery}
+
+  defp maybe_plan_push_targets(%Delivery{} = delivery, "push", tenant_id, opts) do
+    with {:ok, bindings} <- Chimeway.TargetResolver.resolve_targets(tenant_id, opts),
+         {:ok, _targets} <- DeliveryTargets.plan_targets(delivery, tenant_id, bindings) do
+      if bindings == [] do
+        Deliveries.suppress_delivery(delivery, :no_eligible_targets, checkpoint: :planning)
+      else
         {:ok, delivery}
       end
     end
   end
+
+  defp maybe_plan_push_targets(%Delivery{} = delivery, _channel, _tenant_id, _opts),
+    do: {:ok, delivery}
+
+  defp resolve_delivery_tenant(%Notification{tenant_id: tenant_id}, opts)
+       when is_binary(tenant_id) and byte_size(tenant_id) > 0 do
+    case Keyword.fetch(opts, :tenant_id) do
+      :error -> {:ok, tenant_id}
+      {:ok, ^tenant_id} -> {:ok, tenant_id}
+      {:ok, _other_tenant_id} -> {:error, :tenant_mismatch}
+    end
+  end
+
+  defp resolve_delivery_tenant(%Notification{}, _opts), do: {:error, :tenant_mismatch}
 
   defp resolve_channels(notification, opts) do
     notifier = Keyword.get(opts, :notifier)
@@ -147,15 +231,19 @@ defmodule Chimeway.DeliveryPlanning do
 
   defp resolve_fallback_channels(notification, opts) do
     if Keyword.get(opts, :use_persisted_channels, false) == true do
-      resolve_persisted_channels(notification)
+      resolve_persisted_channels(notification, opts)
     else
       {:ok, ["in_app"]}
     end
   end
 
-  defp resolve_persisted_channels(%Notification{render_channels: render_channels}) do
-    render_channels
-    |> normalize_render_channels()
+  defp resolve_persisted_channels(
+         %Notification{render_channels: render_channels} = notification,
+         opts
+       ) do
+    (normalize_render_channels(render_channels) ++
+       persisted_orchestration_channels(notification) ++ workflow_channels(notification, opts))
+    |> Enum.uniq()
     |> case do
       [] -> normalize_channels([:in_app])
       channels -> normalize_channels(channels)
@@ -169,6 +257,24 @@ defmodule Chimeway.DeliveryPlanning do
   end
 
   defp normalize_render_channels(_render_channels), do: []
+
+  defp persisted_orchestration_channels(%Notification{orchestration: orchestration})
+       when is_map(orchestration) do
+    orchestration |> Map.get("channels", %{}) |> Map.keys() |> Enum.map(&to_string/1)
+  end
+
+  defp persisted_orchestration_channels(_notification), do: []
+
+  defp workflow_channels(notification, opts) do
+    if use_workflow_linkage?(notification, opts) do
+      case Workflows.active_step_linkage(notification) do
+        {:ok, %{channel: channel}} -> [channel]
+        _ -> []
+      end
+    else
+      []
+    end
+  end
 
   defp handle_notifier_channels({:ok, channels}),
     do: wrap_normalized_channels(normalize_channels(channels))
@@ -316,10 +422,6 @@ defmodule Chimeway.DeliveryPlanning do
   defp normalize_trigger_params(params) when is_map(params), do: params
   defp normalize_trigger_params(_params), do: %{}
 
-  defp render_trigger_params(%Notification{render_assigns: render_assigns}, _trigger_params)
-       when is_map(render_assigns) and map_size(render_assigns) > 0,
-       do: render_assigns
-
   defp render_trigger_params(_notification, trigger_params),
     do: normalize_trigger_params(trigger_params)
 
@@ -386,11 +488,20 @@ defmodule Chimeway.DeliveryPlanning do
     Deliveries.apply_planning_decision(delivery, decision)
   end
 
-  defp resolve_render_result(notification, channel, _trigger_params, opts) do
-    if use_persisted_rendering?(opts) do
-      resolve_persisted_render_result(notification, channel, opts)
-    else
-      {:ok, %{}}
+  defp resolve_render_result(notification, channel, trigger_params, opts) do
+    case Map.fetch(
+           optional_map(Keyword.get(opts, :precomputed_rendering)),
+           {notification.id, channel}
+         ) do
+      {:ok, result} ->
+        {:ok, result}
+
+      :error ->
+        if use_persisted_rendering?(opts) do
+          resolve_persisted_render_result(notification, channel, trigger_params, opts)
+        else
+          {:ok, %{}}
+        end
     end
   end
 
@@ -398,7 +509,7 @@ defmodule Chimeway.DeliveryPlanning do
     Keyword.has_key?(opts, :notifier) or Keyword.get(opts, :use_persisted_channels, false) == true
   end
 
-  defp resolve_persisted_render_result(notification, channel, opts) do
+  defp resolve_persisted_render_result(notification, channel, trigger_params, opts) do
     render_channels = notification.render_channels || %{}
 
     case Map.fetch(render_channels, channel) do
@@ -415,7 +526,16 @@ defmodule Chimeway.DeliveryPlanning do
           render_version: render_version
         }
 
-        render_channel_result(channel, normalized_rendering, notification.render_assigns || %{})
+        with {:ok, assigns} <- render_assigns(notification, trigger_params, opts),
+             {:ok, result} <- render_channel_result(channel, normalized_rendering, assigns) do
+          {:ok, result}
+        else
+          {:error, :render_context_unavailable} when not is_nil(notification.render_channels) ->
+            {:ok, Map.put(normalized_rendering, :render_data, %{})}
+
+          error ->
+            error
+        end
 
       :error ->
         if Keyword.get(opts, :notifier) do
@@ -425,6 +545,53 @@ defmodule Chimeway.DeliveryPlanning do
         end
     end
   end
+
+  defp render_assigns(notification, trigger_params, opts) do
+    case Keyword.fetch(opts, :notifier) do
+      {:ok, notifier} ->
+        if function_exported?(notifier, :rendering, 2) or function_exported?(notifier, :build, 2) do
+          render_assigns_from_notifier(notifier, trigger_params, Keyword.get(opts, :recipient))
+        else
+          {:ok, notification.render_assigns || %{}}
+        end
+
+      :error ->
+        render_assigns_from_context(notification)
+    end
+  end
+
+  defp render_assigns_from_context(%Notification{} = notification) do
+    with %Event{notification_key: key, notification_version: version} <-
+           Repo.get(Event, notification.event_id),
+         {:ok, %{notifier: notifier, params: params, recipient: recipient}} <-
+           RenderContextResolver.resolve(key, version, notification.recipient_identity) do
+      render_assigns_from_notifier(notifier, params, recipient)
+    else
+      nil -> {:error, :render_context_unavailable}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp render_assigns_from_notifier(_notifier, _params, nil) do
+    {:error, :invalid_render_context}
+  end
+
+  defp render_assigns_from_notifier(notifier, params, recipient) do
+    with {:ok, declaration} <- Notifier.resolve_rendering(notifier, params, recipient) do
+      {:ok, Map.drop(declaration.assigns, [:recipient, "recipient"])}
+    end
+  end
+
+  defp execution_recipient_address(%{} = recipient) do
+    recipient
+    |> Map.get(:recipient_identity, Map.get(recipient, "recipient_identity"))
+    |> case do
+      "user:" <> address when byte_size(address) > 0 -> {:ok, address}
+      _ -> {:error, :invalid_render_context}
+    end
+  end
+
+  defp execution_recipient_address(_), do: {:error, :invalid_render_context}
 
   defp render_channel_result(channel, channel_rendering, assigns) do
     case Rendering.render_delivery(
@@ -457,14 +624,32 @@ defmodule Chimeway.DeliveryPlanning do
        do: {:ok, delivery}
 
   defp maybe_apply_render_result(%Delivery{} = delivery, render_result) do
-    if delivery.render_key == render_result.render_key &&
-         delivery.render_version == render_result.render_version &&
-         delivery.render_data == render_result.render_data do
+    if delivery.render_key == render_value(render_result, :render_key) &&
+         delivery.render_version == render_value(render_result, :render_version) do
       {:ok, delivery}
     else
-      Deliveries.apply_render_result(delivery, render_result)
+      Deliveries.apply_render_identity(delivery, render_result)
     end
   end
+
+  defp attach_render_data(%Delivery{} = delivery, render_result, true)
+       when is_map(render_result) do
+    %{delivery | render_data: render_value(render_result, :render_data, %{})}
+  end
+
+  defp attach_render_data(%Delivery{} = delivery, _render_result, false), do: delivery
+
+  defp optional_map(value) when is_map(value), do: value
+  defp optional_map(_value), do: %{}
+
+  defp render_value(render_result, key, default \\ nil) do
+    Map.get(render_result, key, Map.get(render_result, Atom.to_string(key), default))
+  end
+
+  defp attach_recipient_address(%Delivery{} = delivery, address) when is_binary(address),
+    do: {:ok, %{delivery | recipient_address: address}}
+
+  defp attach_recipient_address(%Delivery{} = delivery, _address), do: {:ok, delivery}
 
   defp maybe_apply_workflow_linkage(%Delivery{} = delivery, workflow_linkage)
        when map_size(workflow_linkage) == 0,

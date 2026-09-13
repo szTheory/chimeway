@@ -74,7 +74,9 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
     assert {:ok, %{trace: %{delivery_ids: [delivery_id | _] = delivery_ids}}} =
              DemoHost.Seeds.seed_invite()
 
-    assert {:ok, explanation} = Traces.explain_delivery(delivery_id)
+    assert {:ok, explanation} =
+             Traces.explain_delivery(delivery_id, tenant_id: DemoHost.Seeds.tenant_id())
+
     assert explanation.delivery_id == delivery_id
     assert explanation.notification_key == "teampulse.invite_sent"
     assert explanation.correlation_id == "teampulse-seed-invite-corr"

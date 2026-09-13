@@ -9,7 +9,15 @@ defmodule ChimewayTest.Notifiers.WorkflowProgression do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do:
+      {:ok,
+       [
+         %{
+           recipient_identity: "user:#{user_id}",
+           recipient_ref: "cw_#{user_id}",
+           recipient_type: "user"
+         }
+       ]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Workflow progression"}}
 
@@ -81,7 +89,15 @@ defmodule ChimewayTest.Notifiers.WorkflowProgressionWithSignals do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do:
+      {:ok,
+       [
+         %{
+           recipient_identity: "user:#{user_id}",
+           recipient_ref: "cw_#{user_id}",
+           recipient_type: "user"
+         }
+       ]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Workflow progression with signals"}}
 
@@ -153,7 +169,15 @@ defmodule ChimewayTest.Notifiers.WorkflowTerminal do
   def version, do: 1
 
   def recipients(%{user_id: user_id}),
-    do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+    do:
+      {:ok,
+       [
+         %{
+           recipient_identity: "user:#{user_id}",
+           recipient_ref: "cw_#{user_id}",
+           recipient_type: "user"
+         }
+       ]}
 
   def build(_params, _recipient), do: {:ok, %{title: "Workflow terminal"}}
 
@@ -418,7 +442,10 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
       assert waiting_run.pending_signals == ["chimeway.notification.read"]
       assert waiting_run.status_reason == "waiting_for_step_progression"
 
-      assert :ok = Chimeway.mark_read(notification.id, notification.recipient_identity)
+      assert :ok =
+               Chimeway.mark_read(notification.id, notification.recipient_identity,
+                 tenant_id: notification.tenant_id
+               )
 
       assert [%{args: %{"signal_id" => signal_id}}] =
                all_enqueued(worker: SignalRouterWorker)
@@ -791,7 +818,7 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
     notification =
       Repo.one!(
         from(n in Notification,
-          where: n.recipient_identity == ^"user:#{user_id}",
+          where: n.recipient_identity == ^"cw_#{user_id}",
           order_by: [desc: n.inserted_at],
           limit: 1
         )
@@ -830,7 +857,7 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
     notification =
       Repo.one!(
         from(n in Notification,
-          where: n.recipient_identity == ^"user:#{user_id}",
+          where: n.recipient_identity == ^"cw_#{user_id}",
           order_by: [desc: n.inserted_at],
           limit: 1
         )
@@ -871,7 +898,7 @@ defmodule Chimeway.Orchestration.WorkflowProgressionTest do
     notification =
       Repo.one!(
         from(n in Notification,
-          where: n.recipient_identity == ^"user:#{user_id}",
+          where: n.recipient_identity == ^"cw_#{user_id}",
           order_by: [desc: n.inserted_at],
           limit: 1
         )

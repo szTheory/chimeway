@@ -1,0 +1,261 @@
+defmodule Chimeway.APNS.Transport do
+  @moduledoc "Closed APNs provider handoff contract with an optional dynamic Pigeon path."
+
+  defmodule Request do
+    @moduledoc false
+    @enforce_keys [
+      :device_token,
+      :topic,
+      :environment,
+      :id,
+      :expiration,
+      :priority,
+      :push_type,
+      :payload
+    ]
+    defstruct [
+      :device_token,
+      :topic,
+      :environment,
+      :id,
+      :expiration,
+      :collapse_id,
+      :priority,
+      :push_type,
+      :payload
+    ]
+  end
+
+  defmodule Result do
+    @moduledoc false
+    @enforce_keys [:outcome, :code]
+    defstruct [:outcome, :code, :status, :reason, :timestamp, :retry_after_ms]
+  end
+
+  @callback push(term(), Request.t(), keyword()) ::
+              {:ok, Result.t()} | {:error, :ambiguous | :rejected}
+
+  @spec push(term(), Request.t(), keyword()) ::
+          {:ok, Result.t()} | {:error, :ambiguous | :rejected | :pigeon_unavailable}
+  def push(dispatcher_ref, %Request{} = request, opts \\ []) do
+    transport = Keyword.get(opts, :transport, Application.get_env(:chimeway, :apns_transport))
+
+    if is_atom(transport) and not is_nil(transport) do
+      transport.push(dispatcher_ref, request, opts)
+    else
+      pigeon_push(dispatcher_ref, request)
+    end
+  rescue
+    _ -> {:error, :ambiguous}
+  catch
+    _, _ -> {:error, :ambiguous}
+  end
+
+  @spec pigeon_push(term(), Request.t()) ::
+          {:ok, Result.t()} | {:error, :ambiguous | :rejected | :pigeon_unavailable}
+  def pigeon_push(dispatcher_ref, %Request{} = request) do
+    pigeon = Module.concat(["Pigeon"])
+    notification_module = Module.concat(["Pigeon", "APNS", "Notification"])
+
+    if Code.ensure_loaded?(pigeon) and Code.ensure_loaded?(notification_module) do
+      notification =
+        struct(notification_module,
+          device_token: request.device_token,
+          topic: request.topic,
+          id: request.id,
+          expiration: request.expiration,
+          collapse_id: request.collapse_id,
+          priority: request.priority,
+          push_type: Atom.to_string(request.push_type),
+          payload: request.payload.json
+        )
+
+      pigeon
+      |> apply(:push, [dispatcher_ref, notification, [timeout: 5_000]])
+      |> classify_pigeon_response()
+    else
+      {:error, :pigeon_unavailable}
+    end
+  rescue
+    _ -> {:error, :ambiguous}
+  catch
+    _, _ -> {:error, :ambiguous}
+  end
+
+  defp classify_pigeon_response(%{response: :success}),
+    do: {:ok, %Result{outcome: :accepted, code: :accepted}}
+
+  defp classify_pigeon_response(%{response: %Result{} = result}), do: {:ok, result}
+  defp classify_pigeon_response(%{response: :not_started}), do: {:error, :pigeon_unavailable}
+  defp classify_pigeon_response(%{response: :timeout}), do: {:error, :ambiguous}
+  defp classify_pigeon_response(%{response: _}), do: {:error, :rejected}
+  defp classify_pigeon_response(_), do: {:error, :ambiguous}
+
+  defmodule PigeonAdapter do
+    @moduledoc false
+
+    @spec extract_response(map()) ::
+            {:ok,
+             %{status: 410, reason: :expired_token | :unregistered, timestamp: non_neg_integer()}}
+            | {:error, :incomplete_provider_response}
+    def extract_response(%{"status" => 410, "reason" => reason, "timestamp" => timestamp})
+        when reason in ["ExpiredToken", "Unregistered"] and is_integer(timestamp) and
+               timestamp >= 0 do
+      {:ok,
+       %{
+         status: 410,
+         reason: if(reason == "ExpiredToken", do: :expired_token, else: :unregistered),
+         timestamp: timestamp
+       }}
+    end
+
+    def extract_response(_), do: {:error, :incomplete_provider_response}
+
+    # Hosts compile Chimeway without Pigeon, then may opt in downstream. Keep this
+    # callback surface available without expanding optional Pigeon structs at the
+    # package compile boundary; all Pigeon calls remain runtime-only.
+    def init(opts) do
+      case Keyword.fetch(opts, :chimeway_apns_state) do
+        {:ok, state} -> {:ok, state}
+        :error -> apply(Module.concat(["Pigeon", "APNS"]), :init, [opts])
+      end
+    end
+
+    def handle_push(notification, %{config: config, queue: queue} = state) do
+      configurable = Module.concat(["Pigeon", "Configurable"])
+      client = apply(Module.concat(["Pigeon", "Http2", "Client"]), :default, [])
+      queue_module = Module.concat(["Pigeon", "NotificationQueue"])
+
+      headers = apply(configurable, :push_headers, [config, notification, []])
+      payload = apply(configurable, :push_payload, [config, notification, []])
+      apply(client, :send_request, [state.socket, headers, payload])
+
+      {:noreply,
+       state
+       |> Map.put(:queue, apply(queue_module, :add, [queue, state.stream_id, notification]))
+       |> Map.update!(:stream_id, &(&1 + 2))}
+    end
+
+    def handle_info(:ping, state) do
+      client = apply(Module.concat(["Pigeon", "Http2", "Client"]), :default, [])
+      apply(client, :send_ping, [state.socket])
+      apply(Module.concat(["Pigeon", "Configurable"]), :schedule_ping, [state.config])
+      {:noreply, state}
+    end
+
+    def handle_info(message, state) do
+      client = apply(Module.concat(["Pigeon", "Http2", "Client"]), :default, [])
+
+      case apply(client, :handle_end_stream, [message, state]) do
+        {:ok, stream} -> process_end_stream(stream, state)
+        _ -> {:noreply, state}
+      end
+    end
+
+    def process_end_stream(%{id: stream_id} = stream, %{queue: queue} = state) do
+      queue_module = Module.concat(["Pigeon", "NotificationQueue"])
+
+      case apply(queue_module, :pop, [queue, stream_id]) do
+        {nil, new_queue} ->
+          {:noreply, %{state | queue: new_queue}}
+
+        {notification, new_queue} ->
+          case runtime_closed_result(stream) do
+            {:ok, result} ->
+              apply(Module.concat(["Pigeon", "Tasks"]), :process_on_response, [
+                %{notification | response: result}
+              ])
+
+            :normalized ->
+              apply(Module.concat(["Pigeon", "Configurable"]), :handle_end_stream, [
+                state.config,
+                stream,
+                notification
+              ])
+          end
+
+          {:noreply, %{state | queue: new_queue}}
+      end
+    end
+
+    defp runtime_closed_result(%{status: 410, body: body} = stream)
+         when is_binary(body) and byte_size(body) <= 4_096 do
+      with {:ok, response} <- decode_json(body),
+           {:ok, %{reason: reason, timestamp: timestamp}} <-
+             extract_response(Map.put(response, "status", 410)) do
+        {:ok,
+         %Chimeway.APNS.Transport.Result{
+           outcome: :rejected,
+           code: reason,
+           status: 410,
+           reason: if(reason == :expired_token, do: "ExpiredToken", else: "Unregistered"),
+           timestamp: timestamp
+         }}
+      else
+        _ -> {:ok, unrecognized_result(stream)}
+      end
+    rescue
+      _ -> {:ok, unrecognized_result(stream)}
+    end
+
+    defp runtime_closed_result(%{status: status, body: body} = stream)
+         when status in [403, 429, 500, 503] and is_binary(body) and byte_size(body) <= 4_096 do
+      with {:ok, %{"reason" => reason}} <- decode_json(body),
+           true <-
+             reason in [
+               "IdleTimeout",
+               "TooManyProviderTokenUpdates",
+               "TooManyRequests",
+               "InternalServerError",
+               "ServiceUnavailable",
+               "Shutdown"
+             ] do
+        {:ok,
+         %Chimeway.APNS.Transport.Result{
+           outcome: :rejected,
+           code: runtime_code(reason),
+           status: status,
+           reason: reason
+         }}
+      else
+        _ -> {:ok, unrecognized_result(stream)}
+      end
+    rescue
+      _ -> {:ok, unrecognized_result(stream)}
+    end
+
+    defp runtime_closed_result(%{status: status}) when status in [200, 201], do: :normalized
+    defp runtime_closed_result(stream), do: {:ok, unrecognized_result(stream)}
+
+    defp decode_json(body) do
+      json_library = Application.get_env(:pigeon, :json_library, Module.concat(["Jason"]))
+
+      with module when is_atom(module) <- json_library,
+           true <- Code.ensure_loaded?(module) and function_exported?(module, :decode, 1),
+           {:ok, decoded} <- apply(module, :decode, [body]) do
+        {:ok, decoded}
+      else
+        _ -> {:error, :invalid_json_decoder}
+      end
+    rescue
+      _ -> {:error, :invalid_json_decoder}
+    catch
+      _, _ -> {:error, :invalid_json_decoder}
+    end
+
+    defp unrecognized_result(stream) do
+      %Chimeway.APNS.Transport.Result{
+        outcome: :rejected,
+        code: :unrecognized_provider_response,
+        status: Map.get(stream, :status)
+      }
+    end
+
+    defp runtime_code("IdleTimeout"), do: :idle_timeout
+    defp runtime_code("TooManyProviderTokenUpdates"), do: :too_many_provider_token_updates
+    defp runtime_code("TooManyRequests"), do: :too_many_requests
+    defp runtime_code("InternalServerError"), do: :internal_server_error
+    defp runtime_code("ServiceUnavailable"), do: :service_unavailable
+    defp runtime_code("Shutdown"), do: :shutdown
+  end
+end

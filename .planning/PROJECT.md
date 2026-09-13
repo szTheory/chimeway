@@ -8,19 +8,37 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
-## Latest Shipped Milestone: v1.17 Adopter Proof Paths
+## Current Milestone: v1.19 Adopter Hardening & Inbox Lifecycle
+
+**Goal:** Close the remaining copy-paste adoption seam from v1.18 and make inbox arrival, seen, and read state update in real time and appear honestly in operator explanations without weakening tenant or privacy boundaries.
+
+**Target features:**
+- A source-valid CrossWake provider-feedback worker recipe with an executable drift contract, tracked separately from the immutable v1.18 physical-proof authority.
+- A host-configurable, Phoenix-optional inbox change stream scoped to one tenant and opaque recipient reference.
+- Real-time `chimeway_inbox` bell and item refresh for notification arrival plus seen/read/archive lifecycle changes.
+- Bell panel `mark_seen` wiring with idempotent workflow progression proof.
+- Privacy-safe inbox seen/read events on the operator delivery timeline, with docs and aggregate gate coverage.
+
+## Latest Shipped Milestone: v1.18 Adopter Alpha Mobile Delivery Readiness
+
+**Status:** ✅ SHIPPED 2026-09-12 — all 7 phases and 80 plans complete; 26/26 requirements satisfied. The milestone audit passed with 7/7 phase verifications, 7/7 integration connections, and 4/4 end-to-end flows. Seven older housekeeping records were acknowledged without changing their underlying status; none is a v1.18 acceptance gap.
+
+**Delivered:**
+- **Tenant-safe durable mobile spine:** explicit tenant identity, opaque installation targets, independent attempts, bounded recovery, and explainable aggregate outcomes.
+- **Privacy-safe operational evidence:** closed recursive evidence vocabularies across persistence, telemetry, logs, traces, admin views, and proof artifacts.
+- **Optional APNs delivery:** host-custodied tokens, bounded requests, reason-aware outcomes, expiry/collapse semantics, exact-binding invalidation, and honest ambiguous-handoff handling.
+- **Protected CrossWake activation:** authenticated registration plus one-time, fail-closed offline-open reauthorization under current tenant, session, installation, binding, manifest, and route authority.
+- **Two proof levels:** a credential-free deterministic Alpha twin required by CI and a completion-bound, four-file physical-iPhone sandbox snapshot whose public claim remains explicitly bounded.
+
+**Evidence:** `mix ci.verify_gates` passed 633 tests (0 failures, 4 excluded) plus the packaged Accrue lane; the promoted physical bundle revalidates as `physical_support_promoted`; the archived audit is `.planning/milestones/v1.18-MILESTONE-AUDIT.md`.
+
+## Prior Milestone: v1.17 Adopter Proof Paths
 
 **Status:** ✅ SHIPPED 2026-08-11 — verified closeout; 5 phases, 16 plans, 13/13 requirements. The milestone audit passed with 11/11 integration connections and 4/4 end-to-end flows.
 
-**Delivered:**
-- **Adoption front door:** a concise Core/Mailglass/Accrue selector with explicit host, Chimeway, and partner responsibility boundaries.
-- **Hermetic tracer bullets:** reproducible clean-consumer proofs from one SHA-validated package artifact for core notification-and-trace, Mailglass transactional email, and Accrue billing escalation.
-- **Executable truth:** `mix verify.adoption_paths`, contract-checked guidance, and a PostgreSQL-backed CI job required by both `pr-gate` and `ci-gate` on every workflow event.
-- **Archive hardening:** bounded immutable archive handling and binary-only Hex metadata parsing reject hostile members, resource abuse, and atom-table growth before callbacks or materialization.
+**Delivered:** Core, Mailglass, and Accrue clean-room adoption proofs built from one immutable package artifact, with a required every-event CI lane and atom-safe archive parsing.
 
-**Evidence:** `mix ci.verify_gates` passed 618 tests (0 failures, 1 excluded); `mix verify.adoption_paths` passed Core, Mailglass, and Accrue; the archived audit is `.planning/milestones/v1.17-MILESTONE-AUDIT.md`.
-
-## Prior Milestone: v1.16 CI/CD Performance & Reliability
+## Earlier Milestone: v1.16 CI/CD Performance & Reliability
 
 **Status:** ✅ SHIPPED 2026-07-30 (accepted-risk close) — 25/26 requirements. Phases 87–92, 21 plans. **CACHE-05 deferred:** cache *correctness* (CACHE-01..04) shipped and proven (caches HIT on warm runs, `MIX_ENV` collision fixed), but the headline sub-3-min warm `ci-gate` target was **not** met — warm wall-clock regressed ~373s→~648s (serial `build` producer runs ahead of consumers that still recompile ex_cldr/rebar/app). Owner banked the correctness win 2026-07-29 and relegated compile-once to a spike (`CI-HARDENING-BACKLOG.md` #4).
 
@@ -38,10 +56,24 @@ Every notification decision is explainable, so teams can reliably answer why a n
 
 ## Requirements
 
-Active requirements for the current milestone are listed below. Archived requirement sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`.
+Validated requirements are summarized below. Milestone-scoped source sets live under `.planning/milestones/vX.Y-REQUIREMENTS.md`.
+
+### Active
+
+- [x] Operators can distinguish notification seen and read facts on the delivery timeline without exposing recipient identity or caller metadata.
+- [x] Named inbox and release gates prove the complete arrival → seen → read → workflow/timeline path.
 
 ### Validated
 
+- ✓ v1.19 Phase 106 Idempotent Seen Lifecycle & Workflow Proof — INT-03/04: authorized panel-open and load-more mark only visible items seen through the existing conditional lifecycle; closed, repeated, cross-scope, and authorization-drift paths cannot duplicate or disclose state. A mounted demo bell progresses one exact waiting workflow once through the real signal queue/router. Verified 6/6 truths with 24 optional-package and 4 demo-host tests; zero human UAT.
+- ✓ v1.19 Phase 105 Tenant-Safe Inbox Change Stream — INBX-03/04: core emits contained post-commit reload hints through a replaceable Phoenix-free behaviour; the optional package derives HMAC-scoped PubSub topics, subscribes only after authorization, reauthorizes before authoritative refresh, and rejects cross-tenant/recipient disclosure. Verified 8/8 truths with 22 core tests, 21 optional-package tests, and 2 demo-host tests; zero human UAT.
+- ✓ v1.19 Phase 104 CrossWake Provider-Feedback Recipe Truth — DOCS-02/GATE-02: the real provider-feedback conversion/registry recipe executes at a separately pinned CrossWake documentation revision, while the v1.18 physical-proof authority remains frozen. Verified 6/6 truths through detached remote replay and required local/CI/release contracts; zero human UAT.
+- ✓ v1.18 Phase 103 Physical iPhone & Adoption Truth — TWIN-03/DOCS-01: one signed APNs-sandbox iPhone run now binds an immutable Chimeway artifact to source-validated CrossWake permission, authenticated registration, provider handoff, an isolated observed visible alert, one-time protected activation, and explainable delivery truth. The four-file no-replace snapshot revalidates as `physical_support_promoted`; the claim remains limited to the recorded iPhone-first path and does not imply device-receipt breadth, inbox state, engagement, Android/FCM, or background sync.
+- ✓ v1.18 Phase 102 Alpha Digital Twin & Hermetic Gate — TWIN-01/02 and GATE-01: a sanitized immutable-package host now exercises real Chimeway persistence, per-installation APNs dispatch, recovery, explanations, and pinned CrossWake protected-open decisions against deterministic host-owned seams. The runner scans actual stored facts, trace projections, telemetry, caught failures, redacted transport observations, and the exact candidate proof bytes before emission. Verified 3/3 roadmap truths with two byte-identical `mix verify.alpha_twin` runs, a green physical-proof contract, clean code review, and `mix ci.verify_gates` at 630 tests / 0 failures; zero human UAT.
+- ✓ v1.18 Phase 101 CrossWake Registration & Protected Open — OPEN-01/02/03/04: authenticated APNs registration remains under exact tenant, installation, binding, session, and revision authority; protected notification taps carry only opaque evidence, queue safely offline, consume once after current host and RouteGate reauthorization, deny every stale or mismatched path without fallback, and retain sanitized append-only lifecycle history. Verified 4/4 roadmap truths with 24 focused Phoenix-host tests, a 1482-test Crosswake regression gate, and 50 Swift tests; zero human UAT. Standard-depth review recorded one non-blocking provider-feedback README recipe warning for follow-up.
+- ✓ v1.18 Phase 100 Optional APNs Adapter — APNS-01/02/03/04/05/06: hosts can opt into a Pigeon-backed APNs adapter without adding push dependencies to non-push consumers; requests preserve host token custody, bounded allowlisted payloads, opaque open references, safe collapse semantics, exact binding invalidation, and target-specific provider evidence. Verified 5/5 roadmap truths with a green packaged-consumer APNs gate, clean 33-file code review, and a 743-test Phase 97–99 regression set; zero human UAT.
+- ✓ v1.18 Phase 99 Multi-Installation Delivery & Recovery — PUSH-01/02/03/04 and RECOV-01/02: one logical push decision now expands into durable tenant-scoped opaque installation targets with independent attempts, lifecycle truth, bounded recovery, and operator explanations; migration 036 enforces composite tenant ownership and same-target attempt lineage across repository and copied public/prefixed installations. Verified 5/5 must-haves with focused lifecycle, migration, recovery, Oban, and trace evidence plus a 688-test cross-phase regression gate; zero human UAT.
+- ✓ v1.18 Phase 97 Tenant Identity & Compatible Upgrade — TENANT-01/02/03: lifecycle identity and idempotency are tenant-scoped; inbox, trace, admin, recovery, and package surfaces fail closed without explicit scope (or explicit single-tenant compatibility); additive migrations and atomic reconciliation preserve legacy upgrade safety without inferring ownership or changing static storage prefixes. Verified 4/4 must-haves with executable evidence and zero human UAT.
 - ✓ v1.17 Adopter Proof Paths — ADPT-01/02, PROOF-01/02/03, CORE-01, MAIL-01/02, ACCR-01/02, GATE-01/02, and DOCS-01 are satisfied. Five phase verifications and the milestone audit pass; the aggregate proof builds once and runs all three clean-room paths against the same immutable artifact.
 - ✓ v1.17 Phase 96.1 Atom-Safe Archive Metadata Parsing — ARCHIVE-ATOM-01: caller-controlled Hex metadata now passes through a bounded binary-only parser with no source evaluation or input-derived atom creation. Exact in-process atom-count, grammar/resource-boundary, callback/redaction, real Hex archive, local release/adoption gate, security audit, and hosted exact-SHA PR evidence all pass (GitHub Actions run `31509666185`; 5/5 must-haves, 5/5 STRIDE threats closed, zero human UAT).
 - ✓ v1.17 Phase 94 Mailglass Transactional-Email Proof — MAIL-01/02: the clean consumer proves the host-owned Mailglass adapter path through a deterministic fake transport, with one trace-derived, strictly schema-validated public evidence line. The parser rejects forged, sensitive, malformed, reordered, and atom-creating values; guidance explicitly distinguishes local composition/orchestration proof from live provider acceptance, sender verification, and feedback. **Verified 10/10 must-haves** by focused release-gate and `mix ci.verify_gates` checks (isolated project test database).
@@ -64,9 +96,9 @@ Active requirements for the current milestone are listed below. Archived require
 
 ### Active
 
-**v1.17 Adopter Proof Paths** (started 2026-08-08) — adoption clarity and clean-room, CI-backed vertical proofs. Requirements and roadmap are being defined.
+**v1.18 Adopter Alpha Mobile Delivery Readiness** (started 2026-08-11) — tenant/privacy foundations, durable per-installation push targets, APNs dispatch, protected CrossWake opens, and twin-to-device production evidence. The live requirements and roadmap define the committed scope.
 
-Carried-forward candidates NOT in v1.16 scope (future milestones): the two accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation — a short in-browser pass); TENANT-01 (broader tenant spine consistency), PRIV-03 (recursive redaction hardening), INBX-03 (inbox PubSub badge), INT-03 (mark_seen progression E2E), PKG-01 (sibling package promotion). See archived [v1.14 requirements](.planning/milestones/v1.14-REQUIREMENTS.md).
+Carried-forward candidates not in v1.18 scope: the two accepted-risk A11Y manual checks (A11Y-03/A11Y-04), INBX-03 PubSub badges, INT-02/03 inbox timeline and `mark_seen` polish, PKG-01 sibling package promotion, residual low-value CI compilation work, FCM/Android transport, and generic offline inbox sync.
 
 ### Out of Scope
 
@@ -114,6 +146,24 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 **Standing hygiene debt (tracked, not this milestone's deliverable):** 3 red CI lanes on `main` (Example host smoke, TeamPulse journeys, Accrue dunning — `ci-gate` at 12/15; see `.planning/CI-HARDENING-BACKLOG.md`). This milestone is doc/asset-only and does not touch runtime code, so it will not worsen CI.
 
 ## Current State
+
+**v1.19 Phase 106 Idempotent Seen Lifecycle & Workflow Proof complete (2026-09-12):** Opening the authorized bell marks only visible page-one rows seen; load-more marks newly revealed rows, closed refreshes do not imply engagement, and sender-excluded PubSub echoes preserve pagination. Reopen/replay and scope/auth drift remain no-ops. The mounted demo path advances one eligible waiting workflow exactly once through the real signal queue. INT-03/04 passed 6/6 verifier truths with no human UAT. Phase 107 Operator Timeline, Guidance & Gate Parity is next.
+
+**v1.19 Phase 105 Tenant-Safe Inbox Change Stream complete (2026-09-12):** Core notification creation and first seen/read/archive transitions now emit closed, best-effort reload hints only after durable writes. The optional inbox package maps exact tenant/opaque-recipient scope to secret-derived PubSub topics and reauthorizes connected bells before every authoritative refresh. Cross-scope and unrelated messages cannot reload or reveal state; pagination resets to page one without closing the panel. INBX-03/04 passed 8/8 verifier truths with no human UAT. Phase 106 Idempotent Seen Lifecycle & Workflow Proof is next.
+
+**v1.19 Phase 104 CrossWake Provider-Feedback Recipe Truth complete (2026-09-12):** The adopter worker now uses the real public redaction and registry APIs and is tested as the exact documented snippet. Chimeway selects that documentation revision separately, replays it from a clean detached checkout, and keeps the v1.18 physical-proof branch fixed. DOCS-02/GATE-02 passed 6/6 verifier truths with no human UAT.
+
+**v1.18 Phase 103 Physical iPhone & Adoption Truth complete (2026-09-12):** The bounded iPhone-first production path is now `physical_support_promoted` from one completion-bound, four-file, no-replace evidence snapshot. Machine proof independently records Chimeway delivery/provider-handoff/explanation facts and CrossWake permission/registration/protected-activation facts; the visible-alert observation remains a separate human attestation. TWIN-03 and DOCS-01 are complete without retaining credentials, raw provider responses, device or account identity, payloads, endpoints, logs, or media. APNs acceptance remains handoff only, and Android/FCM, generic background sync, device management, rich actions, analytics, and broad device support remain outside the claim.
+
+**v1.18 Phase 102 Alpha Digital Twin & Hermetic Gate complete (2026-08-26):** The Alpha reference host is now reproducible from one SHA-validated Chimeway archive and exact detached CrossWake commit, with deterministic PostgreSQL lifecycle, host token custody, scripted APNs outcomes, crash recovery, protected-open reauthorization, and a closed ordered safety ledger. Runtime proof emission is gated by recursive scans of actual storage, traces, telemetry, caught failures, redacted provider observations, and final proof bytes. TWIN-01, TWIN-02, and GATE-01 passed 3/3 verifier truths; two hermetic runs were byte-identical, the code review was clean, and the final release gate passed 630 tests. Phase 103 Physical iPhone & Adoption Truth is next; active validation and security capabilities remain pre-advance follow-ups.
+
+**v1.18 Phase 101 CrossWake Registration & Protected Open complete (2026-08-25):** CrossWake now binds APNs registrations only under current host authority and activates protected notification routes only after one-time, fail-closed reauthorization. Exact-session-version logout predicates prevent stale-session revocation; a forward SQLite guard preserves append-only open-intent history. OPEN-01 through OPEN-04 passed 4/4 verifier truths, with 24 focused Phoenix-host tests, 1482 Crosswake regression tests, and 50 Swift tests green. Phase 102 Alpha Digital Twin & Hermetic Gate is next; the active security capability still requires a Phase 101 security report before advancing.
+
+**v1.18 Phase 100 Optional APNs Adapter complete (2026-08-22):** APNs-enabled hosts now have an opt-in Pigeon-backed delivery path with host-controlled token lookup, bounded provider requests, opaque references, safe collapse headers, honest target-specific outcomes, and exact binding invalidation. The packaged-consumer verifier passes for both disabled and enabled hosts, all six APNS requirements passed 5/5 verifier truths, the 33-file review is clean, and the Phase 97–99 regression set passed 743 tests. Phase 101 CrossWake Registration & Protected Open is next.
+
+**v1.18 Phase 99 Multi-Installation Delivery & Recovery complete (2026-08-20):** One logical push delivery now records and executes every eligible opaque installation target independently, with locked lifecycle authorization, tenant-safe composite database constraints, bounded recovery, and target-level operator evidence. All six requirements passed 5/5 verifier must-haves; the Phase 97–98 regression set passed 688 tests. Phase 100 optional APNs adapter is next.
+
+**v1.18 Phase 97 Tenant Identity & Compatible Upgrade complete (2026-08-12):** Explicit tenant identity now spans the durable Event → Notification → Delivery lifecycle, idempotency, inbox, traces, admin, recovery, and optional packages. Legacy ownership is handled by additive migrations plus deterministic, atomic reconciliation; machine-testable acceptance is enforced through local/CI gates with no conversational UAT. Phase 98 privacy-safe delivery evidence is next.
 
 **v1.17 Adopter Proof Paths shipped (2026-08-11):** The milestone is archived with all 13 requirements satisfied and no open audit gaps. Core, Mailglass, and Accrue now run as bounded clean-room proofs from one SHA-validated package artifact; documentation, runtime dispatch, and the every-event CI topology agree. No milestone is currently active.
 
@@ -166,19 +216,22 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 - `v1.15 Brand Identity & Brand Book` — reusable visual identity, accessible brandbook, and repository integration (shipped 2026-07-28).
 - `v1.16 CI/CD Performance & Reliability` — cache correctness, CI observability, tiering, supply-chain, and reliability controls (shipped 2026-07-30; CACHE-05 deferred).
 - `v1.17 Adopter Proof Paths` — hermetic Core/Mailglass/Accrue package proofs, adoption selector, every-event CI gate, and atom-safe archive parsing (shipped 2026-08-11).
+- `v1.18 Adopter Alpha Mobile Delivery Readiness` — tenant-safe multi-installation APNs delivery, protected CrossWake activation, deterministic twin proof, and bounded physical-iPhone evidence (shipped 2026-09-12).
 
 ## Next Milestone Goals
 
-**Latest shipped:** v1.17 Adopter Proof Paths (2026-08-11, verified closeout — 13/13).
+**Latest shipped:** v1.18 Adopter Alpha Mobile Delivery Readiness (2026-09-12 — 26/26 requirements, 7/7 phase verifications, passed milestone audit).
 
-**Next milestone:** Not selected. Start a new planning cycle with `$gsd-new-milestone`; the candidates below remain context, not committed scope.
+**Current milestone:** v1.19 Adopter Hardening & Inbox Lifecycle. This takes the first two recommendations as one bounded adoption-quality release.
 
-**Top carried-forward candidate (from v1.16 deferral):**
-- **CACHE-05 compile-once spike** (`CI-HARDENING-BACKLOG.md` #4) — the one requirement v1.16 did not deliver. Cache correctness is done and proven; the remaining problem is that warm `ci-gate` still recompiles ex_cldr (~86s) + rebar deps + the ~93-file app on every consumer, so the serial `build` producer regressed wall-clock rather than cutting it. First hypothesis: re-unify the `deps`+`_build` cache to stop the ex_cldr/`_build`-split rebuild. This is a spike, not a planned milestone, until the mechanism is understood.
+**Planned sequence after v1.19:**
+
+1. **CACHE-05 compile-once spike** (`CI-HARDENING-BACKLOG.md` #4) — isolate why warm consumers still recompile `ex_cldr`, rebar dependencies, and the application despite cache hits; turn the result into milestone scope only after the mechanism is proven.
+2. **Android/FCM expansion** — add a provider-neutral FCM adapter and physical Android proof only after the smaller adoption and reliability seams are closed.
 
 **Other deferred CI/quality items (v2 — tracked, not scheduled):** DEF-DIALYZER (nightly Dialyzer), DEF-COVERAGE (ExCoveralls threshold), DEF-AUDIT-BLOCK (promote `mix_audit`/`hex.audit` advisory→blocking), DEF-PARTNER-NIGHTLY (move partner lanes to nightly). Plus the two v1.15 accepted-risk A11Y manual checks (A11Y-03 focus-not-obscured, A11Y-04 CVD emulation).
 
-**Explicitly deferred (product, unchanged):** tenant spine redesign, dynamic per-tenant database prefixes, automatic production data moves, Oban optionality behavior changes, recursive redaction refactor, admin redesign, new ecosystem integrations, inbox PubSub polish, broad channel matrix, full TeamPulse SaaS shell, generic CRUD admin, template editing, provider configuration UI, visual workflow editor, arbitrary bulk recovery, cross-app SaaS console, cohort analytics, and publishing `chimeway_admin`/`chimeway_inbox` unless separately approved.
+**Explicitly deferred (product, unchanged):** tenant spine redesign, dynamic per-tenant database prefixes, automatic production data moves, Oban optionality behavior changes, recursive redaction refactor, admin redesign, new ecosystem integrations, broad channel matrix, full TeamPulse SaaS shell, generic CRUD admin, template editing, provider configuration UI, visual workflow editor, arbitrary bulk recovery, cross-app SaaS console, cohort analytics, and publishing `chimeway_admin`/`chimeway_inbox` unless separately approved.
 
 ### Shipped v1.13 Features (Validated)
 
@@ -300,6 +353,7 @@ Prior context includes:
 - v1.11 Operator Console Polish & Hardening shipped the optional admin console polish/hardening wedge: command center, design system, safe recovery, redaction/explainability contracts, docs, browser smoke, and `mix verify.admin`.
 - v1.12 quality-readiness research identified database/schema ownership as the highest-leverage architectural cleanup before more adoption polish or ecosystem breadth.
 - v1.14 focuses on public trust rather than runtime expansion: docs, package metadata, release automation, and CI gates must say the same thing and be reproducible by maintainers and contributors.
+- v1.18 proves the iPhone-first mobile path end to end while preserving the distinction between provider handoff, visible display, protected activation, and inbox or engagement state.
 
 ## Constraints
 
@@ -321,6 +375,10 @@ Prior context includes:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| Keep raw mobile identity and credentials in host custody | Chimeway must remain local-first and explain delivery without retaining tokens, account identity, provider bodies, payload content, or trusted routes | Shipped v1.18: durable state contains tenant-qualified opaque references and closed evidence only |
+| Model each installation as an independently durable delivery target | One logical notification can fan out safely only when claim, retry, expiry, invalidation, ambiguity, and history remain target-specific | Shipped v1.18 Phases 99–100 with tenant-safe database constraints and aggregate truth |
+| Separate digital-twin proof from physical-device promotion | Credential-free CI can prove deterministic contracts, while a device claim requires signed external evidence and an isolated human display observation | Shipped v1.18 Phases 102–103; CI remains Apple-credential-free and physical support is bounded to one completion-backed record |
+| Treat APNs acceptance as provider handoff only | Acceptance cannot establish device display, user activation, inbox seen/read, or engagement | Shipped v1.18 across adapter, trace, guide, and physical-proof contracts |
 | Build adoption proofs once from one immutable package artifact | All three paths must demonstrate the same releasable bytes rather than source-tree behavior or independently rebuilt inputs | Shipped v1.17: `mix verify.adoption_paths` validates one SHA and dispatches Core, Mailglass, and Accrue serially |
 | Require the adoption proof on every CI event | Adopter-facing commands and topology are release truth, so neither PR nor full CI may omit the lane | Shipped v1.17: the PostgreSQL-backed job is required by both `pr-gate` and `ci-gate` |
 | Parse Hex archive metadata with a bounded binary-only grammar | Caller-controlled metadata must not evaluate source terms, intern input-derived atoms, or bypass resource limits | Shipped v1.17 Phase 96.1; hostile metadata fails before callbacks or materialization |
@@ -610,4 +668,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-11 after archiving v1.17 Adopter Proof Paths.*
+*Last updated: 2026-09-12 when starting v1.19 Adopter Hardening & Inbox Lifecycle.*

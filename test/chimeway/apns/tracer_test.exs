@@ -1,0 +1,158 @@
+defmodule Chimeway.APNS.TracerTest do
+  use Chimeway.DataCase, async: false
+
+  alias Chimeway.APNS.RequestIntent
+  alias Chimeway.APNS.BindingLookup
+  alias Chimeway.APNS.Transport, as: APNSTransport
+
+  defmodule Lookup do
+    @behaviour BindingLookup
+
+    def resolve_binding(request) do
+      send(Application.fetch_env!(:chimeway, :apns_tracer_pid), {:lookup, request})
+
+      {:ok,
+       %BindingLookup.Transient{
+         tenant_id: request.tenant_id,
+         environment: request.environment,
+         topic: request.topic,
+         binding_revision_ref: request.binding_revision_ref,
+         device_token: "raw-token-sentinel",
+         dispatcher_ref: "dispatcher-opaque"
+       }}
+    end
+
+    def invalidate_binding(_key), do: {:ok, %BindingLookup.InvalidationResult{status: :unchanged}}
+  end
+
+  defmodule Transport do
+    @behaviour Chimeway.APNS.Transport
+
+    def push(dispatcher_ref, request, _opts) do
+      send(
+        Application.fetch_env!(:chimeway, :apns_tracer_pid),
+        {:transport, dispatcher_ref, request}
+      )
+
+      {:ok, %Chimeway.APNS.Transport.Result{outcome: :accepted, code: :accepted}}
+    end
+  end
+
+  setup do
+    previous_lookup = Application.get_env(:chimeway, :apns_binding_lookup)
+    previous_transport = Application.get_env(:chimeway, :apns_transport)
+    Application.put_env(:chimeway, :apns_binding_lookup, Lookup)
+    Application.put_env(:chimeway, :apns_transport, Transport)
+    Application.put_env(:chimeway, :apns_tracer_pid, self())
+
+    on_exit(fn ->
+      restore(:apns_binding_lookup, previous_lookup)
+      restore(:apns_transport, previous_transport)
+      Application.delete_env(:chimeway, :apns_tracer_pid)
+    end)
+  end
+
+  test "request intents retain only durable APNs routing facts" do
+    expires_at = DateTime.add(DateTime.utc_now(), 60, :second) |> DateTime.truncate(:second)
+
+    assert {:ok, intent} =
+             RequestIntent.new(
+               %{
+                 environment: :sandbox,
+                 topic: "com.example.chimeway",
+                 apns_id: "8d9c95fe-a6fd-4e82-b451-cbd59f02d948",
+                 expires_at: expires_at,
+                 open_ref: "open_opaque_ref"
+               },
+               binding_revision_ref: "cw_apns_tracer_001"
+             )
+
+    assert intent.environment == :sandbox
+    assert intent.collapse_id == nil
+
+    assert %{"environment" => "sandbox", "topic" => "com.example.chimeway"} =
+             RequestIntent.to_storage(intent)
+  end
+
+  test "accepted adapter handoff resolves scoped material only after durable intent validation" do
+    expires_at = DateTime.add(DateTime.utc_now(), 60, :second) |> DateTime.truncate(:second)
+
+    {:ok, intent} =
+      RequestIntent.new(
+        %{
+          environment: :sandbox,
+          topic: "com.example.chimeway",
+          apns_id: "8d9c95fe-a6fd-4e82-b451-cbd59f02d948",
+          expires_at: expires_at,
+          open_ref: "open_opaque_ref"
+        },
+        []
+      )
+
+    target = %Chimeway.DeliveryTarget{
+      tenant_id: "tenant-1",
+      binding_revision_ref: "cw_apns_tracer_001",
+      apns_request_intent: RequestIntent.to_storage(intent)
+    }
+
+    delivery = %Chimeway.Delivery{render_data: %{"title" => "Hello", "body" => "World"}}
+
+    assert {:provider_accepted, %{provider_code: "accepted", accepted_at: %DateTime{}}} =
+             Chimeway.Adapters.APNS.deliver(
+               %Chimeway.TargetAdapter.TargetEnvelope{delivery: delivery, target: target},
+               []
+             )
+
+    assert_receive {:lookup,
+                    %BindingLookup.Request{
+                      tenant_id: "tenant-1",
+                      environment: :sandbox,
+                      topic: "com.example.chimeway",
+                      binding_revision_ref: "cw_apns_tracer_001"
+                    }}
+
+    assert_receive {:transport, "dispatcher-opaque", %APNSTransport.Request{payload: payload}}
+
+    assert payload.json == %{
+             "aps" => %{"alert" => %{"title" => "Hello", "body" => "World"}},
+             "chimeway_open_ref" => "open_opaque_ref"
+           }
+  end
+
+  test "expired intent never reaches host lookup or transport" do
+    expires_at = DateTime.add(DateTime.utc_now(), -1, :second) |> DateTime.truncate(:second)
+
+    {:ok, intent} =
+      RequestIntent.new(
+        %{
+          environment: :sandbox,
+          topic: "com.example.chimeway",
+          apns_id: "8d9c95fe-a6fd-4e82-b451-cbd59f02d948",
+          expires_at: expires_at,
+          open_ref: "open_opaque_ref"
+        },
+        []
+      )
+
+    target = %Chimeway.DeliveryTarget{
+      tenant_id: "tenant-1",
+      binding_revision_ref: "cw_apns_tracer_001",
+      apns_request_intent: RequestIntent.to_storage(intent)
+    }
+
+    assert {:expired, %{provider_code: "expired"}} =
+             Chimeway.Adapters.APNS.deliver(
+               %Chimeway.TargetAdapter.TargetEnvelope{
+                 delivery: %Chimeway.Delivery{},
+                 target: target
+               },
+               []
+             )
+
+    refute_receive {:lookup, _}
+    refute_receive {:transport, _, _}
+  end
+
+  defp restore(key, nil), do: Application.delete_env(:chimeway, key)
+  defp restore(key, value), do: Application.put_env(:chimeway, key, value)
+end

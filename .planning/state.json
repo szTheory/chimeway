@@ -1,0 +1,33 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v1.19 — Adopter Hardening & Inbox Lifecycle",
+  "phases": [
+    {
+      "number": "104",
+      "name": "CrossWake Provider-Feedback Recipe Truth",
+      "status": "complete"
+    },
+    {
+      "number": "105",
+      "name": "Tenant-Safe Inbox Change Stream",
+      "status": "complete"
+    },
+    {
+      "number": "106",
+      "name": "Idempotent Seen Lifecycle & Workflow Proof",
+      "status": "complete"
+    },
+    {
+      "number": "107",
+      "name": "Operator Timeline, Guidance & Gate Parity",
+      "status": "complete"
+    }
+  ],
+  "next": {
+    "command": "/gsd:new-milestone",
+    "label": "Start a new milestone",
+    "reason": "All phases complete — start a new milestone"
+  },
+  "updated_at": "2026-09-13T03:31:21.546Z"
+}

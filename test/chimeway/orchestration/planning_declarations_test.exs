@@ -22,6 +22,19 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
     def build(_params, recipient), do: {:ok, %{recipient: recipient}}
 
     @impl true
+    def rendering(_params, _recipient),
+      do:
+        {:ok,
+         %{
+           assigns: %{
+             "subject" => "test subject",
+             "html_body" => "<p>test</p>",
+             "text_body" => "test"
+           },
+           channels: %{email: %{render_key: "test", render_version: 1}}
+         }}
+
+    @impl true
     def channels(_params, _recipient), do: {:ok, [:email]}
 
     @impl true
@@ -43,6 +56,19 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
 
     @impl true
     def build(_params, recipient), do: {:ok, %{recipient: recipient}}
+
+    @impl true
+    def rendering(_params, _recipient),
+      do:
+        {:ok,
+         %{
+           assigns: %{
+             "headline" => "test headline",
+             "body" => "test body",
+             "primary_action" => %{"label" => "test", "url" => "http://test.com"}
+           },
+           channels: %{in_app: %{render_key: "test", render_version: 1}}
+         }}
   end
 
   test "declared digest participation persists digest_held on the canonical delivery row" do
@@ -112,6 +138,7 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
         notification_key: "orchestration.test",
         notification_version: 1,
         idempotency_key: "planning-declarations-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: %{}
       })
       |> Repo.insert()
@@ -120,17 +147,10 @@ defmodule Chimeway.Orchestration.PlanningDeclarationsTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{},
-        render_assigns: %{
-          "headline" => "test headline",
-          "body" => "test body",
-          "primary_action" => %{"label" => "test", "url" => "http://test.com"},
-          "subject" => "test subject",
-          "html_body" => "<p>test</p>",
-          "text_body" => "test"
-        },
         render_channels: %{
           "email" => %{"render_key" => "test", "render_version" => 1},
           "in_app" => %{"render_key" => "test", "render_version" => 1}

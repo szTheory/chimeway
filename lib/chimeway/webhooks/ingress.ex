@@ -5,12 +5,12 @@ defmodule Chimeway.Webhooks.Ingress do
   callback; duplicate provider retries with the same `(adapter_module,
   provider_event_id)` collapse to the existing row via the partial unique index.
 
-  Ingress rows are NOT a payload archive (Phase 33 D-04). They store
+  Ingress rows are NOT a payload archive. They store
   explainability-first fields only — adapter identity, correlation keys,
   normalized status, processing state, and (when applicable) an ignored reason.
   Raw provider bodies and headers stay out of this surface by design.
 
-  Replay protection seam (Phase 33 D-05): the partial unique index on
+  Replay protection: the partial unique index on
   `(adapter_module, provider_event_id) WHERE provider_event_id IS NOT NULL`
   collapses duplicate provider retries that expose a stable event id.
   Adapters without a stable event id get best-effort dedup only.
@@ -29,7 +29,7 @@ defmodule Chimeway.Webhooks.Ingress do
   # Lifecycle of the ingress row itself.
   @ingress_states ~w(queued processed ignored failed)a
   # Reason vocabulary for ingress_state == :ignored. Strict enum; never
-  # derived from untrusted input. Mirrors Phase 32 D-16 atom-safety discipline.
+  # derived from untrusted input, preserving the bounded atom-safety discipline.
   @ignored_reasons ~w(delivery_not_found provider_message_id_not_found)a
 
   schema "chimeway_webhook_ingress" do

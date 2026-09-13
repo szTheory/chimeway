@@ -17,6 +17,7 @@ defmodule Chimeway.PolicyTest do
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "test-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: payload
       })
       |> Repo.insert()
@@ -29,6 +30,7 @@ defmodule Chimeway.PolicyTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}
@@ -152,7 +154,6 @@ defmodule Chimeway.PolicyTest do
       assert delivery.orchestration_state == :deferred
       assert delivery.planning_reason == "quiet_hours"
       assert DateTime.compare(delivery.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
-      assert delivery.planning_context["rule"] == "quiet_hours"
       assert delivery.planning_context["time_zone"] == "America/New_York"
     end
   end

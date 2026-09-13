@@ -1,6 +1,6 @@
 defmodule Chimeway.Workflows.Progression do
   @moduledoc """
-  Durable workflow progression engine for Phase 25.
+  Durable workflow progression engine.
 
   This is the single seam through which workflow runs move from active to
   waiting and from waiting/active to the next step. It evaluates the active
@@ -12,18 +12,18 @@ defmodule Chimeway.Workflows.Progression do
       from the rule's optional `cancel_signals` list (empty when omitted),
       and a `status_context` map carrying `rule_kind`, `anchor`,
       `anchor_delivery_id`, `anchor_delivery_status`, `anchor_timestamp`,
-      `due_at`, and `to_step` (D-01/D-13).
+      `due_at`, and `to_step`.
     * `on_outcome` rules append a `workflow_transition` with reason
       `progressed_on_delivery_outcome` and the curated workflow outcome plus
-      raw evidence facts (D-12), then advance the workflow run cursor to the
+      raw evidence facts, then advance the workflow run cursor to the
       target step and emit the next-step delivery through the canonical
-      `Chimeway.DeliveryPlanning.plan_next_step_delivery/3` seam (D-10).
+      `Chimeway.DeliveryPlanning.plan_next_step_delivery/3` seam.
 
   Re-entry is duplicate-safe: if the run is no longer `:active`, if the prior
   delivery is not converged yet, if the curated mapper returns
   `:not_branchable_yet`, or if no progress rule matches, the engine returns
   `{:noop, run, reason}` without creating any new delivery rows or appending
-  transitions. This is the ESC-03 contract.
+  transitions. This is the duplicate-safe progression contract.
 
   All locking happens inside one `Repo.transaction/1`:
 
@@ -39,13 +39,13 @@ defmodule Chimeway.Workflows.Progression do
 
   Threats covered:
 
-    * **T-25-04 (tampering):** outcomes are derived from canonical persisted
+    * **Tampering:** outcomes are derived from canonical persisted
       rows only via `ProgressionOutcome.from_delivery/2`; the engine never
       branches from queue or in-flight job state.
-    * **T-25-05 (repudiation):** explicit `status_reason` and `reason` strings
+    * **Repudiation:** explicit `status_reason` and `reason` strings
       plus the curated `status_context` / transition `context` keys make the
       decision auditable from durable rows alone.
-    * **T-25-06 (DoS / duplicate emission):** noop short-circuits prevent
+    * **Denial of service / duplicate emission:** noop short-circuits prevent
       retry storms from emitting duplicate next-step deliveries.
   """
 
@@ -75,7 +75,7 @@ defmodule Chimeway.Workflows.Progression do
 
     * `:now` — `DateTime.t()` used as the evaluation time for due-checks and
       anchor stamping. Defaults to `DateTime.utc_now/0`. Provided for
-      deterministic tests and the due-step worker (Plan 25-03).
+      deterministic tests and the due-step worker.
   """
   @spec progress_run(Ecto.UUID.t(), keyword()) :: progress_result()
   def progress_run(workflow_run_id, opts \\ []) when is_binary(workflow_run_id) do
@@ -107,7 +107,7 @@ defmodule Chimeway.Workflows.Progression do
         {:ok, {:advanced, run, deliveries}}
 
       {:ok, {:waiting, run}} ->
-        # Per D-11, Oban-backed hosts schedule a `WorkflowProgressionWorker`
+        # Oban-backed hosts schedule a `WorkflowProgressionWorker`
         # job at the persisted `due_at` so due waits wake automatically. The
         # canonical wait state is already durable on the row at this point,
         # so any scheduling failure is safe — `progress_due_runs/1` is the
@@ -134,7 +134,7 @@ defmodule Chimeway.Workflows.Progression do
   @doc """
   Lists workflow runs that are currently `:waiting` with a due wait gate that
   has elapsed (per persisted `status_context["due_at"]`) and re-evaluates each
-  one through `progress_run/2`. The Plan 25-03 due-step worker calls into
+  one through `progress_run/2`. The due-step worker calls into
   this helper so wait gates always advance through the same shared seam.
   """
   @spec progress_due_runs(keyword()) :: [progress_result()]
@@ -441,7 +441,7 @@ defmodule Chimeway.Workflows.Progression do
             if DateTime.compare(now, due_at) in [:gt, :eq] do
               # Wait elapsed: advance directly to the persisted to_step instead
               # of re-evaluating the active step's rules (which would re-match
-              # the same wait_until rule and loop forever — CR-01).
+              # the same wait_until rule and loop forever).
               advance_after_wait(repo, run, to_step, anchor_delivery_id, now)
             else
               {:noop, run, :wait_not_due}
@@ -473,7 +473,7 @@ defmodule Chimeway.Workflows.Progression do
 
   defp maybe_reactivate_due(_repo, %WorkflowRun{} = run, _now), do: {:ok, run}
 
-  # CR-01 fix: the wait_until rule's advancement seam. Reloads the anchor
+  # The wait_until rule's advancement seam reloads the anchor
   # delivery row, appends one `reactivated_from_wait` transition, then runs
   # the canonical post-cursor advancement (cursor update + step_activated
   # transition + canonical plan_next_step_delivery) using the persisted
@@ -578,7 +578,7 @@ defmodule Chimeway.Workflows.Progression do
   end
 
   # The progression engine anchors `wait_until` rules to the prior delivery's
-  # terminal-convergence moment per D-01. Chimeway already serializes terminal
+  # terminal-convergence moment. Chimeway already serializes terminal
   # writes through `record_attempt/2`, `suppress_delivery/3`, `exhaust_delivery/1`,
   # and `cancel_with_reason/2` — all of which update `updated_at`. Using
   # `updated_at` keeps the anchor durable without introducing a new column.
@@ -596,7 +596,7 @@ defmodule Chimeway.Workflows.Progression do
     end
   end
 
-  # ---- Internal: optional Oban scheduling (D-11) -----------------------------
+  # ---- Internal: optional Oban scheduling ------------------------------------
 
   # When the configured dispatcher is `Chimeway.Dispatch.Oban`, schedule a
   # `Chimeway.Dispatch.WorkflowProgressionWorker` job at the persisted

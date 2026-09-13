@@ -33,7 +33,15 @@ defmodule Chimeway.ReadmeSnippetTest do
 
     @impl true
     def recipients(%{user_id: user_id}),
-      do: {:ok, [%{recipient_identity: "user:#{user_id}", recipient_type: "user"}]}
+      do:
+        {:ok,
+         [
+           %{
+             recipient_identity: "user:#{user_id}",
+             recipient_ref: "cw_#{user_id}",
+             recipient_type: "user"
+           }
+         ]}
 
     @impl true
     def build(_params, _recipient), do: {:ok, %{title: "Welcome"}}
@@ -62,7 +70,7 @@ defmodule Chimeway.ReadmeSnippetTest do
 
     # README "4. Explain the delivery"
     [delivery_id | _] = result.trace.delivery_ids
-    {:ok, explanation} = Traces.explain_delivery(delivery_id)
+    {:ok, explanation} = Traces.explain_delivery(delivery_id, tenant_id: "default")
 
     # The documented explanation carries the answer to "why did this go out?"
     assert %Chimeway.Traces.Explanation{} = explanation

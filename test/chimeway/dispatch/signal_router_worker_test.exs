@@ -16,7 +16,7 @@ defmodule Chimeway.Dispatch.SignalRouterWorkerTest do
   defp insert_signal!(attrs) do
     defaults = %{
       tenant_id: "acme",
-      actor_id: "user_42",
+      actor_id: "cw_signal_worker_42",
       event_name: "form_submitted",
       payload: %{}
     }
@@ -30,13 +30,15 @@ defmodule Chimeway.Dispatch.SignalRouterWorkerTest do
         notification_key: "test.signal_worker",
         notification_version: 1,
         idempotency_key: "sw-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: %{}
       })
 
     notification =
       Repo.insert!(%Notification{
         event_id: event.id,
-        recipient_identity: "user_42",
+        tenant_id: event.tenant_id,
+        recipient_identity: "cw_signal_worker_42",
         recipient_type: "user",
         metadata: %{},
         render_assigns: %{

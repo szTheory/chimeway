@@ -14,6 +14,12 @@ config :demo_host, :chimeway_adapter_config, []
 config :chimeway_admin, auth_module: DemoHost.AdminAuth
 config :chimeway_admin, path_prefix: "/admin/chimeway"
 
-config :chimeway_inbox, auth_module: DemoHost.InboxAuth
+config :chimeway,
+  inbox_change_publisher: ChimewayInbox.PubSubPublisher
+
+config :chimeway_inbox,
+  auth_module: DemoHost.InboxAuth,
+  pubsub_server: DemoHost.PubSub,
+  topic_secret: String.duplicate("demo-host-inbox-topic-secret-local-only-", 2)
 
 import_config "#{config_env()}.exs"

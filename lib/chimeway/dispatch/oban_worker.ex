@@ -4,8 +4,8 @@ if Code.ensure_loaded?(Oban) do
     Raised by `Chimeway.Dispatch.ObanWorker` when `map_outcome_to_oban_return/4`
     encounters a (outcome, error_class, status) shape that none of the documented
     clauses match AND the in-band convergence guard cannot legally fire (delivery
-    is not in :failed status, or this is not the final attempt). This is the
-    loud-failure branch of the BL-02 fix — see Plan 14-10.
+    is not in :failed status, or this is not the final attempt). This loud-failure
+    path prevents an unrecognized result shape from being silently acknowledged.
 
     The exception carries enough metadata for an operator to reproduce the
     scenario and extend either `Executor.classify/1` or the documented worker
@@ -74,7 +74,7 @@ if Code.ensure_loaded?(Oban) do
     on every execution. A delivery already in `:succeeded`, `:suppressed`, or `:cancelled`
     returns `:ok` immediately with no adapter call and no new attempt row.
 
-    ## Phase 14 retry contract (REL-02 / REL-03)
+    ## Retry contract
 
     OSS Oban 2.21.1 has no exhausted callback. This worker uses an in-band
     `attempt == max_attempts` guard inside `perform/1` to know when it has reached
@@ -93,23 +93,63 @@ if Code.ensure_loaded?(Oban) do
     - Transient failure on the final attempt (`attempt == max_attempts`) ->
       `Deliveries.exhaust_delivery/1` writes the `:cancelled retries_exhausted`
       terminal state, then this function returns `:ok` so the Oban job is marked
-      `:completed` instead of `:discarded` (RESEARCH Pitfall 1: keeps operator
-      telemetry dashboards clean — the durable explanation lives on the delivery
-      row, not on the Oban job).
+      `:completed` instead of `:discarded`. This keeps the durable explanation on
+      the delivery row while avoiding a misleading discarded-job signal.
     """
 
     use Oban.Worker,
       queue: :chimeway_delivery,
       max_attempts: 5,
-      unique: [fields: [:args], keys: [:delivery_id], period: 60]
+      unique: [fields: [:args], period: 60]
 
-    alias Chimeway.{Deliveries, Delivery, DeliveryAttempt, Policy}
+    alias Chimeway.{
+      Deliveries,
+      Delivery,
+      DeliveryAttempt,
+      DeliveryPlanning,
+      DeliveryTargets,
+      Policy
+    }
+
     alias Chimeway.Dispatch.Executor
     alias Chimeway.Telemetry
 
     require Logger
 
     @impl Oban.Worker
+    def perform(%Oban.Job{
+          args: %{"delivery_target_id" => target_id, "tenant_id" => tenant_id},
+          attempt: attempt,
+          max_attempts: max_attempts
+        })
+        when is_binary(target_id) and is_binary(tenant_id) do
+      case DeliveryTargets.fetch_target_delivery(target_id, tenant_id) do
+        {:ok, delivery} ->
+          case Executor.run_target(delivery, target_id: target_id, source: "oban") do
+            {:ok, _result} ->
+              :ok
+
+            {:noop, _reason} ->
+              :ok
+
+            {:error, reason}
+            when reason in [:pre_handoff_retryable, :provider_retryable] and
+                   attempt >= max_attempts ->
+              case DeliveryTargets.exhaust_target(delivery, target_id, tenant_id: tenant_id) do
+                {:ok, _target} -> :ok
+                {:noop, _reason} -> :ok
+                {:error, reason} -> {:error, {:exhaust_failed, reason}}
+              end
+
+            {:error, reason} ->
+              {:error, reason}
+          end
+
+        {:noop, :not_found} ->
+          :ok
+      end
+    end
+
     def perform(%Oban.Job{
           args: %{"delivery_id" => delivery_id},
           attempt: attempt,
@@ -184,16 +224,50 @@ if Code.ensure_loaded?(Oban) do
       if fresh.status in Deliveries.terminal_states() do
         :ok
       else
-        case Executor.run_delivery(fresh) do
-          {:ok, %{attempt: %DeliveryAttempt{} = recorded, delivery: %Delivery{} = updated}} ->
-            map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
+        case hydrate_for_execution(fresh) do
+          {:ok, execution_delivery} ->
+            run_execution_delivery(execution_delivery, attempt, max_attempts)
 
-          {:error, step, reason, _changes} ->
-            {:error, {step, reason}}
-
-          {:error, _reason} = error ->
-            error
+          {:error, :render_context_unavailable} ->
+            record_unavailable_context_attempt(fresh, attempt, max_attempts)
         end
+      end
+    end
+
+    defp record_unavailable_context_attempt(delivery, attempt, max_attempts) do
+      with {:ok, dispatched} <- Deliveries.transition_status(delivery, :dispatched),
+           {:ok, %{attempt: recorded, delivery: updated}} <-
+             Deliveries.record_attempt(dispatched, %{
+               outcome: :failed,
+               error_class: "render_context_unavailable",
+               provider_message_id: nil,
+               provider_response: %{}
+             }) do
+        map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
+      else
+        {:error, step, reason, _changes} -> {:error, {step, reason}}
+        {:error, _reason} = error -> error
+      end
+    end
+
+    defp hydrate_for_execution(
+           %Delivery{channel: "email", render_key: key, render_version: version} = delivery
+         )
+         when is_binary(key) and key != "" and is_integer(version) and version > 0,
+         do: DeliveryPlanning.hydrate_execution_delivery(delivery)
+
+    defp hydrate_for_execution(%Delivery{} = delivery), do: {:ok, delivery}
+
+    defp run_execution_delivery(delivery, attempt, max_attempts) do
+      case Executor.run_delivery(delivery) do
+        {:ok, %{attempt: %DeliveryAttempt{} = recorded, delivery: %Delivery{} = updated}} ->
+          map_outcome_to_oban_return(recorded, updated, attempt, max_attempts)
+
+        {:error, step, reason, _changes} ->
+          {:error, {step, reason}}
+
+        {:error, _reason} = error ->
+          error
       end
     end
 
@@ -201,8 +275,8 @@ if Code.ensure_loaded?(Oban) do
     #
     # - succeeded                                       -> :ok
     # - permanent/bounced (delivery already :cancelled) -> :ok (record_attempt converged)
-    # - temporary AND attempt == max_attempts           -> exhaust_delivery + :ok
-    # - temporary AND attempt < max_attempts            -> {:error, reason}
+    # - retryable AND attempt == max_attempts           -> exhaust_delivery + :ok
+    # - retryable AND attempt < max_attempts            -> {:error, reason}
     defp map_outcome_to_oban_return(
            %DeliveryAttempt{outcome: :succeeded},
            _delivery,
@@ -224,16 +298,16 @@ if Code.ensure_loaded?(Oban) do
     end
 
     defp map_outcome_to_oban_return(
-           %DeliveryAttempt{error_class: "temporary"} = recorded,
+           %DeliveryAttempt{error_class: error_class} = recorded,
            %Delivery{status: :failed} = delivery,
            attempt,
            max_attempts
-         ) do
+         )
+         when error_class in ["temporary", "render_context_unavailable"] do
       reason = error_reason_from_attempt(recorded)
 
       if attempt >= max_attempts do
-        # In-band exhaustion guard (RESEARCH Pattern 2 / Pitfall 1).
-        # Write the durable terminal state, then return :ok so the Oban job is
+        # Write the durable terminal state in-band, then return :ok so the Oban job is
         # marked :completed rather than :discarded.
         case Deliveries.exhaust_delivery(delivery) do
           {:ok, _exhausted} -> :ok
@@ -245,7 +319,7 @@ if Code.ensure_loaded?(Oban) do
       end
     end
 
-    # Catch-all defensive clause (BL-02 fix). Two branches:
+    # Catch-all defensive clause with two branches:
     #   Branch A (convergence): if this is the final attempt AND the delivery is in
     #     :failed, call exhaust_delivery/1 to land the durable :cancelled
     #     retries_exhausted state. Returns :ok so Oban marks the job :completed.
@@ -291,6 +365,9 @@ if Code.ensure_loaded?(Oban) do
           max_attempts: max
       end
     end
+
+    defp error_reason_from_attempt(%DeliveryAttempt{error_class: "render_context_unavailable"}),
+      do: :render_context_unavailable
 
     defp error_reason_from_attempt(%DeliveryAttempt{provider_response: provider_response}) do
       case provider_response do

@@ -11,6 +11,8 @@ defmodule ChimewayAdmin.Redaction do
   @sensitive_key ~r/(password|token|secret|api_key|auth)/i
   @phone ~r/^\+?[0-9][0-9\s().-]{6,}$/
 
+  alias Chimeway.Privacy
+
   @doc """
   Masks recipient identity for list/detail display.
   """
@@ -83,6 +85,7 @@ defmodule ChimewayAdmin.Redaction do
   @spec safe_timeline_detail(map()) :: map()
   def safe_timeline_detail(detail) when is_map(detail) do
     detail
+    |> Privacy.redact()
     |> Enum.filter(fn {key, _value} ->
       key_str = key |> to_string() |> String.downcase()
       key_str in @allowed_detail_keys and not Regex.match?(@sensitive_key, key_str)

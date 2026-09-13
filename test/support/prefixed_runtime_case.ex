@@ -139,7 +139,9 @@ defmodule Chimeway.PrefixedRuntimeCase do
           "chimeway_events",
           "chimeway_notifications",
           "chimeway_deliveries",
-          "chimeway_delivery_attempts"
+          "chimeway_delivery_attempts",
+          "chimeway_delivery_targets",
+          "chimeway_delivery_target_attempts"
         ],
         &regclass?(@runtime_prefix, &1)
       )

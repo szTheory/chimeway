@@ -12,7 +12,8 @@ defmodule ChimewayInbox.TestSupport.Fixtures do
   """
   def insert_inbox_notification!(recipient_identity, attrs \\ %{}) do
     idempotency_key = Map.get(attrs, :idempotency_key, "inbox-fixture-#{Ecto.UUID.generate()}")
-    event = insert_event!(idempotency_key)
+    tenant_id = Map.get(attrs, :tenant_id, "tenant-a")
+    event = insert_event!(idempotency_key, tenant_id)
 
     notification_attrs =
       %{
@@ -26,12 +27,13 @@ defmodule ChimewayInbox.TestSupport.Fixtures do
     insert_notification!(event, notification_attrs)
   end
 
-  defp insert_event!(idempotency_key) do
+  defp insert_event!(idempotency_key, tenant_id) do
     %Event{}
     |> Event.changeset(%{
       notification_key: "comment.created",
       notification_version: 1,
       idempotency_key: idempotency_key,
+      tenant_id: tenant_id,
       payload: %{}
     })
     |> Repo.insert!()
@@ -39,7 +41,7 @@ defmodule ChimewayInbox.TestSupport.Fixtures do
 
   defp insert_notification!(event, attrs) do
     %Notification{}
-    |> Notification.changeset(Map.merge(attrs, %{event_id: event.id}))
+    |> Notification.changeset(Map.merge(attrs, %{event_id: event.id, tenant_id: event.tenant_id}))
     |> Repo.insert!()
   end
 end

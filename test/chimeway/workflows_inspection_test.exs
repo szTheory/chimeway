@@ -15,12 +15,14 @@ defmodule Chimeway.WorkflowsInspectionTest do
         notification_key: "test.inspection",
         notification_version: 1,
         idempotency_key: "insp-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: %{}
       })
 
     notification =
       Repo.insert!(%Notification{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: "user:#{System.unique_integer([:positive])}",
         recipient_type: "user",
         metadata: %{},

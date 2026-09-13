@@ -3,13 +3,12 @@ if Code.ensure_loaded?(Mailglass) do
     @moduledoc """
     Mailglass-backed email adapter for Chimeway outbound delivery.
 
-    Product-facing name: `Chimeway.Adapter.Mailglass` (see ECOS-01). Implementation
-    module: `Chimeway.Adapters.Mailglass` (D-07).
+    Configure the email channel to use the `Chimeway.Adapters.Mailglass`
+    implementation module.
 
     Mailglass requires Elixir ~> 1.18 when enabled. Chimeway core compiles on 1.17+;
-    run mailglass adapter tests on Elixir 1.18+ (see Phase 54 research).
-
-    Webhook callbacks are Phase 55.
+    run Mailglass adapter tests on Elixir 1.18+. The adapter implements the optional
+    webhook callbacks used by `Chimeway.Webhooks.process/4`.
     """
 
     @behaviour Chimeway.Adapter
@@ -110,7 +109,8 @@ if Code.ensure_loaded?(Mailglass) do
       render_data = delivery.render_data || %{}
 
       email =
-        render_data["to"] ||
+        delivery.recipient_address ||
+          render_data["to"] ||
           render_data["email"] ||
           parse_user_email(delivery.actor_id)
 
@@ -280,8 +280,14 @@ if Code.ensure_loaded?(Mailglass) do
     def resolve_delivery(%{"_mailglass_event" => %Mailglass.Events.Event{metadata: metadata}})
         when is_map(metadata) do
       case message_id_from_metadata(metadata) do
-        id when is_binary(id) and id != "" -> {:ok, %{provider_message_id: id}}
-        _ -> :error
+        id when is_binary(id) ->
+          case Chimeway.SafeEvidence.provider_message_reference(id) do
+            {:ok, reference} -> {:ok, %{provider_message_id: reference}}
+            {:error, :unsafe_evidence} -> :error
+          end
+
+        _ ->
+          :error
       end
     end
 

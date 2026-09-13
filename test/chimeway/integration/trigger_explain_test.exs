@@ -21,7 +21,14 @@ defmodule Chimeway.TriggerExplainTest do
 
     @impl true
     def recipients(_params) do
-      {:ok, [%{recipient_identity: "user:explain", recipient_type: "user"}]}
+      {:ok,
+       [
+         %{
+           recipient_identity: "user:explain",
+           recipient_ref: "cw_explain",
+           recipient_type: "user"
+         }
+       ]}
     end
 
     @impl true
@@ -115,7 +122,7 @@ defmodule Chimeway.TriggerExplainTest do
       Repo.insert!(
         Signal.changeset(%Signal{}, %{
           tenant_id: "acme",
-          actor_id: "user:explain",
+          actor_id: "cw_explain",
           event_name: "email_opened",
           payload: %{}
         })

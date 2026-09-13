@@ -15,7 +15,8 @@ defmodule Chimeway.DeliveriesTest do
         notification_key: "test.notification",
         notification_version: 1,
         idempotency_key: "test-#{System.unique_integer()}",
-        payload: %{}
+        payload: %{},
+        tenant_id: "default"
       })
       |> Repo.insert()
 
@@ -23,6 +24,7 @@ defmodule Chimeway.DeliveriesTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: "user-1",
         recipient_type: "user",
         metadata: %{}
@@ -52,7 +54,8 @@ defmodule Chimeway.DeliveriesTest do
         notification_version: Map.get(attrs, :notification_version, 1),
         idempotency_key: Map.get(attrs, :idempotency_key, "event-#{System.unique_integer()}"),
         payload: Map.get(attrs, :payload, %{}),
-        correlation_id: Map.get(attrs, :correlation_id)
+        correlation_id: Map.get(attrs, :correlation_id),
+        tenant_id: Map.get(attrs, :tenant_id, "default")
       })
       |> Repo.insert()
 
@@ -79,6 +82,7 @@ defmodule Chimeway.DeliveriesTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity:
           Map.get(attrs, :recipient_identity, "user-#{System.unique_integer([:positive])}"),
         recipient_type: Map.get(attrs, :recipient_type, "user"),
@@ -117,7 +121,7 @@ defmodule Chimeway.DeliveriesTest do
     {:ok, delivery} =
       Deliveries.plan_delivery(notification.id, Map.get(attrs, :channel, :in_app),
         metadata: metadata,
-        tenant_id: Map.get(attrs, :tenant_id, "default"),
+        tenant_id: Map.get(attrs, :tenant_id, notification.tenant_id),
         actor_id: Map.get(attrs, :actor_id, "system")
       )
 
@@ -143,6 +147,25 @@ defmodule Chimeway.DeliveriesTest do
   # ---- plan_delivery/2 ----
 
   describe "plan_delivery/2" do
+    test "rejects a missing or mismatched tenant without inserting a delivery" do
+      %{notification: notification} = insert_notification()
+
+      assert {:error, {:invalid_tenant_id, nil}} =
+               Deliveries.plan_delivery(notification.id, :in_app, actor_id: "system")
+
+      assert {:error, :tenant_mismatch} =
+               Deliveries.plan_delivery(notification.id, :in_app,
+                 tenant_id: "tenant-b",
+                 actor_id: "system"
+               )
+
+      assert Repo.aggregate(
+               from(d in Delivery, where: d.notification_id == ^notification.id),
+               :count,
+               :id
+             ) == 0
+    end
+
     test "creates a delivery row with status :pending" do
       %{notification: notification} = insert_notification()
 
@@ -170,6 +193,79 @@ defmodule Chimeway.DeliveriesTest do
       assert delivery.planning_reason == nil
       assert delivery.planning_context == nil
       assert delivery.next_eligible_at == nil
+    end
+
+    test "ignores caller trust flags and persists render identity only" do
+      %{notification: notification} = insert_notification()
+
+      assert {:ok, delivery} =
+               Deliveries.plan_delivery(notification.id, :email,
+                 tenant_id: "default",
+                 actor_id: "system",
+                 render_key: "test.hostile.email",
+                 render_version: 2,
+                 render_data: %{
+                   "subject" => "Private subject",
+                   :html_body => "<p>Private body</p>",
+                   "recipient" => "recipient@example.test"
+                 },
+                 trusted_render_data: true
+               )
+
+      assert delivery.render_key == "test.hostile.email"
+      assert delivery.render_version == 2
+      assert Repo.get!(Delivery, delivery.id).render_data == %{}
+    end
+
+    test "apply_render_result persists identity only for hostile render maps" do
+      %{notification: notification} = insert_notification()
+
+      assert {:ok, delivery} =
+               Deliveries.plan_delivery(notification.id, :email,
+                 tenant_id: "default",
+                 actor_id: "system"
+               )
+
+      assert {:ok, updated} =
+               Deliveries.apply_render_result(delivery, %{
+                 "render_key" => "test.direct.email",
+                 "render_version" => 3,
+                 "render_data" => %{
+                   "subject" => "Private subject",
+                   :text_body => "Private body",
+                   "endpoint" => "https://private.example.test"
+                 }
+               })
+
+      assert updated.render_key == "test.direct.email"
+      assert updated.render_version == 3
+      assert Repo.get!(Delivery, updated.id).render_data == %{}
+    end
+
+    test "nil, empty, singleton, and string-key render maps retain identity without durable content" do
+      for {suffix, render_data} <- [
+            {"nil", nil},
+            {"empty", %{}},
+            {"singleton", %{subject: "Private subject"}},
+            {"string", %{"subject" => "Private subject", "recipient" => "recipient@example.test"}}
+          ] do
+        %{notification: notification} = insert_notification()
+
+        assert {:ok, delivery} =
+                 Deliveries.plan_delivery(notification.id, :email,
+                   tenant_id: "default",
+                   actor_id: "system",
+                   render_key: "test.#{suffix}.email",
+                   render_version: 1,
+                   render_data: render_data,
+                   trusted_render_data: true
+                 )
+
+        reloaded = Repo.get!(Delivery, delivery.id)
+        assert reloaded.render_key == "test.#{suffix}.email"
+        assert reloaded.render_version == 1
+        assert reloaded.render_data == %{}
+      end
     end
 
     test "is idempotent: duplicate calls create exactly one row" do
@@ -568,7 +664,7 @@ defmodule Chimeway.DeliveriesTest do
         )
 
       recoverable_ids =
-        Deliveries.list_recoverable_events(now: now, older_than: 60)
+        Deliveries.list_recoverable_events(tenant_id: "default", now: now, older_than: 60)
         |> Enum.map(& &1.id)
 
       assert recoverable_event.id in recoverable_ids
@@ -598,7 +694,7 @@ defmodule Chimeway.DeliveriesTest do
         )
 
       recoverable_ids =
-        Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+        Deliveries.list_recoverable_deliveries(tenant_id: "default", now: now, older_than: 60)
         |> Enum.map(& &1.id)
 
       assert recoverable_delivery.id in recoverable_ids
@@ -669,7 +765,7 @@ defmodule Chimeway.DeliveriesTest do
         )
 
       recoverable_ids =
-        Deliveries.list_recoverable_deliveries(now: now, older_than: 60)
+        Deliveries.list_recoverable_deliveries(tenant_id: "default", now: now, older_than: 60)
         |> Enum.map(& &1.id)
 
       assert recoverable_delivery.id in recoverable_ids
@@ -697,6 +793,7 @@ defmodule Chimeway.DeliveriesTest do
 
       assert {:ok, recovered_delivery} =
                Deliveries.begin_recovery(delivery,
+                 tenant_id: delivery.tenant_id,
                  now: recovered_at,
                  older_than: 60,
                  source: "operator_console",
@@ -750,6 +847,7 @@ defmodule Chimeway.DeliveriesTest do
 
       assert {:ok, recovered_delivery} =
                Deliveries.begin_recovery(delivery,
+                 tenant_id: delivery.tenant_id,
                  now: recovered_at,
                  older_than: 60,
                  source: "operator_console",
@@ -760,6 +858,7 @@ defmodule Chimeway.DeliveriesTest do
 
       assert {:noop, noop_delivery} =
                Deliveries.begin_recovery(delivery.id,
+                 tenant_id: delivery.tenant_id,
                  now: ~U[2026-04-28 18:01:00Z],
                  older_than: 60,
                  source: "operator_console",
@@ -845,7 +944,7 @@ defmodule Chimeway.DeliveriesTest do
              ) == 0
     end
 
-    test "stores provider_response in attempt row", %{notification: notification} do
+    test "stores canonical provider facts in attempt row", %{notification: notification} do
       {:ok, delivery} =
         Deliveries.plan_delivery(notification.id, :in_app,
           tenant_id: "default",
@@ -857,10 +956,78 @@ defmodule Chimeway.DeliveriesTest do
       {:ok, %{attempt: attempt}} =
         Deliveries.record_attempt(dispatched, %{
           outcome: :succeeded,
-          provider_response: %{"message_id" => "abc123"}
+          provider_response: %{"provider_code" => "accepted", "retry_after_ms" => 100}
         })
 
-      assert attempt.provider_response == %{"message_id" => "abc123"}
+      assert attempt.provider_response == %{
+               "provider_code" => "accepted",
+               "retry_after_ms" => 100
+             }
+    end
+  end
+
+  describe "deferred delivery tenant scope" do
+    test "wrong-tenant resume and cancellation neither disclose nor mutate a deferred delivery" do
+      event = insert_event(%{tenant_id: "tenant-a"})
+      notification = insert_notification_for_event(event)
+
+      delivery =
+        insert_delivery(
+          notification: notification,
+          tenant_id: "tenant-a",
+          status: :pending,
+          orchestration_state: :deferred,
+          next_eligible_at: ~U[2026-04-28 18:00:00Z]
+        )
+
+      opts = [tenant_id: "tenant-b", now: ~U[2026-04-28 18:05:00Z]]
+
+      assert {:noop, nil} = Deliveries.resume_deferred_delivery(delivery.id, opts)
+
+      assert {:noop, nil} =
+               Deliveries.cancel_deferred_delivery(delivery.id, "superseded", opts)
+
+      reloaded = Repo.get!(Delivery, delivery.id)
+      assert reloaded.tenant_id == "tenant-a"
+      assert reloaded.status == :pending
+      assert reloaded.orchestration_state == :deferred
+      assert reloaded.suppression_reason == nil
+      assert reloaded.metadata == %{}
+    end
+
+    test "tenant-scoped resume and cancellation update only the authorized deferred delivery" do
+      event = insert_event(%{tenant_id: "tenant-a"})
+      notification = insert_notification_for_event(event)
+
+      resumable =
+        insert_delivery(
+          notification: notification,
+          tenant_id: "tenant-a",
+          status: :pending,
+          orchestration_state: :deferred,
+          next_eligible_at: ~U[2026-04-28 18:00:00Z]
+        )
+
+      cancellable =
+        insert_delivery(
+          notification: notification,
+          tenant_id: "tenant-a",
+          channel: :email,
+          status: :pending,
+          orchestration_state: :deferred,
+          next_eligible_at: ~U[2026-04-28 18:00:00Z]
+        )
+
+      opts = [tenant_id: "tenant-a", now: ~U[2026-04-28 18:05:00Z]]
+
+      assert {:ok, resumed} = Deliveries.resume_deferred_delivery(resumable.id, opts)
+      assert resumed.orchestration_state == :ready
+
+      assert {:ok, cancelled} =
+               Deliveries.cancel_deferred_delivery(cancellable.id, "superseded", opts)
+
+      assert cancelled.status == :cancelled
+      assert cancelled.suppression_reason == "superseded"
     end
   end
 end

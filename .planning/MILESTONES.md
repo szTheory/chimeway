@@ -1,5 +1,103 @@
 # Milestones
 
+## v1.18 Adopter Alpha Mobile Delivery Readiness (Shipped: 2026-09-12)
+
+**Phases completed:** 7 phases, 80 plans, 25 tasks
+
+**Delivered:** A tenant-safe, privacy-bounded mobile notification path from durable multi-installation planning through optional APNs handoff and one-time CrossWake activation, proven by both a credential-free deterministic twin and one completion-bound physical-iPhone snapshot.
+
+**Requirements:** 26/26 satisfied
+**Closeout:** override_closeout — the v1.18 audit passed and all 7 phase verifications passed; 7 older housekeeping records were acknowledged without changing their underlying status
+**Known verification overrides:** 7 newly acknowledged, 0 carried forward from a prior close (see STATE.md Deferred Items)
+**Audit:** [v1.18-MILESTONE-AUDIT.md](milestones/v1.18-MILESTONE-AUDIT.md)
+**Timeline:** 2026-08-11 → 2026-09-12
+
+**Key accomplishments:**
+
+- Tenant-scoped identity, idempotency, queries, upgrades, and recovery now fail closed without explicit host authority.
+- One logical push delivery fans out to durable opaque installation targets with independent attempts, expiry, invalidation, ambiguity, and operator explanations.
+- The optional Pigeon-backed APNs path preserves host token custody and emits only bounded, reason-aware provider-handoff evidence.
+- CrossWake registration and offline notification opens reauthorize against current tenant, session, installation, binding, manifest, and route authority before one-time activation.
+- Hermetic CI proof and a no-replace physical snapshot establish two honest support levels without conflating provider acceptance, visible display, activation, inbox state, or engagement.
+
+<details>
+<summary>Plan-level accomplishment ledger</summary>
+
+- Tenant-owned events and notifications now use composite idempotency and fail-closed trace access without changing Chimeway's static storage-prefix contract.
+- Inbox and Admin Phoenix package seams now require a host-selected concrete tenant and preserve it for every lifecycle access.
+- Legacy NULL-owned event trees now have deterministic, JSON-safe visibility and a one-way host-controlled ownership assignment path.
+- Admin dashboard, definitions, feed, and health screens reuse the host-authorized tenant context for every lifecycle read, with routed two-tenant definitions proof.
+- Migration 032 is deterministically copied and executable in public and static `chimeway` storage modes.
+- Recovery discovery, atomic claims, reloads, and persisted replanning now retain one resolved tenant without altering Chimeway's static storage or Oban routing.
+- Admin trace search/detail and recovery UI paths now retain the host-authorized tenant and render wrong-tenant lifecycle IDs as absent.
+- Trigger now trims an explicit nonblank tenant exactly once and carries that canonical host identity through durable lifecycle writes, duplicate recovery, trace reads, and dispatch.
+- Tenant migration 032 now deterministically refuses unsafe rollback before it can mutate tenant-owned data or indexes.
+- The maintained runtime-prefix gate now proves explicitly tenant-scoped begin, delivery, and event recovery inside the configured static prefix.
+- Admin lifecycle DTOs now disclose only fully tenant-coherent rows, and Feed Debug re-checks host authorization for every search.
+- Legacy lifecycle reconciliation now atomically validates and assigns Event, Notification, and Delivery ownership while reporting only durable Delivery IDs and counts.
+- Mounted Inbox events now fail closed for every changed recipient/tenant pair, with the Inbox verification lane required on pull requests.
+- A hostile adapter result now becomes closed, validated attempt evidence that can be explained tenant-safely without retaining provider bodies or sensitive nested values.
+- Trigger, delivery planning, and Inbox operations now persist and query only tenant-bound opaque references plus explicit lifecycle facts.
+- Closed adapter, telemetry, and Logger evidence vocabulary that prevents provider-controlled data from reaching attempts or diagnostics.
+- Trace and Admin operator projections now use a closed safe-evidence vocabulary with opaque identity references and recursive UI defense in depth.
+- Core and Mailglass proof output now emits a closed SafeEvidence projection with validated lifecycle/render facts and honest provider-handoff semantics.
+- Legacy delivery evidence is purged safely while deferred deliveries rebuild transient rendering context from host-owned opaque references.
+- Closed field grammars now prevent approved keys from laundering sensitive values through Trigger, digest persistence, and delivery explanations while preserving `:digested` lifecycle evidence.
+- Rendered delivery content now exists only in the synchronous in-process dispatch handoff while Chimeway storage, trace APIs, and Trigger results retain safe lifecycle and render-identity evidence.
+- Provider, attempt, and render evidence now fail closed whenever a logical field appears more than once, preventing representation or ordering from selecting durable facts.
+- Queued email delivery now resolves recipient and rendered content from host-owned context immediately before adapter execution, keeping Oban arguments and durable Chimeway evidence opaque.
+- Queued email context failures now write a closed, tenant-explainable failed attempt before retrying and converge safely to retries_exhausted at the Oban budget limit.
+- Trigger and Workflow routing now retain only explicit host-supplied opaque recipient references, rejecting raw identities and ambiguous aliases before persistence or matching.
+- Lifecycle integration evidence now sends deterministic `cw_lifecycle_user_<id>` references through Trigger, preserving the full privacy-safe delivery lifecycle regression proof.
+- One canonical push delivery now owns opaque, tenant-scoped child targets and records durable provider-handoff evidence before adapter I/O.
+- Migration 035 now has exact public/prefixed installer parity plus real PostgreSQL uniqueness and static-routing proof for durable delivery targets.
+- Atomic opaque-target fan-out now derives honest provider-handoff aggregates while retaining tenant-safe ordered installation histories.
+- Target delivery now uses tenant-qualified durable claims before adapter I/O, while interrupted handoffs remain ambiguous until an explicitly risk-labeled redrive.
+- Tenant-qualified bounded recovery now resumes stranded planning and safely converges target execution without turning an expired possible handoff into a resend.
+- Target adapter outcomes now always close their exact durable attempt, distinguishing provably unsent retries from possible provider handoffs without retaining raw callback evidence.
+- Tenant recovery now finds both trigger-commit gaps, pages every recovery stream independently, and emits closed evidence without host-owned target data.
+- Synchronous push dispatch now claims and executes every ordered eligible installation target, then returns the authoritative aggregate delivery result.
+- Target provider requests now require locked pending/ready parent authority, while stale finalizers and final retry exhaustion converge to durable terminal truth.
+- Public Oban push dispatch now persists no-target suppression, while stale recovery closes work through the canonical tenant-safe lock hierarchy.
+- Target lifecycle mutation is now source-state locked, while migration 036 structurally prevents cross-tenant delivery history and cross-target predecessor links.
+- A validated APNs routing intent now persists on each target while tokens and dispatcher references remain transient host-owned material.
+- Migration 037 now adds one nullable, prefix-aware APNs request-intent map across repository, public, and prefixed installation paths, with executable rollback preservation proof.
+- APNs delivery now has a closed, Pigeon-optional request boundary that preserves tenant-scoped transient custody and explicit ambiguity semantics.
+- APNs result handling now closes one exact target attempt with typed acceptance, retry, terminal failure, invalidation, expiry, or ambiguity evidence—without treating provider handoff as engagement.
+- A freshly unpacked Chimeway package now proves zero-Pigeon default consumption and explicit host Pigeon 2.0.1 opt-in, backed by one local and one CI gate.
+- The optional Pigeon bridge now projects only correlated, complete 410 APNs responses into the closed transport result, and the APNs lane is required by both aggregate gates.
+- The packaged APNs consumer now proves public adapter delivery through a real opt-in Pigeon dispatcher into the exact original host binding CAS, including its fail-closed raw-stream matrix.
+- The packaged APNs adopter now preserves Pigeon's normal HTTP 200 success path and verifies an advisory-free, deterministic opt-in graph without misrepresenting the root tzdata-to-Hackney baseline.
+- APNs durable intent and direct payload construction now share a closed opaque-reference grammar, while caller collapse IDs are validated as safe APNs headers before transport construction.
+- One opaque notification tap now activates exactly once from host-bound route/action values, then deterministically denies replay without fallback navigation.
+- Notification-open authoring now compiles to one fail-closed string action allowlist, with legacy `true` meaning only `tap`.
+- Compiled notification-open policy and protected-open runtime resolution now share one strict, fail-closed action allowlist.
+- Authenticated APNs observations now retain one current app-scoped revision, while stale lifecycle commands cannot disable a replacement or another installation.
+- Notification-open intents now grant one server-bound route/action resolution only while the exact binding and authenticated authority scope remain current.
+- Offline notification taps now persist as bounded opaque evidence and can activate only after a fresh host allow outcome.
+- Protected-open evidence now has a stable closed lifecycle vocabulary while recursively discarding sensitive and unbounded provider or authority data.
+- Protected notification reconnects now carry every closed denial to a terminal, sanitized native presentation with no URL or unavailable-route fallback.
+- Existing Phoenix hosts now migrate forward to fail-closed registration authority while concurrent posture observations converge on one active binding.
+- Provider invalidation now requires a host-authenticated exact binding revision, and forward upgrades reconcile both replacement active-row identity domains before indexing.
+- Installation-scoped bindings now support exact provider invalidation and one-time protected opens, while intent metadata is recursively stripped of tokens, notification content, and provider payloads.
+- Installation authority is now structurally independent of login sessions, including direct SQLite writes and both session-lifecycle revocation paths.
+- Notification-open intents now discard all caller metadata before persistence, preserving only explicit opaque and host-authoritative lifecycle fields.
+- Authenticated token registration now drops every caller metadata term before token-binding or append-only audit persistence, while keeping typed lifecycle evidence intact.
+- A forward Ecto migration now derives a matched legacy intent's scope from its exact active binding, then proves real one-time consumption while terminally closing unreconcilable issued rows.
+- Forward reconciliation now appends one privacy-safe `reconciliation_revoked` lifecycle event for every legacy protected-open intent it terminally revokes.
+- A deterministic `mix verify.alpha_twin` proof now validates one built Chimeway archive and an exact detached CrossWake revision before emitting a single bounded accepted-handoff proof.
+- A system-default clock, host-private fixture registry, and ordered redacted APNs transport make the Alpha twin deterministic without Apple credentials or wall-clock sleeps.
+- The Alpha Twin now enforces one ordered safety ledger, emits separated lifecycle claims, and rejects recursively leaked diagnostic values before proof encoding.
+- Closed Alpha physical-proof bytes now bind immutable artifact/CrossWake provenance, while a credential-free required CI lane proves the twin without claiming device-alert evidence.
+- A source-bound, owner-qualified CrossWake notification contract is published at one immutable SHA, and Chimeway pins only that remotely reproducible revision.
+- A closed physical-v1 bundle now binds digest-only Chimeway, CrossWake, visible-alert, and completion records to the selected immutable authority without allowing replacement or promotion by inference.
+- Credential-free release gating now proves only `release_ready_physical_pending`, while a bounded runner and one canonical guide keep physical iPhone support explicitly pending until signed-device evidence exists.
+- One genuine signed APNs-sandbox iPhone run is retained as a four-file, completion-bound, no-replace snapshot, and public support truth is promoted only for that recorded path.
+
+</details>
+
+---
+
 ## v1.17 Adopter Proof Paths (Shipped: 2026-08-11)
 
 **Delivered:** Prospective adopters can select and run truthful Core, Mailglass, or Accrue clean-room proofs from one immutable packaged artifact, with bounded redacted evidence and CI-enforced documentation/topology contracts.

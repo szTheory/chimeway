@@ -31,6 +31,7 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
         notification_key: notification_key,
         notification_version: 1,
         idempotency_key: "webhook-test-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: %{}
       })
       |> Repo.insert()
@@ -43,6 +44,7 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}
@@ -98,14 +100,14 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
         Deliveries.record_attempt(delivery, %{
           outcome: :succeeded,
           adapter_module: "InitialAdapter",
-          provider_message_id: "msg_12345"
+          provider_message_id: "cw_msg_12345"
         })
 
       {:ok, ingress} =
         %Ingress{}
         |> Ingress.changeset(%{
           adapter_module: "FeedbackAdapter",
-          provider_message_id: "msg_12345",
+          provider_message_id: "cw_msg_12345",
           normalized_status: "delivered",
           ingress_state: :queued
         })
@@ -272,7 +274,7 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
       legacy_args = %{
         "delivery_id" => delivery.id,
         "status" => "bounced",
-        "provider_response" => %{"x" => 1},
+        "provider_response" => %{"provider_code" => "bounced"},
         "adapter_module" => "LegacyAdapter"
       }
 
@@ -304,11 +306,11 @@ defmodule Chimeway.Webhooks.ProcessFeedbackWorkerTest do
         Deliveries.record_attempt(delivery, %{
           outcome: :succeeded,
           adapter_module: "InitialAdapter",
-          provider_message_id: "msg_legacy"
+          provider_message_id: "cw_msg_legacy"
         })
 
       legacy_args = %{
-        "provider_message_id" => "msg_legacy",
+        "provider_message_id" => "cw_msg_legacy",
         "status" => "delivered",
         "provider_response" => %{},
         "adapter_module" => "LegacyAdapter"

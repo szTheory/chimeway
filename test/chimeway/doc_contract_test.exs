@@ -28,6 +28,19 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  describe "CrossWake provider-feedback docs authority (DOCS-02/GATE-02)" do
+    test "packages one strict documentation selector independently from physical proof" do
+      mix_exs = File.read!("mix.exs")
+      docs_sha = File.read!("priv/adoption/crosswake-provider-feedback-docs-selected-sha")
+      physical_sha = File.read!("priv/mobile_proof/crosswake-selected-sha")
+
+      assert mix_exs =~ "~w(lib priv guides"
+      assert Regex.match?(~r/\A[0-9a-f]{40}\n\z/, docs_sha)
+      assert Regex.match?(~r/\A[0-9a-f]{40}\n\z/, physical_sha)
+      refute docs_sha == physical_sha
+    end
+  end
+
   @journey_guide "guides/flows/multi-step-journeys.md"
 
   describe "journey guide doc contract (DOCS-03)" do
@@ -876,7 +889,7 @@ defmodule Chimeway.DocContractTest do
     end
 
     test "keeps clean-consumer evidence to the fixed safe proof vocabulary", %{content: content} do
-      assert String.contains?(content, "provenance=released_package accrue_version=1.3.0")
+      assert String.contains?(content, "provenance=released_package accrue_version=1.5.0")
       assert String.contains?(content, "workflow_key=accrue.dunning workflow_version=1")
 
       assert String.contains?(
@@ -910,19 +923,19 @@ defmodule Chimeway.DocContractTest do
       content: content
     } do
       assert String.contains?(content, "released_package")
-      assert String.contains?(content, "exact Accrue `1.3.0`")
+      assert String.contains?(content, "exact Accrue `1.5.0`")
       assert String.contains?(content, "`Accrue.Integrations.Chimeway`")
       assert String.contains?(content, "exact Chimeway artifact version")
       assert String.contains?(content, "executable check, not optimistic prose")
 
       refute String.contains?(
                content,
-               "Production adopters use `{:accrue, \"~> 1.3\"}` from Hex."
+               "Production adopters use `{:accrue, \"~> 1.5\"}` from Hex."
              )
     end
 
     test "limits the immutable Accrue SHA to compatibility evidence", %{content: content} do
-      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+      sha = "cafc526f752b917a0abf8cbdbf3030cb367ae346"
 
       assert String.contains?(content, sha)
       assert String.contains?(content, "compatibility evidence only")
@@ -955,11 +968,11 @@ defmodule Chimeway.DocContractTest do
         |> String.split("## 6. Verification", parts: 2)
         |> List.first()
 
-      sha = "236fa2f1649e771f3b515603495436badeed3c7b"
+      sha = "cafc526f752b917a0abf8cbdbf3030cb367ae346"
 
       for required <- [
             "released_package",
-            "exact Accrue `1.3.0`",
+            "exact Accrue `1.5.0`",
             "resolved Hex metadata",
             "integration module origin",
             "exact Chimeway artifact version"
@@ -1001,7 +1014,7 @@ defmodule Chimeway.DocContractTest do
                "does not mean the workflow entered a terminal state"
              )
 
-      refute String.contains?(clean_consumer, "unconditional `~> 1.3` proof")
+      refute String.contains?(clean_consumer, "unconditional `~> 1.5` proof")
       refute String.contains?(clean_consumer, "source/module presence without resolved metadata")
 
       for forbidden <- [
@@ -1083,6 +1096,8 @@ defmodule Chimeway.DocContractTest do
   @inbox_integration_guide Path.expand("../../guides/introduction/inbox-integration.md", __DIR__)
 
   describe "inbox integration guide doc contract (DOCS-08 / DOCS-09)" do
+    @describetag :inbox_gate_parity
+
     setup do
       content = File.read!(@inbox_integration_guide)
       %{content: content}
@@ -1181,11 +1196,17 @@ defmodule Chimeway.DocContractTest do
     test "uses chimeway_inbox path dependency and preserves root Chimeway dep (D-05)", %{
       content: content
     } do
+      mix_exs = File.read!("mix.exs")
+      [_, version] = Regex.run(~r/@version "([^"]+)"/, mix_exs)
+      [major, minor, _patch] = String.split(version, ".")
+
       assert String.contains?(content, ~s({:chimeway_inbox, path: "../chimeway_inbox"})),
              "inbox guide must keep the chimeway_inbox path dependency for preview usage"
 
-      assert String.contains?(content, ~s({:chimeway, "~> 1.0"})),
-             "inbox guide must preserve the root {:chimeway, \"~> 1.0\"} dependency"
+      expected = ~s({:chimeway, "~> #{major}.#{minor}"})
+
+      assert String.contains?(content, expected),
+             "inbox guide must preserve the current root dependency #{expected}"
     end
 
     test "forbids current-Hex chimeway_inbox install claim (D-06)", %{content: content} do
@@ -1210,6 +1231,300 @@ defmodule Chimeway.DocContractTest do
 
       refute String.contains?(mix, "docs:"),
              "chimeway_inbox/mix.exs must not define HexDocs metadata in Phase 78"
+    end
+  end
+
+  describe "inbox integration guide ownership and lifecycle parity (DOCS-03)" do
+    @describetag :inbox_gate_parity
+
+    @unsafe_inbox_caller_metadata_patterns [
+      {"atom caller_metadata from session or params",
+       ~r/\bcaller_metadata\s*:\s*(?:session|params)\b/},
+      {"string caller_metadata key", ~r/["']caller_metadata["']\s*=>/},
+      {"atom metadata from session or params", ~r/\bmetadata\s*:\s*(?:session|params)\b/},
+      {"string metadata from session or params", ~r/["']metadata["']\s*=>\s*(?:session|params)\b/}
+    ]
+
+    @unsafe_inbox_notification_content_patterns [
+      {"atom notification_content or render_assigns key",
+       ~r/\b(?:notification_content|render_assigns)\s*:/},
+      {"string notification_content or render_assigns key",
+       ~r/["'](?:notification_content|render_assigns)["']\s*=>/},
+      {"notification-derived content value", ~r/\bcontent\s*:\s*notification\s*\./},
+      {"notification-derived subject or body value", ~r/\bnotification\s*\.\s*(?:subject|body)\b/}
+    ]
+
+    setup do
+      content = File.read!(@inbox_integration_guide)
+      %{content: content}
+    end
+
+    test "copies the complete publisher, PubSub, secret, and authorization shape", %{
+      content: content
+    } do
+      required = [
+        "inbox_change_publisher: ChimewayInbox.PubSubPublisher",
+        "pubsub_server: MyApp.PubSub",
+        "topic_secret:",
+        "high-entropy secret",
+        "auth_module: MyApp.InboxAuth",
+        "def current_recipient(session, _context)",
+        "def current_tenant(session, _context)",
+        "cw_recipient_",
+        "{:error, :unauthorized}"
+      ]
+
+      for item <- required do
+        assert String.contains?(content, item),
+               "inbox guide must include the source-valid configuration/auth item #{inspect(item)}"
+      end
+    end
+
+    test "assigns core, package, and host ownership before lifecycle semantics", %{
+      content: content
+    } do
+      ordered = [
+        "## Responsibility split",
+        "Chimeway owns",
+        "`chimeway_inbox` owns",
+        "The host owns",
+        "tenant membership",
+        "recipient mapping",
+        "secret custody",
+        "## 6. Bell UI surface",
+        "### Lifecycle semantics"
+      ]
+
+      indices =
+        Enum.map(ordered, fn item ->
+          case :binary.match(content, item) do
+            {index, _} ->
+              index
+
+            :nomatch ->
+              flunk("inbox guide must include ownership/lifecycle item #{inspect(item)}")
+          end
+        end)
+
+      assert indices == Enum.sort(indices),
+             "inbox guide must establish ownership before lifecycle semantics"
+
+      assert String.contains?(content, "currently authorized tenant")
+      assert String.contains?(content, "currently authorized recipient")
+      assert String.contains?(content, "authoritative reload")
+    end
+
+    test "keeps lifecycle facts distinct and rejects stale or raw-recipient guidance", %{
+      content: content
+    } do
+      for item <- [
+            "| Durable arrival |",
+            "| Inbox seen |",
+            "| Inbox read |",
+            "| Inbox archive |",
+            "| Provider handoff |",
+            "| Visible presentation |",
+            "| Protected activation |",
+            "| Engagement |",
+            "lossy reload hints",
+            "does not imply",
+            "mobile-adoption-operations.md"
+          ] do
+        assert String.contains?(content, item),
+               "inbox guide must distinguish lifecycle boundary #{inspect(item)}"
+      end
+
+      refute String.contains?(content, "mark_seen is not wired")
+      refute String.contains?(content, "headless — not exposed")
+      refute String.contains?(content, "Deferred in v1.9")
+
+      refute Regex.match?(~r/["`]user:[^"`\s]+@[^"`\s]+["`]/, content),
+             "inbox guide must not use raw email-shaped recipient identities"
+    end
+
+    for {description, pattern} <- @unsafe_inbox_caller_metadata_patterns do
+      test "forbids raw caller metadata form #{description}", %{content: content} do
+        refute Regex.match?(unquote(Macro.escape(pattern)), content),
+               "inbox guide must not publish raw caller metadata via #{unquote(description)}"
+      end
+    end
+
+    for {description, pattern} <- @unsafe_inbox_notification_content_patterns do
+      test "forbids raw notification content form #{description}", %{content: content} do
+        refute Regex.match?(unquote(Macro.escape(pattern)), content),
+               "inbox guide must not publish notification content via #{unquote(description)}"
+      end
+    end
+
+    test "notification-content contract detects whitespace and nested atom-key mutations" do
+      mutations = [
+        "metadata: %{subject: notification.subject}",
+        "metadata: %{\n  body:   notification.body\n}",
+        "metadata: %{audit: %{subject: notification.subject}}",
+        ~s("metadata" => %{"body"   => notification.body})
+      ]
+
+      for mutation <- mutations do
+        assert_raise ExUnit.AssertionError, fn ->
+          for {_description, pattern} <- @unsafe_inbox_notification_content_patterns do
+            refute Regex.match?(pattern, mutation),
+                   "notification-content contract must reject mutation #{inspect(mutation)}"
+          end
+        end
+      end
+    end
+  end
+
+  describe "release-facing public Markdown truth" do
+    test "README notifier block matches the executable WelcomeUser fixture" do
+      readme = File.read!("README.md")
+      fixture = File.read!("test/chimeway/integration/readme_snippet_test.exs")
+
+      [_, notifier_block] =
+        Regex.run(
+          ~r/defmodule MyApp\.Notifiers\.WelcomeUser do\n(?<body>.*?)\nend\n```/s,
+          readme
+        )
+
+      for callback <- ~w(notification_key version recipients build rendering) do
+        assert Regex.match?(~r/def #{callback}\b/, notifier_block),
+               "README WelcomeUser must define #{callback}"
+
+        assert Regex.match?(~r/def #{callback}\b/, fixture),
+               "executable WelcomeUser fixture must define #{callback}"
+      end
+
+      for stable_value <- [
+            ~s("welcome_user"),
+            ~s(recipient_identity: "user:\#{user_id}"),
+            ~s(recipient_ref: "cw_\#{user_id}"),
+            ~s(recipient_type: "user"),
+            ~s(title: "Welcome"),
+            ~s("headline" => "Welcome"),
+            ~s("body" => "Welcome aboard"),
+            ~s("primary_action" => %{"label" => "Open", "url" => "https://example.test/welcome"}),
+            ~s(render_key: "welcome_user.in_app"),
+            "render_version: 1"
+          ] do
+        assert String.contains?(notifier_block, stable_value),
+               "README WelcomeUser must retain stable value #{inspect(stable_value)}"
+
+        assert String.contains?(fixture, stable_value),
+               "executable WelcomeUser fixture must retain stable value #{inspect(stable_value)}"
+      end
+    end
+
+    test "inbox dependency and auth wording follow current source truth" do
+      guide = File.read!(@inbox_integration_guide)
+      mix_exs = File.read!("mix.exs")
+      [_, version] = Regex.run(~r/@version "([^"]+)"/, mix_exs)
+      [major, minor, _patch] = String.split(version, ".")
+
+      assert String.contains?(guide, ~s({:chimeway, "~> #{major}.#{minor}"}))
+      assert String.contains?(guide, "Phoenix session map and a context map")
+
+      for security_anchor <- [
+            "currently authorized tenant",
+            "currently authorized recipient",
+            "independently",
+            "stable opaque recipient",
+            "host-custodied high-entropy secret",
+            "before every authoritative reload",
+            "On receipt or reconnect",
+            "re-runs both host authorization callbacks"
+          ] do
+        assert String.contains?(guide, security_anchor),
+               "inbox guide must retain security boundary #{inspect(security_anchor)}"
+      end
+    end
+
+    test "public Markdown uses the canonical repository and contains no empty-guide markers" do
+      public_markdown =
+        ["README.md", "SECURITY.md", "MAINTAINING.md"] ++
+          Path.wildcard("guides/**/*.md") ++
+          Path.wildcard("examples/**/*.md") ++ Path.wildcard("chimeway_*/README.md")
+
+      for path <- Enum.uniq(public_markdown), content = File.read!(path) do
+        refute String.contains?(content, "https://github.com/jonlunsford/chimeway"),
+               "#{path} must use the canonical szTheory/chimeway owner"
+
+        refute String.contains?(
+                 content,
+                 "This guide is a stub. Full content coming in v1.0 docs."
+               ),
+               "#{path} must not ship the empty-guide banner"
+
+        refute String.contains?(content, "<!-- TODO: expand with full content -->"),
+               "#{path} must not ship the empty-guide TODO marker"
+
+        for retired <- ~w(trigger-to-delivery.md async-dispatch.md policy-and-preferences.md) do
+          refute String.contains?(content, retired),
+                 "#{path} must not link to retired guide #{retired}"
+        end
+      end
+    end
+
+    test "empty placeholder guides are absent" do
+      for path <- [
+            "guides/flows/trigger-to-delivery.md",
+            "guides/flows/async-dispatch.md",
+            "guides/flows/policy-and-preferences.md"
+          ] do
+        refute File.exists?(path), "retired placeholder guide must be absent: #{path}"
+      end
+    end
+
+    test "maintainer runbook documents identity-first release decisions" do
+      maintaining = File.read!("MAINTAINING.md")
+
+      for required <- [
+            "Only an exact Release Please PR merge",
+            "Ordinary merges and uncertain PR metadata continue into the idempotent Release Please action",
+            "head branch, base branch, title, and well-formed metadata",
+            "already tagged or published"
+          ] do
+        assert String.contains?(maintaining, required),
+               "MAINTAINING must document release decision truth: #{inspect(required)}"
+      end
+
+      refute String.contains?(maintaining, "4. **On merge**"),
+             "MAINTAINING must not imply every ordinary merge creates a release"
+    end
+
+    test "maintainer runbook documents token-aware exact-branch CI bootstrap" do
+      maintaining = File.read!("MAINTAINING.md")
+
+      for required <- [
+            "`GITHUB_TOKEN` fallback",
+            "explicitly dispatches `ci.yml`",
+            "`release-please--branches--main`",
+            "PAT-backed fresh update",
+            "native `pull_request` CI",
+            "avoids a duplicate dispatch"
+          ] do
+        assert String.contains?(maintaining, required),
+               "MAINTAINING must document release-PR CI bootstrap: #{inspect(required)}"
+      end
+    end
+
+    test "maintainer runbook defines complete clean-tree behavior" do
+      maintaining = File.read!("MAINTAINING.md")
+
+      assert String.contains?(maintaining, "unstaged, staged, and non-ignored untracked")
+      assert String.contains?(maintaining, "ignored files remain allowed")
+      assert String.contains?(maintaining, "mix verify.clean")
+    end
+
+    test "agent guide delegates changing project state to durable planning files" do
+      agents = File.read!("AGENTS.md")
+
+      assert String.contains?(agents, "`.planning/STATE.md`")
+      assert String.contains?(agents, "`.planning/ROADMAP.md`")
+      assert String.contains?(agents, "Read both before selecting or executing work")
+
+      refute Regex.match?(~r/Current roadmap has \d+ phases/, agents)
+      refute String.contains?(agents, "as the immediate focus")
+      refute File.exists?("GSD-CONTEXT.md"), "obsolete GSD bootstrap context must be absent"
     end
   end
 
@@ -1651,9 +1966,9 @@ defmodule Chimeway.DocContractTest do
       end
     end
 
-    test "forbids identity: in README", %{content: content} do
-      refute String.contains?(content, "identity:"),
-             "README must not reference identity:"
+    test "forbids identity: (not recipient_identity:) in README", %{content: content} do
+      refute Regex.match?(~r/(?<!recipient_)identity:/, content),
+             "README must not reference bare identity: (recipient_identity: is permitted)"
     end
 
     test "forbids Chimeway.Workflow module (not Workflows) in README", %{content: content} do
@@ -2103,6 +2418,146 @@ defmodule Chimeway.DocContractTest do
         refute Regex.match?(~r/\{:chimeway,\s*"~>\s*\d+\.\d+\.\d+"/, content),
                "#{path} must use ~> MAJOR.MINOR, not a patch-level constraint"
       end
+    end
+  end
+
+  @mobile_operations_guide "guides/introduction/mobile-adoption-operations.md"
+
+  describe "mobile adoption and operations guide contract (DOCS-01)" do
+    setup do
+      guide = File.read!(@mobile_operations_guide)
+
+      %{
+        guide: guide,
+        readme: File.read!("README.md"),
+        selector: File.read!("guides/introduction/adoption-paths.md"),
+        mix_exs: File.read!("mix.exs")
+      }
+    end
+
+    test "is the sole ExDoc authority with four job entry points and shallow navigation", %{
+      guide: guide,
+      readme: readme,
+      selector: selector,
+      mix_exs: mix_exs
+    } do
+      assert mix_exs =~ "\"guides/introduction/mobile-adoption-operations.md\""
+
+      for marker <- [
+            "Integrate mobile push",
+            "Explain an outcome",
+            "Review the security boundary",
+            "Run or promote proof",
+            "host integrator",
+            "operator/on-call",
+            "security reviewer",
+            "maintainer"
+          ] do
+        assert guide =~ marker
+      end
+
+      assert length(:binary.matches(readme, "mobile-adoption-operations.md")) == 1
+      assert length(:binary.matches(selector, "mobile-adoption-operations.md")) == 1
+    end
+
+    test "keeps DOCS-01 topics, commands, and vocabulary in stable order", %{guide: guide} do
+      headings = [
+        "## Readiness and roles",
+        "## Ownership boundaries",
+        "## Compatible installation and upgrade",
+        "## Tenant, APNs, and host wiring",
+        "## Outcome vocabulary",
+        "## Offline protected opens",
+        "## Proof ladder",
+        "## Troubleshooting and operator actions",
+        "## Non-goals"
+      ]
+
+      assert headings ==
+               Enum.sort_by(headings, fn heading ->
+                 {index, _length} = :binary.match(guide, heading)
+                 index
+               end)
+
+      for marker <- [
+            "logical delivery",
+            "target",
+            "attempt",
+            "provider acceptance",
+            "visible presentation",
+            "protected open",
+            "inbox seen/read",
+            "engagement",
+            "mix ci.verify_gates",
+            "mix verify.alpha_twin",
+            "mix verify.physical_proof_contract",
+            "mix chimeway.mobile_physical_proof --preflight --json",
+            "release_ready_physical_pending",
+            "physical_support_promoted",
+            "Did the expected Chimeway alert appear on the selected iPhone?",
+            "Observed",
+            "Did not appear",
+            "Cannot verify",
+            "golden-path.md",
+            "storage-prefix-upgrade.md",
+            "oban-integration.md",
+            "tracing-a-notification.md",
+            "custom-adapter.md"
+          ] do
+        assert guide =~ marker
+      end
+    end
+
+    test "binds promoted support wording to the verified completion snapshot", %{guide: guide} do
+      selected_sha = File.read!("priv/mobile_proof/crosswake-selected-sha") |> String.trim()
+
+      assert {:ok, bundle} =
+               Chimeway.MobileProof.PhysicalBundle.verify_directory(
+                 "evidence/mobile_physical/promoted",
+                 selected_sha: selected_sha
+               )
+
+      envelope = bundle["chimeway_envelope"]
+
+      for value <- [
+            envelope["captured_at"] |> String.slice(0, 10),
+            envelope["run_ref"],
+            envelope["chimeway_artifact_sha256"],
+            envelope["crosswake_sha"],
+            envelope["crosswake_evidence_sha256"],
+            envelope["crosswake_completion_marker_sha256"],
+            bundle["bundle_digest"]
+          ] do
+        assert guide =~ value
+      end
+
+      assert guide =~ "mix chimeway.mobile_physical_proof --verify-promoted --json"
+      assert guide =~ "one bounded production path"
+      assert bundle["visible_alert_attestation"]["state"] == "observed"
+      assert bundle["completion_marker"]["state"] == "validated"
+    end
+
+    test "locks the provider boundary and rejects unsupported or unsafe claims", %{guide: guide} do
+      assert length(:binary.matches(guide, "Provider acceptance is provider handoff only.")) >= 4
+      assert guide =~ "Threshold A alone remains physical evidence pending"
+      assert guide =~ "physical_support_promoted"
+      assert guide =~ "package, Git revision, Hex artifact, or CI run establishes provenance only"
+
+      for forbidden <- [
+            "Android production proof is delivered",
+            "FCM delivery is delivered",
+            "generic background sync is supported",
+            "broad device support is delivered",
+            "device management is delivered",
+            "general attestation platform is delivered",
+            "raw token",
+            "APNs acceptance establishes receipt and display"
+          ] do
+        refute guide =~ forbidden
+      end
+
+      refute guide =~ "!["
+      refute guide =~ ".png"
     end
   end
 

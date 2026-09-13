@@ -20,6 +20,69 @@ defmodule Chimeway.Test.ObanWorkerCaptureConfigAdapter do
   end
 end
 
+defmodule Chimeway.Test.ObanWorkerExecutionNotifier do
+  @behaviour Chimeway.Notifier
+
+  def notification_key, do: "oban.worker.execution"
+  def version, do: 1
+  def recipients(_params), do: {:ok, []}
+  def build(_params, _recipient), do: {:ok, %{}}
+  def channels(_params, _recipient), do: {:ok, [:email]}
+
+  def rendering(_params, _recipient) do
+    {:ok,
+     %{
+       assigns: %{
+         "subject" => "private subject",
+         "html_body" => "<p>private body</p>",
+         "text_body" => "private body"
+       },
+       channels: %{email: %{render_key: "oban.worker.execution.email", render_version: 1}}
+     }}
+  end
+end
+
+defmodule Chimeway.Test.ObanWorkerExecutionResolver do
+  @behaviour Chimeway.RenderContextResolver
+
+  @impl true
+  def resolve("oban.worker.execution", 1, recipient_ref) do
+    if pid = Application.get_env(:chimeway, :oban_worker_resolver_pid), do: send(pid, :resolved)
+
+    {:ok,
+     %{
+       notifier: Chimeway.Test.ObanWorkerExecutionNotifier,
+       params: %{},
+       recipient: %{recipient_ref: recipient_ref, recipient_identity: "user:private@example.test"}
+     }}
+  end
+
+  def resolve(_, _, _), do: {:error, :render_context_unavailable}
+end
+
+defmodule Chimeway.Test.ObanWorkerUnavailableContextResolver do
+  @behaviour Chimeway.RenderContextResolver
+
+  @impl true
+  def resolve(_, _, _),
+    do:
+      {:error,
+       {:host_context_unavailable,
+        %{recipient: "raw-recipient-sentinel@example.test", rendered: "raw-render-sentinel"}}}
+end
+
+defmodule Chimeway.Test.ObanWorkerCaptureDeliveryAdapter do
+  @behaviour Chimeway.Adapter
+
+  @impl true
+  def deliver(delivery, _config) do
+    if pid = Application.get_env(:chimeway, :adapter_capture_pid),
+      do: send(pid, {:delivery, delivery})
+
+    {:ok, %{adapter: "capture"}}
+  end
+end
+
 defmodule Chimeway.Dispatch.ObanWorkerTest do
   use Chimeway.DataCase, async: false
   use Oban.Testing, repo: Chimeway.Repo
@@ -28,7 +91,7 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
 
   import Chimeway.Test.DispatchHelpers
 
-  alias Chimeway.{Deliveries, DeliveryAttempt, Dispatch.ObanWorker, Repo}
+  alias Chimeway.{Deliveries, DeliveryAttempt, Dispatch.ObanWorker, Repo, Traces}
 
   setup do
     Application.put_env(:chimeway, :adapter, Chimeway.Adapters.Test)
@@ -55,6 +118,195 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
 
       assert length(attempts) == 1
       assert hd(attempts).outcome == :succeeded
+    end
+  end
+
+  describe "execution-time email hydration" do
+    test "resolves private email context only immediately before adapter handoff" do
+      previous_adapter = Application.get_env(:chimeway, :adapter)
+      previous_resolvers = Application.get_env(:chimeway, :render_context_resolvers)
+
+      on_exit(fn ->
+        Application.put_env(:chimeway, :adapter, previous_adapter)
+        Application.put_env(:chimeway, :render_context_resolvers, previous_resolvers)
+        Application.delete_env(:chimeway, :adapter_capture_pid)
+        Application.delete_env(:chimeway, :oban_worker_resolver_pid)
+      end)
+
+      Application.put_env(:chimeway, :adapter, Chimeway.Test.ObanWorkerCaptureDeliveryAdapter)
+      Application.put_env(:chimeway, :adapter_capture_pid, self())
+      Application.put_env(:chimeway, :oban_worker_resolver_pid, self())
+
+      Application.put_env(:chimeway, :render_context_resolvers, %{
+        {"oban.worker.execution", 1} => Chimeway.Test.ObanWorkerExecutionResolver
+      })
+
+      %{notification: notification, delivery: delivery} =
+        create_pending_delivery(
+          channel: :email,
+          notification_key: "oban.worker.execution",
+          recipient_identity: "opaque-recipient-ref"
+        )
+
+      {:ok, _notification} =
+        notification
+        |> Ecto.Changeset.change(
+          render_channels: %{
+            "email" => %{
+              "render_key" => "oban.worker.execution.email",
+              "render_version" => 1
+            }
+          }
+        )
+        |> Repo.update()
+
+      {:ok, _delivery} =
+        delivery
+        |> Ecto.Changeset.change(render_key: "oban.worker.execution.email", render_version: 1)
+        |> Repo.update()
+
+      assert :ok = perform_job(ObanWorker, %{delivery_id: delivery.id})
+      assert_receive :resolved
+
+      assert_receive {:delivery, hydrated}
+      assert hydrated.recipient_address == "private@example.test"
+      assert hydrated.render_data["html_body"] == "<p>private body</p>"
+
+      reloaded = Deliveries.get_delivery!(delivery.id)
+      assert reloaded.render_data == %{}
+      refute inspect(reloaded) =~ "private@example.test"
+      refute inspect(reloaded) =~ "private body"
+    end
+  end
+
+  describe "unavailable execution context" do
+    test "records a safe retry attempt when no resolver is configured" do
+      previous_resolvers = Application.get_env(:chimeway, :render_context_resolvers)
+      on_exit(fn -> restore_env(:render_context_resolvers, previous_resolvers) end)
+
+      Application.put_env(:chimeway, :render_context_resolvers, %{})
+
+      %{notification: notification, delivery: delivery} =
+        create_pending_delivery(
+          channel: :email,
+          notification_key: "oban.worker.no-context-resolver",
+          recipient_identity: "cw_recipient_safe_reference"
+        )
+
+      {:ok, _} =
+        notification
+        |> Ecto.Changeset.change(
+          render_channels: %{
+            "email" => %{
+              "render_key" => "oban.worker.no-context-resolver.email",
+              "render_version" => 1
+            }
+          }
+        )
+        |> Repo.update()
+
+      {:ok, _} =
+        delivery
+        |> Ecto.Changeset.change(
+          render_key: "oban.worker.no-context-resolver.email",
+          render_version: 1
+        )
+        |> Repo.update()
+
+      assert {:error, :render_context_unavailable} =
+               perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 1, max_attempts: 5)
+
+      [attempt] = attempts_for(delivery.id)
+
+      assert %{
+               outcome: :failed,
+               error_class: "render_context_unavailable",
+               provider_response: %{}
+             } =
+               attempt
+
+      assert attempt.provider_message_id == nil
+    end
+
+    test "records bounded safe evidence before retry and retains it through exhaustion" do
+      previous_resolvers = Application.get_env(:chimeway, :render_context_resolvers)
+
+      on_exit(fn ->
+        restore_env(:render_context_resolvers, previous_resolvers)
+      end)
+
+      Application.put_env(:chimeway, :render_context_resolvers, %{
+        {"oban.worker.unavailable-context", 1} =>
+          Chimeway.Test.ObanWorkerUnavailableContextResolver
+      })
+
+      %{notification: notification, delivery: delivery} =
+        create_pending_delivery(
+          channel: :email,
+          notification_key: "oban.worker.unavailable-context",
+          recipient_identity: "cw_recipient_safe_reference",
+          tenant_id: "unavailable-context-tenant"
+        )
+
+      {:ok, _notification} =
+        notification
+        |> Ecto.Changeset.change(
+          render_channels: %{
+            "email" => %{
+              "render_key" => "oban.worker.unavailable-context.email",
+              "render_version" => 1
+            }
+          }
+        )
+        |> Repo.update()
+
+      {:ok, _delivery} =
+        delivery
+        |> Ecto.Changeset.change(
+          render_key: "oban.worker.unavailable-context.email",
+          render_version: 1
+        )
+        |> Repo.update()
+
+      assert {:error, :render_context_unavailable} =
+               perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 1, max_attempts: 5)
+
+      [first_attempt] = attempts_for(delivery.id)
+      assert first_attempt.outcome == :failed
+      assert first_attempt.error_class == "render_context_unavailable"
+      assert first_attempt.provider_message_id == nil
+      assert first_attempt.provider_response == %{}
+      assert first_attempt.attempt_number == 1
+      assert Deliveries.get_delivery!(delivery.id).status == :failed
+
+      for attempt <- 2..4 do
+        assert {:error, :render_context_unavailable} =
+                 perform_job(ObanWorker, %{delivery_id: delivery.id},
+                   attempt: attempt,
+                   max_attempts: 5
+                 )
+      end
+
+      assert :ok =
+               perform_job(ObanWorker, %{delivery_id: delivery.id}, attempt: 5, max_attempts: 5)
+
+      updated = Deliveries.get_delivery!(delivery.id)
+      assert updated.status == :cancelled
+      assert updated.suppression_reason == "retries_exhausted"
+
+      attempts = attempts_for(delivery.id)
+      assert Enum.map(attempts, & &1.attempt_number) == [1, 2, 3, 4, 5]
+
+      assert {:ok, trace} = Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
+      assert trace.status == :cancelled
+      assert trace.suppression_reason == "retries_exhausted"
+      assert trace.last_attempt.outcome == :failed
+      assert trace.last_attempt.error_class == "render_context_unavailable"
+
+      serialized = inspect(%{attempts: attempts, result: trace, delivery: updated})
+      refute serialized =~ "raw-recipient-sentinel@example.test"
+      refute serialized =~ "raw-render-sentinel"
+      refute serialized =~ "host_context_unavailable"
     end
   end
 
@@ -258,6 +510,15 @@ defmodule Chimeway.Dispatch.ObanWorkerTest do
 
   defp restore_env(key, nil), do: Application.delete_env(:chimeway, key)
   defp restore_env(key, value), do: Application.put_env(:chimeway, key, value)
+
+  defp attempts_for(delivery_id) do
+    Repo.all(
+      from(attempt in DeliveryAttempt,
+        where: attempt.delivery_id == ^delivery_id,
+        order_by: [asc: attempt.attempt_number]
+      )
+    )
+  end
 
   describe "map_outcome_to_oban_return/4 catch-all (BL-02 regression)" do
     defmodule UnexpectedAdapter do

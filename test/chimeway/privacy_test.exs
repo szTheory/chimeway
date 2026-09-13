@@ -1,0 +1,336 @@
+defmodule Chimeway.PrivacyTest do
+  use ExUnit.Case, async: true
+
+  alias Chimeway.{Privacy, SafeEvidence}
+
+  defmodule NestedEvidence do
+    defstruct [:allowed, :Body, :Provider_Response]
+  end
+
+  defmodule HostileEvidence do
+    defstruct [:allowed, :ToKeN, :recipient_id, :Provider_Response, :body]
+  end
+
+  test "redacts mixed-case forbidden keys recursively while retaining ordered duplicate allowed keywords" do
+    value = %{
+      "safe" => [
+        [allowed: 1, TOKEN: "first", TOKEN: "second", allowed: 1],
+        %{"renderedContent" => "hidden", "kept" => "value"}
+      ],
+      "DEVICE_TOKEN" => "hidden"
+    }
+
+    assert Privacy.redact(value) == %{
+             "safe" => [[allowed: 1, allowed: 1], %{"kept" => "value"}]
+           }
+  end
+
+  test "has stable empty, nil, singleton, and ordinary-list behavior" do
+    assert Privacy.redact(%{}) == %{}
+    assert Privacy.redact([]) == []
+    assert Privacy.redact(nil) == nil
+    assert Privacy.redact([%{"safe" => "value"}]) == [%{"safe" => "value"}]
+    assert Privacy.redact([1, %{"Authorization" => "hidden"}, 2]) == [1, %{}, 2]
+  end
+
+  test "projects non-temporal structs recursively before proof redaction" do
+    timestamp = ~U[2026-08-16 12:00:00Z]
+
+    value = %HostileEvidence{
+      allowed: %NestedEvidence{
+        allowed: [
+          %{"kept" => timestamp, "BODY" => "NESTED_BODY_SENTINEL"},
+          [kept: ~D[2026-08-16], Recipient: "KEYWORD_RECIPIENT_SENTINEL", kept: ~T[12:00:00]]
+        ],
+        Body: "NESTED_BODY_SENTINEL",
+        Provider_Response: "NESTED_PROVIDER_SENTINEL"
+      },
+      ToKeN: "TOKEN_SENTINEL",
+      recipient_id: "RECIPIENT_SENTINEL",
+      Provider_Response: "PROVIDER_SENTINEL",
+      body: "BODY_SENTINEL"
+    }
+
+    for redacted <- [Privacy.redact(value), SafeEvidence.proof(value)] do
+      assert is_map(redacted)
+      refute is_struct(redacted)
+
+      assert redacted.allowed.allowed == [
+               %{"kept" => timestamp},
+               [kept: ~D[2026-08-16], kept: ~T[12:00:00]]
+             ]
+
+      rendered = inspect(redacted)
+
+      for forbidden <- [
+            "TOKEN_SENTINEL",
+            "RECIPIENT_SENTINEL",
+            "PROVIDER_SENTINEL",
+            "BODY_SENTINEL",
+            "NESTED_PROVIDER_SENTINEL",
+            "NESTED_BODY_SENTINEL"
+          ] do
+        refute rendered =~ forbidden
+      end
+    end
+
+    assert Privacy.redact(~N[2026-08-16 12:00:00]) == ~N[2026-08-16 12:00:00]
+    assert Privacy.redact(%{}) == %{}
+    assert Privacy.redact([]) == []
+    assert Privacy.redact(nil) == nil
+  end
+
+  test "trace rebuilds nested attempt and timeline evidence from closed vocabularies" do
+    at = ~U[2026-08-16 12:00:00Z]
+
+    trace =
+      SafeEvidence.trace(%{
+        last_attempt: %{
+          id: "cw_attempt_42",
+          outcome: :failed,
+          inserted_at: at,
+          attempt_number: 2,
+          error_class: "temporary",
+          provider_message_id: "cw_provider_42",
+          provider_response: %{"token" => "TRACE_PROVIDER_SENTINEL"},
+          body: "TRACE_BODY_SENTINEL",
+          unknown: "TRACE_UNKNOWN_SENTINEL"
+        },
+        timeline: [
+          %{
+            at: at,
+            event: :delivery_planned,
+            detail: %{
+              channel: "email",
+              provider_response: %{"body" => "TRACE_PROVIDER_SENTINEL"},
+              body: "TRACE_BODY_SENTINEL"
+            }
+          },
+          %{at: at, event: :attempt_recorded, detail: %{outcome: :failed, attempt_number: 2}},
+          %{at: "not-a-datetime", event: :delivery_planned, detail: %{}},
+          %{at: at, event: :unknown, detail: %{}},
+          %{at: at, event: :delivery_planned, detail: "not-a-map"},
+          "not-a-map"
+        ]
+      })
+
+    assert Map.keys(trace.last_attempt) |> Enum.sort() == [
+             :attempt_number,
+             :error_class,
+             :id,
+             :inserted_at,
+             :outcome,
+             :provider_message_id
+           ]
+
+    assert trace.last_attempt.outcome == :failed
+    assert trace.last_attempt.inserted_at == at
+    assert trace.last_attempt.attempt_number == 2
+    assert trace.last_attempt.error_class == "temporary"
+    assert trace.last_attempt.provider_message_id =~ ~r/^cw_provider_message_id_[a-f0-9]{32}$/
+
+    assert trace.timeline == [
+             %{at: at, event: :delivery_planned, detail: %{channel: "email"}},
+             %{at: at, event: :attempt_recorded, detail: %{outcome: :failed, attempt_number: 2}}
+           ]
+
+    rendered = inspect(trace)
+    refute rendered =~ "TRACE_PROVIDER_SENTINEL"
+    refute rendered =~ "TRACE_BODY_SENTINEL"
+    refute rendered =~ "TRACE_UNKNOWN_SENTINEL"
+
+    assert SafeEvidence.trace(%{last_attempt: "not-a-map", timeline: "not-a-list"}).last_attempt ==
+             nil
+
+    assert SafeEvidence.trace(%{last_attempt: "not-a-map", timeline: "not-a-list"}).timeline == []
+  end
+
+  test "does not traverse forbidden values or create atoms from arbitrary binary keys" do
+    forbidden_value = fn -> raise "must not be traversed" end
+    assert Privacy.redact(%{"Provider_Body" => forbidden_value}) == %{}
+
+    Privacy.redact(%{"warmup" => "value"})
+    SafeEvidence.provider_facts(%{})
+
+    for n <- 1..10 do
+      key = "warmup_key_#{n}"
+      Privacy.redact(%{key => "value"})
+      SafeEvidence.provider_facts(%{key => "value"})
+    end
+
+    before = :erlang.system_info(:atom_count)
+
+    for n <- 1..4_000 do
+      key = "untrusted_key_#{n}_#{System.unique_integer([:positive])}"
+      assert Privacy.redact(%{key => "value"}) == %{key => "value"}
+      assert {:ok, %{}} = SafeEvidence.provider_facts(%{key => "value"})
+    end
+
+    # The test application starts optional integration processes concurrently; retain
+    # a bounded process-level allowance while still catching caller-key atomization.
+    assert :erlang.system_info(:atom_count) - before < 1_000
+  end
+
+  test "provider facts retain only bounded validated values" do
+    assert {:ok, facts} =
+             SafeEvidence.provider_facts(%{
+               provider_code: "accepted",
+               retry_after_ms: 0,
+               accepted_at: ~U[2026-08-12 12:00:00Z],
+               unknown: "discarded"
+             })
+
+    assert facts == %{
+             "provider_code" => "accepted",
+             "retry_after_ms" => 0,
+             "accepted_at" => "2026-08-12T12:00:00Z"
+           }
+
+    assert {:error, :unsafe_evidence} =
+             SafeEvidence.provider_facts(%{provider_code: String.duplicate("x", 81)})
+
+    assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(%{retry_after_ms: -1})
+    assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(%{accepted_at: "not-a-date"})
+  end
+
+  test "provider facts reject duplicate logical fields in maps and tuple lists regardless of value or order" do
+    for input <- [
+          %{"provider_code" => "accepted", provider_code: "accepted"},
+          %{"provider_code" => "recipient@example.test", provider_code: "accepted"},
+          [{:provider_code, "accepted"}, {"provider_code", "accepted"}],
+          [
+            {"provider_code", "recipient@example.test"},
+            {:retry_after_ms, 5},
+            {:provider_code, "accepted"}
+          ],
+          [
+            {:provider_code, "accepted"},
+            {:accepted_at, ~U[2026-08-12 12:00:00Z]},
+            {"provider_code", "accepted"}
+          ]
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(input)
+    end
+
+    for input <- [
+          %{"retry_after_ms" => 5, retry_after_ms: 5},
+          [{:retry_after_ms, 5}, {"retry_after_ms", 6}],
+          %{"accepted_at" => "2026-08-12T12:00:00Z", accepted_at: ~U[2026-08-12 12:00:00Z]},
+          [{"accepted_at", "2026-08-12T12:00:00Z"}, {:accepted_at, "2026-08-12T12:00:00Z"}]
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(input)
+    end
+  end
+
+  test "attempt attributes reject duplicate logical fields and retain a singleton representation" do
+    valid = [
+      outcome: :failed,
+      error_class: "temporary",
+      adapter_module: "test_adapter",
+      provider_message_id: "cw_provider_opaque-123",
+      provider_response: [provider_code: "accepted", retry_after_ms: 5]
+    ]
+
+    assert {:ok, attrs} = SafeEvidence.attempt_attrs(valid)
+    assert attrs.outcome == :failed
+    assert attrs.provider_response == %{"provider_code" => "accepted", "retry_after_ms" => 5}
+
+    for attrs <- [
+          [{:outcome, :failed}, {"outcome", :failed}],
+          [{"outcome", :failed}, {:error_class, "temporary"}, {:outcome, :failed}],
+          [{:outcome, :failed}, {:error_class, "temporary"}, {"error_class", "temporary"}],
+          [
+            {:outcome, :failed},
+            {:adapter_module, "test_adapter"},
+            {"adapter_module", "test_adapter"}
+          ],
+          [
+            {:outcome, :failed},
+            {:provider_message_id, "cw_provider_opaque-123"},
+            {"provider_message_id", "cw_provider_opaque-123"}
+          ],
+          [{:outcome, :failed}, {:provider_response, %{}}, {"provider_response", %{}}]
+        ] do
+      assert {:error, :unsafe_evidence, _field} = SafeEvidence.attempt_attrs(attrs)
+    end
+  end
+
+  test "render channels omit atom string channel and render identity collisions" do
+    assert SafeEvidence.render_channels(%{
+             "email" => %{render_key: "welcome", render_version: 1},
+             email: %{render_key: "welcome", render_version: 1}
+           }) == %{}
+
+    assert SafeEvidence.render_channels(%{
+             "email" => [
+               {:render_key, "welcome"},
+               {"render_key", "welcome"},
+               {:render_version, 1}
+             ]
+           }) == %{}
+
+    assert SafeEvidence.render_channels(%{
+             "email" => [{:render_key, "welcome"}, {:render_version, 1}, {"render_version", 1}]
+           }) == %{}
+
+    assert SafeEvidence.render_channels(email: %{render_key: "welcome", render_version: 1}) == %{
+             "email" => %{"render_key" => "welcome", "render_version" => 1}
+           }
+  end
+
+  test "provider codes use the closed categorical grammar" do
+    for code <- [
+          "email-delivery",
+          "https://provider.test/status",
+          "bearer-token",
+          "recipient-42",
+          "body-content",
+          " accepted",
+          "accepted ",
+          "accepted\n",
+          "prefix_token_suffix",
+          String.duplicate("a", 81)
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(%{provider_code: code})
+    end
+
+    assert {:ok, %{"provider_code" => "accepted-v1"}} =
+             SafeEvidence.provider_facts(%{provider_code: "accepted-v1"})
+  end
+
+  test "empty and nil optional evidence remains safe" do
+    assert {:ok, %{}} = SafeEvidence.provider_facts(%{})
+    assert {:ok, %{}} = SafeEvidence.provider_facts([])
+    assert {:error, :unsafe_evidence} = SafeEvidence.provider_facts(nil)
+
+    assert {:ok, %{outcome: :failed, provider_response: %{}}} =
+             SafeEvidence.attempt_attrs(%{outcome: :failed, provider_response: nil})
+  end
+
+  test "recipient references accept only explicit opaque or canonical UUID compatibility values" do
+    assert {:ok, "cw_recipient_42"} = SafeEvidence.recipient_reference("cw_recipient_42")
+
+    assert {:ok, "user:550e8400-e29b-41d4-a716-446655440000"} =
+             SafeEvidence.recipient_reference("user:550e8400-e29b-41d4-a716-446655440000")
+
+    for unsafe <- [
+          "alex-smith",
+          "another-raw-slug",
+          "Alice Smith",
+          "alex@example.test",
+          "user:alex-smith",
+          "user:alex@example.test",
+          "CW_recipient_42",
+          "cw_recipient_42_suffix!",
+          "cw__recipient",
+          "user:550E8400-e29b-41d4-a716-446655440000",
+          "user:550e8400-e29b-41d4-a716-44665544000",
+          nil,
+          "",
+          String.duplicate("a", 161),
+          42
+        ] do
+      assert {:error, :unsafe_evidence} = SafeEvidence.recipient_reference(unsafe)
+    end
+  end
+end

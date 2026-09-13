@@ -114,18 +114,26 @@ defmodule ChimewayAdmin.Live.DesignSystemLiveTest do
       notification_key: "dashboard.no_channels",
       notification_version: 1,
       idempotency_key: "dashboard-no-channels-#{System.unique_integer([:positive])}",
-      payload: %{}
+      payload: %{},
+      tenant_id: "tenant-design-system"
     })
     |> Repo.insert!()
 
-    html = mount_page(conn, ChimewayAdmin.Live.DashboardLive, :search_traces)
+    html =
+      mount_page(
+        conn,
+        ChimewayAdmin.Live.DashboardLive,
+        :search_traces,
+        %{},
+        "tenant-design-system"
+      )
 
     assert html =~ "dashboard.no_channels"
     assert html =~ "no deliveries"
   end
 
   defp mount_page(conn, {:route, path, _title}) do
-    {:ok, _view, html} = live(conn, path)
+    {:ok, _view, html} = conn |> tenant_session() |> live(path)
     html
   end
 
@@ -134,14 +142,27 @@ defmodule ChimewayAdmin.Live.DesignSystemLiveTest do
   end
 
   defp mount_page(conn, live_view, action, params \\ %{}) do
-    {:ok, _view, html} =
-      live_isolated(conn, live_view,
-        session: %{"current_actor" => "ops:1"},
-        on_mount: [{ChimewayAdmin.LiveAuth, action}],
-        params: params
-      )
+    mount_page(conn, live_view, action, params, "tenant-a")
+  end
+
+  defp mount_page(conn, live_view, _action, _params, tenant_id) do
+    {:ok, _view, html} = conn |> tenant_session(tenant_id) |> live(route_for(live_view))
 
     html
+  end
+
+  defp route_for(ChimewayAdmin.Live.DashboardLive), do: "/"
+  defp route_for(ChimewayAdmin.Live.TraceSearchLive), do: "/traces"
+  defp route_for(ChimewayAdmin.Live.FeedLive), do: "/feed"
+  defp route_for(ChimewayAdmin.Live.DefinitionsLive), do: "/definitions"
+  defp route_for(ChimewayAdmin.Live.HealthLive), do: "/health"
+  defp route_for(ChimewayAdmin.Live.RecoveryLive), do: "/recovery"
+
+  defp tenant_session(conn, tenant_id \\ "tenant-a") do
+    Plug.Test.init_test_session(conn, %{
+      "current_actor" => "ops:1",
+      "chimeway_admin_tenant_id" => tenant_id
+    })
   end
 
   defp expected_title({:route, _path, title}), do: title

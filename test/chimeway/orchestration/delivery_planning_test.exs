@@ -348,11 +348,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
     assert delivery.render_key == "delivery-planning.rendering.email"
     assert delivery.render_version == 6
 
-    assert delivery.render_data == %{
-             "subject" => "Rendered once",
-             "html_body" => "<p>Rendered once</p>",
-             "text_body" => "Rendered once"
-           }
+    assert delivery.render_data == %{}
   end
 
   test "planning reuses persisted render_channels without notifier re-entry" do
@@ -376,7 +372,38 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
 
     assert delivery.render_key == "durable.email"
     assert delivery.render_version == 10
-    assert delivery.render_data["subject"] == "Durable Subject"
+    assert delivery.render_data == %{}
+  end
+
+  test "forged precomputed rendering is transient and cannot alter the reloaded delivery" do
+    notification =
+      insert_notification("user-forged-render", %{}, %{
+        render_channels: %{
+          "email" => %{"render_key" => "forged.email", "render_version" => 4}
+        }
+      })
+
+    forged_render = %{
+      render_key: "forged.email",
+      render_version: 4,
+      render_data: %{
+        "subject" => "Forged subject",
+        :html_body => "<p>Forged body</p>",
+        "recipient" => "recipient@example.test"
+      }
+    }
+
+    assert {:ok, [delivery]} =
+             DeliveryPlanning.plan_notification(notification,
+               notifier: RenderIdentityNotifier,
+               trigger_params: %{},
+               precomputed_rendering: %{{notification.id, "email"} => forged_render}
+             )
+
+    assert delivery.render_data == forged_render.render_data
+    assert delivery.render_key == "forged.email"
+    assert delivery.render_version == 4
+    assert Repo.get!(Delivery, delivery.id).render_data == %{}
   end
 
   test "ordinary notifier-less planning keeps the default in_app-only contract" do
@@ -415,6 +442,22 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
              )
   end
 
+  test "planning derives a non-default delivery tenant from its notification" do
+    notification = insert_notification("user-tenant-owner", %{}, %{tenant_id: "tenant-a"})
+
+    assert {:ok, [delivery]} = DeliveryPlanning.plan_notification(notification)
+    assert delivery.tenant_id == "tenant-a"
+  end
+
+  test "planning rejects an explicit tenant that differs from its notification" do
+    notification = insert_notification("user-tenant-mismatch", %{}, %{tenant_id: "tenant-a"})
+
+    assert {:error, :tenant_mismatch} =
+             DeliveryPlanning.plan_notification(notification, tenant_id: "tenant-b")
+
+    assert delivery_count_for(notification.id) == 0
+  end
+
   defp insert_notification(recipient_identity, payload \\ %{}, attrs \\ %{}) do
     {:ok, event} =
       %Event{}
@@ -422,7 +465,8 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
         notification_key: "delivery-planning.test",
         notification_version: 1,
         idempotency_key: "delivery-planning-#{System.unique_integer()}",
-        payload: payload
+        payload: payload,
+        tenant_id: Map.get(attrs, :tenant_id, "default")
       })
       |> Repo.insert()
 
@@ -430,6 +474,7 @@ defmodule Chimeway.Orchestration.DeliveryPlanningTest do
       %Notification{}
       |> Notification.changeset(%{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: Map.get(attrs, :metadata, %{}),

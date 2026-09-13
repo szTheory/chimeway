@@ -620,6 +620,53 @@
 
 ---
 
+## Milestone: v1.18 — Adopter Alpha Mobile Delivery Readiness
+
+**Shipped:** 2026-09-12 (all phase verifications and milestone audit passed; older artifact debt acknowledged)
+**Phases:** 7 (97–103) | **Plans:** 80 | **Requirements:** 26/26
+
+### What Was Built
+
+- Explicit tenant identity and compatible upgrade paths across lifecycle, inbox, admin, recovery, and optional package boundaries.
+- Privacy-safe evidence plus durable per-installation push targets with independent attempt, expiry, invalidation, recovery, ambiguity, and aggregate truth.
+- Optional APNs delivery under host token custody, with bounded payloads, reason-aware outcomes, safe collapse, and exact-binding invalidation.
+- CrossWake authenticated registration and one-time protected activation, including offline queueing and reconnect-time reauthorization.
+- A credential-free Alpha digital twin and a four-file no-replace physical-iPhone proof snapshot with deliberately bounded support claims.
+
+### What Worked
+
+- Splitting the proof into immutable Chimeway and CrossWake components made cross-repository provenance machine-checkable.
+- Closed evidence schemas and recursive sensitive-data scans kept operational proof useful without retaining credentials, raw tokens, identity, routes, provider bodies, or payload content.
+- The deterministic twin exercised failure and recovery paths before Apple/device work, leaving the physical run focused on the genuinely external boundary.
+- Separating provider acceptance, visible display, protected activation, inbox lifecycle, and engagement prevented the closeout from overstating what one device run proved.
+
+### What Was Inefficient
+
+- Tenant and privacy hardening required many gap-closure plans because early slices did not cover every package, migration, and operator projection at once.
+- Cross-repository source selection and physical-device prerequisites created a long tail of exact-SHA, signing, notification, and attestation coordination.
+- Roadmap counters, validation metadata, and the generated milestone accomplishment list needed closeout reconciliation after implementation was already green.
+
+### Patterns Established
+
+- Persist opaque target revisions; keep raw mobile identity, tokens, credentials, and authority data in host custody.
+- Record a pre-I/O claim and attempt start so possible provider handoff becomes explicit ambiguity rather than an automatic resend.
+- Require immutable source provenance, canonical bytes, component digests, and a last-written completion marker before promoting physical support truth.
+- Route objective acceptance to executable gates; isolate the one subjective visible-alert observation in its own bounded attestation.
+
+### Key Lessons
+
+1. A physical proof should extend a complete hermetic twin, not become the first place correctness or privacy behavior is exercised.
+2. Multi-installation delivery needs a durable target lifecycle beneath the logical delivery; aggregate status alone cannot explain partial success or safe recovery.
+3. Cross-repository proof is strongest when the consumer verifies a remotely reachable exact revision and the producer emits source-bound evidence.
+
+### Cost Observations
+
+- Model mix and session count were not instrumented.
+- The milestone ran 2026-08-11 → 2026-09-12 across 7 phases and 80 plans.
+- The physical boundary required user-assisted device and account authorization; all subsequent promotion, verification, audit, and archival work remained machine-driven.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -640,6 +687,7 @@
 | v1.11 | 68–72 | Operator console polish, safety, redaction, and admin gate |
 | v1.13 | 73–76.1 | Storage isolation, prefixed migrations, runtime prefix propagation, and schema proof |
 | v1.17 | 93–96.1 | Immutable packaged-adopter proofs, every-event CI topology, and atom-safe archive parsing |
+| v1.18 | 97–103 | Tenant-safe mobile targets, optional APNs, protected opens, deterministic twin, and bounded physical proof |
 
 ### Cumulative Quality
 
@@ -651,6 +699,7 @@
 | v1.7 | 695+ + 10 journeys | READ spine + expanded persona admin traces |
 | v1.11 | 404 release-gate tests + admin gate | `mix ci.verify_gates` green; `mix verify.admin` green with browser smoke |
 | v1.13 | 17 runtime-prefix + 14 install-golden + 477 release-gate tests | `mix verify.runtime_prefix`, `mix verify.install_golden`, `mix ci.verify_gates`, and demo-host DEMO-01 proof green |
+| v1.18 | 633 core/release-gate tests + packaged Accrue lane | `mix ci.verify_gates`, `mix verify.alpha_twin`, physical contract, and promoted-bundle verification green |
 
 ### Top Lessons (Verified Across Milestones)
 

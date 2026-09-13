@@ -14,7 +14,7 @@ defmodule Chimeway.TelemetryCorrelationTest do
 
     @impl true
     def recipients(_params) do
-      {:ok, [%{recipient_identity: "user-1", channel: :in_app}]}
+      {:ok, [%{recipient_ref: "cw_telemetry_correlation_user_1", channel: :in_app}]}
     end
 
     @impl true

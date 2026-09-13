@@ -181,6 +181,7 @@ defmodule Chimeway.DeliveryAttemptTest do
                "temporary",
                "permanent",
                "bounced",
+               "render_context_unavailable",
                "unknown_classification"
              ]
     end

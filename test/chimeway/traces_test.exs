@@ -1,11 +1,22 @@
 defmodule Chimeway.TracesTest do
-  use Chimeway.DataCase, async: true
+  use Chimeway.DataCase, async: false
 
   alias Chimeway.{Deliveries, Delivery, Repo, Traces}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Traces.Explanation
   alias Chimeway.Workflows.{WorkflowDefinition, WorkflowRun, WorkflowStep, WorkflowTransition}
+
+  setup do
+    previous = Application.get_env(:chimeway, :single_tenant_compatibility)
+    Application.put_env(:chimeway, :single_tenant_compatibility, tenant_id: "default")
+
+    on_exit(fn ->
+      if is_nil(previous),
+        do: Application.delete_env(:chimeway, :single_tenant_compatibility),
+        else: Application.put_env(:chimeway, :single_tenant_compatibility, previous)
+    end)
+  end
 
   # --- Helpers ---
 
@@ -15,6 +26,7 @@ defmodule Chimeway.TracesTest do
         notification_key: Map.get(attrs, :notification_key, "test_notifier"),
         notification_version: 1,
         idempotency_key: Map.get(attrs, :idempotency_key, "key-#{System.unique_integer()}"),
+        tenant_id: Map.get(attrs, :tenant_id, "default"),
         payload: %{},
         correlation_id: Map.get(attrs, :correlation_id)
       })
@@ -28,6 +40,7 @@ defmodule Chimeway.TracesTest do
         event_id: event.id,
         recipient_identity: recipient || "user:#{System.unique_integer()}",
         recipient_type: "user",
+        tenant_id: event.tenant_id,
         metadata: %{}
       })
 
@@ -77,6 +90,7 @@ defmodule Chimeway.TracesTest do
         notification_key: "test.phase32",
         notification_version: 1,
         idempotency_key: "phase32-#{System.unique_integer([:positive])}",
+        tenant_id: tenant_id,
         payload: %{}
       })
 
@@ -85,6 +99,7 @@ defmodule Chimeway.TracesTest do
         event_id: run_event.id,
         recipient_identity: "user:phase32-#{System.unique_integer([:positive])}",
         recipient_type: "user",
+        tenant_id: tenant_id,
         metadata: %{}
       })
 
@@ -165,17 +180,43 @@ defmodule Chimeway.TracesTest do
   # --- get_trace/1 ---
 
   describe "get_trace/1" do
-    test "returns {:ok, event} with preloaded associations" do
+    test "returns an exact closed event map with nested lifecycle maps" do
       event = insert_event()
       notification = insert_notification(event)
       delivery = plan_delivery(notification)
       _succeeded = succeed_delivery(delivery)
 
       assert {:ok, loaded} = Traces.get_trace(event.id)
+
+      assert Map.keys(loaded) |> Enum.sort() ==
+               [:correlation_id, :id, :inserted_at, :notification_key, :notifications, :tenant_id]
+
       assert loaded.id == event.id
+      assert loaded.tenant_id == "default"
       assert [loaded_notification] = loaded.notifications
+
+      assert Map.keys(loaded_notification) |> Enum.sort() ==
+               [:deliveries, :id, :inserted_at, :notification_key, :recipient_id, :recipient_type]
+
       assert loaded_notification.id == notification.id
       assert [loaded_delivery] = loaded_notification.deliveries
+
+      assert Map.keys(loaded_delivery) |> Enum.sort() ==
+               [
+                 :attempts,
+                 :channel,
+                 :id,
+                 :inserted_at,
+                 :planning_reason,
+                 :render_key,
+                 :render_version,
+                 :status,
+                 :suppression_reason,
+                 :target_aggregate,
+                 :targets,
+                 :updated_at
+               ]
+
       assert loaded_delivery.id == delivery.id
       assert length(loaded_delivery.attempts) == 1
     end
@@ -184,11 +225,11 @@ defmodule Chimeway.TracesTest do
       assert {:error, :not_found} = Traces.get_trace(Ecto.UUID.generate())
     end
 
-    test "includes correlation_id on event" do
+    test "projects correlation_id on event as an opaque reference" do
       event = insert_event(%{correlation_id: "req-abc-123"})
 
       assert {:ok, loaded} = Traces.get_trace(event.id)
-      assert loaded.correlation_id == "req-abc-123"
+      assert loaded.correlation_id =~ ~r/^cw_correlation_/
     end
   end
 
@@ -308,6 +349,97 @@ defmodule Chimeway.TracesTest do
   # --- explain_delivery/1 ---
 
   describe "explain_delivery/1 — succeeded delivery" do
+    test "preserves the digested lifecycle status through the safe trace projection" do
+      event = insert_event()
+      notification = insert_notification(event)
+      delivery = plan_delivery(notification)
+
+      {:ok, held} =
+        Deliveries.apply_planning_decision(delivery, %{
+          orchestration_state: :digest_held,
+          planning_reason: "digest_rule",
+          planning_context: %{"rule_identity" => "digest.test:v1"},
+          next_eligible_at: nil
+        })
+
+      digest_event = insert_event(%{notification_key: "digest.test"})
+      digest_notification = insert_notification(digest_event)
+      digest_delivery = plan_delivery(digest_notification, :email)
+
+      {:ok, digested} =
+        Deliveries.mark_digested(
+          held,
+          digest_delivery.id,
+          "included_in_digest",
+          resolved_at: ~U[2026-08-12 12:00:00Z]
+        )
+
+      assert {:ok, explanation} = Traces.explain_delivery(digested.id)
+      assert explanation.status == :digested
+      assert explanation.digest["outcome"] == "digested"
+      assert explanation.digest["resolution_reason"] == "included_in_digest"
+    end
+
+    test "projects hostile legacy trace values into safe operator evidence" do
+      event = insert_event(%{correlation_id: "raw-correlation-sentinel"})
+      notification = insert_notification(event, "raw-recipient-sentinel")
+      delivery = plan_delivery(notification, :email)
+
+      delivery =
+        delivery
+        |> Ecto.Changeset.change(%{
+          planning_context: %{
+            "rule_identity" => "quiet-hours",
+            "nested" => %{"Provider_Body" => "provider-detail-sentinel"}
+          }
+        })
+        |> Repo.update!()
+
+      insert_attempt!(delivery, %{
+        outcome: :failed,
+        error_class: "temporary",
+        adapter_module: "Raw.Adapter.Sentinel",
+        provider_message_id: "cw_provider_trace-safe",
+        provider_response: %{"Provider_Body" => "provider-detail-sentinel"}
+      })
+
+      assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+      encoded = :erlang.term_to_binary(explanation)
+
+      for sentinel <- [
+            "raw-correlation-sentinel",
+            "raw-recipient-sentinel",
+            "provider-detail-sentinel",
+            "Raw.Adapter.Sentinel"
+          ] do
+        assert :binary.match(encoded, sentinel) == :nomatch, "leaked #{sentinel}"
+      end
+
+      assert explanation.notification_key == "test_notifier"
+      assert explanation.last_attempt.outcome == :failed
+      assert explanation.last_attempt.error_class == "temporary"
+
+      assert Map.keys(explanation.last_attempt) |> Enum.sort() == [
+               :attempt_number,
+               :error_class,
+               :id,
+               :inserted_at,
+               :outcome,
+               :provider_message_id
+             ]
+
+      assert String.starts_with?(
+               explanation.last_attempt.provider_message_id,
+               "cw_provider_message_id_"
+             )
+
+      assert :attempt_recorded in Enum.map(explanation.timeline, & &1.event)
+
+      assert Enum.all?(explanation.timeline, fn entry ->
+               Enum.sort(Map.keys(entry)) == [:at, :detail, :event]
+             end)
+    end
+
     test "returns correct explanation struct" do
       event = insert_event(%{correlation_id: "req-success"})
       notification = insert_notification(event, "user:success")
@@ -317,9 +449,9 @@ defmodule Chimeway.TracesTest do
       assert {:ok, %Explanation{} = exp} = Traces.explain_delivery(delivery.id)
       assert exp.delivery_id == delivery.id
       assert exp.event_id == event.id
-      assert exp.correlation_id == "req-success"
+      assert String.starts_with?(exp.correlation_id, "cw_correlation_")
       assert exp.notification_key == "test_notifier"
-      assert exp.recipient_id == "user:success"
+      assert String.starts_with?(exp.recipient_id, "cw_recipient_")
       assert exp.channel == "in_app"
       assert exp.status == :succeeded
       assert exp.suppression_reason == nil
@@ -351,6 +483,100 @@ defmodule Chimeway.TracesTest do
       assert {:ok, exp} = Traces.explain_delivery(delivery.id)
       timestamps = Enum.map(exp.timeline, & &1.at)
       assert timestamps == Enum.sort(timestamps, DateTime)
+    end
+
+    test "projects independent parent notification seen and read facts onto sibling deliveries" do
+      neither = insert_notification(insert_event(), "cw_recipient_neither")
+      seen_only = insert_notification(insert_event(), "cw_recipient_seen")
+      read_only = insert_notification(insert_event(), "cw_recipient_read")
+
+      both =
+        insert_notification(
+          insert_event(%{correlation_id: "caller-metadata-sentinel"}),
+          "hostile-recipient-sentinel"
+        )
+
+      seen_at = ~U[2026-09-12 14:30:00.123456Z]
+      read_at = ~U[2026-09-12 14:31:00.654321Z]
+
+      seen_only = seen_only |> Ecto.Changeset.change(%{seen_at: seen_at}) |> Repo.update!()
+      read_only = read_only |> Ecto.Changeset.change(%{read_at: read_at}) |> Repo.update!()
+
+      both =
+        both
+        |> Ecto.Changeset.change(%{
+          seen_at: seen_at,
+          read_at: read_at,
+          metadata: %{"publisher" => "publisher-data-sentinel"},
+          render_assigns: %{"content" => "notification-content-sentinel"}
+        })
+        |> Repo.update!()
+
+      assert lifecycle_entries(neither |> plan_delivery() |> explain!()) == []
+
+      assert lifecycle_entries(seen_only |> plan_delivery() |> explain!()) == [
+               %{at: seen_at, event: :notification_seen, detail: %{}}
+             ]
+
+      assert lifecycle_entries(read_only |> plan_delivery() |> explain!()) == [
+               %{at: read_at, event: :notification_read, detail: %{}}
+             ]
+
+      first_delivery = plan_delivery(both)
+      sibling_delivery = plan_delivery(both, :email)
+
+      first_entries = lifecycle_entries(explain!(first_delivery))
+      sibling_entries = lifecycle_entries(explain!(sibling_delivery))
+
+      assert first_entries == [
+               %{at: seen_at, event: :notification_seen, detail: %{}},
+               %{at: read_at, event: :notification_read, detail: %{}}
+             ]
+
+      assert sibling_entries == first_entries
+
+      assert Enum.all?(first_entries, fn entry ->
+               Enum.sort(Map.keys(entry)) == [:at, :detail, :event]
+             end)
+
+      encoded = :erlang.term_to_binary(explain!(first_delivery))
+
+      for sentinel <- [
+            "caller-metadata-sentinel",
+            "hostile-recipient-sentinel",
+            "notification-content-sentinel",
+            "publisher-data-sentinel"
+          ] do
+        assert :binary.match(encoded, sentinel) == :nomatch, "leaked #{sentinel}"
+      end
+    end
+
+    test "orders lifecycle entries by timestamp and uses seen before read only as a tie-breaker" do
+      notification = insert_notification(insert_event(), "cw_recipient_chronology")
+      later_seen_at = ~U[2026-09-12 16:00:00.000001Z]
+      earlier_read_at = ~U[2026-09-12 15:59:59.999999Z]
+
+      notification =
+        notification
+        |> Ecto.Changeset.change(%{seen_at: later_seen_at, read_at: earlier_read_at})
+        |> Repo.update!()
+
+      assert notification |> plan_delivery() |> explain!() |> lifecycle_entries() == [
+               %{at: earlier_read_at, event: :notification_read, detail: %{}},
+               %{at: later_seen_at, event: :notification_seen, detail: %{}}
+             ]
+
+      tied_at = ~U[2026-09-12 17:00:00.000000Z]
+
+      notification =
+        notification
+        |> Ecto.Changeset.change(%{seen_at: tied_at, read_at: tied_at})
+        |> Repo.update!()
+
+      assert notification |> plan_delivery(:push) |> explain!() |> lifecycle_entries() == [
+               %{at: tied_at, event: :notification_seen, detail: %{}},
+               %{at: tied_at, event: :notification_read, detail: %{}}
+             ]
     end
   end
 
@@ -394,8 +620,8 @@ defmodule Chimeway.TracesTest do
 
       webhook = Enum.find(timeline, &(&1.event == :webhook_received))
       assert webhook.detail.outcome == :bounced
-      assert webhook.detail.adapter_module == "TestAdapter"
-      assert webhook.detail.provider_message_id == "msg_abc"
+      refute Map.has_key?(webhook.detail, :adapter_module)
+      refute Map.has_key?(webhook.detail, :provider_message_id)
       assert webhook.detail.signal_event_name == "chimeway.delivery.bounced"
 
       stopped = Enum.find(timeline, &(&1.event == :workflow_stopped))
@@ -747,8 +973,8 @@ defmodule Chimeway.TracesTest do
     end
   end
 
-  describe "explain_delivery/1 — Phase 29 D-22 adapter_module field" do
-    test "last_attempt surfaces adapter_module persisted on the attempt row" do
+  describe "explain_delivery/1 — adapter privacy boundary" do
+    test "last_attempt omits adapter module persisted on the attempt row" do
       ctx = create_pending_delivery_for_traces()
       {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
 
@@ -762,15 +988,15 @@ defmodule Chimeway.TracesTest do
       assert {:ok, %Explanation{last_attempt: last_attempt, timeline: timeline}} =
                Traces.explain_delivery(succeeded.id)
 
-      assert last_attempt.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(last_attempt, :adapter_module)
 
       attempt_entries = Enum.filter(timeline, fn entry -> entry.event == :attempt_recorded end)
       assert length(attempt_entries) == 1
       [%{detail: detail}] = attempt_entries
-      assert detail.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(detail, :adapter_module)
     end
 
-    test "last_attempt.adapter_module is nil for pre-Phase-29 attempts (no adapter_module column value)" do
+    test "last_attempt omits adapter module for legacy attempts" do
       ctx = create_pending_delivery_for_traces()
       {:ok, dispatched} = Deliveries.transition_status(ctx.delivery, :dispatched)
 
@@ -785,18 +1011,15 @@ defmodule Chimeway.TracesTest do
       assert {:ok, %Explanation{last_attempt: last_attempt, timeline: timeline}} =
                Traces.explain_delivery(succeeded.id)
 
-      # The key MUST be present in the map (not omitted) and the value MUST be nil.
-      assert Map.has_key?(last_attempt, :adapter_module)
-      assert last_attempt.adapter_module == nil
+      refute Map.has_key?(last_attempt, :adapter_module)
 
       attempt_entries = Enum.filter(timeline, fn entry -> entry.event == :attempt_recorded end)
       assert length(attempt_entries) == 1
       [%{detail: detail}] = attempt_entries
-      assert Map.has_key?(detail, :adapter_module)
-      assert detail.adapter_module == nil
+      refute Map.has_key?(detail, :adapter_module)
     end
 
-    test "adapter_module reflects the most recent attempt across multiple records" do
+    test "adapter_module remains absent across multiple attempts" do
       ctx = create_pending_delivery_for_traces()
 
       {:ok, dispatched_a} = Deliveries.transition_status(ctx.delivery, :dispatched)
@@ -822,7 +1045,7 @@ defmodule Chimeway.TracesTest do
                Traces.explain_delivery(succeeded.id)
 
       assert last_attempt.attempt_number == 2
-      assert last_attempt.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(last_attempt, :adapter_module)
 
       attempt_entries =
         timeline
@@ -831,8 +1054,8 @@ defmodule Chimeway.TracesTest do
 
       assert length(attempt_entries) == 2
       [first_entry, second_entry] = attempt_entries
-      assert first_entry.detail.adapter_module == "Chimeway.Adapters.Logger"
-      assert second_entry.detail.adapter_module == "Chimeway.Adapters.Test"
+      refute Map.has_key?(first_entry.detail, :adapter_module)
+      refute Map.has_key?(second_entry.detail, :adapter_module)
     end
   end
 
@@ -1054,8 +1277,8 @@ defmodule Chimeway.TracesTest do
       assert DateTime.compare(timeline_recovered_at, recovered_at) == :eq
       assert recovery_detail.recovery_source == "ops_console"
       assert recovery_detail.recovery_reason == "worker_missed"
-      assert recovery_detail.recovery_actor_ref == "ops:1"
-      assert recovery_detail.recovery_confirmation_marker == "operator_confirmed_recovery"
+      refute Map.has_key?(recovery_detail, :recovery_actor_ref)
+      refute Map.has_key?(recovery_detail, :recovery_confirmation_marker)
       assert DateTime.compare(recovery_detail.recovered_at, recovered_at) == :eq
       refute Map.has_key?(recovery_detail, :payload)
       refute Map.has_key?(recovery_detail, :provider_response)
@@ -1155,6 +1378,7 @@ defmodule Chimeway.TracesTest do
         notification_key: "traces.attempt.fields.test",
         notification_version: 1,
         idempotency_key: "traces-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: %{}
       })
 
@@ -1163,6 +1387,7 @@ defmodule Chimeway.TracesTest do
         event_id: event.id,
         recipient_identity: "user:#{System.unique_integer()}",
         recipient_type: "user",
+        tenant_id: "default",
         metadata: %{}
       })
 
@@ -1326,5 +1551,14 @@ defmodule Chimeway.TracesTest do
     opts
     |> Traces.aggregate_outcomes()
     |> Enum.sort_by(&{&1.notification_key, &1.channel, &1.outcome})
+  end
+
+  defp explain!(delivery) do
+    assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+    explanation
+  end
+
+  defp lifecycle_entries(explanation) do
+    Enum.filter(explanation.timeline, &(&1.event in [:notification_seen, :notification_read]))
   end
 end

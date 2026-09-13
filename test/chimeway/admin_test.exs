@@ -1,6 +1,8 @@
 defmodule Chimeway.AdminTest do
   use Chimeway.DataCase, async: true
 
+  import Ecto.Query
+
   alias Chimeway.{Admin, Deliveries, Repo}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
@@ -57,10 +59,40 @@ defmodule Chimeway.AdminTest do
     [problem] = Admin.recent_problem_deliveries(tenant_id: "tenant-a")
 
     assert problem.notification_key == "admin.safe"
-    assert problem.recipient_id == "user:alex@example.test"
+    assert String.starts_with?(problem.recipient_id, "cw_recipient_")
     refute Map.has_key?(problem, :payload)
     refute Map.has_key?(problem, :render_data)
     refute Map.has_key?(problem, :provider_response)
+  end
+
+  test "core admin projections omit raw identity and correlation values" do
+    tenant_id = "tenant-admin-projection"
+
+    event =
+      insert_event(%{
+        notification_key: "admin.projection.safe",
+        tenant_id: tenant_id,
+        correlation_id: "raw-correlation-admin-sentinel"
+      })
+
+    notification = insert_notification(event, "raw-recipient-admin-sentinel")
+    delivery = insert_delivery(notification, status: :failed, tenant_id: tenant_id)
+
+    rows = [
+      Admin.recent_problem_deliveries(tenant_id: tenant_id),
+      Admin.feed(tenant_id: tenant_id),
+      Admin.recovery_candidates(tenant_id: tenant_id, older_than: -1)
+    ]
+
+    encoded = :erlang.term_to_binary(rows)
+
+    for sentinel <- ["raw-correlation-admin-sentinel", "raw-recipient-admin-sentinel"] do
+      assert :binary.match(encoded, sentinel) == :nomatch, "leaked #{sentinel}"
+    end
+
+    delivery_id = delivery.id
+    assert [%{delivery_id: ^delivery_id, status: "failed"}] = hd(rows)
+    assert [%{notification_key: "admin.projection.safe"}] = Enum.at(rows, 1)
   end
 
   test "admin DTOs expose exact allowlisted fields without sensitive keys or values" do
@@ -71,6 +103,7 @@ defmodule Chimeway.AdminTest do
     event =
       insert_event(%{
         notification_key: "admin.privacy.contract",
+        tenant_id: tenant_id,
         notification_version: 7,
         correlation_id: "corr-privacy-71",
         payload: %{
@@ -119,6 +152,7 @@ defmodule Chimeway.AdminTest do
     recovery_event =
       insert_event(%{
         notification_key: "admin.privacy.recovery",
+        tenant_id: tenant_id,
         correlation_id: "corr-recovery-71",
         payload: %{"secret" => "raw-payload-secret-71"},
         inserted_at: old,
@@ -158,9 +192,9 @@ defmodule Chimeway.AdminTest do
     assert map_size(outcomes) > 0
     assert Enum.all?(Map.keys(outcomes), &is_binary/1)
 
-    assert problem.recipient_id == "user:privacy-71"
-    assert Enum.all?(feed_rows, &(&1.recipient_id == "user:privacy-71"))
-    assert recovery.recipient_id == "user:privacy-71"
+    assert String.starts_with?(problem.recipient_id, "cw_recipient_")
+    assert Enum.all?(feed_rows, &String.starts_with?(&1.recipient_id, "cw_recipient_"))
+    assert String.starts_with?(recovery.recipient_id, "cw_recipient_")
 
     all_dtos = [command_center, problem, definitions, feed_rows, recovery, outcomes]
 
@@ -178,7 +212,7 @@ defmodule Chimeway.AdminTest do
     delivery_a =
       insert_delivery(notification_a, tenant_id: "tenant-a", inserted_at: old, updated_at: old)
 
-    event_b = insert_event(%{notification_key: "admin.recover.b"})
+    event_b = insert_event(%{notification_key: "admin.recover.b", tenant_id: "tenant-b"})
     notification_b = insert_notification(event_b, "user:tenant-b@example.test")
 
     _delivery_b =
@@ -223,6 +257,7 @@ defmodule Chimeway.AdminTest do
     event_b =
       insert_event(%{
         notification_key: "admin.tenant.b",
+        tenant_id: "tenant-b",
         notification_version: 2,
         correlation_id: "corr-b"
       })
@@ -248,8 +283,10 @@ defmodule Chimeway.AdminTest do
     assert [%{delivery_id: ^delivery_id}] = Admin.recent_problem_deliveries(opts)
     assert [%{notification_key: "admin.tenant.a"}] = Admin.definitions(opts)
 
-    assert [%{recipient_id: "user:tenant-a@example.test"}] =
+    assert [%{recipient_id: recipient_ref}] =
              Admin.feed(Keyword.put(opts, :recipient_id, "user:tenant-a@example.test"))
+
+    assert String.starts_with?(recipient_ref, "cw_recipient_")
 
     assert [] = Admin.feed(Keyword.put(opts, :recipient_id, "user:tenant-b@example.test"))
 
@@ -261,7 +298,7 @@ defmodule Chimeway.AdminTest do
     refute inspect(Admin.recovery_candidates(opts)) =~ "admin.tenant.b"
   end
 
-  test "tenant-scoped recovery candidates omit no-delivery events without durable tenant proof" do
+  test "tenant-scoped recovery candidates include no-delivery events with durable tenant proof" do
     old = ~U[2026-01-15 12:00:00.000000Z]
     now = ~U[2026-01-15 12:05:00.000000Z]
 
@@ -275,21 +312,115 @@ defmodule Chimeway.AdminTest do
     _notification = insert_notification(no_delivery_event, "user:unknown-tenant@example.test")
 
     assert [%{type: "event", id: event_id}] =
-             Admin.recovery_candidates(now: now, older_than: 60)
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
 
     assert event_id == no_delivery_event.id
-    assert [] = Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+
+    assert [%{type: "event", id: ^event_id, tenant_id: "tenant-a"}] =
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+  end
+
+  test "recovery candidates ignore a foreign delivery when evaluating a tenant event" do
+    old = ~U[2026-01-15 12:00:00.000000Z]
+    now = ~U[2026-01-15 12:05:00.000000Z]
+
+    event =
+      insert_event(%{
+        notification_key: "admin.recovery.split-tenant",
+        tenant_id: "tenant-a",
+        inserted_at: old,
+        updated_at: old
+      })
+
+    notification = insert_notification(event, "user:split-recovery")
+
+    delivery =
+      insert_delivery(notification, tenant_id: "tenant-a", inserted_at: old, updated_at: old)
+
+    Repo.update_all(from(d in Chimeway.Delivery, where: d.id == ^delivery.id),
+      set: [tenant_id: "tenant-b"]
+    )
+
+    assert [%{type: "event", id: event_id}] =
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+
+    assert event_id == event.id
   end
 
   test "definitions summarize durable keys and channels" do
     event = insert_event(%{notification_key: "admin.definition", notification_version: 2})
     notification = insert_notification(event, "user:definition")
-    _delivery = insert_delivery(notification, channel: :email)
+    _delivery = insert_delivery(notification, channel: :email, tenant_id: "tenant-a")
 
-    assert Enum.any?(Admin.definitions(), fn definition ->
+    assert Enum.any?(Admin.definitions(tenant_id: "tenant-a"), fn definition ->
              definition.notification_key == "admin.definition" and
                definition.notification_version == 2 and definition.channels == ["email"]
            end)
+  end
+
+  test "recent problems reject a delivery whose notification and event belong to another tenant" do
+    event = insert_event(%{notification_key: "admin.split.parent", tenant_id: "tenant-a"})
+    notification = insert_notification(event, "user:split-parent")
+    delivery = insert_delivery(notification, tenant_id: "tenant-a", status: :failed)
+
+    Repo.update_all(from(n in Notification, where: n.id == ^notification.id),
+      set: [tenant_id: "tenant-b"]
+    )
+
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-a")
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-b")
+    assert delivery.id
+  end
+
+  test "recent problems reject a foreign-tenant delivery attached to a tenant lifecycle" do
+    event = insert_event(%{notification_key: "admin.split.delivery", tenant_id: "tenant-a"})
+    notification = insert_notification(event, "user:split-delivery")
+    delivery = insert_delivery(notification, tenant_id: "tenant-a", status: :failed)
+
+    Repo.update_all(from(d in Chimeway.Delivery, where: d.id == ^delivery.id),
+      set: [tenant_id: "tenant-b"]
+    )
+
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-a")
+    assert [] = Admin.recent_problem_deliveries(tenant_id: "tenant-b")
+  end
+
+  test "admin aggregate and recovery DTOs exclude tenant-incoherent lifecycle rows" do
+    old = ~U[2026-01-15 12:00:00.000000Z]
+    now = ~U[2026-01-15 12:05:00.000000Z]
+
+    event =
+      insert_event(%{
+        notification_key: "admin.split.aggregate",
+        tenant_id: "tenant-a",
+        inserted_at: old,
+        updated_at: old
+      })
+
+    notification = insert_notification(event, "user:split-aggregate")
+    foreign_delivery = insert_delivery(notification, tenant_id: "tenant-a", channel: :sms)
+
+    Repo.update_all(from(d in Chimeway.Delivery, where: d.id == ^foreign_delivery.id),
+      set: [tenant_id: "tenant-b", inserted_at: old, updated_at: old]
+    )
+
+    [definition] = Admin.definitions(tenant_id: "tenant-a")
+    assert definition.notification_key == "admin.split.aggregate"
+    assert definition.recipient_count == 1
+    assert definition.delivery_count == 0
+    assert definition.channels == []
+
+    [feed_row] = Admin.feed(tenant_id: "tenant-a", recipient_id: "user:split-aggregate")
+    assert feed_row.delivery_count == 0
+    assert feed_row.channel_summary == []
+    assert feed_row.status_summary == []
+
+    assert [%{type: "event", id: event_id}] =
+             Admin.recovery_candidates(tenant_id: "tenant-a", now: now, older_than: 60)
+
+    assert event_id == event.id
+    assert [] = Admin.recovery_candidates(tenant_id: "tenant-b", now: now, older_than: 60)
+    assert [] = Admin.command_center(tenant_id: "tenant-b").recovery_candidates
   end
 
   defp insert_event(attrs) do
@@ -299,6 +430,7 @@ defmodule Chimeway.AdminTest do
         notification_key: Map.fetch!(attrs, :notification_key),
         notification_version: Map.get(attrs, :notification_version, 1),
         idempotency_key: "admin-test-#{System.unique_integer([:positive])}",
+        tenant_id: Map.get(attrs, :tenant_id, "tenant-a"),
         payload: Map.get(attrs, :payload, %{}),
         correlation_id: Map.get(attrs, :correlation_id)
       })
@@ -327,6 +459,7 @@ defmodule Chimeway.AdminTest do
     %Notification{}
     |> Notification.changeset(%{
       event_id: event.id,
+      tenant_id: event.tenant_id,
       recipient_identity: recipient_identity,
       recipient_type: "user",
       metadata: Map.get(attrs, :metadata, %{}),
@@ -337,6 +470,15 @@ defmodule Chimeway.AdminTest do
         })
     })
     |> Repo.insert!()
+  end
+
+  test "admin reads fail closed without an explicit or configured tenant" do
+    assert {:error, :tenant_scope_required} = Admin.command_center()
+    assert {:error, :tenant_scope_required} = Admin.recent_problem_deliveries()
+    assert {:error, :tenant_scope_required} = Admin.definitions()
+    assert {:error, :tenant_scope_required} = Admin.feed()
+    assert {:error, :tenant_scope_required} = Admin.recovery_candidates()
+    assert {:error, :tenant_scope_required} = Admin.outcome_totals()
   end
 
   defp insert_delivery(notification, attrs) when is_list(attrs),

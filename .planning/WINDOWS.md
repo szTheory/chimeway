@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 0
+open_count: 6
 waived_count: 1
 fixed_count: 7
-total_count: 8
-last_updated: 2026-08-11T22:01:24.084Z
+total_count: 14
+last_updated: 2026-08-22T16:58:34.762Z
 ---
 
 # Broken Windows Ledger
@@ -23,6 +23,12 @@ last_updated: 2026-08-11T22:01:24.084Z
 | 6 | 96 | unrun-verify | .github/workflows/ci.yml |  | Live GitHub Actions verify_adoption_paths execution remains required after push. | fixed |  | 2026-08-10T03:56:08.129Z | 2026-08-11T22:01:22.438Z |
 | 7 | 96 | unrun-verify | test/chimeway/release_gate_contract_test.exs |  | mix ci.verify_gates remains red in pre-existing Mailglass timeline and Accrue source-contract cases outside Plan 96-03 files | fixed |  | 2026-08-10T20:57:09.536Z | 2026-08-11T22:01:23.413Z |
 | 8 | 96.1 | unrun-verify | scripts/ci/assert-adoption-run.sh |  | Hosted exact-SHA Adoption proof paths evidence unavailable until the implementation commit has a completed pull-request run. | fixed |  | 2026-08-11T15:34:40.947Z | 2026-08-11T22:01:24.084Z |
+| 9 | 97 | deviation | test/chimeway/runtime_prefix_integration_test.exs | 313 | Authorized fixture tenant alignment required for the explicit event-recovery predicate. | open |  | 2026-08-12T17:40:11.227Z |  |
+| 10 | 98 | unrun-verify | chimeway_admin/test/chimeway_admin/live_auth_test.exs |  | mix verify.admin remains blocked by pre-existing LiveAuth redirect to:nil test configuration | open |  | 2026-08-13T00:16:47.274Z |  |
+| 11 | 98 | unrun-verify | test/chimeway/release_gate_contract_test.exs |  | Focused release-gate contract could not start because concurrent test processes exhausted PostgreSQL connections (FATAL 53300). | open |  | 2026-08-13T00:24:26.215Z |  |
+| 12 | 99 | deviation | lib/chimeway/safe_evidence.ex |  | Legacy trace projections now treat unloaded target associations as empty. | open |  | 2026-08-19T19:24:29.874Z |  |
+| 13 | 99 | deviation | lib/chimeway/dispatch/sync.ex |  | Sync telemetry reads adapter_module safely for target attempts. | open |  | 2026-08-19T19:24:29.941Z |  |
+| 14 | 100 | unrun-verify | scripts/verify-apns.sh |  | bash scripts/verify-apns.sh exceeded the executor subprocess limit while compiling a fresh consumer fixture; rerun in CI or a non-time-limited shell. | open |  | 2026-08-22T16:58:34.762Z |  |
 
 ````json
 [
@@ -121,6 +127,78 @@ last_updated: 2026-08-11T22:01:24.084Z
     "reason": "",
     "recorded_at": "2026-08-11T15:34:40.947Z",
     "resolved_at": "2026-08-11T22:01:24.084Z"
+  },
+  {
+    "id": 9,
+    "kind": "deviation",
+    "phase": "97",
+    "file": "test/chimeway/runtime_prefix_integration_test.exs",
+    "line": 313,
+    "description": "Authorized fixture tenant alignment required for the explicit event-recovery predicate.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-12T17:40:11.227Z",
+    "resolved_at": null
+  },
+  {
+    "id": 10,
+    "kind": "unrun-verify",
+    "phase": "98",
+    "file": "chimeway_admin/test/chimeway_admin/live_auth_test.exs",
+    "line": null,
+    "description": "mix verify.admin remains blocked by pre-existing LiveAuth redirect to:nil test configuration",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T00:16:47.274Z",
+    "resolved_at": null
+  },
+  {
+    "id": 11,
+    "kind": "unrun-verify",
+    "phase": "98",
+    "file": "test/chimeway/release_gate_contract_test.exs",
+    "line": null,
+    "description": "Focused release-gate contract could not start because concurrent test processes exhausted PostgreSQL connections (FATAL 53300).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T00:24:26.215Z",
+    "resolved_at": null
+  },
+  {
+    "id": 12,
+    "kind": "deviation",
+    "phase": "99",
+    "file": "lib/chimeway/safe_evidence.ex",
+    "line": null,
+    "description": "Legacy trace projections now treat unloaded target associations as empty.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-19T19:24:29.874Z",
+    "resolved_at": null
+  },
+  {
+    "id": 13,
+    "kind": "deviation",
+    "phase": "99",
+    "file": "lib/chimeway/dispatch/sync.ex",
+    "line": null,
+    "description": "Sync telemetry reads adapter_module safely for target attempts.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-19T19:24:29.941Z",
+    "resolved_at": null
+  },
+  {
+    "id": 14,
+    "kind": "unrun-verify",
+    "phase": "100",
+    "file": "scripts/verify-apns.sh",
+    "line": null,
+    "description": "bash scripts/verify-apns.sh exceeded the executor subprocess limit while compiling a fresh consumer fixture; rerun in CI or a non-time-limited shell.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-22T16:58:34.762Z",
+    "resolved_at": null
   }
 ]
 ````

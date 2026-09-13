@@ -1,39 +1,64 @@
 ---
-gsd_state_version: 1.0
-milestone: v1.17
-milestone_name: Adopter Proof Paths
-status: "Milestone v1.17 shipped — PR #20"
-stopped_at: Completed 96.1-01-PLAN.md
-last_updated: "2026-08-11T22:02:33.507Z"
-last_activity: 2026-08-11
+gsd_state_version: "1.0"
+milestone: v1.19
+milestone_name: Adopter Hardening & Inbox Lifecycle
+current_phase: 107
+status: completed
+stopped_at: Release stabilization complete; ready to ship
+last_updated: "2026-09-13T14:13:46Z"
+last_activity: 2026-09-13
+last_activity_desc: Release stabilization quick batch 260912-x9e complete
+state_head: 2afb22ac0704a73ceaeddc608271702042cfd24e
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 16
-  completed_plans: 16
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
   percent: 100
-current_phase: null
-current_phase_name: null
-last_activity_desc: Milestone v1.17 completed and archived
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-11 after v1.17 milestone close)
+See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 
 **Core value:** Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
-**Current focus:** Select and define the next milestone
+**Current focus:** v1.19 complete — stabilized candidate ready to ship
 
 ## Current Position
 
-Phase: Milestone v1.17 complete
-Plan: —
-Status: Milestone v1.17 shipped — PR #20
-Last activity: 2026-08-11
+Phase: 107
+Plan: Complete (2 of 2)
+Status: Release stabilization complete; ready to ship
+Last activity: 2026-09-13 - Completed release stabilization quick batch 260912-x9e
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260912-x9f | Fix Trigger notifier-rendering error propagation, add the missing rendering-failure rollback/no-publish contract, and add one mounted trigger-to-bell refresh test. | 2026-09-13 | 8e0f708f | Verified | [260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis](./quick/260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis/) |
+| 260913-a2h | Reject prefix-spoofed CrossWake aliases by requiring exact module identity and add adversarial contract coverage | 2026-09-13 | 3979004e | Verified | [260913-a2h-reject-prefix-spoofed-crosswake-aliases-](./quick/260913-a2h-reject-prefix-spoofed-crosswake-aliases-/) |
+| 260913-b0l | Accept only the real fully qualified detached README aliases while retaining exact focused-proof identities and anti-spoof rejection | 2026-09-13 | d9841654 | Verified | [260913-b0l-accept-only-the-real-fully-qualified-det](./quick/260913-b0l-accept-only-the-real-fully-qualified-det/) |
+| 260912-x9g | Harden release automation and release proof semantics: ordinary merges must not masquerade as completed releases, Release Please fallback must preserve required checks/dispatch, detached CrossWake proof must reject unreachable dead-helper calls, and verify.clean must detect staged and untracked files. | 2026-09-13 | f52064b5 | Verified | [260912-x9g-harden-release-automation-and-release-proof-semantics-ordina](./quick/260912-x9g-harden-release-automation-and-release-proof-semantics-ordina/) |
+| 260912-x9h | Clean public documentation and repository metadata: correct inbox callback/version/gate wording, README notifier callbacks and repository links, remove placeholder/internal phase-plan language, repair Demo.Up, stale comments, roadmap plan checkboxes, and directory/formatting drift. | 2026-09-13 | 419297e6 | Verified | [260912-x9h-clean-public-documentation-and-repository-metadata-correct-i](./quick/260912-x9h-clean-public-documentation-and-repository-metadata-correct-i/) |
+| 260912-x9i | Triage and remediate dependency advisories and open PR/issue state to the lowest-risk release-ready point, documenting any constrained residual risk. | 2026-09-13 | 7559b58b | Verified | [260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue](./quick/260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue/) |
 
 ## Deferred Items
+
+Items acknowledged and deferred at v1.18 milestone close on 2026-09-12 (override_closeout; all predate or sit outside the verified v1.18 scope):
+
+| Category | Item | Status | Deferred At | Milestone |
+|----------|------|--------|-------------|-----------|
+| debug_sessions | inbox-bell-phase98-regression | verifying | 2026-09-12 | v1.18 |
+| debug_sessions | release-proof-privacy-projection | investigating | 2026-09-12 | v1.18 |
+| debug_sessions | wave1-post-merge-regressions | investigating | 2026-09-12 | v1.18 |
+| debug_sessions | wave7-postmerge-regressions | investigating | 2026-09-12 | v1.18 |
+| verification_gaps | 84/84-VERIFICATION.md | human_needed | 2026-09-12 | v1.18 |
+| verification_gaps | 86/86-VERIFICATION.md | human_needed | 2026-09-12 | v1.18 |
+| deferred_items | 73/deferred-items.md: historical formatting drift record | acknowledged | 2026-09-12 | v1.18 |
+
+---
 
 Items acknowledged and deferred at v1.16 milestone close on 2026-07-30 (override_closeout — accepted-risk):
 
@@ -302,9 +327,153 @@ status: complete
 - [Phase ?]: [96-04]: Adoption archive validation hashes and extracts one bounded immutable binary, with explicit outer/compressed/expanded/member budgets before materialization.
 - [Phase ?]: [96.1-01]: Archive metadata is parsed in-memory with a bounded binary-only canonical Hex grammar; no source-term parser or input-derived atom conversion is permitted.
 - [Phase ?]: [96.1-01]: Caller-supplied SHA-256 remains an immutable-byte integrity check, while callback execution remains gated after metadata, archive-root, and version validation.
+- [Phase ?]: [97-01] Tenant identity is immutable on new events and notifications; legacy ownership remains NULL until reconciliation.
+- [Phase ?]: [97-01] Trace entrypoints resolve one explicit or configured compatibility tenant before every lifecycle query.
+- [Phase ?]: [97-02]: Inbox keyword options carry tenant_id and optional at; DateTime third arguments remain compatibility-only.
+- [Phase ?]: [97-02]: Inbox lifecycle signals use the scoped notification tenant directly; Admin reads fail closed before querying.
+- [Phase ?]: [97-04]: Reconciliation reports only IDs, NULL ownership, counts, status, schema version, and an explicit assignment instruction.
+- [Phase ?]: [97-04]: Assignment locks the named Event and its Notifications, rejects any existing ownership, and writes only a validated host-supplied tenant ID.
+- [Phase ?]: [97-04]: The Mix task accepts exactly report mode or explicit event-and-tenant assignment mode and emits one JSON object.
+- [Phase ?]: [97-03]: Inbox events revalidate and retain the exact recipient/tenant pair assigned at mount.
+- [Phase ?]: [97-03]: Admin host authorization runs before tenant validation; successful authorization without a concrete tenant still halts.
+- [Phase ?]: [97-03]: Tenant identity remains an explicit core API option, never an Ecto or Oban prefix.
+- [Phase ?]: [97-06]: Event changesets recognize canonical and PostgreSQL-shortened composite idempotency index names.
+- [Phase ?]: [97-07] Recovery resolves tenant scope before discovery and retains it through atomic claims, reloads, and persisted replanning.
+- [Phase ?]: [97-07] Wrong-tenant, absent, and unresolved recovery claims share the established noop outcome without row disclosure or dispatch.
+- [Phase ?]: [97-05]: Admin LiveViews retrieve core query options only from the mounted validated context.
+- [Phase ?]: [97-05]: Definitions tenant isolation is proven through /definitions so the production LiveAuth hook is exercised.
+- [Phase ?]: [97-08]: Trace search and detail pass only Context.read_opts/2 output to core APIs; invalid context maps to the established empty/not-found states.
+- [Phase ?]: [97-08]: Admin verification fixtures and demo trace proof provide an explicit tenant instead of relying on compatibility scope.
+- [Phase ?]: [97-09]: Trigger trims only surrounding whitespace and overwrites downstream opts with the canonical tenant before persistence and dispatch.
+- [Phase ?]: [97-10]: Migration 032 refuses rollback before DDL because valid cross-tenant duplicate idempotency keys cannot losslessly return to global uniqueness.
+- [Phase ?]: [97-11] Runtime-prefix recovery evidence passes the fixture tenant explicitly to every recovery API and never uses tenant identity as a storage prefix.
+- [Phase ?]: [97-12]: Optional delivery joins retain tenant filtering in ON clauses so foreign rows cannot contribute counts or summaries.
+- [Phase ?]: [97-12]: Feed searches invoke LiveAuth.ensure_authorized/3 with only the normalized recipient identifier before database reads.
+- [Phase ?]: [97-13]: Delivery tenant ownership is legacy-nullable; reconciliation locks the full lifecycle tree and updates only explicit host-owned NULL rows.
+- [Phase ?]: [97-14]: Successful host identity mismatches redirect without rebinding mounted authority.
+- [Phase ?]: [97-14]: Machine-testable Inbox acceptance is a required PR lane, not conversational UAT.
+- [Phase ?]: [98-01]: Provider diagnostics persist only the provider_code, retry_after_ms, and accepted_at fact vocabulary.
+- [Phase ?]: [98-01]: Opaque provider references must be caller-supplied cw_-prefixed bounded identifiers; raw provider IDs are not retained.
+- [Phase ?]: [98-01]: Recursive comparison canonicalizes case and separators while retaining allowed original keys and list order.
+- [Phase ?]: [98-02]: Trigger persists only validated host-supplied cw_ recipient and correlation references; raw recipient maps remain callback-only.
+- [Phase ?]: [98-02]: Inbox resolves tenant scope then validates the opaque recipient reference for every read, transition, reload, and signal.
+- [Phase ?]: [98-03]: Unknown adapter terms collapse to rejected/unknown_classification with empty attempt facts.
+- [Phase ?]: [98-03]: Telemetry emits only validated lifecycle fields and reprojects merged stop metadata before emission.
+- [Phase ?]: [98-03]: Failure logs are literal messages with selected safe identifiers only.
+- [Phase ?]: [98-04]: Operator projections derive stable cw_* opaque references instead of exposing raw recipient or correlation identity.
+- [Phase ?]: [98-04]: Adapter module names and provider-controlled detail are omitted from trace timelines and attempt summaries.
+- [Phase ?]: [98-04]: Optional Admin rendering recursively redacts before applying its display allowlist.
+- [Phase ?]: [98-05]: Proof acceptance is expressed as provider_handoff=accepted only; it never claims device display, open, seen, read, or engagement.
+- [Phase ?]: [98-05]: Core proof uses provider_handoff=not_applicable, while Mailglass proof records only successful provider handoff.
+- [Phase ?]: [98-07]: Approved evidence keys use field-specific grammars and ambiguous atom/string duplicates are omitted.
+- [Phase ?]: [98-07]: Unsafe digest reasons are stored as nil; trace digest maps are rebuilt from closed fields.
+- [Phase ?]: [98-08]: Trigger returns an explicit safe projection and keeps precomputed rendering plus recipient handoffs in a private dispatch context.
+- [Phase ?]: [98-08]: Delivery rows retain render key/version only; full rendered maps are attached exclusively to immediate in-memory dispatch deliveries.
+- [Phase ?]: [98-09]: Atom/string aliases and repeated tuple-list entries are ambiguous even when their values match.
+- [Phase ?]: [98-09]: Provider codes use the same closed grammar as other categorical safe evidence.
+- [Phase ?]: [98-10]: Oban hydrates allowed email deliveries from host-owned resolver context only after terminal and policy gates, passing private values solely in memory to the adapter.
+- [Phase ?]: [98-11]: Hydration failure records the literal render_context_unavailable attempt before mapping through the existing Oban retry and exhaustion contract.
+- [Phase ?]: [98-12]: recipient_reference/1 accepts only documented cw_ values and exact lowercase UUID user: compatibility values; it does not derive replacements.
+- [Phase ?]: [98-12]: equal atom/string recipient aliases are ambiguous and rejected before Trigger opens its lifecycle transaction.
+- [Phase ?]: [98-12]: Workflow routing uses explicit opaque actor references; raw signal identities never query waiting runs.
+- [Phase ?]: [98-13]: Lifecycle fixture references use documented deterministic cw_lifecycle_user_<id> values, including all dependent queries and policy fixtures.
+- [Phase ?]: [98-14]: Public trace APIs now return SafeEvidence-built nested maps; the event root retains tenant identity and recipient evidence is opaque.
+- [Phase ?]: [98-15]: Only Date, Time, NaiveDateTime, and DateTime bypass recursive redaction; other structs are projected into ordinary maps.
+- [Phase ?]: [98-15]: Trace evidence rebuilds attempts and timeline entries from fixed validated vocabularies, omitting malformed nested input.
+- [Phase ?]: [99-01]: Delivery remains canonical; opaque binding revisions persist as tenant-scoped DeliveryTarget children.
+- [Phase ?]: [99-01]: Target attempt_started evidence commits before provider adapter handoff, and provider acceptance claims no device receipt.
+- [Phase ?]: [99-02]: Generated target identity and attempt-order constraints are proven in both static PostgreSQL storage modes.
+- [Phase ?]: [99-02]: Runtime target planning routes through configured Repo storage and never accepts tenant-derived prefixes.
+- [Phase ?]: [99-03]: Exact opaque binding-revision equality is the only target identity rule; normalized refs sort before durable planning.
+- [Phase ?]: [99-03]: Parent success means one or more provider acceptances and retains terminal sibling failures as partial_failure evidence.
+- [Phase ?]: [99-04]: Target-ID plus explicit tenant ID are the only target-worker job facts; durable target claims authorize provider I/O.
+- [Phase ?]: [99-04]: Expired started target attempts close as ambiguous_handoff; only policy_authorized redrive creates duplicate-risk linked work.
+- [Phase ?]: [99-05]: Recovery requires explicit tenant IDs, bounded durable-ID cursors, and closed result evidence.
+- [Phase ?]: [99-05]: Lease expiry is not resend permission; expired attempt_started work is closed as ambiguous_handoff before any I/O.
+- [Phase ?]: [99-06]: Only explicit pre-handoff adapter evidence returns a target to pending; all other callback outcomes close as possible handoff ambiguity.
+- [Phase ?]: [99-06]: Target failure finalization locks the exact tenant-qualified claimed target and started attempt while persisting closed provider-code evidence only.
+- [Phase ?]: [99-07]: Recovery summaries emit only closed counts, reason atoms, and independent typed continuations; no tenant or target material enters telemetry.
+- [Phase ?]: [99-07]: Event, pending-target, and stale-attempt recovery scans use separate durable-ID cursors and validated batch bounds.
+- [Phase ?]: [99-08]: Common trace loaders share tenant-qualified target history preloads, and explanations reuse SafeEvidence.trace_delivery/1.
+- [Phase ?]: [99-09]: Sync snapshots ordered actionable target IDs and claims each through Executor.run_target/2.
+- [Phase ?]: [99-09]: Sync continues after target errors and returns the recomputed canonical delivery aggregate.
+- [Phase ?]: [99-10]: Parent status pending and orchestration_state ready are locked prerequisites for every target claim.
+- [Phase ?]: [99-10]: Provider success may finalize only its exact tenant-qualified claimed target and attempt_started row; ambiguity wins permanently.
+- [Phase ?]: [99-10]: Final pre-handoff target retries write retry_exhausted evidence before Oban completes, excluding ordinary recovery.
+- [Phase ?]: [99-11]: Empty push snapshots return the recomputed authoritative parent, never the stale caller struct.
+- [Phase ?]: [99-11]: Stale closeout uses the canonical tenant-qualified parent -> target -> attempt lock hierarchy.
+- [Phase ?]: [99-12]: Ordinary retry authorizes only failed targets; expiry and invalidation authorize only pending targets under lock.
+- [Phase ?]: [99-12]: Composite PostgreSQL foreign keys enforce tenant ownership and same-target prior-attempt lineage in repository and generated storage modes.
+- [Phase ?]: [100-01]: APNs request intent is a nullable, immutable delivery-target variant; tokens and dispatcher references resolve only at the host-owned runtime boundary.
+- [Phase ?]: [100-02]: Copied migration 037 uses a nullable intent map on existing delivery targets and removes only that column on rollback.
+- [Phase ?]: [100-03]: APNs payloads are fixed APS alert plus opaque open-reference; generic push data never crosses to APNs.
+- [Phase ?]: [100-03]: Pigeon remains host-selected and optional; absent Pigeon is a stable pre-handoff outcome.
+- [Phase ?]: [100-04]: Typed adapter outcomes are the only retry authority; ambiguous handoff is durable and terminal.
+- [Phase ?]: [100-04]: Provider invalidation requires complete 410/recognized-reason/timestamp facts and confirmed host exact CAS.
+- [Phase ?]: [100-05]: APNs optionality is proven by fresh packaged consumers; Pigeon 2.0.1 remains an explicit host-only dependency.
+- [Phase ?]: [100-06]: Pigeon raw 410 streams are converted only after queue correlation and a bounded complete response triple.
+- [Phase ?]: [100-07] Absent APNs transport configuration must enter the optional Pigeon path; only non-nil atom overrides are adapter modules.
+- [Phase ?]: [100-07] Pigeon-free package builds retain runtime-only dispatcher callbacks that close malformed provider streams safely.
+- [Phase ?]: [100-08]: Disabled APNs consumer isolation permits only the root tzdata -> hackney baseline and rejects all APNs-introduced Pigeon, HTTPoison, or extra Hackney edges.
+- [Phase ?]: [100-09]: APNS ambiguity begins only at Transport.push/2; lookup and payload-builder exceptions are bounded pre-handoff outcomes.
+- [Phase ?]: [100-09]: Enabled package verification force-compiles unpacked Chimeway under warnings-as-errors before consumer compilation.
+- [Phase ?]: [100-11]: Enabled APNs package proof prepares dependencies normally, then warning-strictly compiles only unpacked Chimeway source.
+- [Phase ?]: [100-10]: Open references use one shared closed ASCII grammar at durable, reload, and direct payload boundaries; explicit collapse IDs use a separate APNs-header-safe allowlist.
+- [Phase ?]: [101-01]: Resolver consumes opaque evidence before selecting a route or action, and only authorizes host-bound OpenResolution values.
+- [Phase ?]: [101-01]: Valid OpenResolution contracts require non-empty server-bound route_id and action_ref.
+- [Phase ?]: [101-02]: `tap` is the only legacy-true default action; explicit current action allowlists are bounded to `tap` and `reply`.
+- [Phase ?]: [101-02]: Schema normalization returns `%{actions: [String.t()]}` and later policy layers transfer and serialize it unchanged.
+- [Phase ?]: [101-04]: App identity is part of the durable exact binding scope for APNs observation and invalidation.
+- [Phase ?]: [101-04]: Permission-loss commands require an exact binding revision plus all authenticated scope fields.
+- [Phase ?]: [101-03]: Compiled notification-open policy is valid only as a non-empty, unique canonical string allowlist of tap, reply, or approve.
+- [Phase ?]: [101-03]: Resolver consumes host evidence once, then uses only the current host-bound route/action policy before invoking RouteGate.
+- [Phase ?]: [101-06]: Native permission-loss callbacks require a fully matching authenticated host scope before exact-revision registry CAS.
+- [Phase ?]: [101-05]: Durable notification intents derive authenticated tenant/session scope from the exact active binding, and consumption uses a one-winner predicate-CAS.
+- [Phase ?]: [101-07]: Offline notification evidence is versioned, age/count bounded, opaque-only, and cannot activate locally.
+- [Phase ?]: [101-07]: Reconnect permits native notification activation only after a closed current host allow outcome; denials have no fallback.
+- [Phase ?]: [101-08]: Protected-open lifecycle evidence uses explicit queued, consumed, authorized, replayed, expiry, binding, route/action, authorization, and default-policy vocabulary.
+- [Phase ?]: [101-08]: Logout, session, tenant, and generic authorization authority states coalesce to notification.open.authorization_denied without diagnostic details.
+- [Phase ?]: [101-08]: Public evidence projections retain only explicit bounded scalars; nested token, identity, session, URL, payload, and provider data is discarded.
+- [Phase ?]: [101-09]: Every stale or denied protected-open outcome resolves to a stable no-action terminal native presentation.
+- [Phase ?]: [101-09]: NotificationOpenQueue sends closed reconnect outcomes to the coordinator, keeping the denial path distinct from ordinary fallback navigation.
+- [Phase ?]: [101-10]: Historical migrations are restored exactly; forward authority reconciliation is isolated in migration 20260824210000.
+- [Phase ?]: [101-10]: app_identity_posture is mutable evidence, while app_identity_ref alone participates in active binding authority identity.
+- [Phase ?]: [101-11]: Rejected permission-loss callbacks retain the exact opaque command; only revoked and staleNoop are terminal acknowledgements.
+- [Phase ?]: [101-13]: A duplicate open_ref is repeated opaque evidence for one pending intent; retain the first item and compact legacy duplicates before host consumption.
+- [Phase ?]: [101-12]: Invalidating provider feedback is closed unless a host-authenticated exact binding scope matches at selection and conditional update time.
+- [Phase ?]: [101-12]: Forward upgrades supersede duplicate active token identities by last_seen_at DESC, id DESC after authority-domain reconciliation.
+- [Phase 101]: [101-14]: Subject-installation authority requires exact tenant, subject, installation, binding, scope, and active-state predicates while session fields remain nil.
+- [Phase 101]: [101-14]: Notification intent metadata is recursively sanitized immediately after cast, with non-map inputs projected to an empty map.
+- [Phase ?]: [101-15]: Installation authority accepts only nil session fields, while session lifecycle revocation selects subject-session bindings only.
+- [Phase ?]: [101-16]: Notification-open caller metadata is always projected to %{}; durable intents retain only explicit schema and host-authoritative fields.
+- [Phase ?]: [101-16]: The shared MetadataSanitizer.sanitize/1 contract remains unchanged for token-binding and audit consumers.
+- [Phase ?]: [101-17]: Token-binding and audit caller metadata always projects to %{}; typed lifecycle columns retain the safe durable facts.
+- [Phase ?]: [101-18]: Legacy notification-open scope is derived only from exact active binding authority; unreconcilable issued rows are terminally revoked.
+- [Phase ?]: [101-19]: Reconciliation selects terminal intent IDs only after queued scope backfill, then reuses that set for event insertion and revocation.
+- [Phase ?]: Logout authority requires exact session-version qualification in both selection and conditional mutation.
+- [Phase ?]: Notification-open parent deletion is restricted by a forward SQLite guard when append-only events exist.
+- [Phase ?]: [102-01]: Alpha twin provenance uses one validated built archive and a fresh detached canonical CrossWake checkout at the locked full SHA.
+- [Phase ?]: [102-01]: Accepted-handoff proof output is closed and bounded; rejected provenance is never echoed.
+- [Phase ?]: Production time remains system UTC by default; explicit resolved timestamps are injected only at Alpha twin seam boundaries.
+- [Phase ?]: The Alpha fixture registry retains raw tokens and one-time intent authority; transport observations are bounded and redacted.
+- [Phase ?]: [102-03]: The Alpha Twin consumes a closed ordered string ledger and rejects unknown, reordered, duplicate, non-string, or extra input without atomizing it.
+- [Phase ?]: [102-03]: Proof aggregation is a closed recursive scan that reports only stable rule/path failures and keeps provider acceptance, protected open, seen, and read distinct.
+- [Phase ?]: Phase 102 physical-proof validation keeps visible alert observation explicitly not_asserted and delegates CrossWake assertion order/ownership to its pinned canonical contract.
+- [Phase ?]: [103-01]: Chimeway consumes only the full SHA 65dd9f42e218261015823e28045c507db1884cf3 after canonical-ref equality and a fresh detached CrossWake focused-test proof.
+- [Phase ?]: [103-02]: Physical-v1 validates digest-only independent records and publishes only externally supplied observed attestations.
+- [Phase ?]: Threshold A stays credential-free and reports release readiness without claiming physical behavior.
+- [Phase ?]: The physical runner never defaults visible presentation; only D-13's three exact labels are accepted.
+- [Phase ?]: Mobile adoption/operations guidance has one ExDoc authority; README and Adoption Paths only navigate to it.
+- [Phase 107-01]: Timeline ordering uses exact timestamp microseconds before closed event rank. — Chronology remains authoritative across event kinds while rank resolves exact ties only.
+- [Phase 107-01]: Notification seen and read are projected independently from the parent row with empty detail. — Sibling explanations agree and no signal, publisher, recipient, or caller data becomes lifecycle authority.
+- [Phase 107-01]: Admin timeline uses one stable data-cw-timeline-event hook without moving package or identity boundaries. — The optional host-mounted package retains generic rendering and defense-in-depth redaction.
+- [Phase 107]: [107-02]: Keep inbox lifecycle facts independent; durable arrival, seen, read, archive, provider handoff, visible presentation, protected activation, and engagement never imply one another.
+- [Phase 107]: [107-02]: Permit recursive cleanup only for existing non-symlink immediate temp children carrying one of four closed Chimeway ownership prefixes.
+- [Phase 107]: [107-02]: Retain verify_inbox as the sole hosted owner and feed its identical result to pr-gate and ci-gate without nightly admin or browser work.
 
 ### Roadmap Evolution
 
+- v1.18 Adopter Alpha Mobile Delivery Readiness roadmap created 2026-08-11 — Phases 97–103 (7 phases, coarse granularity); 26/26 requirements mapped. Dependency chain: 97 → 98 → 99 → {100, 101} → 102 → 103. The host retains raw tokens, binding authority, identity, eligibility, expiry, and one-time open intents; CrossWake owns native acquisition, offline queue, manifest, and RouteGate; Chimeway owns logical delivery, opaque target revisions, attempts, recovery, and explanation. Phase 103 extends CrossWake Phase 162 and is externally blocked pending genuine Apple signing/provisioning evidence.
 - Phase 96.1 inserted after Phase 96: Close gap: ARCHIVE-ATOM-01 — atom-safe archive metadata parsing (URGENT)
 
 ## Performance
@@ -621,8 +790,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-08-11T15:33:18.961Z
-Stopped at: Completed 96.1-01-PLAN.md
+Last session: 2026-09-13T01:45:42.259Z
+Stopped at: Completed 107-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -725,3 +894,89 @@ Resume file: None
 | Phase 96-adoption-front-door-proof-gate P04 | 18 min | 2 tasks | 2 files |
 | Phase 96-adoption-front-door-proof-gate P05 | 25m | 2 tasks | 3 files |
 | Phase 96.1-close-gap-archive-atom-01-atom-safe-archive-metadata-parsing P01 | 8 min | 3 tasks | 2 files |
+| Phase 97-tenant-identity-compatible-upgrade P01 | 24 min | 2 tasks | 11 files |
+| Phase 97 P02 | 3 min | 2 tasks | 7 files |
+| Phase 97-tenant-identity-compatible-upgrade P04 | 12 min | 2 tasks | 4 files |
+| Phase 97-tenant-identity-compatible-upgrade P03 | 22 min | 2 tasks | 13 files |
+| Phase 97-tenant-identity-compatible-upgrade P06 | 15 min | 2 tasks | 12 files |
+| Phase 97-tenant-identity-compatible-upgrade P07 | 5 min | 1 tasks | 4 files |
+| Phase 97-tenant-identity-compatible-upgrade P05 | 2 min | 1 tasks | 5 files |
+| Phase 97-tenant-identity-compatible-upgrade P08 | 10 min | 1 tasks | 8 files |
+| Phase 97 P09 | 4 min | 1 tasks | 2 files |
+| Phase 97-tenant-identity-compatible-upgrade P10 | 2 min | 1 tasks | 5 files |
+| Phase 97 P11 | 8 min | 1 tasks | 1 files |
+| Phase 97-tenant-identity-compatible-upgrade P12 | 15 min | 3 tasks | 4 files |
+| Phase 97-tenant-identity-compatible-upgrade P13 | 18 min | 2 tasks | 14 files |
+| Phase 97-tenant-identity-compatible-upgrade P14 | 16 min | 2 tasks | 5 files |
+| Phase 98 P01 | 8 min | 2 tasks | 6 files |
+| Phase 98-privacy-safe-delivery-evidence P02 | 12 min | 2 tasks | 9 files |
+| Phase 98 P03 | 18min | 2 tasks | 7 files |
+| Phase 98 P04 | 30 min | 2 tasks | 7 files |
+| Phase 98 P05 | 16 min | 1 tasks | 2 files |
+| Phase 98-privacy-safe-delivery-evidence P07 | 14 min | 1 tasks | 5 files |
+| Phase 98-privacy-safe-delivery-evidence P08 | 8 min | 2 tasks | 7 files |
+| Phase 98 P09 | 3 min | 1 tasks | 3 files |
+| Phase 98-privacy-safe-delivery-evidence P10 | ~55 min | 2 tasks | 6 files |
+| Phase 98-privacy-safe-delivery-evidence P11 | 10min | 1 tasks | 4 files |
+| Phase 98-privacy-safe-delivery-evidence P12 | 12min | 2 tasks | 6 files |
+| Phase 98-privacy-safe-delivery-evidence P13 | 6min | 1 tasks | 1 files |
+| Phase 98-privacy-safe-delivery-evidence P14 | 8 min | 3 tasks | 8 files |
+| Phase 98-privacy-safe-delivery-evidence P15 | 18 min | 2 tasks | 4 files |
+| Phase 99-multi-installation-delivery-recovery P01 | 9 min | 2 tasks | 13 files |
+| Phase 99-multi-installation-delivery-recovery P02 | 15 min | 2 tasks | 5 files |
+| Phase 99-multi-installation-delivery-recovery P03 | 14m | 2 tasks | 9 files |
+| Phase 99-multi-installation-delivery-recovery P04 | 8 min | 2 tasks | 5 files |
+| Phase 99-multi-installation-delivery-recovery P05 | 29m | 1 tasks | 10 files |
+| Phase 99 P06 | 8 min | 1 tasks | 4 files |
+| Phase 99 P07 | 24m | 2 tasks | 5 files |
+| Phase 99-multi-installation-delivery-recovery P08 | 12m | 1 tasks | 4 files |
+| Phase 99 P09 | 3m | 1 tasks | 2 files |
+| Phase 99-multi-installation-delivery-recovery P10 | 4m | 2 tasks | 4 files |
+| Phase 99-multi-installation-delivery-recovery P11 | 18 min | 2 tasks | 4 files |
+| Phase 99-multi-installation-delivery-recovery P12 | 14min | 3 tasks | 12 files |
+| Phase 100-optional-apns-adapter P01 | 8 min | 1 tasks | 8 files |
+| Phase 100-optional-apns-adapter P02 | 18 min | 2 tasks | 12 files |
+| Phase 100-optional-apns-adapter P03 | 18 min | 2 tasks | 9 files |
+| Phase 100-optional-apns-adapter P04 | 12 min | 2 tasks | 10 files |
+| Phase 100-optional-apns-adapter P05 | 18 min | 2 tasks | 9 files |
+| Phase 100-optional-apns-adapter P06 | 18 min | 2 tasks | 5 files |
+| Phase 100 P07 | 24 min | 1 tasks | 7 files |
+| Phase 100 P08 | 30 min | 2 tasks | 6 files |
+| Phase 100-optional-apns-adapter P09 | 18 min | 2 tasks | 5 files |
+| Phase 100 P11 | 14 min | 1 tasks | 2 files |
+| Phase 100-optional-apns-adapter P10 | 7 min | 1 tasks | 5 files |
+| Phase 101 P01 | 8 min | 1 tasks | 8 files |
+| Phase 101 P02 | 10 min | 1 tasks | 5 files |
+| Phase 101 P04 | 5 min | 1 tasks | 5 files |
+| Phase 101-crosswake-registration-protected-open P03 | 8 min | 1 tasks | 5 files |
+| Phase 101-crosswake-registration-protected-open P06 | 8 min | 2 tasks | 9 files |
+| Phase 101-crosswake-registration-protected-open P05 | 16 min | 1 tasks | 5 files |
+| Phase 101 P07 | 18 min | 1 tasks | 5 files |
+| Phase 101-crosswake-registration-protected-open P08 | 9 min | 1 tasks | 8 files |
+| Phase 101 P09 | 6 min | 1 tasks | 4 files |
+| Phase 101-crosswake-registration-protected-open P10 | 15 min | 2 tasks | 8 files |
+| Phase 101-crosswake-registration-protected-open P11 | 00:03:00 | 1 tasks | 2 files |
+| Phase 101 P13 | 00:03:00 | 1 tasks | 2 files |
+| Phase 101-crosswake-registration-protected-open P12 | 15 min | 2 tasks | 6 files |
+| Phase 101 P15 | 15m | 1 tasks | 5 files |
+| Phase 101 P16 | 6 min | 1 tasks | 4 files |
+| Phase 101-crosswake-registration-protected-open P17 | 9 min | 1 tasks | 2 files |
+| Phase 101-crosswake-registration-protected-open P18 | 15 min | 1 tasks | 2 files |
+| Phase 101-crosswake-registration-protected-open P19 | 5 min | 1 tasks | 2 files |
+| Phase 101-crosswake-registration-protected-open P20 | 00:12:00 | 2 tasks | 5 files |
+| Phase 102-alpha-digital-twin-hermetic-gate P01 | 22 min | 1 tasks | 10 files |
+| Phase 102-alpha-digital-twin-hermetic-gate P02 | 14 min | 1 tasks | 7 files |
+| Phase 102-alpha-digital-twin-hermetic-gate P03 | 18 min | 2 tasks | 4 files |
+| Phase 102-alpha-digital-twin-hermetic-gate P04 | 15min | 2 tasks | 9 files |
+| Phase 103-physical-iphone-adoption-truth P01 | 18 min | 1 tasks | 4 files |
+| Phase 103-physical-iphone-adoption-truth P02 | 24 min | 2 tasks | 6 files |
+| Phase 103-physical-iphone-adoption-truth P03 | 32 min | 2 tasks | 9 files |
+| Phase 103-physical-iphone-adoption-truth P04 | 8h | 2 tasks | 18 files |
+| Phase 104 P01 | 6 min | 2 tasks | 3 files |
+| Phase 104 P02 | 34 min | 2 tasks | 8 files |
+| Phase 105 P01 | 7 min | 2 tasks | 8 files |
+| Phase 105 P02 | 13 min | 2 tasks | 11 files |
+| Phase 106 P01 | 9 min | 2 tasks | 4 files |
+| Phase 106 P02 | 5 min | 2 tasks | 1 files |
+| Phase 107 P01 | 8min | 3 tasks | 7 files |
+| Phase 107 P02 | 42min | 3 tasks | 5 files |

@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Sigra) do
+if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimeway) do
   defmodule Chimeway.Integrations.SigraAuthHarnessTest do
     @moduledoc false
 

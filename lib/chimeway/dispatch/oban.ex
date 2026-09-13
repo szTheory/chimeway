@@ -32,6 +32,7 @@ if Code.ensure_loaded?(Oban) do
 
     alias Chimeway.{
       DeliveryPlanning,
+      DeliveryTargets,
       Digests.DigestBucket,
       Dispatch.DeferredResumeWorker,
       Dispatch.DigestFlushWorker,
@@ -85,7 +86,7 @@ if Code.ensure_loaded?(Oban) do
       |> Enum.reduce_while({:ok, []}, fn delivery, {:ok, jobs} ->
         case enqueue_delivery(delivery) do
           {:skip, _delivery} -> {:cont, {:ok, jobs}}
-          {:ok, job} -> {:cont, {:ok, [job | jobs]}}
+          {:ok, new_jobs} -> {:cont, {:ok, Enum.reverse(List.wrap(new_jobs)) ++ jobs}}
           {:error, reason} -> {:halt, {:error, reason}}
         end
       end)
@@ -104,8 +105,34 @@ if Code.ensure_loaded?(Oban) do
 
     defp handle_transaction_result({:error, _step, reason, _changes}), do: {:error, reason}
 
+    defp enqueue_delivery(
+           %{channel: "push", status: :pending, orchestration_state: :ready} = delivery
+         ) do
+      case DeliveryTargets.actionable_targets(delivery) do
+        [] ->
+          with {:ok, %{status: :suppressed, suppression_reason: "no_eligible_targets"} = updated} <-
+                 DeliveryTargets.recompute_delivery(delivery, delivery.tenant_id) do
+            {:ok, {:authoritative_delivery, updated}}
+          end
+
+        targets ->
+          Enum.reduce_while(targets, {:ok, []}, fn target, {:ok, jobs} ->
+            case enqueue_job(
+                   delivery,
+                   ObanWorker.new(%{delivery_target_id: target.id, tenant_id: delivery.tenant_id})
+                 ) do
+              {:ok, job} -> {:cont, {:ok, [job | jobs]}}
+              {:error, reason} -> {:halt, {:error, reason}}
+            end
+          end)
+      end
+    end
+
     defp enqueue_delivery(%{status: :pending, orchestration_state: :ready} = delivery) do
-      enqueue_job(delivery, ObanWorker.new(%{delivery_id: delivery.id}))
+      case enqueue_job(delivery, ObanWorker.new(%{delivery_id: delivery.id})) do
+        {:ok, job} -> {:ok, [job]}
+        {:error, reason} -> {:error, reason}
+      end
     end
 
     defp enqueue_delivery(
@@ -117,7 +144,7 @@ if Code.ensure_loaded?(Oban) do
          ) do
       job =
         DeferredResumeWorker.new(
-          %{delivery_id: delivery.id},
+          %{delivery_id: delivery.id, tenant_id: delivery.tenant_id},
           scheduled_at: delivery.next_eligible_at
         )
 
@@ -126,7 +153,13 @@ if Code.ensure_loaded?(Oban) do
 
     defp enqueue_delivery(delivery), do: {:skip, delivery}
 
-    defp normalize_dispatch_delivery_result({:ok, _job}, delivery), do: {:ok, delivery}
+    defp normalize_dispatch_delivery_result(
+           {:ok, {:authoritative_delivery, delivery}},
+           _original
+         ),
+         do: {:ok, delivery}
+
+    defp normalize_dispatch_delivery_result({:ok, _jobs}, delivery), do: {:ok, delivery}
     defp normalize_dispatch_delivery_result({:skip, delivery}, _original), do: {:skip, delivery}
     defp normalize_dispatch_delivery_result({:error, reason}, _delivery), do: {:error, reason}
 

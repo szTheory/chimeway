@@ -8,11 +8,15 @@ This document is for maintainers cutting releases.
 
 Release Please owns version and changelog SSOT on `main`. Do **not** manually edit `@version` or move CHANGELOG sections on `main` for routine releases.
 
+Only an exact Release Please PR merge may reach the workflow branches that suppress work because a release is already tagged or published. Exact identity requires the expected head branch, base branch, title, and well-formed metadata. Ordinary merges and uncertain PR metadata continue into the idempotent Release Please action.
+
 1. **Merge conventional commits to `main`** — Release Please opens or updates a Release PR titled `chore(main): release X.Y.Z` on branch `release-please--branches--main`.
 2. **Confirm ci-gate green on the Release PR head SHA** — Actions → CI workflow → verify the `ci-gate` job succeeded on the PR head commit.
-3. **Automerge (Wave 2+)** — When ci-gate is green, `release-pr-automerge.yml` merges the Release PR automatically. For the bootstrap **1.1.0** release (first after Hex 1.0.0), manual merge is acceptable until automerge is proven.
-4. **On merge** — `release.yml` creates the GitHub Release + `v*` tag, runs `gate-ci-green` on the release SHA, then `publish-hex` publishes to Hex with `HEX_API_KEY`.
+3. **Automerge** — When ci-gate is green, `release-pr-automerge.yml` merges the Release PR automatically.
+4. **Release creation** — On the exact Release Please PR merge, `release.yml` creates the GitHub Release + `v*` tag, runs `gate-ci-green` on the release SHA, then `publish-hex` publishes to Hex with `HEX_API_KEY`.
 5. **Post-publish verify trio (required locally):**
+
+Release-PR CI bootstrap is token-aware. With the `GITHUB_TOKEN` fallback, an open release PR explicitly dispatches `ci.yml` on `release-please--branches--main`; stale Release Please output does the same. A PAT-backed fresh update uses native `pull_request` CI and avoids a duplicate dispatch. The shell receives only whether the PAT is configured, never the token value.
 
 ```bash
 mix verify.clean
@@ -20,7 +24,7 @@ mix verify.parity
 mix verify.published X.Y.Z
 ```
 
-- `verify.clean` — confirms no uncommitted files remain after publish prep
+- `verify.clean` — rejects unstaged, staged, and non-ignored untracked changes; ignored files remain allowed
 - `verify.parity` — confirms the published file list matches the `files:` whitelist in `mix.exs`
 - `verify.published X.Y.Z` — polls hex.pm to confirm the version is accessible
 
@@ -41,7 +45,7 @@ Do **not** run `mix hex.publish` on a maintainer laptop as the default publish s
 | Secret | Required | Purpose |
 |--------|----------|---------|
 | `HEX_API_KEY` | Yes | Hex publish in `release.yml` and recovery workflow |
-| `RELEASE_PLEASE_TOKEN` | Optional | Fine-grained PAT if Release PR native CI is flaky; `release.yml` falls back to `GITHUB_TOKEN` |
+| `RELEASE_PLEASE_TOKEN` | Optional | Fine-grained PAT for native Release PR CI; `release.yml` falls back to `GITHUB_TOKEN` and explicit CI dispatch |
 
 ### Pre-ship local commands
 
@@ -71,7 +75,7 @@ mix verify.sigra
 - `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
 - `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
 - `mix verify.accrue` — Accrue dunning integration gate (GATE-05 Accrue): ECOS-06 lifecycle tests and DEMO-07 demo host proof; requires sibling Accrue checkout — set `ACCRUE_PATH=../accrue/accrue` locally or let CI job check out szTheory/accrue
-- `mix verify.inbox` — Inbox integration gate (GATE-05 Inbox): chimeway_inbox package tests and DEMO-08 demo host :inbox proof; in-repo path deps only — no sibling checkout
+- `mix verify.inbox` — Inbox integration gate (GATE-03): focused root lifecycle, timeline, privacy, and Phoenix-optional tests; the full `chimeway_inbox` package; focused `chimeway_admin` timeline and redaction tests; tagged inbox documentation and release-parity contracts; then the demo-host `:inbox` journey covering arrival, visible seen, once-only workflow progression, explicit read, and operator timeline. Every test command is warning-strict; in-repo path deps require no sibling checkout.
 - `mix verify.threadline` — Threadline telemetry integration gate (GATE-07): Threadline reporter lifecycle proof and demo host audit correlation; requires sibling Threadline checkout — set `THREADLINE_PATH=../threadline/threadline` locally or let CI job check out szTheory/threadline
 - `mix verify.sigra` — Sigra auth integration gate (GATE-07): Sigra auth notification lifecycle proof and demo host auth flow; requires sibling Sigra checkout — set `SIGRA_PATH=../sigra/sigra` locally or let CI job check out szTheory/sigra
 
@@ -97,7 +101,7 @@ These twelve local commands map to ci-gate lanes plus publish replay — not twe
 
 Maintainers clone the integration sibling repos adjacent to chimeway and point the matching `*_PATH` env var at each before running its verify gate:
 
-- [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins ref `236fa2f1649e771f3b515603495436badeed3c7b` (`accrue-v1.3.0`).
+- [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins compatibility ref `0752b8d0b59eb53936498daa4bb0be4b14ffd0e4`; released-package proof remains independently version-gated.
 - [szTheory/threadline](https://github.com/szTheory/threadline) — convention `../threadline/threadline` from repo root (`THREADLINE_PATH`). CI pins ref `46375fafc4df30fc916244ee4a21b7cae01f1ddc`.
 - [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`.
 
@@ -119,13 +123,11 @@ The installer proof covers committed golden fixtures, second-run idempotency, st
 
 CI runs `install_golden_contract` on push to `main` and on `workflow_dispatch` only — it is event-guarded off `pull_request` under the two-aggregate topology (see "CI gate topology" below), so it does not run on ordinary PRs. Within those events the detect step keeps the proof path-gated: it diffs the installer surfaces listed above and only runs the full proof when one changed, otherwise reporting `success` so the `ci-gate` fold stays pending-safe. `scripts/ci/detect-installer-changes.sh` reproduces that detection locally.
 
-### Bootstrap note
-
-First automated release after Hex **1.0.0** targets **1.1.0**. Push all unpushed `main` commits before the first Release Please run so the bootstrap PR includes v1.5–v1.9 surface.
-
 ## CI gate topology (pr-gate / ci-gate)
 
 Chimeway's CI fans into two aggregate checks:
+
+The existing `verify_inbox` job is the single hosted owner of `mix verify.inbox`; `pr-gate` and `ci-gate` consume the same `verify_inbox` result. Nightly-only `verify_admin` and browser work remain outside both release aggregates.
 
 - **`pr-gate`** — the fast required check on contributor pull requests. It aggregates a fast subset (`lint`, `test`, `mix ci.verify_gates`, `mix ci.docs`), always reports a conclusion, mirrors what local `mix ci` covers, and carries no `paths:` filter so it never strands a required PR check.
 - **`ci-gate`** — the source of truth for **release, publish, automerge, and recovery**. It aggregates all lanes (the ecosystem-integration gates and `install_golden_contract` included) and runs on push-to-`main` plus `workflow_dispatch` only; release PRs receive it via dispatch. It is event-guarded off `pull_request`, so it does not run on ordinary PRs.

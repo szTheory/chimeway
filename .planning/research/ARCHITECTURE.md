@@ -1,209 +1,239 @@
-# Architecture Patterns: Chimeway v1.17 Adopter Proof Paths
+# Architecture Research
 
-**Domain:** Clean-room, CI-backed adoption proofs for an embedded Elixir/Phoenix notification library
-**Researched:** 2026-08-08
-**Confidence:** HIGH for repository integration points; MEDIUM for the local Hex-artifact mechanism.
+**Domain:** APNs-first, cross-platform mobile delivery for an embedded Elixir notification layer
+**Researched:** 2026-08-11
+**Confidence:** HIGH for the local integration shape; MEDIUM for physical-device operational proof
 
-## Recommended Architecture
+## Standard Architecture
 
-Build one **thin adoption-proof harness** that consumes the same canonical instructions an adopter sees, but runs them in a freshly scaffolded host against a locally unpacked production package artifact. Keep the existing root and demo-host integration suites as the detailed behavioral authorities. The new harness verifies installation-to-business-outcome-to-explanation; it must not reproduce every adapter, webhook, UI, or workflow edge case already covered elsewhere.
+### System Overview
 
-```text
-README adoption selector
-        |
-        +--> Golden Path guide ------> core proof recipe
-        +--> Mailglass guide --------> mailglass proof recipe
-        +--> Accrue dunning guide ---> accrue proof recipe
-                                      |
-                                      v
-                       proof runner builds root Hex artifact (MIX_ENV=prod)
-                                      |
-                                      v
-             fresh temporary host + generated migrations + minimal host config
-                                      |
-              +-----------------------+------------------------+
-              |                        |                        |
-         Chimeway.trigger/3      Mailglass adapter       Accrue billing event
-              |                        |                        |
-              +------------------------+------------------------+
-                                      |
-                                      v
-                    Chimeway.Traces.explain_delivery/1 assertions
-                                      |
-                                      v
-                           one named CI lane / ci-gate
-
-Existing specialization remains authoritative:
-verify.install_golden | ci.test README snippet | verify.mailglass | verify.accrue
+```
+┌──────────────────── Adopter Alpha host application ─────────────────────┐
+│ Identity, eligibility, time zone, deep links, endpoint registry, APNs    │
+│ raw tokens, APNs credentials and binding lifecycle                       │
+│                                                                          │
+│  Trigger ──► PushTargetResolver ──► APNs Gateway ──► APNs                │
+│                  │                         │                             │
+│                  └ opaque active endpoints ┴ provider result             │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                               │ refs only; no raw tokens
+┌──────────────────────────────▼───────────────────────────────────────────┐
+│ Chimeway                                                                  │
+│ Event → Notification → logical Delivery → DeliveryTarget* → Attempt      │
+│          planning/policy/schedule/retry/expiry/recovery/trace             │
+│                                                                          │
+│ One logical reminder has one delivery decision; each active installation  │
+│ has a durable DeliveryTarget and independent endpoint attempts/outcome.   │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                               │ opaque open/binding/action refs
+┌──────────────────────────────▼───────────────────────────────────────────┐
+│ CrossWake shell + companion                                               │
+│ Explicit permission → APNs registration → authenticated host binding      │
+│ Notification open evidence → host one-time intent → RouteGate activation  │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-The artifact is important: a proof that points a temporary host at `path: "../.."` only proves the checkout, while an adopter receives the root package. `mix hex.build --unpack --output ...` is specifically intended to inspect a local package before publication; use the unpacked root as the clean-room host's Chimeway dependency. Build under `MIX_ENV=prod`, matching the existing release-gate proof and avoiding test-only dependency overrides.
+### Component Responsibilities
 
-### New and Modified Components
+| Component | Responsibility | Typical implementation |
+|-----------|----------------|------------------------|
+| Host push registry | Own raw tokens, installation/binding state, recipient eligibility, time zone, and deep-link targets | Host Ecto context; opaque endpoint refs exposed outside it |
+| `Chimeway.Push.TargetResolver` | Resolve eligible active endpoint references for a recipient and tenant | New host-implemented behaviour; returns no token or deep-link material |
+| Logical `Delivery` | Durable planning, policy, schedule, expiry, suppression, recovery, and explainability decision | Existing Chimeway delivery lifecycle, extended with target children |
+| `DeliveryTarget` | Per-installation endpoint state and attempts for a logical delivery | New durable child aggregate keyed by opaque endpoint ref |
+| APNs gateway adapter | Dereference target internally and submit pre-rendered payload to APNs | Host adapter, selected for the push channel |
+| CrossWake | Native permission/token acquisition and route-safe activation | Existing companion contracts/resolver, extended with registration lifecycle |
 
-| Component | Responsibility | Communicates With | Ownership boundary |
-|---|---|---|---|
-| README adoption selector (modify) | Selects exactly one canonical journey by desired outcome; states Chimeway/partner responsibilities and links to the proof command. | Three introduction guides | Documentation only; no second set of install instructions. |
-| Canonical integration guides (modify) | Remain the copyable source for dependency, configuration, trigger/event, and trace steps. Each exposes a stable proof identifier/command. | Proof manifest/contract tests | Guides describe host code; they do not prescribe host auth, URLs, tenancy lookup, or correlation policy. |
-| Adoption proof manifest/recipes (new, test-owned) | Declarative mapping from `core`, `mailglass`, and `accrue` to guide anchors, artifact inputs, setup, outcome assertion, and explainability assertion. | Runner and doc-contract tests | No application runtime code; keep values non-secret and deterministic. |
-| Clean-room host scaffold (new, test fixture) | Minimal generated Mix/Phoenix-shaped consumer: its own repo/config/application and one notifier or partner event bridge. Runs migrations from the packaged artifact. | Unpacked Chimeway, Postgres, partner fixture when needed | Explicitly supplies host-owned `tenant_id`, `idempotency_key`, correlation ID, recipient identity, and action URL. It must not reuse `DemoHost` modules. |
-| Adoption proof runner (new) | Creates isolated temp directories/databases, builds/unpacks artifact, materializes the relevant host, invokes documented commands/API, and emits concise evidence on failure. | Manifest, scaffold, existing aliases | Orchestrates only; it must call public Chimeway APIs and generated migrations, never private schemas or test helpers. |
-| Existing demo host (modify minimally) | Stays the runnable reference and integration fixture for real Mailglass/Accrue semantics. Its proof tests continue to cover UI-facing/redaction and partner wiring. | `verify.example`, `verify.mailglass`, `verify.accrue` | Do not turn it into the clean-room host or add a new UI path. |
-| Existing release/doc contracts (modify) | Enforce selector-to-guide-to-proof-name reachability, exact supported commands, packaged-doc presence, and CI topology. | README, guides, aliases, CI | Text/contract authority; no duplicate runtime proof. |
-| CI adoption lane (new) | Executes all three artifact-consumer proofs once on push/main and dispatch, then is folded into `ci-gate`. | Artifact build, Postgres, optional pinned Accrue checkout | Keep off ordinary PRs; `pr-gate` retains fast doc/gate contracts. |
+## Recommended Project Structure
 
-### Data Flow
+```
+lib/chimeway/
+├── push/
+│   ├── target_resolver.ex       # public host behaviour and contracts
+│   ├── delivery_target.ex       # durable endpoint child schema
+│   ├── delivery_targets.ex      # target fanout and lifecycle context
+│   └── redaction.ex             # recursive boundary-safe redaction
+├── delivery_planning.ex         # extend only to select/plan target children
+├── deliveries.ex                # logical delivery state and tenant-scoped recovery
+└── dispatch/
+    └── executor.ex              # execute eligible target, record target attempt
 
-1. An adopter begins at a short README selector: **core notification + trace**, **transactional email through Mailglass**, or **billing-triggered dunning through Accrue**.
-2. The selected guide owns the public recipe. It ends with one named proof command and the expected business outcome plus an `explain_delivery/1` observation.
-3. The CI runner builds the root package in production mode, unpacks it, and gives the fresh host only that artifact. This is in addition to—not a replacement for—the current `verify.parity`/release package-file checks.
-4. The fresh host configures its own Ecto repo and application boundary, runs `mix chimeway.gen.migrations` and `mix ecto.migrate`, and injects only safe fixture values for host-owned inputs.
-5. The proof executes the path's natural entrypoint: `Chimeway.trigger/3` for core and Mailglass; the Accrue billing event/campaign entrypoint for dunning. The Accrue proof must not trigger the dunning notifier directly from host code.
-6. The runner obtains an ID from the returned trace and asserts `Chimeway.Traces.explain_delivery/1`: stable notification key, terminal/pending state appropriate to the scenario, and the decisive timeline event. For Accrue, assert the Outcome Signal/cancel result and no escalation delivery; for Mailglass, assert the Chimeway attempt records the Mailglass adapter without exposing rendered body or credentials.
-7. Existing suites retain their depth: `readme_snippet_test.exs` locks the public core snippet against a real DB; `verify.mailglass` retains adapter/webhook/demo-host assertions; `verify.accrue` retains Accrue lifecycle and demo-host proof; installer golden tests retain generator idempotency and migration shape.
+test/chimeway/push/              # hermetic digital-twin and contract tests
+```
 
-### Proof Contracts by Path
+The host’s endpoint registry and APNs adapter remain outside this project. Chimeway receives only stable opaque identifiers and minimal provider/platform/environment capability metadata.
 
-| Path | New clean-room assertion | Reused existing authority | Must not duplicate |
-|---|---|---|---|
-| Core Phoenix notification + trace | Packaged dependency installs; generated migrations run; a host notifier calls `trigger/3` with tenant/idempotency/correlation; returned delivery explains with the expected stable key and planning event. | `test/chimeway/integration/readme_snippet_test.exs`; installer golden/idempotency/prefix tests. | Demo admin browser, workflow branches, migration template snapshot details. |
-| Mailglass transactional email | Host-owned mailable mapping and `Chimeway.Adapters.Mailglass` produce an email attempt; explanation exposes adapter/outcome and no sensitive render body. Use fake/test delivery, no provider key. | `verify.mailglass`, especially the demo-host Mailglass delivery and webhook pipeline coverage. | Webhook signature permutations, Mailglass sandbox implementation, admin UI redaction rendering. |
-| Accrue billing dunning | A billing failure starts the campaign through Accrue; a payment signal terminates it; trace explains `accrue.dunning` and signal-driven outcome. | `verify.accrue` and demo `AccrueDunningProofTest`. | Accrue fixtures/processor internals, Oban queue mechanics, every escalation timing branch. |
+## Architectural Patterns
 
-## Component Boundaries
+### Pattern 1: Logical delivery with durable per-installation targets
 
-### Chimeway owns
+**What:** Keep one `Delivery` as the explanation and orchestration aggregate for a logical reminder. Create one `DeliveryTarget` child for every active endpoint returned by the host resolver. Each child owns endpoint-specific attempts, provider feedback, retry status, and terminal reason.
 
-- Package installation surface, generated migrations, durable event → notification → delivery → attempt lifecycle, trace query API, stable notification identity, idempotency enforcement, and redaction-safe operator metadata.
-- The canonical guide contracts and the clean-room runner that proves its own public API from the packaged artifact.
-- The CI aggregation relationship and failure evidence for its proof lane.
+**When to use:** All mobile push fanout. Non-push channels retain one implicit/default target for compatibility.
 
-### Host application owns
-
-- Authentication/authorization, tenant resolution and the concrete `tenant_id`, recipient/domain lookup, URLs/action links, correlation-ID policy, host repo/application supervision, and provider credentials.
-- Its notifier/mailable and domain-event subscription. Fixtures should demonstrate explicit values, never imply Chimeway supplies them.
-
-### Integration partners own
-
-- Mailglass template/Swoosh/provider behavior and webhook-provider semantics.
-- Accrue invoices, subscriptions, payment recovery facts, and campaign-event emission.
-
-The clean-room fixture may implement the smallest host-owned contracts needed to cross these boundaries, but must not make Chimeway responsible for them. No new UI, inbox behavior, admin route, or browser test belongs to this milestone's proof architecture.
-
-## Patterns to Follow
-
-### Pattern 1: Artifact consumer, not source-tree consumer
-
-**What:** Create a temporary host dependency that resolves `:chimeway` from the root's locally unpacked production artifact (or a local package repository produced from it), not from `path: "../.."`.
-
-**When:** Every clean-room path, because they make an adopter-facing installation claim.
-
-**Why:** The current `release_gate_contract_test.exs` already builds with `MIX_ENV=prod` and validates package contents. The proof should reuse that release-realistic construction and extend it to runtime adoption, not introduce a second packaging implementation.
-
-**Implementation shape:** Extract the existing `mix hex.build --unpack` helper mechanics to a test support module used by both release contract and adoption runner, with a unique temp root and cleanup in `after`/`on_exit`.
-
-### Pattern 2: One vertical assertion per proof, specialization elsewhere
-
-**What:** Each proof has only three assertions: install/migrate, natural business entrypoint, and explainable result.
-
-**When:** The new `verify.adoption_paths` command and its CI job.
-
-**Why:** Current aliases already partition detailed coverage. Re-running `verify.mailglass` and `verify.accrue` inside an adoption lane multiplies setup cost while producing correlated failures. The adoption lane answers “can a prospect follow the docs with the artifact?”; partner lanes answer “does the integration work exhaustively?”
-
-### Pattern 3: Public trace as the common outcome protocol
-
-**What:** Each path yields a delivery ID and verifies `Chimeway.Traces.explain_delivery/1`, using a path-specific expected stable key and decisive event.
-
-**When:** Always, including successful delivery. A proof without an explanation assertion is incomplete for Chimeway's product value.
-
-**Example:**
+**Trade-offs:** It avoids duplicated policy/schedule decisions and keeps “why was this reminder sent?” coherent, while permitting independent device outcomes. It requires target-aware dispatch and aggregation rules.
 
 ```elixir
-[delivery_id | _] = result.trace.delivery_ids
-{:ok, explanation} = Chimeway.Traces.explain_delivery(delivery_id)
-
-assert explanation.notification_key == expected_notification_key
-assert :delivery_planned in Enum.map(explanation.timeline, & &1.event)
+@callback resolve(recipient_identity :: String.t(), tenant_id :: String.t(), context :: map()) ::
+  {:ok, [
+    %{endpoint_ref: String.t(), provider: :apns, platform: :ios, environment: atom()}
+  ]} | {:error, term()}
 ```
 
-For the Accrue terminal path, fetch the associated workflow trace after the payment event and assert the signal/cancellation reason; do not assume every proof has the same terminal status.
+`endpoint_ref` is opaque. The return type must reject token-like fields before Chimeway persists or emits it.
 
-### Pattern 4: Documentation contracts test links and commands; runtime tests test behavior
+### Pattern 2: Host-owned token dereference
 
-**What:** Extend `doc_contract_test.exs`/`release_gate_contract_test.exs` only to assert stable identifiers, guide ordering, selector links, proof command names, package inclusion, and the `ci-gate` lane. Place actual installation/runtime behavior in the adoption runner.
+**What:** The host resolver returns a target reference; the host APNs gateway dereferences it immediately before sending. Chimeway never stores raw device tokens, credentials, deep links, or provider request bodies.
 
-**Why:** This preserves the present split: doc contracts prevent drift cheaply on PRs; the artifact proof detects real copyability failures on main/dispatch.
+**When to use:** Every APNs submission and provider feedback path.
 
-## Anti-Patterns to Avoid
+**Trade-offs:** Requires a host integration context but preserves Chimeway’s local-first ownership boundary and makes package telemetry/traces safe by construction.
 
-### Anti-Pattern 1: A second DemoHost
+### Pattern 3: Tenant spine before endpoint fanout
 
-**What:** Forking `examples/chimeway_demo_host` into another sample app for clean-room proof.
+**What:** Persist immutable `tenant_id` on Event and Notification, propagate it through planning, targets, attempts, query APIs, idempotency, traces, and recovery.
 
-**Why bad:** It creates two sets of notifier, config, fixtures, migrations, and partner dependency work to keep synchronized, while masking path-dependency coupling.
+**When to use:** Before new push data is accepted. Today Trigger requires tenant ID, but the Event and Notification schemas do not contain it; DeliveryPlanning can default it to `"default"`.
 
-**Instead:** Keep DemoHost as the rich source-tree reference. Generate a deliberately tiny temporary host from recipe data and require it to consume the packaged artifact.
+**Trade-offs:** Additive migration and compatibility work now prevent cross-tenant target lookup, recovery, or operator visibility leaks later.
 
-### Anti-Pattern 2: UI as the adoption proof
+### Pattern 4: Opaque, one-time notification open
 
-**What:** Making `/admin/chimeway`, LiveView, or Playwright the success criterion for all three paths.
+**What:** APNs payload carries only `open_ref`, `binding_ref`, route/action refs, and expiry. The host resolves the one-time intent and its binding; CrossWake’s existing resolver then applies RouteGate with `activation_source: :notification`.
 
-**Why bad:** It expands scope into UI and host auth, adds slow/flaky setup, and obscures the core explanation contract. Existing demo tests already cover admin trace rendering/redaction.
+**When to use:** Every notification activation, including cold launch.
 
-**Instead:** Verify explainability via public trace APIs; retain the UI as an optional human exploration surface.
+**Trade-offs:** More server interaction than embedding a deep link, but supports expiry/replay/revocation and keeps route authority with the host/CrossWake.
 
-### Anti-Pattern 3: Treating partner fixture internals as adopter API
+## Data Flow
 
-**What:** Copying `DemoHost.AccrueFixtures`, test repos, fake processor controls, or Mailglass fake setup into documentation.
+### Trigger-to-delivery flow
 
-**Why bad:** It leaks test mechanics and inverts responsibility boundaries.
+```
+Host trigger (tenant, idempotency key)
+  → Event + Notification persisted with tenant spine
+  → logical Delivery planned; policy/schedule/expiry applied once
+  → TargetResolver returns active opaque endpoints
+  → DeliveryTarget children inserted idempotently
+  → dispatcher executes each eligible target
+  → host gateway dereferences endpoint ref and calls APNs
+  → target attempt/outcome persisted and rolled up for the logical trace
+```
 
-**Instead:** Docs use only public host configuration and partner entrypoints. The runner hides test-only mechanics behind its fixture seam; the guide links to the canonical partner docs where configuration is partner-owned.
+Zero active targets is a planned, explainable suppression (`no_active_targets`), not a successful APNs delivery. Ineligible or stale targets have individual target reasons without exposing token material.
 
-### Anti-Pattern 4: Duplicating each existing verify lane inside the new lane
+### Binding and feedback flow
 
-**What:** Calling `verify.example`, `verify.mailglass`, and `verify.accrue` from `verify.adoption_paths`.
+```
+CrossWake native snapshot / APNs token rotation
+  → authenticated host binding service (raw token boundary)
+  → opaque binding_ref / endpoint_ref state
+  → Chimeway target resolver sees only active refs
 
-**Why bad:** Increases CI wall-clock, creates duplicated failures, and makes it unclear whether a regression is docs/artifact installation or partner behavior.
+APNs response or feedback
+  → host gateway classifies provider evidence
+  → host deactivates/rotates binding where appropriate
+  → Chimeway records a redacted target attempt outcome
+```
 
-**Instead:** Add one independent vertical command and continue running current named lanes separately in `ci-gate`.
+CrossWake’s existing `TokenEvidence`, `TokenBinding`, `ProviderFeedback`, and `NotificationOpenEvidence` contracts are appropriate boundary vocabulary. They do not make CrossWake a delivery or authentication authority.
 
-## CI and Release Integration
+### Trigger-to-planning recovery
 
-### Commands and topology
+```
+Committed Event/Notification with no logical Delivery
+  → tenant-scoped recovery scan/claim
+  → replan persisted notification declarations
+  → resolve current eligible targets
+  → enqueue target execution idempotently
+```
 
-Add a single public maintainer alias such as `mix verify.adoption_paths`; it invokes the three recipes serially in isolated temporary roots/databases and emits the path name in failures. Do not make it part of the default fast `mix ci` if the artifact build and partner path checks materially slow contributors.
+Recovery must scope all lookups by tenant. The current event recovery path intentionally returns no recoverable events when tenant-scoped; correct this before production push uses it.
 
-Add a single `verify_adoption_paths` CI job on push-to-main and `workflow_dispatch`, then include it in `ci-gate`. Leave it out of `pr-gate`; fast `mix ci.verify_gates` should enforce the selector/guide/command wiring on every PR. Update the release-gate contract's explicit `@ci_gate_lanes`, pre-ship command list, job-command assertion, and `MAINTAINING.md` count/copy together—those tests intentionally make the topology change explicit.
+## Persistence, API, and Migration Direction
 
-Run the proof lane after its normal root dependency setup and PostgreSQL service provisioning. Cache its root build separately only if measurement justifies it; the unpacked artifact and temporary hosts must always be recreated, because persistence would undermine clean-room confidence. Reuse the existing CI observability-summary pattern so added wall-clock and cache behavior remain visible.
+### Additions
 
-The Accrue recipe may use the already pinned sibling checkout in CI solely to access the integration under test, but its **Chimeway** dependency must still resolve from the locally built artifact. Pin and document that ref in one shared CI/proof configuration; do not give docs a CI-only checkout requirement for normal Hex adopters.
+| Surface | Change |
+|---------|--------|
+| Event and Notification | Add non-null `tenant_id` after a safe staged backfill; scope idempotency uniqueness by tenant |
+| Delivery | Retain logical lifecycle fields; add target aggregation/read-model fields only if needed for trace efficiency, never token material |
+| DeliveryTarget | New child: `delivery_id`, `tenant_id`, `endpoint_ref`, provider/platform/environment, status/reason, eligibility timestamps, redacted metadata; unique `(delivery_id, endpoint_ref)` |
+| DeliveryTargetAttempt | New append-only target attempt, or extend existing attempts with `delivery_target_id`; provider response is recursively redacted |
+| Resolver behaviour | New target-resolution contract, required only for push channel |
+| Query APIs | Tenant-required trace/admin/inbox/recovery forms; target summaries exposed without raw token/fingerprint unless explicitly safe |
 
-### Package/release relationship
+### Backward compatibility
 
-`verify.parity` and the unpacked-package release contract remain the file-list/truth gates. The new proof is their runtime companion: it demonstrates that the actual artifact, its packaged README/guides, and its generator can be consumed by a fresh app. Avoid requiring examples, sibling packages, or test support files in the root package—the current `files:` whitelist deliberately excludes them.
+1. Ship additive nullable tenant fields and target tables first; write all new records with tenant ID.
+2. Backfill only from unambiguous existing Delivery/Workflow tenant evidence. Report ambiguous legacy rows as `legacy_unscoped`; never guess a tenant.
+3. Represent existing non-push deliveries with an implicit `default` target during the compatibility release; preserve current channel adapters unchanged.
+4. Add target-aware indexes, backfill, then switch new push planning to child targets. Retire the old `(notification_id, channel)` delivery uniqueness only after legacy readers tolerate the new shape.
+5. Require tenant scope on public operational APIs in the following breaking-major/minor boundary, with explicitly named legacy read shims only where necessary.
 
-For release work, run `mix verify.adoption_paths` alongside the existing pre-ship commands, and add it to the release-facing documentation only after the CI lane is green and artifact mode is deterministic. This maintains existing package/release checks without changing the root-only package model.
+## Security and Redaction Boundary
 
-## Build Order
+Create one recursive redactor and use it before every persistence, telemetry, logging, DTO, adapter-return, provider-feedback, and error boundary. It must traverse nested maps/lists and reject/drop token, raw/device/APNs/FCM/registration token, secret, password, auth, API-key, URL, code, and magic-link forms regardless of nesting or string/atom key shape. Opaque refs and keyed fingerprints are permitted; raw tokens are never recoverable from Chimeway data.
 
-1. **Define the proof contract and adoption front door.** Choose the three stable proof IDs, write the README selector, make each guide end in an explicit expected outcome/explanation, and add cheap doc-contract assertions. This establishes the user-facing interface before harness code.
-2. **Extract package-artifact support and build the core clean-room proof.** Reuse the production `hex.build --unpack` behavior, generate the smallest host, run install/migrations, trigger a notifier, and assert the public trace. Make cleanup, temp-path isolation, and failure diagnostics solid here.
-3. **Add the Mailglass clean-room recipe.** Supply a host-owned mailable mapping and fake delivery transport, assert adapter-attempt explainability, and retain all webhook details in `verify.mailglass`.
-4. **Add the Accrue clean-room recipe.** Reuse the pinned partner-checkout seam for CI, drive only billing events, prove campaign start and paid termination through the trace, and retain fixture/queue depth in `verify.accrue`.
-5. **Wire one CI lane and release parity.** Add its alias, cache/observability setup, `ci-gate` aggregation, release/doc contract updates, and maintainer command documentation. Measure it before deciding whether any setup can share existing producers.
+This strengthens the current shallow Trigger sanitization and adapter convention. Contract tests must inspect nested persistence, attempts, telemetry, traces, `inspect/1` diagnostics, and negative adapter-return cases.
 
-## Scalability Considerations
+## Scaling Considerations
 
-| Concern | At 100 users / 3 proof paths | At 10K users / 5–8 paths | At 1M users / many partners |
-|---|---|---|---|
-| Proof recipes | One manifest and three explicit recipe modules. | Split shared scaffold/artifact support from per-partner recipe modules. | Version the recipe contract; review partner changes independently and pin all external refs. |
-| CI cost | One serial artifact lane on main/dispatch. | Parallelize only independent recipes after timing evidence; retain a single aggregate lane. | Use a matrix with per-path reports/artifacts, but keep an aggregate required check and avoid duplicating partner suites. |
-| Documentation drift | Exact command/anchor contracts in `ci.verify_gates`. | Generate selector entries from the manifest or validate both directions. | Treat proof IDs and guide anchors as versioned public adoption API. |
-| Sensitive fixture data | Synthetic tenant, identities, URLs, and fake transports. | Centralize redaction assertions and forbidden-output checks. | Require sanitized CI logs/artifacts; never attach payload or provider secrets as proof evidence. |
+| Scale | Architecture adjustment |
+|-------|-------------------------|
+| Alpha | PostgreSQL-backed target fanout and Oban per-target jobs; bounded installation count and payload size |
+| Growth | Batch resolver reads and job enqueue, index `(tenant_id, status, next_eligible_at)` plus target uniqueness, paginate operator target summaries |
+| Large fleet | Partition/archive attempts by tenant/time and apply provider-aware concurrency/rate limits in the host gateway; retain Chimeway as the orchestration ledger |
 
-## Sources
+The first bottleneck is multi-installation target fanout, not a need to split services. Enforce a resolver-return limit and use chunked target planning before introducing distributed fanout infrastructure.
 
-- Repository evidence (HIGH): `mix.exs` aliases; `.github/workflows/ci.yml`; `test/chimeway/integration/readme_snippet_test.exs`; `test/chimeway/release_gate_contract_test.exs`; installer golden tests; `examples/chimeway_demo_host` proof tests and README; canonical Golden Path, Mailglass, and Accrue guides.
-- [Hex `mix hex.build` documentation](https://hex.hexdocs.pm/Mix.Tasks.Hex.Build.html) (MEDIUM via documentation lookup): `--unpack` builds and unpacks a local artifact for pre-publish content verification.
+## Anti-Patterns
+
+### Store tokens or deep links in Chimeway
+
+**Why it is wrong:** It violates the host ownership boundary and risks leaking credentials or private navigation data through traces, telemetry, attempts, and support exports.
+
+**Do this instead:** Persist opaque endpoint/open/binding refs only; dereference in the host at the final provider or route-activation boundary.
+
+### Duplicate the logical delivery for each device
+
+**Why it is wrong:** Policy, scheduling, expiry, and explanation become inconsistent across installations and make one reminder look like many unrelated notifications.
+
+**Do this instead:** One logical Delivery with durable `DeliveryTarget` children and independently inspectable attempts.
+
+### Treat CrossWake’s current token snapshot as push delivery support
+
+**Why it is wrong:** The current `notification_token` capability is prompt-free, advisory provider evidence and CrossWake explicitly reports Chimeway delivery as not shipped.
+
+**Do this instead:** Add an explicit native permission/registration/binding lifecycle and prove it separately from the existing snapshot contract.
+
+### Promise generic offline push or background sync
+
+**Why it is wrong:** CrossWake’s supported offline posture is limited to cached read-only routes and one explicit study-session island; it does not provide background sync guarantees.
+
+**Do this instead:** Keep reminder truth server-authoritative, let push cause safe re-entry, and make offline state explicit in the host UI.
+
+## Phase Dependency and Proof Order
+
+1. **Tenant and redaction foundation** — tenant spine, recursive redaction, scoped operational APIs, and migration/backfill report.
+2. **Logical delivery / DeliveryTarget model** — new target tables, host resolver behaviour, target fanout, zero-target suppression, trace projection, and recovery integration.
+3. **APNs-first execution** — host APNs gateway, target retries/expiry/failure classification, binding invalidation feedback, and rate/error boundaries.
+4. **CrossWake mobile lifecycle** — explicit permission, APNs registration, authenticated binding/rotation, opaque notification-open issuance, and RouteGate re-entry.
+5. **Production proof** — hermetic digital twin followed by physical iPhone sandbox evidence. The twin gates CI; the phone proof validates credentials, provisioning, and real APNs behavior without becoming a flaky CI requirement.
+
+The hermetic twin must cover denied permission, two active installations, rotation/revocation, no-target suppression, retry/exhaustion, expiry, post-trigger planning recovery, recursive-redaction negatives, and replay/expired notification opens.
+
+## Local Sources
+
+- `lib/chimeway/trigger.ex` — tenant input, durable event/notification creation, shallow sanitization, post-commit planning.
+- `lib/chimeway/delivery_planning.ex`, `lib/chimeway/delivery.ex`, `lib/chimeway/deliveries.ex` — existing single-channel planning identity, lifecycle, and recovery seam.
+- `lib/chimeway/dispatch/executor.ex`, `lib/chimeway/adapter.ex` — per-channel adapter and append-only attempt boundary.
+- `lib/chimeway/inbox.ex`, `lib/chimeway/traces.ex` — tenant derivation/query surfaces needing spine propagation.
+- `crosswake_chimeway` contracts, redaction, and resolver — ref-only token/binding/open vocabulary and safe RouteGate activation.
+- `crosswake/guides/offline.md` — deliberately narrow offline boundary.
+
+---
+*Architecture research for: Chimeway v1.18 Adopter Alpha mobile delivery readiness*
+*Researched: 2026-08-11*

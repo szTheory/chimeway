@@ -356,10 +356,101 @@ jobs:
           CACHE_MAIN_PRIMARY: ${{ steps.cache_main.outputs.cache-primary-key }}
         run: scripts/ci/obs-summary.sh
 
+  verify_alpha_twin:
+    name: Alpha twin hermetic gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+      CROSSWAKE_PATH: ../crosswake
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - name: Fetch locked CrossWake contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          selected_sha="$(tr -d '\n' < priv/mobile_proof/crosswake-selected-sha)"
+          test "${selected_sha}" = "$(printf '%s' "${selected_sha}" | grep -E '^[0-9a-f]{40}$')"
+          git init -q ../crosswake
+          git -C ../crosswake remote add origin https://github.com/szTheory/crosswake.git
+          test "$(git -C ../crosswake ls-remote origin refs/heads/resume/chimeway-notification-physical-proof | cut -f1)" = "${selected_sha}"
+          git -C ../crosswake fetch --depth=1 origin refs/heads/resume/chimeway-notification-physical-proof
+          git -C ../crosswake checkout --detach -q "${selected_sha}"
+          test "$(git -C ../crosswake remote get-url origin)" = "https://github.com/szTheory/crosswake.git"
+          test "$(git -C ../crosswake rev-parse HEAD)" = "${selected_sha}"
+          test -z "$(git -C ../crosswake status --porcelain)"
+          test -f ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          test -f ../crosswake/test/fixtures/proof_lane/chimeway-notification-physical-proof.json
+          test -f ../crosswake/test/crosswake/proof_lane/chimeway_notification_physical_proof_test.exs
+          grep -q 'def validate_report' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'def validate_source_bound' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'def schema_version' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'def assertions' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'Evidence.check' ../crosswake/lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex
+          grep -q 'validate_source_bound' ../crosswake/test/crosswake/proof_lane/chimeway_notification_physical_proof_test.exs
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix verify.alpha_twin
+      - run: mix verify.physical_proof_contract
+
+  verify_crosswake_provider_feedback_docs:
+    name: CrossWake provider-feedback documentation contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            deps
+            _build
+          key: build-test-crosswake-feedback-docs-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            build-test-crosswake-feedback-docs-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix verify.crosswake_provider_feedback_docs
+
   pr-gate:
     name: pr-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_accrue_package, verify_docs, verify_adoption_paths]
+    needs: [lint, test, verify_gates, verify_accrue_package, verify_docs, verify_adoption_paths, verify_inbox, verify_apns, verify_alpha_twin, verify_crosswake_provider_feedback_docs]
     if: always()
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -371,7 +462,11 @@ jobs:
           VERIFY_ACCRUE_PACKAGE: ${{ needs.verify_accrue_package.result }}
           VERIFY_DOCS: ${{ needs.verify_docs.result }}
           VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_ACCRUE_PACKAGE VERIFY_DOCS VERIFY_ADOPTION_PATHS
+          VERIFY_INBOX: ${{ needs.verify_inbox.result }}
+          VERIFY_APNS: ${{ needs.verify_apns.result }}
+          VERIFY_ALPHA_TWIN: ${{ needs.verify_alpha_twin.result }}
+          VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS: ${{ needs.verify_crosswake_provider_feedback_docs.result }}
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_ACCRUE_PACKAGE VERIFY_DOCS VERIFY_ADOPTION_PATHS VERIFY_INBOX VERIFY_APNS VERIFY_ALPHA_TWIN VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS
 
   verify_example:
     name: Example host + admin smoke
@@ -694,7 +789,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: szTheory/accrue
-          ref: 236fa2f1649e771f3b515603495436badeed3c7b
+          ref: d30fc25dbf6ba551792c66ff451b4b93c0af4bf1
           path: accrue/accrue
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
@@ -754,7 +849,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-    if: github.event_name != 'pull_request'
     services:
       postgres:
         image: postgres:15
@@ -1400,10 +1494,53 @@ jobs:
       - run: mix ecto.migrate --quiet
       - run: mix test --seed 0 --exclude mailglass --exclude accrue --exclude threadline --exclude sigra --warnings-as-errors
 
+  verify_apns:
+    name: Optional APNs adapter gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create --quiet
+      - run: mix ecto.migrate --quiet
+      - run: mix verify.apns
+      - name: CI observability summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+        run: scripts/ci/obs-summary.sh
+
   ci-gate:
     name: ci-gate
     runs-on: ubuntu-latest
-    needs: [lint, test, verify_gates, verify_accrue_package, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, verify_adoption_paths, test_floor_1_17]
+    needs: [lint, test, verify_gates, verify_accrue_package, verify_docs, verify_example, verify_runtime_prefix, verify_journeys, verify_mailglass, verify_accrue, verify_inbox, verify_threadline, verify_sigra, install_golden_contract, verify_adoption_paths, verify_apns, test_floor_1_17, verify_alpha_twin, verify_crosswake_provider_feedback_docs]
     if: always() && github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -1424,8 +1561,11 @@ jobs:
           VERIFY_SIGRA: ${{ needs.verify_sigra.result }}
           INSTALL_GOLDEN: ${{ needs.install_golden_contract.result }}
           VERIFY_ADOPTION_PATHS: ${{ needs.verify_adoption_paths.result }}
+          VERIFY_APNS: ${{ needs.verify_apns.result }}
           TEST_FLOOR_1_17: ${{ needs.test_floor_1_17.result }}
-        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_ACCRUE_PACKAGE VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN VERIFY_ADOPTION_PATHS TEST_FLOOR_1_17
+          VERIFY_ALPHA_TWIN: ${{ needs.verify_alpha_twin.result }}
+          VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS: ${{ needs.verify_crosswake_provider_feedback_docs.result }}
+        run: scripts/ci/aggregate-gate.sh LINT TEST VERIFY_GATES VERIFY_ACCRUE_PACKAGE VERIFY_DOCS VERIFY_EXAMPLE VERIFY_RUNTIME_PREFIX VERIFY_JOURNEYS VERIFY_MAILGLASS VERIFY_ACCRUE VERIFY_INBOX VERIFY_THREADLINE VERIFY_SIGRA INSTALL_GOLDEN VERIFY_ADOPTION_PATHS VERIFY_APNS TEST_FLOOR_1_17 VERIFY_ALPHA_TWIN VERIFY_CROSSWAKE_PROVIDER_FEEDBACK_DOCS
 
   # nightly-gate mirrors ci-gate's aggregate pass/fail contract, scoped to
   # exactly the relocated/nightly-composition lanes (TIER-04). It gives a

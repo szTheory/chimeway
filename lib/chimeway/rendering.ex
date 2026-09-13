@@ -236,10 +236,10 @@ defmodule Chimeway.Rendering do
   defp channel_module("chat"), do: {:ok, Chat}
 
   defp channel_module(channel) do
-    # Layer 1: host-configured registry lookup (D-12)
+    # First check the host-configured registry.
     case Application.get_env(:chimeway, :channel_render_modules, %{}) |> Map.get(channel) do
       nil ->
-        # D-14: emit once per channel per BEAM lifetime using :persistent_term once-flag.
+        # Emit once per channel per BEAM lifetime using a :persistent_term flag.
         # Key shape: {:chimeway_channel_unregistered_logged, channel_string}
         # :persistent_term read is constant-time (zero hot-path overhead after first hit).
         unless :persistent_term.get({:chimeway_channel_unregistered_logged, channel}, false) do

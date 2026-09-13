@@ -1,0 +1,1102 @@
+defmodule Chimeway.SafeEvidence do
+  @moduledoc """
+  Closed, validated evidence constructors for durable delivery diagnostics.
+  """
+
+  alias Chimeway.Privacy
+
+  @max_ref_bytes 160
+  @max_code_bytes 80
+  @max_adapter_bytes 120
+  @max_telemetry_bytes 160
+  @max_retry_after_ms 86_400_000
+  @max_provider_timestamp 4_102_444_800_000
+  @corrective_actions ~w(retry_later refresh_provider_token retry_connection)
+  @recipient_reference_uuid ~r/^user:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+  @error_classes ~w(temporary permanent bounced render_context_unavailable unknown_classification)
+  @telemetry_keys %{
+    "notification_key" => :notification_key,
+    "event_id" => :event_id,
+    "recipient_id" => :recipient_id,
+    "channel" => :channel,
+    "delivery_id" => :delivery_id,
+    "attempt_id" => :attempt_id,
+    "outcome" => :outcome,
+    "suppression_reason" => :suppression_reason,
+    "planning_reason" => :planning_reason,
+    "correlation_id" => :correlation_id,
+    "attempt_number" => :attempt_number,
+    "error_class" => :error_class,
+    "adapter_module" => :adapter_module
+  }
+  @outcomes [:succeeded, :failed, :bounced, :rejected]
+  @timeline_events ~w(
+    event_created notification_created delivery_planned deferred resumed recovered suppressed cancelled
+    digested digest_skipped emitted_immediately digest_emitted attempt_recorded webhook_received
+    workflow_progressed workflow_waiting workflow_stopped workflow_completed notification_seen
+    notification_read
+  )a
+  @digest_outcomes ~w(digested skipped_by_policy emitted_immediately deferred)
+  @digest_reasons ~w(
+    included_in_digest skipped_by_policy emitted_immediately recipient_muted
+    window_closed digest_window_closed digest_window_expired digest_rule
+    quiet_hours policy_checkpoint retries_exhausted temporary_failure
+    permanent_failure stuck trigger notifier default planner_override channel_disabled superseded
+    bounced workflow_stopped progressed_on_delivery_outcome worker_missed
+  )
+  @recovery_reasons ~w(
+    claimed skipped_terminal skipped_claimed skipped_expired skipped_invalidated
+    resumed_planning resumed_target left_ambiguous retryable_pre_handoff
+  )a
+  @timeline_fields %{
+    "notification_key" => :notification_key,
+    "channel" => :channel,
+    "reason" => :reason,
+    "planning_reason" => :planning_reason,
+    "suppression_reason" => :suppression_reason,
+    "outcome" => :outcome,
+    "error_class" => :error_class,
+    "attempt_number" => :attempt_number,
+    "next_eligible_at" => :next_eligible_at,
+    "resume_scheduled_at" => :resume_scheduled_at,
+    "recovered_at" => :recovered_at,
+    "rule_identity" => :rule_identity,
+    "rule_kind" => :rule_kind,
+    "workflow_outcome" => :workflow_outcome,
+    "from_step" => :from_step,
+    "to_step" => :to_step,
+    "event_name" => :event_name,
+    "signal_event_name" => :signal_event_name,
+    "recovery_source" => :recovery_source,
+    "recovery_reason" => :recovery_reason,
+    "workflow_run_id" => :workflow_run_id,
+    "workflow_step_id" => :workflow_step_id,
+    "workflow_step_key" => :workflow_step_key,
+    "included" => :included,
+    "excluded" => :excluded,
+    "deferred" => :deferred,
+    "emitted_immediately" => :emitted_immediately
+  }
+
+  @spec opaque_ref(atom() | String.t(), term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
+  def opaque_ref(domain, value)
+      when domain in [
+             :provider,
+             :provider_message_id,
+             :recipient,
+             :correlation,
+             "provider",
+             "provider_message_id",
+             "recipient",
+             "correlation"
+           ] and
+             is_binary(value) do
+    if byte_size(value) in 4..@max_ref_bytes and
+         (String.match?(value, ~r/^cw_[a-z0-9][a-z0-9_-]*$/) or
+            (domain in [:correlation, "correlation"] and code?(value))) do
+      {:ok, value}
+    else
+      {:error, :unsafe_evidence}
+    end
+  end
+
+  def opaque_ref(_domain, _value), do: {:error, :unsafe_evidence}
+
+  @doc false
+  @spec provider_message_reference(term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
+  def provider_message_reference(value)
+      when is_binary(value) and byte_size(value) in 4..@max_ref_bytes do
+    case opaque_ref(:provider_message_id, value) do
+      {:ok, reference} -> {:ok, reference}
+      {:error, :unsafe_evidence} -> {:ok, opaque_projection(:provider_message_id, value)}
+    end
+  end
+
+  def provider_message_reference(_value), do: {:error, :unsafe_evidence}
+
+  @doc false
+  @spec recipient_reference(term()) :: {:ok, String.t()} | {:error, :unsafe_evidence}
+  def recipient_reference(value) when is_binary(value) do
+    cond do
+      match?({:ok, _}, opaque_ref(:recipient, value)) ->
+        {:ok, value}
+
+      Regex.match?(@recipient_reference_uuid, value) ->
+        {:ok, value}
+
+      true ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
+  def recipient_reference(_value), do: {:error, :unsafe_evidence}
+
+  @doc "Builds the intentionally small durable event payload vocabulary."
+  @spec event_payload(term()) :: map()
+  def event_payload(value), do: closed_facts(value, ["category", "reason", "scheduled_at"])
+
+  @doc "Builds the metadata retained beside a notification identity."
+  @spec notification_metadata(term()) :: map()
+  def notification_metadata(value), do: closed_facts(value, ["category", "reason"])
+
+  @doc "Retains channel render identity only, never rendered content or assigns."
+  @spec render_channels(term()) :: map()
+  def render_channels(channels) when is_map(channels) or is_list(channels) do
+    channels
+    |> entries()
+    |> Enum.group_by(fn {channel, _info} -> safe_channel(channel) end)
+    |> Enum.reduce(%{}, fn
+      {channel, [{_original, info}]}, acc when is_binary(channel) ->
+        case render_channel(info) do
+          {:ok, render} -> Map.put(acc, channel, render)
+          :omit -> acc
+        end
+
+      {_channel, _ambiguous_or_invalid}, acc ->
+        acc
+    end)
+  end
+
+  def render_channels(_channels), do: %{}
+
+  @spec planning_context(term()) :: map()
+  def planning_context(value),
+    do:
+      closed_facts(value, [
+        "source",
+        "digest_key",
+        "time_zone",
+        "rule_id",
+        "rule_identity",
+        "digest_flush_behavior",
+        "digest_flush_reason",
+        "reason",
+        "channel"
+      ])
+
+  @spec delivery_metadata(term()) :: map()
+  def delivery_metadata(value),
+    do:
+      closed_facts(value, [
+        "delayed_fallback_source",
+        "notification_key",
+        "event_id",
+        "digest_rule_key",
+        "digest_rule_version",
+        "correlation_id",
+        "reason",
+        "subject",
+        "body",
+        "summary",
+        "digest"
+      ])
+
+  @spec render_data(term()) :: map()
+  def render_data(value), do: closed_facts(value, ["render_key", "render_version"])
+
+  @doc false
+  @spec digest_reason(term()) :: String.t() | nil
+  def digest_reason(value) when is_atom(value), do: digest_reason(Atom.to_string(value))
+  def digest_reason(value) when value in @digest_reasons, do: value
+  def digest_reason(_value), do: nil
+
+  @spec provider_facts(term()) :: {:ok, map()} | {:error, :unsafe_evidence}
+  def provider_facts(value) when is_map(value) or is_list(value) do
+    facts = Privacy.redact(value)
+
+    with {:ok, status} <- optional_provider_status(facts),
+         {:ok, reason} <- optional_provider_reason(facts),
+         {:ok, timestamp} <- optional_provider_timestamp(facts),
+         {:ok, code} <- optional_provider_code(facts),
+         {:ok, retry_after_ms} <- optional_retry_after_ms(facts),
+         {:ok, corrective_action} <- optional_corrective_action(facts),
+         {:ok, accepted_at} <- optional_accepted_at(facts) do
+      {:ok,
+       %{}
+       |> maybe_put("provider_status", status)
+       |> maybe_put("provider_reason", reason)
+       |> maybe_put("provider_timestamp", timestamp)
+       |> maybe_put("provider_code", code)
+       |> maybe_put("retry_after_ms", retry_after_ms)
+       |> maybe_put("corrective_action", corrective_action)
+       |> maybe_put("accepted_at", accepted_at)}
+    end
+  end
+
+  def provider_facts(_value), do: {:error, :unsafe_evidence}
+
+  @doc false
+  @spec target_attempt_facts(term()) :: {:ok, map()} | {:error, :unsafe_evidence}
+  def target_attempt_facts(value) when is_map(value) do
+    with {:ok, facts} <- provider_facts(value) do
+      {:ok, facts}
+    end
+  end
+
+  def target_attempt_facts(_value), do: {:error, :unsafe_evidence}
+
+  @doc false
+  @spec recovery_summary(term()) :: map()
+  def recovery_summary(value) when is_map(value) do
+    %{
+      event_ids: lifecycle_ids(Map.get(value, :event_ids, [])),
+      target_ids: lifecycle_ids(Map.get(value, :target_ids, [])),
+      continuations: recovery_continuations(Map.get(value, :continuations, %{})),
+      reason: recovery_reason(Map.get(value, :reason)),
+      reasons:
+        Map.get(value, :reasons, [])
+        |> List.wrap()
+        |> Enum.map(&recovery_reason/1)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.uniq(),
+      counts: Map.get(value, :counts, %{}) |> recovery_counts()
+    }
+  end
+
+  def recovery_summary(_value), do: recovery_summary(%{})
+
+  @spec attempt_attrs(map() | list()) :: {:ok, map()} | {:error, :unsafe_evidence, atom()}
+  def attempt_attrs(attrs) when is_map(attrs) or is_list(attrs) do
+    with {:ok, provider_response} <-
+           optional_field(attrs, "provider_response", :provider_response, %{}),
+         {:ok, facts} <- provider_facts(provider_response || %{}),
+         {:ok, provider_message_id} <-
+           optional_field(attrs, "provider_message_id", :provider_message_id, nil),
+         {:ok, provider_ref} <- optional_provider_ref(provider_message_id),
+         {:ok, outcome} <- required_field(attrs, "outcome", :outcome, &valid_outcome/1),
+         {:ok, error_class} <- optional_field(attrs, "error_class", :error_class, nil),
+         {:ok, error_class} <- valid_error_class(error_class),
+         {:ok, adapter_module} <- optional_field(attrs, "adapter_module", :adapter_module, nil),
+         {:ok, adapter_module} <- valid_adapter(adapter_module) do
+      {:ok,
+       %{
+         outcome: outcome,
+         error_class: error_class,
+         adapter_module: adapter_module,
+         provider_message_id: provider_ref,
+         provider_response: facts
+       }}
+    else
+      {:error, :unsafe_evidence} -> {:error, :unsafe_evidence, :provider_facts}
+      {:error, reason} -> {:error, :unsafe_evidence, reason}
+    end
+  end
+
+  def attempt_attrs(_attrs), do: {:error, :unsafe_evidence, :attempt_attrs}
+
+  @spec telemetry_meta(map()) :: map()
+  def telemetry_meta(metadata) when is_map(metadata) do
+    metadata
+    |> Privacy.redact()
+    |> Enum.reduce(%{}, fn {key, value}, safe ->
+      case Map.get(@telemetry_keys, key |> to_string() |> String.downcase()) do
+        nil ->
+          safe
+
+        field ->
+          if valid_telemetry_value?(field, value), do: Map.put(safe, field, value), else: safe
+      end
+    end)
+  end
+
+  def telemetry_meta(_metadata), do: %{}
+
+  @doc "Builds the closed top-level vocabulary for an operator delivery explanation."
+  @spec trace(map()) :: map()
+  def trace(value) when is_map(value) do
+    %{
+      delivery_id: safe_lifecycle_id(Map.get(value, :delivery_id)),
+      event_id: safe_lifecycle_id(Map.get(value, :event_id)),
+      correlation_id: opaque_projection(:correlation, Map.get(value, :correlation_id)),
+      notification_key: safe_code(Map.get(value, :notification_key)),
+      recipient_id: opaque_projection(:recipient, Map.get(value, :recipient_id)),
+      channel: safe_channel(Map.get(value, :channel)),
+      render_key: safe_render_key(Map.get(value, :render_key)),
+      render_version: positive_integer(Map.get(value, :render_version)),
+      status: safe_status(Map.get(value, :status)),
+      planning_reason: digest_reason(Map.get(value, :planning_reason)),
+      planning_context: planning_context_or_nil(Map.get(value, :planning_context)),
+      next_eligible_at: safe_datetime(Map.get(value, :next_eligible_at)),
+      resume_source: safe_code(Map.get(value, :resume_source)),
+      resume_scheduled_at: safe_datetime(Map.get(value, :resume_scheduled_at)),
+      resumed_at: safe_datetime(Map.get(value, :resumed_at)),
+      suppression_reason: digest_reason(Map.get(value, :suppression_reason)),
+      digest: safe_digest(Map.get(value, :digest)),
+      last_attempt: trace_attempt_or_nil(Map.get(value, :last_attempt)),
+      timeline: trace_timeline(Map.get(value, :timeline, []))
+    }
+  end
+
+  def trace(_value), do: %{}
+
+  @spec trace_attempt(term()) :: map()
+  def trace_attempt(attempt) when is_map(attempt) do
+    %{
+      id: safe_lifecycle_id(Map.get(attempt, :id)),
+      outcome: safe_outcome(Map.get(attempt, :outcome)),
+      inserted_at: safe_datetime(Map.get(attempt, :inserted_at)),
+      attempt_number: positive_integer(Map.get(attempt, :attempt_number)),
+      error_class: safe_error_class(Map.get(attempt, :error_class)),
+      provider_message_id:
+        opaque_projection(:provider_message_id, Map.get(attempt, :provider_message_id))
+    }
+  end
+
+  def trace_attempt(_attempt), do: %{}
+
+  defp trace_attempt_or_nil(attempt) when is_map(attempt) do
+    case trace_attempt(attempt) do
+      trace when map_size(trace) == 0 -> nil
+      trace -> if(Enum.all?(trace, fn {_key, value} -> is_nil(value) end), do: nil, else: trace)
+    end
+  end
+
+  defp trace_attempt_or_nil(_attempt), do: nil
+
+  defp trace_timeline(timeline) when is_list(timeline) do
+    Enum.flat_map(timeline, &trace_timeline_entry/1)
+  end
+
+  defp trace_timeline(_timeline), do: []
+
+  defp trace_timeline_entry(%{at: %DateTime{} = at, event: event, detail: detail})
+       when event in @timeline_events and is_map(detail) do
+    [%{at: at, event: event, detail: timeline_detail(detail)}]
+  end
+
+  defp trace_timeline_entry(_entry), do: []
+
+  @doc false
+  @spec trace_event(map()) :: map()
+  def trace_event(event) do
+    %{
+      id: safe_lifecycle_id(Map.get(event, :id)),
+      tenant_id: safe_code(Map.get(event, :tenant_id)),
+      notification_key: safe_code(Map.get(event, :notification_key)),
+      correlation_id: opaque_projection(:correlation, Map.get(event, :correlation_id)),
+      inserted_at: safe_datetime(Map.get(event, :inserted_at)),
+      notifications:
+        event
+        |> Map.get(:notifications, [])
+        |> Enum.map(fn notification ->
+          notification
+          |> Map.put(:notification_key, Map.get(event, :notification_key))
+          |> trace_notification()
+        end)
+    }
+  end
+
+  @doc false
+  @spec trace_notification(map()) :: map()
+  def trace_notification(notification) do
+    %{
+      id: safe_lifecycle_id(Map.get(notification, :id)),
+      notification_key: safe_code(Map.get(notification, :notification_key)),
+      recipient_id: opaque_projection(:recipient, Map.get(notification, :recipient_identity)),
+      recipient_type: safe_code(Map.get(notification, :recipient_type)),
+      inserted_at: safe_datetime(Map.get(notification, :inserted_at)),
+      deliveries:
+        notification
+        |> Map.get(:deliveries, [])
+        |> Enum.map(&trace_delivery/1)
+    }
+  end
+
+  @doc false
+  @spec trace_delivery(map()) :: map()
+  def trace_delivery(delivery) do
+    %{
+      id: safe_lifecycle_id(Map.get(delivery, :id)),
+      channel: safe_channel(Map.get(delivery, :channel)),
+      status: safe_status(Map.get(delivery, :status)),
+      planning_reason: digest_reason(Map.get(delivery, :planning_reason)),
+      suppression_reason: digest_reason(Map.get(delivery, :suppression_reason)),
+      render_key: safe_render_key(Map.get(delivery, :render_key)),
+      render_version: positive_integer(Map.get(delivery, :render_version)),
+      inserted_at: safe_datetime(Map.get(delivery, :inserted_at)),
+      updated_at: safe_datetime(Map.get(delivery, :updated_at)),
+      target_aggregate: target_aggregate(Map.get(delivery, :metadata, %{})),
+      attempts:
+        delivery
+        |> Map.get(:attempts, [])
+        |> Enum.map(&trace_attempt/1),
+      targets:
+        delivery
+        |> Map.get(:targets, [])
+        |> loaded_association()
+        |> Enum.sort_by(&{Map.get(&1, :binding_revision_ref), Map.get(&1, :id)})
+        |> Enum.map(&trace_target/1)
+    }
+  end
+
+  @doc false
+  @spec target_aggregate(term()) :: map()
+  def target_aggregate(%{"target_aggregate" => aggregate}) when is_map(aggregate) do
+    %{
+      target_count: non_negative_integer(Map.get(aggregate, "target_count")),
+      terminal_target_count: non_negative_integer(Map.get(aggregate, "terminal_target_count")),
+      provider_accepted_count:
+        non_negative_integer(Map.get(aggregate, "provider_accepted_count")),
+      terminal_failure_count: non_negative_integer(Map.get(aggregate, "terminal_failure_count")),
+      partial_failure: Map.get(aggregate, "partial_failure") === true,
+      all_targets_terminal: Map.get(aggregate, "all_targets_terminal") === true
+    }
+  end
+
+  def target_aggregate(_value), do: %{}
+
+  defp trace_target(target) do
+    %{
+      id: safe_lifecycle_id(Map.get(target, :id)),
+      binding_revision_ref: opaque_projection(:provider, Map.get(target, :binding_revision_ref)),
+      status: safe_target_status(Map.get(target, :status)),
+      attempts:
+        target
+        |> Map.get(:attempts, [])
+        |> loaded_association()
+        |> Enum.sort_by(&{Map.get(&1, :attempt_number), Map.get(&1, :id)})
+        |> Enum.map(&trace_target_attempt/1)
+    }
+  end
+
+  defp trace_target_attempt(attempt) do
+    %{
+      id: safe_lifecycle_id(Map.get(attempt, :id)),
+      outcome: safe_target_outcome(Map.get(attempt, :outcome)),
+      attempt_number: positive_integer(Map.get(attempt, :attempt_number)),
+      started_at: safe_datetime(Map.get(attempt, :started_at)),
+      finished_at: safe_datetime(Map.get(attempt, :finished_at)),
+      safe_facts: target_attempt_facts_or_empty(Map.get(attempt, :safe_facts))
+    }
+  end
+
+  defp target_attempt_facts_or_empty(value) do
+    case target_attempt_facts(value || %{}) do
+      {:ok, facts} -> facts
+      _ -> %{}
+    end
+  end
+
+  defp loaded_association(value) when is_list(value), do: value
+  defp loaded_association(_value), do: []
+
+  @spec timeline_detail(term()) :: map()
+  def timeline_detail(value) when is_map(value) do
+    value
+    |> then(fn detail -> if is_struct(detail), do: Map.from_struct(detail), else: detail end)
+    |> then(fn detail ->
+      detail
+      |> Privacy.redact()
+      |> Enum.reduce(%{}, fn {key, value}, safe ->
+        case Map.get(@timeline_fields, key |> to_string() |> String.downcase()) do
+          nil ->
+            safe
+
+          field ->
+            if safe_timeline_value?(field, value), do: Map.put(safe, field, value), else: safe
+        end
+      end)
+    end)
+  end
+
+  def timeline_detail(_value), do: %{}
+
+  @spec admin_fact(atom(), term()) :: map()
+  def admin_fact(name, value) when is_atom(name) and is_map(value) do
+    safe =
+      value
+      |> Privacy.redact()
+      |> Map.take(admin_fields(name))
+
+    safe
+    |> put_admin_ref(:recipient_id, :recipient, Map.get(value, :recipient_id))
+    |> put_admin_ref(:correlation_id, :correlation, Map.get(value, :correlation_id))
+  end
+
+  def admin_fact(_name, _value), do: %{}
+
+  @spec proof(map()) :: map()
+  def proof(value) when is_map(value), do: Privacy.redact(value)
+
+  defp optional_provider_code(facts) do
+    case fetch(facts, "provider_code") do
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_binary(value) ->
+        if(code?(value), do: {:ok, value}, else: {:error, :unsafe_evidence})
+
+      _ ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_provider_status(facts) do
+    case fetch(facts, "provider_status") do
+      :missing -> {:ok, nil}
+      {:ok, value} when is_integer(value) and value in 100..599 -> {:ok, value}
+      _ -> {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_provider_reason(facts) do
+    case fetch(facts, "provider_reason") do
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_binary(value) ->
+        if(code?(value), do: {:ok, value}, else: {:error, :unsafe_evidence})
+
+      _ ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_provider_timestamp(facts) do
+    case fetch(facts, "provider_timestamp") do
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_integer(value) and value >= 0 and value <= @max_provider_timestamp ->
+        {:ok, value}
+
+      _ ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_retry_after_ms(facts) do
+    case fetch(facts, "retry_after_ms") do
+      :missing ->
+        {:ok, nil}
+
+      {:ok, value} when is_integer(value) and value >= 0 and value <= @max_retry_after_ms ->
+        {:ok, value}
+
+      _ ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_corrective_action(facts) do
+    case fetch(facts, "corrective_action") do
+      :missing -> {:ok, nil}
+      {:ok, value} when value in @corrective_actions -> {:ok, value}
+      _ -> {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_accepted_at(facts) do
+    case fetch(facts, "accepted_at") do
+      :missing ->
+        {:ok, nil}
+
+      {:ok, %DateTime{} = value} ->
+        {:ok, DateTime.to_iso8601(value)}
+
+      {:ok, value} when is_binary(value) ->
+        case DateTime.from_iso8601(value) do
+          {:ok, _datetime, 0} -> {:ok, value}
+          _ -> {:error, :unsafe_evidence}
+        end
+
+      _ ->
+        {:error, :unsafe_evidence}
+    end
+  end
+
+  defp optional_provider_ref(nil), do: {:ok, nil}
+  defp optional_provider_ref(value), do: opaque_ref(:provider_message_id, value)
+
+  defp valid_outcome(value) when value in [:succeeded, :failed, :bounced, :rejected],
+    do: {:ok, value}
+
+  defp valid_outcome(value) when value in ~w(succeeded failed bounced rejected), do: {:ok, value}
+  defp valid_outcome(_value), do: {:error, :outcome}
+
+  defp safe_outcome(value) do
+    case valid_outcome(value) do
+      {:ok, outcome} -> outcome
+      {:error, :outcome} -> nil
+    end
+  end
+
+  defp safe_target_status(value)
+       when value in [
+              :pending,
+              :claimed,
+              :provider_accepted,
+              :failed,
+              :retry_exhausted,
+              :expired,
+              :invalidated,
+              :ambiguous_handoff
+            ],
+       do: value
+
+  defp safe_target_status(_value), do: nil
+
+  defp safe_target_outcome(value)
+       when value in [
+              :attempt_started,
+              :provider_accepted,
+              :failed,
+              :expired,
+              :invalidated,
+              :retry_exhausted,
+              :ambiguous_handoff
+            ],
+       do: value
+
+  defp safe_target_outcome(_value), do: nil
+
+  defp valid_error_class(nil), do: {:ok, nil}
+  defp valid_error_class(value) when value in @error_classes, do: {:ok, value}
+  defp valid_error_class(_value), do: {:error, :error_class}
+
+  defp safe_error_class(value) do
+    case valid_error_class(value) do
+      {:ok, error_class} -> error_class
+      {:error, :error_class} -> nil
+    end
+  end
+
+  defp valid_adapter(nil), do: {:ok, nil}
+
+  defp valid_adapter(value) when is_binary(value) and byte_size(value) in 1..@max_adapter_bytes,
+    do: {:ok, value}
+
+  defp valid_adapter(_value), do: {:error, :adapter_module}
+
+  defp fetch(value, "provider_code"), do: logical_lookup(value, "provider_code", :provider_code)
+
+  defp fetch(value, "provider_status"),
+    do: logical_lookup(value, "provider_status", :provider_status)
+
+  defp fetch(value, "provider_reason"),
+    do: logical_lookup(value, "provider_reason", :provider_reason)
+
+  defp fetch(value, "provider_timestamp"),
+    do: logical_lookup(value, "provider_timestamp", :provider_timestamp)
+
+  defp fetch(value, "retry_after_ms"),
+    do: logical_lookup(value, "retry_after_ms", :retry_after_ms)
+
+  defp fetch(value, "corrective_action"),
+    do: logical_lookup(value, "corrective_action", :corrective_action)
+
+  defp fetch(value, "accepted_at"), do: logical_lookup(value, "accepted_at", :accepted_at)
+
+  defp logical_lookup(value, string_key, atom_key) do
+    case entries(value)
+         |> Enum.filter(fn {key, _value} -> key == string_key or key == atom_key end) do
+      [] -> :missing
+      [{_key, field_value}] -> {:ok, field_value}
+      _duplicates -> :ambiguous
+    end
+  end
+
+  defp entries(value) when is_map(value), do: Map.to_list(value)
+  defp entries(value) when is_list(value), do: Enum.filter(value, &match?({_, _}, &1))
+  defp entries(_value), do: []
+
+  defp optional_field(attrs, string_key, atom_key, default) do
+    case logical_lookup(attrs, string_key, atom_key) do
+      :missing -> {:ok, default}
+      :ambiguous -> {:error, atom_key}
+      {:ok, value} -> {:ok, value}
+    end
+  end
+
+  defp required_field(attrs, string_key, atom_key, validator) do
+    case logical_lookup(attrs, string_key, atom_key) do
+      :missing -> {:error, atom_key}
+      :ambiguous -> {:error, atom_key}
+      {:ok, value} -> validator.(value)
+    end
+  end
+
+  defp render_channel(info) when is_map(info) or is_list(info) do
+    info = Privacy.redact(info)
+
+    with {:ok, render_key} <- logical_lookup(info, "render_key", :render_key),
+         true <- is_binary(render_key) and not is_nil(safe_render_key(render_key)),
+         {:ok, render_version} <- logical_lookup(info, "render_version", :render_version),
+         true <- is_integer(render_version) and render_version > 0 do
+      {:ok, %{"render_key" => render_key, "render_version" => render_version}}
+    else
+      _ -> :omit
+    end
+  end
+
+  defp render_channel(_info), do: :omit
+
+  defp opaque_projection(_domain, nil), do: nil
+
+  defp opaque_projection(domain, value) when is_binary(value) do
+    "cw_#{domain}_" <>
+      (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower) |> binary_part(0, 32))
+  end
+
+  defp opaque_projection(_domain, _value), do: nil
+
+  defp safe_lifecycle_id(value) when is_binary(value) do
+    if Ecto.UUID.cast(value) == {:ok, value} or opaque_id?(value), do: value, else: nil
+  end
+
+  defp safe_lifecycle_id(_value), do: nil
+
+  defp lifecycle_ids(values) when is_list(values) do
+    values
+    |> Enum.map(&safe_lifecycle_id/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  end
+
+  defp lifecycle_ids(_values), do: []
+
+  defp recovery_reason(value) when is_atom(value) do
+    if value in @recovery_reasons, do: value, else: nil
+  end
+
+  defp recovery_reason(value) when is_binary(value) do
+    case Enum.find(@recovery_reasons, &(Atom.to_string(&1) == value)) do
+      nil -> nil
+      reason -> reason
+    end
+  end
+
+  defp recovery_reason(_value), do: nil
+
+  defp recovery_counts(value) when is_map(value) do
+    for key <- [
+          :resumed_planning,
+          :resumed_target,
+          :left_ambiguous,
+          :retryable_pre_handoff,
+          :skipped_claimed,
+          :skipped_invalidated
+        ],
+        into: %{} do
+      {key, non_negative_integer(Map.get(value, key, 0)) || 0}
+    end
+  end
+
+  defp recovery_counts(_value), do: %{}
+
+  defp recovery_continuations(value) when is_map(value) do
+    %{
+      event: safe_lifecycle_id(Map.get(value, :event) || Map.get(value, "event")),
+      target: safe_lifecycle_id(Map.get(value, :target) || Map.get(value, "target")),
+      stale_attempt:
+        safe_lifecycle_id(Map.get(value, :stale_attempt) || Map.get(value, "stale_attempt"))
+    }
+  end
+
+  defp recovery_continuations(_value), do: %{event: nil, target: nil, stale_attempt: nil}
+
+  defp safe_code(value) when is_atom(value), do: value |> Atom.to_string() |> safe_code()
+
+  defp safe_code(value) when is_binary(value) do
+    if code?(value), do: value, else: nil
+  end
+
+  defp safe_code(_value), do: nil
+
+  defp safe_render_key(value) when is_binary(value) and byte_size(value) in 1..160 do
+    if String.match?(value, ~r/^[a-z][a-z0-9_.-]*$/), do: value, else: nil
+  end
+
+  defp safe_render_key(_value), do: nil
+  defp positive_integer(value) when is_integer(value) and value > 0, do: value
+  defp positive_integer(_value), do: nil
+
+  defp non_negative_integer(value) when is_integer(value) and value >= 0, do: value
+  defp non_negative_integer(_value), do: nil
+
+  defp safe_status(value)
+       when value in [
+              :succeeded,
+              :failed,
+              :suppressed,
+              :pending,
+              :cancelled,
+              :dispatched,
+              :digested
+            ],
+       do: value
+
+  defp safe_status(_value), do: nil
+  defp safe_datetime(%DateTime{} = value), do: value
+  defp safe_datetime(_value), do: nil
+
+  defp planning_context_or_nil(value) do
+    case planning_context(value) do
+      context when map_size(context) == 0 -> nil
+      context -> context
+    end
+  end
+
+  defp safe_digest(value) when is_map(value) do
+    value = Privacy.redact(value)
+
+    %{}
+    |> maybe_put("kind", valid_digest_kind(fetch_fact(value, "kind")))
+    |> maybe_put("outcome", valid_digest_outcome(fetch_fact(value, "outcome")))
+    |> maybe_put("digest_delivery_id", safe_lifecycle_id(fetch_fact(value, "digest_delivery_id")))
+    |> maybe_put("resolution_reason", digest_reason(fetch_fact(value, "resolution_reason")))
+    |> maybe_put("rule_identity", safe_code(fetch_fact(value, "rule_identity")))
+    |> maybe_put("window_starts_at", safe_datetime(fetch_fact(value, "window_starts_at")))
+    |> maybe_put("window_ends_at", safe_datetime(fetch_fact(value, "window_ends_at")))
+    |> maybe_put("included", safe_digest_entries(fetch_fact(value, "included")))
+    |> maybe_put("excluded", safe_digest_entries(fetch_fact(value, "excluded")))
+    |> maybe_put("deferred", safe_digest_entries(fetch_fact(value, "deferred")))
+    |> maybe_put(
+      "emitted_immediately",
+      safe_digest_entries(fetch_fact(value, "emitted_immediately"))
+    )
+    |> maybe_put("included", valid_boolean(fetch_fact(value, "included")))
+    |> maybe_put("excluded", valid_boolean(fetch_fact(value, "excluded")))
+    |> maybe_put("emitted_immediately", valid_boolean(fetch_fact(value, "emitted_immediately")))
+  end
+
+  defp safe_digest(_value), do: nil
+
+  defp safe_timeline_value?(field, value)
+       when field in [:attempt_number, :included, :excluded, :deferred, :emitted_immediately],
+       do: is_integer(value) and value >= 0
+
+  defp safe_timeline_value?(:outcome, value) when value in @outcomes, do: true
+
+  defp safe_timeline_value?(field, %DateTime{} = _value)
+       when field in [:next_eligible_at, :resume_scheduled_at, :recovered_at],
+       do: true
+
+  defp safe_timeline_value?(field, value)
+       when field in [:reason, :planning_reason, :suppression_reason, :recovery_reason],
+       do: not is_nil(digest_reason(value))
+
+  defp safe_timeline_value?(field, value)
+       when field in [:from_step, :to_step, :workflow_step_key],
+       do: not is_nil(safe_workflow_code(value))
+
+  defp safe_timeline_value?(field, value) when field in [:workflow_run_id, :workflow_step_id],
+    do: not is_nil(safe_lifecycle_id(value))
+
+  defp safe_timeline_value?(field, value)
+       when field in [
+              :notification_key,
+              :rule_identity,
+              :rule_kind,
+              :workflow_outcome,
+              :event_name,
+              :signal_event_name,
+              :recovery_source
+            ],
+       do: not is_nil(safe_code(value))
+
+  defp safe_timeline_value?(:channel, value), do: not is_nil(safe_channel(value))
+  defp safe_timeline_value?(:error_class, value), do: not is_nil(safe_error_class(value))
+
+  defp safe_timeline_value?(_field, _value), do: false
+
+  defp admin_fields(:recent_problem),
+    do:
+      ~w(delivery_id event_id notification_key notification_version channel status suppression_reason planning_reason tenant_id inserted_at updated_at)a
+
+  defp admin_fields(:feed),
+    do:
+      ~w(notification_id event_id notification_key notification_version channel_summary status_summary state delivery_count inserted_at)a
+
+  defp admin_fields(:recovery),
+    do:
+      ~w(type id delivery_id event_id notification_key notification_version channel tenant_id status orchestration_state reason inserted_at updated_at)a
+
+  defp admin_fields(_name), do: []
+
+  defp put_admin_ref(map, key, _domain, nil), do: Map.put(map, key, nil)
+
+  defp put_admin_ref(map, key, domain, value),
+    do: Map.put(map, key, opaque_projection(domain, value))
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp closed_facts(value, allowed) when is_map(value) or is_list(value) do
+    Enum.reduce(allowed, %{}, fn field, safe ->
+      case fact_value(value, field) do
+        {:ok, fact} -> maybe_put(safe, field, valid_fact(field, fact))
+        :missing -> safe
+      end
+    end)
+  end
+
+  defp closed_facts(_value, _allowed), do: %{}
+
+  defp fact_value(value, field) do
+    matches = Enum.filter(value, fn {key, _fact} -> to_string(key) == field end)
+    if length(matches) == 1, do: {:ok, matches |> hd() |> elem(1)}, else: :missing
+  end
+
+  defp fetch_fact(value, field) do
+    case fact_value(value, field) do
+      {:ok, fact} -> fact
+      :missing -> nil
+    end
+  end
+
+  defp valid_fact("scheduled_at", value), do: safe_datetime(value)
+
+  defp valid_fact(field, value) when field in ["render_version", "digest_rule_version"],
+    do: positive_integer(value)
+
+  defp valid_fact(field, value) when field in ["reason", "digest_flush_reason"],
+    do: digest_reason(value)
+
+  defp valid_fact("digest_flush_behavior", value) when value in ["skip", "immediate"], do: value
+  defp valid_fact("channel", value), do: safe_channel(value)
+  defp valid_fact("time_zone", value), do: safe_time_zone(value)
+  defp valid_fact("category", value), do: safe_code(value)
+  defp valid_fact("event_id", value), do: safe_lifecycle_id(value)
+  defp valid_fact("correlation_id", value), do: safe_code(value)
+  defp valid_fact("subject", value), do: safe_digest_subject(value)
+  defp valid_fact("body", value), do: safe_digest_body(value)
+  defp valid_fact("summary", value), do: safe_digest_summary(value)
+  defp valid_fact("digest", value), do: safe_durable_digest(value)
+
+  defp valid_fact(_field, value), do: safe_code(value)
+
+  defp valid_digest_kind("emitted_digest"), do: "emitted_digest"
+  defp valid_digest_kind(_value), do: nil
+  defp valid_digest_outcome(value) when value in @digest_outcomes, do: value
+
+  defp valid_digest_outcome(value) when is_atom(value),
+    do: value |> Atom.to_string() |> valid_digest_outcome()
+
+  defp valid_digest_outcome(_value), do: nil
+  defp valid_boolean(value) when is_boolean(value), do: value
+  defp valid_boolean(_value), do: nil
+
+  defp safe_digest_entries(value) when is_list(value) do
+    Enum.flat_map(value, fn entry ->
+      entry = if is_map(entry), do: entry, else: %{}
+
+      safe =
+        %{}
+        |> maybe_put("delivery_id", safe_lifecycle_id(fetch_fact(entry, "delivery_id")))
+        |> maybe_put("notification_id", safe_lifecycle_id(fetch_fact(entry, "notification_id")))
+        |> maybe_put("notification_key", safe_code(fetch_fact(entry, "notification_key")))
+        |> maybe_put("reason", digest_reason(fetch_fact(entry, "reason")))
+
+      if map_size(safe) >= 3, do: [safe], else: []
+    end)
+  end
+
+  defp safe_digest_entries(_value), do: nil
+
+  defp safe_durable_digest(value) when is_map(value) do
+    value = Privacy.redact(value)
+
+    %{}
+    |> maybe_put("bucket_id", safe_lifecycle_id(fetch_fact(value, "bucket_id")))
+    |> maybe_put("rule_key", safe_code(fetch_fact(value, "rule_key")))
+    |> maybe_put("rule_version", positive_integer(fetch_fact(value, "rule_version")))
+    |> maybe_put("window_starts_at", safe_datetime(fetch_fact(value, "window_starts_at")))
+    |> maybe_put("window_ends_at", safe_datetime(fetch_fact(value, "window_ends_at")))
+    |> maybe_put("emitted_at", safe_datetime(fetch_fact(value, "emitted_at")))
+  end
+
+  defp safe_durable_digest(_value), do: nil
+
+  defp safe_digest_subject(value) when is_binary(value) do
+    if String.match?(value, ~r/^Digest for [a-z][a-z0-9_.:-]*$/), do: value, else: nil
+  end
+
+  defp safe_digest_subject(_value), do: nil
+
+  defp safe_digest_body(value) when is_binary(value) do
+    if String.match?(value, ~r/^Digest window closed with [0-9]+ item\(s\)\.$/),
+      do: value,
+      else: nil
+  end
+
+  defp safe_digest_body(_value), do: nil
+
+  defp safe_digest_summary(value) when is_binary(value) do
+    if String.match?(value, ~r/^[0-9]+ notification\(s\) grouped for [a-z][a-z0-9_-]*$/),
+      do: value,
+      else: nil
+  end
+
+  defp safe_digest_summary(_value), do: nil
+
+  defp code?(value) do
+    byte_size(value) in 1..@max_code_bytes and
+      String.match?(value, ~r/^[a-z][a-z0-9_.:-]*\z/) and
+      not String.match?(
+        value,
+        ~r/(token|secret|authorization|credential|password|recipient|email|body|content|url|link)/i
+      )
+  end
+
+  defp opaque_id?(value) do
+    byte_size(value) in 1..@max_ref_bytes and String.match?(value, ~r/^[a-z][a-z0-9_-]*$/)
+  end
+
+  defp safe_workflow_code(value) when is_binary(value) do
+    if byte_size(value) in 1..@max_code_bytes and
+         String.match?(value, ~r/^[a-z][a-z0-9_.:-]*$/),
+       do: value,
+       else: nil
+  end
+
+  defp safe_workflow_code(_value), do: nil
+
+  defp safe_channel(value) when value in [:email, :in_app, :sms_custom], do: Atom.to_string(value)
+  defp safe_channel(value) when value in ["email", "in_app", "sms_custom"], do: value
+  defp safe_channel(value), do: safe_code(value)
+
+  defp safe_time_zone(value) when is_binary(value) do
+    if byte_size(value) in 1..@max_code_bytes and
+         String.match?(
+           value,
+           ~r/^[A-Za-z]+(?:[_+-][A-Za-z]+)*(?:\/[A-Za-z]+(?:[_+-][A-Za-z]+)*)?$/
+         ),
+       do: value,
+       else: nil
+  end
+
+  defp safe_time_zone(_value), do: nil
+
+  defp valid_telemetry_value?(field, value)
+       when field in [
+              :notification_key,
+              :event_id,
+              :recipient_id,
+              :delivery_id,
+              :attempt_id,
+              :suppression_reason,
+              :planning_reason,
+              :correlation_id,
+              :adapter_module
+            ] do
+    safe_telemetry_string?(value)
+  end
+
+  defp valid_telemetry_value?(:channel, value) when is_atom(value), do: true
+  defp valid_telemetry_value?(:channel, value), do: safe_telemetry_string?(value)
+  defp valid_telemetry_value?(:outcome, value), do: value in @outcomes
+  defp valid_telemetry_value?(:error_class, value), do: value in @error_classes
+  defp valid_telemetry_value?(:attempt_number, value), do: is_integer(value) and value > 0
+
+  defp safe_telemetry_string?(value) when is_binary(value) do
+    byte_size(value) in 1..@max_telemetry_bytes and
+      String.match?(value, ~r/^[A-Za-z0-9._:-]+$/) and
+      not String.match?(
+        value,
+        ~r/(token|secret|authorization|credential|password|recipient|email|body|content|url|link)/i
+      )
+  end
+
+  defp safe_telemetry_string?(_value), do: false
+end

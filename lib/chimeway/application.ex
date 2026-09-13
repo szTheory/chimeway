@@ -8,6 +8,7 @@ defmodule Chimeway.Application do
   @impl true
   def start(_type, _args) do
     validate_channel_render_modules!()
+    Chimeway.RenderContextResolver.validate_registry!()
     Chimeway.Storage.validate_prefix!()
 
     children =
@@ -35,7 +36,7 @@ defmodule Chimeway.Application do
   @doc """
   Validates the `:channel_render_modules` registry at boot.
 
-  Public so the boot-time D-13 contract is exercisable from tests; the function
+  Public so the boot-time validation contract is exercisable from tests; the function
   is otherwise only invoked from `start/2`. Returns `:ok` when every entry maps
   to a loaded module that exports `validate/1`. Raises `ArgumentError` otherwise.
   """

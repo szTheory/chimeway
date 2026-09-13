@@ -1,0 +1,23 @@
+{
+  "extension_version": 1,
+  "owner": "chimeway",
+  "proof_class": "hermetic",
+  "chimeway_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "crosswake_sha": "f2c502cdb1ce572a4a57257d9e3c051665704b90",
+  "crosswake_contract": {"schema_version": 1, "remote": "https://github.com/szTheory/crosswake.git", "sha": "f2c502cdb1ce572a4a57257d9e3c051665704b90", "contract": "physical_iphone_contract"},
+  "crosswake_report": [
+    {"id":"PI-PACK-INSTALL-AUDIO","owner":"device_local","outcome":"passed"},
+    {"id":"PI-OFFLINE-SELECTED-PERSISTENCE","owner":"device_local","outcome":"passed"},
+    {"id":"PI-OFFLINE-FREE-FORM-PERSISTENCE","owner":"device_local","outcome":"passed"},
+    {"id":"PI-RELAUNCH-PERSISTENCE","owner":"device_local","outcome":"passed"},
+    {"id":"PI-RECOVERY-RETAINED","owner":"device_local","outcome":"passed"},
+    {"id":"PI-LOGOUT-ACCOUNT-FENCE","owner":"backend_authority","outcome":"passed"},
+    {"id":"PI-ENTRY-DISABLEMENT","owner":"backend_authority","outcome":"passed"},
+    {"id":"PI-REPLAY-DISABLEMENT","owner":"backend_authority","outcome":"passed"},
+    {"id":"PI-EXACTLY-ONCE-EMPTY-OUTBOX","owner":"backend_authority","outcome":"passed"},
+    {"id":"PI-REDACTED-PROMOTION","owner":"evidence_promotion","outcome":"passed"}
+  ],
+  "scenario_ids": ["accepted_handoff_protected_open","two_installation_fanout","zero_target_suppression","token_rotation","revocation_race","classified_retry","expiry_before_io","opt_in_installation_safe_collapse","trigger_commit_recovery","post_handoff_ambiguity","recursive_leak_prevention","offline_reauthorization","stale_denied_open","replay_rejection"],
+  "executable_facts": {"alpha_twin":"validated"},
+  "subjective_observation": {"visible_alert":"not_asserted"}
+}

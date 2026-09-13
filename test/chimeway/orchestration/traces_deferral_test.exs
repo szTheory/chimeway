@@ -9,7 +9,8 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
   test "explain_delivery surfaces deferred planning facts without conflating them with suppression" do
     delivery = insert_deferred_delivery()
 
-    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(delivery.id)
+    assert {:ok, %Explanation{} = explanation} =
+             Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
     assert explanation.status == :pending
     assert explanation.suppression_reason == nil
@@ -28,7 +29,6 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
 
     assert at == delivery.updated_at
     assert detail.reason == "quiet_hours"
-    assert detail.time_zone == "America/New_York"
     assert detail.rule_identity == "quiet_hours"
     assert DateTime.compare(detail.next_eligible_at, ~U[2026-01-15 13:00:00Z]) == :eq
     refute Map.has_key?(detail, :payload)
@@ -38,7 +38,8 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
   test "digest-held explanations keep hold facts separate from suppression" do
     delivery = insert_digest_held_delivery()
 
-    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(delivery.id)
+    assert {:ok, %Explanation{} = explanation} =
+             Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
     assert explanation.status == :pending
     assert explanation.suppression_reason == nil
@@ -52,11 +53,12 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
   end
 
   test "explain_delivery preserves deferral facts and surfaces durable resume audit fields" do
-    delivery =
-      insert_deferred_delivery()
-      |> resume_delivery(~U[2026-01-15 13:05:00Z], "scheduled_resume")
+    deferred_delivery = insert_deferred_delivery()
+    resume_now = DateTime.add(deferred_delivery.updated_at, 1, :second)
+    delivery = resume_delivery(deferred_delivery, resume_now, "scheduled_resume")
 
-    assert {:ok, %Explanation{} = explanation} = Traces.explain_delivery(delivery.id)
+    assert {:ok, %Explanation{} = explanation} =
+             Traces.explain_delivery(delivery.id, tenant_id: delivery.tenant_id)
 
     assert explanation.status == :pending
     assert explanation.planning_reason == "quiet_hours"
@@ -67,7 +69,7 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
     assert DateTime.compare(Map.get(explanation, :resume_scheduled_at), ~U[2026-01-15 13:00:00Z]) ==
              :eq
 
-    assert DateTime.compare(Map.get(explanation, :resumed_at), ~U[2026-01-15 13:05:00Z]) == :eq
+    assert DateTime.compare(Map.get(explanation, :resumed_at), resume_now) == :eq
 
     assert Enum.map(explanation.timeline, & &1.event) == [
              :event_created,
@@ -82,8 +84,7 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
 
     [%{at: resumed_at, detail: resumed_detail}] = resumed_entries
 
-    assert DateTime.compare(resumed_at, ~U[2026-01-15 13:05:00Z]) == :eq
-    assert resumed_detail.resume_source == "scheduled_resume"
+    assert DateTime.compare(resumed_at, resume_now) == :eq
     assert DateTime.compare(resumed_detail.resume_scheduled_at, ~U[2026-01-15 13:00:00Z]) == :eq
   end
 
@@ -137,12 +138,14 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
         notification_key: "trace-deferral.test",
         notification_version: 1,
         idempotency_key: "trace-deferral-#{System.unique_integer()}",
+        tenant_id: "default",
         payload: %{"secret" => "not-for-traces"}
       })
 
     {:ok, notification} =
       Repo.insert(%Notification{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: recipient_identity,
         recipient_type: "user",
         metadata: %{}
@@ -156,6 +159,7 @@ defmodule Chimeway.Orchestration.TracesDeferralTest do
       Deliveries.resume_deferred_delivery(
         delivery.id,
         now: now,
+        tenant_id: delivery.tenant_id,
         source: source
       )
 

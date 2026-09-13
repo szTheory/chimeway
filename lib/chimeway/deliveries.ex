@@ -9,7 +9,7 @@ defmodule Chimeway.Deliveries do
   import Ecto.Changeset, only: [change: 2]
   import Ecto.Query, only: [from: 2]
 
-  alias Chimeway.{Delivery, DeliveryAttempt, Repo, Workflows}
+  alias Chimeway.{Delivery, DeliveryAttempt, Repo, SafeEvidence, TenantScope, Workflows}
   alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Telemetry
@@ -33,21 +33,23 @@ defmodule Chimeway.Deliveries do
 
     cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
 
-    if scoped_tenant_id(opts) do
-      []
-    else
-      Repo.all(
-        from(e in Event,
-          join: n in Notification,
-          on: n.event_id == e.id,
-          left_join: d in Delivery,
-          on: d.notification_id == n.id,
-          where: e.updated_at <= ^cutoff,
-          group_by: e.id,
-          having: count(d.id) == 0,
-          order_by: [asc: e.updated_at, asc: e.inserted_at]
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        Repo.all(
+          from(e in Event,
+            join: n in Notification,
+            on: n.event_id == e.id and n.tenant_id == ^tenant_id,
+            left_join: d in Delivery,
+            on: d.notification_id == n.id and d.tenant_id == ^tenant_id,
+            where: e.tenant_id == ^tenant_id and e.updated_at <= ^cutoff,
+            group_by: e.id,
+            having: count(d.id) == 0,
+            order_by: [asc: e.updated_at, asc: e.inserted_at]
+          )
         )
-      )
+
+      {:error, _reason} ->
+        []
     end
   end
 
@@ -63,19 +65,22 @@ defmodule Chimeway.Deliveries do
       |> normalize_datetime!()
 
     cutoff = recoverable_cutoff!(now, Keyword.get(opts, :older_than, 60))
-    tenant_id = scoped_tenant_id(opts)
 
-    query =
-      from(d in Delivery,
-        where:
-          d.status == :pending and d.orchestration_state == :ready and d.updated_at <= ^cutoff and
-            fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
-        order_by: [asc: d.updated_at, asc: d.inserted_at]
-      )
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        Repo.all(
+          from(d in Delivery,
+            where:
+              d.tenant_id == ^tenant_id and d.status == :pending and
+                d.orchestration_state == :ready and d.updated_at <= ^cutoff and
+                fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+            order_by: [asc: d.updated_at, asc: d.inserted_at]
+          )
+        )
 
-    query
-    |> maybe_scope_delivery_tenant(tenant_id)
-    |> Repo.all()
+      {:error, _reason} ->
+        []
+    end
   end
 
   @doc """
@@ -100,38 +105,40 @@ defmodule Chimeway.Deliveries do
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
     metadata_patch = recovery_metadata_patch(source, reason, now, opts)
-    tenant_id = scoped_tenant_id(opts)
 
-    recovery_query =
-      from(d in Delivery,
-        where:
-          d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :ready and
-            d.updated_at <= ^cutoff and fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
-        update: [
-          set: [
-            metadata:
-              fragment(
-                "COALESCE(?, '{}'::jsonb) || ?::jsonb",
-                d.metadata,
-                ^metadata_patch
-              ),
-            updated_at: ^now
-          ]
-        ]
-      )
-      |> maybe_scope_delivery_tenant(tenant_id)
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        recovery_query =
+          from(d in Delivery,
+            where:
+              d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+                d.orchestration_state == :ready and d.updated_at <= ^cutoff and
+                fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+            update: [
+              set: [
+                metadata:
+                  fragment(
+                    "COALESCE(?, '{}'::jsonb) || ?::jsonb",
+                    d.metadata,
+                    ^metadata_patch
+                  ),
+                updated_at: ^now
+              ]
+            ]
+          )
 
-    {updated_count, _rows} = Repo.update_all(recovery_query, [])
+        case Repo.update_all(recovery_query, []) do
+          {1, _rows} -> {:ok, get_recovery_delivery(delivery_id, tenant_id)}
+          {0, _rows} -> {:noop, get_recovery_delivery(delivery_id, tenant_id)}
+        end
 
-    case {updated_count, tenant_id} do
-      {1, _tenant_id} -> {:ok, get_delivery!(delivery_id)}
-      {0, nil} -> {:noop, get_delivery!(delivery_id)}
-      {0, _scoped_tenant_id} -> {:noop, nil}
+      {:error, _reason} ->
+        {:noop, nil}
     end
   end
 
   @doc """
-  Returns the list of terminal delivery states — used by the dispatcher (Plan 02-02)
+  Returns the list of terminal delivery states, used by the dispatcher
   to short-circuit dispatch for already-terminal deliveries.
   """
   def terminal_states, do: @terminal_states
@@ -160,8 +167,8 @@ defmodule Chimeway.Deliveries do
     older_than = Keyword.get(opts, :older_than, 60)
 
     case begin_recovery(delivery_id, Keyword.put(opts, :now, now)) do
-      {:ok, _claimed_delivery} ->
-        case dispatcher.dispatch_delivery(delivery_id, pre_planned: true, post_commit: true) do
+      {:ok, claimed_delivery} ->
+        case dispatcher.dispatch_delivery(claimed_delivery, pre_planned: true, post_commit: true) do
           {:ok, dispatched_delivery} ->
             {:ok,
              recovery_delivery_result(dispatched_delivery, source, reason, now, :dispatched, opts)}
@@ -171,7 +178,13 @@ defmodule Chimeway.Deliveries do
              recovery_delivery_result(skipped_delivery, source, reason, now, :skipped, opts)}
 
           {:error, reason_term} ->
-            compensate_failed_recovery_claim(delivery_id, now, older_than)
+            compensate_failed_recovery_claim(
+              delivery_id,
+              claimed_delivery.tenant_id,
+              now,
+              older_than
+            )
+
             {:error, reason_term}
         end
 
@@ -201,59 +214,69 @@ defmodule Chimeway.Deliveries do
     source = normalize_recovery_value!("recovery source", Keyword.get(opts, :source, "operator"))
     reason = normalize_recovery_value!("recovery reason", Keyword.get(opts, :reason, "stuck"))
     dispatcher = configured_dispatcher()
-    tenant_id = scoped_tenant_id(opts)
 
-    recoverable_event_ids =
-      opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
+    with {:ok, tenant_id} <- TenantScope.resolve(opts) do
+      recoverable_event_ids =
+        opts |> Keyword.put(:now, now) |> list_recoverable_events() |> Enum.map(& &1.id)
 
-    if event_id in recoverable_event_ids do
-      event = Repo.get!(Event, event_id)
+      if event_id in recoverable_event_ids do
+        event = get_recovery_event(event_id, tenant_id)
 
-      notifications =
-        Repo.all(
-          from(n in Notification,
-            where: n.event_id == ^event_id,
-            order_by: [asc: n.inserted_at, asc: n.id]
+        notifications =
+          Repo.all(
+            from(n in Notification,
+              where: n.event_id == ^event_id and n.tenant_id == ^tenant_id,
+              order_by: [asc: n.inserted_at, asc: n.id]
+            )
           )
-        )
 
-      dispatch_opts = [
-        event_id: event.id,
-        notification_key: event.notification_key,
-        correlation_id: event.correlation_id,
-        post_commit: true,
-        use_persisted_channels: true,
-        use_persisted_orchestration: true,
-        use_persisted_workflow: Keyword.get(opts, :use_persisted_workflow, false)
-      ]
+        dispatch_opts = [
+          event_id: event.id,
+          tenant_id: tenant_id,
+          notification_key: event.notification_key,
+          correlation_id: event.correlation_id,
+          post_commit: true,
+          use_persisted_channels: true,
+          use_persisted_orchestration: true,
+          use_persisted_workflow: Keyword.get(opts, :use_persisted_workflow, false)
+        ]
 
-      with :ok <- maybe_validate_persisted_workflows(notifications, dispatch_opts),
-           {:ok, deliveries_or_results} <- dispatcher.dispatch(notifications, dispatch_opts) do
-        deliveries =
-          deliveries_or_results
-          |> dispatched_deliveries()
-          |> stamp_recovery_metadata(source, reason, now, opts)
+        with :ok <- maybe_validate_persisted_workflows(notifications, dispatch_opts),
+             {:ok, deliveries_or_results} <- dispatcher.dispatch(notifications, dispatch_opts) do
+          deliveries =
+            deliveries_or_results
+            |> dispatched_deliveries()
+            |> stamp_recovery_metadata(tenant_id, source, reason, now, opts)
 
-        {:ok,
+          {:ok,
+           %{
+             event: event,
+             deliveries: deliveries,
+             recovery: recovery_metadata(source, reason, now, opts)
+           }}
+        end
+      else
+        {:noop,
          %{
-           event: event,
-           deliveries: deliveries,
+           event: recoverable_noop_event(event_id, tenant_id),
+           deliveries: [],
            recovery: recovery_metadata(source, reason, now, opts)
          }}
       end
     else
-      {:noop,
-       %{
-         event: recoverable_noop_event(event_id, tenant_id),
-         deliveries: [],
-         recovery: recovery_metadata(source, reason, now, opts)
-       }}
+      {:error, _reason} ->
+        {:noop,
+         %{
+           event: nil,
+           deliveries: [],
+           recovery: recovery_metadata(source, reason, now, opts)
+         }}
     end
   end
 
   # General-path transitions. Note: `failed -> :cancelled` is INTENTIONALLY OMITTED here
   # even though :cancelled is a valid status — that transition is reserved for
-  # Deliveries.exhaust_delivery/1 (D-10), which performs an out-of-band update
+  # Deliveries.exhaust_delivery/1, which performs an out-of-band update
   # bypassing this table. The general transition_status/2 path must NOT permit
   # arbitrary callers to drive failed -> cancelled.
   @allowed_transitions %{
@@ -276,6 +299,7 @@ defmodule Chimeway.Deliveries do
     channel_str = if is_atom(channel), do: Atom.to_string(channel), else: channel
 
     with {:ok, tenant_id} <- normalize_tenant_id(Keyword.get(opts, :tenant_id)),
+         :ok <- ensure_notification_tenant(notification_id, tenant_id),
          {:ok, actor_id} <- normalize_actor_id(Keyword.get(opts, :actor_id)),
          {:ok, delay_fallback} <-
            normalize_delay_fallback(Keyword.get(opts, :delay_fallback, false)),
@@ -300,6 +324,7 @@ defmodule Chimeway.Deliveries do
         |> maybe_put("notification_key", opts[:notification_key])
         |> maybe_put("event_id", opts[:event_id])
         |> maybe_put("correlation_id", opts[:correlation_id])
+        |> SafeEvidence.delivery_metadata()
 
       result =
         %Delivery{}
@@ -338,25 +363,20 @@ defmodule Chimeway.Deliveries do
   defp normalize_tenant_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
   defp normalize_tenant_id(value), do: {:error, {:invalid_tenant_id, value}}
 
-  defp scoped_tenant_id(opts) do
-    case Keyword.get(opts, :tenant_id) do
-      value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
-          "" -> nil
-          value -> value
-        end
+  defp ensure_notification_tenant(notification_id, tenant_id) do
+    notification_tenant =
+      Repo.one(
+        from(n in Notification,
+          where: n.id == ^notification_id,
+          select: %{id: n.id, tenant_id: n.tenant_id}
+        )
+      )
 
-      _value ->
-        nil
+    case notification_tenant do
+      %{tenant_id: ^tenant_id} -> :ok
+      nil -> {:error, :notification_not_found}
+      _notification -> {:error, :tenant_mismatch}
     end
-  end
-
-  defp maybe_scope_delivery_tenant(query, nil), do: query
-
-  defp maybe_scope_delivery_tenant(query, tenant_id) do
-    from(d in query, where: d.tenant_id == ^tenant_id)
   end
 
   defp normalize_actor_id(value) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}
@@ -379,7 +399,10 @@ defmodule Chimeway.Deliveries do
   defp normalize_optional_string(value), do: {:error, {:invalid_planning_reason, value}}
 
   defp normalize_optional_map(nil), do: {:ok, nil}
-  defp normalize_optional_map(value) when is_map(value), do: {:ok, value}
+
+  defp normalize_optional_map(value) when is_map(value),
+    do: {:ok, SafeEvidence.planning_context(value)}
+
   defp normalize_optional_map(value), do: {:error, {:invalid_planning_context, value}}
 
   defp normalize_optional_render_key(nil), do: {:ok, nil}
@@ -397,8 +420,11 @@ defmodule Chimeway.Deliveries do
   defp normalize_optional_render_version(value), do: {:error, {:invalid_render_version, value}}
 
   defp normalize_optional_render_data(nil), do: {:ok, %{}}
-  defp normalize_optional_render_data(value) when is_map(value), do: {:ok, value}
-  defp normalize_optional_render_data(value), do: {:error, {:invalid_render_data, value}}
+
+  defp normalize_optional_render_data(value) when is_map(value), do: {:ok, %{}}
+
+  defp normalize_optional_render_data(value),
+    do: {:error, {:invalid_render_data, value}}
 
   defp normalize_optional_datetime(nil), do: {:ok, nil}
 
@@ -450,8 +476,8 @@ defmodule Chimeway.Deliveries do
   Fetches a delivery by ID without raising. Pairs with `get_delivery!/1` for
   queue-boundary callers that prefer explicit `{:error, :not_found}`.
 
-  Added in Phase 33 to satisfy D-06 (worker must stop using raising lookup
-  paths at the queue boundary). Used by `Chimeway.Webhooks.ProcessFeedbackWorker`.
+  Used by queue-boundary callers such as `Chimeway.Webhooks.ProcessFeedbackWorker`,
+  which must handle missing rows without raising.
   """
   @spec fetch_delivery(binary()) :: {:ok, Delivery.t()} | {:error, :not_found}
   def fetch_delivery(id) when is_binary(id) do
@@ -567,9 +593,9 @@ defmodule Chimeway.Deliveries do
   """
   @spec apply_render_identity(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
   def apply_render_identity(%Delivery{} = delivery, identity) when is_map(identity) do
-    with {:ok, render_key} <- normalize_optional_render_key(Map.get(identity, :render_key)),
+    with {:ok, render_key} <- normalize_optional_render_key(render_value(identity, :render_key)),
          {:ok, render_version} <-
-           normalize_optional_render_version(Map.get(identity, :render_version)) do
+           normalize_optional_render_version(render_value(identity, :render_version)) do
       delivery
       |> change(%{render_key: render_key, render_version: render_version})
       |> Repo.update()
@@ -584,11 +610,12 @@ defmodule Chimeway.Deliveries do
   """
   @spec apply_render_result(Delivery.t(), map()) :: {:ok, Delivery.t()} | {:error, term()}
   def apply_render_result(%Delivery{} = delivery, render_result) when is_map(render_result) do
-    with {:ok, render_key} <- normalize_optional_render_key(Map.get(render_result, :render_key)),
+    with {:ok, render_key} <-
+           normalize_optional_render_key(render_value(render_result, :render_key)),
          {:ok, render_version} <-
-           normalize_optional_render_version(Map.get(render_result, :render_version)),
+           normalize_optional_render_version(render_value(render_result, :render_version)),
          {:ok, render_data} <-
-           normalize_optional_render_data(Map.get(render_result, :render_data, %{})) do
+           normalize_optional_render_data(render_value(render_result, :render_data, %{})) do
       delivery
       |> change(%{
         render_key: render_key,
@@ -601,6 +628,10 @@ defmodule Chimeway.Deliveries do
 
   def apply_render_result(%Delivery{} = _delivery, render_result),
     do: {:error, {:invalid_render_result, render_result}}
+
+  defp render_value(render_result, key, default \\ nil) do
+    Map.get(render_result, key, Map.get(render_result, Atom.to_string(key), default))
+  end
 
   @doc """
   Persists workflow run and active-step linkage on the canonical delivery row.
@@ -699,7 +730,7 @@ defmodule Chimeway.Deliveries do
   Returns `{:noop, delivery}` when the row is no longer pending, deferred, and due.
   """
   @spec resume_deferred_delivery(binary() | Delivery.t(), keyword()) ::
-          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+          {:ok, Delivery.t()} | {:noop, Delivery.t() | nil}
   def resume_deferred_delivery(delivery_or_id, opts \\ [])
 
   def resume_deferred_delivery(%Delivery{id: delivery_id}, opts) when is_list(opts) do
@@ -714,31 +745,42 @@ defmodule Chimeway.Deliveries do
 
     source = normalize_resume_source!(Keyword.get(opts, :source, "scheduled_resume"))
 
-    delivery = get_delivery!(delivery_id)
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        case get_deferred_delivery(delivery_id, tenant_id) do
+          %Delivery{} = delivery ->
+            metadata =
+              delivery.metadata
+              |> ensure_metadata_map()
+              |> Map.put("resume_source", source)
+              |> Map.put("resume_scheduled_at", iso8601_utc_usec(delivery.next_eligible_at))
+              |> Map.put("resumed_at", iso8601_utc_usec(now))
 
-    metadata =
-      delivery.metadata
-      |> ensure_metadata_map()
-      |> Map.put("resume_source", source)
-      |> Map.put("resume_scheduled_at", iso8601_utc_usec(delivery.next_eligible_at))
-      |> Map.put("resumed_at", iso8601_utc_usec(now))
+            {updated_count, _rows} =
+              Repo.update_all(
+                from(d in Delivery,
+                  where:
+                    d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+                      d.orchestration_state == :deferred and not is_nil(d.next_eligible_at) and
+                      d.next_eligible_at <= ^now
+                ),
+                set: [orchestration_state: :ready, metadata: metadata, updated_at: now]
+              )
 
-    {updated_count, _rows} =
-      Repo.update_all(
-        from(d in Delivery,
-          where:
-            d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred and
-              not is_nil(d.next_eligible_at) and d.next_eligible_at <= ^now
-        ),
-        set: [orchestration_state: :ready, metadata: metadata, updated_at: now]
-      )
+            updated_delivery = get_deferred_delivery(delivery_id, tenant_id)
 
-    updated_delivery = get_delivery!(delivery_id)
+            if updated_count == 1 do
+              {:ok, updated_delivery}
+            else
+              {:noop, updated_delivery}
+            end
 
-    if updated_count == 1 do
-      {:ok, updated_delivery}
-    else
-      {:noop, updated_delivery}
+          nil ->
+            {:noop, nil}
+        end
+
+      {:error, _reason} ->
+        {:noop, nil}
     end
   end
 
@@ -747,7 +789,7 @@ defmodule Chimeway.Deliveries do
   Returns `{:noop, delivery}` when the row is no longer a pending deferred delivery.
   """
   @spec cancel_deferred_delivery(binary() | Delivery.t(), String.t(), keyword()) ::
-          {:ok, Delivery.t()} | {:noop, Delivery.t()}
+          {:ok, Delivery.t()} | {:noop, Delivery.t() | nil}
   def cancel_deferred_delivery(delivery_or_id, reason, opts \\ [])
 
   def cancel_deferred_delivery(%Delivery{id: delivery_id}, reason, opts)
@@ -763,28 +805,45 @@ defmodule Chimeway.Deliveries do
       |> normalize_datetime!()
 
     reason = normalize_suppression_reason!(reason)
-    delivery = get_delivery!(delivery_id)
 
-    metadata =
-      delivery.metadata
-      |> ensure_metadata_map()
-      |> Map.put("resume_cancelled_at", iso8601_utc_usec(now))
+    case TenantScope.resolve(opts) do
+      {:ok, tenant_id} ->
+        case get_deferred_delivery(delivery_id, tenant_id) do
+          %Delivery{} = delivery ->
+            metadata =
+              delivery.metadata
+              |> ensure_metadata_map()
+              |> Map.put("resume_cancelled_at", iso8601_utc_usec(now))
 
-    {updated_count, _rows} =
-      Repo.update_all(
-        from(d in Delivery,
-          where:
-            d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :deferred
-        ),
-        set: [status: :cancelled, suppression_reason: reason, metadata: metadata, updated_at: now]
-      )
+            {updated_count, _rows} =
+              Repo.update_all(
+                from(d in Delivery,
+                  where:
+                    d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+                      d.orchestration_state == :deferred
+                ),
+                set: [
+                  status: :cancelled,
+                  suppression_reason: reason,
+                  metadata: metadata,
+                  updated_at: now
+                ]
+              )
 
-    updated_delivery = get_delivery!(delivery_id)
+            updated_delivery = get_deferred_delivery(delivery_id, tenant_id)
 
-    if updated_count == 1 do
-      {:ok, updated_delivery}
-    else
-      {:noop, updated_delivery}
+            if updated_count == 1 do
+              {:ok, updated_delivery}
+            else
+              {:noop, updated_delivery}
+            end
+
+          nil ->
+            {:noop, nil}
+        end
+
+      {:error, _reason} ->
+        {:noop, nil}
     end
   end
 
@@ -798,9 +857,8 @@ defmodule Chimeway.Deliveries do
   exactly mirroring how `suppress_delivery/3` writes the `:suppressed` terminal state
   from any non-terminal status.
 
-  Called from the Oban worker when
-  `job.attempt == job.max_attempts` and the adapter classification was `:temporary`
-  (REL-03 D-10/D-11). Records `policy_checkpoint: "perform"` in metadata so traces
+  Called from the Oban worker when `job.attempt == job.max_attempts` and the adapter
+  classification was `:temporary`. Records `policy_checkpoint: "perform"` in metadata so traces
   preserve the explanation that exhaustion happened at perform time.
   """
   @spec exhaust_delivery(Delivery.t()) :: {:ok, Delivery.t()} | {:error, term()}
@@ -887,8 +945,7 @@ defmodule Chimeway.Deliveries do
     }
   end
 
-  defp recoverable_noop_event(event_id, nil), do: Repo.get!(Event, event_id)
-  defp recoverable_noop_event(_event_id, _scoped_tenant_id), do: nil
+  defp recoverable_noop_event(event_id, tenant_id), do: get_recovery_event(event_id, tenant_id)
 
   defp recovery_metadata(source, reason, recovered_at, opts) do
     %{
@@ -903,13 +960,14 @@ defmodule Chimeway.Deliveries do
     )
   end
 
-  defp compensate_failed_recovery_claim(delivery_id, now, older_than) do
+  defp compensate_failed_recovery_claim(delivery_id, tenant_id, now, older_than) do
     recoverable_updated_at = recoverable_cutoff!(now, older_than)
 
     Repo.update_all(
       from(d in Delivery,
         where:
-          d.id == ^delivery_id and d.status == :pending and d.orchestration_state == :ready and
+          d.id == ^delivery_id and d.tenant_id == ^tenant_id and d.status == :pending and
+            d.orchestration_state == :ready and
             not fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
         update: [
           set: [
@@ -925,7 +983,7 @@ defmodule Chimeway.Deliveries do
       []
     )
 
-    get_delivery!(delivery_id)
+    get_recovery_delivery(delivery_id, tenant_id)
   end
 
   defp dispatched_deliveries(deliveries_or_results) do
@@ -936,14 +994,16 @@ defmodule Chimeway.Deliveries do
     end)
   end
 
-  defp stamp_recovery_metadata(deliveries, source, reason, now, opts) do
+  defp stamp_recovery_metadata(deliveries, tenant_id, source, reason, now, opts) do
     delivery_ids = Enum.map(deliveries, & &1.id)
     metadata_patch = recovery_metadata_patch(source, reason, now, opts)
 
     if delivery_ids != [] do
       Repo.update_all(
         from(d in Delivery,
-          where: d.id in ^delivery_ids and fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
+          where:
+            d.id in ^delivery_ids and d.tenant_id == ^tenant_id and
+              fragment("?->>? IS NULL", d.metadata, ^"recovered_at"),
           update: [
             set: [
               metadata:
@@ -961,8 +1021,23 @@ defmodule Chimeway.Deliveries do
     end
 
     Repo.all(
-      from(d in Delivery, where: d.id in ^delivery_ids, order_by: [asc: d.channel, asc: d.id])
+      from(d in Delivery,
+        where: d.id in ^delivery_ids and d.tenant_id == ^tenant_id,
+        order_by: [asc: d.channel, asc: d.id]
+      )
     )
+  end
+
+  defp get_recovery_delivery(delivery_id, tenant_id) do
+    Repo.one(from(d in Delivery, where: d.id == ^delivery_id and d.tenant_id == ^tenant_id))
+  end
+
+  defp get_deferred_delivery(delivery_id, tenant_id) do
+    Repo.one(from(d in Delivery, where: d.id == ^delivery_id and d.tenant_id == ^tenant_id))
+  end
+
+  defp get_recovery_event(event_id, tenant_id) do
+    Repo.one(from(e in Event, where: e.id == ^event_id and e.tenant_id == ^tenant_id))
   end
 
   defp recovery_metadata_patch(source, reason, now, opts) do
@@ -1016,23 +1091,21 @@ defmodule Chimeway.Deliveries do
   Returns `{:ok, %{delivery: updated_delivery, attempt: attempt}}` on success, or
   `{:error, step, reason, changes}` if any step fails (both operations roll back).
 
-  ## Phase 14 contract additions
+  ## Concurrency and convergence guarantees
 
   - Acquires a `SELECT ... FOR UPDATE` row lock on the delivery via the
-    `:lock_delivery` Multi step BEFORE computing `attempt_number` (W8 preemptive
-    fix). This serializes concurrent `record_attempt/2` callers for the same
+    `:lock_delivery` Multi step BEFORE computing `attempt_number`. This serializes
+    concurrent `record_attempt/2` callers for the same
     delivery and makes `attempt_number` contiguity invariant under concurrent
     execution. The `pending -> dispatched` transition that
     `Executor.run_delivery/1` performs BEFORE calling this function is a secondary
     serialization layer.
-  - Computes `attempt_number` inside the Multi via the `:next_attempt_number` step
-    (RESEARCH Pattern 4).
+  - Computes `attempt_number` inside the Multi via the `:next_attempt_number` step.
   - Routes `error_class` permanent/bounced outcomes to `:cancelled` with the
-    appropriate `suppression_reason` inside the same transaction (RESEARCH
-    Pitfall 2). This makes sync and Oban paths converge on a terminal state
-    without forking — sync gains REL-03 convergence automatically.
+    appropriate `suppression_reason` inside the same transaction. This makes sync
+    and Oban paths converge on a terminal state without forking.
   - Telemetry stop metadata now includes `attempt_number` and `error_class`,
-    preserving the Phase 10 correlation_id/notification_key keys.
+    while preserving the `correlation_id` and `notification_key` keys.
   """
   @spec record_attempt(Delivery.t(), map()) ::
           {:ok, %{delivery: Delivery.t(), attempt: DeliveryAttempt.t()}}
@@ -1069,66 +1142,58 @@ defmodule Chimeway.Deliveries do
   end
 
   defp do_record_attempt(%Delivery{} = delivery, attrs) do
-    outcome = Map.get(attrs, :outcome) || Map.get(attrs, "outcome")
-    error_class = Map.get(attrs, :error_class) || Map.get(attrs, "error_class")
+    with {:ok, evidence} <- SafeEvidence.attempt_attrs(attrs) do
+      outcome = evidence.outcome
+      error_class = evidence.error_class
+      safe_attrs = Map.put(evidence, :delivery_id, delivery.id)
 
-    safe_attrs =
-      attrs
-      |> coerce_provider_response_to_atom_key()
-      |> Map.update(:provider_response, nil, &sanitize_metadata/1)
-      |> Map.put(:delivery_id, delivery.id)
+      Multi.new()
+      |> Multi.run(:lock_delivery, fn repo, _changes ->
+        # SELECT FOR UPDATE serializes concurrent
+        # record_attempt/2 callers for the same delivery_id. With this lock,
+        # attempt_number contiguity is invariant under concurrent execution.
+        case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
+          nil -> {:error, :delivery_not_found}
+          locked -> {:ok, locked}
+        end
+      end)
+      |> Multi.run(:next_attempt_number, fn repo, %{lock_delivery: locked} ->
+        next_n =
+          from(a in DeliveryAttempt,
+            where: a.delivery_id == ^locked.id,
+            select: count(a.id)
+          )
+          |> repo.one()
+          |> Kernel.+(1)
 
-    Multi.new()
-    |> Multi.run(:lock_delivery, fn repo, _changes ->
-      # W8 preemptive fix: SELECT FOR UPDATE serializes concurrent
-      # record_attempt/2 callers for the same delivery_id. With this lock,
-      # attempt_number contiguity is invariant under concurrent execution.
-      case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
-        nil -> {:error, :delivery_not_found}
-        locked -> {:ok, locked}
+        {:ok, next_n}
+      end)
+      |> Multi.insert(:attempt, fn %{next_attempt_number: n, lock_delivery: locked} ->
+        attempt_attrs =
+          safe_attrs
+          |> Map.put(:delivery_id, locked.id)
+          |> Map.put(:attempt_number, n)
+
+        DeliveryAttempt.changeset(%DeliveryAttempt{}, attempt_attrs)
+      end)
+      |> Multi.run(:delivery, fn _repo, %{lock_delivery: locked} ->
+        terminal_or_failed_transition(locked, outcome, error_class)
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
+          # Canonical convergence point — drive workflow progression once after
+          # the durable transaction commits so the engine reads the final
+          # delivery row and can take its own FOR UPDATE locks without nesting
+          # SELECT FOR UPDATE inside the attempt-recording lock.
+          maybe_progress_workflow(updated_delivery)
+          {:ok, %{delivery: updated_delivery, attempt: attempt}}
+
+        {:error, step, reason, changes} ->
+          {:error, step, reason, changes}
       end
-    end)
-    |> Multi.run(:next_attempt_number, fn repo, %{lock_delivery: locked} ->
-      next_n =
-        from(a in DeliveryAttempt,
-          where: a.delivery_id == ^locked.id,
-          select: count(a.id)
-        )
-        |> repo.one()
-        |> Kernel.+(1)
-
-      {:ok, next_n}
-    end)
-    |> Multi.insert(:attempt, fn %{next_attempt_number: n, lock_delivery: locked} ->
-      attempt_attrs =
-        safe_attrs
-        |> Map.put(:delivery_id, locked.id)
-        |> Map.put(:attempt_number, n)
-
-      DeliveryAttempt.changeset(%DeliveryAttempt{}, attempt_attrs)
-    end)
-    |> Multi.run(:delivery, fn _repo, %{lock_delivery: locked} ->
-      terminal_or_failed_transition(locked, outcome, error_class)
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
-        # Canonical convergence point — drive workflow progression once after
-        # the durable transaction commits so the engine reads the final
-        # delivery row and can take its own FOR UPDATE locks without nesting
-        # SELECT FOR UPDATE inside the attempt-recording lock.
-        maybe_progress_workflow(updated_delivery)
-        {:ok, %{delivery: updated_delivery, attempt: attempt}}
-
-      {:error, step, reason, changes} ->
-        {:error, step, reason, changes}
-    end
-  end
-
-  defp coerce_provider_response_to_atom_key(attrs) do
-    case Map.pop(attrs, "provider_response") do
-      {nil, attrs} -> attrs
-      {val, attrs} -> Map.put_new(attrs, :provider_response, val)
+    else
+      {:error, :unsafe_evidence, reason} -> {:error, :unsafe_evidence, reason, %{}}
     end
   end
 
@@ -1182,6 +1247,8 @@ defmodule Chimeway.Deliveries do
          reason,
          opts
        ) do
+    reason = SafeEvidence.digest_reason(reason)
+
     resolved_at =
       opts
       |> Keyword.get(:resolved_at, DateTime.utc_now())
@@ -1214,16 +1281,6 @@ defmodule Chimeway.Deliveries do
     end
   end
 
-  @sensitive_keys ~w(password token secret)
-
-  defp sanitize_metadata(map) when is_map(map) do
-    Enum.reduce(map, %{}, fn {key, value}, acc ->
-      if sensitive_key?(key), do: acc, else: Map.put(acc, key, value)
-    end)
-  end
-
-  defp sanitize_metadata(_), do: %{}
-
   defp ensure_metadata_map(map) when is_map(map), do: map
   defp ensure_metadata_map(_), do: %{}
 
@@ -1236,15 +1293,11 @@ defmodule Chimeway.Deliveries do
   defp normalize_checkpoint("perform"), do: "perform"
   defp normalize_checkpoint(_), do: "perform"
 
-  defp sensitive_key?(key) when is_atom(key), do: sensitive_key?(Atom.to_string(key))
-  defp sensitive_key?(key) when is_binary(key), do: String.downcase(key) in @sensitive_keys
-  defp sensitive_key?(_), do: false
-
   # ---- Workflow progression hook ---------------------------------------------
   # All canonical terminal-write paths converge through one of these helpers so
   # the workflow progression engine sees every relevant delivery state change
   # exactly once. The engine is itself noop-safe for non-workflow-linked rows,
-  # non-active runs, and unmatched rules per ESC-03 / T-25-06.
+  # non-active runs, and unmatched rules.
 
   defp maybe_apply_progression({:ok, %Delivery{} = delivery} = ok) do
     maybe_progress_workflow(delivery)

@@ -45,8 +45,17 @@ defmodule DemoHost.Seeds do
   @doc "Primary demo user email (successful invite + admin search)."
   def alex_email, do: @alex_email
 
-  @doc "Recipient identity string for a TeamPulse user email."
-  def recipient_identity(email) when is_binary(email), do: "user:#{email}"
+  @doc "Stable opaque recipient identity derived from a TeamPulse user email."
+  def recipient_identity(email) when is_binary(email) do
+    digest =
+      email
+      |> String.trim()
+      |> String.downcase()
+      |> then(&:crypto.hash(:sha256, &1))
+      |> Base.encode16(case: :lower)
+
+    "cw_demo_#{digest}"
+  end
 
   @doc "Alex's recipient identity — use in admin search."
   def alex_identity, do: recipient_identity(@alex_email)
@@ -233,7 +242,8 @@ defmodule DemoHost.Seeds do
       case Chimeway.trigger(
              DemoHost.Notifiers.InviteSent,
              %{email: @alex_email, team_name: "Threadline Demo"},
-             idempotency_key: "teampulse-seed-threadline-v1-#{System.unique_integer([:positive])}",
+             idempotency_key:
+               "teampulse-seed-threadline-v1-#{System.unique_integer([:positive])}",
              correlation_id: correlation_id,
              tenant_id: @tenant_id
            ) do
@@ -294,7 +304,11 @@ defmodule DemoHost.Seeds do
         correlation_id: correlation_id
       ]
 
-      case Chimeway.trigger(Sigra.Integrations.Chimeway.MagicLinkNotifier, trigger_params, trigger_opts) do
+      case Chimeway.trigger(
+             Sigra.Integrations.Chimeway.MagicLinkNotifier,
+             trigger_params,
+             trigger_opts
+           ) do
         {:ok, result} ->
           event_id = result.trace.event_id
           delivery_ids = delivery_ids_for_event(event_id)
@@ -332,7 +346,7 @@ defmodule DemoHost.Seeds do
   @spec password_reset_explanation() :: {:ok, map()} | {:error, term()}
   def password_reset_explanation do
     with {:ok, %{trace: %{delivery_ids: [delivery_id | _]}}} <- seed_password_reset(),
-         {:ok, explanation} <- Traces.explain_delivery(delivery_id) do
+         {:ok, explanation} <- Traces.explain_delivery(delivery_id, tenant_id: @tenant_id) do
       {:ok, explanation}
     end
   end

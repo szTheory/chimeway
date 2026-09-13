@@ -45,12 +45,14 @@ defmodule Chimeway.Delivery do
     field(:render_key, :string)
     field(:render_version, :integer)
     field(:render_data, :map, default: %{})
+    field(:recipient_address, :string, virtual: true)
 
     belongs_to(:notification, Notification)
     belongs_to(:digest_delivery, Chimeway.Delivery)
     belongs_to(:workflow_run, WorkflowRun)
     belongs_to(:workflow_step, WorkflowStep)
     has_many(:attempts, Chimeway.DeliveryAttempt)
+    has_many(:targets, Chimeway.DeliveryTarget)
 
     timestamps(type: :utc_datetime_usec)
   end

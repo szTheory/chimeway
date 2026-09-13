@@ -5,6 +5,20 @@ defmodule Chimeway.MigrationContractTest do
 
   @moduletag timeout: 300_000
 
+  @tenant_identity_migration_version 20_260_812_000_000
+  @generated_tenant_identity_migration_version 20_260_101_000_032
+  @delivery_tenant_nullable_migration_version 20_260_812_000_001
+  @generated_delivery_tenant_nullable_migration_version 20_260_101_000_033
+  @privacy_safe_delivery_evidence_migration_version 20_260_813_000_000
+  @delivery_targets_migration_version 20_260_819_000_001
+  @delivery_target_tenant_integrity_migration_version 20_260_820_000_000
+  @apns_request_intent_migration_version 20_260_820_000_001
+  @generated_privacy_safe_delivery_evidence_migration_version 20_260_101_000_034
+  @generated_delivery_target_tenant_integrity_migration_version 20_260_101_000_036
+  @generated_apns_request_intent_migration_version 20_260_101_000_037
+  @tenant_identity_rollback_error "tenant-scoped idempotency cannot safely return to global uniqueness; migration is irreversible"
+  @privacy_safe_delivery_evidence_rollback_error "privacy-safe delivery evidence cleanup is irreversible"
+
   defmodule GeneratedRepo do
     use Ecto.Repo,
       otp_app: :chimeway,
@@ -48,7 +62,8 @@ defmodule Chimeway.MigrationContractTest do
     assert regclass("chimeway_events")
     assert regclass("chimeway_notifications")
 
-    assert regclass("chimeway_events_idempotency_key_index")
+    refute regclass("chimeway_events_idempotency_key_index")
+    assert regclass("chimeway_events_tenant_id_idempotency_key_index")
 
     assert regclass("chimeway_notifications_event_recipient_index")
     assert regclass("chimeway_notifications_inbox_read_inserted_index")
@@ -65,26 +80,252 @@ defmodule Chimeway.MigrationContractTest do
 
   for mode <- @generated_modes do
     @tag generated_mode: mode
-    test "#{mode.label} generated migrations run through normal Ecto.Migrator and roll back",
+    test "#{mode.label} generated migrations run through normal Ecto.Migrator",
          %{generated_mode: generated_mode} do
       with_generated_database(generated_mode, fn repo, migrations_path ->
         assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
         migrated = run_fixture_migrations(repo, migrations_path, :up)
-        assert length(migrated) == 31
-        assert_migration_versions!(repo, 31)
+        assert length(migrated) == 37
+        assert_migration_versions!(repo, 37)
         assert_generated_objects!(repo, generated_mode.schema)
         assert_generated_foreign_keys!(repo, generated_mode.schema)
+      end)
+    end
+  end
 
-        rolled_back = run_fixture_migrations(repo, migrations_path, :down)
-        assert length(rolled_back) == 31
-        assert_migration_versions!(repo, 0)
-        refute_chimeway_objects!(repo, generated_mode.schema)
+  for mode <- @generated_modes do
+    @tag generated_mode: mode
+    test "#{mode.label} generated target migration enforces identity and ordered attempts", %{
+      generated_mode: generated_mode
+    } do
+      with_generated_database(generated_mode, fn repo, migrations_path ->
+        assert_no_destructive_schema_cleanup!(generated_mode.fixture_root)
 
-        if generated_mode.expect_schema_left do
-          assert schema_exists?(repo, generated_mode.schema),
-                 "prefixed rollback should leave the empty chimeway schema; fixtures must not drop schemas"
+        assert @generated_delivery_target_tenant_integrity_migration_version in run_fixture_migrations(
+                 repo,
+                 migrations_path,
+                 :up
+               )
+
+        assert_tenant_integrity_catalog!(repo, generated_mode.schema)
+
+        Ecto.Adapters.SQL.query!(
+          repo,
+          "CREATE TABLE public.host_owned_target_marker (id integer)",
+          []
+        )
+
+        [first_delivery_id, second_delivery_id] =
+          insert_target_contract_deliveries!(repo, generated_mode.schema)
+
+        first_target_id =
+          insert_delivery_target!(repo, generated_mode.schema, first_delivery_id, "tenant-a")
+
+        second_target_id =
+          insert_delivery_target!(repo, generated_mode.schema, second_delivery_id, "tenant-b")
+
+        assert_unique_violation!(fn ->
+          insert_delivery_target!(repo, generated_mode.schema, first_delivery_id, "tenant-a")
+        end)
+
+        first_attempt_id =
+          insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 1)
+
+        insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 2,
+          prior_attempt_id: first_attempt_id
+        )
+
+        assert_unique_violation!(fn ->
+          insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 2)
+        end)
+
+        assert_foreign_key_violation!("chimeway_delivery_targets_tenant_delivery_fkey", fn ->
+          insert_delivery_target!(repo, generated_mode.schema, second_delivery_id, "tenant-a",
+            binding_revision_ref: "cw_target_contract_cross_tenant"
+          )
+        end)
+
+        assert_foreign_key_violation!(
+          "chimeway_delivery_target_attempts_tenant_target_fkey",
+          fn ->
+            insert_target_attempt!(repo, generated_mode.schema, second_target_id, "tenant-a", 1)
+          end
+        )
+
+        assert_foreign_key_violation!(
+          "chimeway_delivery_target_attempts_prior_same_target_fkey",
+          fn ->
+            insert_target_attempt!(repo, generated_mode.schema, first_target_id, "tenant-a", 3,
+              prior_attempt_id:
+                insert_target_attempt!(
+                  repo,
+                  generated_mode.schema,
+                  second_target_id,
+                  "tenant-b",
+                  1
+                )
+            )
+          end
+        )
+
+        assert [@generated_apns_request_intent_migration_version] =
+                 run_migrations(repo, migrations_path, :down, step: 1)
+
+        assert [@generated_delivery_target_tenant_integrity_migration_version] =
+                 run_migrations(repo, migrations_path, :down, step: 1)
+
+        assert regclass(repo, generated_mode.schema, "chimeway_delivery_targets")
+        assert regclass(repo, generated_mode.schema, "chimeway_delivery_target_attempts")
+        assert regclass(repo, "public", "host_owned_target_marker")
+        assert regclass(repo, generated_mode.schema, "chimeway_deliveries")
+      end)
+    end
+  end
+
+  @tag migration_copy: :repository
+  test "repository migration refuses tenant identity rollback without mutating valid tenant rows" do
+    migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
+
+    with_isolated_database("repository", fn repo ->
+      run_tenant_identity_rollback_contract!(
+        repo,
+        migrations_path,
+        "public",
+        @tenant_identity_migration_version
+      )
+    end)
+  end
+
+  @tag migration_copy: :repository
+  test "repository migration 034 purges historical generic evidence and refuses rollback" do
+    migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
+
+    with_isolated_database("privacy_safe_delivery_evidence", fn repo ->
+      run_privacy_safe_delivery_evidence_contract!(
+        repo,
+        migrations_path,
+        "public",
+        @delivery_tenant_nullable_migration_version,
+        @privacy_safe_delivery_evidence_migration_version
+      )
+    end)
+  end
+
+  @tag migration_copy: :repository
+  test "repository migration 036 enforces tenant-owned targets and same-target predecessors" do
+    migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
+
+    with_isolated_database("delivery_target_tenant_integrity", fn repo ->
+      migrated =
+        run_migrations(repo, migrations_path, :up, to: @delivery_targets_migration_version)
+
+      assert @delivery_targets_migration_version in migrated
+
+      [tenant_a_delivery, tenant_b_delivery] = insert_target_contract_deliveries!(repo, "public")
+      tenant_a_target = insert_delivery_target!(repo, "public", tenant_a_delivery, "tenant-a")
+      tenant_b_target = insert_delivery_target!(repo, "public", tenant_b_delivery, "tenant-b")
+      tenant_a_attempt = insert_target_attempt!(repo, "public", tenant_a_target, "tenant-a", 1)
+
+      assert [@delivery_target_tenant_integrity_migration_version] =
+               run_migrations(repo, migrations_path, :up, step: 1)
+
+      assert_tenant_integrity_catalog!(repo, "public")
+
+      assert_foreign_key_violation!("chimeway_delivery_targets_tenant_delivery_fkey", fn ->
+        insert_delivery_target!(repo, "public", tenant_b_delivery, "tenant-a",
+          binding_revision_ref: "cw_target_contract_cross_tenant"
+        )
+      end)
+
+      assert_foreign_key_violation!("chimeway_delivery_target_attempts_tenant_target_fkey", fn ->
+        insert_target_attempt!(repo, "public", tenant_b_target, "tenant-a", 1)
+      end)
+
+      assert_foreign_key_violation!(
+        "chimeway_delivery_target_attempts_prior_same_target_fkey",
+        fn ->
+          insert_target_attempt!(repo, "public", tenant_a_target, "tenant-a", 2,
+            prior_attempt_id:
+              insert_target_attempt!(repo, "public", tenant_b_target, "tenant-b", 1)
+          )
         end
+      )
+
+      assert insert_target_attempt!(repo, "public", tenant_a_target, "tenant-a", 2,
+               prior_attempt_id: tenant_a_attempt
+             )
+
+      assert [@delivery_target_tenant_integrity_migration_version] =
+               run_migrations(repo, migrations_path, :down, step: 1)
+
+      assert regclass(repo, "public", "chimeway_delivery_targets")
+      assert regclass(repo, "public", "chimeway_delivery_target_attempts")
+    end)
+  end
+
+  @tag migration_copy: :repository
+  test "repository migration 037 preserves tenant-qualified target history through down and up" do
+    migrations_path = Path.join([File.cwd!(), "priv", "repo", "migrations"])
+
+    with_isolated_database("apns_request_intent", fn repo ->
+      run_apns_request_intent_contract!(
+        repo,
+        migrations_path,
+        "public",
+        @delivery_target_tenant_integrity_migration_version,
+        @apns_request_intent_migration_version
+      )
+    end)
+  end
+
+  for mode <- @generated_modes do
+    @tag migration_copy: :generated
+    @tag generated_mode: mode
+    test "#{mode.label} generated migration refuses tenant identity rollback without mutating valid tenant rows",
+         %{generated_mode: generated_mode} do
+      with_generated_database(generated_mode, fn repo, migrations_path ->
+        run_tenant_identity_rollback_contract!(
+          repo,
+          migrations_path,
+          generated_mode.schema,
+          @generated_tenant_identity_migration_version
+        )
+      end)
+    end
+  end
+
+  for mode <- @generated_modes do
+    @tag migration_copy: :generated
+    @tag generated_mode: mode
+    test "#{mode.label} generated migration 037 preserves target history through down and up", %{
+      generated_mode: generated_mode
+    } do
+      with_generated_database(generated_mode, fn repo, migrations_path ->
+        run_apns_request_intent_contract!(
+          repo,
+          migrations_path,
+          generated_mode.schema,
+          @generated_delivery_target_tenant_integrity_migration_version,
+          @generated_apns_request_intent_migration_version
+        )
+      end)
+    end
+  end
+
+  for mode <- @generated_modes do
+    @tag migration_copy: :generated
+    @tag generated_mode: mode
+    test "#{mode.label} generated migration 034 purges historical generic evidence and refuses rollback",
+         %{generated_mode: generated_mode} do
+      with_generated_database(generated_mode, fn repo, migrations_path ->
+        run_privacy_safe_delivery_evidence_contract!(
+          repo,
+          migrations_path,
+          generated_mode.schema,
+          @generated_delivery_tenant_nullable_migration_version,
+          @generated_privacy_safe_delivery_evidence_migration_version
+        )
       end)
     end
   end
@@ -142,6 +383,30 @@ defmodule Chimeway.MigrationContractTest do
       _ = Ecto.Adapters.Postgres.storage_down(config)
       File.rm_rf!(tmp_root)
       purge_fixture_modules!(mode.fixture_root)
+    end
+  end
+
+  defp with_isolated_database(label, fun) do
+    unique = System.unique_integer([:positive])
+    database = "chimeway_migration_contract_#{label}_#{unique}"
+    config = generated_repo_config(database)
+
+    case Ecto.Adapters.Postgres.storage_up(config) do
+      :ok -> :ok
+      {:error, :already_up} -> :ok
+      {:error, reason} -> flunk("failed to create #{database}: #{inspect(reason)}")
+    end
+
+    try do
+      {:ok, pid} = GeneratedRepo.start_link(config)
+
+      try do
+        fun.(GeneratedRepo)
+      after
+        if Process.alive?(pid), do: GenServer.stop(pid)
+      end
+    after
+      _ = Ecto.Adapters.Postgres.storage_down(config)
     end
   end
 
@@ -249,8 +514,8 @@ defmodule Chimeway.MigrationContractTest do
       refute Regex.match?(~r/\bDROP\s+SCHEMA\b/i, content),
              "#{path} must not generate DROP SCHEMA rollback SQL"
 
-      refute Regex.match?(~r/\bCASCADE\b/i, content),
-             "#{path} must not generate destructive CASCADE cleanup"
+      refute Regex.match?(~r/\bDROP\s+(?:TABLE|INDEX|CONSTRAINT)\b[^;]*\bCASCADE\b/is, content),
+             "#{path} must not generate destructive object-drop CASCADE cleanup"
     end)
   end
 
@@ -268,6 +533,495 @@ defmodule Chimeway.MigrationContractTest do
     end
   end
 
+  defp run_tenant_identity_rollback_contract!(repo, migrations_path, schema, target_version) do
+    migrated = run_migrations(repo, migrations_path, :up, to: target_version)
+    assert target_version in migrated
+
+    insert_cross_tenant_duplicate_events!(repo, schema)
+    state = tenant_identity_state(repo, schema, target_version)
+
+    assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
+      run_migrations(repo, migrations_path, :down, step: 1)
+    end
+
+    assert tenant_identity_state(repo, schema, target_version) == state
+
+    assert_raise RuntimeError, @tenant_identity_rollback_error, fn ->
+      run_migrations(repo, migrations_path, :down, step: 1)
+    end
+
+    assert tenant_identity_state(repo, schema, target_version) == state
+  end
+
+  defp run_privacy_safe_delivery_evidence_contract!(
+         repo,
+         migrations_path,
+         schema,
+         prior_version,
+         target_version
+       ) do
+    migrated = run_migrations(repo, migrations_path, :up, to: prior_version)
+    assert prior_version in migrated
+
+    ids = insert_legacy_privacy_evidence!(repo, schema)
+    preserved = privacy_safe_lifecycle_state(repo, schema, ids)
+
+    assert [^target_version] = run_migrations(repo, migrations_path, :up, step: 1)
+    assert privacy_safe_lifecycle_state(repo, schema, ids) == preserved
+    assert_privacy_safe_delivery_evidence!(repo, schema, ids)
+
+    assert_raise RuntimeError, @privacy_safe_delivery_evidence_rollback_error, fn ->
+      run_migrations(repo, migrations_path, :down, step: 1)
+    end
+
+    assert privacy_safe_lifecycle_state(repo, schema, ids) == preserved
+    assert_privacy_safe_delivery_evidence!(repo, schema, ids)
+  end
+
+  defp run_apns_request_intent_contract!(
+         repo,
+         migrations_path,
+         schema,
+         prior_version,
+         target_version
+       ) do
+    assert prior_version in run_migrations(repo, migrations_path, :up, to: prior_version)
+    assert_tenant_integrity_catalog!(repo, schema)
+
+    [delivery_id | _] = insert_target_contract_deliveries!(repo, schema)
+    target_id = insert_delivery_target!(repo, schema, delivery_id, "tenant-a")
+    attempt_id = insert_target_attempt!(repo, schema, target_id, "tenant-a", 1)
+    preserved = {target_id, attempt_id}
+
+    assert [^target_version] = run_migrations(repo, migrations_path, :up, step: 1)
+
+    assert column_info(repo, schema, "chimeway_delivery_targets", "apns_request_intent") ==
+             {true, "jsonb"}
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      UPDATE #{quoted_relation(schema, "chimeway_delivery_targets")}
+      SET apns_request_intent = jsonb_build_object(
+        'environment', 'sandbox',
+        'topic', 'com.example.chimeway',
+        'apns_id', '11111111-1111-1111-1111-111111111111',
+        'expires_at', '2026-08-21T00:00:00Z',
+        'open_ref', 'cw_open_opaque_001'
+      )
+      WHERE id = $1::text::uuid
+      """,
+      [target_id]
+    )
+
+    assert [[intent]] =
+             Ecto.Adapters.SQL.query!(
+               repo,
+               "SELECT apns_request_intent::text FROM #{quoted_relation(schema, "chimeway_delivery_targets")} WHERE id = $1::text::uuid",
+               [target_id]
+             ).rows
+
+    assert Jason.decode!(intent) == %{
+             "apns_id" => "11111111-1111-1111-1111-111111111111",
+             "environment" => "sandbox",
+             "expires_at" => "2026-08-21T00:00:00Z",
+             "open_ref" => "cw_open_opaque_001",
+             "topic" => "com.example.chimeway"
+           }
+
+    assert [^target_version] = run_migrations(repo, migrations_path, :down, step: 1)
+    assert column_info(repo, schema, "chimeway_delivery_targets", "apns_request_intent") == nil
+    assert_target_history_survives!(repo, schema, preserved)
+    assert_tenant_integrity_catalog!(repo, schema)
+
+    assert [^target_version] = run_migrations(repo, migrations_path, :up, step: 1)
+
+    assert column_info(repo, schema, "chimeway_delivery_targets", "apns_request_intent") ==
+             {true, "jsonb"}
+
+    assert_target_history_survives!(repo, schema, preserved)
+  end
+
+  defp assert_target_history_survives!(repo, schema, {target_id, attempt_id}) do
+    assert [[^target_id, ^attempt_id]] =
+             Ecto.Adapters.SQL.query!(
+               repo,
+               """
+               SELECT t.id::text, a.id::text
+               FROM #{quoted_relation(schema, "chimeway_delivery_targets")} t
+               JOIN #{quoted_relation(schema, "chimeway_delivery_target_attempts")} a
+                 ON a.delivery_target_id = t.id
+               WHERE t.id = $1::text::uuid AND a.id = $2::text::uuid
+               """,
+               [target_id, attempt_id]
+             ).rows
+  end
+
+  defp run_migrations(repo, migrations_path, direction, opts) do
+    parent = self()
+    ref = make_ref()
+
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      result = Ecto.Migrator.run(repo, migrations_path, direction, Keyword.put(opts, :log, false))
+      send(parent, {ref, result})
+    end)
+
+    receive do
+      {^ref, result} -> result
+    end
+  end
+
+  defp insert_cross_tenant_duplicate_events!(repo, schema) do
+    table = quoted_relation(schema, "chimeway_events")
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{table}
+        (id, notification_key, notification_version, idempotency_key, payload, tenant_id, inserted_at, updated_at)
+      VALUES
+        ('11111111-1111-1111-1111-111111111111', 'tenant_identity', 1, 'cross-tenant-key', '{}'::jsonb, 'tenant-a', NOW(), NOW()),
+        ('22222222-2222-2222-2222-222222222222', 'tenant_identity', 1, 'cross-tenant-key', '{}'::jsonb, 'tenant-b', NOW(), NOW())
+      """,
+      []
+    )
+  end
+
+  defp insert_target_contract_deliveries!(repo, schema) do
+    for tenant <- ["tenant-a", "tenant-b"] do
+      event_id = Ecto.UUID.generate()
+      notification_id = Ecto.UUID.generate()
+      delivery_id = Ecto.UUID.generate()
+
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        INSERT INTO #{quoted_relation(schema, "chimeway_events")}
+          (id, notification_key, notification_version, idempotency_key, payload, tenant_id, inserted_at, updated_at)
+        VALUES ($1::text::uuid, 'target.contract', 1, $2, '{}'::jsonb, $3, NOW(), NOW())
+        """,
+        [event_id, "target-contract-#{event_id}", tenant]
+      )
+
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        INSERT INTO #{quoted_relation(schema, "chimeway_notifications")}
+          (id, event_id, recipient_identity, recipient_type, metadata, render_assigns, render_channels,
+           orchestration, tenant_id, inserted_at, updated_at)
+        VALUES ($1::text::uuid, $2::text::uuid, 'opaque-recipient', 'user', '{}'::jsonb, '{}'::jsonb,
+                '{}'::jsonb, '{}'::jsonb, $3, NOW(), NOW())
+        """,
+        [notification_id, event_id, tenant]
+      )
+
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        INSERT INTO #{quoted_relation(schema, "chimeway_deliveries")}
+          (id, notification_id, channel, status, metadata, planning_context, render_key, render_version,
+           render_data, tenant_id, actor_id, inserted_at, updated_at)
+        VALUES ($1::text::uuid, $2::text::uuid, 'push', 'pending', '{}'::jsonb, '{}'::jsonb,
+                'target.contract', 1, '{}'::jsonb, $3, 'target-contract-actor', NOW(), NOW())
+        """,
+        [delivery_id, notification_id, tenant]
+      )
+
+      delivery_id
+    end
+  end
+
+  defp insert_delivery_target!(repo, schema, delivery_id, tenant_id, opts \\ []) do
+    target_id = Ecto.UUID.generate()
+    binding_revision_ref = Keyword.get(opts, :binding_revision_ref, "cw_target_contract_001")
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{quoted_relation(schema, "chimeway_delivery_targets")}
+        (id, tenant_id, delivery_id, binding_revision_ref, status, inserted_at, updated_at)
+      VALUES ($1::text::uuid, $2, $3::text::uuid, $4, 'pending', NOW(), NOW())
+      """,
+      [target_id, tenant_id, delivery_id, binding_revision_ref]
+    )
+
+    target_id
+  end
+
+  defp insert_target_attempt!(repo, schema, target_id, tenant_id, attempt_number, opts \\ []) do
+    attempt_id = Ecto.UUID.generate()
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{quoted_relation(schema, "chimeway_delivery_target_attempts")}
+        (id, tenant_id, delivery_target_id, attempt_number, outcome, started_at, source, safe_facts, prior_attempt_id)
+      VALUES ($1::text::uuid, $2, $3::text::uuid, $4, 'attempt_started', NOW(), 'contract', '{}'::jsonb, $5::text::uuid)
+      """,
+      [attempt_id, tenant_id, target_id, attempt_number, Keyword.get(opts, :prior_attempt_id)]
+    )
+
+    attempt_id
+  end
+
+  defp assert_unique_violation!(fun) do
+    assert_raise Postgrex.Error, ~r/unique constraint/, fun
+  end
+
+  defp assert_foreign_key_violation!(constraint, fun) do
+    assert_raise Postgrex.Error, ~r/#{constraint}/, fun
+  end
+
+  defp assert_tenant_integrity_catalog!(repo, schema) do
+    for index <- [
+          "chimeway_deliveries_tenant_id_id_unique",
+          "chimeway_delivery_targets_tenant_id_id_unique",
+          "chimeway_delivery_target_attempts_tenant_target_id_unique"
+        ] do
+      assert regclass(repo, schema, index)
+    end
+
+    assert foreign_key_delete_action(
+             repo,
+             schema,
+             "chimeway_delivery_targets_tenant_delivery_fkey"
+           ) == "c"
+
+    assert foreign_key_delete_action(
+             repo,
+             schema,
+             "chimeway_delivery_target_attempts_tenant_target_fkey"
+           ) == "c"
+
+    assert foreign_key_delete_action(
+             repo,
+             schema,
+             "chimeway_delivery_target_attempts_prior_same_target_fkey"
+           ) == "a"
+  end
+
+  defp foreign_key_delete_action(repo, schema, constraint) do
+    %{
+      rows: [[action]]
+    } =
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        SELECT c.confdeltype
+        FROM pg_constraint c
+        JOIN pg_namespace n ON n.oid = c.connamespace
+        WHERE n.nspname = $1 AND c.conname = $2
+        """,
+        [schema, constraint]
+      )
+
+    action
+  end
+
+  defp insert_legacy_privacy_evidence!(repo, schema) do
+    ids = %{
+      event_id: "11111111-1111-1111-1111-111111111111",
+      notification_id: "22222222-2222-2222-2222-222222222222",
+      delivery_id: "33333333-3333-3333-3333-333333333333",
+      safe_attempt_id: "44444444-4444-4444-4444-444444444444",
+      raw_attempt_id: "55555555-5555-5555-5555-555555555555"
+    }
+
+    now = "2026-08-13 00:00:00.000000"
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{quoted_relation(schema, "chimeway_events")}
+        (id, notification_key, notification_version, idempotency_key, payload, tenant_id, inserted_at, updated_at)
+      VALUES ($1::text::uuid, 'privacy.contract', 7, 'event-idempotency', $2::jsonb, 'tenant-a', $3::text::timestamp, $3::text::timestamp)
+      """,
+      [ids.event_id, ~s({"token":"legacy-event-sentinel"}), now]
+    )
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{quoted_relation(schema, "chimeway_notifications")}
+        (id, event_id, recipient_identity, recipient_type, metadata, render_assigns, render_channels,
+         orchestration, tenant_id, inserted_at, updated_at)
+      VALUES ($1::text::uuid, $2::text::uuid, 'opaque-recipient', 'user', $3::jsonb, $4::jsonb, $5::jsonb,
+              $6::jsonb, 'tenant-a', $7::text::timestamp, $7::text::timestamp)
+      """,
+      [
+        ids.notification_id,
+        ids.event_id,
+        ~s({"email":"legacy-notification-sentinel"}),
+        ~s({"body":"legacy-render-assigns-sentinel"}),
+        ~s({"email":{"body":"legacy-render-channel-sentinel"}}),
+        ~s({"params":"legacy-orchestration-sentinel"}),
+        now
+      ]
+    )
+
+    Ecto.Adapters.SQL.query!(
+      repo,
+      """
+      INSERT INTO #{quoted_relation(schema, "chimeway_deliveries")}
+        (id, notification_id, channel, status, metadata, planning_context, render_key, render_version,
+         render_data, tenant_id, actor_id, inserted_at, updated_at)
+      VALUES ($1::text::uuid, $2::text::uuid, 'email', 'failed', $3::jsonb, $4::jsonb, 'privacy.render', 3,
+              $5::jsonb, 'tenant-a', 'actor-a', $6::text::timestamp, $6::text::timestamp)
+      """,
+      [
+        ids.delivery_id,
+        ids.notification_id,
+        ~s({"recipient":"legacy-delivery-metadata-sentinel"}),
+        ~s({"context":"legacy-planning-context-sentinel"}),
+        ~s({"body":"legacy-render-data-sentinel"}),
+        now
+      ]
+    )
+
+    for {attempt_id, attempt_number, provider_message_id} <- [
+          {ids.safe_attempt_id, 1, "cw_provider_opaque-123"},
+          {ids.raw_attempt_id, 2, "legacy-provider-message-id-sentinel"}
+        ] do
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        INSERT INTO #{quoted_relation(schema, "chimeway_delivery_attempts")}
+          (id, delivery_id, outcome, provider_response, inserted_at, attempt_number, error_class,
+           provider_message_id)
+        VALUES ($1::text::uuid, $2::text::uuid, 'failed', $3::jsonb, $4::text::timestamp, $5, 'temporary', $6)
+        """,
+        [
+          attempt_id,
+          ids.delivery_id,
+          ~s({"body":"legacy-provider-response-sentinel"}),
+          now,
+          attempt_number,
+          provider_message_id
+        ]
+      )
+    end
+
+    ids
+  end
+
+  defp privacy_safe_lifecycle_state(repo, schema, ids) do
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        SELECT e.id::text, e.notification_key, e.notification_version, e.tenant_id,
+               n.id::text, n.event_id::text, n.recipient_identity, n.recipient_type, n.tenant_id,
+               d.id::text, d.notification_id::text, d.channel, d.status, d.render_key, d.render_version,
+               d.tenant_id, d.actor_id,
+               a.id::text, a.delivery_id::text, a.outcome, a.attempt_number, a.error_class,
+               a.inserted_at
+        FROM #{quoted_relation(schema, "chimeway_events")} e
+        JOIN #{quoted_relation(schema, "chimeway_notifications")} n ON n.event_id = e.id
+        JOIN #{quoted_relation(schema, "chimeway_deliveries")} d ON d.notification_id = n.id
+        JOIN #{quoted_relation(schema, "chimeway_delivery_attempts")} a ON a.delivery_id = d.id
+        WHERE e.id = $1::text::uuid
+        ORDER BY a.attempt_number
+        """,
+        [ids.event_id]
+      )
+
+    rows
+  end
+
+  defp assert_privacy_safe_delivery_evidence!(repo, schema, ids) do
+    %{
+      rows: [
+        [
+          event_payload,
+          notification_metadata,
+          render_assigns,
+          render_channels,
+          orchestration,
+          delivery_metadata,
+          planning_context,
+          render_data
+        ]
+      ]
+    } =
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        SELECT e.payload::text, n.metadata::text, n.render_assigns::text, n.render_channels::text,
+               n.orchestration::text, d.metadata::text, d.planning_context::text, d.render_data::text
+        FROM #{quoted_relation(schema, "chimeway_events")} e
+        JOIN #{quoted_relation(schema, "chimeway_notifications")} n ON n.event_id = e.id
+        JOIN #{quoted_relation(schema, "chimeway_deliveries")} d ON d.notification_id = n.id
+        WHERE e.id = $1::text::uuid
+        """,
+        [ids.event_id]
+      )
+
+    assert Enum.all?(
+             [
+               event_payload,
+               notification_metadata,
+               render_assigns,
+               render_channels,
+               orchestration,
+               delivery_metadata,
+               planning_context,
+               render_data
+             ],
+             &(&1 == "{}")
+           )
+
+    %{rows: attempts} =
+      Ecto.Adapters.SQL.query!(
+        repo,
+        """
+        SELECT id::text, provider_response::text, provider_message_id
+        FROM #{quoted_relation(schema, "chimeway_delivery_attempts")}
+        WHERE delivery_id = $1::text::uuid
+        ORDER BY attempt_number
+        """,
+        [ids.delivery_id]
+      )
+
+    assert attempts == [
+             [ids.safe_attempt_id, "{}", "cw_provider_opaque-123"],
+             [ids.raw_attempt_id, "{}", nil]
+           ]
+  end
+
+  defp tenant_identity_state(repo, schema, target_version) do
+    %{
+      version: migration_version(repo, target_version),
+      rows: event_tenant_rows(repo, schema),
+      event_tenant_column: column_info(repo, schema, "chimeway_events", "tenant_id"),
+      notification_tenant_column:
+        column_info(repo, schema, "chimeway_notifications", "tenant_id"),
+      composite_index: regclass(repo, schema, "chimeway_events_tenant_id_idempotency_key_index"),
+      global_index: regclass(repo, schema, "chimeway_events_idempotency_key_index")
+    }
+  end
+
+  defp migration_version(repo, version) do
+    Ecto.Adapters.SQL.query!(repo, "SELECT version FROM schema_migrations WHERE version = $1", [
+      version
+    ]).rows
+  end
+
+  defp event_tenant_rows(repo, schema) do
+    repo
+    |> Ecto.Adapters.SQL.query!(
+      """
+      SELECT id::text, tenant_id, idempotency_key
+      FROM #{quoted_relation(schema, "chimeway_events")}
+      WHERE idempotency_key = 'cross-tenant-key'
+      ORDER BY id
+      """,
+      []
+    )
+    |> Map.fetch!(:rows)
+  end
+
+  defp quoted_relation(schema, table), do: ~s("#{schema}"."#{table}")
+
   defp assert_generated_objects!(repo, schema) do
     assert schema_exists?(repo, schema)
 
@@ -282,8 +1036,11 @@ defmodule Chimeway.MigrationContractTest do
       assert regclass(repo, schema, table), "expected #{schema}.#{table} to exist"
     end
 
+    refute regclass(repo, schema, "chimeway_events_idempotency_key_index"),
+           "template 032 must replace global idempotency uniqueness"
+
     for index <- [
-          "chimeway_events_idempotency_key_index",
+          "chimeway_events_tenant_id_idempotency_key_index",
           "chimeway_notifications_event_recipient_index",
           "chimeway_digest_buckets_identity_index",
           "chimeway_webhook_ingress_adapter_provider_event_uniq"
@@ -301,7 +1058,13 @@ defmodule Chimeway.MigrationContractTest do
              {true, "character varying"}
 
     assert column_info(repo, schema, "chimeway_deliveries", "tenant_id") ==
-             {false, "character varying"}
+             {true, "character varying"}
+
+    assert column_info(repo, schema, "chimeway_events", "tenant_id") ==
+             {true, "character varying"}
+
+    assert column_info(repo, schema, "chimeway_notifications", "tenant_id") ==
+             {true, "character varying"}
   end
 
   defp assert_generated_foreign_keys!(repo, schema) do
@@ -325,23 +1088,6 @@ defmodule Chimeway.MigrationContractTest do
              "chimeway_digest_buckets",
              "chimeway_digest_rules"
            )
-  end
-
-  defp refute_chimeway_objects!(repo, schema) do
-    count =
-      repo
-      |> Ecto.Adapters.SQL.query!(
-        """
-        SELECT count(*)
-        FROM information_schema.tables
-        WHERE table_schema = $1
-          AND table_name LIKE 'chimeway_%'
-        """,
-        [schema]
-      )
-      |> then(fn %{rows: [[count]]} -> count end)
-
-    assert count == 0, "expected rollback to remove generated Chimeway tables from #{schema}"
   end
 
   defp assert_migration_versions!(repo, expected) do

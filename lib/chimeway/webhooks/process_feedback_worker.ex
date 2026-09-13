@@ -3,7 +3,8 @@ if Code.ensure_loaded?(Oban) do
     @moduledoc """
     Oban worker that processes inbound webhook feedback from a durable ingress row.
 
-    Job args contain only `ingress_id` per Phase 33 D-01 (durable-spine-over-queue-archaeology).
+    Job args contain only `ingress_id`, keeping durable ingress state authoritative
+    instead of reconstructing truth from queue arguments.
     All correlation data — adapter identity, delivery_id, provider_message_id, normalized_status —
     is read from the persisted `Chimeway.Webhooks.Ingress` row rather than carried through
     Oban job args.
@@ -18,19 +19,20 @@ if Code.ensure_loaded?(Oban) do
     The `normalize_perform_result/1` table mirrors `WorkflowProgressionWorker.normalize_progress_result/1`
     so all understood-but-ignored outcomes collapse to `:ok` at the Oban queue boundary.
 
-    Threats covered:
-    - T-33-RETRY (DoS retry storm): stale lookups return `:ok` rather than raising.
-    - T-33-PII (worker-side): only `ingress_state`, `ignored_reason`, `processed_at` are written;
+    Security properties:
+    - Stale lookups return `:ok` rather than raising and causing a retry storm.
+    - Only `ingress_state`, `ignored_reason`, and `processed_at` are written;
       no raw job args or provider payload is persisted on the ingress row.
-    - T-33-AUTH-LEAK (worker-side): `String.to_existing_atom/1` used only on the bounded
+    - `String.to_existing_atom/1` is used only on the bounded
       `~w(succeeded bounced failed)` set after `canonicalize_status/1`. No `String.to_atom/1`.
-    - T-33-IDEMPOTENT: `:ignored` and `:processed` branches return `:ok` without re-applying
+    - `:ignored` and `:processed` branches return `:ok` without re-applying
       side effects, preventing double-attempt rows or double-signal emission on retries.
 
-    Backwards-compat shim (A6, deploy-safety):
+    Backwards-compatibility shim:
     Two extra `perform/1` heads handle the legacy `%{"delivery_id" => …}` and
-    `%{"provider_message_id" => …}` arg shapes for one release cycle, protecting in-flight
-    pre-Phase-33 Oban jobs. Drain the queue and remove these clauses in Phase 34 or v1.5.
+    `%{"provider_message_id" => …}` arg shapes, protecting in-flight jobs created by
+    older releases. Remove these clauses only in a planned breaking release after
+    operators have had an explicit queue-drain window.
     """
 
     use Oban.Worker, queue: :chimeway_delivery, max_attempts: 5
@@ -66,8 +68,7 @@ if Code.ensure_loaded?(Oban) do
       end
     end
 
-    # === Backwards-compat shim for in-flight pre-Phase-33 jobs (A6) ===
-    # Drain runbook: keep for one release cycle, then remove in Phase 34 / v1.5.
+    # === Backwards-compatibility shim for in-flight jobs from older releases ===
 
     def perform(%Oban.Job{args: %{"delivery_id" => _} = legacy_args}),
       do: perform_legacy_args(legacy_args)
@@ -135,7 +136,7 @@ if Code.ensure_loaded?(Oban) do
     defp normalize_perform_result({:error, %Ecto.Changeset{} = cs}), do: {:error, cs}
     defp normalize_perform_result({:error, reason}), do: {:error, reason}
 
-    # Status canonicalization stays minimal — Phase 34 owns broader vocabulary unification (D-14).
+    # Status canonicalization stays deliberately limited to the durable ingress vocabulary.
     defp canonicalize_status("delivered"), do: "succeeded"
     defp canonicalize_status(other), do: other
 
@@ -170,7 +171,7 @@ if Code.ensure_loaded?(Oban) do
     # === Legacy shim path (A6) — no ingress row write ===
     # Drives the same feedback pipeline as the new path but reads correlation keys
     # directly from legacy job args. Uses fetch_delivery/1 (NOT get_delivery!/1) so
-    # stale-id legacy paths are also safe-noop (T-33-RETRY for legacy path).
+    # stale-id legacy paths are also safe no-ops and cannot trigger retry storms.
     defp perform_legacy_args(%{"delivery_id" => delivery_id} = args) do
       case Deliveries.fetch_delivery(delivery_id) do
         {:ok, delivery} ->

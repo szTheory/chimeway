@@ -66,7 +66,8 @@ defmodule Chimeway.Digests.EmissionTest do
 
       assert emitted.channel == "email"
       assert emitted.orchestration_state == :ready
-      assert emitted.metadata["digest"] != nil
+      assert emitted.metadata["digest_rule_key"] == "digest.comment.fixed"
+      assert emitted.metadata["digest_rule_version"] == 1
 
       reloaded_bucket = Repo.get!(DigestBucket, bucket.id)
       assert reloaded_bucket.flush_state == :emitted
@@ -298,12 +299,14 @@ defmodule Chimeway.Digests.EmissionTest do
         notification_key: Map.fetch!(attrs, :notification_key),
         notification_version: 1,
         idempotency_key: "emit-#{System.unique_integer([:positive])}",
+        tenant_id: "default",
         payload: Map.get(attrs, :payload, %{"category" => "comment"})
       })
 
     {:ok, notification} =
       Repo.insert(%Notification{
         event_id: event.id,
+        tenant_id: event.tenant_id,
         recipient_identity: Map.fetch!(attrs, :recipient_id),
         recipient_type: "user",
         metadata: %{}

@@ -33,8 +33,13 @@ defmodule DemoHost.Adapters.EchoAdapter do
   # Maps "msg_id" the same way for an alternate fixture shape.
   # Maps "delivery_id" directly to delivery_id (FK — use only with a real delivery row).
   def resolve_delivery(%{"id" => id}) when is_binary(id), do: {:ok, %{provider_message_id: id}}
-  def resolve_delivery(%{"msg_id" => pid}) when is_binary(pid), do: {:ok, %{provider_message_id: pid}}
-  def resolve_delivery(%{"delivery_id" => did}) when is_binary(did), do: {:ok, %{delivery_id: did}}
+
+  def resolve_delivery(%{"msg_id" => pid}) when is_binary(pid),
+    do: {:ok, %{provider_message_id: pid}}
+
+  def resolve_delivery(%{"delivery_id" => did}) when is_binary(did),
+    do: {:ok, %{delivery_id: did}}
+
   def resolve_delivery(_), do: :error
 
   def normalize_feedback(%{"status" => "bounce"}), do: {:ok, %{status: :bounced}}

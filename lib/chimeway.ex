@@ -111,21 +111,36 @@ defmodule Chimeway do
   @doc """
   Marks a notification as seen for a specific recipient.
   """
-  def mark_seen(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    Inbox.mark_seen(notification_id, recipient_identity, at)
-  end
+  def mark_seen(notification_id, recipient_identity),
+    do: Inbox.mark_seen(notification_id, recipient_identity)
+
+  def mark_seen(notification_id, recipient_identity, opts) when is_list(opts),
+    do: Inbox.mark_seen(notification_id, recipient_identity, opts)
+
+  def mark_seen(notification_id, recipient_identity, %DateTime{} = at),
+    do: Inbox.mark_seen(notification_id, recipient_identity, at)
 
   @doc """
   Marks a notification as read for a specific recipient.
   """
-  def mark_read(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    Inbox.mark_read(notification_id, recipient_identity, at)
-  end
+  def mark_read(notification_id, recipient_identity),
+    do: Inbox.mark_read(notification_id, recipient_identity)
+
+  def mark_read(notification_id, recipient_identity, opts) when is_list(opts),
+    do: Inbox.mark_read(notification_id, recipient_identity, opts)
+
+  def mark_read(notification_id, recipient_identity, %DateTime{} = at),
+    do: Inbox.mark_read(notification_id, recipient_identity, at)
 
   @doc """
   Archives a notification for a specific recipient.
   """
-  def archive(notification_id, recipient_identity, at \\ DateTime.utc_now()) do
-    Inbox.archive(notification_id, recipient_identity, at)
-  end
+  def archive(notification_id, recipient_identity),
+    do: Inbox.archive(notification_id, recipient_identity)
+
+  def archive(notification_id, recipient_identity, opts) when is_list(opts),
+    do: Inbox.archive(notification_id, recipient_identity, opts)
+
+  def archive(notification_id, recipient_identity, %DateTime{} = at),
+    do: Inbox.archive(notification_id, recipient_identity, at)
 end

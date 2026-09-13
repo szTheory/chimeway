@@ -1,153 +1,236 @@
-# Domain Pitfalls: Chimeway v1.17 Adopter Proof Paths
+# Domain Pitfalls: Adopter Alpha Mobile Delivery Readiness
 
-**Domain:** Clean-room adopter proofs for an Elixir/Phoenix notification library
-**Researched:** 2026-08-08
-**Confidence:** MEDIUM — based on current Hex documentation plus direct inspection of Chimeway's package, guides, aliases, tests, and CI lanes.
+**Domain:** APNs-first, Crosswake-mediated mobile notification delivery for Adopter Alpha
+**Researched:** 2026-08-11
+**Confidence:** HIGH for APNs semantics and existing seams; MEDIUM for final host-specific credential wiring
 
 ## Critical Pitfalls
 
-### Pitfall 1: Calling a repository-path test a clean install
+### Pitfall 1: Raw APNs tokens leak through diagnostic paths
 
-**What goes wrong:** A proof uses `{:chimeway, path: ...}`, an in-repo demo host, or a pre-existing lockfile. It succeeds because it compiles the checkout, sees uncommitted files, and inherits the repository's dependency graph rather than what an adopter can obtain. The current Accrue lane is expressly path-backed (`ACCRUE_PATH` plus `CHIMEWAY_PATH=../..`), so it proves the pinned integration relationship, not an independent Chimeway installation.
+**What goes wrong:** A raw token is copied from the host-owned endpoint store into a Chimeway event, delivery metadata, attempt response, telemetry, log, trace, or proof artifact. It becomes durable sensitive data and can be replayed or correlated outside the host boundary.
 
-**Why it happens:** Path dependencies are convenient for tracer bullets and make debugging quick. They also mask missing package files, incorrect optional-dependency metadata, source-only configuration, and version-resolution errors.
+**Why it happens:** Existing `Chimeway.Trigger` redaction is shallow: it removes a small key list only at the top level ([trigger.ex](/Users/jon/projects/chimeway/lib/chimeway/trigger.ex:376)). Crosswake rejects top-level token keys, but public contract metadata remains a map ([contracts.ex](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex:607)).
 
-**Consequences:** Docs can be copyable only inside the maintainer checkout. A release may package successfully but fail for a new consumer. The green badge becomes a false adoption signal.
+**How to avoid:** Keep raw tokens in the Alpha host only. Chimeway accepts an opaque endpoint/binding reference and a non-reversible, host-derived fingerprint. Apply one recursive, key-normalizing, allowlist-oriented redactor before every persistence, telemetry, adapter-result, error, and evidence boundary. Store a compact response projection, never provider request/response bodies.
 
-**Prevention:** Create every proof host under a unique temporary directory outside the repository. Build and unpack the root tarball with `MIX_ENV=prod mix hex.build --unpack`; point the proof host only at that unpacked artifact (or a deliberately served local tarball), run a fresh `mix deps.get`, and assert its generated `mix.lock` has no repository paths. Do not reuse root/demo `deps`, `_build`, `MIX_HOME`, `HEX_HOME`, or lockfiles. A source-checkout lane may remain, but name it an integration-development lane, not clean-room installation.
+**Warning signs:** `token`, `device_token`, APNs path fragments, authorization values, or `inspect/1` output appear in JSONB, telemetry captures, test failure messages, or physical-proof output.
 
-**Detection:** Fail if `mix deps.tree`/lockfile contains `path`, the proof host is beneath the repository root, `CHIMEWAY_PATH` is set, or the proof source has access to repository-only fixture modules. Archive the artifact location and resolved Chimeway version in the CI log.
+**Phase to address:** Phase 97 — Mobile Binding Spine & Privacy Boundary.
 
-**Phase placement:** Phase 1 — build the reusable clean-room harness and the core notification-and-trace proof before claiming any partner proof.
+---
 
-### Pitfall 2: Treating tarball contents as executable package proof
+### Pitfall 2: Treating an APNs token as a permanent user or device identity
 
-**What goes wrong:** `mix verify.parity` and `mix hex.build --unpack` validate the whitelist but never compile, start, migrate, or run an external host against the packaged artifact. Chimeway already performs this valuable package-content check; it is necessary but not sufficient for v1.17.
+**What goes wrong:** Rotation, reinstall, restore, new device, or session change leaves stale targets active; one user’s multiple installations collapse into one send; a token is reused in an unintended scope.
 
-**Why it happens:** File parity is deterministic, fast, and release-adjacent, so it is easy to mistake for consumer coverage.
+**Why it happens:** APNs tokens are app-device addresses, may change, have variable length, and Apple directs apps to register at launch rather than cache locally. A user may own several devices. [Apple: registering with APNs](https://developer.apple.com/documentation/usernotifications/registering-your-app-with-apns)
 
-**Consequences:** Missing runtime config, excluded compile-time modules, undocumented Mix-task requirements, or an invalid optional dependency graph pass the package gate.
+**How to avoid:** Make installation—not account or raw token—the fan-out unit. Bind `(installation_ref, provider, platform, environment, topic identity)` to host-owned raw token storage, tenant/subject/session version, and lifecycle state. Rebinding a rotated token atomically supersedes the prior binding; logout, permission denial, revocation, and provider invalidation change eligibility.
 
-**Prevention:** Make the clean-room command a chain with independent checkpoints: package build/unpack -> new host resolution/compile -> host schema generation/migration -> supervision boot -> trigger -> durable delivery/trace assertion. Preserve the existing parity gate as a separate prerequisite, not the success condition.
+**Warning signs:** A fixed token length is validated; a device token is cached on the client; the endpoint key lacks installation/environment/topic; two active devices yield one target.
 
-**Detection:** A contract test should prove the clean-room command invokes both `hex.build --unpack` and the external host's actual `mix` tasks, then checks a persisted notification/delivery and `Chimeway.Traces.explain_delivery/1` outcome.
+**Phase to address:** Phase 97 — Mobile Binding Spine & Privacy Boundary.
 
-**Phase placement:** Phase 1.
+---
 
-### Pitfall 3: Accidentally testing a different release mode than Hex consumers
+### Pitfall 3: Global idempotency and channel uniqueness break tenant-safe fanout
 
-**What goes wrong:** The root project changes dependencies through environment variables (`CHIMEWAY_SKIP_*_DEP`, `ACCRUE_PATH`, `SIGRA_PATH`). Some are intentionally required for sibling development. A proof that inherits them can silently omit an optional integration or resolve a path override that does not exist in the published package. The source package build is explicitly made in `MIX_ENV=prod` to avoid a development-only Sigra override; the clean-room proof must respect that boundary.
+**What goes wrong:** An Alpha request key collides across tenants, or the current one-delivery-per-channel model collapses every installation into one `apns` delivery.
 
-**Prevention:** Start proofs with a small explicit allowlist of environment variables (`MIX_ENV`, isolated database URL, bounded temp paths); fail on every `CHIMEWAY_*_PATH`, `ACCRUE_PATH`, `*_SKIP_*`, and `HEX_*` override not intentionally required by the scenario. Record which package version and dependency versions the proof resolved. For partner proofs, distinguish "published Hex partner" from "pinned sibling source compatibility" in the command name and guide.
+**Why it happens:** Events have a global unique `idempotency_key` ([event migration](/Users/jon/projects/chimeway/priv/repo/migrations/20260424023200_create_chimeway_events.exs:15)), while deliveries are unique by `(notification_id, channel)` ([delivery.ex](/Users/jon/projects/chimeway/lib/chimeway/delivery.ex:84)). Neither represents target installation identity.
 
-**Detection:** Print sanitized dependency provenance (`mix deps.tree`) and assert expected package SCMs. Run the clean-room harness in a process whose environment is constructed rather than inherited.
+**How to avoid:** For host semantics that are tenant-scoped, migrate idempotency to tenant scope and ensure every binding, feedback, recovery, and explain query has an explicit tenant filter. Keep notification intent separate from per-installation target/child delivery records, uniquely keyed by notification, provider, environment, and opaque binding/endpoint reference. Retain Chimeway’s static storage prefix; do not introduce request-selected prefixes.
 
-**Phase placement:** Phase 1 for harness isolation; Phase 3 for Accrue's source-versus-published partner contract.
+**Warning signs:** Tenant A and B cannot submit the same request ID; an APNs channel has only one attempt for a user with several devices; recovery accepts an unscoped target ID.
 
-### Pitfall 4: Mistaking fake-provider success for transactional email E2E
+**Phase to address:** Phase 97 — Mobile Binding Spine & Privacy Boundary.
 
-**What goes wrong:** Mailglass tests use `Mailglass.Adapters.Fake` and fixture webhook credentials, which appropriately test adapter behavior without secrets. They do not prove that a real provider accepts mail, can reach the callback URL, or that production credentials/configuration are valid.
+---
 
-**Why it happens:** Live email and webhooks require accounts, secrets, DNS/tunnelling, and nondeterministic external services, which are inappropriate for ordinary PR CI.
+### Pitfall 4: Crash recovery creates duplicates or stranded provider calls
 
-**Consequences:** An adopter reads “end-to-end” as provider delivery verification, while the actual guarantee is a local transactional-email composition plus Chimeway trace result.
+**What goes wrong:** A process crashes between durable planning and sending, or after APNs accepts a request but before local success is written. Retrying blindly can duplicate a notification; declining recovery strands it.
 
-**Prevention:** Define the Mailglass tracer bullet as a deterministic local E2E: packaged Chimeway + host mailable + Mailglass fake/test adapter -> Chimeway delivery/attempt/trace assertion. State plainly that provider account, sender verification, Swoosh adapter, and public webhook ingress are host/Mailglass responsibilities. Keep live-provider smoke outside normal CI and only add it later with isolated credentials if it becomes a release requirement.
+**Why it happens:** Chimeway has recovery claims for old pending records ([deliveries.ex](/Users/jon/projects/chimeway/lib/chimeway/deliveries.ex:53)), but provider handoff and local attempt persistence remain separate effects. APNs acceptance is not device delivery.
 
-**Detection:** The guide's expected output must name the fake/test transport. A contract test rejects live-provider wording unless a separate secret-backed evidence lane exists; it also verifies that errors/tokens are not rendered in output.
+**How to avoid:** Use a durable outbox/claim lease per target, persist an attempt-start/claim before I/O, give each request a stable `apns-id`, then append a sanitized result. Recover expired claims under the same tenant/target identity. Surface an explicit ambiguous-handoff state rather than quietly claiming device delivery or retrying without policy.
 
-**Phase placement:** Phase 2 — Mailglass proof and its responsibility-boundary documentation.
+**Warning signs:** Provider calls occur with no preceding durable claim; worker restarts resend every pending row; traces label a 200 response as “delivered”; recovery records are not tenant-scoped.
 
-### Pitfall 5: Partner proof depends on an unversioned or mismatched external source
+**Phase to address:** Phase 97 — durable target/outbox model; Phase 98 — APNs attempt semantics.
 
-**What goes wrong:** Accrue's current CI checkout is pinned to a SHA, while `mix.exs` allows a Hex `~> 1.3` optional dependency and local execution replaces it with a path. A passing test can validate only that exact checkout, not the documented public-version range; conversely, a proof intending Hex use can secretly exercise source-only APIs.
+---
 
-**Prevention:** Choose and label one v1.17 claim: (a) packaged Chimeway plus a released Accrue constraint, or (b) a cross-repository compatibility proof at a recorded immutable Accrue SHA. Prefer (a) for the adopter path and retain (b) as maintainer compatibility evidence. The proof must expose both resolved versions and reject an unexpected path override. If released Accrue cannot supply the integration module, say so and keep the installer path out of adopter-facing instructions.
+### Pitfall 5: Status-only APNs handling retries permanent errors
 
-**Detection:** Assert the resolver selected the declared Hex package/version for the adopter proof; put the SHA, repository, and rationale in the sibling lane's CI summary. A test should fail when Accrue's required integration module is absent rather than conditionally skipping it with `Code.ensure_loaded?/1`.
+**What goes wrong:** The adapter retries invalid/unregistered endpoints, retries malformed payloads, invalidates good tokens due to a credential/configuration failure, or omits the APNs correlation needed to explain a failure.
 
-**Phase placement:** Phase 3 — Accrue clean-room proof, after the generic harness is proven in Phase 1.
+**Why it happens:** APNs gives a response for every POST, including `apns-id`, HTTP status, a JSON `reason`, and a 410 invalidation timestamp. Apple explicitly says not to retry `BadDeviceToken`, `DeviceTokenNotForTopic`, `Forbidden`, `ExpiredToken`, `Unregistered`, or `PayloadTooLarge`; 5xx can retry after 15 minutes with backoff, and `TooManyRequests` can retry with delay. [Apple: handling responses](https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns)
 
-### Pitfall 6: Passing because tests conditionally disappear or shared state leaks
+**How to avoid:** Classify by status *and* reason into accepted, retryable, permanent configuration, invalid-binding, and payload-invalid. Persist only allowlisted status/reason/timestamp/APNs ID. Invalidate just the matching binding for token-specific terminal responses; treat topic/environment/credential errors as configuration posture failures. Bound all retries by notification expiry.
 
-**What goes wrong:** Integration modules guarded by `Code.ensure_loaded?/1` can compile to no tests when an optional dependency fails to resolve. Shared Postgres names, Oban jobs, application config, and static fixture identities make a new external host proof order-dependent. Chimeway's existing suite already marks partner/config-mutating tests serial and explicitly notes database pollution hazards around journey data.
+**Warning signs:** A single generic `:temporary` APNs failure; missing APNs ID; retries for 400/410 reasons; token invalidation after a 403 credential error.
 
-**Prevention:** Make dependencies required by each tracer bullet and assert their modules/functions at the test entrypoint. Give every proof a distinct database/schema, migrate it from zero, clean it through Ecto rather than broad host cleanup, restore application configuration, and drain/perform the exact queue deterministically. Use unique idempotency keys, tenant IDs, recipient identities, and correlation IDs per run. Assert both the business outcome and the trace's causal fields.
+**Phase to address:** Phase 98 — APNs Transport, Attempt Classification & Retry.
 
-**Detection:** Run the proof twice in a row with random ExUnit ordering and a fresh database; a skipped scenario or an assertion against rows from a prior run is a failure. Emit the database name, test seed, and sanitized correlation ID to CI summaries.
+---
 
-**Phase placement:** Phase 1 harness; scenario-specific assertions in Phases 2 and 3.
+### Pitfall 6: Sandbox/production or app-topic identity is mixed
 
-### Pitfall 7: Unsafe host defaults hide the library/host boundary
+**What goes wrong:** Test endpoints are used for production, production credentials target a sandbox token, or a token for another bundle/topic is sent. Failures get misdiagnosed as user churn.
 
-**What goes wrong:** A guide assumes `localhost` Postgres credentials, a public schema, a repo named `MyApp.Repo`, a configured Oban instance, or that adding `Chimeway.Application` creates/migrates all required state. It may work in the demo and fail in an umbrella, production release, or separately configured Chimeway repo. New installs use the `"chimeway"` prefix; `prefix: false` is legacy compatibility only.
+**Why it happens:** APNs uses distinct development and production endpoints; token/topic/environment validity is coupled. Crosswake already includes environment and app identity posture in its binding contract ([contracts.ex](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex:11)). [Apple: APNs connections](https://developer.apple.com/documentation/usernotifications/establishing-a-connection-to-apns)
 
-**Prevention:** The proof host should declare all host-owned seams explicitly: Ecto repo/database, migration command and prefix, Chimeway runtime repo configuration, supervision ordering, dispatcher/Oban decision, tenancy, idempotency, URL generation, mailable mapping, credentials, and webhook routing. Use safe test-only values only inside the generated proof host; never show them as production defaults. Test both standard Phoenix app layout and only the umbrella behavior actually supported by the installer—do not claim all host shapes without a proof.
+**How to avoid:** Include environment and topic/bundle identity in target eligibility and uniqueness. Resolve endpoint, topic, and credentials only from a closed host config, never payload metadata. Suppress unknown/mismatched identity with a safe trace reason; treat it separately from token invalidation.
 
-**Detection:** Contract tests ensure docs use placeholders for host identifiers and include the required tenant/idempotency/prefix decisions. The clean-room host should fail with a clear diagnostic if repo, prefix, or required host module is missing.
+**Warning signs:** Environment exists only in config, not binding/attempt identity; a sandbox proof uses production credentials; `BadDeviceToken` causes account-level revocation.
 
-**Phase placement:** Phase 1 for core host contract; Phase 2 for Mailglass-owned config; Phase 3 for Accrue-owned config.
+**Phase to address:** Phase 98 — APNs Transport, Attempt Classification & Retry; Phase 100 — physical-device proof.
 
-## Moderate Pitfalls
+---
 
-### Pitfall 1: Documentation and executable proof take different branches
+### Pitfall 7: Collapse, offline storage, and retries change learning intent
 
-**What goes wrong:** The guide changes a dependency constraint, `render_key`, command, config key, prefix, or expected trace status, while CI keeps running a hand-written equivalent. Existing doc contracts protect selected marker strings, but marker checks cannot establish that the entire copied sequence executes.
+**What goes wrong:** Meaningful prompts disappear because they share a collapse ID, stale prompts arrive after they matter, or the product assumes APNs is an ordered durable offline queue.
 
-**Prevention:** Put the canonical command sequence in a checked-in script/fixture and have both CI and the guide refer to its exact name. Use a lightweight doc contract for links, responsibility wording, and command markers, but make the script's passed assertions the truth. Version expected outcomes deliberately rather than matching unstable raw output.
+**Why it happens:** APNs can reorder notifications; offline delivery is best-effort; storage is bounded by expiration. `apns-collapse-id` merges notifications and is limited to 64 bytes. [Apple: sending requests](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns)
 
-**Phase placement:** Phase 4 — adoption front door plus executable-doc contracts, after all three scenario commands exist.
+**How to avoid:** Use a collapse ID only for explicitly replaceable, current-state reminders. Namespace it by tenant/subject/installation with opaque IDs; never use content or raw identity. Give every Alpha notification an explicit semantic expiry and prevent Chimeway retries after that instant. Distinct pedagogical events do not share a collapse ID.
 
-### Pitfall 2: Adding full duplicate CI lanes erodes the signal
+**Warning signs:** One global reminder collapse key; `apns-expiration` omitted; delivery order assumed in UI/open logic; retries scheduled beyond the relevance window.
 
-**What goes wrong:** Each tracer bullet gets its own root build, dependency fetch, Postgres service, and cache, duplicating the already 13-lane `ci-gate`. The prior milestone recorded that compile-once caching is correct but does not meet its wall-clock target; indiscriminate lane growth makes adopter proof less reliable and more expensive.
+**Phase to address:** Phase 98 — APNs Transport, Attempt Classification & Retry.
 
-**Prevention:** Share one hermetic harness and one artifact-producing job; add only scenario steps that need different partner graphs. Key caches on the clean-room host manifest and package inputs, never on mutable temp output. Keep PR selection narrow (affected proof plus contracts), retain all proof paths on main/release confidence, and make skipped/conditional jobs visible rather than silently green.
+---
 
-**Phase placement:** Phase 4 — CI composition and gate wiring, with the product proof semantics already fixed.
+### Pitfall 8: Offline notification opens bypass fresh authorization
 
-### Pitfall 3: Leaking secrets or real recipient data in proof output
+**What goes wrong:** A locally queued tap navigates or invokes an action using stale tenant/session/route state, or duplicate taps replay a privileged intent.
 
-**What goes wrong:** Provider credentials, webhook basic-auth data, full email addresses, payload bodies, or database URLs enter logs, traces, fixture snapshots, or CI summaries while demonstrating explainability.
+**Why it happens:** Notification payloads are available while offline, but Crosswake’s resolver intentionally consumes intent before RouteGate evaluation ([resolver.ex](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/resolver.ex:20)). The client cannot establish current authorization offline.
 
-**Prevention:** Use deterministic synthetic identities and fake transports in normal CI; redact configuration and trace metadata before printing. Ensure proof assertions use structural fields (status, reason, selected adapter, correlation ID) rather than serialized payloads. A real-provider lane, if ever authorized, uses scoped secrets and no debug dump.
+**How to avoid:** Queue only opaque `open_ref`, binding reference, route/action refs, and display-safe state. On reconnect, atomically consume once and re-evaluate intent expiry, binding/session/tenant state, current manifest route/action allowlist, and RouteGate authorization. The queued item has no bearer authority. Denials stay generic.
 
-**Phase placement:** Phase 2 and Phase 4 (partner proof design and CI/log contracts).
+**Warning signs:** Offline tap opens a route immediately; payload contains a URL/session credential; replay is not recorded; the app uses payload authorization without backend resolution.
 
-## Minor Pitfalls
+**Phase to address:** Phase 99 — Secure Offline Open & Reauthorization.
 
-### Pitfall 1: Confusing installation proof with upgrade proof
+---
 
-**What goes wrong:** A fresh host success is taken as evidence that a legacy public-schema install, existing migrations, or an older package version can upgrade safely.
+### Pitfall 9: Manifest policy accidentally grants all notification actions
 
-**Prevention:** Keep the v1.17 tracer bullets explicitly new-install-only. Link the existing storage-prefix upgrade guide for migration/legacy concerns and avoid destructive cleanup in proof scripts.
+**What goes wrong:** A permissive or malformed `notification_open` value permits arbitrary action references.
 
-**Phase placement:** Phase 4 documentation boundary.
+**Why it happens:** Current resolver behavior denies `false`/`nil`, but any non-list configuration permits all actions; only `[actions: actions]` enforces an allowlist ([resolver.ex](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/resolver.ex:64)).
 
-### Pitfall 2: Copying volatile literal versions into multiple guides
+**How to avoid:** Alpha uses explicit per-route action allowlists only. Validate malformed manifest entries as default-deny before release; bind the action reference to the one-time intent server-side and retain generic denial messages.
 
-**What goes wrong:** root installation uses `~> 1.1` while partner pages contain their own Chimeway constraints; later releases change one but not another.
+**Warning signs:** `notification_open: true` appears in Alpha manifest; unrecognized action ref routes successfully; tests cover only allowed actions.
 
-**Prevention:** Derive or contract-test all adopter-facing Chimeway constraints against `mix.exs` major/minor, as the existing packaged README gate does. Keep partner versions justified by their compatibility proof.
+**Phase to address:** Phase 99 — Secure Offline Open & Reauthorization.
 
-**Phase placement:** Phase 4 documentation contracts.
+---
 
-## Phase-Specific Warnings
+### Pitfall 10: Simulator/twin evidence is promoted as real device proof
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| 1. Core clean-room harness + notification/trace | Path dependency and unpack-only false positives; inherited lock/cache/env; shared DB/Oban state | Fresh temp host, packed artifact, isolated environment and database, migration/boot/trigger/trace checkpoints, provenance assertions |
-| 2. Mailglass proof | Claiming fake adapter is live provider E2E; leaking callback credentials/payloads | Local deterministic Mailglass composition proof; responsibility split and explicit non-goals; redacted synthetic data |
-| 3. Accrue proof | CI-pinned sibling source is presented as a released-Accrue install; conditional module skip | Separate released-package adopter proof from pinned compatibility lane; resolve and assert exact package/version/module |
-| 4. Adoption front door, docs, CI | Docs/script drift, silently skipped jobs, CI fan-out/cost regression | Canonical executable scripts linked by guides, contract tests for wording/commands, visible gates and selective PR/main composition |
+**What goes wrong:** A happy-path mock proves local serialization but never validates signed-device entitlement, registration, host callback wiring, APNs environment, or privacy-safe evidence output.
+
+**Why it happens:** The Crosswake iOS rehearsal is intentionally advisory. The physical handoff says a simulator cannot satisfy the promotion gate and requires host-owned callbacks plus a signed trusted iPhone ([physical iPhone handoff](/Users/jon/projects/crosswake/guides/physical_iphone_handoff.md:1)).
+
+**How to avoid:** Use a deterministic APNs HTTP/2 twin in CI for status/reason/GOAWAY, crash, retry, binding, and offline-open matrices; reserve physical proof for a signed device and real backend evidence. The readiness report must expose only stable rule IDs.
+
+**Warning signs:** CI claims a device received a notification; proof artifacts include account/device/route/token values; a simulator result marks a release ready; host proof callbacks remain skeletons.
+
+**Phase to address:** Phase 100 — Hermetic Twin & Physical-iPhone Proof Gate.
+
+## Technical Debt Patterns
+
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Store the raw token in `provider_response` for debugging | Easy correlation | Durable secret leakage across traces, backups, and support exports | Never |
+| Add one `apns` channel record per notification | Fits current delivery uniqueness | Prevents per-installation fanout and independent lifecycle | Never for Alpha |
+| Retry all non-200 responses | Simple worker code | APNs throttling, stale bindings, duplicate sends | Never |
+| Treat APNs 200 as device delivery | Simple product metric | False delivery claims and misleading operator traces | Never |
+| Use a global collapse ID | Simple coalescing | Cross-user/tenant replacement and lost learning prompts | Never |
+| Simulator-only proof | Fast feedback | Misses signed-device and actual host wiring | Only as advisory preflight |
+
+## Integration Gotchas
+
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| APNs registration | Cache a fixed-size token locally | Register on launch, forward it securely, and treat it as variable-length opaque data. [Apple](https://developer.apple.com/documentation/usernotifications/registering-your-app-with-apns) |
+| APNs HTTP/2 | Ignore stream responses/GOAWAY and use one generic failure | Parse each response, `apns-id`, JSON reason, 410 timestamp, and GOAWAY reason; honor APNs concurrency/backoff guidance. [Apple](https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns) |
+| Crosswake contracts | Pass raw token as “metadata” to avoid forbidden keys | Pass only opaque references and validated evidence; recursive-redact every nested map. |
+| Crosswake resolver | Treat a local open as authorization | Queue offline evidence then consume and reauthorize after reconnect through resolver + RouteGate. |
+| Physical iPhone proof | Let safe readiness output stand in for proof | Fail closed until host callbacks and physical signed-device evidence exist. |
+
+## Performance Traps
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Per-target reconnect/JWT generation | Latency spikes, `TooManyProviderTokenUpdates`, socket churn | Long-lived HTTP/2 pool, bounded streams, shared provider token lifecycle | First burst or several concurrent target sends |
+| Unbounded retry fanout | Queue growth and repeated user prompts | Lease claims, reason-specific backoff, expiry cutoff, target-level dedupe | Any provider outage |
+| Full provider body persistence | Database growth and slow explain queries | Allowlisted compact diagnostics, external opaque evidence refs | Normal production usage |
+
+## Security Mistakes
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Raw tokens/endpoint paths in diagnostics | Endpoint compromise and privacy breach | Host-only raw storage, opaque refs, recursive redaction, output scans |
+| Binding mutation without tenant/session filter | Cross-tenant notification or revocation | Tenant/subject/session version in every eligibility and mutation query |
+| Offline payload grants route/action authority | Replay or access after logout/revocation | One-time server intent plus reconnect-time RouteGate authorization |
+| Configuration failure invalidates user binding | Loss of valid endpoints and denial of service | Separate configuration/app-identity posture from token invalidation |
+
+## UX Pitfalls
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| Stale reminder arrives after relevance window | Notification feels incorrect or intrusive | Explicit semantic expiry; no retry after expiry |
+| Different reminders collapse together | Missed meaningful practice cue | Collapse only replaceable current state |
+| Offline tap appears to work then silently fails | Confusion and trust loss | Show queued state, reconnect, then resolve with safe generic denial/recovery behavior |
+| One device’s invalid token disables all devices | User loses reminders everywhere | Independent binding lifecycle per installation |
+
+## "Looks Done But Isn't" Checklist
+
+- [ ] **Token binding:** Registration at launch, rotation, multi-installation fanout, logout/session revoke, provider invalidation, and stale pruning all have durable tests.
+- [ ] **APNs transport:** Every response reason, 410 timestamp, `apns-id`, GOAWAY reason, and expiry-bounded retry path is testable through the twin.
+- [ ] **Tenant safety:** Same idempotency key in two tenants, guessed target/binding IDs, recovery, feedback, and explain calls prove isolation.
+- [ ] **Privacy:** Recursive injected secrets are absent from database, logs, telemetry, trace APIs, test errors, and proof artifacts.
+- [ ] **Offline open:** Expired, replayed, revoked, tenant-switched, route-changed, and reauthorized reconnect scenarios are covered.
+- [ ] **Physical proof:** A signed trusted iPhone and implemented host callbacks produce sanitized evidence; simulator proof remains advisory.
+
+## Recovery Strategies
+
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| Raw diagnostic leakage | HIGH | Stop affected exports/log access, rotate where warranted, redact/migrate retained data, add regression fixtures and output scans. |
+| Stale/invalid endpoint fanout | MEDIUM | Classify stored provider feedback, invalidate only matching bindings, reacquire on next app launch, replay eligible unsent targets only. |
+| Environment/topic mismatch | MEDIUM | Disable affected config posture, correct host credential/topic routing, leave user bindings intact, run sandbox/production contract proof. |
+| Ambiguous post-handoff crash | MEDIUM | Preserve claim and APNs correlation, mark ambiguous, follow explicit retry policy within expiry, avoid falsely declaring delivery. |
+| Offline open replay | MEDIUM | Invalidate/consume open ref, deny safely, audit opaque correlation refs, require current auth on next intent. |
+
+## Pitfall-to-Phase Mapping
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Raw token leakage / shallow redaction | 97 | Nested-secret injections are absent from all durable and observable surfaces. |
+| Token lifecycle, tenant scope, per-installation fanout | 97 | Rotation/multi-device/cross-tenant/migration and crash-claim tests. |
+| APNs response, identity, collapse, expiry, retries | 98 | Scripted HTTP/2 twin covers statuses/reasons/GOAWAY/expiry and sanitized trace projection. |
+| Offline open replay and route/action authorization | 99 | Offline/reconnect/session-revoke/route-change/replay matrix is deterministic. |
+| Hermetic twin and signed physical proof | 100 | CI twin plus fail-closed physical-iPhone host proof with safe output scan. |
 
 ## Sources
 
-- [Hex `mix hex.build` v2.5.1](https://hex.hexdocs.pm/Mix.Tasks.Hex.Build.html) — MEDIUM: authoritative current package-build behavior; documents `--unpack` and exclusion of non-Hex path/git dependencies from package resolution.
-- [Hex `mix hex.publish` v2.5.1](https://hex.hexdocs.pm/Mix.Tasks.Hex.Publish.html) — MEDIUM: authoritative current dry-run and package-check behavior.
-- [Hex FAQ](https://hex.pm/docs/faq) — MEDIUM: current documentation publication and immutability constraints.
-- Project evidence: `mix.exs`, `.github/workflows/ci.yml`, installer/prefix contracts, and existing Golden Path/Mailglass/Accrue guides — MEDIUM: directly inspected current implementation and CI topology.
+- [Apple — Registering your app with APNs](https://developer.apple.com/documentation/usernotifications/registering-your-app-with-apns) — HIGH
+- [Apple — Sending notification requests to APNs](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns) — HIGH
+- [Apple — Handling notification responses from APNs](https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns) — HIGH
+- [Apple — Establishing a connection to APNs](https://developer.apple.com/documentation/usernotifications/establishing-a-connection-to-apns) — HIGH
+- [Crosswake Chimeway contracts](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/contracts.ex) — HIGH
+- [Crosswake Chimeway notification resolver](/Users/jon/projects/crosswake/packages/crosswake_chimeway/lib/crosswake/companions/chimeway/resolver.ex) — HIGH
+- [Crosswake physical iPhone handoff](/Users/jon/projects/crosswake/guides/physical_iphone_handoff.md) — HIGH
+- [Chimeway trigger redaction](/Users/jon/projects/chimeway/lib/chimeway/trigger.ex) and [delivery recovery](/Users/jon/projects/chimeway/lib/chimeway/deliveries.ex) — HIGH
 
-## Research Notes
-
-Context7 and the configured Brave-backed seam were unavailable in this run; conclusions about Hex behavior were cross-checked against current official Hex documentation via web search. No live provider or external partner repository behavior was asserted beyond Chimeway's pinned-CI configuration.
+---
+*Pitfalls research for: Adopter Alpha mobile delivery readiness*
+*Researched: 2026-08-11*

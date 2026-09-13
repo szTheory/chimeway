@@ -25,10 +25,11 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
     def version, do: 1
 
     @impl true
-    def recipients(_params), do: {:ok, [%{recipient_identity: "user:digest-held"}]}
+    def recipients(_params),
+      do: {:ok, [%{recipient_identity: "user:digest-held", recipient_ref: "cw_digest_held"}]}
 
     @impl true
-    def build(_params, recipient),
+    def build(_params, _recipient),
       do:
         {:ok,
          %{
@@ -37,8 +38,7 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
            "primary_action" => %{"label" => "test", "url" => "http://test"},
            "subject" => "test",
            "html_body" => "test",
-           "text_body" => "test",
-           recipient: recipient
+           "text_body" => "test"
          }}
 
     @impl true
@@ -145,13 +145,17 @@ defmodule Chimeway.Orchestration.DispatchGatingTest do
 
     assert_enqueued(
       worker: DeferredResumeWorker,
-      args: %{delivery_id: deferred_delivery.id},
+      args: %{delivery_id: deferred_delivery.id, tenant_id: deferred_delivery.tenant_id},
       scheduled_at: deferred_delivery.next_eligible_at
     )
 
     refute_enqueued(worker: ObanWorker, args: %{delivery_id: deferred_delivery.id})
     refute_enqueued(worker: ObanWorker, args: %{delivery_id: digest_delivery.id})
-    refute_enqueued(worker: DeferredResumeWorker, args: %{delivery_id: digest_delivery.id})
+
+    refute_enqueued(
+      worker: DeferredResumeWorker,
+      args: %{delivery_id: digest_delivery.id, tenant_id: digest_delivery.tenant_id}
+    )
 
     assert :ok = perform_job(ObanWorker, %{delivery_id: deferred_delivery.id})
     assert :ok = perform_job(ObanWorker, %{delivery_id: digest_delivery.id})
