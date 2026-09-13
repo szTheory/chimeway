@@ -97,7 +97,7 @@ status: complete
 
 ## Accomplishments
 
-- Replaced the canonical inbox guide's stale lifecycle copy with source-valid publisher, PubSub, secret, and authorization configuration; explicit core/package/host ownership; opaque recipient mapping; tenant isolation; and authoritative reconnect/reload semantics.
+- Replaced the canonical inbox guide's stale lifecycle copy with source-valid publisher, PubSub, secret, and authorization configuration; explicit core/package/host ownership; opaque recipient mapping; tenant isolation; authoritative reconnect/reload semantics; and executable exclusions for raw caller metadata and notification content examples.
 - Centralized every recursive release-contract teardown behind a closed-prefix, expanded-path, immediate-temp-child guard, with mutation tests proving refusal before broad gates ran.
 - Expanded `mix verify.inbox` to five cheapest-to-broadest evidence layers and mutation-locked its exact order, single hosted owner, and identical `pr-gate`/`ci-gate` result edges without editing CI topology.
 
@@ -113,7 +113,7 @@ status: complete
 ## Files Created/Modified
 
 - `guides/introduction/inbox-integration.md` — Canonical configuration, auth, ownership, isolation, authoritative reload, and non-implication lifecycle guidance.
-- `test/chimeway/doc_contract_test.exs` — Tagged positive, ordered, stale-semantics, and unsafe-identity documentation contracts.
+- `test/chimeway/doc_contract_test.exs` — Tagged positive, ordered, stale-semantics, unsafe-identity, raw-caller-metadata, and notification-content documentation contracts.
 - `test/chimeway/release_gate_contract_test.exs` — Owned-temp cleanup implementation and refusal tests plus exact alias/job/aggregate mutation contracts.
 - `mix.exs` — Existing `verify.inbox` alias expanded to the five ordered warning-strict evidence layers.
 - `MAINTAINING.md` — Complete pre-ship inbox evidence inventory and equal aggregate-consumer statement.
@@ -130,11 +130,12 @@ status: complete
 - Task 1 recorded valid RED evidence from 3 intended documentation-contract failures before implementation; the final tagged guide contract passed 28 tests with 0 failures.
 - Task 2 recorded valid RED evidence from 3 intended missing-guard/refusal failures before implementation. Its focused safety contract passed and commit `6e2ae93d` landed before any broad release or aggregate command was run.
 - Task 3 recorded valid RED evidence from 2 intended alias/maintainer parity failures before implementation; the final focused release contract passed 4 tests with 0 failures.
+- Post-plan security closure recorded RED evidence from a temporary guide mutation that matched both unsafe data classes; removing the mutation returned the expanded tagged guide contract to GREEN.
 - All RED evidence records passed `gsd-tools check tdd-red-evidence`; RED and GREEN changes were committed separately for every task.
 
 ## Verification
 
-- `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --only inbox_gate_parity --warnings-as-errors` — 28 tests, 0 failures.
+- `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs --only inbox_gate_parity --warnings-as-errors` — 40 tests, 0 failures.
 - `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --only release_cleanup_safety --warnings-as-errors` — 3 tests, 0 failures.
 - `scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/release_gate_contract_test.exs --only inbox_gate_parity --warnings-as-errors` — 4 tests, 0 failures.
 - `mix verify.inbox` — 74 root tests, 24 package tests, 9 admin tests, 32 tagged documentation/release tests, and 5 demo-host tests; 0 failures.
@@ -142,7 +143,7 @@ status: complete
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+- Post-plan security verification found that T-107-05's opaque-recipient negative contract did not also reject raw caller-metadata and notification-content copy-paste forms. The focused contract now rejects both classes; the canonical guide required no content change.
 
 ## Issues Encountered
 

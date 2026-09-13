@@ -1231,6 +1231,24 @@ defmodule Chimeway.DocContractTest do
   describe "inbox integration guide ownership and lifecycle parity (DOCS-03)" do
     @describetag :inbox_gate_parity
 
+    @unsafe_inbox_caller_metadata_forms [
+      "caller_metadata: session",
+      "caller_metadata: params",
+      ~s("caller_metadata" =>),
+      "metadata: session",
+      "metadata: params"
+    ]
+
+    @unsafe_inbox_notification_content_forms [
+      "notification_content:",
+      ~s("notification_content" =>),
+      "render_assigns:",
+      ~s("render_assigns" =>),
+      "content: notification.",
+      ~s("subject" => notification.),
+      ~s("body" => notification.)
+    ]
+
     setup do
       content = File.read!(@inbox_integration_guide)
       %{content: content}
@@ -1317,6 +1335,20 @@ defmodule Chimeway.DocContractTest do
 
       refute Regex.match?(~r/["`]user:[^"`\s]+@[^"`\s]+["`]/, content),
              "inbox guide must not use raw email-shaped recipient identities"
+    end
+
+    for forbidden <- @unsafe_inbox_caller_metadata_forms do
+      test "forbids raw caller metadata form #{forbidden}", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "inbox guide must not publish raw caller metadata via #{inspect(unquote(forbidden))}"
+      end
+    end
+
+    for forbidden <- @unsafe_inbox_notification_content_forms do
+      test "forbids raw notification content form #{forbidden}", %{content: content} do
+        refute String.contains?(content, unquote(forbidden)),
+               "inbox guide must not publish notification content via #{inspect(unquote(forbidden))}"
+      end
     end
   end
 
