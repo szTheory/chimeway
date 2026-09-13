@@ -49,6 +49,12 @@ defmodule Chimeway.ReleaseGateContractTest do
     {"verify.sigra", "verify_sigra", "mix verify.sigra"},
     {"verify.admin", "verify_admin", "mix verify.admin"}
   ]
+  @owned_temp_prefixes [
+    "chimeway_release_gate_",
+    "chimeway_release_archive_",
+    "chimeway_adoption_security_",
+    "chimeway_adoption_run_"
+  ]
 
   describe "release-contract recursive cleanup safety" do
     @describetag :release_cleanup_safety
@@ -101,8 +107,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       source = File.read!(__ENV__.file)
 
       assert source =~ "def remove_owned_temp_dir!(directory)"
-      assert Regex.scan(~r/File\.rm_rf!?/, source) == [["File.rm_rf!"]]
-      refute source =~ "File.rm_rf!(output)"
+      assert Regex.scan(~r/File\.rm_rf!?/, source) == [[Enum.join(["File", "rm_rf!"], ".")]]
+      refute source =~ "File." <> "rm_rf!(output)"
       refute Regex.match?(~r/File\.rm_rf!?\(Path\.dirname\(/, source)
     end
   end
@@ -993,7 +999,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   describe "unpacked Hex package artifact truth (TRUTH-01/TRUTH-02/TRUTH-03, D-08)" do
     setup do
       output = build_unpacked_package!()
-      on_exit(fn -> File.rm_rf(output) end)
+      on_exit(fn -> remove_owned_temp_dir!(output) end)
       %{output: output, root: unpacked_package_root!(output)}
     end
 
@@ -1086,7 +1092,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     # every invocation unique filesystem and database identities.
     setup do
       output = build_unpacked_package!()
-      on_exit(fn -> File.rm_rf(output) end)
+      on_exit(fn -> remove_owned_temp_dir!(output) end)
       %{root: unpacked_package_root!(output)}
     end
 
@@ -1894,10 +1900,11 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag timeout: 1_200_000
     test "runs only from a verified archive with package-owned proof support" do
       archive = build_package_archive!()
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
       digest = sha256!(archive)
       unpacked = build_unpacked_package!()
-      on_exit(fn -> File.rm_rf(unpacked) end)
+      on_exit(fn -> remove_owned_temp_dir!(unpacked) end)
       root = unpacked_package_root!(unpacked)
       metadata = File.read!(Path.join(root, "hex_metadata.config"))
 
@@ -1931,7 +1938,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag timeout: 600_000
     test "rejects malformed archive provenance without a proof line" do
       archive = build_package_archive!()
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       altered = Path.join(Path.dirname(archive), "altered.tar")
       File.cp!(archive, altered)
@@ -1965,7 +1973,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       archive = build_package_archive!()
       malformed = Path.join(Path.dirname(archive), "malformed.tar")
       File.write!(malformed, "not a Hex package archive")
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       for {path, digest} <- [
             {archive, String.duplicate("0", 64)},
@@ -2031,9 +2040,10 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     @tag :adoption_archive_security
     test "rejects a valid-digest symbolic-link directory before it can escape scratch" do
-      outside = temporary_path!("outside-created.txt")
+      outside_directory = owned_temp_directory!("chimeway_adoption_security_")
+      outside = Path.join(outside_directory, "outside-created.txt")
       File.write!(outside, "unchanged")
-      on_exit(fn -> File.rm(outside) end)
+      on_exit(fn -> remove_owned_temp_dir!(outside_directory) end)
 
       archive =
         malicious_package_archive!([
@@ -2041,7 +2051,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"escape/payload.txt", ?0, "", "owned"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:error, _} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2056,14 +2067,11 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     @tag :adoption_archive_security
     test "rejects a required-file symbolic link before validation can read or load its target" do
-      outside = temporary_path!("outside-marker.ex")
-      marker = temporary_path!("outside-marker.txt")
+      outside_directory = owned_temp_directory!("chimeway_adoption_security_")
+      outside = Path.join(outside_directory, "outside-marker.ex")
+      marker = Path.join(outside_directory, "outside-marker.txt")
       File.write!(outside, "File.write!(#{inspect(marker)}, \"loaded\")")
-
-      on_exit(fn ->
-        File.rm(outside)
-        File.rm(marker)
-      end)
+      on_exit(fn -> remove_owned_temp_dir!(outside_directory) end)
 
       archive =
         malicious_package_archive!([
@@ -2071,7 +2079,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:error, _} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2093,7 +2102,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2113,7 +2123,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :adoption_archive_security
     test "rejects correctly digested hostile metadata without interning atoms or invoking its callback" do
       warm_archive = malicious_package_archive!(valid_proof_entries())
-      on_exit(fn -> File.rm_rf(Path.dirname(warm_archive)) end)
+      warm_archive_directory = Path.dirname(warm_archive)
+      on_exit(fn -> remove_owned_temp_dir!(warm_archive_directory) end)
 
       assert {:ok, :warmed} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2132,7 +2143,8 @@ defmodule Chimeway.ReleaseGateContractTest do
         valid_proof_entries()
         |> malicious_package_archive!(metadata)
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       before_count = :erlang.system_info(:atom_count)
 
@@ -2160,7 +2172,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           ~s({<<"labels">>, [<<"atom_looking_value">>, <<"still_binary">>]}.\n)
 
       archive = malicious_package_archive!(valid_proof_entries(), metadata)
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2189,7 +2202,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       for suffix <- invalid_metadata do
         archive = malicious_package_archive!(valid_proof_entries(), default_metadata() <> suffix)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, "package metadata is malformed"} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2203,7 +2217,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :adoption_archive_security
     test "validates a freshly built Hex archive through the metadata parser exactly once" do
       archive = build_package_archive!()
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2253,7 +2268,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           ~s({<<"nested">>, #{nested_metadata_value(30)}}.\n)
 
       accepted_archive = malicious_package_archive!(valid_proof_entries(), accepted_metadata)
-      on_exit(fn -> File.rm_rf(Path.dirname(accepted_archive)) end)
+      accepted_archive_directory = Path.dirname(accepted_archive)
+      on_exit(fn -> remove_owned_temp_dir!(accepted_archive_directory) end)
 
       assert {:ok, :nested_boundary} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2267,7 +2283,8 @@ defmodule Chimeway.ReleaseGateContractTest do
             metadata_with_files(4_097)
           ] do
         archive = malicious_package_archive!(valid_proof_entries(), metadata)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, "package metadata is malformed"} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2280,13 +2297,15 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     @tag :adoption_archive_security
     test "rejects hard links, devices, FIFOs, and extension records before callback or scratch writes" do
-      outside = temporary_path!("outside-special.txt")
+      outside_directory = owned_temp_directory!("chimeway_adoption_security_")
+      outside = Path.join(outside_directory, "outside-special.txt")
       File.write!(outside, "unchanged")
-      on_exit(fn -> File.rm(outside) end)
+      on_exit(fn -> remove_owned_temp_dir!(outside_directory) end)
 
       for type <- @unsupported_tar_types do
         archive = malicious_package_archive!([{"special-#{type}", type, outside, <<>>}])
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2311,7 +2330,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"priv/adoption_proof/artifact_consumer_fixture.ex", ?0, "", "# fixture\n"}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(valid)) end)
+      valid_directory = Path.dirname(valid)
+      on_exit(fn -> remove_owned_temp_dir!(valid_directory) end)
 
       assert {:ok, :valid_directory_tree} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2327,7 +2347,8 @@ defmodule Chimeway.ReleaseGateContractTest do
             [{"/mix.exs", ?0, "", "outside"}]
           ] do
         archive = malicious_package_archive!(entries)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2346,7 +2367,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       for contents <- [truncated, invalid_checksum] do
         archive = malicious_package_archive_from_contents!(contents)
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2380,10 +2402,12 @@ defmodule Chimeway.ReleaseGateContractTest do
       accepted_digest = sha256!(archive_a)
       replacement_digest = sha256!(replacement)
       parent = self()
+      archive_a_directory = Path.dirname(archive_a)
+      archive_b_directory = Path.dirname(archive_b)
 
       on_exit(fn ->
-        File.rm_rf(Path.dirname(archive_a))
-        File.rm_rf(Path.dirname(archive_b))
+        remove_owned_temp_dir!(archive_a_directory)
+        remove_owned_temp_dir!(archive_b_directory)
       end)
 
       validator =
@@ -2448,7 +2472,6 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :adoption_archive_limits
     test "fails closed one byte or member past every archive budget before the callback" do
       outer = malicious_package_archive!([])
-      on_exit(fn -> File.rm_rf(Path.dirname(outer)) end)
       File.write!(outer, :binary.copy(<<0>>, 32 * 1024 * 1024 + 1), [:append])
 
       compressed =
@@ -2466,7 +2489,8 @@ defmodule Chimeway.ReleaseGateContractTest do
         ])
 
       for archive <- [outer, compressed, expanded, member_count, member_size] do
-        on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+        archive_directory = Path.dirname(archive)
+        on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
         assert {:error, _} =
                  Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2489,7 +2513,8 @@ defmodule Chimeway.ReleaseGateContractTest do
           {"large.bin", ?0, "", :binary.copy(<<0>>, 8 * 1024 * 1024)}
         ])
 
-      on_exit(fn -> File.rm_rf(Path.dirname(archive)) end)
+      archive_directory = Path.dirname(archive)
+      on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
 
       assert {:ok, :validated} =
                Chimeway.AdoptionProof.ArtifactArchive.with_validated_archive(
@@ -2871,6 +2896,43 @@ defmodule Chimeway.ReleaseGateContractTest do
     def version, do: 1
   end
 
+  @doc false
+  def owned_temp_directory!(prefix) when prefix in @owned_temp_prefixes do
+    directory =
+      Path.join(
+        Path.expand(System.tmp_dir!()),
+        "#{prefix}#{System.unique_integer([:positive])}"
+      )
+
+    File.mkdir!(directory)
+    directory
+  end
+
+  def owned_temp_directory!(_prefix) do
+    raise ArgumentError, "refusing to create an unowned temp directory"
+  end
+
+  @doc false
+  def remove_owned_temp_dir!(directory) when is_binary(directory) do
+    temp_root = Path.expand(System.tmp_dir!())
+    directory = Path.expand(directory)
+    basename = Path.basename(directory)
+
+    owned_prefix? = Enum.any?(@owned_temp_prefixes, &String.starts_with?(basename, &1))
+    owned_directory? = match?({:ok, %File.Stat{type: :directory}}, File.lstat(directory))
+
+    if directory != temp_root and Path.dirname(directory) == temp_root and owned_prefix? and
+         owned_directory? do
+      File.rm_rf!(directory)
+    else
+      raise ArgumentError, "refusing recursive cleanup outside an owned temp directory"
+    end
+  end
+
+  def remove_owned_temp_dir!(_directory) do
+    raise ArgumentError, "refusing recursive cleanup outside an owned temp directory"
+  end
+
   # Builds the default root Hex package into a unique temp dir and unpacks it.
   # Runs in a separate OS process under MIX_ENV=prod: the prod package build omits
   # the dev/test-only Sigra override, so `mix hex.build` succeeds exactly as it does
@@ -2878,8 +2940,6 @@ defmodule Chimeway.ReleaseGateContractTest do
   defp build_unpacked_package! do
     output =
       Path.join(System.tmp_dir!(), "chimeway_release_gate_#{System.unique_integer([:positive])}")
-
-    File.rm_rf!(output)
 
     {out, status} =
       System.cmd("mix", ["hex.build", "--unpack", "--output", output],
@@ -2894,13 +2954,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp build_package_archive! do
-    output =
-      Path.join(
-        System.tmp_dir!(),
-        "chimeway_release_archive_#{System.unique_integer([:positive])}"
-      )
-
-    File.mkdir_p!(output)
+    output = owned_temp_directory!("chimeway_release_archive_")
     archive = Path.join(output, "chimeway.tar")
 
     {out, status} =
@@ -2924,8 +2978,7 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp package_archive_from_compressed_contents!(contents, metadata \\ default_metadata()) do
-    output = temporary_path!("archive")
-    File.mkdir_p!(output)
+    output = owned_temp_directory!("chimeway_adoption_security_")
     archive = Path.join(output, "malicious.tar")
 
     File.write!(
@@ -3006,13 +3059,6 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   defp tar_checksum(value) do
     value |> Integer.to_string(8) |> String.pad_leading(6, "0") |> Kernel.<>(<<0, 32>>)
-  end
-
-  defp temporary_path!(suffix) do
-    Path.join(
-      System.tmp_dir!(),
-      "chimeway_adoption_security_#{System.unique_integer([:positive])}_#{suffix}"
-    )
   end
 
   defp packaged_accrue_cli(root, archive, digest) do
@@ -3349,14 +3395,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   end
 
   defp write_adoption_run_fixture!(payload) do
-    directory =
-      Path.join(
-        System.tmp_dir!(),
-        "chimeway_adoption_run_#{System.unique_integer([:positive])}"
-      )
-
-    File.mkdir_p!(directory)
-    on_exit(fn -> File.rm_rf!(directory) end)
+    directory = owned_temp_directory!("chimeway_adoption_run_")
+    on_exit(fn -> remove_owned_temp_dir!(directory) end)
 
     path = Path.join(directory, "run.json")
     File.write!(path, Jason.encode!(payload))
