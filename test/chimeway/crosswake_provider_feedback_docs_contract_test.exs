@@ -50,6 +50,63 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     assert_received :focused_test_executed
   end
 
+  test "rejects unexpected command arguments without emitting checked content" do
+    output =
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert catch_exit(CrosswakeProviderFeedbackDocs.run(["recipient@example.test"])) ==
+                 {:shutdown, 64}
+      end)
+
+    assert output == ""
+  end
+
+  test "requires canonical one-line lowercase selector bytes", %{opts: opts} do
+    docs_authority = Keyword.fetch!(opts, :docs_authority)
+
+    for invalid <- [
+          @docs_sha,
+          @docs_sha <> "\n\n",
+          String.upcase(@docs_sha) <> "\n"
+        ] do
+      File.write!(docs_authority, invalid)
+      assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
+      refute_received :focused_test_executed
+    end
+  end
+
+  test "rejects a checkout at the wrong revision or with tracked changes", %{opts: opts} do
+    wrong_sha = String.duplicate("b", 40)
+
+    for command <- [
+          fn
+            "git", ["rev-parse", "HEAD"], _opts -> {wrong_sha <> "\n", 0}
+            "git", ["status", "--porcelain"], _opts -> {"", 0}
+          end,
+          fn
+            "git", ["rev-parse", "HEAD"], _opts -> {@docs_sha <> "\n", 0}
+            "git", ["status", "--porcelain"], _opts -> {" M examples/phoenix_host/README.md\n", 0}
+          end
+        ] do
+      assert :error =
+               CrosswakeProviderFeedbackDocs.verify(Keyword.put(opts, :command, command))
+
+      refute_received :focused_test_executed
+    end
+  end
+
+  test "cleans the detached checkout when focused execution fails", %{root: root, opts: opts} do
+    caller = self()
+
+    opts =
+      Keyword.merge(opts,
+        focused_test: fn ^root -> :error end,
+        cleanup: fn ^root -> send(caller, :checkout_cleaned) end
+      )
+
+    assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
+    assert_received :checkout_cleaned
+  end
+
   test "rejects the nonexistent conversion API", %{root: root, opts: opts} do
     mutate!(root, readme_path(), fn source ->
       String.replace(
