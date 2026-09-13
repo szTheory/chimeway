@@ -1226,6 +1226,94 @@ defmodule Chimeway.DocContractTest do
     end
   end
 
+  describe "inbox integration guide ownership and lifecycle parity (DOCS-03)" do
+    @describetag :inbox_gate_parity
+
+    setup do
+      content = File.read!(@inbox_integration_guide)
+      %{content: content}
+    end
+
+    test "copies the complete publisher, PubSub, secret, and authorization shape", %{
+      content: content
+    } do
+      required = [
+        "inbox_change_publisher: ChimewayInbox.PubSubPublisher",
+        "pubsub_server: MyApp.PubSub",
+        "topic_secret:",
+        "high-entropy secret",
+        "auth_module: MyApp.InboxAuth",
+        "def current_recipient(session, _context)",
+        "def current_tenant(session, _context)",
+        "cw_recipient_",
+        "{:error, :unauthorized}"
+      ]
+
+      for item <- required do
+        assert String.contains?(content, item),
+               "inbox guide must include the source-valid configuration/auth item #{inspect(item)}"
+      end
+    end
+
+    test "assigns core, package, and host ownership before lifecycle semantics", %{
+      content: content
+    } do
+      ordered = [
+        "## Responsibility split",
+        "Chimeway owns",
+        "`chimeway_inbox` owns",
+        "The host owns",
+        "tenant membership",
+        "recipient mapping",
+        "secret custody",
+        "## 6. Bell UI surface",
+        "### Lifecycle semantics"
+      ]
+
+      indices =
+        Enum.map(ordered, fn item ->
+          case :binary.match(content, item) do
+            {index, _} -> index
+            :nomatch -> flunk("inbox guide must include ownership/lifecycle item #{inspect(item)}")
+          end
+        end)
+
+      assert indices == Enum.sort(indices),
+             "inbox guide must establish ownership before lifecycle semantics"
+
+      assert String.contains?(content, "currently authorized tenant")
+      assert String.contains?(content, "currently authorized recipient")
+      assert String.contains?(content, "authoritative reload")
+    end
+
+    test "keeps lifecycle facts distinct and rejects stale or raw-recipient guidance", %{
+      content: content
+    } do
+      for item <- [
+            "| Durable arrival |",
+            "| Inbox seen |",
+            "| Inbox read |",
+            "| Inbox archive |",
+            "| Provider handoff |",
+            "| Visible presentation |",
+            "| Protected activation |",
+            "| Engagement |",
+            "lossy reload hints",
+            "does not imply",
+            "mobile-adoption-operations.md"
+          ] do
+        assert String.contains?(content, item),
+               "inbox guide must distinguish lifecycle boundary #{inspect(item)}"
+      end
+
+      refute String.contains?(content, "mark_seen is not wired")
+      refute String.contains?(content, "headless — not exposed")
+      refute String.contains?(content, "Deferred in v1.9")
+      refute Regex.match?(~r/["`]user:[^"`\s]+@[^"`\s]+["`]/, content),
+             "inbox guide must not use raw email-shaped recipient identities"
+    end
+  end
+
   @threadline_integration_guide Path.expand(
                                   "../../guides/introduction/threadline-integration.md",
                                   __DIR__
