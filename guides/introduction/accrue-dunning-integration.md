@@ -4,7 +4,7 @@ This guide is the canonical adoption path for composing Chimeway with [Accrue](h
 
 For copy-paste notifier and engine config sections, see the [Accrue dunning blueprint](../recipes/accrue-dunning-blueprint.md). This guide owns the end-to-end path from dependency to verification.
 
-## Responsibility split (SEED-003)
+## Responsibility split
 
 **Chimeway orchestrates the when and why:** durable notification lifecycle, workflow progression (Email 1 → 48h wait → Email 2 escalation), suppression and preference gates, idempotency, Outcome Signal routing, and operator traces you can search at `/admin/chimeway`.
 
@@ -128,7 +128,7 @@ Accrue owns both event boundaries: `invoice.payment_failed` enters its campaign,
 CHIMEWAY_ACCRUE_PROOF provenance=released_package accrue_version=1.5.0 chimeway_version=1.0.0 workflow_key=accrue.dunning workflow_version=1 waiting_state=waiting waiting_reason=waiting_for_step_progression outcome_event=invoice.paid outcome_state=active outcome_reason=signal_received timeline_reasons=waiting_for_step_progression,signal_received
 ```
 
-The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed. It does not mean the workflow entered a terminal state. The Fake processor coverage is deterministic local orchestration only; live provider credentials, webhooks, and Phase 96 CI/front-door work remain outside this proof.
+The record deliberately contains only stable workflow, lifecycle, and provenance facts; it contains no identifiers, billing details, recipients, payloads, metadata, credentials, raw structs, or database results. `active / signal_received` means the outcome signal ended the waiting escalation path; it does not mean the workflow completed. It does not mean the workflow entered a terminal state. The Fake processor coverage is deterministic local orchestration only; live provider credentials, webhooks, and release/front-door verification remain outside this proof.
 
 ### Provenance labels
 
@@ -144,7 +144,7 @@ After changing this repository's integration code, maintainers can run the named
 ACCRUE_PATH=../accrue/accrue mix verify.accrue --warnings-as-errors
 ```
 
-`mix verify.accrue`, `ACCRUE_PATH`, the sibling checkout, and CI checkout are repository-maintainer regression mechanics. They exercise ECOS-06 lifecycle proof at the Chimeway root and the DEMO-07 demo host proof; they are not independent packaged-consumer provenance.
+`mix verify.accrue`, `ACCRUE_PATH`, the sibling checkout, and CI checkout are repository-maintainer regression mechanics. They exercise the lifecycle proof at the Chimeway root and the demo host proof; they are not independent packaged-consumer provenance.
 
 Seed the demo host dunning scenario:
 

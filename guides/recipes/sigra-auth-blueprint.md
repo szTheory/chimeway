@@ -11,7 +11,7 @@
 - [Golden Path](../introduction/golden-path.md) — install, migrations, and your first `Chimeway.trigger/3`
 - Sigra sibling checkout for local dev: set `SIGRA_PATH` to your Sigra repo (optional path dep in host `mix.exs`, mirroring Chimeway root and demo host)
 
-## Responsibility split (SEED-003)
+## Responsibility split
 
 **Chimeway orchestrates the when and why:** durable notification lifecycle, suppression and preference gates, idempotency, and operator traces you can search at `/admin/chimeway`.
 
@@ -55,7 +55,7 @@ def build(%{user_id: user_id, email: email, correlation_id: correlation_id}, _re
 end
 ```
 
-**Auth event shape (SEED-003):** Sigra emits the auth event with identifier-only params (`user_id`, `email`, `correlation_id`). Raw tokens, confirmation codes, and magic-link URLs are Sigra's domain — they must not appear as `Chimeway.trigger/3` params.
+**Auth event shape:** Sigra emits the auth event with identifier-only params (`user_id`, `email`, `correlation_id`). Raw tokens, confirmation codes, and magic-link URLs are Sigra's domain — they must not appear as `Chimeway.trigger/3` params.
 
 **Trigger options:** When Sigra dispatches an auth event, `Sigra.Integrations.Chimeway` calls `Chimeway.trigger/3` with `idempotency_key` and `tenant_id` (user id) — both required for durable deduplication and tenant-scoped traces.
 
@@ -97,18 +97,18 @@ Both dispatch functions accept identifier-only params — `user_id`, `email`, `c
 ## Runnable demo
 
 - **Seeds:** `DemoHost.Seeds.seed_sigra_auth/0` — standalone API; not invoked from `DemoHost.Seeds.run/0`
-- **Verification:** `SIGRA_PATH=../sigra mix verify.sigra --warnings-as-errors` (root ECOS-09 lifecycle + demo host DEMO-10 proof)
+- **Verification:** `SIGRA_PATH=../sigra mix verify.sigra --warnings-as-errors` (root lifecycle + demo host proof)
 - **Operator trace:** Search `/admin/chimeway` by user email to inspect `sigra.auth.magic_link` and `sigra.auth.confirmation_code` delivery attempts and auth-event correlation
 
 Demo host uses the Logger email adapter for Sigra lane isolation. For production email delivery, wire `Chimeway.Adapters.Mailglass` per the [Mailglass integration blueprint](mailglass-integration-blueprint.md).
 
 ## Out of scope
 
-This blueprint covers notifier authoring, `Sigra.Integrations.Chimeway` config, auth-event trigger examples, and the orchestration vs auth-state split with demo pointers. The full golden-path Sigra auth integration guide, guide doc-contract, and formal `mix verify.sigra` CI job in MAINTAINING are documented in [Sigra auth integration](../introduction/sigra-auth-integration.md) (Phase 66 DOCS-10) — not duplicated here.
+This blueprint covers notifier authoring, `Sigra.Integrations.Chimeway` config, auth-event trigger examples, and the orchestration vs auth-state split with demo pointers. The full golden-path Sigra auth integration guide, guide doc-contract, and formal `mix verify.sigra` CI job in MAINTAINING are documented in [Sigra auth integration](../introduction/sigra-auth-integration.md) — not duplicated here.
 
 ## Related guides
 
-- [Sigra auth integration](../introduction/sigra-auth-integration.md) — canonical end-to-end adoption path (Phase 66 DOCS-10)
+- [Sigra auth integration](../introduction/sigra-auth-integration.md) — canonical end-to-end adoption path
 - [Accrue dunning blueprint](accrue-dunning-blueprint.md) — billing-event dunning workflow composition pattern
 - [Mailglass integration blueprint](mailglass-integration-blueprint.md) — optional email delivery via `Chimeway.Adapters.Mailglass`
 - [Golden Path](../introduction/golden-path.md) — first Chimeway integration

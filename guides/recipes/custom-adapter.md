@@ -81,7 +81,8 @@ Using this macro is the recommended way to ensure your adapter meets Chimeway's 
 
 Chimeway ships an optional Mailglass adapter for hosts that want Mailglass to handle templating, MJML rendering, and Swoosh delivery while Chimeway owns the durable delivery lifecycle.
 
-**Product name vs module:** REQUIREMENTS refer to `Chimeway.Adapter.Mailglass`; the implementation module is `Chimeway.Adapters.Mailglass` (D-07).
+`Chimeway.Adapter.Mailglass` is the public adapter name; configure its built-in
+implementation module, `Chimeway.Adapters.Mailglass`.
 
 Register the adapter per channel and supply a `render_key → mailable` map at runtime:
 

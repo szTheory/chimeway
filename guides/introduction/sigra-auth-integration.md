@@ -2,7 +2,7 @@
 
 This guide is the canonical adoption path for composing Chimeway with [Sigra](https://github.com/szTheory/sigra) authentication notifications — the end-to-end path from dependency to verification for magic link and confirmation code auth flows. For the focused copy-paste notifier and seam recipe, see the [Sigra auth blueprint](../recipes/sigra-auth-blueprint.md); this guide owns the full integration path while the blueprint owns the recipe.
 
-## Responsibility split (SEED-003)
+## Responsibility split
 
 **Chimeway orchestrates the when and why:** durable notification lifecycle, suppression and preference gates, idempotency, and operator traces you can search at `/admin/chimeway`.
 
