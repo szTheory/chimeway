@@ -384,17 +384,17 @@ The listed prefixes are taken verbatim from existing temp constructors; keep the
 |---|-------|---------|---------------|
 | — | None. Implementation recommendations derive from locked phase decisions, directly read repository definitions, executed baseline tests, or official Elixir/Phoenix documentation. | — | — |
 
-## Open Questions
+## Resolved Questions
 
 1. **Exact structural hook name**
    - What we know: A stable per-event hook is locked, while naming is delegated. [VERIFIED: .planning/phases/107-operator-timeline-guidance-gate-parity/107-CONTEXT.md:23-27; .planning/phases/107-operator-timeline-guidance-gate-parity/107-CONTEXT.md:41-42]
-   - What's unclear: No existing timeline item has an event-specific data attribute. [VERIFIED: chimeway_admin/lib/chimeway_admin/components/timeline_event.ex:18-34]
-   - Recommendation: Use one extensible `data-cw-timeline-event={Atom.to_string(entry.event)}` attribute on every item; contract the two new string values.
+   - Resolution: Use one extensible `data-cw-timeline-event={Atom.to_string(entry.event)}` attribute on every item and contract the exact `notification_seen` and `notification_read` string values. No additional event-specific attribute is introduced.
+   - Evidence: No existing timeline item has an event-specific data attribute, so this single hook extends the current list-item seam without creating parallel selectors. [VERIFIED: chimeway_admin/lib/chimeway_admin/components/timeline_event.ex:18-34]
 
 2. **Release contract tag placement**
    - What we know: The release test is the established topology contract and Phase 107 must touch it, but broad archive tests in the same module contain the cleanup hazard. [VERIFIED: test/chimeway/release_gate_contract_test.exs:1-65; test/chimeway/release_gate_contract_test.exs:2817-2959]
-   - What's unclear: Whether the executor prefers one new tagged describe or tags on individual tests.
-   - Recommendation: Add a focused `:inbox_gate_parity` tag to the new alias/edge/temp-guard contracts so `mix verify.inbox` can run them directly, then run the full file only after cleanup hardening.
+   - Resolution: Tag the new alias/job/aggregate-edge contracts `:inbox_gate_parity`, matching the focused documentation contracts. Tag the owned-temp acceptance/refusal and recursive-call structure contracts separately as `:release_cleanup_safety`, run that safety tag first, and permit `:inbox_gate_parity` plus the full release file only after the cleanup hardening is green and committed.
+   - Rationale: Separate tags preserve a runnable safety prerequisite without coupling destructive-boundary validation to the alias contents it protects; the expanded `mix verify.inbox` still owns the focused parity tag, while `mix ci.verify_gates` remains the post-hardening full-file backstop.
 
 ## Environment Availability
 
