@@ -6,17 +6,17 @@
     {
       "number": "104",
       "name": "CrossWake Provider-Feedback Recipe Truth",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "number": "105",
       "name": "Tenant-Safe Inbox Change Stream",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "number": "106",
       "name": "Idempotent Seen Lifecycle & Workflow Proof",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "number": "107",
@@ -25,9 +25,9 @@
     }
   ],
   "next": {
-    "command": "/gsd:progress --next",
-    "label": "Advance to the next step",
-    "reason": "Phase 104 of 4 · 0% · executing"
+    "command": "/gsd:progress",
+    "label": "Show progress",
+    "reason": "Unsure of state — showing progress"
   },
-  "updated_at": "2026-09-12T15:17:40.752Z"
+  "updated_at": "2026-09-13T00:40:36.412Z"
 }
