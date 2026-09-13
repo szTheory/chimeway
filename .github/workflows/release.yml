@@ -165,12 +165,12 @@ jobs:
           version=$(sed -n 's/.*@version "\([^"]*\)".*/\1/p' mix.exs)
           git show "$MAIN_SHA:scripts/ci/sync-release-doc-versions.sh" | bash -s -- "$version"
 
-          if git diff --quiet -- README.md guides/introduction/installation.md guides/introduction/golden-path.md; then
+          if git diff --quiet -- README.md guides/introduction/installation.md guides/introduction/golden-path.md guides/introduction/inbox-integration.md; then
             echo "changed=false" >>"$GITHUB_OUTPUT"
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add README.md guides/introduction/installation.md guides/introduction/golden-path.md
+            git add README.md guides/introduction/installation.md guides/introduction/golden-path.md guides/introduction/inbox-integration.md
             git commit -m "chore(release): align consumer documentation"
             git push origin HEAD:release-please--branches--main
             echo "changed=true" >>"$GITHUB_OUTPUT"
