@@ -71,7 +71,7 @@ mix verify.sigra
 - `mix verify.journeys` — TeamPulse consumer journey proof (JOUR-01..08, GATE-03) — 10 tests including READ read-cancel Sync + Oban due-worker paths and time-fallback (JOUR-06), Sam suppression admin (JOUR-07), Morgan escalation admin (JOUR-08)
 - `mix verify.mailglass` — Mailglass integration gate (GATE-04): root adapter contract, webhook pipeline, executor routing, and demo host DEMO-06 delivery proof
 - `mix verify.accrue` — Accrue dunning integration gate (GATE-05 Accrue): ECOS-06 lifecycle tests and DEMO-07 demo host proof; requires sibling Accrue checkout — set `ACCRUE_PATH=../accrue/accrue` locally or let CI job check out szTheory/accrue
-- `mix verify.inbox` — Inbox integration gate (GATE-05 Inbox): chimeway_inbox package tests and DEMO-08 demo host :inbox proof; in-repo path deps only — no sibling checkout
+- `mix verify.inbox` — Inbox integration gate (GATE-03): focused root lifecycle, timeline, privacy, and Phoenix-optional tests; the full `chimeway_inbox` package; focused `chimeway_admin` timeline and redaction tests; tagged inbox documentation and release-parity contracts; then the demo-host `:inbox` journey covering arrival, visible seen, once-only workflow progression, explicit read, and operator timeline. Every test command is warning-strict; in-repo path deps require no sibling checkout.
 - `mix verify.threadline` — Threadline telemetry integration gate (GATE-07): Threadline reporter lifecycle proof and demo host audit correlation; requires sibling Threadline checkout — set `THREADLINE_PATH=../threadline/threadline` locally or let CI job check out szTheory/threadline
 - `mix verify.sigra` — Sigra auth integration gate (GATE-07): Sigra auth notification lifecycle proof and demo host auth flow; requires sibling Sigra checkout — set `SIGRA_PATH=../sigra/sigra` locally or let CI job check out szTheory/sigra
 
@@ -126,6 +126,8 @@ First automated release after Hex **1.0.0** targets **1.1.0**. Push all unpushed
 ## CI gate topology (pr-gate / ci-gate)
 
 Chimeway's CI fans into two aggregate checks:
+
+The existing `verify_inbox` job is the single hosted owner of `mix verify.inbox`; `pr-gate` and `ci-gate` consume the same `verify_inbox` result. Nightly-only `verify_admin` and browser work remain outside both release aggregates.
 
 - **`pr-gate`** — the fast required check on contributor pull requests. It aggregates a fast subset (`lint`, `test`, `mix ci.verify_gates`, `mix ci.docs`), always reports a conclusion, mirrors what local `mix ci` covers, and carries no `paths:` filter so it never strands a required PR check.
 - **`ci-gate`** — the source of truth for **release, publish, automerge, and recovery**. It aggregates all lanes (the ecosystem-integration gates and `install_golden_contract` included) and runs on push-to-`main` plus `workflow_dispatch` only; release PRs receive it via dispatch. It is event-guarded off `pull_request`, so it does not run on ordinary PRs.

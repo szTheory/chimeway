@@ -157,9 +157,12 @@ defmodule Chimeway.MixProject do
         "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
       ],
 
-      # v1.9 GATE-05 Inbox: chimeway_inbox package + demo host DEMO-08 :inbox proof
+      # GATE-03 Inbox: focused core -> package -> admin -> contracts -> demo journey
       "verify.inbox": [
+        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/inbox_state_transition_test.exs test/chimeway/inbox_change_publisher_test.exs test/chimeway/trigger_inbox_change_test.exs test/chimeway/traces_test.exs test/chimeway/safe_evidence_test.exs --warnings-as-errors",
         "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors",
+        "cmd --shell cd chimeway_admin && mix deps.get && mix test test/chimeway_admin/components/timeline_event_test.exs test/chimeway_admin/redaction_test.exs --warnings-as-errors",
+        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --only inbox_gate_parity --warnings-as-errors",
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only inbox --warnings-as-errors"
       ],
 

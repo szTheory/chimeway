@@ -135,19 +135,26 @@ defmodule Chimeway.ReleaseGateContractTest do
       mix_exs: mix_exs
     } do
       assert_verify_inbox_alias!(mix_exs)
+      alias_source = extract_verify_inbox_alias_source!(mix_exs)
 
       for command <- @verify_inbox_commands do
-        mutated = String.replace(mix_exs, command, "", global: false)
+        mutated_alias = String.replace(alias_source, command, "", global: false)
+        mutated = String.replace(mix_exs, alias_source, mutated_alias, global: false)
+
+        refute mutated == mix_exs, "mutation fixture must locate #{inspect(command)}"
+
         assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_alias!(mutated) end
       end
 
       [first, second | _] = @verify_inbox_commands
 
       reordered =
-        mix_exs
+        alias_source
         |> String.replace(first, "__FIRST_INBOX_COMMAND__", global: false)
         |> String.replace(second, first, global: false)
         |> String.replace("__FIRST_INBOX_COMMAND__", second, global: false)
+
+      reordered = String.replace(mix_exs, alias_source, reordered, global: false)
 
       assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_alias!(reordered) end
     end
@@ -3407,6 +3414,13 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       _ ->
         flunk("Could not extract verify.inbox alias from mix.exs")
+    end
+  end
+
+  defp extract_verify_inbox_alias_source!(mix_exs) do
+    case Regex.run(~r/"verify\.inbox":\s*\[(.*?)\n\s*\],/s, mix_exs) do
+      [source, _block] -> source
+      _ -> flunk("Could not extract verify.inbox alias from mix.exs")
     end
   end
 
