@@ -138,7 +138,7 @@ defmodule Chimeway.Deliveries do
   end
 
   @doc """
-  Returns the list of terminal delivery states — used by the dispatcher (Plan 02-02)
+  Returns the list of terminal delivery states, used by the dispatcher
   to short-circuit dispatch for already-terminal deliveries.
   """
   def terminal_states, do: @terminal_states
@@ -276,7 +276,7 @@ defmodule Chimeway.Deliveries do
 
   # General-path transitions. Note: `failed -> :cancelled` is INTENTIONALLY OMITTED here
   # even though :cancelled is a valid status — that transition is reserved for
-  # Deliveries.exhaust_delivery/1 (D-10), which performs an out-of-band update
+  # Deliveries.exhaust_delivery/1, which performs an out-of-band update
   # bypassing this table. The general transition_status/2 path must NOT permit
   # arbitrary callers to drive failed -> cancelled.
   @allowed_transitions %{
@@ -476,8 +476,8 @@ defmodule Chimeway.Deliveries do
   Fetches a delivery by ID without raising. Pairs with `get_delivery!/1` for
   queue-boundary callers that prefer explicit `{:error, :not_found}`.
 
-  Added in Phase 33 to satisfy D-06 (worker must stop using raising lookup
-  paths at the queue boundary). Used by `Chimeway.Webhooks.ProcessFeedbackWorker`.
+  Used by queue-boundary callers such as `Chimeway.Webhooks.ProcessFeedbackWorker`,
+  which must handle missing rows without raising.
   """
   @spec fetch_delivery(binary()) :: {:ok, Delivery.t()} | {:error, :not_found}
   def fetch_delivery(id) when is_binary(id) do
@@ -857,9 +857,8 @@ defmodule Chimeway.Deliveries do
   exactly mirroring how `suppress_delivery/3` writes the `:suppressed` terminal state
   from any non-terminal status.
 
-  Called from the Oban worker when
-  `job.attempt == job.max_attempts` and the adapter classification was `:temporary`
-  (REL-03 D-10/D-11). Records `policy_checkpoint: "perform"` in metadata so traces
+  Called from the Oban worker when `job.attempt == job.max_attempts` and the adapter
+  classification was `:temporary`. Records `policy_checkpoint: "perform"` in metadata so traces
   preserve the explanation that exhaustion happened at perform time.
   """
   @spec exhaust_delivery(Delivery.t()) :: {:ok, Delivery.t()} | {:error, term()}
@@ -1092,23 +1091,21 @@ defmodule Chimeway.Deliveries do
   Returns `{:ok, %{delivery: updated_delivery, attempt: attempt}}` on success, or
   `{:error, step, reason, changes}` if any step fails (both operations roll back).
 
-  ## Phase 14 contract additions
+  ## Concurrency and convergence guarantees
 
   - Acquires a `SELECT ... FOR UPDATE` row lock on the delivery via the
-    `:lock_delivery` Multi step BEFORE computing `attempt_number` (W8 preemptive
-    fix). This serializes concurrent `record_attempt/2` callers for the same
+    `:lock_delivery` Multi step BEFORE computing `attempt_number`. This serializes
+    concurrent `record_attempt/2` callers for the same
     delivery and makes `attempt_number` contiguity invariant under concurrent
     execution. The `pending -> dispatched` transition that
     `Executor.run_delivery/1` performs BEFORE calling this function is a secondary
     serialization layer.
-  - Computes `attempt_number` inside the Multi via the `:next_attempt_number` step
-    (RESEARCH Pattern 4).
+  - Computes `attempt_number` inside the Multi via the `:next_attempt_number` step.
   - Routes `error_class` permanent/bounced outcomes to `:cancelled` with the
-    appropriate `suppression_reason` inside the same transaction (RESEARCH
-    Pitfall 2). This makes sync and Oban paths converge on a terminal state
-    without forking — sync gains REL-03 convergence automatically.
+    appropriate `suppression_reason` inside the same transaction. This makes sync
+    and Oban paths converge on a terminal state without forking.
   - Telemetry stop metadata now includes `attempt_number` and `error_class`,
-    preserving the Phase 10 correlation_id/notification_key keys.
+    while preserving the `correlation_id` and `notification_key` keys.
   """
   @spec record_attempt(Delivery.t(), map()) ::
           {:ok, %{delivery: Delivery.t(), attempt: DeliveryAttempt.t()}}
@@ -1152,7 +1149,7 @@ defmodule Chimeway.Deliveries do
 
       Multi.new()
       |> Multi.run(:lock_delivery, fn repo, _changes ->
-        # W8 preemptive fix: SELECT FOR UPDATE serializes concurrent
+        # SELECT FOR UPDATE serializes concurrent
         # record_attempt/2 callers for the same delivery_id. With this lock,
         # attempt_number contiguity is invariant under concurrent execution.
         case repo.one(from(d in Delivery, where: d.id == ^delivery.id, lock: "FOR UPDATE")) do
@@ -1300,7 +1297,7 @@ defmodule Chimeway.Deliveries do
   # All canonical terminal-write paths converge through one of these helpers so
   # the workflow progression engine sees every relevant delivery state change
   # exactly once. The engine is itself noop-safe for non-workflow-linked rows,
-  # non-active runs, and unmatched rules per ESC-03 / T-25-06.
+  # non-active runs, and unmatched rules.
 
   defp maybe_apply_progression({:ok, %Delivery{} = delivery} = ok) do
     maybe_progress_workflow(delivery)

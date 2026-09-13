@@ -2,7 +2,7 @@ defmodule Chimeway.Dispatch.Executor do
   @moduledoc """
   Shared adapter execution for sync and Oban worker dispatch paths.
 
-  ## Phase 14 contract changes (D-05)
+  ## Classification contract
 
   `classify/1` now returns a 3-tuple `{outcome, error_class, detail}` so
   `:temporary | :permanent | :bounced` classification is preserved end-to-end:
@@ -13,9 +13,9 @@ defmodule Chimeway.Dispatch.Executor do
                                   -> Oban worker {:ok | {:error, _}} return
 
   `run_delivery/1` passes `error_class` into `Deliveries.record_attempt/2`. The
-  return shape is unchanged for sync consumers (`{:ok, %{delivery, attempt}}` |
-  `{:error, step, reason, changes}` | `{:error, term()}`). Plan 14-05's Oban
-  worker reads the recorded attempt's `outcome` + `error_class` to decide its
+  return shape for sync consumers is `{:ok, %{delivery, attempt}}` |
+  `{:error, step, reason, changes}` | `{:error, term()}`. The Oban worker reads
+  the recorded attempt's `outcome` + `error_class` to decide its
   Oban return value (retry vs terminal vs success).
   """
 
@@ -28,7 +28,7 @@ defmodule Chimeway.Dispatch.Executor do
           | {:error, term()}
   def run_delivery(%Delivery{} = delivery) do
     with {:ok, dispatched} <- Deliveries.transition_status(delivery, :dispatched) do
-      # D-17: per-channel adapter resolution; was hardcoded Application.get_env(:adapter).
+      # Resolve the adapter per channel, with the configured global fallback.
       adapter = resolve_adapter(dispatched.channel)
       adapter_config = ChannelAdapterConfig.resolve(delivery.channel, [])
 
@@ -49,7 +49,7 @@ defmodule Chimeway.Dispatch.Executor do
         Map.merge(safe_attempt_facts, %{
           outcome: attempt_outcome,
           error_class: error_class,
-          # D-20: persist module name as inspect/1 string (no "Elixir." prefix).
+          # Persist the module name as an inspect/1 string without the "Elixir." prefix.
           adapter_module: inspect(adapter)
         })
       )
@@ -142,14 +142,14 @@ defmodule Chimeway.Dispatch.Executor do
     Application.get_env(:chimeway, :target_adapter, Chimeway.Adapters.Logger)
   end
 
-  # Adapter classification preservation (D-05). Returns only stable result facts.
+  # Preserve adapter classification and return only stable result facts.
   # error_class is nil on success; otherwise one of "temporary" | "permanent" | "bounced".
   defp classify({:ok, meta}), do: safe_attempt(:succeeded, nil, meta)
   defp classify({:error, :temporary, detail}), do: safe_attempt(:failed, "temporary", detail)
   defp classify({:error, :permanent, detail}), do: safe_attempt(:rejected, "permanent", detail)
   defp classify({:error, :bounced, detail}), do: safe_attempt(:bounced, "bounced", detail)
 
-  # Fallback for unexpected adapter return shapes (BL-02 fix). Routes the unknown
+  # Fallback for unexpected adapter return shapes. Routes the unknown
   # tuple through the executor write path so it lands a DeliveryAttempt row and
   # transitions the delivery to :failed (terminal_or_failed_transition's catch-all
   # clause). The Oban worker's map_outcome_to_oban_return/4 catch-all then converges
@@ -181,15 +181,15 @@ defmodule Chimeway.Dispatch.Executor do
 
   defp empty_attempt_facts, do: %{provider_response: %{}, provider_message_id: nil}
 
-  # D-17: Per-channel adapter resolution.
+  # Per-channel adapter resolution.
   # Resolution order:
   #   1. Map.get(:channel_adapters, channel) — explicit per-channel override.
-  #   2. :adapter config — legacy global fallback (D-18: kept unchanged, no deprecation).
+  #   2. :adapter config — legacy global fallback, retained without deprecation.
   #
-  # D-19: adapter_fallback telemetry fires ONLY when :channel_adapters is explicitly
+  # adapter_fallback telemetry fires ONLY when :channel_adapters is explicitly
   # configured AND the lookup misses. Silent when only :adapter is configured.
   #
-  # T-29-15/T-29-18: :channel_adapters values come from compile-time config atoms;
+  # :channel_adapters values come from compile-time config atoms;
   # the runtime channel string is used only for Map.get/2 against pre-existing
   # atom keys, never via String.to_atom — atom-table-safe.
   defp resolve_adapter(channel) when is_binary(channel) do

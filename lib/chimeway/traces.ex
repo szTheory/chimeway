@@ -650,7 +650,7 @@ defmodule Chimeway.Traces do
   defp timeline_rank(_event), do: 99
 
   # ---------------------------------------------------------------------
-  # Phase 32 — webhook + workflow timeline projection (TRAC-01, TRAC-02)
+  # Webhook and workflow timeline projection
   # ---------------------------------------------------------------------
 
   @spec webhook_received_entries([map()], String.t() | nil) :: [map()]
@@ -709,10 +709,9 @@ defmodule Chimeway.Traces do
     end
   end
 
-  # Literal-string -> atom dispatch (D-07). The five new event atoms are
-  # compile-time literals; runtime atom-table allocation from untrusted strings
-  # is forbidden per atom-safety gate (T-32-T2 — D-16).
-  # Suppresses the three internal cursor reasons (D-08) and any unknown
+  # Literal-string-to-atom dispatch uses compile-time event literals; runtime
+  # atom-table allocation from untrusted strings is forbidden.
+  # Suppresses the internal cursor reasons and any unknown
   # reason via the nil fallback.
   @spec project_workflow_reason(String.t()) :: atom() | nil
   defp project_workflow_reason("progressed_on_delivery_outcome"), do: :workflow_progressed
@@ -736,8 +735,8 @@ defmodule Chimeway.Traces do
 
   # The three progression-row atoms (:workflow_progressed,
   # :workflow_stopped, :workflow_completed) share the same seven-field
-  # detail shape per D-12. `reason` is a verbatim copy of `transition.reason`
-  # for operator readability (UI-SPEC §A example at line 273).
+  # detail shape. `reason` is a verbatim copy of `transition.reason` for operator
+  # readability.
   defp build_workflow_detail(_atom, row) do
     ctx = row.context || %{}
 

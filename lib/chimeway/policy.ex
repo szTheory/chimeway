@@ -12,14 +12,9 @@ defmodule Chimeway.Policy do
   - `{:suppress, reason_atom}` — delivery should be suppressed. `reason_atom` is a plain atom
     (`:channel_disabled`, `:already_read`). Persist as `Atom.to_string(reason_atom)` on the delivery row.
 
-  ## Policy extensibility
-
-  A `policy_module` config key is reserved for custom host-app policy (quiet hours, rate limits):
-
-      config :chimeway, :policy_module, MyApp.NotificationPolicy
-
-  This hook is not dispatched to in Phase 3 — it is the documented extension point for future phases.
-  Custom policy is additive; Chimeway's built-in preference and read-state checks always run first.
+  The built-in channel-preference and read-state checks are the complete policy
+  surface. Host applications should apply additional policy before invoking the
+  Chimeway dispatch boundary.
   """
 
   require Logger

@@ -10,7 +10,7 @@ defmodule Chimeway.Dispatch.Sync do
   5. Classify outcome (dispatcher responsibility, not adapter's).
   6. Record attempt + transition to final status atomically.
 
-  Swap to `Chimeway.Dispatch.Oban` in Phase 3 via config:
+  To enqueue adapter calls as background jobs, configure `Chimeway.Dispatch.Oban`:
 
       config :chimeway, :dispatcher, Chimeway.Dispatch.Oban
   """
@@ -92,7 +92,7 @@ defmodule Chimeway.Dispatch.Sync do
         correlation_id: Map.get(delivery.metadata || %{}, "correlation_id")
       }),
       fn ->
-        # D-22: do_dispatch/1 now returns {result, adapter_module} so the stop-meta
+        # do_dispatch/1 returns {result, adapter_module} so the stop metadata
         # closure can include adapter_module without a second DB round-trip.
         {result, adapter_module} = do_dispatch(delivery)
         outcome = if match?({:ok, _}, result), do: :succeeded, else: :failed
@@ -100,8 +100,8 @@ defmodule Chimeway.Dispatch.Sync do
         stop_meta =
           Telemetry.safe_meta(%{
             outcome: outcome,
-            # D-22: nil for failed transitions or pre-Phase-29 attempts; safe_meta/1
-            # uses Map.take/2 which preserves nil values for allowed keys.
+            # nil for failed transitions or attempts created before adapter identity
+            # was persisted; safe_meta/1 preserves nil values for allowed keys.
             adapter_module: adapter_module
           })
 
@@ -118,7 +118,7 @@ defmodule Chimeway.Dispatch.Sync do
 
     case result do
       {:ok, %{delivery: updated_delivery, attempt: attempt}} ->
-        # D-22: thread adapter_module up to the sync,:stop telemetry metadata.
+        # Thread adapter_module into the sync,:stop telemetry metadata.
         {{:ok, updated_delivery}, Map.get(attempt, :adapter_module)}
 
       {:ok, %{delivery: updated_delivery}} ->

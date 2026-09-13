@@ -70,11 +70,14 @@ defmodule Chimeway.MixProject do
       # Lint lane
       "ci.lint": [
         "format --check-formatted",
+        "cmd --shell cd chimeway_admin && mix format --check-formatted",
+        "cmd --shell cd chimeway_inbox && mix format --check-formatted",
+        "cmd --shell cd examples/chimeway_demo_host && mix format --check-formatted",
         "compile --warnings-as-errors",
         "credo --strict"
       ],
 
-      # Test lane (mailglass/accrue/threadline/sigra excluded — run mix verify.* separately, GATE-04/05/07)
+      # Core test lane; partner integrations run through their dedicated mix verify.* aliases.
       "ci.test": [
         "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude accrue_artifact_proof --exclude accrue_packaged_cli --exclude threadline --exclude sigra --exclude adoption_paths_e2e --warnings-as-errors"
       ],
@@ -87,7 +90,7 @@ defmodule Chimeway.MixProject do
 
       # Post-publish verify trio (run locally by maintainer, not in pre-merge CI)
       "verify.clean": ["cmd bash scripts/ci/verify-clean.sh"],
-      # D-08: local artifact proof — build + unpack the default root package under
+      # Local artifact proof: build and unpack the default root package under
       # MIX_ENV=prod (so the override is absent and Hex accepts the build), with no
       # Sigra skip envs, and fail unless the unpacked root carries every package
       # whitelist entry. No live Hex API calls (release-time/manual evidence only).
@@ -95,11 +98,11 @@ defmodule Chimeway.MixProject do
         "cmd --shell rm -rf /tmp/chimeway_verify && env MIX_ENV=prod mix hex.build --unpack --output /tmp/chimeway_verify && root=/tmp/chimeway_verify && if [ ! -f \"$root/mix.exs\" ]; then root=$(dirname \"$(find /tmp/chimeway_verify -maxdepth 2 -name mix.exs | head -1)\"); fi && for f in mix.exs lib priv guides README.md CHANGELOG.md LICENSE.md .formatter.exs; do test -e \"$root/$f\" || { echo \"verify.parity: missing package whitelist entry $f under $root\" >&2; exit 1; }; done && echo \"verify.parity OK: unpacked package root $root contains all whitelist entries\""
       ],
       # verify.published: invoked as `mix verify.published <version>` (Mix task)
-      # Pre-ship GATE-01: canonical host-mount E2E + operator admin smoke (D-10, D-11).
-      # Run separately from ci.test to preserve fast feedback on core lib tests (Phase 33 D-10).
+      # Canonical host-mount E2E and operator-admin smoke proof.
+      # Run separately from ci.test to preserve fast feedback on core library tests.
       "verify.example": [
         # Exclude :journey here — those run in verify.journeys (--only journey).
-        # JOUR-05 (mix demo.up --check) commits seed data outside the SQL sandbox
+        # `mix demo.up --check` commits seed data outside the SQL sandbox
         # into the shared CI DB; running it alongside these sandboxed tests leaks
         # rows into unscoped queries (DeliveryAttempt counts, mailglass idempotency,
         # inbox badge). Keeping it out of this lane removes the cross-test pollution
@@ -122,7 +125,7 @@ defmodule Chimeway.MixProject do
       ],
       "ci.install_golden": ["verify.install_golden"],
 
-      # GATE-01 doc-contract + version alignment gates. Keep the packaged
+      # Documentation-contract and version-alignment gates. Keep the packaged
       # Accrue clean-consumer proof independently runnable so CI can give it a
       # dedicated timeout while the canonical release alias still runs both.
       "ci.verify_contracts": [
@@ -139,25 +142,25 @@ defmodule Chimeway.MixProject do
       ],
       "ci.alpha_twin": ["verify.alpha_twin", "verify.physical_proof_contract"],
 
-      # v1.7 GATE-03: TeamPulse consumer journey proof JOUR-01..08 (10 tests)
+      # TeamPulse consumer journey proof.
       "verify.journeys": [
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only journey"
       ],
 
-      # v1.8 GATE-04: Mailglass adapter + webhook pipeline + demo host DEMO-06 proof
+      # Mailglass adapter, webhook pipeline, and demo-host proof.
       "verify.mailglass": [
         "cmd env MIX_ENV=test mix test --only mailglass --warnings-as-errors",
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only mailglass --warnings-as-errors"
       ],
 
-      # v1.9 GATE-05 prep: Accrue dunning integration harness (root + demo host :accrue lane)
+      # Accrue dunning integration harness (root and demo-host :accrue lane).
       "verify.accrue": [
         "deps.compile",
         "cmd env MIX_ENV=test mix test --only accrue --warnings-as-errors",
         "cmd --shell cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_ACCRUE_DEP=1 ACCRUE_PATH=../../accrue/accrue/accrue CHIMEWAY_PATH=../.. mix test --only accrue --warnings-as-errors"
       ],
 
-      # GATE-03 Inbox: focused core -> package -> admin -> contracts -> demo journey
+      # Inbox integration proof: core, package, admin, contracts, and demo journey.
       "verify.inbox": [
         "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/inbox_state_transition_test.exs test/chimeway/inbox_change_publisher_test.exs test/chimeway/trigger_inbox_change_test.exs test/chimeway/traces_test.exs test/chimeway/safe_evidence_test.exs --warnings-as-errors",
         "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors",
@@ -166,19 +169,19 @@ defmodule Chimeway.MixProject do
         "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only inbox --warnings-as-errors"
       ],
 
-      # v1.10 GATE-07 Threadline: telemetry reporter proof (root + demo host :threadline lane)
+      # Threadline telemetry reporter proof (root and demo-host :threadline lane).
       "verify.threadline": [
         "cmd env MIX_ENV=test mix test --only threadline --warnings-as-errors",
         "cmd --shell threadline_path=${THREADLINE_PATH:-../threadline/threadline}; threadline_path=$(cd \"$threadline_path\" && pwd); cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=\"$threadline_path\" CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=\"$threadline_path\" CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_SIGRA_DEP=1 THREADLINE_PATH=\"$threadline_path\" CHIMEWAY_PATH=../.. mix test --only threadline --warnings-as-errors"
       ],
 
-      # v1.10 GATE-07 Sigra: auth notification proof (root + demo host :sigra lane)
+      # Sigra auth notification proof (root and demo-host :sigra lane).
       "verify.sigra": [
         "cmd env MIX_ENV=test mix test --only sigra --warnings-as-errors",
         "cmd --shell sigra_path=${SIGRA_PATH:-../sigra/sigra}; sigra_path=$(cd \"$sigra_path\" && pwd); cd examples/chimeway_demo_host && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.get && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix deps.compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix compile && env CHIMEWAY_SKIP_THREADLINE_DEP=1 CHIMEWAY_SKIP_MAILGLASS_DEP=1 CHIMEWAY_SKIP_SIGRA_TRANSITIVE_DEP=1 SIGRA_PATH=\"$sigra_path\" CHIMEWAY_PATH=../.. mix test --only sigra --warnings-as-errors"
       ],
 
-      # Phase 72 GATE-08: mounted admin package, demo-host, and browser smoke gate.
+      # Mounted admin package, demo-host, and browser smoke proof.
       "verify.admin": [
         "cmd env MIX_ENV=test mix test test/chimeway/admin_test.exs --warnings-as-errors",
         "cmd --shell cd chimeway_admin && mix deps.get && mix test --warnings-as-errors",

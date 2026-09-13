@@ -3,7 +3,7 @@ if Code.ensure_loaded?(Oban) do
     @moduledoc """
     Oban worker that wakes a due waiting workflow run by stable id.
 
-    Job args contain only `workflow_run_id` per Phase 25 D-10. All
+    Job args contain only `workflow_run_id`. All
     correctness — row locking, due/anchor evaluation, branch resolution,
     next-step emission, and noop semantics — lives behind the shared
     `Chimeway.Workflows.Progression.progress_run/2` seam, so non-Oban hosts
@@ -13,15 +13,15 @@ if Code.ensure_loaded?(Oban) do
 
     Threats covered:
 
-      * **T-25-07 (spoofing):** the worker accepts only `workflow_run_id` and
+      * **Spoofing:** the worker accepts only `workflow_run_id` and
         reloads all workflow/delivery truth from Chimeway-owned rows before
         acting. Job args never carry rule data, delivery facts, or tenancy
         hints that could be tampered with mid-flight.
-      * **T-25-08 (DoS / duplicate emission):** the worker delegates to the
+      * **Denial of service / duplicate emission:** the worker delegates to the
         same `FOR UPDATE`-locked engine path that `progress_due_runs/1`
         uses, so duplicate jobs and concurrent retries collapse to noop
         without emitting another next-step delivery.
-      * **T-25-09 (repudiation):** the engine persists transition reasons,
+      * **Repudiation:** the engine persists transition reasons,
         anchor facts, and curated workflow outcomes durably before any
         advancement, so retries leave an auditable trail in
         `chimeway_workflow_transitions` rather than queue archaeology.
@@ -51,8 +51,7 @@ if Code.ensure_loaded?(Oban) do
       # by the engine for `:workflow_run_not_found` and similar — as
       # `MULTIPLE_ROLLBACK` errors at the queue boundary). Following the
       # `Chimeway.Dispatch.DigestFlushWorker` shape keeps the worker as a
-      # one-call delegate and preserves D-10's "thin scheduled worker"
-      # contract.
+      # one-call delegate and preserves the thin scheduled-worker contract.
       workflow_run_id
       |> Progression.progress_run([])
       |> normalize_progress_result()

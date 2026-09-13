@@ -119,7 +119,7 @@ defmodule Chimeway.DeliveryPlanning do
   cursor to the next step — the planner reuses the same idempotent
   `Deliveries.plan_delivery/3` path and the same `resolve_workflow_linkage/3`
   helper so progression-emitted next-step rows go through one canonical
-  planning seam (D-10).
+  planning seam.
   """
   @spec plan_next_step_delivery(Notification.t(), atom() | binary(), keyword()) ::
           {:ok, Delivery.t()} | {:error, term()}

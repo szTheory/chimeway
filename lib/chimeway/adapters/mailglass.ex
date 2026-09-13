@@ -3,13 +3,12 @@ if Code.ensure_loaded?(Mailglass) do
     @moduledoc """
     Mailglass-backed email adapter for Chimeway outbound delivery.
 
-    Product-facing name: `Chimeway.Adapter.Mailglass` (see ECOS-01). Implementation
-    module: `Chimeway.Adapters.Mailglass` (D-07).
+    Configure the email channel to use the `Chimeway.Adapters.Mailglass`
+    implementation module.
 
     Mailglass requires Elixir ~> 1.18 when enabled. Chimeway core compiles on 1.17+;
-    run mailglass adapter tests on Elixir 1.18+ (see Phase 54 research).
-
-    Webhook callbacks are Phase 55.
+    run Mailglass adapter tests on Elixir 1.18+. The adapter implements the optional
+    webhook callbacks used by `Chimeway.Webhooks.process/4`.
     """
 
     @behaviour Chimeway.Adapter

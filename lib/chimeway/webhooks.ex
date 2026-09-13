@@ -4,12 +4,12 @@ defmodule Chimeway.Webhooks do
 
   Success returns ONLY when the ingress row and the ProcessFeedbackWorker job
   have both committed in a single transaction. Returning `{:ok, ingress}` is
-  the host's acknowledgment cue — the host MAY return 2xx to the provider
-  (Phase 33 D-03). Any error tuple means the host MUST return non-2xx so the
+  the host's acknowledgment cue — the host MAY return 2xx to the provider.
+  Any error tuple means the host MUST return non-2xx so the
   provider retries.
 
   Unauthorized signature failures and unparseable bodies do NOT create a
-  durable ingress row (Phase 33 D-09). Only verified, parsed, normalized
+  durable ingress row. Only verified, parsed, normalized
   callbacks enter the durable inbound lifecycle.
   """
 

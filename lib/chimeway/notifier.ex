@@ -562,7 +562,7 @@ defmodule Chimeway.Notifier do
         with {:ok, normalized_rules} <- normalize_workflow_progress_rules(rules) do
           # Persist progress under the durable string key only — replay-safe
           # serialization should not have to decide between atom and string keys
-          # later (D-08).
+          # later.
           updated_config =
             config
             |> Map.delete(:progress)
@@ -578,11 +578,11 @@ defmodule Chimeway.Notifier do
 
   defp normalize_workflow_config(config), do: {:error, {:invalid_workflow_config, config}}
 
-  # Curated workflow-outcome vocabulary (D-04). Mirrors the values returned by
+  # Curated workflow-outcome vocabulary. Mirrors the values returned by
   # `Chimeway.Workflows.ProgressionOutcome.from_delivery/2` so authoring rules
   # at declaration time and runtime branch resolution share one stable set.
   #
-  # ## Early-fire warning for `temporary_failure` (WR-02)
+  # ## Early-fire warning for `temporary_failure`
   #
   # `temporary_failure` resolves from a `delivery.status == :failed` row. The
   # `:failed` status is **NOT** terminal — `Chimeway.Deliveries`'s
@@ -616,9 +616,8 @@ defmodule Chimeway.Notifier do
   # site.
   @progress_outcomes ~w(delivered suppressed temporary_failure retries_exhausted permanent_failure bounced)
 
-  # Per D-01 only one wait anchor is supported in Phase 25: the prior
-  # delivery's terminal_at timestamp. Other anchors are reserved for later
-  # phases and must fail normalization rather than silently no-op at runtime.
+  # Only one wait anchor is supported: the prior delivery's terminal_at timestamp.
+  # Other anchors must fail normalization rather than silently no-op at runtime.
   @progress_wait_anchors ~w(prior_delivery_terminal_at)
   @max_cancel_signals 10
 
@@ -656,7 +655,7 @@ defmodule Chimeway.Notifier do
   defp normalize_wait_until_rule(%{} = rule) do
     # `wait_until` rules carry anchor + delay_seconds + to_step, with optional
     # `cancel_signals`. Mixing in an `outcome` (or any other key) is rejected so
-    # the persisted DSL stays one rule-shape per kind per D-06/D-08.
+    # the persisted DSL stays one rule shape per kind.
     case extra_keys(rule, ~w(kind anchor delay_seconds to_step cancel_signals)) do
       [] ->
         anchor = Map.get(rule, "anchor", Map.get(rule, :anchor))

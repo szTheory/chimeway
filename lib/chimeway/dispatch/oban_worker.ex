@@ -4,8 +4,8 @@ if Code.ensure_loaded?(Oban) do
     Raised by `Chimeway.Dispatch.ObanWorker` when `map_outcome_to_oban_return/4`
     encounters a (outcome, error_class, status) shape that none of the documented
     clauses match AND the in-band convergence guard cannot legally fire (delivery
-    is not in :failed status, or this is not the final attempt). This is the
-    loud-failure branch of the BL-02 fix — see Plan 14-10.
+    is not in :failed status, or this is not the final attempt). This loud-failure
+    path prevents an unrecognized result shape from being silently acknowledged.
 
     The exception carries enough metadata for an operator to reproduce the
     scenario and extend either `Executor.classify/1` or the documented worker
@@ -74,7 +74,7 @@ if Code.ensure_loaded?(Oban) do
     on every execution. A delivery already in `:succeeded`, `:suppressed`, or `:cancelled`
     returns `:ok` immediately with no adapter call and no new attempt row.
 
-    ## Phase 14 retry contract (REL-02 / REL-03)
+    ## Retry contract
 
     OSS Oban 2.21.1 has no exhausted callback. This worker uses an in-band
     `attempt == max_attempts` guard inside `perform/1` to know when it has reached
@@ -93,9 +93,8 @@ if Code.ensure_loaded?(Oban) do
     - Transient failure on the final attempt (`attempt == max_attempts`) ->
       `Deliveries.exhaust_delivery/1` writes the `:cancelled retries_exhausted`
       terminal state, then this function returns `:ok` so the Oban job is marked
-      `:completed` instead of `:discarded` (RESEARCH Pitfall 1: keeps operator
-      telemetry dashboards clean — the durable explanation lives on the delivery
-      row, not on the Oban job).
+      `:completed` instead of `:discarded`. This keeps the durable explanation on
+      the delivery row while avoiding a misleading discarded-job signal.
     """
 
     use Oban.Worker,
@@ -308,8 +307,7 @@ if Code.ensure_loaded?(Oban) do
       reason = error_reason_from_attempt(recorded)
 
       if attempt >= max_attempts do
-        # In-band exhaustion guard (RESEARCH Pattern 2 / Pitfall 1).
-        # Write the durable terminal state, then return :ok so the Oban job is
+        # Write the durable terminal state in-band, then return :ok so the Oban job is
         # marked :completed rather than :discarded.
         case Deliveries.exhaust_delivery(delivery) do
           {:ok, _exhausted} -> :ok
@@ -321,7 +319,7 @@ if Code.ensure_loaded?(Oban) do
       end
     end
 
-    # Catch-all defensive clause (BL-02 fix). Two branches:
+    # Catch-all defensive clause with two branches:
     #   Branch A (convergence): if this is the final attempt AND the delivery is in
     #     :failed, call exhaust_delivery/1 to land the durable :cancelled
     #     retries_exhausted state. Returns :ok so Oban marks the job :completed.

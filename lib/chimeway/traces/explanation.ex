@@ -26,10 +26,10 @@ defmodule Chimeway.Traces.Explanation do
   - `suppression_reason` — reason atom string when status is `:suppressed` OR `:cancelled`,
     else nil. The four documented reason strings are:
       * `"channel_disabled"` — set when status is `:suppressed` (policy preference blocked the channel)
-      * `"retries_exhausted"` — set when status is `:cancelled` (Oban exhausted max_attempts on transient failures, REL-03 D-10/D-11)
+      * `"retries_exhausted"` — set when status is `:cancelled` after Oban exhausts `max_attempts` on transient failures
       * `"permanent_failure"` — set when status is `:cancelled` (adapter returned a permanent error)
       * `"bounced"` — set when status is `:cancelled` (adapter returned a bounce)
-  - `last_attempt` — map with :outcome, :inserted_at, :attempt_number, :error_class, :adapter_module for the most recent attempt, or nil. `:adapter_module` is nil for pre-Phase-29 attempts.
+  - `last_attempt` — map with :outcome, :inserted_at, :attempt_number, :error_class, :adapter_module for the most recent attempt, or nil. `:adapter_module` is nil for attempts created before adapter identity was persisted.
   - `target_aggregate` — closed aggregate of independently durable target outcomes
   - `targets` — closed, ordered target histories with their ordered attempt evidence
   - `digest` — digest-specific reasoning for source or emitted digest rows, else nil

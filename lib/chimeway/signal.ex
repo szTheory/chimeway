@@ -5,7 +5,7 @@ defmodule Chimeway.Signal do
   Host applications call `track/4` with a tenant id, actor id, event name, and
   optional payload. The function durably persists a `Chimeway.Signals.Signal`
   row and atomically enqueues a `Chimeway.Dispatch.SignalRouterWorker` job
-  carrying the new signal's id. The worker (Phase 27-02) is responsible for
+  carrying the new signal's id. The worker is responsible for
   routing the signal to whichever workflow runs are waiting on it.
 
   Both side effects share a single `Ecto.Multi` transaction — if the Oban

@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Chimeway.Gen.Migrations do
       mix chimeway.gen.migrations --prefix public
 
   Copies 31 migration templates from `priv/chimeway_migrations/` (Oban excluded).
-  See `guides/recipes/oban-integration.md` for Oban setup (D-10).
+  See `guides/recipes/oban-integration.md` for Oban setup.
 
   Re-running is idempotent — existing slugs print `unchanged`.
 

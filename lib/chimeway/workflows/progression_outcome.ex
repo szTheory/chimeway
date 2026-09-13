@@ -1,15 +1,14 @@
 defmodule Chimeway.Workflows.ProgressionOutcome do
   @moduledoc """
   Pure mapper from canonical delivery facts to a curated workflow-facing outcome
-  vocabulary used by Phase 25 progression rules.
+  vocabulary used by workflow progression rules.
 
   The mapper has no IO and no Repo access. Callers preload the prior
   `Chimeway.Delivery` row (and optionally the latest `Chimeway.DeliveryAttempt`)
   inside the same progression transaction and pass them in. This keeps branch
-  semantics deterministic, replay-safe, and explainable from durable rows alone
-  per D-12.
+  semantics deterministic, replay-safe, and explainable from durable rows alone.
 
-  ## Curated vocabulary (D-04)
+  ## Curated vocabulary
 
   `from_delivery/2` returns either `:not_branchable_yet` or a three-tuple
   `{:branchable, outcome, evidence}` where `outcome` is one of:
@@ -24,7 +23,7 @@ defmodule Chimeway.Workflows.ProgressionOutcome do
     * `:bounced`             — `delivery.status == :cancelled` and
                                 `suppression_reason == "bounced"`
 
-  ## Early-fire warning for `temporary_failure` (WR-02)
+  ## Early-fire warning for `temporary_failure`
 
   `temporary_failure` resolves from a `delivery.status == :failed` row, which
   is **NOT** terminal: `Chimeway.Deliveries`'s `@allowed_transitions` permits
@@ -49,7 +48,7 @@ defmodule Chimeway.Workflows.ProgressionOutcome do
   See `Chimeway.Notifier` moduledoc near `@progress_outcomes` for the
   authoring-time version of this warning.
 
-  Per D-05, `:pending`, `:dispatched`, and `:digested` deliveries always return
+  `:pending`, `:dispatched`, and `:digested` deliveries always return
   `:not_branchable_yet`. Cancelled rows whose `suppression_reason` is not in the
   curated set also return `:not_branchable_yet` so workflow rules never advance
   on a meaning the contract did not explicitly assign.
@@ -99,7 +98,7 @@ defmodule Chimeway.Workflows.ProgressionOutcome do
 
   # `:failed` is non-terminal (Chimeway.Deliveries permits `failed: [:dispatched]`),
   # so this branch may fire BEFORE retries are exhausted. See the
-  # "Early-fire warning for `temporary_failure` (WR-02)" section in this
+  # "Early-fire warning for `temporary_failure`" section in this
   # module's @moduledoc for the operator-facing consequence and the
   # recommended pairing with idempotency keys at the destination step.
   def from_delivery(%Delivery{status: :failed} = delivery, attempt) do
@@ -129,7 +128,7 @@ defmodule Chimeway.Workflows.ProgressionOutcome do
 
   # Pending, dispatched, digested, and any cancelled row whose suppression
   # reason is not in the curated vocabulary stay unbranchable so workflow rules
-  # never advance on a meaning the contract did not assign (D-05/D-12).
+  # never advance on a meaning the contract did not assign.
   def from_delivery(%Delivery{}, _attempt), do: :not_branchable_yet
 
   @spec evidence_for(Delivery.t(), DeliveryAttempt.t() | nil) :: evidence()

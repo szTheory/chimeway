@@ -3,18 +3,16 @@ defmodule Chimeway.DeliveryAttempt do
   Ecto schema for chimeway_delivery_attempts — immutable append-only record of each
   provider call for a delivery. No updated_at — attempts are never mutated.
 
-  ## REL-02 fields (Phase 14 D-07)
+  ## Attempt identity and classification
 
   - `attempt_number` :integer — 1-indexed ordinal of this attempt for its delivery,
-    computed at insert time inside the same `Ecto.Multi` as the attempt insert.
-    Plan 14-02 leaves this in `@optional_fields`; Plan 14-04 Task 3 promotes it to
-    `@required_fields` after `Deliveries.record_attempt/2` is wired to inject the
-    value via the new `:next_attempt_number` Multi step. The two-step landing keeps
-    `mix test` green between Plan 14-02 and Plan 14-04.
+    computed at insert time inside the same `Ecto.Multi` as the attempt insert and
+    required by the changeset. `Deliveries.record_attempt/2` injects the value from
+    the `:next_attempt_number` Multi step.
   - `error_class` :string — one of `"temporary" | "permanent" | "bounced"` for
     `:failed | :rejected | :bounced` outcomes; `nil` for `:succeeded`. Persisted
     as a plain string with changeset whitelist validation (NOT `Ecto.Enum`) to
-    match the project's string-channel idiom from Phase 11.
+    match the project's durable string vocabulary.
   """
 
   use Ecto.Schema
@@ -30,7 +28,7 @@ defmodule Chimeway.DeliveryAttempt do
   @doc """
   Returns the canonical list of allowed error_class string values.
   Used by the dispatch executor to validate that the dispatcher
-  only emits whitelisted classifications. `"unknown_classification"` is the BL-02
+  only emits whitelisted classifications. `"unknown_classification"` is the
   fallback value emitted by `classify/1` for unexpected adapter return shapes.
   """
   @spec error_classes() :: [String.t()]
@@ -48,9 +46,8 @@ defmodule Chimeway.DeliveryAttempt do
     belongs_to(:delivery, Chimeway.Delivery)
   end
 
-  # Plan 14-04 Task 3 promoted :attempt_number to @required_fields after
-  # Deliveries.record_attempt/2 was wired to inject the value via the
-  # :next_attempt_number Multi step (Plan 14-04 Task 2).
+  # `Deliveries.record_attempt/2` injects the required attempt number from its
+  # `:next_attempt_number` Multi step.
   @required_fields ~w(delivery_id outcome attempt_number)a
   @optional_fields ~w(error_class provider_response adapter_module provider_message_id)a
 
