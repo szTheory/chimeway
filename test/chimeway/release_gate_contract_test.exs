@@ -3679,19 +3679,17 @@ defmodule Chimeway.ReleaseGateContractTest do
     @tag :apns_warning_gate_contract
     test "enabled verifier prepares dependencies then warning-strictly compiles only unpacked Chimeway before its consumer" do
       script = File.read!(@apns_script)
-      dependency_prepare = "mix deps.compile"
+      dependency_prepare = "mix deps.compile 2>&1 | tee -a \"$output\""
 
       chimeway_compile =
         "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors"
 
       fixture_env = "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
       consumer_lib_path = "consumer_lib_path=\"$consumer_root/_build/test/lib\""
-      strict_lib_path = "strict_lib_path=\"$work_root/$mode-strict-lib\""
-
-      dependency_code_path =
-        "ln -s \"$dependency_path\" \"$strict_lib_path/$(basename \"$dependency_path\")\""
-
-      strict_code_path = "ERL_LIBS=\"$strict_lib_path\" #{fixture_env}"
+      ecto_beam = "$consumer_lib_path/ecto/ebin/Elixir.Ecto.Schema.beam"
+      consumer_build = "MIX_BUILD_PATH=\"$consumer_root/_build/test\""
+      consumer_deps = "MIX_DEPS_PATH=\"$consumer_root/deps\""
+      package_lock = "cp \"$consumer_root/mix.lock\" \"$package_path/mix.lock\""
 
       consumer_compile = "mix compile --warnings-as-errors"
 
@@ -3699,21 +3697,14 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert script =~ chimeway_compile
       assert script =~ fixture_env
       assert script =~ consumer_lib_path
-      assert script =~ strict_lib_path
-      assert script =~ "[[ -d \"$consumer_lib_path/ecto/ebin\" ]]"
-      assert script =~ "[[ -d \"$strict_lib_path/ecto/ebin\" ]]"
-      assert script =~ dependency_code_path
-      assert script =~ "[[ \"$dependency_path\" != \"$consumer_lib_path/chimeway\" ]] || continue"
-
-      assert script =~
-               "[[ \"$dependency_path\" != \"$consumer_lib_path/apns_consumer\" ]] || continue"
-
-      assert script =~ "Chimeway ebin leaked into strict compiler code path"
-      assert script =~ strict_code_path
+      assert script =~ "[[ -f \"#{ecto_beam}\" ]]"
+      assert script =~ consumer_build
+      assert script =~ consumer_deps
+      assert script =~ package_lock
       assert script =~ "[[ -n \"$package_path\" && -f \"$package_path/mix.exs\" ]]"
       refute script =~ "mix cmd --cd deps/chimeway"
       refute script =~ "deps/chimeway/lib/"
-      refute script =~ "ERL_LIBS=\"$consumer_lib_path\""
+      refute script =~ "ERL_LIBS="
 
       assert :binary.match(script, "mix deps.get --check-locked") <
                :binary.match(script, dependency_prepare)
@@ -3721,7 +3712,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert :binary.match(script, "unpacked package mix.exs is missing") <
                :binary.match(script, chimeway_compile)
 
-      assert :binary.match(script, dependency_prepare) < :binary.match(script, chimeway_compile)
+      assert :binary.match(script, dependency_prepare) < :binary.match(script, package_lock)
+      assert :binary.match(script, package_lock) < :binary.match(script, chimeway_compile)
       assert :binary.match(script, chimeway_compile) < :binary.match(script, consumer_compile)
 
       for {needle, replacement, required} <- [
@@ -3734,20 +3726,13 @@ defmodule Chimeway.ReleaseGateContractTest do
             {"CHIMEWAY_PACKAGE_PATH=\"$package_path\"", "", fixture_env},
             {"CHIMEWAY_APNS_ENABLED=1", "", fixture_env},
             {"MIX_ENV=test", "", fixture_env},
-            {"ERL_LIBS=\"$strict_lib_path\"", "", strict_code_path}
+            {consumer_build, "", consumer_build},
+            {consumer_deps, "", consumer_deps},
+            {package_lock, "true", package_lock}
           ] do
         refute String.replace(script, needle, replacement, global: true) =~ required,
                "warning gate must reject mutation of #{needle}"
       end
-
-      exclusion = "[[ \"$dependency_path\" != \"$consumer_lib_path/chimeway\" ]] || continue"
-      refute String.replace(script, exclusion, "true", global: true) =~ exclusion
-
-      consumer_exclusion =
-        "[[ \"$dependency_path\" != \"$consumer_lib_path/apns_consumer\" ]] || continue"
-
-      refute String.replace(script, consumer_exclusion, "true", global: true) =~
-               consumer_exclusion
     end
 
     @tag :apns_warning_gate_contract
@@ -3759,7 +3744,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert script =~ "mix deps.compile 2>&1 | tee -a \"$output\""
 
       assert script =~
-               "ERL_LIBS=\"$strict_lib_path\" CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
+               "CHIMEWAY_PACKAGE_PATH=\"$package_path\" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test"
 
       assert script =~
                "mix cmd --cd \"$package_path\" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a \"$output\""

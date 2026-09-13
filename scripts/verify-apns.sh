@@ -42,8 +42,6 @@ run_consumer() {
   local output="$work_root/$mode.log"
   local tree_output="$work_root/$mode-tree.log"
   local consumer_lib_path="$consumer_root/_build/test/lib"
-  local strict_lib_path="$work_root/$mode-strict-lib"
-  local dependency_path
 
   cp -R "$fixture_root" "$consumer_root"
   rm -rf "$consumer_root/_build" "$consumer_root/deps" "$consumer_root/mix.lock"
@@ -54,25 +52,16 @@ run_consumer() {
       cp "$fixture_root/apns-enabled.lock" mix.lock
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.get --check-locked
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.compile 2>&1 | tee -a "$output"
-      [[ -d "$consumer_lib_path/ecto/ebin" ]] || fail "prepared consumer Ecto code path is missing"
-      mkdir -p "$strict_lib_path"
-
-      for dependency_path in "$consumer_lib_path"/*; do
-        [[ -d "$dependency_path/ebin" ]] || continue
-        [[ "$dependency_path" != "$consumer_lib_path/chimeway" ]] || continue
-        [[ "$dependency_path" != "$consumer_lib_path/apns_consumer" ]] || continue
-        ln -s "$dependency_path" "$strict_lib_path/$(basename "$dependency_path")"
-      done
-
-      [[ -d "$strict_lib_path/ecto/ebin" ]] || fail "strict compiler Ecto code path is missing"
-      [[ ! -e "$strict_lib_path/chimeway" ]] || fail "Chimeway ebin leaked into strict compiler code path"
+      [[ -f "$consumer_lib_path/ecto/ebin/Elixir.Ecto.Schema.beam" ]] || fail "prepared consumer Ecto.Schema beam is missing"
+      cp "$consumer_root/mix.lock" "$package_path/mix.lock"
 
       assert_no_chimeway_redefinition() {
         ! grep -q 'redefining module Chimeway' "$output" || fail "strict compiler emitted Chimeway module redefinition warnings"
       }
 
       if [[ "$focus" == "strict_compile_probe" ]]; then
-        ERL_LIBS="$strict_lib_path" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+        CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+          MIX_BUILD_PATH="$consumer_root/_build/test" MIX_DEPS_PATH="$consumer_root/deps" \
           mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"
         assert_no_chimeway_redefinition
         return
@@ -83,7 +72,8 @@ run_consumer() {
         [[ "$warning_probe" == "$package_path"/lib/* ]] || fail "warning probe escaped unpacked Chimeway source"
         printf '%s\n' 'defmodule Chimeway.APNS.WarningGateProbe do' '  def warning, do: ignored = :warning' 'end' >"$warning_probe"
 
-        if ERL_LIBS="$strict_lib_path" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+        if CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+             MIX_BUILD_PATH="$consumer_root/_build/test" MIX_DEPS_PATH="$consumer_root/deps" \
              mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"; then
           fail "Chimeway warning mutation unexpectedly compiled cleanly"
         fi
@@ -93,7 +83,8 @@ run_consumer() {
         return
       fi
 
-      ERL_LIBS="$strict_lib_path" CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+      CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test \
+        MIX_BUILD_PATH="$consumer_root/_build/test" MIX_DEPS_PATH="$consumer_root/deps" \
         mix cmd --cd "$package_path" mix compile --force-elixir --no-deps-check --warnings-as-errors 2>&1 | tee -a "$output"
       assert_no_chimeway_redefinition
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
