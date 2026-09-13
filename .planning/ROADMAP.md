@@ -110,7 +110,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 | 104. CrossWake Provider-Feedback Recipe Truth | 2/2 | Complete    | 2026-09-12 |
 | 105. Tenant-Safe Inbox Change Stream | 2/2 | Complete    | 2026-09-12 |
 | 106. Idempotent Seen Lifecycle & Workflow Proof | 2/2 | Complete    | 2026-09-12 |
-| 107. Operator Timeline, Guidance & Gate Parity | 0/2 | Planned    |  |
+| 107. Operator Timeline, Guidance & Gate Parity | 1/2 | In Progress|  |
 
 ---
 *Roadmap updated: 2026-09-12 when creating the v1.19 roadmap.*

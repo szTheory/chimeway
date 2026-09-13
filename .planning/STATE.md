@@ -5,17 +5,17 @@ milestone_name: Adopter Hardening & Inbox Lifecycle
 current_phase: 107
 current_phase_name: Operator Timeline, Guidance & Gate Parity
 status: executing
-stopped_at: Phase 106 complete
-last_updated: "2026-09-13T00:41:12.756Z"
+stopped_at: Completed 107-01-PLAN.md
+last_updated: "2026-09-13T00:54:58.405Z"
 last_activity: 2026-09-12
 last_activity_desc: Phase 107 execution started
-state_head: d5ddce5a8cf1d02268b5eef1bfa56f88459e1fb5
+state_head: 2ed76678c5a69dae2021531e584fc99e1be7c403
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 ## Current Position
 
 Phase: 107 (Operator Timeline, Guidance & Gate Parity) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 107
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-09-12 — Phase 107 execution started
 
 ## Deferred Items
@@ -454,6 +454,9 @@ status: complete
 - [Phase ?]: Threshold A stays credential-free and reports release readiness without claiming physical behavior.
 - [Phase ?]: The physical runner never defaults visible presentation; only D-13's three exact labels are accepted.
 - [Phase ?]: Mobile adoption/operations guidance has one ExDoc authority; README and Adoption Paths only navigate to it.
+- [Phase 107-01]: Timeline ordering uses exact timestamp microseconds before closed event rank. — Chronology remains authoritative across event kinds while rank resolves exact ties only.
+- [Phase 107-01]: Notification seen and read are projected independently from the parent row with empty detail. — Sibling explanations agree and no signal, publisher, recipient, or caller data becomes lifecycle authority.
+- [Phase 107-01]: Admin timeline uses one stable data-cw-timeline-event hook without moving package or identity boundaries. — The optional host-mounted package retains generic rendering and defense-in-depth redaction.
 
 ### Roadmap Evolution
 
@@ -774,8 +777,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-09-12T17:07:11.763Z
-Stopped at: Completed 106-01-PLAN.md
+Last session: 2026-09-13T00:54:58.282Z
+Stopped at: Completed 107-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -962,3 +965,4 @@ Resume file: None
 | Phase 105 P02 | 13 min | 2 tasks | 11 files |
 | Phase 106 P01 | 9 min | 2 tasks | 4 files |
 | Phase 106 P02 | 5 min | 2 tasks | 1 files |
+| Phase 107 P01 | 8min | 3 tasks | 7 files |
