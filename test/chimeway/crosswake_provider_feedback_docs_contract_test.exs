@@ -73,6 +73,101 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     assert_received :focused_test_executed
   end
 
+  @tag :exact_alias_identity
+  @tag exact_alias_case: :focused_code
+  test "rejects a prefix-spoofed Code alias in the focused proof", %{root: root, opts: opts} do
+    mutate!(root, focused_test_path(), fn source ->
+      String.replace(source, "Code.compile_string(recipe)", "Evil.Code.compile_string(recipe)")
+    end)
+
+    assert_exact_alias_rejected(opts, :focused_code)
+  end
+
+  @tag :exact_alias_identity
+  @tag exact_alias_case: :focused_redaction
+  test "rejects a prefix-spoofed Redaction alias in the focused proof", %{
+    root: root,
+    opts: opts
+  } do
+    mutate!(root, focused_test_path(), fn source ->
+      String.replace(
+        source,
+        "Redaction.feedback_from_provider_attrs(attrs)",
+        "Evil.Redaction.feedback_from_provider_attrs(attrs)"
+      )
+    end)
+
+    assert_exact_alias_rejected(opts, :focused_redaction)
+  end
+
+  @tag :exact_alias_identity
+  @tag exact_alias_case: :focused_registry
+  test "rejects a prefix-spoofed Registry alias in the focused proof", %{
+    root: root,
+    opts: opts
+  } do
+    mutate!(root, focused_test_path(), fn source ->
+      String.replace(
+        source,
+        "Registry.apply_provider_feedback(feedback, opts)",
+        "Evil.Registry.apply_provider_feedback(feedback, opts)"
+      )
+    end)
+
+    assert_exact_alias_rejected(opts, :focused_registry)
+  end
+
+  @tag :exact_alias_identity
+  @tag exact_alias_case: :focused_worker
+  test "rejects a prefix-spoofed worker alias in the focused proof", %{
+    root: root,
+    opts: opts
+  } do
+    mutate!(root, focused_test_path(), fn source ->
+      String.replace(
+        source,
+        "Registry.apply_provider_feedback(feedback, opts)",
+        "apply(Evil.MyApp.Workers.ChimewayProviderFeedbackWorker, :perform, [job])"
+      )
+    end)
+
+    assert_exact_alias_rejected(opts, :focused_worker)
+  end
+
+  @tag :exact_alias_identity
+  @tag exact_alias_case: :readme_redaction
+  test "rejects a prefix-spoofed Redaction alias in the README recipe", %{
+    root: root,
+    opts: opts
+  } do
+    mutate!(root, readme_path(), fn source ->
+      String.replace(
+        source,
+        "Redaction.feedback_from_provider_attrs(feedback_attrs)",
+        "Evil.Redaction.feedback_from_provider_attrs(feedback_attrs)"
+      )
+    end)
+
+    assert_exact_alias_rejected(opts, :readme_redaction)
+  end
+
+  @tag :exact_alias_identity
+  @tag exact_alias_case: :readme_registry
+  test "rejects a prefix-spoofed Registry alias in the README recipe", %{
+    root: root,
+    opts: opts
+  } do
+    mutate!(root, readme_path(), fn source ->
+      String.replace(
+        source,
+        "Registry.apply_provider_feedback(feedback, opts)",
+        "Evil.Registry.apply_provider_feedback(feedback, opts)"
+      )
+    end)
+
+    assert_exact_alias_rejected(opts, :readme_registry)
+  end
+
   test "rejects unexpected command arguments without emitting checked content" do
     output =
       ExUnit.CaptureIO.capture_io(fn ->
@@ -489,6 +584,25 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
   defp mutate!(root, relative, mutation) do
     path = Path.join(root, relative)
     File.write!(path, mutation.(File.read!(path)))
+  end
+
+  defp assert_exact_alias_rejected(opts, exact_alias_case) do
+    verdict = CrosswakeProviderFeedbackDocs.verify(opts)
+
+    focused_test_executed? =
+      receive do
+        :focused_test_executed -> true
+      after
+        0 -> false
+      end
+
+    observed = {verdict, focused_test_executed?}
+
+    if observed == {:ok, true} do
+      IO.puts("RED_ALIAS_SPOOF_ACCEPTED:#{exact_alias_case}")
+    end
+
+    assert observed == {:error, false}
   end
 
   defp write_focused!(root, content), do: write!(root, focused_test_path(), content)
