@@ -42,9 +42,11 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
 
         event_id = result.event.id
 
-        assert {:ok, trace} = Traces.get_trace(event_id)
-        assert trace.notification_key == "sigra.auth.magic_link"
-        assert trace.correlation_id == correlation_id
+        assert {:ok, trace} = Traces.get_trace(event_id, tenant_id: result.event.tenant_id)
+        assert result.event.notification_key == "sigra.auth.magic_link"
+        assert trace.id == event_id
+        assert trace.correlation_id =~ ~r/^cw_correlation_/
+        assert trace.correlation_id != correlation_id
 
         assert trace.notifications != []
 
@@ -55,8 +57,8 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
         assert deliveries != []
         assert Enum.all?(deliveries, &delivery_attempted?/1)
 
-        refute_sensitive_in_trace!(trace, [raw_token, url])
-        refute_sensitive_in_telemetry!([raw_token, url])
+        refute_sensitive_in_trace!(trace, [raw_token, url, user.email])
+        refute_sensitive_in_telemetry!([raw_token, url, user.email])
       end
 
       test "confirmation code dispatch creates durable delivery with redacted trace" do
@@ -76,9 +78,11 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
 
         event_id = result.event.id
 
-        assert {:ok, trace} = Traces.get_trace(event_id)
-        assert trace.notification_key == "sigra.auth.confirmation_code"
-        assert trace.correlation_id == correlation_id
+        assert {:ok, trace} = Traces.get_trace(event_id, tenant_id: result.event.tenant_id)
+        assert result.event.notification_key == "sigra.auth.confirmation_code"
+        assert trace.id == event_id
+        assert trace.correlation_id =~ ~r/^cw_correlation_/
+        assert trace.correlation_id != correlation_id
 
         deliveries =
           trace.notifications
@@ -87,8 +91,8 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
         assert deliveries != []
         assert Enum.all?(deliveries, &delivery_attempted?/1)
 
-        refute_sensitive_in_trace!(trace, [code, url])
-        refute_sensitive_in_telemetry!([code, url])
+        refute_sensitive_in_trace!(trace, [code, url, user.email])
+        refute_sensitive_in_telemetry!([code, url, user.email])
       end
     end
 

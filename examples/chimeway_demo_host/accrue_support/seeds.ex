@@ -107,8 +107,9 @@ defmodule DemoHost.AccrueSeeds do
     {:ok,
      %{
        customer_id: customer.id,
+       tenant_id: customer.id,
        workflow_run_id: waiting_run.id,
-       recipient_identity: demo_identity(),
+       recipient_identity: notification.recipient_identity,
        workflow_key: "accrue.dunning",
        trace: %{delivery_ids: [delivery.id]}
      }}

@@ -57,6 +57,17 @@ defmodule DemoHost.Seeds do
     "cw_demo_#{digest}"
   end
 
+  @doc "Builds a recipient with an opaque durable reference and transient email handoff."
+  def email_recipient(email) when is_binary(email) do
+    normalized_email = email |> String.trim() |> String.downcase()
+
+    %{
+      recipient_ref: recipient_identity(normalized_email),
+      recipient_identity: "user:#{normalized_email}",
+      recipient_type: "user"
+    }
+  end
+
   @doc "Alex's recipient identity — use in admin search."
   def alex_identity, do: recipient_identity(@alex_email)
 
@@ -312,10 +323,12 @@ defmodule DemoHost.Seeds do
         {:ok, result} ->
           event_id = result.trace.event_id
           delivery_ids = delivery_ids_for_event(event_id)
+          recipient_identity = recipient_identity_for_event!(event_id)
 
           {:ok,
            %{
-             recipient_identity: @alex_email,
+             tenant_id: @tenant_id,
+             recipient_identity: recipient_identity,
              trace: %{delivery_ids: delivery_ids, correlation_id: correlation_id}
            }}
 
@@ -338,9 +351,6 @@ defmodule DemoHost.Seeds do
       "accrue.demo@teampulse.test"
     end
   end
-
-  @doc "Accrue demo recipient identity for admin trace search."
-  def accrue_demo_identity, do: accrue_demo_email()
 
   @doc "Returns suppression explanation for Sam's password reset seed (JOUR-02)."
   @spec password_reset_explanation() :: {:ok, map()} | {:error, term()}
@@ -406,5 +416,13 @@ defmodule DemoHost.Seeds do
       select: d.id
     )
     |> Repo.all()
+  end
+
+  defp recipient_identity_for_event!(event_id) do
+    from(n in Notification,
+      where: n.event_id == ^event_id,
+      select: n.recipient_identity
+    )
+    |> Repo.one!()
   end
 end

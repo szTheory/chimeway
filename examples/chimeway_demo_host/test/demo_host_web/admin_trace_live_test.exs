@@ -57,7 +57,13 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
       })
       |> render_submit()
 
-    assert_redacted_recipient(html, DemoHost.Seeds.alex_identity())
+    explanation =
+      assert_trace_recipient_redacted(
+        html,
+        hd(delivery_ids),
+        DemoHost.Seeds.tenant_id(),
+        DemoHost.Seeds.alex_identity()
+      )
 
     delivery_id =
       Enum.find(delivery_ids, &String.contains?(html, &1)) ||
@@ -65,8 +71,10 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
 
     {:ok, detail_view, detail_html} = live(conn, "/admin/chimeway/deliveries/#{delivery_id}")
     assert detail_html =~ "Trace Detail"
-    assert render(detail_view) =~ "teampulse.invite_sent"
-    assert render(detail_view) =~ "teampulse-seed-invite-corr"
+    detail = render(detail_view)
+    assert detail =~ "teampulse.invite_sent"
+    assert detail =~ explanation.correlation_id
+    refute detail =~ "teampulse-seed-invite-corr"
   end
 
   @tag :demo_01
@@ -79,7 +87,8 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
 
     assert explanation.delivery_id == delivery_id
     assert explanation.notification_key == "teampulse.invite_sent"
-    assert explanation.correlation_id == "teampulse-seed-invite-corr"
+    assert explanation.correlation_id =~ ~r/^cw_correlation_[a-f0-9]{32}$/
+    refute explanation.correlation_id == "teampulse-seed-invite-corr"
 
     assert_prefixed_only("chimeway_events", 1)
     assert_prefixed_only("chimeway_notifications", 1)
@@ -106,7 +115,12 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
       })
       |> render_submit()
 
-    assert_redacted_recipient(html, DemoHost.Seeds.sam_identity())
+    assert_trace_recipient_redacted(
+      html,
+      hd(delivery_ids),
+      DemoHost.Seeds.tenant_id(),
+      DemoHost.Seeds.sam_identity()
+    )
 
     delivery_id =
       Enum.find(delivery_ids, &String.contains?(html, &1)) ||
@@ -147,7 +161,13 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
       })
       |> render_submit()
 
-    assert_redacted_recipient(html, DemoHost.Seeds.morgan_identity())
+    explanation =
+      assert_trace_recipient_redacted(
+        html,
+        in_app_delivery.id,
+        DemoHost.Seeds.tenant_id(),
+        DemoHost.Seeds.morgan_identity()
+      )
 
     {:ok, detail_view, detail_html} =
       live(conn, "/admin/chimeway/deliveries/#{in_app_delivery.id}")
@@ -156,13 +176,9 @@ defmodule DemoHostWeb.AdminTraceLiveTest do
 
     detail = render(detail_view)
     assert detail =~ "teampulse.payment_reminder"
-    assert detail =~ "teampulse-seed-payment-corr"
+    assert detail =~ explanation.correlation_id
+    refute detail =~ "teampulse-seed-payment-corr"
     assert detail =~ "workflow waiting" or detail =~ "Workflow waiting"
-  end
-
-  defp assert_redacted_recipient(html, recipient_id) do
-    assert html =~ ChimewayAdmin.Redaction.redact_recipient(recipient_id)
-    refute html =~ recipient_id
   end
 
   defp prepare_prefixed_runtime_storage(_context) do

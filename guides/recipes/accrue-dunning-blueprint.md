@@ -117,7 +117,7 @@ The `invoice.paid` Outcome Signal routes to the waiting run via `Workflows.route
 
 - **Seeds:** `DemoHost.Seeds.seed_accrue_dunning/0` — standalone API using `Accrue.Test.trigger_event/2` (not invoked from `DemoHost.Seeds.run/0`)
 - **Verification:** `ACCRUE_PATH=../accrue/accrue mix verify.accrue --warnings-as-errors` (root ECOS-06 lifecycle + demo host DEMO-07 proof)
-- **Operator trace:** Search `/admin/chimeway` by customer email (`accrue.demo@teampulse.test`) to inspect `accrue.dunning` workflow progression and `signal_received` on `invoice.paid`
+- **Operator trace:** Open `/admin/chimeway` in the customer's tenant scope and search by the seed result's opaque recipient reference to inspect `accrue.dunning` workflow progression and `signal_received` on `invoice.paid`
 
 Demo host uses the Logger email adapter for Accrue lane isolation. For production email delivery, see the optional Mailglass path below.
 

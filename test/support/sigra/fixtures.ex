@@ -80,7 +80,7 @@ if Code.ensure_loaded?(Sigra) and not Code.ensure_loaded?(Chimeway.TestSupport.S
     def refute_sensitive_in_trace!(trace, secrets) do
       secrets = normalize_secrets(secrets)
       trace_str = inspect(trace)
-      payload_str = trace.payload |> normalize_payload_string()
+      payload_str = trace |> Map.get(:payload, %{}) |> normalize_payload_string()
 
       for secret <- secrets do
         refute String.contains?(trace_str, secret),
@@ -91,7 +91,7 @@ if Code.ensure_loaded?(Sigra) and not Code.ensure_loaded?(Chimeway.TestSupport.S
       end
 
       for notification <- trace.notifications || [] do
-        metadata_str = inspect(notification.metadata || %{})
+        metadata_str = inspect(Map.get(notification, :metadata) || %{})
 
         for secret <- secrets do
           refute String.contains?(metadata_str, secret),
@@ -99,7 +99,7 @@ if Code.ensure_loaded?(Sigra) and not Code.ensure_loaded?(Chimeway.TestSupport.S
         end
 
         for delivery <- notification.deliveries || [] do
-          render_data = delivery.render_data || %{}
+          render_data = Map.get(delivery, :render_data) || %{}
 
           for field <- ["subject", "html_body", "text_body"] do
             value = Map.get(render_data, field, "")

@@ -11,6 +11,8 @@ defmodule Chimeway.ReleaseGateContractTest do
   @mix_exs "mix.exs"
   @ci_yml ".github/workflows/ci.yml"
   @release_yml ".github/workflows/release.yml"
+  @release_automerge_yml ".github/workflows/release-pr-automerge.yml"
+  @release_doc_sync "scripts/ci/sync-release-doc-versions.sh"
   @manifest ".release-please-manifest.json"
   @publish_hex_yml ".github/workflows/publish-hex.yml"
   @readme "README.md"
@@ -301,6 +303,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       [_, ci_test] = Regex.run(~r/"ci\.test":\s*\[(.*?)\n\s*\],/s, mix_exs)
 
       assert ci_test =~ "CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1"
+      assert ci_test =~ "mix test test/chimeway_test.exs test/chimeway"
       assert mix_exs =~ "test_load_filters: [~r{^(?!test/fixtures/).*_test\\.exs$}]"
       assert mix_exs =~ "test_ignore_filters: [~r{^test/fixtures/}]"
 
@@ -1101,6 +1104,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       %{
         release_please_config: File.read!(@release_please_config),
         release_yml: File.read!(@release_yml),
+        release_automerge_yml: File.read!(@release_automerge_yml),
         publish_hex_yml: File.read!(@publish_hex_yml)
       }
     end
@@ -1157,6 +1161,63 @@ defmodule Chimeway.ReleaseGateContractTest do
         refute String.contains?(release_yml, sibling),
                "release.yml must not add a #{sibling} publish lane"
       end
+    end
+
+    test "release PR automerge binds both merge attempts to the verified head", ctx do
+      merge_step =
+        ctx.release_automerge_yml
+        |> extract_release_job!("automerge")
+        |> extract_release_step!("Find and merge release PR")
+
+      merge_commands =
+        Regex.scan(~r/^\s*if gh pr merge .*$/m, merge_step)
+        |> List.flatten()
+
+      assert length(merge_commands) == 2
+
+      for command <- merge_commands do
+        assert command =~ ~S(--match-head-commit "$HEAD_SHA")
+      end
+    end
+
+    test "release documentation synchronizer updates exactly the canonical constraints" do
+      script = Path.expand(@release_doc_sync)
+      assert Bitwise.band(File.stat!(script).mode, 0o111) != 0
+
+      root = owned_temp_directory!("chimeway_release_gate_")
+      on_exit(fn -> remove_owned_temp_dir!(root) end)
+
+      fixtures = [
+        "README.md",
+        "guides/introduction/installation.md",
+        "guides/introduction/golden-path.md"
+      ]
+
+      for path <- fixtures do
+        target = Path.join(root, path)
+        File.mkdir_p!(Path.dirname(target))
+        File.write!(target, ~s|deps = [{:chimeway, "~> 1.1"}]\n|)
+      end
+
+      assert {output, 0} = System.cmd(script, ["1.2.0"], cd: root, stderr_to_stdout: true)
+      assert output =~ "aligned Chimeway constraints to ~> 1.2"
+
+      for path <- fixtures do
+        assert File.read!(Path.join(root, path)) == ~s|deps = [{:chimeway, "~> 1.2"}]\n|
+      end
+
+      assert {_output, 0} = System.cmd(script, ["1.2.0"], cd: root, stderr_to_stdout: true)
+
+      File.write!(Path.join(root, "README.md"), ~s|extra = {:chimeway, "~> 1.2"}\n|, [:append])
+
+      assert {ambiguous, status} =
+               System.cmd(script, ["1.3.0"], cd: root, stderr_to_stdout: true)
+
+      assert status != 0
+      assert ambiguous =~ "expected exactly one Chimeway constraint"
+
+      assert {_malformed, 64} =
+               System.cmd(script, ["not-a-version"], cd: root, stderr_to_stdout: true)
     end
 
     test "recovery publish workflow stays rooted on the chimeway package", ctx do
@@ -1276,6 +1337,8 @@ defmodule Chimeway.ReleaseGateContractTest do
             {~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ]),
              ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" = "true" ])},
             {~S([ "${PRS_CREATED:-false}" != "true" ]), ~S([ "${PRS_CREATED:-false}" = "true" ])},
+            {~S([ "${DOCS_CHANGED:-false}" = "true" ]),
+             ~S([ "${DOCS_CHANGED:-false}" != "true" ])},
             {"gh workflow run ci.yml --ref release-please--branches--main",
              "gh workflow run ci.yml --ref main"}
           ] do
@@ -3970,7 +4033,12 @@ defmodule Chimeway.ReleaseGateContractTest do
     assert bootstrap =~
              ~S(RELEASE_PLEASE_TOKEN_CONFIGURED: ${{ secrets.RELEASE_PLEASE_TOKEN != '' }})
 
+    assert bootstrap =~
+             ~S(git show "$MAIN_SHA:scripts/ci/sync-release-doc-versions.sh" | bash -s -- "$version")
+
+    assert bootstrap =~ "git push origin HEAD:release-please--branches--main"
     assert step =~ "--head release-please--branches--main"
+    assert step =~ ~S([ "${DOCS_CHANGED:-false}" = "true" ])
     assert step =~ ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ])
     assert step =~ ~S([ "${PRS_CREATED:-false}" != "true" ])
     assert step =~ "gh workflow run ci.yml --ref release-please--branches--main"
@@ -4010,7 +4078,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
     assert extract_permission_map!(bootstrap_job, 4) == %{
              "actions" => "write",
-             "contents" => "read",
+             "contents" => "write",
              "pull-requests" => "read"
            }
 

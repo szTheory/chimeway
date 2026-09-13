@@ -92,9 +92,10 @@ config :accrue, Accrue.TestRepo,
   database: "chimeway_demo_accrue_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox
 
-# Threadline harness config is unconditional (mirrors Mailglass/Accrue pattern —
-# config loads before optional dep compile; Code.ensure_loaded? in test_helper handles absence).
-config :threadline, ecto_repos: [Threadline.Test.Repo]
+# Threadline harness config is unconditional because config loads before optional dep compile.
+# The demo test helper starts its repo explicitly, so keep the application repo list empty to
+# avoid a second owner/cleanup process competing with the SQL sandbox.
+config :threadline, ecto_repos: []
 
 config :threadline, Threadline.Test.Repo,
   username:

@@ -79,7 +79,10 @@ defmodule Chimeway.MixProject do
 
       # Core test lane; partner integrations run through their dedicated mix verify.* aliases.
       "ci.test": [
-        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test --exclude mailglass --exclude accrue --exclude accrue_artifact_proof --exclude accrue_packaged_cli --exclude threadline --exclude sigra --exclude adoption_paths_e2e --warnings-as-errors"
+        # Keep the paths explicit for Elixir 1.17, which predates
+        # :test_load_filters/:test_ignore_filters and would otherwise recurse
+        # into the standalone Mix projects under test/fixtures.
+        "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway_test.exs test/chimeway --exclude mailglass --exclude accrue --exclude accrue_artifact_proof --exclude accrue_packaged_cli --exclude threadline --exclude sigra --exclude adoption_paths_e2e --warnings-as-errors"
       ],
 
       # Docs gate: fails on undocumented public functions

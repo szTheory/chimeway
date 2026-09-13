@@ -152,7 +152,10 @@ Seed the demo host dunning scenario:
 DemoHost.Seeds.seed_accrue_dunning/0
 ```
 
-Then search `/admin/chimeway` by customer email (`accrue.demo@teampulse.test`) to inspect `accrue.dunning` workflow progression, delivery attempts, and `signal_received` on `invoice.paid`.
+Then open `/admin/chimeway` in the customer's tenant scope and search by the opaque
+recipient reference returned by the seed result. This exposes `accrue.dunning` workflow
+progression, delivery attempts, and `signal_received` on `invoice.paid` without using the
+customer email as durable notification identity.
 
 ### Minimal email path (Logger adapter)
 

@@ -95,6 +95,17 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
     test "DEMO-07 admin trace shows dunning workflow", %{conn: conn} do
       assert {:ok, result} = DemoHost.Seeds.seed_accrue_dunning()
 
+      previous_admin_tenant = System.get_env("CHIMEWAY_DEMO_ADMIN_TENANT_ID")
+      System.put_env("CHIMEWAY_DEMO_ADMIN_TENANT_ID", result.tenant_id)
+
+      on_exit(fn ->
+        if previous_admin_tenant do
+          System.put_env("CHIMEWAY_DEMO_ADMIN_TENANT_ID", previous_admin_tenant)
+        else
+          System.delete_env("CHIMEWAY_DEMO_ADMIN_TENANT_ID")
+        end
+      end)
+
       conn = get(conn, "/admin/chimeway/traces")
       assert html_response(conn, 200) =~ "Trace Lookup"
 
@@ -109,10 +120,15 @@ if Code.ensure_loaded?(Accrue) and Code.ensure_loaded?(Accrue.Integrations.Chime
         })
         |> render_submit()
 
-      assert html =~ ChimewayAdmin.Redaction.redact_recipient(result.recipient_identity)
-      refute html =~ result.recipient_identity
-
       delivery_id = hd(result.trace.delivery_ids)
+
+      assert_trace_recipient_redacted(
+        html,
+        delivery_id,
+        result.tenant_id,
+        result.recipient_identity
+      )
+
       assert String.contains?(html, delivery_id)
 
       {:ok, detail_view, detail_html} =

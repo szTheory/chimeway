@@ -36,11 +36,15 @@ defmodule DemoHostWeb.JourneyTest do
     assert {:ok, %{trace: %{delivery_ids: [_ | _] = ids}}} = DemoHost.Seeds.seed_invite()
 
     for delivery_id <- ids do
-      {:ok, explanation} = Traces.explain_delivery(delivery_id)
+      {:ok, explanation} =
+        Traces.explain_delivery(delivery_id, tenant_id: DemoHost.Seeds.tenant_id())
+
       assert explanation.status in [:succeeded, :pending, :dispatched]
     end
 
-    {:ok, explanation} = Traces.explain_delivery(hd(ids))
+    {:ok, explanation} =
+      Traces.explain_delivery(hd(ids), tenant_id: DemoHost.Seeds.tenant_id())
+
     assert explanation.status == :succeeded
   end
 
@@ -71,7 +75,10 @@ defmodule DemoHostWeb.JourneyTest do
     assert run.pending_signals == ["chimeway.notification.read"]
     assert run.status_reason == "waiting_for_step_progression"
 
-    assert :ok = Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity())
+    assert :ok =
+             Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity(),
+               tenant_id: DemoHost.Seeds.tenant_id()
+             )
 
     drain_oban!(:chimeway_signals)
 
@@ -114,7 +121,10 @@ defmodule DemoHostWeb.JourneyTest do
     assert run.pending_signals == ["chimeway.notification.read"]
     assert run.status_reason == "waiting_for_step_progression"
 
-    assert :ok = Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity())
+    assert :ok =
+             Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity(),
+               tenant_id: DemoHost.Seeds.tenant_id()
+             )
 
     drain_oban!(:chimeway_signals)
 
@@ -177,7 +187,10 @@ defmodule DemoHostWeb.JourneyTest do
       args: %{"workflow_run_id" => run.id}
     )
 
-    assert :ok = Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity())
+    assert :ok =
+             Chimeway.mark_read(notification.id, DemoHost.Seeds.morgan_identity(),
+               tenant_id: DemoHost.Seeds.tenant_id()
+             )
 
     drain_oban!(:chimeway_signals)
 
