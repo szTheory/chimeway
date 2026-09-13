@@ -5,7 +5,7 @@ defmodule Chimeway.TargetResolver do
               {:ok, [BindingRevision.t()]} | {:error, term()}
 
   defmodule BindingRevision do
-    @moduledoc false
+    @moduledoc "Validated, tenant-scoped opaque binding revision returned by target resolvers."
     @enforce_keys [:tenant_id, :binding_revision_ref]
     defstruct [:tenant_id, :binding_revision_ref, :request_intent]
 
