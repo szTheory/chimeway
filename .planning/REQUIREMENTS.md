@@ -24,8 +24,8 @@
 
 ### Guidance and Gates
 
-- [ ] **DOCS-03**: Host guidance explains publisher configuration, topic ownership, tenant and recipient isolation, arrival/seen/read/archive semantics, reconnect behavior, and the distinction between inbox state, protected open, provider handoff, and engagement.
-- [ ] **GATE-03**: Named inbox and aggregate verification entrypoints prove the packaged LiveView, demo-host arrival-to-seen-to-read journey, workflow progression, operator timeline, documentation contract, and Phoenix-optional core boundary.
+- [x] **DOCS-03**: Host guidance explains publisher configuration, topic ownership, tenant and recipient isolation, arrival/seen/read/archive semantics, reconnect behavior, and the distinction between inbox state, protected open, provider handoff, and engagement.
+- [x] **GATE-03**: Named inbox and aggregate verification entrypoints prove the packaged LiveView, demo-host arrival-to-seen-to-read journey, workflow progression, operator timeline, documentation contract, and Phoenix-optional core boundary.
 
 ## Future Requirements
 
@@ -67,8 +67,8 @@ Which phases cover which requirements. Filled during roadmap creation.
 | INT-03 | Phase 106 | Complete |
 | INT-04 | Phase 106 | Complete |
 | INT-02 | Phase 107 | Complete |
-| DOCS-03 | Phase 107 | Pending |
-| GATE-03 | Phase 107 | Pending |
+| DOCS-03 | Phase 107 | Complete |
+| GATE-03 | Phase 107 | Complete |
 
 **Coverage:**
 

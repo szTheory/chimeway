@@ -4,18 +4,18 @@ milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 current_phase: 107
 current_phase_name: Operator Timeline, Guidance & Gate Parity
-status: executing
-stopped_at: Completed 107-01-PLAN.md
-last_updated: "2026-09-13T00:54:58.405Z"
+status: verifying
+stopped_at: Completed 107-02-PLAN.md
+last_updated: "2026-09-13T01:45:42.397Z"
 last_activity: 2026-09-12
 last_activity_desc: Phase 107 execution started
-state_head: 2ed76678c5a69dae2021531e584fc99e1be7c403
+state_head: "0b13aafcb23bc3e58a0812e0094aee2a428f44fc"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 8
-  completed_plans: 7
-  percent: 88
+  completed_plans: 8
+  percent: 75
 ---
 
 # Project State
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 
 Phase: 107 (Operator Timeline, Guidance & Gate Parity) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-12 — Phase 107 execution started
 
 ## Deferred Items
@@ -457,6 +457,9 @@ status: complete
 - [Phase 107-01]: Timeline ordering uses exact timestamp microseconds before closed event rank. — Chronology remains authoritative across event kinds while rank resolves exact ties only.
 - [Phase 107-01]: Notification seen and read are projected independently from the parent row with empty detail. — Sibling explanations agree and no signal, publisher, recipient, or caller data becomes lifecycle authority.
 - [Phase 107-01]: Admin timeline uses one stable data-cw-timeline-event hook without moving package or identity boundaries. — The optional host-mounted package retains generic rendering and defense-in-depth redaction.
+- [Phase 107]: [107-02]: Keep inbox lifecycle facts independent; durable arrival, seen, read, archive, provider handoff, visible presentation, protected activation, and engagement never imply one another.
+- [Phase 107]: [107-02]: Permit recursive cleanup only for existing non-symlink immediate temp children carrying one of four closed Chimeway ownership prefixes.
+- [Phase 107]: [107-02]: Retain verify_inbox as the sole hosted owner and feed its identical result to pr-gate and ci-gate without nightly admin or browser work.
 
 ### Roadmap Evolution
 
@@ -777,8 +780,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-09-13T00:54:58.282Z
-Stopped at: Completed 107-01-PLAN.md
+Last session: 2026-09-13T01:45:42.259Z
+Stopped at: Completed 107-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
@@ -966,3 +969,4 @@ Resume file: None
 | Phase 106 P01 | 9 min | 2 tasks | 4 files |
 | Phase 106 P02 | 5 min | 2 tasks | 1 files |
 | Phase 107 P01 | 8min | 3 tasks | 7 files |
+| Phase 107 P02 | 42min | 3 tasks | 5 files |
