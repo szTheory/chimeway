@@ -391,6 +391,27 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     assert view |> render() |> count_items() == 21
   end
 
+  test "a forged load_more event cannot mark rows seen while the panel is closed", %{conn: conn} do
+    oldest =
+      for index <- 1..21 do
+        insert_inbox_notification!("cw_user_42", %{
+          idempotency_key: "seen-closed-load-more-#{index}"
+        })
+      end
+      |> hd()
+
+    {:ok, view, _html} = mount_bell(conn)
+
+    _ = render_click(view, "load_more", %{})
+
+    assert is_nil(Repo.get!(Notification, oldest.id).seen_at)
+    assert seen_signal_count() == 0
+
+    opened_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert count_items(opened_html) == 20
+    assert is_nil(Repo.get!(Notification, oldest.id).seen_at)
+  end
+
   test "a relevant reload marks a new item seen only while the panel is open", %{conn: conn} do
     {:ok, closed_view, _html} = mount_bell(conn)
     closed_item = insert_inbox_notification!("cw_user_42")

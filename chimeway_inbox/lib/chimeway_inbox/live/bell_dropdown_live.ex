@@ -88,7 +88,7 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
     end
   end
 
-  def handle_event("load_more", _params, socket) do
+  def handle_event("load_more", _params, %{assigns: %{panel_open: true}} = socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
       recipient_identity = socket.assigns.recipient_identity
       tenant_id = socket.assigns.tenant_id
@@ -111,6 +111,8 @@ defmodule ChimewayInbox.Live.BellDropdownLive do
       {:error, socket} -> {:noreply, socket}
     end
   end
+
+  def handle_event("load_more", _params, socket), do: {:noreply, socket}
 
   def handle_event("retry_load", _params, socket) do
     with {:ok, socket} <- LiveAuth.ensure_authorized(socket, :inbox_bell) do
