@@ -1096,6 +1096,8 @@ defmodule Chimeway.DocContractTest do
   @inbox_integration_guide Path.expand("../../guides/introduction/inbox-integration.md", __DIR__)
 
   describe "inbox integration guide doc contract (DOCS-08 / DOCS-09)" do
+    @describetag :inbox_gate_parity
+
     setup do
       content = File.read!(@inbox_integration_guide)
       %{content: content}
@@ -1273,8 +1275,11 @@ defmodule Chimeway.DocContractTest do
       indices =
         Enum.map(ordered, fn item ->
           case :binary.match(content, item) do
-            {index, _} -> index
-            :nomatch -> flunk("inbox guide must include ownership/lifecycle item #{inspect(item)}")
+            {index, _} ->
+              index
+
+            :nomatch ->
+              flunk("inbox guide must include ownership/lifecycle item #{inspect(item)}")
           end
         end)
 
@@ -1309,6 +1314,7 @@ defmodule Chimeway.DocContractTest do
       refute String.contains?(content, "mark_seen is not wired")
       refute String.contains?(content, "headless — not exposed")
       refute String.contains?(content, "Deferred in v1.9")
+
       refute Regex.match?(~r/["`]user:[^"`\s]+@[^"`\s]+["`]/, content),
              "inbox guide must not use raw email-shaped recipient identities"
     end
