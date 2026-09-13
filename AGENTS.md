@@ -38,4 +38,4 @@ Core value: every notification decision must be explainable ("why was this sent,
 - `.planning/ROADMAP.md`
 - `.planning/STATE.md`
 
-Current roadmap has 5 phases, with Phase 1 (`Durable Core Spine`) as the immediate focus.
+Read both before selecting or executing work: `.planning/STATE.md` records the current position, while `.planning/ROADMAP.md` records the ordered delivery plan. Do not copy changing phase counts or focus statements into this guide.

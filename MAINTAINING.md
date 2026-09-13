@@ -8,11 +8,15 @@ This document is for maintainers cutting releases.
 
 Release Please owns version and changelog SSOT on `main`. Do **not** manually edit `@version` or move CHANGELOG sections on `main` for routine releases.
 
+Only an exact Release Please PR merge may reach the workflow branches that suppress work because a release is already tagged or published. Exact identity requires the expected head branch, base branch, title, and well-formed metadata. Ordinary merges and uncertain PR metadata continue into the idempotent Release Please action.
+
 1. **Merge conventional commits to `main`** — Release Please opens or updates a Release PR titled `chore(main): release X.Y.Z` on branch `release-please--branches--main`.
 2. **Confirm ci-gate green on the Release PR head SHA** — Actions → CI workflow → verify the `ci-gate` job succeeded on the PR head commit.
-3. **Automerge (Wave 2+)** — When ci-gate is green, `release-pr-automerge.yml` merges the Release PR automatically. For the bootstrap **1.1.0** release (first after Hex 1.0.0), manual merge is acceptable until automerge is proven.
-4. **On merge** — `release.yml` creates the GitHub Release + `v*` tag, runs `gate-ci-green` on the release SHA, then `publish-hex` publishes to Hex with `HEX_API_KEY`.
+3. **Automerge** — When ci-gate is green, `release-pr-automerge.yml` merges the Release PR automatically.
+4. **Release creation** — On the exact Release Please PR merge, `release.yml` creates the GitHub Release + `v*` tag, runs `gate-ci-green` on the release SHA, then `publish-hex` publishes to Hex with `HEX_API_KEY`.
 5. **Post-publish verify trio (required locally):**
+
+Release-PR CI bootstrap is token-aware. With the `GITHUB_TOKEN` fallback, an open release PR explicitly dispatches `ci.yml` on `release-please--branches--main`; stale Release Please output does the same. A PAT-backed fresh update uses native `pull_request` CI and avoids a duplicate dispatch. The shell receives only whether the PAT is configured, never the token value.
 
 ```bash
 mix verify.clean
@@ -20,7 +24,7 @@ mix verify.parity
 mix verify.published X.Y.Z
 ```
 
-- `verify.clean` — confirms no uncommitted files remain after publish prep
+- `verify.clean` — rejects unstaged, staged, and non-ignored untracked changes; ignored files remain allowed
 - `verify.parity` — confirms the published file list matches the `files:` whitelist in `mix.exs`
 - `verify.published X.Y.Z` — polls hex.pm to confirm the version is accessible
 
@@ -41,7 +45,7 @@ Do **not** run `mix hex.publish` on a maintainer laptop as the default publish s
 | Secret | Required | Purpose |
 |--------|----------|---------|
 | `HEX_API_KEY` | Yes | Hex publish in `release.yml` and recovery workflow |
-| `RELEASE_PLEASE_TOKEN` | Optional | Fine-grained PAT if Release PR native CI is flaky; `release.yml` falls back to `GITHUB_TOKEN` |
+| `RELEASE_PLEASE_TOKEN` | Optional | Fine-grained PAT for native Release PR CI; `release.yml` falls back to `GITHUB_TOKEN` and explicit CI dispatch |
 
 ### Pre-ship local commands
 
@@ -118,10 +122,6 @@ When modifying any of these paths, also run `mix verify.install_golden` locally 
 The installer proof covers committed golden fixtures, second-run idempotency, static prefix qualification, and database execution/rollback for generated prefixed and public migrations. It requires a reachable PostgreSQL test database; CI provisions PostgreSQL 15 for the path-gated `install_golden_contract` job.
 
 CI runs `install_golden_contract` on push to `main` and on `workflow_dispatch` only — it is event-guarded off `pull_request` under the two-aggregate topology (see "CI gate topology" below), so it does not run on ordinary PRs. Within those events the detect step keeps the proof path-gated: it diffs the installer surfaces listed above and only runs the full proof when one changed, otherwise reporting `success` so the `ci-gate` fold stays pending-safe. `scripts/ci/detect-installer-changes.sh` reproduces that detection locally.
-
-### Bootstrap note
-
-First automated release after Hex **1.0.0** targets **1.1.0**. Push all unpushed `main` commits before the first Release Please run so the bootstrap PR includes v1.5–v1.9 surface.
 
 ## CI gate topology (pr-gate / ci-gate)
 

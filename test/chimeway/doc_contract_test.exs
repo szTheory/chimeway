@@ -1473,6 +1473,59 @@ defmodule Chimeway.DocContractTest do
         refute File.exists?(path), "retired placeholder guide must be absent: #{path}"
       end
     end
+
+    test "maintainer runbook documents identity-first release decisions" do
+      maintaining = File.read!("MAINTAINING.md")
+
+      for required <- [
+            "Only an exact Release Please PR merge",
+            "Ordinary merges and uncertain PR metadata continue into the idempotent Release Please action",
+            "head branch, base branch, title, and well-formed metadata",
+            "already tagged or published"
+          ] do
+        assert String.contains?(maintaining, required),
+               "MAINTAINING must document release decision truth: #{inspect(required)}"
+      end
+
+      refute String.contains?(maintaining, "4. **On merge**"),
+             "MAINTAINING must not imply every ordinary merge creates a release"
+    end
+
+    test "maintainer runbook documents token-aware exact-branch CI bootstrap" do
+      maintaining = File.read!("MAINTAINING.md")
+
+      for required <- [
+            "`GITHUB_TOKEN` fallback",
+            "explicitly dispatches `ci.yml`",
+            "`release-please--branches--main`",
+            "PAT-backed fresh update",
+            "native `pull_request` CI",
+            "avoids a duplicate dispatch"
+          ] do
+        assert String.contains?(maintaining, required),
+               "MAINTAINING must document release-PR CI bootstrap: #{inspect(required)}"
+      end
+    end
+
+    test "maintainer runbook defines complete clean-tree behavior" do
+      maintaining = File.read!("MAINTAINING.md")
+
+      assert String.contains?(maintaining, "unstaged, staged, and non-ignored untracked")
+      assert String.contains?(maintaining, "ignored files remain allowed")
+      assert String.contains?(maintaining, "mix verify.clean")
+    end
+
+    test "agent guide delegates changing project state to durable planning files" do
+      agents = File.read!("AGENTS.md")
+
+      assert String.contains?(agents, "`.planning/STATE.md`")
+      assert String.contains?(agents, "`.planning/ROADMAP.md`")
+      assert String.contains?(agents, "Read both before selecting or executing work")
+
+      refute Regex.match?(~r/Current roadmap has \d+ phases/, agents)
+      refute String.contains?(agents, "as the immediate focus")
+      refute File.exists?("GSD-CONTEXT.md"), "obsolete GSD bootstrap context must be absent"
+    end
   end
 
   @threadline_integration_guide Path.expand(
