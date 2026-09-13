@@ -2,7 +2,7 @@
 
 This guide is the canonical adoption path for composing Chimeway with [Threadline](https://github.com/szTheory/threadline) audit telemetry. Threadline integration is **attach-only**: add the optional dependency and attach the reporter in `Application.start/2` — there are no Chimeway migrations to run, no notifier to author, and no host-triggered events. The reporter translates Chimeway notification lifecycle telemetry into Threadline's immutable audit ledger automatically.
 
-## Responsibility split (SEED-003)
+## Responsibility split
 
 **Chimeway orchestrates the when and why:** durable notification lifecycle, suppression and preference gates, idempotency, explainability, and operator traces you can search at `/admin/chimeway`.
 

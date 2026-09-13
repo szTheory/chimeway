@@ -11,13 +11,14 @@
 - [Golden Path](../introduction/golden-path.md) — install, migrations, and your first `Chimeway.trigger/3`
 - [Custom adapter](custom-adapter.md) — built-in Mailglass adapter stub and runtime config shape
 
-## Responsibility split (SEED-003)
+## Responsibility split
 
 **Chimeway orchestrates the when and why:** durable notification lifecycle, suppression and preference gates, idempotency, scheduling, and operator traces you can search at `/admin/chimeway`.
 
 **Mailglass handles templating and delivery:** MJML templates, Swoosh email assembly, and provider send. Chimeway passes notifier `rendering/2` assigns through to your host mailable; Mailglass builds the final message.
 
-**Product name vs module:** REQUIREMENTS and adoption docs refer to `Chimeway.Adapter.Mailglass`; the implementation module is `Chimeway.Adapters.Mailglass`.
+`Chimeway.Adapter.Mailglass` is the public adapter name; configure its built-in
+implementation module, `Chimeway.Adapters.Mailglass`.
 
 ## Feature Developer: notifier authoring
 

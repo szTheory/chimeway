@@ -2,13 +2,14 @@
 
 This guide is the canonical adoption path for composing Chimeway with [Mailglass](https://hex.pm/packages/mailglass). Follow it when you want one credible vertical slice: add both libraries, configure the Mailglass adapter, trigger an email delivery, inspect the trace, and optionally wire inbound feedback.
 
-## Responsibility split (SEED-003)
+## Responsibility split
 
 **Chimeway orchestrates the when and why:** durable notification lifecycle, suppression and preference gates, idempotency, scheduling, and operator traces you can search at `/admin/chimeway`.
 
 **Mailglass handles templating and delivery:** MJML templates, Swoosh email assembly, and provider send. Chimeway passes notifier `rendering/2` assigns through to your host mailable; Mailglass builds the final message.
 
-**Product name vs module:** REQUIREMENTS and adoption docs refer to `Chimeway.Adapter.Mailglass`; the implementation module is `Chimeway.Adapters.Mailglass`.
+`Chimeway.Adapter.Mailglass` is the public adapter name; configure its built-in
+implementation module, `Chimeway.Adapters.Mailglass`.
 
 For copy-paste notifier and adapter sections, see the [Mailglass integration blueprint](../recipes/mailglass-integration-blueprint.md). This guide owns the end-to-end path from dependency to verification.
 
@@ -210,7 +211,7 @@ Example host route (optional demo path `/webhooks/chimeway/mailglass`):
 
 ```elixir
 def create(conn, _params) do
-  # Pitfall 4 / T-33-RAWBODY: flatten cached iolist chunks to binary before HMAC verify.
+  # Flatten cached iolist chunks to binary before HMAC verification.
   raw_body =
     conn.assigns
     |> Map.get(:raw_body, [])
@@ -236,7 +237,7 @@ end
 
 Hosts using a custom `:body_reader` must cache raw bytes in `conn.assigns[:raw_body]` before parsers consume the body — see `DemoHost.Plugs.CacheBodyReader` and the runnable reference at `examples/chimeway_demo_host/lib/demo_host_web/controllers/webhooks_controller.ex`.
 
-Log error reasons server-side only; never return internal error tuples to the webhook provider (Phase 33 D-03). Hosts MAY use 400 or 422 for observability, but MUST return non-2xx for library errors so providers retry.
+Log error reasons server-side only; never return internal error tuples to the webhook provider. Hosts MAY use 400 or 422 for observability, but MUST return non-2xx for library errors so providers retry.
 
 The adapter's `verify_webhook/3` validates the provider signature, `resolve_delivery/2` maps the payload to a Chimeway delivery row, and `normalize_feedback/1` converts provider events into canonical delivery outcomes.
 

@@ -87,12 +87,12 @@ Chimeway emits a durable `chimeway.notification.read` signal. `SignalRouterWorke
 
 If the user never reads the notification, `WorkflowProgressionWorker` advances the run at `due_at` to the `to_step` email channel. See [Oban integration](oban-integration.md) for dispatcher and queue configuration.
 
-Automated proof: JOUR-06 under `mix verify.journeys` (read-cancel + time-fallback; two `@tag :jour_06` tests).
+Automated proof: `mix verify.journeys` covers both read-cancel and time-fallback behavior.
 
 ## Runnable proof
 
 - `DemoHost.Seeds.escalation_waiting!/0` — trigger-only seed for Morgan's payment reminder
-- JOUR-03 in `examples/chimeway_demo_host/test/demo_host_web/journey_test.exs` — seed → `:waiting` with `pending_signals` → `Chimeway.mark_read/3` → signal → `:active`
+- `examples/chimeway_demo_host/test/demo_host_web/journey_test.exs` — seed → `:waiting` with `pending_signals` → `Chimeway.mark_read/3` → signal → `:active`
 
 ## Related guides
 

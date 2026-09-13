@@ -1190,7 +1190,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       fixtures = [
         "README.md",
         "guides/introduction/installation.md",
-        "guides/introduction/golden-path.md"
+        "guides/introduction/golden-path.md",
+        "guides/introduction/inbox-integration.md"
       ]
 
       for path <- fixtures do
@@ -4036,6 +4037,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     assert bootstrap =~
              ~S(git show "$MAIN_SHA:scripts/ci/sync-release-doc-versions.sh" | bash -s -- "$version")
 
+    assert length(Regex.scan(~r/guides\/introduction\/inbox-integration\.md/, bootstrap)) == 2
     assert bootstrap =~ "git push origin HEAD:release-please--branches--main"
     assert step =~ "--head release-please--branches--main"
     assert step =~ ~S([ "${DOCS_CHANGED:-false}" = "true" ])

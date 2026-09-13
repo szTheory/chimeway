@@ -13,6 +13,7 @@ files=(
   README.md
   guides/introduction/installation.md
   guides/introduction/golden-path.md
+  guides/introduction/inbox-integration.md
 )
 
 for file in "${files[@]}"; do

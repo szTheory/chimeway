@@ -100,7 +100,7 @@ Example combining `on_outcome` and `stop` on the same step:
 ]
 ```
 
-### WR-02: `temporary_failure` fires early
+### `temporary_failure` fires early
 
 `temporary_failure` resolves from the first `:failed` delivery row — before Oban retries complete. If you intend to branch only after retries are exhausted, use `retries_exhausted` instead. See the `Chimeway.Notifier` moduledoc for the full early-fire warning and idempotency guidance when pairing early escalation with retrying primary deliveries.
 
@@ -222,7 +222,7 @@ For inbox-driven early exit, declare these canonical event names in `cancel_sign
 - `chimeway.notification.read` — user explicitly read the notification
 - `chimeway.notification.seen` — user viewed the notification in the inbox
 
-`wait_until` rules declaring `cancel_signals: ["chimeway.notification.read"]` are end-to-end truthful: Phase 48 populates `pending_signals` at `:waiting` entry; inbox lifecycle APIs emit the matching durable signals without host `Signal.track` glue.
+`wait_until` rules declaring `cancel_signals: ["chimeway.notification.read"]` are end-to-end truthful: the workflow engine populates `pending_signals` at `:waiting` entry; inbox lifecycle APIs emit the matching durable signals without host `Signal.track` glue.
 
 ## Next Steps
 
