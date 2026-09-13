@@ -50,6 +50,29 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     assert_received :focused_test_executed
   end
 
+  test "accepts describe-contained ExUnit roots and transitively reachable local helpers", %{
+    opts: opts
+  } do
+    assert :ok = CrosswakeProviderFeedbackDocs.verify(opts)
+    assert_received :focused_test_executed
+  end
+
+  test "accepts the pinned worker perform boundary from a reachable test helper", %{
+    root: root,
+    opts: opts
+  } do
+    mutate!(root, focused_test_path(), fn source ->
+      String.replace(
+        source,
+        "Registry.apply_provider_feedback(feedback, opts)",
+        "apply(MyApp.Workers.ChimewayProviderFeedbackWorker, :perform, [job])"
+      )
+    end)
+
+    assert :ok = CrosswakeProviderFeedbackDocs.verify(opts)
+    assert_received :focused_test_executed
+  end
+
   test "rejects unexpected command arguments without emitting checked content" do
     output =
       ExUnit.CaptureIO.capture_io(fn ->
@@ -167,6 +190,154 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     refute_received :focused_test_executed
   end
 
+  test "rejects markers that exist only in an uncalled helper", %{root: root, opts: opts} do
+    write_focused!(
+      root,
+      ~S'''
+      defmodule DeadHelperProof do
+        use ExUnit.Case
+
+        test "does not call the proof" do
+          :ok
+        end
+
+        defp dead(recipe, attrs, feedback, opts) do
+          Code.compile_string(recipe)
+          Redaction.feedback_from_provider_attrs(attrs)
+          Registry.apply_provider_feedback(feedback, opts)
+        end
+      end
+      '''
+    )
+
+    assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
+    refute_received :focused_test_executed
+  end
+
+  test "test-shaped forms nested below false declaration contexts are never roots", %{
+    root: root,
+    opts: opts
+  } do
+    for hidden <- [
+          ~S'''
+          def hidden do
+            setup do
+              Code.compile_string(recipe)
+              Redaction.feedback_from_provider_attrs(attrs)
+              Registry.apply_provider_feedback(feedback, opts)
+            end
+          end
+          ''',
+          ~S'''
+          defp hidden do
+            test "forged" do
+              Code.compile_string(recipe)
+              Redaction.feedback_from_provider_attrs(attrs)
+              Registry.apply_provider_feedback(feedback, opts)
+            end
+          end
+          ''',
+          ~S'''
+          quote do
+            setup_all do
+              Code.compile_string(recipe)
+              Redaction.feedback_from_provider_attrs(attrs)
+              Registry.apply_provider_feedback(feedback, opts)
+            end
+          end
+          ''',
+          ~S'''
+          fn ->
+            test "forged" do
+              Code.compile_string(recipe)
+              Redaction.feedback_from_provider_attrs(attrs)
+              Registry.apply_provider_feedback(feedback, opts)
+            end
+          end
+          '''
+        ] do
+      write_focused!(root, "defmodule FalseRootProof do\n  use ExUnit.Case\n#{hidden}\nend\n")
+
+      assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
+      refute_received :focused_test_executed
+    end
+  end
+
+  test "does not execute an uninvoked anonymous function inside a real test root", %{
+    root: root,
+    opts: opts
+  } do
+    write_focused!(
+      root,
+      ~S'''
+      defmodule AnonymousProof do
+        use ExUnit.Case
+
+        test "real root" do
+          hidden = fn ->
+            Code.compile_string(recipe)
+            Redaction.feedback_from_provider_attrs(attrs)
+            Registry.apply_provider_feedback(feedback, opts)
+          end
+
+          is_function(hidden)
+        end
+      end
+      '''
+    )
+
+    assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
+    refute_received :focused_test_executed
+  end
+
+  test "requires every marker in the rooted reachable subgraph", %{root: root, opts: opts} do
+    original = File.read!(Path.join(root, focused_test_path()))
+
+    for marker <- [
+          "Code.compile_string(recipe)",
+          "Redaction.feedback_from_provider_attrs(attrs)",
+          "Registry.apply_provider_feedback(feedback, opts)"
+        ] do
+      write_focused!(root, String.replace(original, marker, ":missing_boundary", global: false))
+
+      assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
+      refute_received :focused_test_executed
+    end
+  end
+
+  test "reachable helper cycles terminate and unreachable markers cannot manufacture a pass", %{
+    root: root,
+    opts: opts
+  } do
+    write_focused!(
+      root,
+      ~S'''
+      defmodule CyclicProof do
+        use ExUnit.Case
+
+        test "cycle" do
+          first(recipe)
+        end
+
+        defp first(recipe) do
+          Code.compile_string(recipe)
+          second(recipe)
+        end
+
+        defp second(recipe), do: first(recipe)
+
+        defp unreachable(attrs, feedback, opts) do
+          Redaction.feedback_from_provider_attrs(attrs)
+          Registry.apply_provider_feedback(feedback, opts)
+        end
+      end
+      '''
+    )
+
+    assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
+    refute_received :focused_test_executed
+  end
+
   test "rejects either missing executable boundary call", %{root: root, opts: opts} do
     focused = Path.join(root, focused_test_path())
     original = File.read!(focused)
@@ -257,9 +428,25 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
       focused_test_path(),
       ~S'''
       defmodule ExecutableProof do
-        def run(recipe, attrs, feedback, opts) do
+        use ExUnit.Case
+
+        setup_all do
           Code.compile_string(recipe)
+          :ok
+        end
+
+        describe "provider feedback recipe" do
+          test "executes the public boundaries" do
+            convert(attrs, feedback, opts)
+          end
+        end
+
+        defp convert(attrs, feedback, opts) do
           Redaction.feedback_from_provider_attrs(attrs)
+          persist(feedback, opts)
+        end
+
+        defp persist(feedback, opts) do
           Registry.apply_provider_feedback(feedback, opts)
         end
       end
@@ -271,6 +458,8 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     path = Path.join(root, relative)
     File.write!(path, mutation.(File.read!(path)))
   end
+
+  defp write_focused!(root, content), do: write!(root, focused_test_path(), content)
 
   defp write!(root, relative, content) do
     path = Path.join(root, relative)
