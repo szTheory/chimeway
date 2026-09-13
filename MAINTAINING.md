@@ -22,8 +22,8 @@ Release-PR CI bootstrap is token-aware. Before dispatch, it derives the release
 updates to the exact Release Please branch. With the `GITHUB_TOKEN` fallback,
 an open release PR explicitly dispatches `ci.yml`; a documentation-sync commit
 is also dispatched because token-authored pushes do not start another workflow.
-A PAT-backed fresh update with no documentation change uses native
-`pull_request` CI and avoids a duplicate dispatch. The shell receives only
+A PAT-backed fresh update with no documentation change uses native `pull_request` CI and avoids a duplicate dispatch.
+The shell receives only
 whether the PAT is configured, never the token value.
 
 ```bash
@@ -111,7 +111,7 @@ Maintainers clone the integration sibling repos adjacent to chimeway and point t
 
 - [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins compatibility ref `0752b8d0b59eb53936498daa4bb0be4b14ffd0e4`; released-package proof remains independently version-gated.
 - [szTheory/threadline](https://github.com/szTheory/threadline) — convention `../threadline/threadline` from repo root (`THREADLINE_PATH`). CI pins ref `46375fafc4df30fc916244ee4a21b7cae01f1ddc`.
-- [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `ea046ed5941e4eb5c52b311f5892d97fac10f1ea`.
+- [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `1afd37f01e4e5b3ffdc93fbf309a381107d51e84`.
 
 Update the pinned refs when bumping an integration.
 

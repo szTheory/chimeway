@@ -1037,7 +1037,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: szTheory/sigra
-          ref: ea046ed5941e4eb5c52b311f5892d97fac10f1ea
+          ref: 1afd37f01e4e5b3ffdc93fbf309a381107d51e84
           path: sigra/sigra
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam
