@@ -44,7 +44,7 @@
     "skip_discuss": false,
     "code_review": true,
     "code_review_depth": "standard",
-    "test_command": "cd ../crosswake && MIX_ENV=test mix verify && cd packages/crosswake-shell-core-ios && swift test",
+    "test_command": "mix ci.test",
     "_auto_chain_active": false,
     "use_worktrees": false,
     "ai_integration_phase": true
@@ -57,9 +57,6 @@
   "agent_skills": {},
   "features": {
     "thinking_partner": false
-  },
-  "preferences": {
-    "vendor_philosophy": "opinionated"
   },
   "resolve_model_ids": "omit",
   "mode": "yolo",
