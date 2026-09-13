@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 Phase: 107
 Plan: Not started
 Status: All phases complete
-Last activity: 2026-09-13 - Completed quick task 260913-a2h: Reject prefix-spoofed CrossWake aliases by requiring exact module identity and add adversarial contract coverage
+Last activity: 2026-09-13 - Completed quick task 260913-b0l: Accept only the real fully qualified detached README aliases while retaining exact focused-proof identities and anti-spoof rejection
 
 ### Quick Tasks Completed
 
@@ -39,6 +39,7 @@ Last activity: 2026-09-13 - Completed quick task 260913-a2h: Reject prefix-spoof
 |---|-------------|------|--------|--------|-----------|
 | 260912-x9f | Fix Trigger notifier-rendering error propagation, add the missing rendering-failure rollback/no-publish contract, and add one mounted trigger-to-bell refresh test. | 2026-09-13 | 8e0f708f | — | .planning/quick/260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis |
 | 260913-a2h | Reject prefix-spoofed CrossWake aliases by requiring exact module identity and add adversarial contract coverage | 2026-09-13 | 3979004e | Verified | [260913-a2h-reject-prefix-spoofed-crosswake-aliases-](./quick/260913-a2h-reject-prefix-spoofed-crosswake-aliases-/) |
+| 260913-b0l | Accept only the real fully qualified detached README aliases while retaining exact focused-proof identities and anti-spoof rejection | 2026-09-13 | d9841654 | Verified | [260913-b0l-accept-only-the-real-fully-qualified-det](./quick/260913-b0l-accept-only-the-real-fully-qualified-det/) |
 
 ## Deferred Items
 
