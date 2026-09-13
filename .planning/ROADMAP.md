@@ -19,7 +19,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 - [x] **Phase 104: CrossWake Provider-Feedback Recipe Truth** — Repair the external copy-paste path and lock it to real authority APIs without moving v1.18 proof truth. (completed 2026-09-12)
 - [x] **Phase 105: Tenant-Safe Inbox Change Stream** — Publish closed durable-change hints and refresh only the authorized connected bell. (completed 2026-09-12)
 - [x] **Phase 106: Idempotent Seen Lifecycle & Workflow Proof** — Wire panel visibility to first-seen state and prove safe workflow progression. (completed 2026-09-12)
-- [ ] **Phase 107: Operator Timeline, Guidance & Gate Parity** — Expose safe seen/read facts and require the completed adopter journey everywhere it matters.
+- [x] **Phase 107: Operator Timeline, Guidance & Gate Parity** — Expose safe seen/read facts and require the completed adopter journey everywhere it matters. (completed 2026-09-12)
 
 ## Phase Details
 
@@ -110,7 +110,7 @@ Older shipped milestones remain indexed in `.planning/MILESTONES.md`.
 | 104. CrossWake Provider-Feedback Recipe Truth | 2/2 | Complete    | 2026-09-12 |
 | 105. Tenant-Safe Inbox Change Stream | 2/2 | Complete    | 2026-09-12 |
 | 106. Idempotent Seen Lifecycle & Workflow Proof | 2/2 | Complete    | 2026-09-12 |
-| 107. Operator Timeline, Guidance & Gate Parity | 2/2 | In Progress|  |
+| 107. Operator Timeline, Guidance & Gate Parity | 2/2 | Complete    | 2026-09-12 |
 
 ---
 *Roadmap updated: 2026-09-12 when creating the v1.19 roadmap.*
