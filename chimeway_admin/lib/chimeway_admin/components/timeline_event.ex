@@ -19,7 +19,7 @@ defmodule ChimewayAdmin.Components.TimelineEvent do
       <h2>Timeline</h2>
       <ol class="cw-timeline">
         <%= for entry <- @timeline do %>
-          <li class="cw-timeline__item">
+          <li class="cw-timeline__item" data-cw-timeline-event={Atom.to_string(entry.event)}>
             <time datetime={DateTime.to_iso8601(entry.at)}>
               {format_at(entry.at)}
             </time>
@@ -40,6 +40,9 @@ defmodule ChimewayAdmin.Components.TimelineEvent do
   defp format_at(%DateTime{} = dt) do
     Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
   end
+
+  defp humanize_event(:notification_seen), do: "Notification seen"
+  defp humanize_event(:notification_read), do: "Notification read"
 
   defp humanize_event(event) when is_atom(event) do
     event |> Atom.to_string() |> String.replace("_", " ") |> String.capitalize()
