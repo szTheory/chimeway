@@ -21,13 +21,13 @@
     {
       "number": "107",
       "name": "Operator Timeline, Guidance & Gate Parity",
-      "status": "pending"
+      "status": "complete"
     }
   ],
   "next": {
-    "command": "/gsd:progress --next",
-    "label": "Advance to the next step",
-    "reason": "Phase 107 of 4 · 75% · executing"
+    "command": "/gsd:new-milestone",
+    "label": "Start a new milestone",
+    "reason": "All phases complete — start a new milestone"
   },
-  "updated_at": "2026-09-13T00:41:12.784Z"
+  "updated_at": "2026-09-13T03:31:21.546Z"
 }
