@@ -230,11 +230,13 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
           next_eligible_at: ~U[2026-01-15 13:00:00Z]
         )
 
+      cancel_now = DateTime.add(delivery.updated_at, 1, :second)
+
       assert {:ok, cancelled_delivery} =
                Deliveries.cancel_deferred_delivery(
                  delivery,
                  "superseded",
-                 now: ~U[2026-01-15 12:59:00Z],
+                 now: cancel_now,
                  tenant_id: "default"
                )
 
@@ -276,7 +278,7 @@ defmodule Chimeway.Orchestration.DeferredResumeTest do
              ]
 
       [%{at: cancelled_at}] = Enum.filter(explanation.timeline, &(&1.event == :cancelled))
-      assert DateTime.compare(cancelled_at, ~U[2026-01-15 12:59:00Z]) == :eq
+      assert DateTime.compare(cancelled_at, cancel_now) == :eq
     end
   end
 

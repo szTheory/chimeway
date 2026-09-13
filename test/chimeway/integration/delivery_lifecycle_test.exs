@@ -1081,12 +1081,13 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
         )
 
       original_id = delivery.id
+      cancel_now = DateTime.add(delivery.updated_at, 1, :second)
 
       assert {:ok, cancelled_delivery} =
                Chimeway.Deliveries.cancel_deferred_delivery(
                  delivery,
                  "superseded",
-                 now: ~U[2026-01-15 12:55:00Z],
+                 now: cancel_now,
                  tenant_id: delivery.tenant_id
                )
 
@@ -1094,7 +1095,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
       assert cancelled_delivery.status == :cancelled
       assert cancelled_delivery.orchestration_state == :deferred
       assert cancelled_delivery.suppression_reason == "superseded"
-      assert DateTime.compare(cancelled_delivery.updated_at, ~U[2026-01-15 12:55:00Z]) == :eq
+      assert DateTime.compare(cancelled_delivery.updated_at, cancel_now) == :eq
       assert attempt_count(cancelled_delivery.id) == 0
 
       assert :ok = perform_job(ObanWorker, %{delivery_id: cancelled_delivery.id})
@@ -1118,7 +1119,7 @@ defmodule Chimeway.Integration.DeliveryLifecycleTest do
              ]
 
       [%{at: cancelled_at}] = Enum.filter(explanation.timeline, &(&1.event == :cancelled))
-      assert DateTime.compare(cancelled_at, ~U[2026-01-15 12:55:00Z]) == :eq
+      assert DateTime.compare(cancelled_at, cancel_now) == :eq
     end
   end
 
