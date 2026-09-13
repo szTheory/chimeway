@@ -8,8 +8,14 @@ defmodule ChimewayAdmin.LiveAuthTest do
 
   setup do
     previous = Application.get_env(:chimeway_admin, :auth_module)
+    previous_redirect = Application.fetch_env(:chimeway_admin, :unauthorized_redirect)
     Application.put_env(:chimeway_admin, :auth_module, DenyAuth)
-    on_exit(fn -> Application.put_env(:chimeway_admin, :auth_module, previous) end)
+
+    on_exit(fn ->
+      Application.put_env(:chimeway_admin, :auth_module, previous)
+      restore_env(:unauthorized_redirect, previous_redirect)
+    end)
+
     :ok
   end
 
@@ -46,6 +52,25 @@ defmodule ChimewayAdmin.LiveAuthTest do
 
     assert {:halt, _} =
              LiveAuth.on_mount(:search_traces, %{}, %{"current_actor" => "ops:1"}, socket)
+  end
+
+  test "falls back to a valid local redirect when the configured path is nil" do
+    Application.put_env(:chimeway_admin, :auth_module, ChimewayAdmin.TestSupport.UnexpectedAuth)
+    Application.put_env(:chimeway_admin, :unauthorized_redirect, nil)
+
+    socket =
+      %Phoenix.LiveView.Socket{
+        assigns: %{__changed__: %{}},
+        endpoint: ChimewayAdmin.TestSupport.Endpoint,
+        router: ChimewayAdmin.Router,
+        view: ChimewayAdmin.Live.TraceSearchLive,
+        private: %{}
+      }
+
+    assert {:halt, redirected} =
+             LiveAuth.on_mount(:search_traces, %{}, %{"current_actor" => "ops:1"}, socket)
+
+    assert {:redirect, %{to: "/"}} = redirected.redirected
   end
 
   test "does not log secret-bearing unexpected authorize returns" do
@@ -289,4 +314,7 @@ defmodule ChimewayAdmin.LiveAuthTest do
     refute Keyword.has_key?(opts, :params)
     refute Keyword.has_key?(opts, :session)
   end
+
+  defp restore_env(key, :error), do: Application.delete_env(:chimeway_admin, key)
+  defp restore_env(key, {:ok, value}), do: Application.put_env(:chimeway_admin, key, value)
 end

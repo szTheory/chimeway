@@ -98,6 +98,6 @@ defmodule ChimewayAdmin.LiveAuth do
   defp unexpected_return_type(_value), do: :other
 
   defp unauthorized_redirect do
-    Application.get_env(:chimeway_admin, :unauthorized_redirect, "/")
+    Application.get_env(:chimeway_admin, :unauthorized_redirect) || "/"
   end
 end
