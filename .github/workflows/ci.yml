@@ -789,7 +789,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: szTheory/accrue
-          ref: cafc526f752b917a0abf8cbdbf3030cb367ae346
+          ref: d30fc25dbf6ba551792c66ff451b4b93c0af4bf1
           path: accrue/accrue
       - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
         id: beam

@@ -422,17 +422,36 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
     end
 
-    test "verify_accrue job checks out szTheory/accrue with ACCRUE_PATH", %{ci_yml: ci_yml} do
+    test "verify_accrue job checks out immutable Accrue 1.5.1 with ACCRUE_PATH", %{
+      ci_yml: ci_yml
+    } do
       job_block = extract_ci_job_block(ci_yml, "verify_accrue")
+      checkout = extract_ci_repository_checkout!(job_block, "szTheory/accrue")
+      expected_ref = "d30fc25dbf6ba551792c66ff451b4b93c0af4bf1"
 
-      assert String.contains?(job_block, "szTheory/accrue"),
-             "verify_accrue job must checkout szTheory/accrue sibling repo"
+      assert accrue_checkout_contract_intact?(job_block, expected_ref),
+             "verify_accrue must pin the szTheory/accrue checkout to Accrue 1.5.1"
 
       assert String.contains?(job_block, "ACCRUE_PATH"),
              "verify_accrue job must set ACCRUE_PATH for sibling checkout"
 
-      assert String.contains?(job_block, "cafc526f752b917a0abf8cbdbf3030cb367ae346"),
-             "verify_accrue job must pin Accrue integration ref"
+      refute accrue_checkout_contract_intact?(
+               String.replace(
+                 job_block,
+                 checkout,
+                 String.replace(checkout, expected_ref, "bad-ref")
+               ),
+               expected_ref
+             )
+
+      refute accrue_checkout_contract_intact?(
+               String.replace(
+                 job_block,
+                 checkout,
+                 String.replace(checkout, "          ref: #{expected_ref}\n", "")
+               ),
+               expected_ref
+             )
     end
 
     test "verify_threadline job checks out szTheory/threadline with THREADLINE_PATH", %{
@@ -3883,6 +3902,21 @@ defmodule Chimeway.ReleaseGateContractTest do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
     end
+  end
+
+  defp extract_ci_repository_checkout!(job, repository) do
+    case Regex.run(
+           ~r/^      - uses: actions\/checkout@[0-9a-f]+\n        with:\n(?:(?:          .+\n)*?          repository: #{Regex.escape(repository)}\n(?:          .+\n)*)/m,
+           job
+         ) do
+      [checkout] -> checkout
+      _ -> flunk("Could not extract #{repository} checkout step from CI job")
+    end
+  end
+
+  defp accrue_checkout_contract_intact?(job, expected_ref) do
+    checkout = extract_ci_repository_checkout!(job, "szTheory/accrue")
+    Regex.match?(~r/^          ref: #{Regex.escape(expected_ref)}$/m, checkout)
   end
 
   defp assert_release_preflight_contract!(release_yml) do
