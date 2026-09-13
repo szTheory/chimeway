@@ -4,6 +4,7 @@ defmodule Chimeway.TriggerInboxChangeTest do
   import Ecto.Query
 
   alias Chimeway.Inbox.Change
+  alias Chimeway.Events.Event
   alias Chimeway.Notifications.Notification
   alias Chimeway.Repo
   alias Chimeway.Trigger
@@ -37,6 +38,20 @@ defmodule Chimeway.TriggerInboxChangeTest do
     end
 
     def build(_params, _recipient), do: {:ok, %{"topic" => "synthetic"}}
+  end
+
+  defmodule RenderingFailureNotifier do
+    @behaviour Chimeway.Notifier
+
+    def notification_key, do: "inbox.change.rendering_failed"
+    def version, do: 1
+
+    def recipients(_params) do
+      {:ok, [%{recipient_identity: "cw_rendering_failure", recipient_type: "user"}]}
+    end
+
+    def build(_params, _recipient), do: {:ok, %{"topic" => "synthetic"}}
+    def rendering(_params, _recipient), do: {:error, :forced_rendering_failure}
   end
 
   defmodule RecordingPublisher do
@@ -114,6 +129,35 @@ defmodule Chimeway.TriggerInboxChangeTest do
              from(n in Notification, where: n.tenant_id == "tenant-a"),
              :count
            ) == 0
+  end
+
+  test "a rendering failure returns a stable error and rolls back without publishing" do
+    tenant_id = "tenant-rendering-failure"
+    idempotency_key = "rendering-failure"
+
+    assert {:error,
+            {:notifications_insert_failed,
+             {:rendering_resolution_failed, :forced_rendering_failure}}} =
+             Trigger.trigger(RenderingFailureNotifier, %{},
+               idempotency_key: idempotency_key,
+               tenant_id: tenant_id
+             )
+
+    refute Repo.exists?(
+             from(e in Event,
+               where: e.tenant_id == ^tenant_id and e.idempotency_key == ^idempotency_key
+             )
+           )
+
+    refute Repo.exists?(
+             from(n in Notification,
+               where:
+                 n.tenant_id == ^tenant_id and
+                   n.recipient_identity == "cw_rendering_failure"
+             )
+           )
+
+    refute_receive {:change, _, _}
   end
 
   test "publisher failure cannot falsify committed trigger success" do
