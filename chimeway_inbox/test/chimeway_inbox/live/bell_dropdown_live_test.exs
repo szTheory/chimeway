@@ -403,6 +403,29 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     assert seen_signal_count() == 1
   end
 
+  test "reconnecting starts closed and preserves the first seen timestamp and signal count", %{
+    conn: conn
+  } do
+    notification = insert_inbox_notification!("cw_user_42")
+
+    {:ok, first_view, _html} = mount_bell(conn)
+    first_view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    first_seen_at = Repo.get!(Notification, notification.id).seen_at
+    assert first_seen_at
+    assert seen_signal_count() == 1
+
+    {:ok, reconnected_view, reconnected_html} = mount_bell(conn)
+    assert reconnected_html =~ ~s(aria-expanded="false")
+    refute reconnected_html =~ ~s(data-cw-inbox-panel)
+    assert Repo.get!(Notification, notification.id).seen_at == first_seen_at
+    assert seen_signal_count() == 1
+
+    reconnected_view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert Repo.get!(Notification, notification.id).seen_at == first_seen_at
+    assert seen_signal_count() == 1
+  end
+
   test "load more marks only rows as they become visible", %{conn: conn} do
     oldest =
       for index <- 1..21 do
@@ -443,6 +466,51 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
     opened_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
     assert count_items(opened_html) == 20
     assert is_nil(Repo.get!(Notification, oldest.id).seen_at)
+  end
+
+  test "authorization drift before load more leaves the newly revealable row unseen", %{
+    conn: conn
+  } do
+    oldest =
+      for index <- 1..21 do
+        insert_inbox_notification!("cw_user_42", %{
+          idempotency_key: "seen-load-more-drift-#{index}"
+        })
+      end
+      |> hd()
+
+    use_mutable_auth!("cw_user_42", "tenant-a")
+    {:ok, view, _html} = mount_bell(conn)
+    view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    assert seen_signal_count() == 20
+    assert is_nil(Repo.get!(Notification, oldest.id).seen_at)
+
+    Application.put_env(:chimeway_inbox, :mutable_auth_tenant, "tenant-b")
+
+    assert {:error, {:redirect, %{to: "/login"}}} =
+             render_click(view, "load_more", %{})
+
+    assert is_nil(Repo.get!(Notification, oldest.id).seen_at)
+    assert seen_signal_count() == 20
+  end
+
+  test "one stale visible row does not prevent the remaining page from being marked seen", %{
+    conn: conn
+  } do
+    retained = insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Retained"}})
+    stale = insert_inbox_notification!("cw_user_42", %{metadata: %{"subject" => "Stale"}})
+
+    {:ok, view, _html} = mount_bell(conn)
+    Repo.delete!(stale)
+
+    opened_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
+
+    assert opened_html =~ ~s(data-cw-inbox-panel)
+    assert opened_html =~ ~s(data-notification-id="#{retained.id}")
+    refute opened_html =~ stale.id
+    assert Repo.get!(Notification, retained.id).seen_at
+    assert seen_signal_count() == 1
   end
 
   test "a relevant reload marks a new item seen only while the panel is open", %{conn: conn} do
@@ -522,8 +590,4 @@ defmodule ChimewayInbox.Live.BellDropdownLiveTest do
       from(s in Signal, where: s.event_name == "chimeway.notification.seen", select: count())
     )
   end
-
-  # mark_seen is not invoked by BellDropdownLive v1.9 (D-08 discretion) — only mark_read
-  # is wired from row actions. Seen lifecycle remains host/API responsibility until a
-  # future panel-open hook is added.
 end

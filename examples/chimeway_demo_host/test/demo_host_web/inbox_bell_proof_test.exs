@@ -17,6 +17,20 @@ defmodule DemoHostWeb.InboxBellProofTest do
 
   @moduletag :inbox
 
+  defmodule MutableInboxAuth do
+    @behaviour ChimewayInbox.Auth
+
+    @impl true
+    def current_recipient(_session, _context) do
+      {:ok, Application.fetch_env!(:demo_host, :inbox_proof_recipient)}
+    end
+
+    @impl true
+    def current_tenant(_session, _context) do
+      {:ok, Application.fetch_env!(:demo_host, :inbox_proof_tenant)}
+    end
+  end
+
   test "DEMO-08 list, mark_read, and badge update" do
     assert {:ok, _opaque_ref} =
              Chimeway.SafeEvidence.opaque_ref(:recipient, DemoHost.Seeds.alex_identity())
@@ -71,6 +85,18 @@ defmodule DemoHostWeb.InboxBellProofTest do
     view |> element("button[data-cw-inbox-bell]") |> render_click()
     drain_signal_queue!()
 
+    assert Repo.get!(WorkflowRun, run.id).state == :active
+    assert signal_transition_count(run.id) == 1
+
+    assert {:ok, _replayed_signal} =
+             Chimeway.Signal.track(
+               DemoHost.Seeds.tenant_id(),
+               DemoHost.Seeds.alex_identity(),
+               "chimeway.notification.seen",
+               %{"notification_id" => first_id}
+             )
+
+    drain_signal_queue!()
     assert Repo.get!(WorkflowRun, run.id).state == :active
     assert signal_transition_count(run.id) == 1
 
@@ -180,6 +206,26 @@ defmodule DemoHostWeb.InboxBellProofTest do
     assert signal_transition_count(run.id) == 0
   end
 
+  test "DEMO-08 authorization change before open leaves the seen workflow waiting" do
+    assert {:ok, %{notification_ids: [first_id | _]}} = DemoHost.Seeds.seed_inbox()
+    run = insert_waiting_seen_run!(first_id, DemoHost.Seeds.tenant_id())
+    use_mutable_inbox_auth!()
+
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{"demo_user_email" => DemoHost.Seeds.alex_email()})
+
+    {:ok, view, _html} = live(conn, "/inbox")
+    Application.put_env(:demo_host, :inbox_proof_recipient, "cw_demo_changed_recipient")
+
+    assert {:error, {:redirect, %{to: "/"}}} =
+             render_click(view, "toggle_panel", %{})
+
+    assert is_nil(Repo.get!(Notification, first_id).seen_at)
+    assert Repo.get!(WorkflowRun, run.id).state == :waiting
+    assert signal_transition_count(run.id) == 0
+  end
+
   defp insert_waiting_seen_run!(notification_id, tenant_id) do
     suffix = System.unique_integer([:positive])
 
@@ -254,4 +300,23 @@ defmodule DemoHostWeb.InboxBellProofTest do
     result = Oban.drain_queue(queue: :chimeway_signals, with_scheduled: true)
     assert result.success >= 1
   end
+
+  defp use_mutable_inbox_auth! do
+    previous_auth_module = Application.get_env(:chimeway_inbox, :auth_module)
+    previous_recipient = Application.get_env(:demo_host, :inbox_proof_recipient)
+    previous_tenant = Application.get_env(:demo_host, :inbox_proof_tenant)
+
+    Application.put_env(:chimeway_inbox, :auth_module, MutableInboxAuth)
+    Application.put_env(:demo_host, :inbox_proof_recipient, DemoHost.Seeds.alex_identity())
+    Application.put_env(:demo_host, :inbox_proof_tenant, DemoHost.Seeds.tenant_id())
+
+    on_exit(fn ->
+      restore_env(:chimeway_inbox, :auth_module, previous_auth_module)
+      restore_env(:demo_host, :inbox_proof_recipient, previous_recipient)
+      restore_env(:demo_host, :inbox_proof_tenant, previous_tenant)
+    end)
+  end
+
+  defp restore_env(app, key, nil), do: Application.delete_env(app, key)
+  defp restore_env(app, key, value), do: Application.put_env(app, key, value)
 end
