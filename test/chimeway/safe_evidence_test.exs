@@ -36,4 +36,31 @@ defmodule Chimeway.SafeEvidenceTest do
       assert {:error, :unsafe_evidence} = SafeEvidence.target_attempt_facts(facts)
     end
   end
+
+  test "trace admits only the closed notification lifecycle events with empty detail" do
+    seen_at = ~U[2026-09-12 14:30:00.123456Z]
+    read_at = ~U[2026-09-12 14:31:00.654321Z]
+
+    trace =
+      SafeEvidence.trace(%{
+        timeline: [
+          %{
+            at: seen_at,
+            event: :notification_seen,
+            detail: %{recipient_id: "hostile-recipient-sentinel"}
+          },
+          %{
+            at: read_at,
+            event: :notification_read,
+            detail: %{caller_metadata: "caller-metadata-sentinel"}
+          },
+          %{at: read_at, event: :notification_engaged, detail: %{}}
+        ]
+      })
+
+    assert trace.timeline == [
+             %{at: seen_at, event: :notification_seen, detail: %{}},
+             %{at: read_at, event: :notification_read, detail: %{}}
+           ]
+  end
 end

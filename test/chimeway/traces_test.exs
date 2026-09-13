@@ -484,6 +484,100 @@ defmodule Chimeway.TracesTest do
       timestamps = Enum.map(exp.timeline, & &1.at)
       assert timestamps == Enum.sort(timestamps, DateTime)
     end
+
+    test "projects independent parent notification seen and read facts onto sibling deliveries" do
+      neither = insert_notification(insert_event(), "cw_recipient_neither")
+      seen_only = insert_notification(insert_event(), "cw_recipient_seen")
+      read_only = insert_notification(insert_event(), "cw_recipient_read")
+
+      both =
+        insert_notification(
+          insert_event(%{correlation_id: "caller-metadata-sentinel"}),
+          "hostile-recipient-sentinel"
+        )
+
+      seen_at = ~U[2026-09-12 14:30:00.123456Z]
+      read_at = ~U[2026-09-12 14:31:00.654321Z]
+
+      seen_only = seen_only |> Ecto.Changeset.change(%{seen_at: seen_at}) |> Repo.update!()
+      read_only = read_only |> Ecto.Changeset.change(%{read_at: read_at}) |> Repo.update!()
+
+      both =
+        both
+        |> Ecto.Changeset.change(%{
+          seen_at: seen_at,
+          read_at: read_at,
+          metadata: %{"publisher" => "publisher-data-sentinel"},
+          render_assigns: %{"content" => "notification-content-sentinel"}
+        })
+        |> Repo.update!()
+
+      assert lifecycle_entries(neither |> plan_delivery() |> explain!()) == []
+
+      assert lifecycle_entries(seen_only |> plan_delivery() |> explain!()) == [
+               %{at: seen_at, event: :notification_seen, detail: %{}}
+             ]
+
+      assert lifecycle_entries(read_only |> plan_delivery() |> explain!()) == [
+               %{at: read_at, event: :notification_read, detail: %{}}
+             ]
+
+      first_delivery = plan_delivery(both)
+      sibling_delivery = plan_delivery(both, :email)
+
+      first_entries = lifecycle_entries(explain!(first_delivery))
+      sibling_entries = lifecycle_entries(explain!(sibling_delivery))
+
+      assert first_entries == [
+               %{at: seen_at, event: :notification_seen, detail: %{}},
+               %{at: read_at, event: :notification_read, detail: %{}}
+             ]
+
+      assert sibling_entries == first_entries
+
+      assert Enum.all?(first_entries, fn entry ->
+               Enum.sort(Map.keys(entry)) == [:at, :detail, :event]
+             end)
+
+      encoded = :erlang.term_to_binary(explain!(first_delivery))
+
+      for sentinel <- [
+            "caller-metadata-sentinel",
+            "hostile-recipient-sentinel",
+            "notification-content-sentinel",
+            "publisher-data-sentinel"
+          ] do
+        assert :binary.match(encoded, sentinel) == :nomatch, "leaked #{sentinel}"
+      end
+    end
+
+    test "orders lifecycle entries by timestamp and uses seen before read only as a tie-breaker" do
+      notification = insert_notification(insert_event(), "cw_recipient_chronology")
+      later_seen_at = ~U[2026-09-12 16:00:00.000001Z]
+      earlier_read_at = ~U[2026-09-12 15:59:59.999999Z]
+
+      notification =
+        notification
+        |> Ecto.Changeset.change(%{seen_at: later_seen_at, read_at: earlier_read_at})
+        |> Repo.update!()
+
+      assert notification |> plan_delivery() |> explain!() |> lifecycle_entries() == [
+               %{at: earlier_read_at, event: :notification_read, detail: %{}},
+               %{at: later_seen_at, event: :notification_seen, detail: %{}}
+             ]
+
+      tied_at = ~U[2026-09-12 17:00:00.000000Z]
+
+      notification =
+        notification
+        |> Ecto.Changeset.change(%{seen_at: tied_at, read_at: tied_at})
+        |> Repo.update!()
+
+      assert notification |> plan_delivery(:push) |> explain!() |> lifecycle_entries() == [
+               %{at: tied_at, event: :notification_seen, detail: %{}},
+               %{at: tied_at, event: :notification_read, detail: %{}}
+             ]
+    end
   end
 
   describe "explain_delivery/1 — webhook + workflow timeline" do
@@ -1457,5 +1551,14 @@ defmodule Chimeway.TracesTest do
     opts
     |> Traces.aggregate_outcomes()
     |> Enum.sort_by(&{&1.notification_key, &1.channel, &1.outcome})
+  end
+
+  defp explain!(delivery) do
+    assert {:ok, explanation} = Traces.explain_delivery(delivery.id)
+    explanation
+  end
+
+  defp lifecycle_entries(explanation) do
+    Enum.filter(explanation.timeline, &(&1.event in [:notification_seen, :notification_read]))
   end
 end
