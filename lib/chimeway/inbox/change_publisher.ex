@@ -35,14 +35,12 @@ defmodule Chimeway.Inbox.ChangePublisher do
   end
 
   defp invoke(publisher, change) when is_atom(publisher) do
-    try do
-      case publisher.publish(change) do
-        :ok -> :ok
-        _ -> :error
-      end
-    catch
-      _, _ -> :error
+    case publisher.publish(change) do
+      :ok -> :ok
+      _ -> :error
     end
+  catch
+    _, _ -> :error
   end
 
   defp invoke(_publisher, _change), do: :error
