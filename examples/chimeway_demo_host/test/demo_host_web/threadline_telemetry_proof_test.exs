@@ -84,10 +84,19 @@ if Code.ensure_loaded?(Threadline) and
         })
         |> render_submit()
 
-      assert html =~ ChimewayAdmin.Redaction.redact_recipient(result.recipient_identity)
+      delivery_id = hd(result.trace.delivery_ids)
+
+      assert {:ok, explanation} =
+               Chimeway.Traces.explain_delivery(delivery_id,
+                 tenant_id: DemoHost.Seeds.tenant_id()
+               )
+
+      assert is_binary(explanation.recipient_id)
+      assert explanation.recipient_id != result.recipient_identity
+      assert html =~ ChimewayAdmin.Redaction.redact_recipient(explanation.recipient_id)
+      refute html =~ explanation.recipient_id
       refute html =~ result.recipient_identity
 
-      delivery_id = hd(result.trace.delivery_ids)
       assert String.contains?(html, delivery_id)
 
       {:ok, _detail_view, detail_html} =

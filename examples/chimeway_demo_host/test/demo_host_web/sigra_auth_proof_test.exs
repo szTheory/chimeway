@@ -66,10 +66,15 @@ if Code.ensure_loaded?(Sigra) and Code.ensure_loaded?(Sigra.Integrations.Chimewa
         })
         |> render_submit()
 
-      assert html =~ ChimewayAdmin.Redaction.redact_recipient(result.recipient_identity)
-      refute html =~ result.recipient_identity
-
       delivery_id = hd(result.trace.delivery_ids)
+
+      assert_trace_recipient_redacted(
+        html,
+        delivery_id,
+        result.tenant_id,
+        result.recipient_identity
+      )
+
       assert String.contains?(html, delivery_id)
 
       {:ok, _detail_view, detail_html} =

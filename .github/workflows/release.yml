@@ -125,14 +125,63 @@ jobs:
     if: always() && needs.release-please.result == 'success'
     permissions:
       actions: write
-      contents: read
+      contents: write
       pull-requests: read
     steps:
+      - name: Resolve open Release Please PR
+        id: release-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          open_count=$(gh pr list \
+            --head release-please--branches--main \
+            --state open \
+            --label "autorelease: pending" \
+            --json number \
+            -R "${{ github.repository }}" | jq 'length')
+
+          if [ "$open_count" -gt 0 ]; then
+            echo "open=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "open=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        if: steps.release-pr.outputs.open == 'true'
+        with:
+          ref: release-please--branches--main
+          fetch-depth: 0
+
+      - name: Align release documentation versions
+        id: release-docs
+        if: steps.release-pr.outputs.open == 'true'
+        env:
+          MAIN_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          version=$(sed -n 's/.*@version "\([^"]*\)".*/\1/p' mix.exs)
+          git show "$MAIN_SHA:scripts/ci/sync-release-doc-versions.sh" | bash -s -- "$version"
+
+          if git diff --quiet -- README.md guides/introduction/installation.md guides/introduction/golden-path.md; then
+            echo "changed=false" >>"$GITHUB_OUTPUT"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md guides/introduction/installation.md guides/introduction/golden-path.md
+            git commit -m "chore(release): align consumer documentation"
+            git push origin HEAD:release-please--branches--main
+            echo "changed=true" >>"$GITHUB_OUTPUT"
+          fi
+
       - name: Dispatch CI when release PR is open or updated
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_PLEASE_TOKEN_CONFIGURED: ${{ secrets.RELEASE_PLEASE_TOKEN != '' }}
           PRS_CREATED: ${{ needs.release-please.outputs.prs_created }}
+          DOCS_CHANGED: ${{ steps.release-docs.outputs.changed }}
         run: |
           set -euo pipefail
 
@@ -144,7 +193,8 @@ jobs:
             -R "${{ github.repository }}" | jq 'length')
 
           if [ "$open_count" -gt 0 ] && \
-             { [ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ] || \
+             { [ "${DOCS_CHANGED:-false}" = "true" ] || \
+               [ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ] || \
                [ "${PRS_CREATED:-false}" != "true" ]; }; then
             echo "Open release PR needs explicit CI bootstrap — dispatching CI (open=$open_count)"
             gh workflow run ci.yml --ref release-please--branches--main -R "${{ github.repository }}"

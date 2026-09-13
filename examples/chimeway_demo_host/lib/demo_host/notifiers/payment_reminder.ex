@@ -20,8 +20,7 @@ defmodule DemoHost.Notifiers.PaymentReminder do
 
   @impl true
   def recipients(%{email: email}) do
-    {:ok,
-     [%{recipient_identity: DemoHost.Seeds.recipient_identity(email), recipient_type: "user"}]}
+    {:ok, [DemoHost.Seeds.email_recipient(email)]}
   end
 
   @impl true

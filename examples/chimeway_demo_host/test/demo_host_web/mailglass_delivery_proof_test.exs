@@ -105,8 +105,12 @@ defmodule DemoHostWeb.MailglassDeliveryProofTest do
       })
       |> render_submit()
 
-    assert html =~ ChimewayAdmin.Redaction.redact_recipient(DemoHost.Seeds.alex_identity())
-    refute html =~ DemoHost.Seeds.alex_identity()
+    assert_trace_recipient_redacted(
+      html,
+      email_delivery.id,
+      DemoHost.Seeds.tenant_id(),
+      DemoHost.Seeds.alex_identity()
+    )
 
     {:ok, detail_view, detail_html} =
       live(conn, "/admin/chimeway/deliveries/#{email_delivery.id}")
@@ -115,7 +119,7 @@ defmodule DemoHostWeb.MailglassDeliveryProofTest do
 
     detail = render(detail_view)
     assert detail =~ "teampulse.invite_sent"
-    assert detail =~ "Chimeway.Adapters.Mailglass" or detail =~ "Mailglass"
+    assert detail =~ "succeeded"
 
     refute detail =~ DemoHost.Seeds.alex_email()
     refute detail =~ "<p>Join your team on TeamPulse.</p>"

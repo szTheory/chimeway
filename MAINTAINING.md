@@ -16,7 +16,15 @@ Only an exact Release Please PR merge may reach the workflow branches that suppr
 4. **Release creation** — On the exact Release Please PR merge, `release.yml` creates the GitHub Release + `v*` tag, runs `gate-ci-green` on the release SHA, then `publish-hex` publishes to Hex with `HEX_API_KEY`.
 5. **Post-publish verify trio (required locally):**
 
-Release-PR CI bootstrap is token-aware. With the `GITHUB_TOKEN` fallback, an open release PR explicitly dispatches `ci.yml` on `release-please--branches--main`; stale Release Please output does the same. A PAT-backed fresh update uses native `pull_request` CI and avoids a duplicate dispatch. The shell receives only whether the PAT is configured, never the token value.
+Release-PR CI bootstrap is token-aware. Before dispatch, it derives the release
+`MAJOR.MINOR` from `mix.exs`, runs
+`scripts/ci/sync-release-doc-versions.sh`, and commits any required constraint
+updates to the exact Release Please branch. With the `GITHUB_TOKEN` fallback,
+an open release PR explicitly dispatches `ci.yml`; a documentation-sync commit
+is also dispatched because token-authored pushes do not start another workflow.
+A PAT-backed fresh update with no documentation change uses native
+`pull_request` CI and avoids a duplicate dispatch. The shell receives only
+whether the PAT is configured, never the token value.
 
 ```bash
 mix verify.clean
@@ -103,7 +111,7 @@ Maintainers clone the integration sibling repos adjacent to chimeway and point t
 
 - [szTheory/accrue](https://github.com/szTheory/accrue) — convention `../accrue/accrue` from repo root (`ACCRUE_PATH`). CI pins compatibility ref `0752b8d0b59eb53936498daa4bb0be4b14ffd0e4`; released-package proof remains independently version-gated.
 - [szTheory/threadline](https://github.com/szTheory/threadline) — convention `../threadline/threadline` from repo root (`THREADLINE_PATH`). CI pins ref `46375fafc4df30fc916244ee4a21b7cae01f1ddc`.
-- [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `62ceb46a38c4e617f6c06d874ecb12e1ab19d97c`.
+- [szTheory/sigra](https://github.com/szTheory/sigra) — convention `../sigra/sigra` from repo root (`SIGRA_PATH`). CI pins ref `ea046ed5941e4eb5c52b311f5892d97fac10f1ea`.
 
 Update the pinned refs when bumping an integration.
 

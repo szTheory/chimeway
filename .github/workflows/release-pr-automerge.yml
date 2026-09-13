@@ -145,7 +145,7 @@ jobs:
               continue
             fi
 
-            if gh pr merge "$pr_number" --squash -R "$REPOSITORY"; then
+            if gh pr merge "$pr_number" --squash --match-head-commit "$HEAD_SHA" -R "$REPOSITORY"; then
               echo "Merged PR #$pr_number"
               merge_sha=$(gh pr view "$pr_number" --json mergeCommit -q '.mergeCommit.oid' -R "$REPOSITORY")
               echo "merge_sha=${merge_sha}" >> "$GITHUB_ENV"
@@ -153,7 +153,7 @@ jobs:
               exit 0
             fi
 
-            if gh pr merge "$pr_number" --squash --admin -R "$REPOSITORY"; then
+            if gh pr merge "$pr_number" --squash --admin --match-head-commit "$HEAD_SHA" -R "$REPOSITORY"; then
               echo "Merged PR #$pr_number with admin override"
               merge_sha=$(gh pr view "$pr_number" --json mergeCommit -q '.mergeCommit.oid' -R "$REPOSITORY")
               echo "merge_sha=${merge_sha}" >> "$GITHUB_ENV"

@@ -67,10 +67,15 @@ defmodule DemoHost.MixProject do
     if System.get_env("CHIMEWAY_SKIP_THREADLINE_DEP") in ["1", "true"] do
       []
     else
-      case System.get_env("THREADLINE_PATH") do
-        nil -> [{:threadline, "~> 0.7", runtime: false}]
-        path -> [{:threadline, path: path, runtime: false}]
-      end
+      threadline =
+        case System.get_env("THREADLINE_PATH") do
+          nil -> {:threadline, "~> 0.7", runtime: false}
+          path -> {:threadline, path: path, runtime: false}
+        end
+
+      # Threadline's pinned integration proof targets Hackney 1.25.0. Keep the
+      # compatibility override scoped to builds that actually enable Threadline.
+      [threadline, {:hackney, "== 1.25.0", override: true}]
     end
   end
 

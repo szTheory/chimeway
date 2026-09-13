@@ -22,7 +22,7 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
 
   describe "progress path (delivered → step advances) — FLOW-01 + FLOW-02" do
     test "real webhook → ingress → worker → signal → route_signal → trace" do
-      %{tenant_id: _tenant, actor_id: _actor, delivery: delivery, run: run} =
+      %{tenant_id: tenant_id, actor_id: _actor, delivery: delivery, run: run} =
         insert_progress_path_fixture()
 
       # 1. POST to real /webhooks/chimeway/echo route. EchoAdapter resolves
@@ -104,7 +104,9 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
       # signal_event_name is enriched from the signal_received WorkflowTransition's
       # context["event_name"] — proving the D-02 delivery_id linkage closes the
       # webhook → signal → routing chain end-to-end.
-      {:ok, %{timeline: timeline}} = Traces.explain_delivery(delivery.id)
+      {:ok, %{timeline: timeline}} =
+        Traces.explain_delivery(delivery.id, tenant_id: tenant_id)
+
       event_atoms = Enum.map(timeline, & &1.event)
 
       assert :webhook_received in event_atoms
@@ -116,7 +118,7 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
 
   describe "stop path (bounced → workflow stops) — FLOW-01 + FLOW-02" do
     test "real bounced webhook → worker progression → run stopped + trace" do
-      %{tenant_id: _tenant, actor_id: _actor, delivery: delivery, run: run} =
+      %{tenant_id: tenant_id, actor_id: _actor, delivery: delivery, run: run} =
         insert_stop_path_fixture()
 
       body = Jason.encode!(%{"delivery_id" => delivery.id, "status" => "bounce"})
@@ -180,7 +182,9 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
 
       # B6 (stop): Trace timeline carries :webhook_received + :workflow_stopped.
       # Both events share delivery_id as the join key (Phase 32 D-02 / TRAC-02).
-      {:ok, %{timeline: timeline}} = Traces.explain_delivery(delivery.id)
+      {:ok, %{timeline: timeline}} =
+        Traces.explain_delivery(delivery.id, tenant_id: tenant_id)
+
       event_atoms = Enum.map(timeline, & &1.event)
 
       assert :webhook_received in event_atoms
@@ -201,13 +205,14 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
   # delivery.actor_id == notification.recipient_identity (route_signal/1 join).
   defp insert_progress_path_fixture do
     tenant_id = "default"
-    actor_id = "user:phase34-#{System.unique_integer([:positive])}"
+    actor_id = "cw_phase34_#{System.unique_integer([:positive])}"
 
     event =
       Repo.insert!(%Event{
         notification_key: "test.phase34",
         notification_version: 1,
         idempotency_key: "phase34-#{System.unique_integer([:positive])}",
+        tenant_id: tenant_id,
         payload: %{}
       })
 
@@ -216,6 +221,7 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
         event_id: event.id,
         recipient_identity: actor_id,
         recipient_type: "user",
+        tenant_id: tenant_id,
         metadata: %{}
       })
 
@@ -288,13 +294,14 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
   # transition synchronously in the same worker call stack.
   defp insert_stop_path_fixture do
     tenant_id = "default"
-    actor_id = "user:phase34-stop-#{System.unique_integer([:positive])}"
+    actor_id = "cw_phase34_stop_#{System.unique_integer([:positive])}"
 
     event =
       Repo.insert!(%Event{
         notification_key: "test.phase34_stop",
         notification_version: 1,
         idempotency_key: "phase34-stop-#{System.unique_integer([:positive])}",
+        tenant_id: tenant_id,
         payload: %{}
       })
 
@@ -303,6 +310,7 @@ defmodule DemoHostWeb.FeedbackPipelineE2ETest do
         event_id: event.id,
         recipient_identity: actor_id,
         recipient_type: "user",
+        tenant_id: tenant_id,
         metadata: %{}
       })
 
