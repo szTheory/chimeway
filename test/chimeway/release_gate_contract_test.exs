@@ -152,6 +152,31 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert Enum.all?(directories, &File.dir?/1)
     end
 
+    test "failed unpacked package build releases its scratch directory and ownership" do
+      test_pid = self()
+
+      failing_build = fn output ->
+        scratch = Path.dirname(output)
+
+        on_exit(fn ->
+          if File.exists?(scratch), do: remove_owned_temp_dir!(scratch)
+        end)
+
+        send(test_pid, {:unpacked_build_scratch, scratch})
+        {"forced unpack failure", 1}
+      end
+
+      assert_raise ExUnit.AssertionError, ~r/mix hex.build --unpack must succeed/, fn ->
+        build_unpacked_package!(failing_build)
+      end
+
+      assert_receive {:unpacked_build_scratch, scratch}
+      refute File.exists?(scratch)
+
+      ownership = :persistent_term.get(@owned_temp_registry_key, %{})
+      refute Map.has_key?(ownership, scratch)
+    end
+
     test "the guarded helper owns the module's only recursive removal call" do
       source = File.read!(__ENV__.file)
 
@@ -3164,20 +3189,30 @@ defmodule Chimeway.ReleaseGateContractTest do
   # Runs in a separate OS process under MIX_ENV=prod: the prod package build omits
   # the dev/test-only Sigra override, so `mix hex.build` succeeds exactly as it does
   # at release time (no CHIMEWAY_SKIP_SIGRA_DEP).
-  defp build_unpacked_package! do
+  defp build_unpacked_package!(build_command \\ &run_unpacked_build/1) do
     scratch = owned_temp_directory!("chimeway_release_gate_")
     output = Path.join(scratch, "unpacked")
 
-    {out, status} =
-      System.cmd("mix", ["hex.build", "--unpack", "--output", output],
-        stderr_to_stdout: true,
-        env: [{"MIX_ENV", "prod"}]
-      )
+    try do
+      {out, status} = build_command.(output)
 
-    assert status == 0,
-           "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
+      assert status == 0,
+             "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
 
-    {scratch, output}
+      {scratch, output}
+    catch
+      kind, reason ->
+        stacktrace = __STACKTRACE__
+        remove_owned_temp_dir!(scratch)
+        :erlang.raise(kind, reason, stacktrace)
+    end
+  end
+
+  defp run_unpacked_build(output) do
+    System.cmd("mix", ["hex.build", "--unpack", "--output", output],
+      stderr_to_stdout: true,
+      env: [{"MIX_ENV", "prod"}]
+    )
   end
 
   defp build_package_archive! do
