@@ -55,6 +55,13 @@ defmodule Chimeway.ReleaseGateContractTest do
     "chimeway_adoption_security_",
     "chimeway_adoption_run_"
   ]
+  @verify_inbox_commands [
+    "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/inbox_state_transition_test.exs test/chimeway/inbox_change_publisher_test.exs test/chimeway/trigger_inbox_change_test.exs test/chimeway/traces_test.exs test/chimeway/safe_evidence_test.exs --warnings-as-errors",
+    "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors",
+    "cmd --shell cd chimeway_admin && mix deps.get && mix test test/chimeway_admin/components/timeline_event_test.exs test/chimeway_admin/redaction_test.exs --warnings-as-errors",
+    "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/doc_contract_test.exs test/chimeway/release_gate_contract_test.exs --only inbox_gate_parity --warnings-as-errors",
+    "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix test --only inbox --warnings-as-errors"
+  ]
 
   describe "release-contract recursive cleanup safety" do
     @describetag :release_cleanup_safety
@@ -110,6 +117,94 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert Regex.scan(~r/File\.rm_rf!?/, source) == [[Enum.join(["File", "rm_rf!"], ".")]]
       refute source =~ "File." <> "rm_rf!(output)"
       refute Regex.match?(~r/File\.rm_rf!?\(Path\.dirname\(/, source)
+    end
+  end
+
+  describe "inbox alias and aggregate gate parity" do
+    @describetag :inbox_gate_parity
+
+    setup do
+      %{
+        mix_exs: File.read!(@mix_exs),
+        ci_yml: File.read!(@ci_yml),
+        maintaining: File.read!(@maintaining)
+      }
+    end
+
+    test "verify.inbox owns exactly five warning-strict evidence commands in order", %{
+      mix_exs: mix_exs
+    } do
+      assert_verify_inbox_alias!(mix_exs)
+
+      for command <- @verify_inbox_commands do
+        mutated = String.replace(mix_exs, command, "", global: false)
+        assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_alias!(mutated) end
+      end
+
+      [first, second | _] = @verify_inbox_commands
+
+      reordered =
+        mix_exs
+        |> String.replace(first, "__FIRST_INBOX_COMMAND__", global: false)
+        |> String.replace(second, first, global: false)
+        |> String.replace("__FIRST_INBOX_COMMAND__", second, global: false)
+
+      assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_alias!(reordered) end
+    end
+
+    test "the verify_inbox CI job invokes the single local alias and no sibling verify alias", %{
+      ci_yml: ci_yml
+    } do
+      assert_verify_inbox_job!(ci_yml)
+
+      mutated =
+        String.replace(ci_yml, "- run: mix verify.inbox", "- run: mix verify.example",
+          global: false
+        )
+
+      assert_raise ExUnit.AssertionError, fn -> assert_verify_inbox_job!(mutated) end
+    end
+
+    test "pr-gate and ci-gate consume exactly one identical verify_inbox edge", %{ci_yml: ci_yml} do
+      assert extract_pr_gate_needs(ci_yml) == @pr_gate_lanes
+      assert extract_ci_gate_needs(ci_yml) == @ci_gate_lanes
+
+      for gate <- ["pr-gate", "ci-gate"] do
+        block = extract_ci_job_block(ci_yml, gate)
+        assert_inbox_aggregate_block!(block)
+
+        for mutated <- [
+              String.replace(
+                block,
+                ~S(VERIFY_INBOX: ${{ needs.verify_inbox.result }}),
+                "VERIFY_INBOX: success",
+                global: false
+              ),
+              String.replace(block, " VERIFY_INBOX ", " VERIFY_EXAMPLE ", global: false)
+            ] do
+          assert_raise ExUnit.AssertionError, fn -> assert_inbox_aggregate_block!(mutated) end
+        end
+      end
+
+      for needs <- [extract_pr_gate_needs(ci_yml), extract_ci_gate_needs(ci_yml)],
+          excluded <- ~w(verify_admin nightly_cold_build test_seed_zero) do
+        refute excluded in needs
+      end
+    end
+
+    test "maintainer instructions enumerate the complete inbox lane and equal consumers", %{
+      maintaining: maintaining
+    } do
+      for required <- [
+            "focused root lifecycle, timeline, privacy, and Phoenix-optional",
+            "full `chimeway_inbox` package",
+            "focused `chimeway_admin` timeline and redaction",
+            "tagged inbox documentation and release-parity contracts",
+            "demo-host `:inbox` journey",
+            "`pr-gate` and `ci-gate` consume the same `verify_inbox` result"
+          ] do
+        assert maintaining =~ required, "MAINTAINING.md must include #{inspect(required)}"
+      end
     end
   end
 
@@ -3297,6 +3392,48 @@ defmodule Chimeway.ReleaseGateContractTest do
       count = Regex.scan(~r/^\s*test "/m, content) |> length()
       acc + count
     end)
+  end
+
+  defp assert_verify_inbox_alias!(mix_exs) do
+    assert extract_verify_inbox_commands(mix_exs) == @verify_inbox_commands
+  end
+
+  defp extract_verify_inbox_commands(mix_exs) do
+    case Regex.run(~r/"verify\.inbox":\s*\[(.*?)\n\s*\],/s, mix_exs) do
+      [_, block] ->
+        ~r/^\s*"([^"]+)"[,]?$/m
+        |> Regex.scan(block, capture: :all_but_first)
+        |> List.flatten()
+
+      _ ->
+        flunk("Could not extract verify.inbox alias from mix.exs")
+    end
+  end
+
+  defp assert_verify_inbox_job!(ci_yml) do
+    verify_commands =
+      ci_yml
+      |> extract_ci_job_block("verify_inbox")
+      |> then(
+        &Regex.scan(~r/^\s*- run:\s+(mix verify\.[^\s]+)\s*$/m, &1, capture: :all_but_first)
+      )
+      |> List.flatten()
+
+    assert verify_commands == ["mix verify.inbox"]
+  end
+
+  defp assert_inbox_aggregate_block!(block) do
+    assert block =~ ~S(VERIFY_INBOX: ${{ needs.verify_inbox.result }})
+    assert length(Regex.scan(~r/needs\.verify_inbox\.result/, block)) == 1
+    assert length(Regex.scan(~r/\bVERIFY_INBOX\b/, block)) == 2
+
+    aggregate_line =
+      block
+      |> String.split("\n")
+      |> Enum.find(&String.contains?(&1, "run: scripts/ci/aggregate-gate.sh"))
+
+    assert is_binary(aggregate_line)
+    assert Enum.count(String.split(aggregate_line), &(&1 == "VERIFY_INBOX")) == 1
   end
 
   defp extract_pre_ship_block(maintaining) do
