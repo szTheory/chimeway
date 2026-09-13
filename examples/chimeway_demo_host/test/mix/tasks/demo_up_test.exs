@@ -6,11 +6,7 @@ defmodule Mix.Tasks.Demo.UpTest do
     repo_root = Path.expand("../../../../..", __DIR__)
     expected = Path.join(repo_root, "examples/chimeway_demo_host")
 
-    if function_exported?(Mix.Tasks.Demo.Up, :demo_host_path!, 1) do
-      assert Mix.Tasks.Demo.Up.demo_host_path!(repo_root) == expected
-    else
-      flunk("Demo.Up must expose demo_host_path!/1 for checkout-boundary verification")
-    end
+    assert Mix.Tasks.Demo.Up.demo_host_path!(repo_root) == expected
   end
 
   test "rejects a root without the demo host before repository work begins" do
@@ -23,20 +19,16 @@ defmodule Mix.Tasks.Demo.UpTest do
     File.mkdir_p!(missing_root)
     on_exit(fn -> File.rm_rf!(missing_root) end)
 
-    if function_exported?(Mix.Tasks.Demo.Up, :demo_host_path!, 1) do
-      expected_path = Path.join(missing_root, "examples/chimeway_demo_host")
+    expected_path = Path.join(missing_root, "examples/chimeway_demo_host")
 
-      error =
-        assert_raise Mix.Error, fn ->
-          Mix.Tasks.Demo.Up.demo_host_path!(missing_root)
-        end
+    error =
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Demo.Up.demo_host_path!(missing_root)
+      end
 
-      assert error.message =~ "requires a Chimeway source checkout"
-      assert error.message =~ expected_path
-      assert error.message =~ "guides/introduction/golden-path.md"
-    else
-      flunk("Demo.Up must expose demo_host_path!/1 for checkout-boundary verification")
-    end
+    assert error.message =~ "requires a Chimeway source checkout"
+    assert error.message =~ expected_path
+    assert error.message =~ "guides/introduction/golden-path.md"
   end
 
   @tag :journey
