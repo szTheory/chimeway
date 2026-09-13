@@ -1,9 +1,9 @@
 ---
 phase: 260912-x9i-dependency-and-inbox-triage
-verified: 2026-09-13T15:09:17Z
+verified: 2026-09-13T16:10:03Z
 status: passed
 score: 7/7 must-haves verified
-implementation_sha: af6847ff5d6081453ab49c8471fec19b5776e4e6
+implementation_sha: 28dcda0658c96635884eb43bcef0dd26e54990c9
 covered_files:
   - .github/workflows/ci.yml
   - .planning/quick/260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue/260912-x9i-PLAN.md
@@ -51,6 +51,7 @@ covered_files:
   - lib/chimeway/workflows/progression.ex
   - lib/chimeway/workflows/progression_outcome.ex
   - lib/mix/tasks/chimeway.gen.migrations.ex
+  - lib/mix/tasks/verify.physical_proof_contract.ex
   - mix.exs
   - mix.lock
   - package-lock.json
@@ -58,8 +59,9 @@ covered_files:
   - scripts/prove-alpha-twin.exs
   - scripts/verify-apns.sh
   - test/chimeway/alpha_twin_runner_test.exs
+  - test/chimeway/physical_proof_contract_runner_test.exs
   - test/chimeway/release_gate_contract_test.exs
-covered_digest: "v1:sha256:8a55ae4f1800d41befd6ced7f3345c10c4977980412e613a6a7aa162ae8866bf"
+covered_digest: "v1:sha256:cc2496b556781a394b3b8bab607e53e22673ad3fb107502ca75e814c7ddfb211"
 external_state:
   hackney_tracker: https://github.com/szTheory/chimeway/issues/29
   predecessor_pr: https://github.com/szTheory/chimeway/pull/22
@@ -74,15 +76,15 @@ re_verification:
   regressions: []
   evidence_refreshed:
     - "Root mix ci passed 1,603 tests with zero failures at implementation ancestor 1b81f3cb."
-    - "The final af6847ff tree passes mix ci.lint plus focused Alpha twin and APNs executable proofs."
-    - "Final mix ci.verify_gates passed all three serial constituents at exact implementation SHA af6847ff."
-    - "Public run 34763028703 exposed only three failing leaf jobs at 8213a0cd; each has a bounded local repair and direct focused evidence."
+    - "Implementation ancestor af6847ff passes mix ci.lint, focused Alpha/APNs proofs, and all three mix ci.verify_gates constituents."
+    - "Public run 34764798176 at 6864c1f0 had nine relevant leaves green; Alpha proof passed before its physical follow-on failed, and APNs failed separately."
+    - "The final 28dcda06 tree passes the physical-proof and APNs gates plus focused clean-checkout, Linux compile, and warning-mutation regressions."
 ---
 
 # Quick 260912-x9i: Dependency and GitHub Inbox Verification Report
 
 **Goal:** Clear every safely remediable dependency advisory, document the bounded upstream residual, and preserve contributor provenance until exact public replacement evidence exists.
-**Verified:** 2026-09-13T15:09:17Z
+**Verified:** 2026-09-13T16:10:03Z
 **Status:** passed
 **Re-verification:** Yes — final integrated source candidate
 
@@ -94,11 +96,11 @@ re_verification:
 |---|---|---|---|
 | 1 | Root incorporates the exact live PR #28 lock resolution without changing root dependency constraints. | ✓ VERIFIED | Current `mix.lock` SHA-256 is `77bce3f4b98e7c79a1e48bf5dc483a49b62de95d0f29f80ca4e67a5635e3f92f`, byte-for-byte equal to `mix.lock` at live PR head `d03c7b88e51738083b3ab12575b10730f94d1592`. PR #28 is still open, non-draft, mergeable, old-base `f516b607167023edefeb767182adddbd9709aec5`, and changes only `mix.lock`. Later `mix.exs` edits only add nested-project formatter checks and replace planning-era comments; dependency declarations and support floors remain unchanged. |
 | 2 | Admin and inbox resolve advisory-safe supported graphs and pass independently. | ✓ VERIFIED | Both locks resolve Phoenix 1.8.13, LiveView 1.2.11, Plug 1.20.3, Postgrex 0.22.4, Hackney 4.7.4, Ecto 3.14.2, and Ecto SQL 3.14.0. Both raw Hex audits exit 0. Admin passes 61/61 at the formerly failing seed after repair `7559b58b`; inbox passes 29/29. The later publisher syntax cleanup is behavior-equivalent and its focused proof passes 4/4. Their manifests and Elixir `~> 1.17` floors are unchanged. |
-| 3 | Demo constraints, lock, workflow, and mutation contract agree on Accrue 1.5.1. | ✓ VERIFIED | Demo declares Decimal `~> 3.0` and Ecto SQL `~> 3.14.0`; root resolves Accrue 1.5.1; `verify_accrue` pins exact official commit `d30fc25dbf6ba551792c66ff451b4b93c0af4bf1`. The location-selected release contract passes 9 tests, 0 failures and includes destructive replace/remove checks scoped to the exact `szTheory/accrue` checkout. Final `mix ci.verify_gates` at `af6847ff` passed the packaged Accrue proof 3/3. |
+| 3 | Demo constraints, lock, workflow, and mutation contract agree on Accrue 1.5.1. | ✓ VERIFIED | Demo declares Decimal `~> 3.0` and Ecto SQL `~> 3.14.0`; root resolves Accrue 1.5.1; `verify_accrue` pins exact official commit `d30fc25dbf6ba551792c66ff451b4b93c0af4bf1`. The location-selected release contract passes 9 tests, 0 failures and includes destructive replace/remove checks scoped to the exact `szTheory/accrue` checkout. `mix ci.verify_gates` at implementation ancestor `af6847ff` passed the packaged Accrue proof 3/3. |
 | 4 | Residual advisory risk is exact, graph-specific, and honestly documented. | ✓ VERIFIED | Raw root audit reports exactly four Hackney 1.25.0 findings; raw demo audit reports exactly those four plus three Cowlib 2.20.0 feed mappings. `SECURITY.md` records the four Hackney IDs, fixed floor 4.0.1, the Accrue/Braintree, Threadline, and Tzdata paths, exposure boundary, removal trigger, and the bounded Cowlib feed exception. Exact one-shot ignore audits exit 0; raw audits remain visibly non-zero. |
 | 5 | No unsafe override, hidden waiver, support-floor change, or JavaScript churn was introduced. | ✓ VERIFIED | Repository search finds no checked-in `HEX_IGNORE_ADVISORIES` or `ignore-advisory-ids` outside Markdown evidence. Root/admin/inbox manifests, `package.json`, and `package-lock.json` are unchanged across x9i. Demo Mint/HPAX/Req/Finch entries are absent after solving; no Hackney 4 override or Git dependency was added. |
 | 6 | Live GitHub has exactly one semantically complete Hackney tracker when Hackney is present. | ✓ VERIFIED | Both root and demo dependency trees were captured successfully and contain Hackney nodes. Exactly one open issue has marker `<!-- chimeway-hackney-residual:x9i -->`: issue #29. Its body contains all four CVEs, 4.0.1, accrue/braintree/threadline/tzdata/hackney paths, attacker-controlled URL and SOCKS5 exposure text, and a closure condition explicitly requiring upstream Accrue/Braintree and Threadline compatibility plus green integration gates. |
-| 7 | Contributor PRs remain open unless exact public replacement evidence authorizes closure. | ✓ VERIFIED | PR #22 is open, draft, and conflicting at head `61004f6669ebd9f5c3f7b709b8af16c2376c6807`; PR #28 is open and mergeable at the exact incorporated lock head `d03c7b88e51738083b3ab12575b10730f94d1592`. Final local candidate `af6847ff5d6081453ab49c8471fec19b5776e4e6` returns HTTP 422 from the public commit API. Therefore no public replacement/equal SHA/exact-`pr-gate` chain exists yet, and leaving both PRs open is the PLAN-required safe disposition. |
+| 7 | Contributor PRs remain open unless exact public replacement evidence authorizes closure. | ✓ VERIFIED | PR #22 is open, draft, and conflicting at head `61004f6669ebd9f5c3f7b709b8af16c2376c6807`; PR #28 is open and mergeable at the exact incorporated lock head `d03c7b88e51738083b3ab12575b10730f94d1592`. Final local candidate `28dcda0658c96635884eb43bcef0dd26e54990c9` returns HTTP 422 from the public commit API. Therefore no public replacement/equal SHA/exact-`pr-gate` chain exists yet, and leaving both PRs open is the PLAN-required safe disposition. |
 
 **Score:** 7/7 must-have truths verified.
 
@@ -136,10 +138,11 @@ The live dependency-tree captures confirm the root constraint paths `accrue -> b
 | Accrue immutable-checkout contract location group | 9 tests, 0 failures; 160 excluded | ✓ PASS |
 | Inbox publisher boundary after implicit-`try` normalization | Focused proof: 4 tests, 0 failures | ✓ PASS |
 | Root `mix ci` at implementation ancestor `1b81f3cb` | 1,603 tests, 0 failures, 41 excluded; formatting, warning-strict compile, and strict Credo green | ✓ PASS |
-| Final `mix ci.verify_gates` at exact candidate `af6847ff` | Root doc/release contracts 669/669 with 4 excluded; packaged Accrue 3/3 with 166 excluded; terminal `crosswake_provider_feedback_docs_verified` marker | ✓ PASS |
-| Final lint tree at `af6847ff` | Root `mix ci.lint` exits 0 after `79517be0` made the demo formatter fetch its locked dependencies first | ✓ PASS |
-| Final Alpha twin tree at `af6847ff` | Focused runner suite 9/9; `scripts/test-db mix verify.alpha_twin` exits 0 and emits `fixture=passed delivery=provider_accepted activation=authorized` | ✓ PASS |
-| Final APNs tree at `af6847ff` | `mix verify.apns` exits 0: root 35/35 plus disabled and enabled clean-consumer proof JSON; five focused static contracts, Bash 3.2 syntax, strict compile probe, and warning mutation all pass | ✓ PASS |
+| `mix ci.verify_gates` at implementation ancestor `af6847ff` | Root doc/release contracts 669/669 with 4 excluded; packaged Accrue 3/3 with 166 excluded; terminal `crosswake_provider_feedback_docs_verified` marker | ✓ PASS |
+| Lint tree at implementation ancestor `af6847ff` | Root `mix ci.lint` exits 0 after `79517be0` made the demo formatter fetch its locked dependencies first | ✓ PASS |
+| Alpha twin at implementation ancestor `af6847ff` | Focused runner suite 9/9; `scripts/test-db mix verify.alpha_twin` exits 0 and emits `fixture=passed delivery=provider_accepted activation=authorized`; the proof step also passes publicly at `6864c1f0` | ✓ PASS |
+| Final physical-proof tree at `28dcda06` | `mix verify.physical_proof_contract` exits 0 with `release_ready_physical_pending`; focused clean-checkout suite passes 2/2, including locked dependency bootstrap and fail-closed lock failure | ✓ PASS |
+| Final APNs tree at `28dcda06` | `mix verify.apns` exits 0: root 35/35 plus disabled and enabled proof JSON; the worker's Linux strict consumer compile passes and its warning mutation remains correctly rejected | ✓ PASS |
 | Documentation | `mix ci.docs` green after public-comment cleanup | ✓ PASS |
 | Workflow syntax and focused formatting | `actionlint` and focused `mix format --check-formatted` exit 0 | ✓ PASS |
 | Lock consistency | Four independent `mix deps.get --check-locked` invocations exit 0 | ✓ PASS |
@@ -159,11 +162,14 @@ The source changes after the initial x9i verification are bounded and evidenced:
 - `1b81f3cb` changes planning records only and is the exact implementation ancestor used for the 1,603-test root CI run and the initial green `mix ci.verify_gates` run.
 - `79517be0` makes the nested demo formatter fetch its locked dependencies before formatter evaluation; final `mix ci.lint` exits 0.
 - `239b60e9` derives Alpha twin's unique fixture database from the supplied `DATABASE_URL` while retaining the local 55432 fallback and failing closed on malformed URLs; its focused suite passes 9/9 and the real proof gate passes.
-- `af6847ff` removes APNs clean-consumer compile-order ambiguity without weakening the strict warning probe; the full APNs gate and focused mutation/static contracts pass.
+- `af6847ff` removes the first APNs clean-consumer compile-order ambiguity without weakening the strict warning probe; its focused mutation/static contracts pass.
+- `6864c1f0` is a verification-artifact-only commit and the exact source ancestor of public run `34764798176`.
+- `39fb9f7b` makes the detached physical-proof contract self-sufficient by fetching its locked graph into external dependency/build paths before testing, then rechecking clean provenance; focused tests pass 2/2 and the real gate emits `release_ready_physical_pending`.
+- `28dcda06` compiles the packaged APNs code through the clean consumer graph instead of relying on incidental path layout. Linux strict compile and warning mutation evidence pass, and the full APNs gate passes 35/35 plus both proof JSON modes.
 
-The final implementation candidate is `af6847ff5d6081453ab49c8471fec19b5776e4e6`. The three commits after `1b81f3cb` are bounded CI-harness repairs prompted by the public run; they do not alter the x9i lock graphs, residual-advisory policy, admin/inbox behavior, Accrue checkout, or GitHub disposition contract.
+The final implementation candidate is `28dcda0658c96635884eb43bcef0dd26e54990c9`. The five source commits after `1b81f3cb` are bounded CI-harness repairs prompted by public runs; they do not alter the x9i lock graphs, residual-advisory policy, admin/inbox behavior, Accrue checkout, or GitHub disposition contract.
 
-The canonical verification fingerprint covers 55 sorted inputs and is `v1:sha256:8a55ae4f1800d41befd6ced7f3345c10c4977980412e613a6a7aa162ae8866bf`.
+The canonical verification fingerprint covers 57 sorted inputs and is `v1:sha256:cc2496b556781a394b3b8bab607e53e22673ad3fb107502ca75e814c7ddfb211`.
 
 ## GitHub Inbox Disposition
 
@@ -173,7 +179,7 @@ The canonical verification fingerprint covers 55 sorted inputs and is `v1:sha256
 | PR #28 | Open, non-draft, mergeable; exact one-file lock delta incorporated | Keep open until the final implementation SHA is public and has a completed successful check named exactly `pr-gate`, then close with the required marked replacement/SHA/check comment. |
 | PR #22 | Open, draft, conflicting predecessor | Keep open for the same evidence precondition; do not rebase or erase its provenance. |
 
-There are no closure comments yet, which is correct. The final implementation SHA `af6847ff5d6081453ab49c8471fec19b5776e4e6` is not public, so any closure now would violate the PLAN rather than advance it.
+There are no closure comments yet, which is correct. The final implementation SHA `28dcda0658c96635884eb43bcef0dd26e54990c9` is not public, so any closure now would violate the PLAN rather than advance it.
 
 ## Scope and Prohibited-Change Audit
 
@@ -182,13 +188,15 @@ There are no closure comments yet, which is correct. The final implementation SH
 - The bounded admin repair touches only `LiveAuth` and its direct test.
 - No root/admin/inbox dependency declaration or Elixir/OTP floor changed.
 - No JavaScript file changed, and npm reports zero vulnerabilities. `npm outdated` currently shows dev-only `@playwright/test` current/wanted 1.60.0 versus latest 1.63.0; x9i explicitly excludes JavaScript churn, so this is informational release backlog rather than an x9i defect.
-- The implementation worktree was clean at `af6847ff` immediately before this report-only refresh; `git diff --check` exits 0.
+- The implementation worktree was clean at `28dcda06` immediately before this report-only refresh; `git diff --check` exits 0.
 
 ## Final Evidence Boundaries and Release Handoff
 
-The public run at implementation ancestor `8213a0cd` completed with only three failing leaf jobs: Lint, Alpha twin hermetic gate, and Optional APNs adapter gate. Its `pr-gate` fan-in therefore also failed. Commits `79517be0`, `239b60e9`, and `af6847ff` directly repair those three leaves and have the focused evidence recorded above. The final SHA has not yet been published, so no public exact-SHA CI claim is made here.
+Public run `34764798176` at implementation ancestor `6864c1f0` completed with nine relevant leaves green: Packaged Accrue contract, Lint, Release gate contract, Resolve tier flags, Docs build gate, Adoption proof paths, CrossWake provider-feedback documentation contract, Inbox integration gate, and the Elixir 1.19/OTP 27 test job. Inside the overall-failing Alpha twin job, `mix verify.alpha_twin` itself passed and emitted its bounded proof; the subsequent `mix verify.physical_proof_contract` step alone failed exit 70. Optional APNs adapter gate also failed, so the `pr-gate` fan-in failed. This disproves the earlier attribution of that public leaf failure to Alpha itself.
 
-The 1,603-test `mix ci` result remains explicitly attributed to implementation ancestor `1b81f3cb`. In contrast, `mix ci.verify_gates` was freshly rerun at exact final SHA `af6847ff` and exited 0: root doc/release contracts 669/669 with 4 excluded, packaged Accrue 3/3 with 166 excluded, and the terminal CrossWake documentation marker emitted.
+Commits `39fb9f7b` and `28dcda06` directly repair the remaining physical-proof and APNs failures and have exact focused/full local evidence above. The final SHA has not yet been published, so no public exact-SHA CI claim is made here.
+
+The 1,603-test `mix ci` result remains explicitly attributed to implementation ancestor `1b81f3cb`. `mix ci.verify_gates` remains explicitly attributed to later ancestor `af6847ff`, where it exited 0: root doc/release contracts 669/669 with 4 excluded, packaged Accrue 3/3 with 166 excluded, and the terminal CrossWake documentation marker emitted. The subsequent changes are isolated to the physical-proof and APNs CI harnesses and have their own direct final-tree evidence.
 
 No green claim is made for a raw final-tree `mix verify.example`: its local replay used a reused demo database and failed six older seed/tenant-isolation examples. No green claim is made for a raw final-tree `mix verify.journeys` either; the corresponding public leaf passed at `8213a0cd`, but that is ancestor evidence rather than an exact-final-SHA rerun. These boundaries do not convert either alias into a release blocker or a false pass.
 
@@ -204,5 +212,5 @@ No x9i implementation gap remains. The admin regression found during verificatio
 
 ---
 
-_Verified: 2026-09-13T15:09:17Z_
+_Verified: 2026-09-13T16:10:03Z_
 _Verifier: gsd-verifier_
