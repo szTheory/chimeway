@@ -55,6 +55,9 @@ defmodule Chimeway.ReleaseGateContractTest do
     "chimeway_adoption_security_",
     "chimeway_adoption_run_"
   ]
+  @owned_temp_marker ".chimeway-release-gate-owner"
+  @owned_temp_registry_key {__MODULE__, :owned_temp_directories}
+  @owned_temp_lock {__MODULE__, :owned_temp_lock}
   @verify_inbox_commands [
     "cmd scripts/test-db env CHIMEWAY_SKIP_PARTNER_TEST_REPOS=1 MIX_ENV=test mix test test/chimeway/inbox_state_transition_test.exs test/chimeway/inbox_change_publisher_test.exs test/chimeway/trigger_inbox_change_test.exs test/chimeway/traces_test.exs test/chimeway/safe_evidence_test.exs --warnings-as-errors",
     "cmd --shell cd chimeway_inbox && mix deps.get && mix test --warnings-as-errors",
@@ -96,18 +99,57 @@ defmodule Chimeway.ReleaseGateContractTest do
       unowned = Path.join(System.tmp_dir!(), "unowned_#{System.unique_integer([:positive])}")
       File.mkdir!(unowned)
 
+      unowned_matching_prefix =
+        Path.join(
+          System.tmp_dir!(),
+          "chimeway_release_gate_unowned_#{Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)}"
+        )
+
+      File.mkdir!(unowned_matching_prefix)
+
       on_exit(fn ->
         apply(__MODULE__, :remove_owned_temp_dir!, [owned])
         File.rmdir!(unowned)
+
+        if File.exists?(unowned_matching_prefix) do
+          File.rmdir!(unowned_matching_prefix)
+        end
       end)
 
-      for forbidden <- [System.tmp_dir!(), nested, File.cwd!(), unowned] do
+      for forbidden <- [
+            System.tmp_dir!(),
+            nested,
+            File.cwd!(),
+            unowned,
+            unowned_matching_prefix
+          ] do
         assert_raise ArgumentError, ~r/refusing recursive cleanup/, fn ->
           apply(__MODULE__, :remove_owned_temp_dir!, [forbidden])
         end
 
         assert File.exists?(forbidden)
       end
+    end
+
+    test "allocator reserves unique owned directories under concurrent use" do
+      directories =
+        1..32
+        |> Task.async_stream(
+          fn _ -> apply(__MODULE__, :owned_temp_directory!, ["chimeway_release_gate_"]) end,
+          max_concurrency: 16,
+          ordered: false,
+          timeout: 5_000
+        )
+        |> Enum.map(fn {:ok, directory} -> directory end)
+
+      on_exit(fn ->
+        Enum.each(directories, fn directory ->
+          apply(__MODULE__, :remove_owned_temp_dir!, [directory])
+        end)
+      end)
+
+      assert length(Enum.uniq(directories)) == length(directories)
+      assert Enum.all?(directories, &File.dir?/1)
     end
 
     test "the guarded helper owns the module's only recursive removal call" do
@@ -1100,8 +1142,8 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   describe "unpacked Hex package artifact truth (TRUTH-01/TRUTH-02/TRUTH-03, D-08)" do
     setup do
-      output = build_unpacked_package!()
-      on_exit(fn -> remove_owned_temp_dir!(output) end)
+      {scratch, output} = build_unpacked_package!()
+      on_exit(fn -> remove_owned_temp_dir!(scratch) end)
       %{output: output, root: unpacked_package_root!(output)}
     end
 
@@ -1193,8 +1235,8 @@ defmodule Chimeway.ReleaseGateContractTest do
     # lifecycle are expensive shared external resources. The fixture still gives
     # every invocation unique filesystem and database identities.
     setup do
-      output = build_unpacked_package!()
-      on_exit(fn -> remove_owned_temp_dir!(output) end)
+      {scratch, output} = build_unpacked_package!()
+      on_exit(fn -> remove_owned_temp_dir!(scratch) end)
       %{root: unpacked_package_root!(output)}
     end
 
@@ -2005,8 +2047,8 @@ defmodule Chimeway.ReleaseGateContractTest do
       archive_directory = Path.dirname(archive)
       on_exit(fn -> remove_owned_temp_dir!(archive_directory) end)
       digest = sha256!(archive)
-      unpacked = build_unpacked_package!()
-      on_exit(fn -> remove_owned_temp_dir!(unpacked) end)
+      {unpacked_scratch, unpacked} = build_unpacked_package!()
+      on_exit(fn -> remove_owned_temp_dir!(unpacked_scratch) end)
       root = unpacked_package_root!(unpacked)
       metadata = File.read!(Path.join(root, "hex_metadata.config"))
 
@@ -3000,14 +3042,30 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   @doc false
   def owned_temp_directory!(prefix) when prefix in @owned_temp_prefixes do
-    directory =
-      Path.join(
-        Path.expand(System.tmp_dir!()),
-        "#{prefix}#{System.unique_integer([:positive])}"
-      )
+    with_owned_temp_lock(fn ->
+      directory = allocate_owned_temp_directory!(prefix)
+      token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+      marker = Path.join(directory, @owned_temp_marker)
 
-    File.mkdir!(directory)
-    directory
+      try do
+        File.write!(marker, token, [:exclusive])
+        {:ok, stat} = File.lstat(directory)
+
+        ownership = %{token: token, identity: temp_directory_identity(stat)}
+
+        @owned_temp_registry_key
+        |> :persistent_term.get(%{})
+        |> Map.put(directory, ownership)
+        |> then(&:persistent_term.put(@owned_temp_registry_key, &1))
+
+        directory
+      rescue
+        error ->
+          _ = File.rm(marker)
+          _ = File.rmdir(directory)
+          reraise error, __STACKTRACE__
+      end
+    end)
   end
 
   def owned_temp_directory!(_prefix) do
@@ -3016,32 +3074,99 @@ defmodule Chimeway.ReleaseGateContractTest do
 
   @doc false
   def remove_owned_temp_dir!(directory) when is_binary(directory) do
-    temp_root = Path.expand(System.tmp_dir!())
-    directory = Path.expand(directory)
-    basename = Path.basename(directory)
+    with_owned_temp_lock(fn ->
+      temp_root = Path.expand(System.tmp_dir!())
+      directory = Path.expand(directory)
+      basename = Path.basename(directory)
+      ownership = :persistent_term.get(@owned_temp_registry_key, %{})[directory]
 
-    owned_prefix? = Enum.any?(@owned_temp_prefixes, &String.starts_with?(basename, &1))
-    owned_directory? = match?({:ok, %File.Stat{type: :directory}}, File.lstat(directory))
+      owned_prefix? = Enum.any?(@owned_temp_prefixes, &String.starts_with?(basename, &1))
 
-    if directory != temp_root and Path.dirname(directory) == temp_root and owned_prefix? and
-         owned_directory? do
-      File.rm_rf!(directory)
-    else
-      raise ArgumentError, "refusing recursive cleanup outside an owned temp directory"
-    end
+      marker_matches? =
+        match?(%{token: token} when is_binary(token), ownership) and
+          File.read(Path.join(directory, @owned_temp_marker)) == {:ok, ownership.token}
+
+      final_stat = File.lstat(directory)
+
+      owned_directory? =
+        case {ownership, final_stat} do
+          {%{identity: expected}, {:ok, %File.Stat{type: :directory} = stat}} ->
+            temp_directory_identity(stat) == expected
+
+          _other ->
+            false
+        end
+
+      if directory != temp_root and Path.dirname(directory) == temp_root and owned_prefix? and
+           marker_matches? and owned_directory? do
+        File.rm_rf!(directory)
+        unregister_owned_temp_directory!(directory)
+      else
+        raise ArgumentError, "refusing recursive cleanup outside an owned temp directory"
+      end
+    end)
   end
 
   def remove_owned_temp_dir!(_directory) do
     raise ArgumentError, "refusing recursive cleanup outside an owned temp directory"
   end
 
-  # Builds the default root Hex package into a unique temp dir and unpacks it.
+  defp allocate_owned_temp_directory!(prefix, attempts \\ 32)
+
+  defp allocate_owned_temp_directory!(_prefix, 0) do
+    raise RuntimeError, "could not reserve a unique owned temp directory"
+  end
+
+  defp allocate_owned_temp_directory!(prefix, attempts) do
+    suffix = Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)
+    directory = Path.join(Path.expand(System.tmp_dir!()), prefix <> suffix)
+
+    case File.mkdir(directory) do
+      :ok ->
+        directory
+
+      {:error, :eexist} ->
+        allocate_owned_temp_directory!(prefix, attempts - 1)
+
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "make directory", path: directory
+    end
+  end
+
+  defp temp_directory_identity(%File.Stat{} = stat) do
+    {stat.major_device, stat.minor_device, stat.inode}
+  end
+
+  defp unregister_owned_temp_directory!(directory) do
+    remaining =
+      @owned_temp_registry_key
+      |> :persistent_term.get(%{})
+      |> Map.delete(directory)
+
+    if remaining == %{} do
+      :persistent_term.erase(@owned_temp_registry_key)
+    else
+      :persistent_term.put(@owned_temp_registry_key, remaining)
+    end
+  end
+
+  defp with_owned_temp_lock(fun) do
+    case :global.trans({@owned_temp_lock, self()}, fun) do
+      {:aborted, reason} ->
+        raise RuntimeError, "owned temp directory lock aborted: #{inspect(reason)}"
+
+      result ->
+        result
+    end
+  end
+
+  # Builds the default root Hex package beneath an atomically reserved scratch root.
   # Runs in a separate OS process under MIX_ENV=prod: the prod package build omits
   # the dev/test-only Sigra override, so `mix hex.build` succeeds exactly as it does
   # at release time (no CHIMEWAY_SKIP_SIGRA_DEP).
   defp build_unpacked_package! do
-    output =
-      Path.join(System.tmp_dir!(), "chimeway_release_gate_#{System.unique_integer([:positive])}")
+    scratch = owned_temp_directory!("chimeway_release_gate_")
+    output = Path.join(scratch, "unpacked")
 
     {out, status} =
       System.cmd("mix", ["hex.build", "--unpack", "--output", output],
@@ -3052,7 +3177,7 @@ defmodule Chimeway.ReleaseGateContractTest do
     assert status == 0,
            "mix hex.build --unpack must succeed for the default root package under MIX_ENV=prod (exit #{status}):\n#{out}"
 
-    output
+    {scratch, output}
   end
 
   defp build_package_archive! do
