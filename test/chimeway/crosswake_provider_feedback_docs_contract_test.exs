@@ -45,9 +45,24 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     %{root: root, opts: opts}
   end
 
+  @tag :selected_readme_identity
   test "accepts exact authorities, executable source, and a reached focused proof", %{opts: opts} do
-    assert :ok = CrosswakeProviderFeedbackDocs.verify(opts)
-    assert_received :focused_test_executed
+    verdict = CrosswakeProviderFeedbackDocs.verify(opts)
+
+    focused_test_executed? =
+      receive do
+        :focused_test_executed -> true
+      after
+        0 -> false
+      end
+
+    observed = {verdict, focused_test_executed?}
+
+    if observed == {:error, false} do
+      IO.puts("RED_SELECTED_README_CANONICAL_REJECTED")
+    end
+
+    assert observed == {:ok, true}
   end
 
   test "accepts describe-contained ExUnit roots and transitively reachable local helpers", %{
@@ -141,9 +156,9 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     opts: opts
   } do
     mutate!(root, readme_path(), fn source ->
-      String.replace(
+      replace_canonical!(
         source,
-        "Redaction.feedback_from_provider_attrs(feedback_attrs)",
+        "Crosswake.Companions.Chimeway.Redaction.feedback_from_provider_attrs(feedback_attrs)",
         "Evil.Redaction.feedback_from_provider_attrs(feedback_attrs)"
       )
     end)
@@ -158,9 +173,9 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     opts: opts
   } do
     mutate!(root, readme_path(), fn source ->
-      String.replace(
+      replace_canonical!(
         source,
-        "Registry.apply_provider_feedback(feedback, opts)",
+        "CrosswakeExample.Chimeway.Registry.apply_provider_feedback(feedback, opts)",
         "Evil.Registry.apply_provider_feedback(feedback, opts)"
       )
     end)
@@ -227,9 +242,9 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
 
   test "rejects the nonexistent conversion API", %{root: root, opts: opts} do
     mutate!(root, readme_path(), fn source ->
-      String.replace(
+      replace_canonical!(
         source,
-        "Redaction.feedback_from_provider_attrs(feedback_attrs)",
+        "Crosswake.Companions.Chimeway.Redaction.feedback_from_provider_attrs(feedback_attrs)",
         "Contracts.ProviderFeedback.from_attrs(feedback_attrs)"
       )
     end)
@@ -518,9 +533,9 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
       Provider feedback handling example:
       ```elixir
       def perform(%Oban.Job{args: %{"feedback" => feedback_attrs}}) do
-        with {:ok, feedback} <- Redaction.feedback_from_provider_attrs(feedback_attrs),
+        with {:ok, feedback} <- Crosswake.Companions.Chimeway.Redaction.feedback_from_provider_attrs(feedback_attrs),
              opts <- authenticated_provider_feedback_opts!(feedback),
-             {:ok, _result} <- Registry.apply_provider_feedback(feedback, opts) do
+             {:ok, _result} <- CrosswakeExample.Chimeway.Registry.apply_provider_feedback(feedback, opts) do
           :ok
         end
       end
@@ -584,6 +599,13 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
   defp mutate!(root, relative, mutation) do
     path = Path.join(root, relative)
     File.write!(path, mutation.(File.read!(path)))
+  end
+
+  defp replace_canonical!(source, canonical, forged) do
+    assert String.contains?(source, canonical)
+    mutated = String.replace(source, canonical, forged, global: false)
+    assert String.contains?(mutated, forged)
+    mutated
   end
 
   defp assert_exact_alias_rejected(opts, exact_alias_case) do
