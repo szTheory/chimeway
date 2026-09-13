@@ -1165,6 +1165,140 @@ defmodule Chimeway.ReleaseGateContractTest do
     end
   end
 
+  describe "release workflow decision and authority boundaries" do
+    setup do
+      %{release_yml: File.read!(@release_yml)}
+    end
+
+    test "release suppression requires positive Release Please PR identity before tag checks", %{
+      release_yml: release_yml
+    } do
+      assert_release_preflight_contract!(release_yml)
+
+      preflight =
+        release_yml
+        |> extract_release_job!("release-please")
+        |> extract_release_step!("Detect already-tagged release PR")
+
+      for {needle, replacement} <- [
+            {~S([ "$head_ref" != "release-please--branches--main" ]),
+             ~S([ "$head_ref" != "main" ])},
+            {~S([ "$base_ref" != "main" ]), ~S([ "$base_ref" != "develop" ])},
+            {~S|[[ "$title" != "chore(main): release "* ]]|,
+             ~S|[[ "$title" != "chore(main): "* ]]|},
+            {"--json headRefName,baseRefName,title,labels", "--json labels"},
+            {"if ! jq -e", "if jq -e"}
+          ] do
+        mutated_step = String.replace(preflight, needle, replacement, global: false)
+        refute mutated_step == preflight, "mutation must locate #{inspect(needle)}"
+        mutated = String.replace(release_yml, preflight, mutated_step, global: false)
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_preflight_contract!(mutated)
+        end
+      end
+
+      identity_guard =
+        substring_offset(preflight, ~S([ "$head_ref" != "release-please--branches--main" ]))
+
+      tagged_guard = substring_offset(preflight, "autorelease: tagged")
+      tag_lookup = substring_offset(preflight, "expected_tag=")
+
+      assert is_integer(identity_guard)
+      assert identity_guard < tagged_guard
+      assert identity_guard < tag_lookup
+    end
+
+    test "release PR CI bootstrap is token-aware and exact-branch scoped", %{
+      release_yml: release_yml
+    } do
+      assert_release_ci_bootstrap_contract!(release_yml)
+
+      bootstrap = extract_release_job!(release_yml, "bootstrap-release-pr-ci")
+
+      for {needle, replacement} <- [
+            {~S(RELEASE_PLEASE_TOKEN_CONFIGURED: ${{ secrets.RELEASE_PLEASE_TOKEN != '' }}),
+             "RELEASE_PLEASE_TOKEN_CONFIGURED: true"},
+            {~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ]),
+             ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" = "true" ])},
+            {~S([ "${PRS_CREATED:-false}" != "true" ]), ~S([ "${PRS_CREATED:-false}" = "true" ])},
+            {"gh workflow run ci.yml --ref release-please--branches--main",
+             "gh workflow run ci.yml --ref main"}
+          ] do
+        mutated = String.replace(bootstrap, needle, replacement, global: false)
+        refute mutated == bootstrap, "mutation must locate #{inspect(needle)}"
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_ci_bootstrap_contract!(
+            String.replace(release_yml, bootstrap, mutated, global: false)
+          )
+        end
+      end
+    end
+
+    test "permissions and secret placement remain least-privilege and step-scoped", %{
+      release_yml: release_yml
+    } do
+      assert_release_authority_contract!(release_yml)
+
+      for mutation <- [
+            &String.replace(
+              &1,
+              "  actions: write\n\nconcurrency:",
+              "  actions: read\n\nconcurrency:",
+              global: false
+            ),
+            &String.replace(&1, "  issues: write\n", "", global: false),
+            &String.replace(
+              &1,
+              "  actions: write\n\nconcurrency:",
+              "  actions: write\n  checks: write\n\nconcurrency:",
+              global: false
+            ),
+            &String.replace(&1, "      pull-requests: read\n", "      pull-requests: write\n",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "      contents: read\n    env:\n      RELEASE_VERSION",
+              "      contents: write\n    env:\n      RELEASE_VERSION",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              ~S(token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}),
+              "token: ${{ secrets.GITHUB_TOKEN }}",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "          PRS_CREATED:",
+              "          RAW_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}\n          PRS_CREATED:",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "        run: mix hex.publish --dry-run --yes",
+              "        run: mix hex.publish --dry-run --yes ${{ secrets.HEX_API_KEY }}",
+              global: false
+            ),
+            &String.replace(
+              &1,
+              "          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}\n        run: mix hex.publish --yes",
+              "        run: mix hex.publish --yes",
+              global: false
+            )
+          ] do
+        mutated = mutation.(release_yml)
+        refute mutated == release_yml, "authority mutation must change release.yml"
+
+        assert_raise ExUnit.AssertionError, fn ->
+          assert_release_authority_contract!(mutated)
+        end
+      end
+    end
+  end
+
   describe "unpacked Hex package artifact truth (TRUTH-01/TRUTH-02/TRUTH-03, D-08)" do
     setup do
       {scratch, output} = build_unpacked_package!()
@@ -3631,6 +3765,164 @@ defmodule Chimeway.ReleaseGateContractTest do
     case Regex.run(~r/#{Regex.escape(job_id)}:(.*?)(?:\n  [a-z0-9_-]+:|\z)/s, yml) do
       [_, block] -> block
       _ -> flunk("Could not extract #{job_id} job block from #{yml}")
+    end
+  end
+
+  defp assert_release_preflight_contract!(release_yml) do
+    preflight =
+      release_yml
+      |> extract_release_job!("release-please")
+      |> extract_release_step!("Detect already-tagged release PR")
+
+    required_in_order = [
+      "--json headRefName,baseRefName,title,labels",
+      "if ! jq -e",
+      ~S([ "$head_ref" != "release-please--branches--main" ]),
+      ~S([ "$base_ref" != "main" ]),
+      ~S|[[ "$title" != "chore(main): release "* ]]|,
+      "autorelease: tagged",
+      "expected_tag=",
+      "gh release view"
+    ]
+
+    positions = Enum.map(required_in_order, &substring_offset(preflight, &1))
+
+    assert Enum.all?(positions, &is_integer/1),
+           "release preflight must query and positively identify exact Release Please PR metadata before tag checks"
+
+    assert positions == Enum.sort(positions),
+           "release preflight identity checks must precede tagged-label and manifest-tag skip logic"
+
+    assert length(Regex.scan(~r/echo "should_run=true" >>"\$GITHUB_OUTPUT"/, preflight)) >= 4,
+           "missing PR number, lookup failure, malformed JSON, and identity mismatch must all run release-please"
+
+    assert preflight =~
+             ~S|pr_json=$(gh pr view "$pr_number" --json headRefName,baseRefName,title,labels 2>/dev/null)|
+
+    assert preflight =~ "Release PR lookup failed; running release-please."
+    assert preflight =~ "Release PR metadata was malformed; running release-please."
+    assert preflight =~ "Merged PR is not the exact Release Please PR; running release-please."
+  end
+
+  defp assert_release_ci_bootstrap_contract!(release_yml) do
+    bootstrap = extract_release_job!(release_yml, "bootstrap-release-pr-ci")
+    step = extract_release_step!(bootstrap, "Dispatch CI when release PR is open or updated")
+
+    assert bootstrap =~
+             ~S(RELEASE_PLEASE_TOKEN_CONFIGURED: ${{ secrets.RELEASE_PLEASE_TOKEN != '' }})
+
+    assert step =~ "--head release-please--branches--main"
+    assert step =~ ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ])
+    assert step =~ ~S([ "${PRS_CREATED:-false}" != "true" ])
+    assert step =~ "gh workflow run ci.yml --ref release-please--branches--main"
+
+    configured =
+      substring_offset(step, ~S([ "${RELEASE_PLEASE_TOKEN_CONFIGURED:-false}" != "true" ]))
+
+    fresh = substring_offset(step, ~S([ "${PRS_CREATED:-false}" != "true" ]))
+
+    dispatch =
+      substring_offset(step, "gh workflow run ci.yml --ref release-please--branches--main")
+
+    assert configured < dispatch and fresh < dispatch
+    refute step =~ ~S(if [ "${PRS_CREATED:-false}" = "true" ]; then)
+  end
+
+  defp assert_release_authority_contract!(release_yml) do
+    release_job = extract_release_job!(release_yml, "release-please")
+    bootstrap_job = extract_release_job!(release_yml, "bootstrap-release-pr-ci")
+    publish_job = extract_release_job!(release_yml, "publish-hex")
+    release_step = extract_release_step!(release_job, "Run Release Please")
+
+    bootstrap_step =
+      extract_release_step!(bootstrap_job, "Dispatch CI when release PR is open or updated")
+
+    dry_run_step = extract_release_step!(publish_job, "Dry run Hex publish")
+    publish_step = extract_release_step!(publish_job, "Publish to Hex")
+
+    assert extract_permission_map!(release_yml, 0) == %{
+             "actions" => "write",
+             "contents" => "write",
+             "issues" => "write",
+             "pull-requests" => "write"
+           }
+
+    assert extract_permission_map!(bootstrap_job, 4) == %{
+             "actions" => "write",
+             "contents" => "read",
+             "pull-requests" => "read"
+           }
+
+    assert extract_permission_map!(publish_job, 4) == %{"contents" => "read"}
+    refute Regex.match?(~r/^    permissions:/m, release_job)
+
+    fallback = ~S(${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }})
+    configured = ~S(${{ secrets.RELEASE_PLEASE_TOKEN != '' }})
+
+    assert length(
+             Regex.scan(
+               ~r/\$\{\{ secrets\.RELEASE_PLEASE_TOKEN \|\| secrets\.GITHUB_TOKEN \}\}/,
+               release_yml
+             )
+           ) == 1
+
+    assert release_step =~
+             "uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7"
+
+    assert release_step =~ "token: #{fallback}"
+    assert bootstrap_job =~ "RELEASE_PLEASE_TOKEN_CONFIGURED: #{configured}"
+    refute bootstrap_step =~ fallback
+    refute bootstrap_step =~ configured
+
+    assert length(Regex.scan(~r/\$\{\{ secrets\.HEX_API_KEY \}\}/, release_yml)) == 2
+    assert dry_run_step =~ "HEX_API_KEY: ${{ secrets.HEX_API_KEY }}"
+    assert dry_run_step =~ "run: mix hex.publish --dry-run --yes"
+    assert publish_step =~ "HEX_API_KEY: ${{ secrets.HEX_API_KEY }}"
+    assert publish_step =~ "run: mix hex.publish --yes"
+  end
+
+  defp extract_release_job!(yml, job_id) do
+    case Regex.run(~r/^  #{Regex.escape(job_id)}:(.*?)(?=^  [a-z0-9_-]+:|\z)/ms, yml) do
+      [_, block] -> block
+      _ -> flunk("Could not extract #{job_id} job from release.yml")
+    end
+  end
+
+  defp extract_release_step!(job, step_name) do
+    case Regex.run(
+           ~r/^      - name: #{Regex.escape(step_name)}\n(.*?)(?=^      - (?:name:|uses:)|\z)/ms,
+           job
+         ) do
+      [block, _] -> block
+      _ -> flunk("Could not extract #{step_name} step from release job")
+    end
+  end
+
+  defp extract_permission_map!(source, base_indent) do
+    indent = String.duplicate(" ", base_indent)
+    entry_indent = String.duplicate(" ", base_indent + 2)
+
+    case Regex.run(
+           ~r/^#{indent}permissions:\n((?:#{entry_indent}[a-z-]+: (?:read|write)\n)+)/m,
+           source
+         ) do
+      [_, entries] ->
+        entries
+        |> String.split("\n", trim: true)
+        |> Map.new(fn line ->
+          [scope, access] = line |> String.trim() |> String.split(": ", parts: 2)
+          {scope, access}
+        end)
+
+      _ ->
+        flunk("Could not extract permissions at indentation #{base_indent}")
+    end
+  end
+
+  defp substring_offset(haystack, needle) do
+    case :binary.match(haystack, needle) do
+      {offset, _length} -> offset
+      :nomatch -> nil
     end
   end
 
