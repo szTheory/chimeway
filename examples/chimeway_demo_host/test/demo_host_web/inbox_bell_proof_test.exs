@@ -61,6 +61,45 @@ defmodule DemoHostWeb.InboxBellProofTest do
     assert persisted.read_at
   end
 
+  test "DEMO-08 public trigger refreshes a previously mounted bell" do
+    suffix = System.unique_integer([:positive])
+    team_name = "Arrival Team #{suffix}"
+
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{"demo_user_email" => DemoHost.Seeds.alex_email()})
+
+    {:ok, view, html} = live(conn, "/inbox")
+
+    assert html =~ ~s(aria-label="Notifications")
+    assert has_element?(view, "[data-cw-inbox-badge][hidden]", "0")
+    refute html =~ team_name
+
+    assert {:ok, %{event: event, notifications_inserted: 1}} =
+             Chimeway.trigger(
+               DemoHost.Notifiers.InviteSent,
+               %{email: DemoHost.Seeds.alex_email(), team_name: team_name},
+               idempotency_key: "demo-mounted-arrival-#{suffix}",
+               tenant_id: DemoHost.Seeds.tenant_id()
+             )
+
+    notification =
+      Repo.one!(
+        from(n in Notification,
+          where:
+            n.event_id == ^event.id and
+              n.tenant_id == ^DemoHost.Seeds.tenant_id() and
+              n.recipient_identity == ^DemoHost.Seeds.alex_identity()
+        )
+      )
+
+    assert render(view) =~ "Notifications, 1 unread"
+
+    opened_html = view |> element("button[data-cw-inbox-bell]") |> render_click()
+    assert opened_html =~ ~s(data-notification-id="#{notification.id}")
+    refute opened_html =~ team_name
+  end
+
   test "DEMO-08 mark_seen via host API" do
     assert {:ok, %{notification_ids: [_first_id, second_id | _]}} = DemoHost.Seeds.seed_inbox()
 
