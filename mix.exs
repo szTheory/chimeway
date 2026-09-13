@@ -72,7 +72,7 @@ defmodule Chimeway.MixProject do
         "format --check-formatted",
         "cmd --shell cd chimeway_admin && mix format --check-formatted",
         "cmd --shell cd chimeway_inbox && mix format --check-formatted",
-        "cmd --shell cd examples/chimeway_demo_host && mix format --check-formatted",
+        "cmd --shell cd examples/chimeway_demo_host && mix deps.get && mix format --check-formatted",
         "compile --warnings-as-errors",
         "credo --strict"
       ],
