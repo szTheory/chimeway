@@ -666,6 +666,7 @@ defmodule Chimeway.DocContractTest do
       assert String.contains?(content, "config :artifact_consumer, ecto_repos: [#{repo}]")
       assert String.contains?(content, "config :chimeway, repo: #{repo}")
       assert String.contains?(content, "config :mailglass, repo: #{repo}")
+      assert String.contains?(content, "config :swoosh, :api_client, false")
       assert String.contains?(content, "included_applications: [:chimeway]")
       assert String.contains?(content, "without separately starting `Chimeway.Repo`")
       assert String.contains?(content, "Chimeway.Repo.put_dynamic_repo(#{repo})")
