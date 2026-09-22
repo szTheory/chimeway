@@ -4,10 +4,10 @@ milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 current_phase: 107
 status: completed
-stopped_at: "Completed quick task 260921-rjh: fixed clean-room adoption-proof consumer swoosh 1.28 boot failure + closed two upstream-drift Optional APNs gate breaks; ci-gate and nightly-gate both green on pushed SHA d188e410"
-last_updated: "2026-09-22T03:16:59.152Z"
+stopped_at: "Reconciled phase 107: re-verified stale fingerprint by re-executing mix verify.inbox (5 layers, 162 tests, 0 failures, exit 0) and mix ci.verify_gates (675 tests, 0 failures, exit 0) at HEAD ac2046c0; auto-signed 107-UAT.md from 6/6 machine-covered deliverables; closed all 6 open broken windows and 4 stale debug sessions. open_count now 0 — /gsd-ship unblocked."
+last_updated: "2026-09-22T09:45:00.000Z"
 last_activity: 2026-09-22
-last_activity_desc: "Completed quick task 260921-rjh: swoosh 1.28 clean-room boot fix + Optional APNs gate drift closed; ci-gate and nightly-gate green on d188e410"
+last_activity_desc: "Reconciled phase 107 verification (stale fingerprint re-verified green, UAT auto-signed 6/6) and cleared milestone hygiene debt: 6 broken windows and 4 debug sessions closed on evidence"
 state_head: d188e41031f2c35735ec32dcff5a0397165216fa
 progress:
   total_phases: 4
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 Phase: 107
 Plan: Complete (2 of 2)
 Status: Release stabilization complete; ready to ship
-Last activity: 2026-09-22 - Completed quick task 260921-rjh: swoosh 1.28 clean-room boot fix + Optional APNs gate drift closed; ci-gate and nightly-gate green on d188e410
+Last activity: 2026-09-22 - Reconciled phase 107 verification (stale fingerprint re-verified green, UAT auto-signed 6/6) and cleared milestone hygiene debt: 6 broken windows and 4 debug sessions closed on evidence
 
 ### Quick Tasks Completed
 

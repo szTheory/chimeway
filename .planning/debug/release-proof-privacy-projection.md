@@ -1,12 +1,14 @@
 ---
-status: investigating
+status: resolved
 trigger: "Phase 98 release proof regressions: Core proof invalid timeline_events; Mailglass and Accrue generated proof assertions fail after SafeEvidence privacy projection changes."
 created: 2026-08-13T00:00:00-04:00
-updated: 2026-08-13T00:31:00-04:00
+updated: 2026-09-22T05:20:00-04:00
 audit_acknowledged:
   milestone: v1.18
   at: 2026-09-12
-  status: investigating
+  status: resolved
+closed_at_milestone: v1.19
+
 ---
 
 ## Current Focus
@@ -51,3 +53,7 @@ root_cause: "SafeEvidence.trace/1 applied generic safe_code/1 to the channel fie
 fix: "Project trace channels through safe_channel/1, include webhook_received in the Core exact proof timeline schema, and normalize signal actors through the same named recipient-reference projection before workflow lookup."
 verification: "Core :1015 (1 test, 0 failures); Mailglass :1084 (1 test, 0 failures); released Accrue :1600 (1 test, 0 failures); compatibility Accrue :1625 (1 test, 0 failures); packaged Accrue :1805 (1 test, 0 failures); Phase 98 focused privacy suites (57 tests, 0 failures); format check passed."
 files_changed: ["lib/chimeway/safe_evidence.ex", "lib/chimeway/workflows.ex", "priv/adoption_proof/artifact_consumer_fixture.ex", "test/chimeway/release_gate_contract_test.exs", "test/chimeway/workflows_test.exs"]
+
+## Closure
+
+Closed at the v1.19 boundary (2026-09-22). The Resolution block was complete (Core/Mailglass/Accrue proofs + 57 focused privacy tests, 0 failures) but the status field was never flipped. Re-confirmed on d188e410: 'Release gate contract' = success on push run 35678709523 and dispatch run 35679756564.
