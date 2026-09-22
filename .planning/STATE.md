@@ -4,11 +4,11 @@ milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 current_phase: 107
 status: completed
-stopped_at: Release stabilization complete; ready to ship
-last_updated: "2026-09-13T14:13:46Z"
-last_activity: 2026-09-13
-last_activity_desc: Release stabilization quick batch 260912-x9e complete
-state_head: 2afb22ac0704a73ceaeddc608271702042cfd24e
+stopped_at: "Completed quick task 260921-rjh: fixed clean-room adoption-proof consumer swoosh 1.28 boot failure + closed two upstream-drift Optional APNs gate breaks; ci-gate and nightly-gate both green on pushed SHA d188e410"
+last_updated: "2026-09-22T03:16:59.152Z"
+last_activity: 2026-09-22
+last_activity_desc: "Completed quick task 260921-rjh: swoosh 1.28 clean-room boot fix + Optional APNs gate drift closed; ci-gate and nightly-gate green on d188e410"
+state_head: d188e41031f2c35735ec32dcff5a0397165216fa
 progress:
   total_phases: 4
   completed_phases: 4
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 Phase: 107
 Plan: Complete (2 of 2)
 Status: Release stabilization complete; ready to ship
-Last activity: 2026-09-13 - Completed release stabilization quick batch 260912-x9e
+Last activity: 2026-09-22 - Completed quick task 260921-rjh: swoosh 1.28 clean-room boot fix + Optional APNs gate drift closed; ci-gate and nightly-gate green on d188e410
 
 ### Quick Tasks Completed
 
@@ -43,6 +43,7 @@ Last activity: 2026-09-13 - Completed release stabilization quick batch 260912-x
 | 260912-x9g | Harden release automation and release proof semantics: ordinary merges must not masquerade as completed releases, Release Please fallback must preserve required checks/dispatch, detached CrossWake proof must reject unreachable dead-helper calls, and verify.clean must detect staged and untracked files. | 2026-09-13 | f52064b5 | Verified | [260912-x9g-harden-release-automation-and-release-proof-semantics-ordina](./quick/260912-x9g-harden-release-automation-and-release-proof-semantics-ordina/) |
 | 260912-x9h | Clean public documentation and repository metadata: correct inbox callback/version/gate wording, README notifier callbacks and repository links, remove placeholder/internal phase-plan language, repair Demo.Up, stale comments, roadmap plan checkboxes, and directory/formatting drift. | 2026-09-13 | 419297e6 | Verified | [260912-x9h-clean-public-documentation-and-repository-metadata-correct-i](./quick/260912-x9h-clean-public-documentation-and-repository-metadata-correct-i/) |
 | 260912-x9i | Triage and remediate dependency advisories and open PR/issue state to the lowest-risk release-ready point, documenting any constrained residual risk. | 2026-09-13 | 7559b58b | Verified | [260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue](./quick/260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue/) |
+| 260921-rjh | Fix the clean-room adoption-proof consumer boot failure under swoosh 1.28.x (config :swoosh, :api_client, false, D-01), close the same gap on every adopter-facing surface, and close two further upstream-drift breaks discovered in the Optional APNs gate (tzdata's now-optional Hackney requirement; mint CVE-2026-82672). ci-gate and nightly-gate both green on pushed SHA d188e410. | 2026-09-22 | d188e410 | Verified | [260921-rjh-fix-the-clean-room-adoption-proof-consum](./quick/260921-rjh-fix-the-clean-room-adoption-proof-consum/) |
 
 ## Deferred Items
 
@@ -470,6 +471,8 @@ status: complete
 - [Phase 107]: [107-02]: Keep inbox lifecycle facts independent; durable arrival, seen, read, archive, provider handoff, visible presentation, protected activation, and engagement never imply one another.
 - [Phase 107]: [107-02]: Permit recursive cleanup only for existing non-symlink immediate temp children carrying one of four closed Chimeway ownership prefixes.
 - [Phase 107]: [107-02]: Retain verify_inbox as the sole hosted owner and feed its identical result to pr-gate and ci-gate without nightly admin or browser work.
+- [Phase 107]: [260921-rjh]: swoosh 1.28 boot fix via config :swoosh, :api_client, false (D-01) rather than adding hackney
+- [Phase 107]: [260921-rjh]: verify-apns.sh Hackney-edge baseline widened (tzdata 1.2 made its Hackney requirement optional) and apns-enabled.lock regenerated to pick up patched mint 1.10.1 (CVE-2026-82672)
 
 ### Roadmap Evolution
 
@@ -790,8 +793,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-09-13T01:45:42.259Z
-Stopped at: Completed 107-02-PLAN.md
+Last session: 2026-09-22T03:16:59.093Z
+Stopped at: Completed quick task 260921-rjh: fixed clean-room adoption-proof consumer swoosh 1.28 boot failure + closed two upstream-drift Optional APNs gate breaks; ci-gate and nightly-gate both green on pushed SHA d188e410
 Resume file: None
 
 ## Operator Next Steps
@@ -980,3 +983,4 @@ Resume file: None
 | Phase 106 P02 | 5 min | 2 tasks | 1 files |
 | Phase 107 P01 | 8min | 3 tasks | 7 files |
 | Phase 107 P02 | 42min | 3 tasks | 5 files |
+| Phase quick-260921-rjh P01 | ~3h | 3 tasks | 7 files |
