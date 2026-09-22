@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
-current_phase: 107
-status: completed
-stopped_at: Release stabilization complete; ready to ship
-last_updated: "2026-09-13T14:13:46Z"
-last_activity: 2026-09-13
-last_activity_desc: Release stabilization quick batch 260912-x9e complete
-state_head: 2afb22ac0704a73ceaeddc608271702042cfd24e
+status: Awaiting next milestone
+stopped_at: "Reconciled phase 107: re-verified stale fingerprint by re-executing mix verify.inbox (5 layers, 162 tests, 0 failures, exit 0) and mix ci.verify_gates (675 tests, 0 failures, exit 0) at HEAD ac2046c0; auto-signed 107-UAT.md from 6/6 machine-covered deliverables; closed all 6 open broken windows and 4 stale debug sessions. open_count now 0 — /gsd-ship unblocked."
+last_updated: "2026-09-22T09:52:37.924Z"
+last_activity: 2026-09-22
+last_activity_desc: Milestone v1.19 completed and archived
+state_head: 436cbd49837bdf33a5dabeefb4a9c2ed0ffb70c3
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 8
   completed_plans: 8
   percent: 100
+current_phase: 107
 ---
 
 # Project State
@@ -28,21 +28,15 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 
 ## Current Position
 
-Phase: 107
-Plan: Complete (2 of 2)
-Status: Release stabilization complete; ready to ship
-Last activity: 2026-09-13 - Completed release stabilization quick batch 260912-x9e
+Phase: Milestone v1.19 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-09-22 — Milestone v1.19 completed and archived
 
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
-| 260912-x9f | Fix Trigger notifier-rendering error propagation, add the missing rendering-failure rollback/no-publish contract, and add one mounted trigger-to-bell refresh test. | 2026-09-13 | 8e0f708f | Verified | [260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis](./quick/260912-x9f-fix-trigger-notifier-rendering-error-propagation-add-the-mis/) |
-| 260913-a2h | Reject prefix-spoofed CrossWake aliases by requiring exact module identity and add adversarial contract coverage | 2026-09-13 | 3979004e | Verified | [260913-a2h-reject-prefix-spoofed-crosswake-aliases-](./quick/260913-a2h-reject-prefix-spoofed-crosswake-aliases-/) |
-| 260913-b0l | Accept only the real fully qualified detached README aliases while retaining exact focused-proof identities and anti-spoof rejection | 2026-09-13 | d9841654 | Verified | [260913-b0l-accept-only-the-real-fully-qualified-det](./quick/260913-b0l-accept-only-the-real-fully-qualified-det/) |
-| 260912-x9g | Harden release automation and release proof semantics: ordinary merges must not masquerade as completed releases, Release Please fallback must preserve required checks/dispatch, detached CrossWake proof must reject unreachable dead-helper calls, and verify.clean must detect staged and untracked files. | 2026-09-13 | f52064b5 | Verified | [260912-x9g-harden-release-automation-and-release-proof-semantics-ordina](./quick/260912-x9g-harden-release-automation-and-release-proof-semantics-ordina/) |
-| 260912-x9h | Clean public documentation and repository metadata: correct inbox callback/version/gate wording, README notifier callbacks and repository links, remove placeholder/internal phase-plan language, repair Demo.Up, stale comments, roadmap plan checkboxes, and directory/formatting drift. | 2026-09-13 | 419297e6 | Verified | [260912-x9h-clean-public-documentation-and-repository-metadata-correct-i](./quick/260912-x9h-clean-public-documentation-and-repository-metadata-correct-i/) |
-| 260912-x9i | Triage and remediate dependency advisories and open PR/issue state to the lowest-risk release-ready point, documenting any constrained residual risk. | 2026-09-13 | 7559b58b | Verified | [260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue](./quick/260912-x9i-triage-and-remediate-dependency-advisories-and-open-pr-issue/) |
 
 ## Deferred Items
 
@@ -50,13 +44,20 @@ Items acknowledged and deferred at v1.18 milestone close on 2026-09-12 (override
 
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
-| debug_sessions | inbox-bell-phase98-regression | verifying | 2026-09-12 | v1.18 |
-| debug_sessions | release-proof-privacy-projection | investigating | 2026-09-12 | v1.18 |
-| debug_sessions | wave1-post-merge-regressions | investigating | 2026-09-12 | v1.18 |
-| debug_sessions | wave7-postmerge-regressions | investigating | 2026-09-12 | v1.18 |
+| debug_sessions | inbox-bell-phase98-regression | resolved 2026-09-22 (v1.19) | 2026-09-12 | v1.18 |
+| debug_sessions | release-proof-privacy-projection | resolved 2026-09-22 (v1.19) | 2026-09-12 | v1.18 |
+| debug_sessions | wave1-post-merge-regressions | resolved 2026-09-22 (v1.19) | 2026-09-12 | v1.18 |
+| debug_sessions | wave7-postmerge-regressions | resolved 2026-09-22 (v1.19) | 2026-09-12 | v1.18 |
 | verification_gaps | 84/84-VERIFICATION.md | human_needed | 2026-09-12 | v1.18 |
 | verification_gaps | 86/86-VERIFICATION.md | human_needed | 2026-09-12 | v1.18 |
 | deferred_items | 73/deferred-items.md: historical formatting drift record | acknowledged | 2026-09-12 | v1.18 |
+
+> **Update 2026-09-22 (v1.19 close):** the four `debug_sessions` rows above are resolved — each already carried a
+> complete `## Resolution` block and only its status field was stale. `wave7-postmerge-regressions` was the one with a
+> real loose end (`release_gate: intentionally not rerun in this fast bundle`), now discharged by a green
+> `Release gate contract` on runs 35678709523 / 35679756564. The remaining three rows (Phase 84/86 `human_needed`
+> verifications and the Phase 73 formatting-drift record) are **carried forward, not fixed** — all three are v1.15
+> Brand Book artifacts outside v1.19 scope, and accessibility/visual-brandbook sign-off is legitimately human judgment.
 
 ---
 
@@ -470,6 +471,8 @@ status: complete
 - [Phase 107]: [107-02]: Keep inbox lifecycle facts independent; durable arrival, seen, read, archive, provider handoff, visible presentation, protected activation, and engagement never imply one another.
 - [Phase 107]: [107-02]: Permit recursive cleanup only for existing non-symlink immediate temp children carrying one of four closed Chimeway ownership prefixes.
 - [Phase 107]: [107-02]: Retain verify_inbox as the sole hosted owner and feed its identical result to pr-gate and ci-gate without nightly admin or browser work.
+- [Phase 107]: [260921-rjh]: swoosh 1.28 boot fix via config :swoosh, :api_client, false (D-01) rather than adding hackney
+- [Phase 107]: [260921-rjh]: verify-apns.sh Hackney-edge baseline widened (tzdata 1.2 made its Hackney requirement optional) and apns-enabled.lock regenerated to pick up patched mint 1.10.1 (CVE-2026-82672)
 
 ### Roadmap Evolution
 
@@ -790,8 +793,8 @@ Items acknowledged and deferred at v1.7 milestone close on 2026-05-29:
 
 ### Session Continuity
 
-Last session: 2026-09-13T01:45:42.259Z
-Stopped at: Completed 107-02-PLAN.md
+Last session: 2026-09-22T03:16:59.093Z
+Stopped at: Completed quick task 260921-rjh: fixed clean-room adoption-proof consumer swoosh 1.28 boot failure + closed two upstream-drift Optional APNs gate breaks; ci-gate and nightly-gate both green on pushed SHA d188e410
 Resume file: None
 
 ## Operator Next Steps
@@ -980,3 +983,4 @@ Resume file: None
 | Phase 106 P02 | 5 min | 2 tasks | 1 files |
 | Phase 107 P01 | 8min | 3 tasks | 7 files |
 | Phase 107 P02 | 42min | 3 tasks | 5 files |
+| Phase quick-260921-rjh P01 | ~3h | 3 tasks | 7 files |

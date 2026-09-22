@@ -1,12 +1,14 @@
 ---
-status: investigating
+status: resolved
 trigger: "Phase 99 Wave 1 post-merge integration: mix test has 24 failures in installer migration fixtures, prefixed/runtime proofs, trace shape, and Threadline/Accrue lifecycle tests."
 created: 2026-08-19T00:00:00-04:00
-updated: 2026-08-19T00:00:00-04:00
+updated: 2026-09-22T05:20:00-04:00
 audit_acknowledged:
   milestone: v1.18
   at: 2026-09-12
-  status: investigating
+  status: resolved
+closed_at_milestone: v1.19
+
 ---
 
 ## Current Focus
@@ -81,3 +83,7 @@ files_changed:
   - test/fixtures/installer_golden_public/
   - test/support/accrue/fixtures.ex
   - test/support/generated_prefixed_runtime_case.ex
+
+## Closure
+
+Closed at the v1.19 boundary (2026-09-22). The Resolution block was complete (regenerated 035 migration fixtures, opaque test identities) but the status field was never flipped. Re-confirmed on d188e410: local full `mix ci` is green at 1612 tests, 0 failures, which includes every installer/migration/trace suite named in files_changed.

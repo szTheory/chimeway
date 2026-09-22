@@ -667,6 +667,55 @@
 
 ---
 
+## Milestone: v1.19 — Adopter Hardening & Inbox Lifecycle
+
+**Shipped:** 2026-09-22 (verified closeout; all 4 phase verifications passed, `open_count: 0`)
+**Phases:** 4 (104–107) | **Plans:** 8 | **Requirements:** 9/9
+
+### What Was Built
+
+- A source-valid CrossWake provider-feedback worker recipe executing the real redaction and authenticated-registry APIs at a separately pinned documentation revision, replayed from a clean detached checkout.
+- A Phoenix-free inbox change stream: core emits contained, closed reload hints only after durable writes; the optional package derives HMAC-scoped PubSub topics and reauthorizes before every authoritative refresh.
+- An idempotent seen lifecycle where opening the authorized bell marks only visible rows seen exactly once, with reopen, replay, closed-panel refresh, and authorization drift all no-ops.
+- Timestamp-first notification seen/read facts flowing through closed core evidence into optional admin rendering and the mounted inbox-to-Trace-Detail journey, without recipient identity or caller metadata.
+- One mutation-locked `mix verify.inbox` alias owning five ordered evidence layers behind a single CI job feeding identical fail-closed `pr-gate` and `ci-gate` edges.
+
+### What Worked
+
+- Treating real-time messages as *reload hints* over durable authoritative state kept core Phoenix-free and made cross-tenant disclosure structurally impossible rather than merely tested against.
+- Every deliverable classified `all_auto_covered` with `human_judgment: false`, so the milestone closed with **zero human UAT** — the AGENTS.md rule to route machine-testable acceptance to executable evidence paid off end to end.
+- The `covered_digest` fingerprint did exactly its job at close: it flagged that Phase 107's evidence had never been re-executed against 8 covered inputs that drifted under it across 19 later commits. Re-running rather than re-stamping turned an `override_closeout` into a genuine `verified_closeout`.
+- Refusing to band-aid the red nightly lane surfaced two *unrelated* upstream breaks behind the first one, including a real CVE in a pinned transitive dependency.
+
+### What Was Inefficient
+
+- The clean-room adoption proof generates no `mix.lock`, so it silently tracks upstream latest. Three nights of red CI on an unchanged SHA were spent discovering that the environment, not the code, had moved. Root cause was upstream drift in swoosh 1.28.x, not a regression.
+- The root project and demo host booted only because hackney was *incidentally* locked in — a latent footgun that the clean-room proof exposed and that would have hit real adopters first.
+- Broken windows and debug sessions accumulated across three milestones (v1.16 → v1.19) before being triaged. Four of five debug sessions carried complete `## Resolution` blocks and were finished work whose status field was simply never flipped, so the backlog read as far worse than it was.
+- Task counts are recorded in only 2 of 8 SUMMARYs; the rest predate the `actuals:` block, so milestone task totals are partial.
+
+### Patterns Established
+
+- Configure the dependency seam explicitly (`config :swoosh, :api_client, false`) rather than adding a dependency to satisfy a runtime check — especially inside a supply-chain proof, where the alternative dragged in seven transitive packages for a code path the proof never exercises.
+- A gate assertion pinned to an exact count (`-eq 1` Hackney edges) breaks when an upstream requirement legitimately becomes `optional: true`. Assert the invariant (`≤ 1`, and if present it must trace to the known baseline), not the incidental count.
+- When a contract test forbids `|| true` / `continue-on-error` / `--ignore` in a verification script, that prohibition is the feature: it forced regenerating the lock to a patched `mint 1.10.1` instead of making `mix hex.audit` advisory.
+- Distinguish GitHub workflow **run** IDs from **job** IDs when citing live-CI evidence; they are both ~11-digit integers and an agent reported the latter as the former.
+- Verify a pipeline's exit status unpiped — `mix ... | tail` yields `tail`'s exit code, which will report a failing gate as green.
+
+### Key Lessons
+
+1. A stale verification fingerprint is not noise to be cleared; it is an unanswered question about whether the evidence still holds. The cheap move (refresh the digest) and the correct move (re-run the evidence) look identical in the resulting file and differ entirely in what they prove.
+2. A clean-room proof with no lockfile is a continuous upstream-drift detector. Its red is frequently a genuine early warning for adopters, not proof-harness flakiness — here it caught a real boot failure that shipped docs would have reproduced.
+3. Hygiene debt is mostly bookkeeping, not work: 6 open windows and 5 debug sessions resolved to zero code changes and one genuine loose end. Auditing before assuming remediation is required prevents re-doing finished work.
+
+### Cost Observations
+
+- Model mix and session count were not instrumented. The GSD runtime moved from Codex to Claude with the `adaptive` profile mid-milestone.
+- The milestone ran 2026-09-12 → 2026-09-22: 124 commits, 214 files changed, +15,396 / −866.
+- Zero human UAT across all 4 phases; the only human-gated artifacts remaining are three carried-forward v1.15 Brand Book items where the judgment is genuinely subjective.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution

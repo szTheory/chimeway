@@ -8,19 +8,22 @@ Chimeway is an open-source, embedded notification layer for Elixir and Phoenix a
 
 Every notification decision is explainable, so teams can reliably answer why a notification sent, failed, was deferred, or was suppressed.
 
-## Current Milestone: v1.19 Adopter Hardening & Inbox Lifecycle
+## Latest Shipped Milestone: v1.19 Adopter Hardening & Inbox Lifecycle
 
-**Goal:** Close the remaining copy-paste adoption seam from v1.18 and make inbox arrival, seen, and read state update in real time and appear honestly in operator explanations without weakening tenant or privacy boundaries.
+**Status:** ✅ SHIPPED 2026-09-22 — verified closeout; 4 phases, 8 plans, 9/9 requirements. All four phases report `phase_complete: true` with `verification_status: passed`; broken-windows ledger `open_count: 0`.
 
-**Target features:**
-- A source-valid CrossWake provider-feedback worker recipe with an executable drift contract, tracked separately from the immutable v1.18 physical-proof authority.
-- A host-configurable, Phoenix-optional inbox change stream scoped to one tenant and opaque recipient reference.
-- Real-time `chimeway_inbox` bell and item refresh for notification arrival plus seen/read/archive lifecycle changes.
-- Bell panel `mark_seen` wiring with idempotent workflow progression proof.
-- Privacy-safe inbox seen/read events on the operator delivery timeline, with docs and aggregate gate coverage.
+**Delivered:**
+- **Source-valid CrossWake recipe truth:** the adopter provider-feedback worker executes the real redaction and authenticated-registry APIs at a separately pinned documentation revision, replayed from a clean detached checkout, with the immutable v1.18 physical-proof authority left frozen.
+- **Tenant-safe inbox change stream:** core emits contained, closed reload hints only after durable writes through a replaceable Phoenix-free behaviour; the optional package derives HMAC-scoped PubSub topics and reauthorizes before every authoritative refresh.
+- **Idempotent seen lifecycle:** opening the authorized bell marks only visible rows seen, exactly once; reopen, replay, closed-panel refresh, and scope/authorization drift are all no-ops.
+- **Honest operator timeline:** durable notification seen/read facts flow timestamp-first through closed core evidence into optional admin rendering and the real mounted inbox-to-Trace-Detail journey, without recipient identity or caller metadata.
+- **One mutation-locked gate:** `mix verify.inbox` owns five ordered evidence layers behind a single CI job feeding identical fail-closed `pr-gate` and `ci-gate` edges.
 
-## Latest Shipped Milestone: v1.18 Adopter Alpha Mobile Delivery Readiness
+**Evidence:** `mix verify.inbox` exit 0 across all five layers (162 tests, 0 failures); `mix ci.verify_gates` exit 0 (675 tests, 0 failures); `ci-gate: success` on `436cbd49` (run 35711249116). Zero human UAT — every deliverable classified `all_auto_covered` with `human_judgment: false`. Archived audit: `.planning/milestones/v1.19-MILESTONE-AUDIT.md`.
 
+**Carried forward, not fixed:** three v1.15 Brand Book suppressions remain (Phase 84/86 `human_needed` verifications, Phase 73 formatting-drift record). See `.planning/MILESTONES.md`.
+
+## Prior Milestone: v1.18 Adopter Alpha Mobile Delivery Readiness
 **Status:** ✅ SHIPPED 2026-09-12 — all 7 phases and 80 plans complete; 26/26 requirements satisfied. The milestone audit passed with 7/7 phase verifications, 7/7 integration connections, and 4/4 end-to-end flows. Seven older housekeeping records were acknowledged without changing their underlying status; none is a v1.18 acceptance gap.
 
 **Delivered:**
@@ -60,10 +63,11 @@ Validated requirements are summarized below. Milestone-scoped source sets live u
 
 ### Active
 
-- [x] Operators can distinguish notification seen and read facts on the delivery timeline without exposing recipient identity or caller metadata.
-- [x] Named inbox and release gates prove the complete arrival → seen → read → workflow/timeline path.
+No milestone is currently active. Run `/gsd-new-milestone` to scope v1.20.
 
 ### Validated
+
+- ✓ v1.19 Phase 107 Operator Timeline, Guidance & Gate Parity — INT-02/DOCS-03/GATE-03: tenant-authorized delivery explanations carry independent notification seen/read facts with exact timestamps and closed empty detail; the timeline is globally timestamp-first; the canonical inbox guide is source-valid and contract-tested; recursive release-contract cleanup is fail-closed to allocator-owned temp children; one five-layer `mix verify.inbox` alias feeds identical `pr-gate`/`ci-gate` edges. Verified 9/9 truths; zero human UAT.
 
 - ✓ v1.19 Phase 106 Idempotent Seen Lifecycle & Workflow Proof — INT-03/04: authorized panel-open and load-more mark only visible items seen through the existing conditional lifecycle; closed, repeated, cross-scope, and authorization-drift paths cannot duplicate or disclose state. A mounted demo bell progresses one exact waiting workflow once through the real signal queue/router. Verified 6/6 truths with 24 optional-package and 4 demo-host tests; zero human UAT.
 - ✓ v1.19 Phase 105 Tenant-Safe Inbox Change Stream — INBX-03/04: core emits contained post-commit reload hints through a replaceable Phoenix-free behaviour; the optional package derives HMAC-scoped PubSub topics, subscribes only after authorization, reauthorizes before authoritative refresh, and rejects cross-tenant/recipient disclosure. Verified 8/8 truths with 22 core tests, 21 optional-package tests, and 2 demo-host tests; zero human UAT.
@@ -96,9 +100,9 @@ Validated requirements are summarized below. Milestone-scoped source sets live u
 
 ### Active
 
-**v1.18 Adopter Alpha Mobile Delivery Readiness** (started 2026-08-11) — tenant/privacy foundations, durable per-installation push targets, APNs dispatch, protected CrossWake opens, and twin-to-device production evidence. The live requirements and roadmap define the committed scope.
+No milestone is active. v1.19 shipped 2026-09-22; v1.20 is not yet scoped.
 
-Carried-forward candidates not in v1.18 scope: the two accepted-risk A11Y manual checks (A11Y-03/A11Y-04), INBX-03 PubSub badges, INT-02/03 inbox timeline and `mark_seen` polish, PKG-01 sibling package promotion, residual low-value CI compilation work, FCM/Android transport, and generic offline inbox sync.
+Carried-forward candidates, none currently committed: the two accepted-risk A11Y manual checks (A11Y-03/A11Y-04), PKG-01 sibling package promotion, the CACHE-05 compile-once spike, FCM/Android transport, and generic offline inbox sync. INBX-03 PubSub badges and INT-02/03 inbox timeline and `mark_seen` work were **delivered in v1.19** and are no longer carried forward.
 
 ### Out of Scope
 
@@ -116,7 +120,7 @@ Carried-forward candidates not in v1.18 scope: the two accepted-risk A11Y manual
 - Two-aggregate CI topology: fast always-on `pr-gate` for PRs plus a push/dispatch-only 14-lane `ci-gate` for release confidence, with anti-pending event guards proven by a live PR (CI-01/02/03).
 - Complex CI logic extracted to `scripts/ci/*.sh`; nested/npm/Playwright/per-lane-demo caches keyed on lockfiles; contributor/maintainer gate docs aligned; D-08 `pr-gate` branch-protection ruleset (id 18486746) set up (CI-04/05).
 
-## Latest Shipped Milestone: v1.15 Brand Identity & Brand Book
+## Earlier Milestone: v1.15 Brand Identity & Brand Book
 
 **Shipped:** 2026-07-28 (override_closeout — A11Y-03/A11Y-04 manual browser checks owner-waived, accepted-risk; 30/32 requirements complete)
 
@@ -146,6 +150,10 @@ Full handoff context preserved in `prompts/brand-book-pressure-test.md`; written
 **Standing hygiene debt (tracked, not this milestone's deliverable):** 3 red CI lanes on `main` (Example host smoke, TeamPulse journeys, Accrue dunning — `ci-gate` at 12/15; see `.planning/CI-HARDENING-BACKLOG.md`). This milestone is doc/asset-only and does not touch runtime code, so it will not worsen CI.
 
 ## Current State
+
+**v1.19 Adopter Hardening & Inbox Lifecycle SHIPPED (2026-09-22):** Verified closeout — 4 phases, 8 plans, 9/9 requirements, all phases `phase_complete: true` / `verification_status: passed`. At close, Phase 107's verification fingerprint was stale (8 of 24 covered inputs had drifted across 19 commits of post-107 release work); it was re-executed rather than re-stamped — `mix verify.inbox` exit 0 across five layers (162 tests, 0 failures) and `mix ci.verify_gates` exit 0 (675 tests, 0 failures). Without that, the milestone would have closed as `override_closeout`. The broken-windows ledger went 6 open → 0 and four stale debug sessions were closed on evidence, unblocking `/gsd-ship`. Three v1.15 Brand Book suppressions are carried forward, not fixed. No milestone is currently active.
+
+**Upstream drift repaired pre-close (quick task 260921-rjh, 2026-09-22):** The clean-room adoption-proof consumer generates no `mix.lock`, so swoosh resolved fresh to 1.28.x, which raises at application start unless `:hackney` is present or `config :swoosh, :api_client` is set — three nights of red nightly CI on an unchanged SHA. Fixed by setting `config :swoosh, :api_client, false` (the proof uses `Mailglass.Adapters.Fake`, so adding hackney would drag seven transitive deps into a supply-chain proof for nothing; **net new dependencies: zero**). The same gap was closed on the Mailglass guide and demo host, which booted only because hackney was incidentally locked in. Two further upstream breaks surfaced and were root-caused rather than suppressed: tzdata 1.2 made its Hackney requirement `optional: true` (invalidating a fixed one-edge assertion in `verify-apns.sh`), and the pinned `mint 1.10.0` carried CVE-2026-82672, fixed by regenerating the lock to 1.10.1 under finch's existing `~> 1.8`.
 
 **v1.19 Phase 106 Idempotent Seen Lifecycle & Workflow Proof complete (2026-09-12):** Opening the authorized bell marks only visible page-one rows seen; load-more marks newly revealed rows, closed refreshes do not imply engagement, and sender-excluded PubSub echoes preserve pagination. Reopen/replay and scope/auth drift remain no-ops. The mounted demo path advances one eligible waiting workflow exactly once through the real signal queue. INT-03/04 passed 6/6 verifier truths with no human UAT. Phase 107 Operator Timeline, Guidance & Gate Parity is next.
 
@@ -220,9 +228,9 @@ Prior: **v1.7 READ + Adoption Polish** shipped 2026-05-29 (Phases 48–53). Read
 
 ## Next Milestone Goals
 
-**Latest shipped:** v1.18 Adopter Alpha Mobile Delivery Readiness (2026-09-12 — 26/26 requirements, 7/7 phase verifications, passed milestone audit).
+**Latest shipped:** v1.19 Adopter Hardening & Inbox Lifecycle (2026-09-22 — verified closeout, 9/9 requirements, 4/4 phase verifications, `open_count: 0`).
 
-**Current milestone:** v1.19 Adopter Hardening & Inbox Lifecycle. This takes the first two recommendations as one bounded adoption-quality release.
+**Current milestone:** none. v1.20 is not yet scoped — run `/gsd-new-milestone`.
 
 **Planned sequence after v1.19:**
 
@@ -668,4 +676,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-12 when starting v1.19 Adopter Hardening & Inbox Lifecycle.*
+*Last updated: 2026-09-22 after v1.19 milestone*

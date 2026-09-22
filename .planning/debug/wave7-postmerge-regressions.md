@@ -1,12 +1,14 @@
 ---
-status: investigating
+status: resolved
 trigger: "Diagnose and fix seven Phase 98 Wave 7 post-merge mix test failures: render channel expectations, Mailglass evidence identifiers, Sigra integration load, Trigger result projection, and atom-count subprocess assertion."
 created: 2026-08-13T00:00:00-04:00
-updated: 2026-08-13T00:00:00-04:00
+updated: 2026-09-22T05:20:00-04:00
 audit_acknowledged:
   milestone: v1.18
   at: 2026-09-12
-  status: investigating
+  status: resolved
+closed_at_milestone: v1.19
+
 ---
 
 ## Current Focus
@@ -104,3 +106,7 @@ root_cause: "Seven independent post-merge contract mismatches: (1) two stale pub
 fix: "Project bounded raw provider IDs to deterministic cw_ references at Executor and Mailglass inbound resolution; make the Mailglass fixture tenant-consistent and query its trace explicitly; update tests to assert private Trigger result, identity-only safe evidence, available Sigra integration only, and specific unknown-key atom safety."
 verification: "target_test: pass (Mailglass webhook pipeline, 1 test); adjacent_tests: pass (36 affected non-release tests, warnings as errors); release_gate: intentionally not rerun in this fast bundle; mutation_check: skipped (no Stryker configured); no_op_deletion: pass; revert_and_reconfirm: not run (shared branch must not be reverted while other agents work)."
 files_changed: ["lib/chimeway/safe_evidence.ex", "lib/chimeway/dispatch/executor.ex", "lib/chimeway/adapters/mailglass.ex", "test/chimeway/rendering/render_identity_integration_test.exs", "test/chimeway/adapters/mailglass_adapter_test.exs", "test/chimeway/adapters/mailglass_webhook_pipeline_test.exs", "test/chimeway/dispatch/executor_mailglass_adapter_test.exs", "test/chimeway/trigger_pipeline_test.exs", "test/chimeway/integrations/sigra_auth_harness_test.exs", "test/chimeway/release_gate_contract_test.exs"]
+
+## Closure
+
+Closed at the v1.19 boundary (2026-09-22). This was the one session with a genuine loose end: its own verification block recorded `release_gate: intentionally not rerun in this fast bundle`. That gap is now discharged on d188e410 — test/chimeway/release_gate_contract_test.exs (a files_changed entry) is green in the local full `mix ci` (1612 tests, 0 failures), and 'Release gate contract' = success on both push run 35678709523 and dispatch run 35679756564. The remaining unrun checks (mutation_check, revert_and_reconfirm) were skipped for stated structural reasons, not deferred findings.

@@ -1,12 +1,14 @@
 ---
-status: verifying
+status: resolved
 trigger: "Diagnose and fix the cross-phase regression: `mix cmd --cd chimeway_inbox mix test test/chimeway_inbox/live/bell_dropdown_live_test.exs:83 --warnings-as-errors` fails during `mount_bell(conn)`, while Phoenix's missing `ChimewayInbox.ErrorView` masks the original exception."
 created: 2026-08-13T15:20:00-04:00
-updated: 2026-08-13T15:38:00-04:00
+updated: 2026-09-22T05:20:00-04:00
 audit_acknowledged:
   milestone: v1.18
   at: 2026-09-12
-  status: verifying
+  status: resolved
+closed_at_milestone: v1.19
+
 ---
 
 ## Current Focus
@@ -84,3 +86,7 @@ root_cause: "Phase 98's opaque-recipient validation makes raw `user:42` return `
 fix: "Use opaque `cw_` identities in inbox auth/test fixtures; accept only nonnegative integer unread counts in BellDropdownLive and default failure results to zero; enable Phoenix test debug errors; add a regression test for safe raw-recipient UI failure."
 verification: "Focused BellDropdownLive suite: 11 tests, 0 failures. Complete chimeway_inbox suite: 12 tests, 0 failures. Formatting check passed."
 files_changed: ["chimeway_inbox/lib/chimeway_inbox/live/bell_dropdown_live.ex", "chimeway_inbox/test/support/allow_auth.ex", "chimeway_inbox/test/chimeway_inbox/live/bell_dropdown_live_test.exs", "chimeway_inbox/config/test.exs"]
+
+## Closure
+
+Closed at the v1.19 boundary (2026-09-22). The Resolution block was complete (root cause, fix, verification: 11 + 12 tests, 0 failures) but the status field was never flipped. Re-confirmed on d188e410: chimeway_inbox is layer 2 of the green `mix verify.inbox` run, and bell_dropdown_live_test.exs is green in CI.
