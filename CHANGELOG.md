@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 Format: [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.1](https://github.com/szTheory/chimeway/compare/v1.2.0...v1.2.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **ci:** boot clean-room Mailglass consumer under swoosh 1.28.x ([56483d6](https://github.com/szTheory/chimeway/commit/56483d6cdf43ef2300cb67f9c2a06e2acdfff8d1))
+* **ci:** close two more upstream-drift breaks in the Optional APNs gate ([d188e41](https://github.com/szTheory/chimeway/commit/d188e41031f2c35735ec32dcff5a0397165216fa))
+* **ci:** document Swoosh api_client requirement on every adopter surface ([26350c4](https://github.com/szTheory/chimeway/commit/26350c44bb676311f9dc812abbdb198706c0af6b))
+
 ## [1.2.0](https://github.com/szTheory/chimeway/compare/v1.1.1...v1.2.0) (2026-09-13)
 
 
