@@ -1,6 +1,6 @@
 ---
 phase: 107-operator-timeline-guidance-gate-parity
-verified: 2026-09-13T03:28:36Z
+verified: 2026-09-22T09:31:00Z
 status: passed
 score: 9/9 must-haves verified
 covered_files:
@@ -28,7 +28,7 @@ covered_files:
   - test/chimeway/release_gate_contract_test.exs
   - test/chimeway/safe_evidence_test.exs
   - test/chimeway/traces_test.exs
-covered_digest: "v1:sha256:e357711fbe9c608b67a6ca1a99bdb7e85f9233a2bcefce8893628b30a64cfe84"
+covered_digest: "v1:sha256:9d6f76e520a5308ac65b5cc5077e595780b6aa14aa671b9db97da9d7ed3d16f0"
 behavior_unverified: 0
 overrides_applied: 0
 decision_coverage:
@@ -42,9 +42,28 @@ human_verification: []
 # Phase 107: Operator Timeline, Guidance & Gate Parity Verification Report
 
 **Phase Goal:** Adopters and operators can understand and continuously verify the complete arrival-to-seen-to-read path.
-**Verified:** 2026-09-13T03:28:36Z
+**Verified:** 2026-09-22T09:31:00Z
 **Status:** passed
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — re-verified 2026-09-22 at HEAD ac2046c0 after the fingerprint went stale.
+
+> **Why it went stale.** Eight of the 24 covered inputs drifted after the 2026-09-13 verification, across 19 commits of
+> post-107 release and hardening work: `test/chimeway/release_gate_contract_test.exs` (9 commits), `mix.exs` (5),
+> `test/chimeway/doc_contract_test.exs` (3), `MAINTAINING.md`, `chimeway_inbox/.../bell_dropdown_live_test.exs`,
+> `examples/.../inbox_bell_proof_test.exs`, `guides/introduction/inbox-integration.md` (2 each), and `lib/chimeway/traces.ex` (1).
+> The last two of those commits are quick task 260921-rjh (56483d6c, 26350c44). No phase truth was invalidated —
+> the digest correctly flagged that the evidence had not been re-executed against the drifted files.
+>
+> **Re-verification evidence (2026-09-22, HEAD ac2046c0).** `mix verify.inbox` re-executed all five declared layers
+> with a true (unpiped) exit code of 0: 76 root + 29 inbox package + 9 admin + 41 docs/release contracts + 7 demo
+> = **162 tests, 0 failures** (was 154 at initial verification; every layer held or grew, none shrank), which re-establishes
+> truths 1–4 and 6–9 on their own declared commands. Truth 5's Phoenix-optional source/dependency contract is inside the
+> green 41-test release-contract layer. Independently, the full local `mix ci` is green at 1612 tests, 0 failures with
+> Credo clean, and on `d188e410` CI reports `Release gate contract`, `Optional APNs adapter gate` and `ci-gate` = success
+> on push run 35678709523 and dispatch run 35679756564, with `nightly-gate` and `Admin integration gate` = success on the dispatch.
+>
+> Commit-claim reconciliation (#3968) also re-checked: 107-01 claims 5 commits and measures 6 (the SUMMARY commit lands
+> after the executor measures — the documented consistent case); 107-02 claims 6 and measures exactly 6 plan commits.
+> No `commit_claim_mismatch`.
 
 ## Goal Achievement
 

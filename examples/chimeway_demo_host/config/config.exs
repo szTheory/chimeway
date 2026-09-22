@@ -17,6 +17,11 @@ config :chimeway_admin, path_prefix: "/admin/chimeway"
 config :chimeway,
   inbox_change_publisher: ChimewayInbox.PubSubPublisher
 
+# The demo host's Mailglass adapter is fake/local-only (config/test.exs), so it must not
+# depend on :hackney being incidentally present in its lock — swoosh 1.28 raises at boot
+# without an explicit api_client selection.
+config :swoosh, :api_client, false
+
 config :chimeway_inbox,
   auth_module: DemoHost.InboxAuth,
   pubsub_server: DemoHost.PubSub,

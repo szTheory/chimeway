@@ -466,7 +466,7 @@ defmodule Chimeway.Test.ArtifactConsumerFixture do
     repo_config = #{inspect(db_config)}
     config :artifact_consumer, ArtifactConsumer.Repo, repo_config
     config :chimeway, repo: ArtifactConsumer.Repo, prefix: "chimeway", dispatcher: Chimeway.Dispatch.Sync, adapter: Chimeway.Adapters.Logger
-    #{if(mailglass?, do: "config :chimeway, channel_adapters: %{\"email\" => Chimeway.Adapters.Mailglass}\n    config :chimeway, channel_adapter_configs: %{\"email\" => [mailables: %{\"artifact_consumer.mailglass_proof.email\" => {ArtifactConsumer.Mailers.MailglassProofEmail, :mailglass_proof_email}}]}\n    config :mailglass, repo: ArtifactConsumer.Repo, adapter: {Mailglass.Adapters.Fake, []}, tenancy: Mailglass.Tenancy.SingleTenant, suppression_store: Mailglass.SuppressionStore.Ecto, async_adapter: :oban, adapter_endpoint: \"artifact-consumer-mailglass-fake\"", else: "")}
+    #{if(mailglass?, do: "config :chimeway, channel_adapters: %{\"email\" => Chimeway.Adapters.Mailglass}\n    config :chimeway, channel_adapter_configs: %{\"email\" => [mailables: %{\"artifact_consumer.mailglass_proof.email\" => {ArtifactConsumer.Mailers.MailglassProofEmail, :mailglass_proof_email}}]}\n    config :mailglass, repo: ArtifactConsumer.Repo, adapter: {Mailglass.Adapters.Fake, []}, tenancy: Mailglass.Tenancy.SingleTenant, suppression_store: Mailglass.SuppressionStore.Ecto, async_adapter: :oban, adapter_endpoint: \"artifact-consumer-mailglass-fake\"\n    config :swoosh, :api_client, false", else: "")}
     #{if(accrue?, do: "config :accrue, repo: ArtifactConsumer.Repo, dunning: [engine: Accrue.Integrations.Chimeway, campaign: [enabled: true]]", else: "")}
     config :artifact_consumer, Oban, repo: ArtifactConsumer.Repo, testing: :manual, queues: false
     """

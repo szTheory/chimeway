@@ -1687,6 +1687,12 @@ defmodule Chimeway.ReleaseGateContractTest do
       refute source =~ "String.to_atom"
     end
 
+    test "generated consumer config sets a Swoosh api_client so the consumer boots without hackney" do
+      source = File.read!("priv/adoption_proof/artifact_consumer_fixture.ex")
+
+      assert source =~ "config :swoosh, :api_client, false"
+    end
+
     @tag timeout: 120_000
     test "a clean consumer proves one host-owned Mailglass transaction from only the unpacked artifact",
          %{
@@ -1743,6 +1749,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert proof.config_source =~ "config :chimeway, repo: ArtifactConsumer.Repo"
       assert proof.config_source =~ "config :mailglass, repo: ArtifactConsumer.Repo"
+      assert proof.config_source =~ "config :swoosh, :api_client, false"
       refute proof.config_source =~ "config :chimeway, Chimeway.Repo"
       assert proof.mix_source =~ "included_applications: [:chimeway]"
       assert proof.application_source =~ "Supervisor.start_link([ArtifactConsumer.Repo]"

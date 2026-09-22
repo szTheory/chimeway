@@ -54,6 +54,7 @@ config :artifact_consumer, ecto_repos: [ArtifactConsumer.Repo]
 config :artifact_consumer, ArtifactConsumer.Repo, repo_config
 config :chimeway, repo: ArtifactConsumer.Repo
 config :mailglass, repo: ArtifactConsumer.Repo
+config :swoosh, :api_client, false
 ```
 
 That makes the host module the Ecto migration repo for one `mix ecto.migrate` invocation: generated Chimeway migrations and the public `Mailglass.Migration.up/0` wrapper both run through `ArtifactConsumer.Repo`. The generated host loads Chimeway with `included_applications: [:chimeway]`, so Chimeway modules are available without separately starting `Chimeway.Repo`; `ArtifactConsumer.Application` supervises `ArtifactConsumer.Repo` once.
@@ -92,6 +93,8 @@ config :chimeway,
 Replace `DemoHost.Mailers.InviteEmail` with your host mailable module in production apps. The `render_key` string in notifier `rendering/2` must match the key in the `mailables` map.
 
 Configure Mailglass per its docs — repo, Swoosh adapter, and provider credentials. Chimeway does not manage Mailglass application config; it only invokes your mailable through the adapter at delivery time.
+
+Swoosh requires an explicit `api_client` selection at application start as of swoosh 1.28, where a missing selection became a hard boot-time failure rather than a runtime warning. Hosts on a fake or local adapter (tests, the clean-consumer proof) should disable it with `config :swoosh, :api_client, false`; hosts sending through an HTTP-backed provider adapter must supply a real client — `{:hackney, "~> 1.9"}`, Finch, or Req — or the VM refuses to boot.
 
 For the full Chimeway runtime setup (installer repo, `Chimeway.Repo`, supervisor), see [Installation §3–§4](installation.md#3-configuration).
 
