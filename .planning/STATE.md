@@ -3,18 +3,18 @@ gsd_state_version: "1.0"
 milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 status: Awaiting next milestone
-stopped_at: "Reconciled phase 107: re-verified stale fingerprint by re-executing mix verify.inbox (5 layers, 162 tests, 0 failures, exit 0) and mix ci.verify_gates (675 tests, 0 failures, exit 0) at HEAD ac2046c0; auto-signed 107-UAT.md from 6/6 machine-covered deliverables; closed all 6 open broken windows and 4 stale debug sessions. open_count now 0 — /gsd-ship unblocked."
-last_updated: "2026-09-22T09:52:37.924Z"
+stopped_at: "v1.19 Adopter Hardening & Inbox Lifecycle SHIPPED and RELEASED. Milestone archived (verified closeout, 4 phases, 8 plans, 9/9 requirements) and tagged v1.19. chimeway 1.2.1 published to Hex 2026-09-22T11:19:22Z with the swoosh 1.28 clean-room boot fix, the Optional APNs upstream-drift closes (incl. CVE-2026-82672 / mint 1.10.1) and the adopter-surface docs. ci-gate green on d50863d5; broken-windows open_count 0; all 5 debug sessions resolved; working tree clean. Development paused here. Next: /gsd-new-milestone to scope v1.20."
+last_updated: "2026-09-22T11:30:00.000Z"
 last_activity: 2026-09-22
-last_activity_desc: Milestone v1.19 completed and archived
-state_head: 436cbd49837bdf33a5dabeefb4a9c2ed0ffb70c3
+last_activity_desc: "v1.19 shipped and archived; chimeway 1.2.1 published to Hex; development paused"
+state_head: d50863d5266d3d991607f794556b01f8e7bb3241
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 8
   completed_plans: 8
   percent: 100
-current_phase: 107
+current_phase: null
 ---
 
 # Project State
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-12 for v1.19)
 Phase: Milestone v1.19 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-22 — Milestone v1.19 completed and archived
+Last activity: 2026-09-22 - v1.19 shipped and archived; chimeway 1.2.1 published to Hex; development paused
 
 ### Quick Tasks Completed
 
