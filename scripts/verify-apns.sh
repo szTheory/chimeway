@@ -112,8 +112,18 @@ run_consumer() {
       env -u CHIMEWAY_APNS_ENABLED CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.get
       env -u CHIMEWAY_APNS_ENABLED CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix deps.tree >"$tree_output"
       ! grep -Eqi 'pigeon|httpoison' "$tree_output" || fail "disabled fixture dependency tree contains APNs-only dependencies"
-      [[ $(grep -Eic 'hackney' "$tree_output") -eq 1 ]] || fail "disabled fixture has a Hackney edge beyond the root tzdata baseline"
-      awk '/tzdata ~> 1\.1/{seen = 1; next} seen && /hackney ~> 1\.17/{found = 1; exit} END {exit !found}' "$tree_output" || fail "disabled fixture lost the expected tzdata-to-Hackney baseline edge"
+      # tzdata's Hackney requirement became `optional: true` in tzdata 1.2 (still
+      # `~> 1.17 or ~> 4.0`), so a hermetic fresh resolve now leaves zero Hackney
+      # edges when nothing else needs it; older tzdata resolves still show exactly
+      # one. Either baseline is acceptable — more than one, or a lone edge that
+      # doesn't trace back to the tzdata requirement, is not.
+      set +e
+      apns_disabled_hackney_edges=$(grep -Eic 'hackney' "$tree_output")
+      set -e
+      [[ "$apns_disabled_hackney_edges" -le 1 ]] || fail "disabled fixture has a Hackney edge beyond the root tzdata baseline"
+      if [[ "$apns_disabled_hackney_edges" -eq 1 ]]; then
+        awk '/tzdata ~> 1\.1/{seen = 1; next} seen && /hackney (~> 1\.17|~> 1\.17 or ~> 4\.0)/{found = 1; exit} END {exit !found}' "$tree_output" || fail "disabled fixture lost the expected tzdata-to-Hackney baseline edge"
+      fi
       ! grep -qi pigeon mix.lock || fail "disabled fixture lock contains pigeon"
       ! grep -qi httpoison mix.lock || fail "disabled fixture lock contains HTTPoison"
       env -u CHIMEWAY_APNS_ENABLED CHIMEWAY_PACKAGE_PATH="$package_path" MIX_ENV=test mix compile --warnings-as-errors >>"$output"
