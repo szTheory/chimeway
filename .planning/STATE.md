@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v1.19
 milestone_name: Adopter Hardening & Inbox Lifecycle
 status: Awaiting next milestone
-stopped_at: "v1.19 Adopter Hardening & Inbox Lifecycle SHIPPED and RELEASED. Milestone archived (verified closeout, 4 phases, 8 plans, 9/9 requirements) and tagged v1.19. chimeway 1.2.1 published to Hex 2026-09-22T11:19:22Z with the swoosh 1.28 clean-room boot fix, the Optional APNs upstream-drift closes (incl. CVE-2026-82672 / mint 1.10.1) and the adopter-surface docs. ci-gate green on d50863d5; broken-windows open_count 0; all 5 debug sessions resolved; working tree clean. Development paused here. Next: /gsd-new-milestone to scope v1.20."
+stopped_at: "v1.19 Adopter Hardening & Inbox Lifecycle SHIPPED and RELEASED. Milestone archived (verified closeout, 4 phases, 8 plans, 9/9 requirements) and tagged v1.19. chimeway 1.2.1 published to Hex 2026-09-22T11:19:22Z with the swoosh 1.28 clean-room boot fix, the Optional APNs upstream-drift closes (incl. CVE-2026-82672 / mint 1.10.1) and the adopter-surface docs. ci-gate green on d50863d5; broken-windows open_count 0; all 5 debug sessions resolved; working tree clean. Development paused here. Open items for v1.20 are recorded durably, NOT only in session history: CI-HARDENING-BACKLOG.md #5 (release-automerge strands a touched release PR on a skipped ci-gate, with the one-command recovery) and #6 (dependabot PR #34 tzdata 1.1.5->1.2.0, green and ready to merge); milestones/v1.19-MILESTONE-AUDIT.md carries a post-close re-check showing 4 of its 6 tech-debt items are already fixed, leaving 2 genuinely open; RETROSPECTIVE.md v1.19 holds the engineering lessons. Next: /gsd-new-milestone to scope v1.20."
 last_updated: "2026-09-22T11:30:00.000Z"
 last_activity: 2026-09-22
-last_activity_desc: "v1.19 shipped and archived; chimeway 1.2.1 published to Hex; development paused"
+last_activity_desc: "v1.19 shipped and archived; chimeway 1.2.1 published to Hex; lessons + open items recorded to CI-HARDENING-BACKLOG/RETROSPECTIVE/audit; development paused"
 state_head: d50863d5266d3d991607f794556b01f8e7bb3241
 progress:
   total_phases: 4

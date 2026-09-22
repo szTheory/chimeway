@@ -64,3 +64,55 @@ _Filed 2026-07-29. Phase 88 fixed cache correctness (keys/collision/HITs) but th
 gh issue create --title "CI hardening: 3 CI-only lane failures blocking ci-gate" \
   --body-file .planning/CI-HARDENING-BACKLOG.md
 ```
+
+## 5. Release automerge strands a release PR whose branch was touched (filed 2026-09-22)
+
+**Status:** OPEN — candidate for v1.20. Self-inflicted only, recoverable in one command, but the failure message misdirects.
+
+- **Symptom:** `release-pr-automerge.yml` fails on an otherwise-green release PR with
+  `Latest ci-gate on <sha> must succeed before merge (found: skipped).`
+  Observed live on PR #35 (release 1.2.1), automerge run
+  [`35715121833`](https://github.com/szTheory/chimeway/actions/runs/35715121833) @ `56e90aff`.
+- **Mechanism:** `ci-gate` is declared `if: always() && github.event_name != 'pull_request'`
+  (`.github/workflows/ci.yml`) — it is deliberately skipped on PR events, because `pr-gate` is the
+  required check there. `release-pr-automerge.yml`'s "Verify ci-gate succeeded on target SHA" step
+  requires a **successful** `ci-gate` on the head SHA. A SHA whose only CI run is a `pull_request`
+  event therefore can never satisfy it.
+- **Trigger:** anything that creates a new head SHA on `release-please--branches--main` outside the
+  bot's own push — `gh pr update-branch`, the GitHub UI "Update branch" button, a rebase, or a
+  manual fixup commit. `release.yml`'s `Bootstrap CI on Release PR` job dispatches CI for the SHA it
+  knows about; a later human-created SHA supersedes that dispatch without replacing it.
+- **Recovery (one command):**
+  ```bash
+  gh workflow run ci.yml --ref release-please--branches--main
+  ```
+  `workflow_dispatch` is not `pull_request`, so `ci-gate` runs. Automerge re-fires automatically on
+  that run's `workflow_run` completion. Proven: dispatch run
+  [`35715184585`](https://github.com/szTheory/chimeway/actions/runs/35715184585) → `ci-gate: success`
+  → automerge [`35716697924`](https://github.com/szTheory/chimeway/actions/runs/35716697924) merged
+  PR #35 → 1.2.1 published.
+- **Suggested fix (pick one):**
+  1. Have automerge self-dispatch CI when it finds `ci-gate` missing or `skipped` on the target SHA,
+     then exit non-failing and let the new run re-trigger it. Removes the human step entirely.
+  2. Accept a green `pr-gate` when the only run on that SHA is a `pull_request` event — cheaper, but
+     weaker: `pr-gate` is the fast single-OTP subset, while `ci-gate` covers the full OTP matrix
+     ({26,27} plus the 1.17 floor). Publishing on the narrower signal is a real coverage reduction.
+  3. At minimum, extend the error text to name the recovery command, so the next person does not
+     read "found: skipped" as a broken gate.
+- **Note:** option 1 is preferred. The current behavior is *correct* (it refuses to publish on an
+  unproven SHA) — it is only the diagnosis and recovery that are unnecessarily manual.
+
+## 6. Dependabot PR #34 (tzdata 1.1.5 -> 1.2.0) — green and ready, deliberately held
+
+**Status:** OPEN — one-click merge whenever convenient.
+
+- Green as of 2026-09-22: 12 pass, 0 fail, after `gh pr update-branch 34`.
+- It had been **red for five days** (run `35288147510`, 2026-09-17) on `Adoption proof paths`,
+  `Optional APNs adapter gate`, `Release gate contract` and `Test (1.19/OTP 27)` — **not** because the
+  bump was bad, but because `main` was red underneath it. Quick task 260921-rjh fixed those lanes;
+  rebasing onto the fixed `main` turned the PR green with no change to the bump itself.
+- Directly related: tzdata 1.2 is the upstream change that made its Hackney requirement
+  `optional: true`, which invalidated the fixed one-edge assertion in `scripts/verify-apns.sh`. That
+  assertion is already widened on `main`, so merging this bump is safe.
+- Held only so release-please would not regenerate the in-flight 1.2.1 release PR. Merging brings the
+  root `mix.lock` in line with what the lockfile-free clean-room consumer already resolves to.

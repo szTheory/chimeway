@@ -701,12 +701,14 @@
 - When a contract test forbids `|| true` / `continue-on-error` / `--ignore` in a verification script, that prohibition is the feature: it forced regenerating the lock to a patched `mint 1.10.1` instead of making `mix hex.audit` advisory.
 - Distinguish GitHub workflow **run** IDs from **job** IDs when citing live-CI evidence; they are both ~11-digit integers and an agent reported the latter as the former.
 - Verify a pipeline's exit status unpiped — `mix ... | tail` yields `tail`'s exit code, which will report a failing gate as green.
+- A gate that is *correctly* skipped on one event type becomes a hard block for automation that requires it to have succeeded. `ci-gate` is skipped on `pull_request` by design, so any human-created SHA on a release branch strands `release-pr-automerge`; recovery is `gh workflow run ci.yml --ref release-please--branches--main`. Filed as CI-HARDENING-BACKLOG #5.
 
 ### Key Lessons
 
 1. A stale verification fingerprint is not noise to be cleared; it is an unanswered question about whether the evidence still holds. The cheap move (refresh the digest) and the correct move (re-run the evidence) look identical in the resulting file and differ entirely in what they prove.
 2. A clean-room proof with no lockfile is a continuous upstream-drift detector. Its red is frequently a genuine early warning for adopters, not proof-harness flakiness — here it caught a real boot failure that shipped docs would have reproduced.
 3. Hygiene debt is mostly bookkeeping, not work: 6 open windows and 5 debug sessions resolved to zero code changes and one genuine loose end. Auditing before assuming remediation is required prevents re-doing finished work.
+4. A milestone audit ages faster than it looks. v1.19's audit ran at 03:43Z on 2026-09-13 and recorded 6 tech-debt items; by the close, **4 of the 6 were already fixed** by commits that landed later the same day (`0cb29735`, `8e0f708f`, `6b1d4b3f`, `97cdb059`, `7fa13737`). Re-check an audit's findings against current code before carrying them forward, or the next milestone inherits phantom debt.
 
 ### Cost Observations
 
