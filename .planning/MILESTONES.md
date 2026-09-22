@@ -1,5 +1,54 @@
 # Milestones
 
+## v1.19 Adopter Hardening & Inbox Lifecycle (Shipped: 2026-09-22)
+
+**Phases completed:** 4 phases, 8 plans, 10 tasks
+
+**Key accomplishments:**
+
+- A source-valid CrossWake worker now executes the real redaction and exact-authority registry paths at a separately pinned, remotely reproducible revision.
+- Chimeway now proves the separately selected CrossWake recipe from a clean remote checkout and makes that proof mandatory everywhere release truth is decided.
+- Core Chimeway now emits optional, closed inbox reload hints only after durable truth exists.
+- Authorized connected inboxes now refresh from durable state through privacy-safe Phoenix PubSub hints.
+- Opening the authorized bell now records only visible items seen, once.
+- The reference host now proves an authorized bell-open progresses one eligible seen workflow exactly once.
+- Durable notification seen/read facts now flow chronologically through closed core evidence, explicit admin rendering, and the real mounted inbox-to-Trace-Detail journey.
+- A privacy-accurate inbox ownership guide, ownership-validated release cleanup, and one mutation-locked five-layer inbox gate now carry the lifecycle contract from local verification into both release aggregates.
+
+**Closeout:** `verified_closeout` — all 4 phases report `phase_complete: true` and `verification_status: passed`;
+all 9 v1.19 requirements (DOCS-02, GATE-02, INBX-03, INBX-04, INT-03, INT-04, INT-02, DOCS-03, GATE-03) are Complete
+with 0 unmapped. Broken-windows ledger `open_count: 0`.
+
+**Verification reconciliation at close.** Phase 107's `covered_digest` was stale on entry: 8 of its 24 covered inputs
+had drifted across 19 commits of post-107 release and hardening work. It was re-executed, not re-stamped —
+`mix verify.inbox` exit 0 across all five layers (76 + 29 + 9 + 41 + 7 = 162 tests, 0 failures, up from 154 at initial
+verification) and `mix ci.verify_gates` exit 0 (675 tests, 0 failures). Without that reconciliation this milestone
+would have closed as `override_closeout` with a recorded verification override it did not deserve.
+
+**Known verification overrides: 0 newly acknowledged, 3 carried forward.** The three carried-forward suppressions are
+**not fixed by this milestone** and are disclosed rather than implied resolved:
+
+| Item | Status | Origin |
+|------|--------|--------|
+| Phase 84 VERIFICATION — HTML Brandbook, Voice & Component States | `human_needed` | v1.15, acknowledged at v1.18 |
+| Phase 86 VERIFICATION — Accessibility Audit, Notes & Red-Team Close | `human_needed` | v1.15, acknowledged at v1.18 |
+| Phase 73 `deferred-items.md` — historical formatting drift record | acknowledged | v1.18 |
+
+All three are archived v1.15 Brand Book artifacts outside v1.19 scope, and accessibility/visual-brandbook sign-off is
+subjective judgment, which AGENTS.md legitimately reserves for a human gate.
+
+The four `debug_sessions` acknowledged at the v1.18 close **were** closed during this milestone: each already carried a
+complete `## Resolution` block and only its status field was stale. `wave7-postmerge-regressions` held the one real
+loose end (`release_gate: intentionally not rerun in this fast bundle`), discharged by a green `Release gate contract`
+on runs 35678709523 / 35679756564.
+
+**CI at close:** `ci-gate: success` on `436cbd49` (run 35711249116), 0 failures.
+
+**Stats:** 124 commits, 214 files changed, +15,396 / −866, 2026-09-12 → 2026-09-22. Task counts are available in only
+2 of 8 SUMMARYs; the other six predate the `actuals:` block, so the 10-task figure above is a partial count, not a total.
+
+---
+
 ## v1.18 Adopter Alpha Mobile Delivery Readiness (Shipped: 2026-09-12)
 
 **Phases completed:** 7 phases, 80 plans, 25 tasks
