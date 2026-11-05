@@ -90,10 +90,10 @@ run_consumer() {
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix deps.tree >"$tree_output"
       grep -Eq 'pigeon.*2\.0\.1' "$tree_output" || fail "enabled fixture did not resolve pigeon 2.0.1"
       grep -Eq 'httpoison.*3\.0\.0' "$tree_output" || fail "enabled fixture did not resolve httpoison 3.0.0"
-      grep -Eq 'hackney.*4\.7\.4' "$tree_output" || fail "enabled fixture did not resolve hackney 4.7.4"
+      grep -Eq 'hackney.*4\.9\.1' "$tree_output" || fail "enabled fixture did not resolve hackney 4.9.1"
       grep -Eq 'pigeon.*2\.0\.1' mix.lock || fail "enabled fixture lock does not pin pigeon 2.0.1"
       grep -Eq 'httpoison.*3\.0\.0' mix.lock || fail "enabled fixture lock does not pin httpoison 3.0.0"
-      grep -Eq 'hackney.*4\.7\.4' mix.lock || fail "enabled fixture lock does not pin hackney 4.7.4"
+      grep -Eq 'hackney.*4\.9\.1' mix.lock || fail "enabled fixture lock does not pin hackney 4.9.1"
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix hex.audit >>"$output"
       CHIMEWAY_PACKAGE_PATH="$package_path" CHIMEWAY_APNS_ENABLED=1 MIX_ENV=test mix compile --warnings-as-errors >>"$output"
       if [[ "$focus" == "bridge_to_cas" ]]; then

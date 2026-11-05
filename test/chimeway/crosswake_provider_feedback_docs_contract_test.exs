@@ -26,10 +26,6 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
     opts = [
       docs_authority: docs_authority,
       physical_authority: physical_authority,
-      advertised_head: fn
-        _remote, "refs/heads/phase-104-provider-feedback-recipe-truth" -> {:ok, @docs_sha}
-        _remote, "refs/heads/resume/chimeway-notification-physical-proof" -> {:ok, @physical_sha}
-      end,
       checkout: fn @docs_sha -> {:ok, root} end,
       command: fn
         "git", ["rev-parse", "HEAD"], _opts -> {@docs_sha <> "\n", 0}
@@ -492,19 +488,6 @@ defmodule Chimeway.CrosswakeProviderFeedbackDocsContractTest do
       assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
       refute_received :focused_test_executed
     end
-  end
-
-  test "rejects physical authority movement independently of docs authority", %{opts: opts} do
-    moved = String.duplicate("b", 40)
-
-    opts =
-      Keyword.put(opts, :advertised_head, fn
-        _remote, "refs/heads/phase-104-provider-feedback-recipe-truth" -> {:ok, @docs_sha}
-        _remote, "refs/heads/resume/chimeway-notification-physical-proof" -> {:ok, moved}
-      end)
-
-    assert :error = CrosswakeProviderFeedbackDocs.verify(opts)
-    refute_received :focused_test_executed
   end
 
   test "rejects malformed and substituted selected authorities without fallback", %{

@@ -7,7 +7,6 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
   @shortdoc "Verify the selected CrossWake physical-proof contract without credentials"
   @authority "priv/mobile_proof/crosswake-selected-sha"
   @remote "https://github.com/szTheory/crosswake.git"
-  @ref "refs/heads/resume/chimeway-notification-physical-proof"
   @module "lib/crosswake/proof_lane/chimeway_notification_physical_proof.ex"
   @fixture "test/fixtures/proof_lane/chimeway-notification-physical-proof.json"
   @focused_test "test/crosswake/proof_lane/chimeway_notification_physical_proof_test.exs"
@@ -15,7 +14,6 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
   @impl Mix.Task
   def run([]) do
     with {:ok, sha} <- selected_sha(),
-         :ok <- advertised?(sha),
          {:ok, checkout} <- fresh_checkout(sha),
          :ok <- verify_checkout(checkout, sha),
          :ok <- verify_chimeway_bundle(sha) do
@@ -39,16 +37,6 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
     end
   end
 
-  defp advertised?(sha) do
-    case System.cmd("git", ["ls-remote", @remote, @ref], stderr_to_stdout: true) do
-      {output, 0} when is_binary(output) ->
-        if String.starts_with?(output, sha <> "\t"), do: :ok, else: :error
-
-      _ ->
-        :error
-    end
-  end
-
   defp fresh_checkout(sha) do
     root =
       Path.join(System.tmp_dir!(), "chimeway-crosswake-#{System.unique_integer([:positive])}")
@@ -60,7 +48,7 @@ defmodule Mix.Tasks.Verify.PhysicalProofContract do
              stderr_to_stdout: true
            ),
          {_, 0} <-
-           System.cmd("git", ["fetch", "--quiet", "origin", @ref],
+           System.cmd("git", ["fetch", "--quiet", "origin", sha],
              cd: root,
              stderr_to_stdout: true
            ),
