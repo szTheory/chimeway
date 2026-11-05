@@ -22,7 +22,7 @@ defmodule APNSConsumer.MixProject do
       [
         {:pigeon, "== 2.0.1"},
         {:httpoison, "== 3.0.0", override: true},
-        {:hackney, "== 4.7.4", override: true}
+        {:hackney, "== 4.9.1", override: true}
       ]
     else
       []

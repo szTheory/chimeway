@@ -6,7 +6,6 @@ defmodule Mix.Tasks.Chimeway.MobilePhysicalProof do
 
   @shortdoc "Run or verify the bounded physical iPhone proof"
   @remote "https://github.com/szTheory/crosswake.git"
-  @ref "refs/heads/resume/chimeway-notification-physical-proof"
   @destination "evidence/mobile_physical/promoted"
   @focused_test "test/crosswake/proof_lane/chimeway_notification_physical_proof_test.exs"
   @phase_162 ".planning/workstreams/first-b2c-adopter-readiness/phases/162-physical-iphone-adoption-proof/162-VERIFICATION.md"
@@ -240,10 +239,7 @@ defmodule Mix.Tasks.Chimeway.MobilePhysicalProof do
   end
 
   defp source_bound({:ok, sha}) do
-    with {advertised, 0} <-
-           System.cmd("git", ["ls-remote", @remote, @ref], stderr_to_stdout: true),
-         true <- String.starts_with?(advertised, sha <> "\t"),
-         root when is_binary(root) <- System.get_env("CHIMEWAY_PHYSICAL_PROOF_CROSSWAKE_ROOT"),
+    with root when is_binary(root) <- System.get_env("CHIMEWAY_PHYSICAL_PROOF_CROSSWAKE_ROOT"),
          true <- Path.type(root) == :absolute,
          {head, 0} <- System.cmd("git", ["rev-parse", "HEAD"], cd: root, stderr_to_stdout: true),
          true <- String.trim(head) == sha,

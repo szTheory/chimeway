@@ -7,8 +7,6 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
   @docs_authority "priv/adoption/crosswake-provider-feedback-docs-selected-sha"
   @physical_authority "priv/mobile_proof/crosswake-selected-sha"
   @remote "https://github.com/szTheory/crosswake.git"
-  @docs_ref "refs/heads/phase-104-provider-feedback-recipe-truth"
-  @physical_ref "refs/heads/resume/chimeway-notification-physical-proof"
   @frozen_physical_sha "3165ab6938fa673f8a289c27699658bb78650ef3"
 
   @readme "examples/phoenix_host/README.md"
@@ -32,8 +30,6 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
 
     with {:ok, docs_sha} <- strict_sha(opts[:docs_authority]),
          {:ok, @frozen_physical_sha} <- strict_sha(opts[:physical_authority]),
-         {:ok, ^docs_sha} <- opts[:advertised_head].(@remote, @docs_ref),
-         {:ok, @frozen_physical_sha} <- opts[:advertised_head].(@remote, @physical_ref),
          {:ok, root} <- opts[:checkout].(docs_sha) do
       try do
         verify_checkout(root, docs_sha, opts)
@@ -49,7 +45,6 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
     [
       docs_authority: @docs_authority,
       physical_authority: @physical_authority,
-      advertised_head: &advertised_head/2,
       checkout: &fresh_checkout/1,
       command: &System.cmd/3,
       focused_test: &run_focused_test/1,
@@ -68,25 +63,6 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
     end
   end
 
-  defp advertised_head(remote, ref) do
-    case System.cmd("git", ["ls-remote", remote, ref], stderr_to_stdout: true) do
-      {output, 0} ->
-        case String.split(output, "\n", trim: true) do
-          [line] ->
-            case String.split(line, "\t", parts: 2) do
-              [sha, ^ref] when byte_size(sha) == 40 -> {:ok, sha}
-              _ -> :error
-            end
-
-          _ ->
-            :error
-        end
-
-      _ ->
-        :error
-    end
-  end
-
   defp fresh_checkout(sha) do
     root =
       Path.join(
@@ -99,7 +75,7 @@ defmodule Mix.Tasks.Verify.CrosswakeProviderFeedbackDocs do
              stderr_to_stdout: true
            ),
          {_, 0} <-
-           System.cmd("git", ["fetch", "--quiet", "origin", @docs_ref],
+           System.cmd("git", ["fetch", "--quiet", "origin", sha],
              cd: root,
              stderr_to_stdout: true
            ),

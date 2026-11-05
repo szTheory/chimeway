@@ -3297,8 +3297,7 @@ defmodule Chimeway.ReleaseGateContractTest do
             "image: postgres:15",
             "https://github.com/szTheory/crosswake.git",
             "priv/mobile_proof/crosswake-selected-sha",
-            "refs/heads/resume/chimeway-notification-physical-proof",
-            "git -C ../crosswake ls-remote origin",
+            "git -C ../crosswake fetch --depth=1 origin \"${selected_sha}\"",
             "checkout --detach",
             "rev-parse HEAD",
             "status --porcelain",
@@ -3359,8 +3358,7 @@ defmodule Chimeway.ReleaseGateContractTest do
       assert job =~ "contents: read"
 
       for marker <- [
-            "priv/adoption/crosswake-provider-feedback-docs-selected-sha",
-            "refs/heads/phase-104-provider-feedback-recipe-truth"
+            "priv/adoption/crosswake-provider-feedback-docs-selected-sha"
           ] do
         assert verifier =~ marker
       end
@@ -3381,7 +3379,6 @@ defmodule Chimeway.ReleaseGateContractTest do
       end
 
       physical_job = extract_ci_job_block(ci_yml, "verify_alpha_twin")
-      assert physical_job =~ "refs/heads/resume/chimeway-notification-physical-proof"
       assert physical_job =~ "priv/mobile_proof/crosswake-selected-sha"
       refute physical_job =~ "crosswake-provider-feedback-docs-selected-sha"
     end
@@ -3723,7 +3720,7 @@ defmodule Chimeway.ReleaseGateContractTest do
 
       assert fixture_mix =~ "{:pigeon, \"== 2.0.1\"}"
       assert fixture_mix =~ "{:httpoison, \"== 3.0.0\", override: true}"
-      assert fixture_mix =~ "{:hackney, \"== 4.7.4\", override: true}"
+      assert fixture_mix =~ "{:hackney, \"== 4.9.1\", override: true}"
       assert File.exists?(@fixture_lock)
     end
 
@@ -3735,7 +3732,7 @@ defmodule Chimeway.ReleaseGateContractTest do
             "cp \"$fixture_root/apns-enabled.lock\" mix.lock",
             "mix deps.get --check-locked",
             "httpoison.*3\\.0\\.0",
-            "hackney.*4\\.7\\.4",
+            "hackney.*4\\.9\\.1",
             "mix hex.audit"
           ] do
         assert script =~ required
