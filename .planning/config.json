@@ -59,8 +59,27 @@
   "features": {
     "thinking_partner": false
   },
-  "resolve_model_ids": false,
   "mode": "yolo",
   "granularity": "coarse",
-  "runtime": "claude"
+  "model_profile_overrides": {
+    "codex": {
+      "opus": "gpt-6.1-sol",
+      "sonnet": "gpt-6-luna",
+      "haiku": "gpt-6-luna"
+    },
+    "claude": {
+      "opus": "claude-opus-5-5",
+      "sonnet": "claude-sonnet-5-5",
+      "haiku": "claude-haiku-5-5"
+    }
+  },
+  "runtime": "claude",
+  "effort": {
+    "default": "medium",
+    "routing_tier_defaults": {
+      "light": "xhigh",
+      "standard": "high",
+      "heavy": "high"
+    }
+  }
 }
