@@ -90,7 +90,7 @@ jobs:
       MIX_ENV: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -155,7 +155,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -216,7 +216,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -259,7 +259,7 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -321,7 +321,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           elixir-version: ${{ matrix.elixir }}
@@ -380,7 +380,7 @@ jobs:
       CROSSWAKE_PATH: ../crosswake
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         with:
           version-file: .tool-versions
           version-type: strict
@@ -426,7 +426,7 @@ jobs:
       MIX_ENV: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -491,7 +491,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -571,7 +571,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -630,7 +630,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -711,7 +711,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -790,7 +790,7 @@ jobs:
           repository: szTheory/accrue
           ref: d30fc25dbf6ba551792c66ff451b4b93c0af4bf1
           path: accrue/accrue
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -865,7 +865,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -954,7 +954,7 @@ jobs:
           repository: szTheory/threadline
           ref: 46375fafc4df30fc916244ee4a21b7cae01f1ddc
           path: threadline/threadline
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -1038,7 +1038,7 @@ jobs:
           repository: szTheory/sigra
           ref: 1afd37f01e4e5b3ffdc93fbf309a381107d51e84
           path: sigra/sigra
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -1121,7 +1121,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -1234,7 +1234,7 @@ jobs:
             exit 0
           fi
           scripts/ci/detect-installer-changes.sh "${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         if: steps.detect.outputs.run == 'true'
         with:
@@ -1309,7 +1309,7 @@ jobs:
       PGHOST: localhost
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -1371,7 +1371,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -1420,7 +1420,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           elixir-version: "1.17"
@@ -1470,7 +1470,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         id: beam
         with:
           version-file: .tool-versions
@@ -1516,7 +1516,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost/chimeway_test
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         with:
           version-file: .tool-versions
           version-type: strict

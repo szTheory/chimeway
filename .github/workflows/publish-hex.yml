@@ -150,7 +150,7 @@ jobs:
         with:
           ref: ${{ needs.gate-ci-green.outputs.checkout_ref }}
 
-      - uses: erlef/setup-beam@8251c48667b97e88a0a24ec512f5b72a039fcea7
+      - uses: erlef/setup-beam@8736e9244717f9207464c14c6051b71d22253f60
         with:
           version-file: .tool-versions
           version-type: strict
