@@ -104,7 +104,7 @@ gh issue create --title "CI hardening: 3 CI-only lane failures blocking ci-gate"
 
 ## 6. Dependabot PR #34 (tzdata 1.1.5 -> 1.2.0) — green and ready, deliberately held
 
-**Status:** OPEN — one-click merge whenever convenient.
+**Status:** RESOLVED 2026-11-05 — dependabot superseded #34/#39; tzdata bumped to 1.2.2 directly (with ssl_verify_fun 1.1.9) via chore/tzdata-1.2.2.
 
 - Green as of 2026-09-22: 12 pass, 0 fail, after `gh pr update-branch 34`.
 - It had been **red for five days** (run `35288147510`, 2026-09-17) on `Adoption proof paths`,
