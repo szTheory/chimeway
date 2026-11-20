@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 Format: [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.2](https://github.com/szTheory/chimeway/compare/v1.2.1...v1.2.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* **ci:** clear dep advisories and unpin CrossWake gates from deleted branches ([#40](https://github.com/szTheory/chimeway/issues/40)) ([b1a5898](https://github.com/szTheory/chimeway/commit/b1a5898c3c6fafede74550286cf82fa3d6efd41a))
+
 ## [1.2.1](https://github.com/szTheory/chimeway/compare/v1.2.0...v1.2.1) (2026-09-22)
 
 
